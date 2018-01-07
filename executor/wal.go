@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"bytes"
@@ -29,7 +30,8 @@ type WALFileType struct {
 	RootPath     string // Path to the root directory, base of FileName
 	FilePath     string // WAL file full path
 	WrittenTGIDs []int64
-	FilePtr      *os.File // Active file pointer to FileName
+	FilePtr      *os.File   // Active file pointer to FileName
+	flushMutex   sync.Mutex // Taken while flushing WAL
 }
 
 func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
@@ -183,6 +185,11 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	if tgc == nil {
 		return nil
 	}
+
+	// take the lock to make sure we work on WTCount
+	wf.flushMutex.Lock()
+	defer wf.flushMutex.Unlock()
+
 	WTCount := len(tgc.writeChannel)
 	if WTCount == 0 {
 		return nil
@@ -285,6 +292,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 
 	return nil
 }
+
 func (wf *WALFileType) FlushToPrimary() error {
 	if len(wf.WrittenTGIDs) == 0 {
 		return nil
