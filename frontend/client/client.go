@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -49,6 +50,19 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (csm io.ColumnSer
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		var errText string
+		if err != nil {
+			errText = err.Error()
+		} else {
+			if bodyBytes != nil {
+				errText = string(bodyBytes)
+			}
+		}
+		return nil, fmt.Errorf("response error (%d): %s", resp.StatusCode, errText)
+	}
 
 	switch functionName {
 	case "Query", "SQLStatement":
