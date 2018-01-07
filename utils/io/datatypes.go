@@ -107,11 +107,22 @@ func (e EnumElementType) Size() int {
 	return attributeMap[e].size
 }
 
-func (e EnumElementType) ByteSliceAt(sliceOf interface{}, index int) (bs []byte) {
-	bs = SwapSliceData(sliceOf, byte(0)).([]byte)
+// SliceInBytesAt returns a byte representation of the element at
+// index position of the original type slice, but takes byte representation
+// of the original slice.  The caller can use this over ByteSliceAt() to
+// avoid repeated internal SwapSliceData calls.
+func (e EnumElementType) SliceInBytesAt(bs []byte, index int) []byte {
 	offset := index * e.Size()
 	return bs[offset : offset+e.Size()]
 }
+
+// ByteSliceAt returns a byte representation of the element in the original type
+// slice at index position.
+func (e EnumElementType) ByteSliceAt(sliceOf interface{}, index int) (bs []byte) {
+	bs = SwapSliceData(sliceOf, byte(0)).([]byte)
+	return e.SliceInBytesAt(bs, index)
+}
+
 func (e EnumElementType) SliceOf(length int) (sliceOf interface{}) {
 	typeOf := attributeMap[e].typeOf
 	return reflect.MakeSlice(typeOf, length, length)

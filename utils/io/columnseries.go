@@ -370,12 +370,16 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		Generate an ordered array from the map of columns, ordered by the data shapes
 	*/
 	columnList := make([]interface{}, 0, len(dataShapes))
+	colInBytesList := make([][]byte, 0, len(dataShapes))
 	for _, shape := range dataShapes {
 		colName := shape.Name
 		if strings.EqualFold(colName, "Epoch") {
 			shapesContainsEpoch = true
 		}
-		columnList = append(columnList, cs.columns[colName])
+		columnData := cs.columns[colName]
+		columnList = append(columnList, columnData)
+		colInBytes := SwapSliceData(columnData, byte(0)).([]byte)
+		colInBytesList = append(colInBytesList, colInBytes)
 	}
 	if !shapesContainsEpoch {
 		return nil, 0
@@ -395,15 +399,15 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		padbuf = make([]byte, padding)
 	}
 
-	data = []byte{}
 	epochCol := cs.columns["Epoch"].([]int64)
+	data = make([]byte, 0, recordLen*len(epochCol))
 	for i, epoch := range epochCol {
 		data, _ = Serialize(data, epoch)
 		for j, shape := range dataShapes {
 			if strings.EqualFold(shape.Name, "Epoch") {
 				continue
 			}
-			word := shape.Type.ByteSliceAt(columnList[j], i)
+			word := shape.Type.SliceInBytesAt(colInBytesList[j], i)
 			data = append(data, word...)
 		}
 
