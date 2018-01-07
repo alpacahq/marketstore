@@ -74,7 +74,7 @@ func processHelp(line string) {
 
 		- Example: start time only:
 
-			>> \show TSLA/1Min/OHLCV 2016-09-15-13:30
+			>> \show TSLA/1Min/OHLCV 2016-09-15T13:30
 
 		- Example: start and finish times:
 

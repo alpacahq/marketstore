@@ -143,8 +143,6 @@ func main() {
 			/*
 				SQL Statement - send it to the system
 			*/
-			//			fmt.Printf("Command \"%s\" not recognized\n", line)
-			//			processHelp("help")
 			processSQL(line)
 		}
 	}
@@ -239,12 +237,12 @@ func processCreate(line string) {
 	args = args[1:] // chop off the first word which should be "create"
 	parts := strings.Split(args[0], ":")
 	if len(parts) != 2 {
-		fmt.Println("Key is not in proper format, see \"help create\" ")
+		fmt.Println("Key is not in proper format, see \"\\help create\" ")
 		return
 	}
 	tbk := NewTimeBucketKey(parts[0], parts[1])
 	if tbk == nil {
-		fmt.Println("Key is not in proper format, see \"help create\" ")
+		fmt.Println("Key is not in proper format, see \"\\help create\" ")
 		return
 	}
 
@@ -565,7 +563,7 @@ func writeCSVChunk(dbWriter *executor.Writer, dataShapes []DataShape, dbKey Time
 func parseLoadArgs(args []string) (symbol, timeframe string, inputFD, controlFD *os.File) {
 	mk := NewTimeBucketKey(args[0])
 	if mk == nil {
-		fmt.Println("Key is not in proper format, see \"help load\" ")
+		fmt.Println("Key is not in proper format, see \"\\help load\" ")
 		return
 	}
 	symbol = mk.GetItemInCategory("Symbol")
@@ -698,11 +696,15 @@ func processQuery(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:]
 	if !(len(args) >= 2) {
-		fmt.Println("Not enough arguments, see \"help show\" ")
+		fmt.Println("Not enough arguments, see \"\\help show\" ")
 		return
 	}
 	toCsv = false
 	tbk, start, end := parseQueryArgs(args)
+	if tbk == nil {
+		fmt.Println("Could not parse arguments, see \"\\help show\" ")
+		return
+	}
 
 	timeStart := time.Now()
 	var csm ColumnSeriesMap
@@ -808,16 +810,15 @@ func processGapFinder(line string) {
 func parseQueryArgs(args []string) (tbk *TimeBucketKey, start, end *time.Time) {
 	tbk = NewTimeBucketKey(args[0])
 	if tbk == nil {
-		fmt.Println("Key is not in proper format, see \"help show\" ")
+		fmt.Println("Key is not in proper format, see \"\\help show\" ")
 		return
 	}
 	parsedTime := false
 	for _, arg := range args[1:] {
-		arg = strings.ToLower(arg)
-		switch {
-		case arg == "between":
-		case arg == "and":
-		case arg == "csv":
+		switch strings.ToLower(arg) {
+		case "between":
+		case "and":
+		case "csv":
 			toCsv = true
 		default:
 			if t, err := parseTime(arg); err != nil {
@@ -851,7 +852,7 @@ func parseTime(t string) (t_out time.Time, err error) {
 	case 10:
 		return time.Parse("2006-01-02", t)
 	case 16:
-		return time.Parse("2006-01-02-15:04", t)
+		return time.Parse("2006-01-02T15:04", t)
 	case 18:
 		return time.Parse("20060102 150405999", t)
 	default:
