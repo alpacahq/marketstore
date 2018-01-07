@@ -1,0 +1,78 @@
+-------------------------------------------- MarketStore Indicators -------------------------------------------
+--------------------------------------------------- 10/31/16 ---------------------------------------------------
+
+-------------------
+--- Background: ---
+-------------------
+
+    - Current python implementation of indicators is quite slow, and doesn't make sense to be done on the client side.
+    - The matching itself doesn't take so long, but the indicators (like ichimoku, smi etc.) do, so it makes sense
+      to move these calculations to marketstore
+    - It will make sense to batch send the symbols to be calculated from marketstore and have a dictionary of return
+      values sent back to the client with the results.
+
+---------------------
+--- Requirements: ---
+---------------------
+
+    - Take an input slice of symbols, and output a dictionary of the form:
+      indicator (string) -> symbol (string) -> value ([]float64)
+    - Run in parallel (on indicator)
+    - Take an input of a map with indicator names as keys, and window size for each as values
+
+---------------
+--- Design: ---
+---------------
+
+    Query Interface:
+
+        Input parms (msgpack):
+
+            - Keep existing parms...
+            - FunctionParms     (map[string]map[string]interface{})
+
+                ex:
+
+                        parms = ['open']nil
+                                ['RSI']['wsize'][14]
+                                ['RSI']['input']['close']
+
+
+        Output:
+
+            - Results               map[string][]byte
+            - Index                 []byte
+
+                                  epoch    open   ...  RSI(close, 14)
+                - ex: [AAPL][    12312421, 3.141, ...,     15.6      ]
+
+    The indicator calculations will be part of a generic SQL-esque function evaluation. The caller will supply the name
+    of the desired function, the data on which to evaluate it, as well as the window size. Theoretically, more parms
+    could be added to this going forward, but for now those are the imperative ones. This will have the effect of being
+    able to query as in a SQL statement like below:
+
+        SELECT open, high, low, close, RSI(close, 14), MACD(close, 12) FROM symbols;
+
+    Calculations will be executed in parallel based on indicator. This will allow for clean parallel map insertion,
+    and will not blow up the concurrency. The execution will be carried out very similarly to the current MatchPatterns()
+    functionality. To ensure simplicity and conciseness for clients of MarketStore, the data will be returned
+    essentially the same as for a standard query, but only with the fields specified by the DataParms field. If a client
+    wants only certain indicators, and no OHLC data, this can be specified.
+
+    With respect to the indicators themselves, it's clear that in addition the names of the desired parameters, we will
+    also need the desired window size. This will enable the client to specify the width of their calculations. Also,
+    since gap-filling will need to be done to ensure the data is homogeneous, we can save some memory in the output
+    by using the same index slice for the entire data set. This will be a slice of int64 epochs.
+
+    As it stands, the currently implemented ta-lib indicators in MarketStore are as follows:
+
+        - RSI
+        - MACD
+        - EMA
+        - RCI
+        - BBANDS
+        - SMI
+
+    That being said, TA-lib includes many more, and going forward, we can also include them. We also have the ichimoku
+    indicator calculations implemented within MarketStore, and going forward, more like this can be added in addition
+    to TA-lib.

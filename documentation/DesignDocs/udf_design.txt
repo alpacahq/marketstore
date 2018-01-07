@@ -1,0 +1,54 @@
+-------------------------------------- MarketStore User Defined Functions -------------------------------------
+--------------------------------------------------- 8/15/16 ---------------------------------------------------
+
+-------------------
+--- Background: ---
+-------------------
+
+    - The current method of candlestick pattern searching is very slow
+    - Due to MarketStore's efficient access of the data, and scalability, it makes sense to let it do the work
+      of searching for these patterns and returning a filtered list in the same way it does for direct query
+    - In the future, users of MarketStore, especially AlpacaScan, will want to be able to make queries that
+      that use custom functions to filter through the data and develop effective trading strategies
+
+---------------------
+--- Requirements: ---
+---------------------
+
+    - Custom 'scripting' language for users to build functions to parse and execute (perhaps q, go? ...)
+    - Sandbox to run functions in so that MarketStore is insulted from potential seg faults
+    - This UDF framework will need to be queried through HTTP, and be able to be delivered in both Npy, and
+      json format
+
+---------------
+--- Design: ---
+---------------
+
+    UDF Framework:
+
+        ...
+
+    Query Interface:
+
+    A call to the UDF query interface will need to include the following data:
+
+        - UDF string
+        - Symbols
+        - Metadata filter (parameters field)
+        - Time frame
+        - Time range
+        - Uncommitted flag
+
+    The only new input here is obviously the UDF string, which will be the function that the UDF engine will
+    need to ingest, and use to filter the data. The metadata parameters, time frame, time range, and
+    uncommitted flag will behave as they do with the current simple query. Note however, that an empty value
+    for Symbols will perform the query on all symbols with the given metadata parameters.
+
+    In effect, the interface will perform a simple query, using these arguments, and deliver that data to the
+    UDF engine along with the UDF string to perform its analysis on in memory. This makes this process a
+    two-step query operation, but makes things simpler because we do not need to alter the current query
+    design, and simply build out the UDF engine and pump in the requested frame of data.
+
+    When returning the data, the interface will behave exactly how the current query-multi interface does.
+    Since there will be a map of symbols and corresponding candles, just as in simple query, there is no need
+    to alter the return format.

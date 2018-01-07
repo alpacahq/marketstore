@@ -1,0 +1,100 @@
+-------------------------------------- RPC Write Interface Design -----------------------------------------
+-------------------
+--- Background: ---
+-------------------
+
+    - Xignite's currency data is low quality
+    - We may want to use broker's data source such as FXCM.  Their API is based on C++ and we have
+      some python wrapper
+    - When it comes to Kabu.com (Japanese stock broker) data, it is limited to the application
+      we provide to them, and not usable for other reasons.  So we will have a dedicated instance
+      that ingests their data separately
+    - We may want to overwrite some historical data sometimes, like we did in USDMXN
+
+---------------------
+--- Requirements: ---
+---------------------
+
+    - HTTP RPC interface
+    - encoding can be either json or msgpack
+    - one symbol/timeframe at a time
+    - it's ok to reject to write new symbol/timeframe
+    - it should have "aggregate" option so that the client just writes 1min data and let marketstore
+      aggregate up to 1d timeframe
+    - it should have "publish" option so that if you are writing to historical data, it won't pop up
+      in the subscribe interface
+
+---------------
+--- Design: ---
+---------------
+
+    The goal is to make the HTTP interface as simple and clean as possible, while still offering the most functionality.
+    The interface will, for now, consist of a simple Write() call, taking the form and parameteters shown below:
+
+    DataService.Write()
+
+    Input Parms (msgpack):
+
+        - Symbol        (string)
+        - Timeframe     (string)
+        - Data          ([]byte) - Npy format
+        - Publish       (bool)
+        - Overwrite     (bool) - I believe this is a necessary precaution to avoid accidental data corruption
+
+    Output:
+
+        - Success   (bool)
+        - Error msg (string) - nil if Success = true
+
+    Aggregating:
+
+    The current aggregation code can be used for the aggregation of the incoming candle data. Since we
+    are not concerning ourselves with a 'new' symbol, we can query the metadata for datatype, then build an
+    accumulator, and aggregate as usual for the input candles.
+
+    It is likely that data will be written either in conjunction with, or over preexisting data, and not just
+    in empty cells. To handle this, the data for the time series input will be queried to the nearest day
+    boundaries (beginning and end). This will allow for re-aggregation for all supported timeframes if there
+    is already other data present in the interval.
+
+    Take the example below, where we have 3 days of candle data for symbol TGT:
+
+     TGT       On-disk         Write() Input
+            -------------
+            |           |  <--  ...........
+     Day 1  |           |  <--  ...........
+            |...........|
+            |___________|  <--  ...........
+            |...........|
+            |...........|
+     Day 2  |...........|
+            |           |  <--  ...........
+            |___________|  <--  ...........
+            |           |  <--  ...........
+            |...........|
+     Day 3  |...........|
+            |...........|
+            -------------
+
+    We have partial data for each of the 3 days. If we receive data to the Write() interface that will
+    fill in the gaps, the aggregated candles up to 1D resolution will have to be re-built using the
+    input data AS WELL AS the on-disk data, hence the need for query in conjunction with reading the input.
+
+    Writing:
+
+    In order to create a new executor.Writer(), 3 things are needed: a parsed query result, a tgCache, and a
+    pointer to the catalog. With the symbol and timeframe, we will be able to parse a catalog query to satisfy
+    the first parameter to executor.NewWriter(). The tgCache, and catalog will easily be found using the
+    instance metadata with calls to executor.ThisInstance.TransactionGroupCache, and
+    executor.ThisInstance.CatalogDir.
+
+    Publishing:
+
+    In the (expected) event that there is a mixture of live and historical data being passed to the write
+    interface, publish needs to be controlled so no historical data is published to any subscribers. This can
+    be handled cleanly in the same way that it is done in the internal DataWriter() with th IsNew() flag on
+    the ResultSet interface. Upon receipt of the data, the trailing candle(s) will be identified as being new
+    or old based upon the last timestamp of the input data, and the current time, as is done on the polling
+    side. All historical data will be sliced off and placed in its own ResultSet, and the remaining 'new' data
+    will be passed as a separate result set so that IsNew() can be used to determine whether or not to publish
+    any candles.

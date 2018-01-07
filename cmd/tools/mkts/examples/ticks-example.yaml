@@ -1,0 +1,8 @@
+#20161230 21:59:20 383000,1.05213,1.05263
+
+firstRowHasColumnNames: false
+timeFormat: "20060102 15:04:05"
+timeZone: "US/Eastern" # If not blank, the time format must not feature a timezone
+
+columnNameMap: [Epoch, Bid, Ask]
+

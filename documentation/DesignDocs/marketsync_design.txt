@@ -1,0 +1,94 @@
+-------------------------------------------------------------------------------------------------------
+--------------------------------- MarketSync Design Document - v1.0.0 ---------------------------------
+-------------------------------------------------------------------------------------------------------
+
+---------------
+--- Preface ---
+---------------
+
+    The MarketSync application's primary function will be to manage upstream data streams, and
+    disseminate the data to its subscribed MarketStore instances. This will greatly simplify the
+    core MarketStore code, and allow for more configurability and generalization for future
+    upstream sources.
+
+    MarketSync's secondary function will be defined as repair/maintenance and include keeping
+    its subscribed MarketStore instances in sync. This will mean the system will need query
+    capability and will need to not only correct the anomalies, but also deliver reports on
+    the data maintenance operations it carries out.
+
+--------------------
+--- Requirements ---
+--------------------
+
+    Primary Functions:
+
+    - Metadata sync/management
+    - Data polling
+    - Data push
+    - New symbols (IPO's etc.)
+    - Stale checks (removed symbols etc.)
+    - Market hours (including holidays, flush calls)
+
+    Repair/Maintenance Functions:
+
+    - Query multiple MarketStore instances
+    - Compare data between instances and detect anomalies
+    - Repair anomalies
+    - Deliver report (slack, etc.)
+
+---------------------
+--- Configuration ---
+---------------------
+
+    There will be two separate configurations for the two main functions of MarketSync
+
+    Upstream Config:
+
+        - .yml format
+        - Maintenance/repair flag
+        - Map of upstreams and their parameters (API info, tuning etc.)
+        - Market hours/holiday configuration
+
+    Maintenance Config:
+
+        - .yml format
+        - Map of MarketStore sync links (e.g. mktsdb-01 <-> mktsdb-02)
+        - Tuning parameters
+        - Reporting parameters
+
+----------------
+--- Use Case ---
+----------------
+
+    The intended use case for MarketSync will be for it to run in its own Docker container,
+    available to be subscribed to by N MarketStore instances, and both catch up, and deliver live
+    data to them. That being said, MarketStore's operation will not be dependent on a running
+    MarketSync. The two will be independent, but Sync will be needed for Store to receive new data
+    (except through the write interface).
+
+    Upon starting up, MarketStore will attempt to connect via WebSocket to MarketSync. Once this
+    connection is established, an initial handshake will take place between the Store and the Sync.
+    This handshake will include the following exchange of information:
+
+        MarketStore -> MarketSync:
+
+            - Symbols + Data types required (i.e. TICKS: AAPL, NVDA ... & OHLCV: IBM, BAC ... etc)
+            -
+
+        MarketSync -> MarketStore:
+
+            - Symbols + Data types available
+            -
+
+    Upon completing this handshake, both Sync and Store will understand their responsibilities for
+    data delivery (Sync) and data management (Store). For example, if a MarketStore requests both
+    OHLCV and ticks for a given symbol from MarketSync, and Sync only has ticks for that symbol,
+    MarketStore will understand it won't be getting candles from Sync, and will either take it upon
+    itself to aggregate the ticks, or only write the ticks.
+
+    Once the handshake is complete, a link between Store and Sync is established, and polling can
+    begin. Data will be batched into 4K binary messages and sent over websocket protocol. In a LAN
+    configuration I anticipate a max throughput anywhere from 40-100 MB/sec. Testing on Azure
+    environment is still required.
+
+    MORE TO COME...

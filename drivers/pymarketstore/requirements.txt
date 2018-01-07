@@ -1,0 +1,7 @@
+msgpack-python==0.4.8
+numpy==1.11.1
+pandas==0.18.1
+requests==2.18.4
+six==1.11.0
+urllib3==1.22
+pytest==3.2.3

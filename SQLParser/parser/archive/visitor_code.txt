@@ -1,0 +1,1638 @@
+/@Override
+/*
+func (node *AstBuilder) VisitSingleExpression(ctx *SingleExpressionContext)
+{
+return visit(ctx.expression())
+}
+
+// ******************* statements **********************
+
+//@Override
+func (node *AstBuilder) VisitUse(ctx *UseContext)
+{
+return new Use(getLocation(ctx), getTextIfPresent(ctx.catalog), ctx.schema.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitCreateSchema(ctx *CreateSchemaContext)
+{
+	return new CreateSchema(
+			getLocation(ctx),
+			getQualifiedName(ctx.qualifiedName()),
+			ctx.EXISTS() != nil,
+			processTableProperties(ctx.tableProperties()))
+}
+
+//@Override
+func (node *AstBuilder) VisitDropSchema(ctx *DropSchemaContext)
+{
+	return new DropSchema(
+			getLocation(ctx),
+			getQualifiedName(ctx.qualifiedName()),
+			ctx.EXISTS() != nil,
+			ctx.CASCADE() != nil)
+}
+
+//@Override
+func (node *AstBuilder) VisitRenameSchema(ctx *RenameSchemaContext)
+{
+	return new RenameSchema(
+			getLocation(ctx),
+			getQualifiedName(ctx.qualifiedName()),
+			ctx.identifier().getText())
+}
+*/
+
+/*
+//@Override
+func (node *AstBuilder) VisitCreateTableAsSelect(ctx *CreateTableAsSelectContext) {
+	// return new CreateTableAsSelect(getLocation(ctx), getQualifiedName(ctx.qualifiedName()), (Query) visit(ctx.query()), ctx.EXISTS() != nil, processTableProperties(ctx.tableProperties()), ctx.NO() == nil)
+	fmt.Println(ctx.QualifiedName().GetText())
+	fmt.Println(node.Visit(ctx.Query()))
+	fmt.Println(ctx.EXISTS())
+	fmt.Println(ctx.TableProperties().GetText())
+	return nil
+}
+
+//@Override
+func (node *AstBuilder) VisitCreateTable(ctx *CreateTableContext)
+{
+	return new CreateTable(getLocation(ctx), getQualifiedName(ctx.qualifiedName()), visit(ctx.tableElement(), TableElement.class), ctx.EXISTS() != nil, processTableProperties(ctx.tableProperties()))
+}
+
+func Map<String, Expression> processTableProperties(TablePropertiesContext tablePropertiesContext)
+{
+	ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder()
+	if (tablePropertiesContext != nil) {
+		for (TablePropertyContext tablePropertyContext : tablePropertiesContext.tableProperty()) {
+			properties.put(tablePropertyContext.identifier().getText(), (Expression) visit(tablePropertyContext.expression()))
+		}
+	}
+	return properties.build()
+}
+
+//@Override
+func (node *AstBuilder) VisitShowCreateTable(ctx *ShowCreateTableContext)
+{
+	return new ShowCreate(getLocation(ctx), ShowCreate.Type.TABLE, getQualifiedName(ctx.qualifiedName()))
+}
+*/
+
+/*
+
+//@Override
+func (node *AstBuilder) VisitDropTable(ctx *DropTableContext)
+{
+	return new DropTable(getLocation(ctx), getQualifiedName(ctx.qualifiedName()), ctx.EXISTS() != nil)
+}
+
+//@Override
+func (node *AstBuilder) VisitDropView(ctx *DropViewContext)
+{
+	return new DropView(getLocation(ctx), getQualifiedName(ctx.qualifiedName()), ctx.EXISTS() != nil)
+}
+
+//@Override
+func (node *AstBuilder) VisitInsertInto(ctx *InsertIntoContext)
+{
+	return new Insert(
+			getQualifiedName(ctx.qualifiedName()),
+			Optional.ofNullable(getColumnAliases(ctx.columnAliases())),
+			(Query) visit(ctx.query()))
+}
+
+//@Override
+func (node *AstBuilder) VisitDelete(ctx *DeleteContext)
+{
+	return new Delete(
+			getLocation(ctx),
+			new Table(getLocation(ctx), getQualifiedName(ctx.qualifiedName())),
+			visitIfPresent(ctx.booleanExpression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitRenameTable(ctx *RenameTableContext)
+{
+	return new RenameTable(getLocation(ctx), getQualifiedName(ctx.from), getQualifiedName(ctx.to))
+}
+
+//@Override
+func (node *AstBuilder) VisitRenameColumn(ctx *RenameColumnContext)
+{
+	return new RenameColumn(getLocation(ctx), getQualifiedName(ctx.tableName), ctx.from.getText(), ctx.to.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitAddColumn(ctx *AddColumnContext)
+{
+	return new AddColumn(getLocation(ctx), getQualifiedName(ctx.qualifiedName()), (ColumnDefinition) visit(ctx.columnDefinition()))
+}
+
+//@Override
+func (node *AstBuilder) VisitCreateView(ctx *CreateViewContext)
+{
+	return new CreateView(
+			getLocation(ctx),
+			getQualifiedName(ctx.qualifiedName()),
+			(Query) visit(ctx.query()),
+			ctx.REPLACE() != nil)
+}
+
+//@Override
+func (node *AstBuilder) VisitStartTransaction(ctx *StartTransactionContext)
+{
+	return new StartTransaction(visit(ctx.transactionMode(), TransactionMode.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitCommit(ctx *CommitContext)
+{
+	return new Commit(getLocation(ctx))
+}
+
+//@Override
+func (node *AstBuilder) VisitRollback(ctx *RollbackContext)
+{
+	return new Rollback(getLocation(ctx))
+}
+
+//@Override
+func (node *AstBuilder) VisitTransactionAccessMode(ctx *TransactionAccessModeContext)
+{
+	return new TransactionAccessMode(getLocation(ctx), ctx.accessMode.getType() == SqlBaseLexer.ONLY)
+}
+
+//@Override
+func (node *AstBuilder) VisitIsolationLevel(ctx *IsolationLevelContext)
+{
+	return visit(ctx.levelOfIsolation())
+}
+
+//@Override
+func (node *AstBuilder) VisitReadUncommitted(ctx *ReadUncommittedContext)
+{
+	return new Isolation(getLocation(ctx), Isolation.Level.READ_UNCOMMITTED)
+}
+
+//@Override
+func (node *AstBuilder) VisitReadCommitted(ctx *ReadCommittedContext)
+{
+	return new Isolation(getLocation(ctx), Isolation.Level.READ_COMMITTED)
+}
+
+//@Override
+func (node *AstBuilder) VisitRepeatableRead(ctx *RepeatableReadContext)
+{
+	return new Isolation(getLocation(ctx), Isolation.Level.REPEATABLE_READ)
+}
+
+//@Override
+func (node *AstBuilder) VisitSerializable(ctx *SerializableContext)
+{
+	return new Isolation(getLocation(ctx), Isolation.Level.SERIALIZABLE)
+}
+
+//@Override
+func (node *AstBuilder) VisitCall(ctx *CallContext)
+{
+	return new Call(
+			getLocation(ctx),
+			getQualifiedName(ctx.qualifiedName()),
+			visit(ctx.callArgument(), CallArgument.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitPrepare(ctx *PrepareContext)
+{
+	String name = ctx.identifier().getText()
+	return new Prepare(getLocation(ctx), name, (Statement) visit(ctx.statement()))
+}
+
+//@Override
+func (node *AstBuilder) VisitDeallocate(ctx *DeallocateContext)
+{
+	String name = ctx.identifier().getText()
+	return new Deallocate(getLocation(ctx), name)
+}
+
+//@Override
+func (node *AstBuilder) VisitExecute(ctx *ExecuteContext)
+{
+	String name = ctx.identifier().getText()
+	return new Execute(getLocation(ctx), name, visit(ctx.expression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitDescribeOutput(ctx *DescribeOutputContext)
+{
+	String name = ctx.identifier().getText()
+	return new DescribeOutput(getLocation(ctx), name)
+}
+
+//@Override
+func (node *AstBuilder) VisitDescribeInput(ctx *DescribeInputContext)
+{
+	String name = ctx.identifier().getText()
+	return new DescribeInput(getLocation(ctx), name)
+}
+
+*/
+
+// ********************** query expressions ********************
+
+/*
+//@Override
+func (node *AstBuilder) VisitQuery(ctx *QueryContext) {
+	fmt.Println(node.Visit(ctx.QueryNoWith()))
+}
+*/
+
+/*
+//@Override
+func (node *AstBuilder) VisitWith(ctx *WithContext)
+{
+	return new With(getLocation(ctx), ctx.RECURSIVE() != nil, visit(ctx.namedQuery(), WithQuery.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitNamedQuery(ctx *NamedQueryContext)
+{
+	return new WithQuery(getLocation(ctx), ctx.name.getText(), (Query) visit(ctx.query()), Optional.ofNullable(getColumnAliases(ctx.columnAliases())))
+}
+*/
+
+//@Override
+func (node *AstBuilder) VisitQueryNoWith(ctx *QueryNoWithContext) ParserRuleContext {
+	sr := node.QTCurrent.Rel.(*SelectRelation)
+
+	if ctx.ORDER() != nil {
+		sortItems := ctx.AllSortItem()
+		if len(sortItems) != 0 {
+			sr.OrderBy = make([]SortItem, len(sortItems))
+			for i, si := range sortItems {
+				token := si.GetOrdering()
+				if token != nil {
+					switch strings.ToUpper(token.GetText()) {
+					case "ASC":
+						sr.OrderBy[i].Order = ASCENDING
+					case "DESC":
+						sr.OrderBy[i].Order = DESCENDING
+					}
+				}
+				token = si.GetNullOrdering()
+				if token != nil {
+					switch strings.ToUpper(token.GetText()) {
+					case "FIRST":
+						sr.OrderBy[i].NullOrder = FIRST
+					case "LAST":
+						sr.OrderBy[i].NullOrder = LAST
+					}
+				}
+			}
+		}
+	}
+
+	term := node.Visit(ctx.QueryTerm())
+	if query, ok := term.(QuerySpecificationContext); ok {
+		fmt.Println(query.SELECT().GetText())
+		fmt.Println(query.FROM().GetText())
+		fmt.Println(query.WHERE().GetText())
+		fmt.Println(query.GroupBy())
+		fmt.Println(query.GetHaving())
+		fmt.Println(ctx.GetLimit())
+		fmt.Println(query.SetQuantifier())
+		fmt.Println(query.AllSelectItem())
+	} else {
+		fmt.Println(term)
+	}
+
+	return nil
+}
+
+/*
+//@Override
+func (node *AstBuilder) VisitQuerySpecification(ctx *QuerySpecificationContext)
+{
+Optional<Relation> from = Optional.empty()
+List<SelectItem> selectItems = visit(ctx.selectItem(), SelectItem.class)
+
+List<Relation> relations = visit(ctx.relation(), Relation.class)
+if (!relations.isEmpty()) {
+// synthesize implicit join nodes
+Iterator<Relation> iterator = relations.iterator()
+Relation relation = iterator.next()
+
+while (iterator.hasNext()) {
+relation = new Join(getLocation(ctx), Join.Type.IMPLICIT, relation, iterator.next(), Optional.empty())
+}
+
+from = Optional.of(relation)
+}
+
+return new QuerySpecification(
+getLocation(ctx),
+new Select(getLocation(ctx.SELECT()), isDistinct(ctx.setQuantifier()), selectItems),
+from,
+visitIfPresent(ctx.where, Expression.class),
+visitIfPresent(ctx.groupBy(), GroupBy.class),
+visitIfPresent(ctx.having, Expression.class),
+Optional.empty(),
+Optional.empty())
+}
+
+//@Override
+func (node *AstBuilder) VisitGroupBy(ctx *GroupByContext)
+{
+return new GroupBy(getLocation(ctx), isDistinct(ctx.setQuantifier()), visit(ctx.groupingElement(), GroupingElement.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitSingleGroupingSet(ctx *SingleGroupingSetContext)
+{
+return new SimpleGroupBy(getLocation(ctx), visit(ctx.groupingExpressions().expression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitRollup(ctx *RollupContext)
+{
+return new Rollup(getLocation(ctx), ctx.qualifiedName().stream()
+.map(AstBuilder::getQualifiedName)
+.collect(toList()))
+}
+
+//@Override
+func (node *AstBuilder) VisitCube(ctx *CubeContext)
+{
+return new Cube(getLocation(ctx), ctx.qualifiedName().stream()
+.map(AstBuilder::getQualifiedName)
+.collect(toList()))
+}
+
+//@Override
+func (node *AstBuilder) VisitMultipleGroupingSets(ctx *MultipleGroupingSetsContext)
+{
+return new GroupingSets(getLocation(ctx), ctx.groupingSet().stream()
+.map(groupingSet -> groupingSet.qualifiedName().stream()
+.map(AstBuilder::getQualifiedName)
+.collect(toList()))
+.collect(toList()))
+}
+
+//@Override
+func (node *AstBuilder) VisitSetOperation(ctx *SetOperationContext)
+{
+QueryBody left = (QueryBody) visit(ctx.left)
+QueryBody right = (QueryBody) visit(ctx.right)
+
+boolean distinct = ctx.setQuantifier() == nil || ctx.setQuantifier().DISTINCT() != nil
+
+switch (ctx.operator.getType()) {
+case SqlBaseLexer.UNION:
+return new Union(getLocation(ctx.UNION()), ImmutableList.of(left, right), distinct)
+case SqlBaseLexer.INTERSECT:
+return new Intersect(getLocation(ctx.INTERSECT()), ImmutableList.of(left, right), distinct)
+case SqlBaseLexer.EXCEPT:
+return new Except(getLocation(ctx.EXCEPT()), left, right, distinct)
+}
+
+throw new IllegalArgumentException("Unsupported set operation: " + ctx.operator.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitSelectAll(ctx *SelectAllContext)
+{
+if (ctx.qualifiedName() != nil) {
+return new AllColumns(getLocation(ctx), getQualifiedName(ctx.qualifiedName()))
+}
+
+return new AllColumns(getLocation(ctx))
+}
+
+//@Override
+func (node *AstBuilder) VisitSelectSingle(ctx *SelectSingleContext)
+{
+Optional<String> alias = getTextIfPresent(ctx.identifier())
+
+return new SingleColumn(getLocation(ctx), (Expression) visit(ctx.expression()), alias)
+}
+
+//@Override
+func (node *AstBuilder) VisitTable(ctx *TableContext)
+{
+return new Table(getLocation(ctx), getQualifiedName(ctx.qualifiedName()))
+}
+
+//@Override
+func (node *AstBuilder) VisitSubquery(ctx *SubqueryContext)
+{
+return new TableSubquery(getLocation(ctx), (Query) visit(ctx.queryNoWith()))
+}
+
+//@Override
+func (node *AstBuilder) VisitInlineTable(ctx *InlineTableContext)
+{
+return new Values(getLocation(ctx), visit(ctx.expression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitExplain(ctx *ExplainContext)
+{
+return new Explain(getLocation(ctx), ctx.ANALYZE() != nil, (Statement) visit(ctx.statement()), visit(ctx.explainOption(), ExplainOption.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitExplainFormat(ctx *ExplainFormatContext)
+{
+switch (ctx.value.getType()) {
+case SqlBaseLexer.GRAPHVIZ:
+return new ExplainFormat(getLocation(ctx), ExplainFormat.Type.GRAPHVIZ)
+case SqlBaseLexer.TEXT:
+return new ExplainFormat(getLocation(ctx), ExplainFormat.Type.TEXT)
+}
+
+throw new IllegalArgumentException("Unsupported EXPLAIN format: " + ctx.value.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitExplainType(ctx *ExplainTypeContext)
+{
+switch (ctx.value.getType()) {
+case SqlBaseLexer.LOGICAL:
+return new ExplainType(getLocation(ctx), ExplainType.Type.LOGICAL)
+case SqlBaseLexer.DISTRIBUTED:
+return new ExplainType(getLocation(ctx), ExplainType.Type.DISTRIBUTED)
+case SqlBaseLexer.VALIDATE:
+return new ExplainType(getLocation(ctx), ExplainType.Type.VALIDATE)
+}
+
+throw new IllegalArgumentException("Unsupported EXPLAIN type: " + ctx.value.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitShowTables(ctx *ShowTablesContext)
+{
+return new ShowTables(
+getLocation(ctx),
+Optional.ofNullable(ctx.qualifiedName())
+.map(AstBuilder::getQualifiedName),
+getTextIfPresent(ctx.pattern)
+.map(AstBuilder::unquote))
+}
+
+//@Override
+func (node *AstBuilder) VisitShowSchemas(ctx *ShowSchemasContext)
+{
+return new ShowSchemas(
+getLocation(ctx),
+getTextIfPresent(ctx.identifier()),
+getTextIfPresent(ctx.pattern)
+.map(AstBuilder::unquote))
+}
+
+//@Override
+func (node *AstBuilder) VisitShowCatalogs(ctx *ShowCatalogsContext)
+{
+return new ShowCatalogs(getLocation(ctx),
+getTextIfPresent(ctx.pattern)
+.map(AstBuilder::unquote))
+}
+
+//@Override
+func (node *AstBuilder) VisitShowColumns(ctx *ShowColumnsContext)
+{
+return new ShowColumns(getLocation(ctx), getQualifiedName(ctx.qualifiedName()))
+}
+
+//@Override
+func (node *AstBuilder) VisitShowPartitions(ctx *ShowPartitionsContext)
+{
+return new ShowPartitions(
+getLocation(ctx),
+getQualifiedName(ctx.qualifiedName()),
+visitIfPresent(ctx.booleanExpression(), Expression.class),
+visit(ctx.sortItem(), SortItem.class),
+getTextIfPresent(ctx.limit))
+}
+
+//@Override
+func (node *AstBuilder) VisitShowCreateView(ctx *ShowCreateViewContext)
+{
+return new ShowCreate(getLocation(ctx), ShowCreate.Type.VIEW, getQualifiedName(ctx.qualifiedName()))
+}
+
+//@Override
+func (node *AstBuilder) VisitShowFunctions(ctx *ShowFunctionsContext)
+{
+return new ShowFunctions(getLocation(ctx))
+}
+
+//@Override
+func (node *AstBuilder) VisitShowSession(ctx *ShowSessionContext)
+{
+return new ShowSession(getLocation(ctx))
+}
+
+//@Override
+func (node *AstBuilder) VisitSetSession(ctx *SetSessionContext)
+{
+return new SetSession(getLocation(ctx), getQualifiedName(ctx.qualifiedName()), (Expression) visit(ctx.expression()))
+}
+
+//@Override
+func (node *AstBuilder) VisitResetSession(ctx *ResetSessionContext)
+{
+return new ResetSession(getLocation(ctx), getQualifiedName(ctx.qualifiedName()))
+}
+
+//@Override
+func (node *AstBuilder) VisitGrant(ctx *GrantContext)
+{
+String grantee = ctx.grantee.getText()
+
+Optional<List<String>> privileges
+if (ctx.ALL() != nil) {
+privileges = Optional.empty()
+}
+else {
+privileges = Optional.of(ctx.privilege().stream()
+.map(ctx *PrivilegeContext::getText)
+.collect(toList()))
+}
+return new Grant(
+getLocation(ctx),
+privileges,
+ctx.TABLE() != nil,
+getQualifiedName(ctx.qualifiedName()),
+grantee,
+ctx.OPTION() != nil)
+}
+
+//@Override
+func (node *AstBuilder) VisitRevoke(ctx *RevokeContext)
+{
+Optional<List<String>> privileges
+if (ctx.ALL() != nil) {
+privileges = Optional.empty()
+}
+else {
+privileges = Optional.of(ctx.privilege().stream()
+.map(ctx *PrivilegeContext::getText)
+.collect(toList()))
+}
+return new Revoke(
+getLocation(ctx),
+ctx.OPTION() != nil,
+privileges,
+ctx.TABLE() != nil,
+getQualifiedName(ctx.qualifiedName()),
+ctx.grantee.getText())
+}
+
+// ***************** boolean expressions ******************
+
+//@Override
+func (node *AstBuilder) VisitLogicalNot(ctx *LogicalNotContext)
+{
+return new NotExpression(getLocation(ctx), (Expression) visit(ctx.booleanExpression()))
+}
+
+//@Override
+func (node *AstBuilder) VisitLogicalBinary(ctx *LogicalBinaryContext)
+{
+return new LogicalBinaryExpression(
+getLocation(ctx.operator),
+getLogicalBinaryOperator(ctx.operator),
+(Expression) visit(ctx.left),
+(Expression) visit(ctx.right))
+}
+
+// *************** from clause *****************
+
+//@Override
+func (node *AstBuilder) VisitJoinRelation(ctx *JoinRelationContext)
+{
+Relation left = (Relation) visit(ctx.left)
+Relation right
+
+if (ctx.CROSS() != nil) {
+right = (Relation) visit(ctx.right)
+return new Join(getLocation(ctx), Join.Type.CROSS, left, right, Optional.empty())
+}
+
+JoinCriteria criteria
+if (ctx.NATURAL() != nil) {
+right = (Relation) visit(ctx.right)
+criteria = new NaturalJoin()
+}
+else {
+right = (Relation) visit(ctx.rightRelation)
+if (ctx.joinCriteria().ON() != nil) {
+criteria = new JoinOn((Expression) visit(ctx.joinCriteria().booleanExpression()))
+}
+else if (ctx.joinCriteria().USING() != nil) {
+List<String> columns = ctx.joinCriteria()
+.identifier().stream()
+.map(ParseTree::getText)
+.collect(toList())
+
+criteria = new JoinUsing(columns)
+}
+else {
+throw new IllegalArgumentException("Unsupported join criteria")
+}
+}
+
+Join.Type joinType
+if (ctx.joinType().LEFT() != nil) {
+joinType = Join.Type.LEFT
+}
+else if (ctx.joinType().RIGHT() != nil) {
+joinType = Join.Type.RIGHT
+}
+else if (ctx.joinType().FULL() != nil) {
+joinType = Join.Type.FULL
+}
+else {
+joinType = Join.Type.INNER
+}
+
+return new Join(getLocation(ctx), joinType, left, right, Optional.of(criteria))
+}
+
+//@Override
+func (node *AstBuilder) VisitSampledRelation(ctx *SampledRelationContext)
+{
+Relation child = (Relation) visit(ctx.aliasedRelation())
+
+if (ctx.TABLESAMPLE() == nil) {
+return child
+}
+
+return new SampledRelation(
+getLocation(ctx),
+child,
+getSamplingMethod((Token) ctx.sampleType().getChild(0).getPayload()),
+(Expression) visit(ctx.percentage))
+}
+
+//@Override
+func (node *AstBuilder) VisitAliasedRelation(ctx *AliasedRelationContext)
+{
+Relation child = (Relation) visit(ctx.relationPrimary())
+
+if (ctx.identifier() == nil) {
+return child
+}
+
+return new AliasedRelation(getLocation(ctx), child, ctx.identifier().getText(), getColumnAliases(ctx.columnAliases()))
+}
+
+//@Override
+func (node *AstBuilder) VisitTableName(ctx *TableNameContext)
+{
+return new Table(getLocation(ctx), getQualifiedName(ctx.qualifiedName()))
+}
+
+//@Override
+func (node *AstBuilder) VisitSubqueryRelation(ctx *SubqueryRelationContext)
+{
+return new TableSubquery(getLocation(ctx), (Query) visit(ctx.query()))
+}
+
+//@Override
+func (node *AstBuilder) VisitUnnest(ctx *UnnestContext)
+{
+return new Unnest(getLocation(ctx), visit(ctx.expression(), Expression.class), ctx.ORDINALITY() != nil)
+}
+
+//@Override
+func (node *AstBuilder) VisitParenthesizedRelation(ctx *ParenthesizedRelationContext)
+{
+return visit(ctx.relation())
+}
+
+// ********************* predicates *******************
+
+//@Override
+func (node *AstBuilder) VisitPredicated(ctx *PredicatedContext)
+{
+if (ctx.predicate() != nil) {
+return visit(ctx.predicate())
+}
+
+return visit(ctx.valueExpression)
+}
+
+//@Override
+func (node *AstBuilder) VisitComparison(ctx *ComparisonContext)
+{
+return new ComparisonExpression(
+getLocation(ctx.comparisonOperator()),
+getComparisonOperator(((TerminalNode) ctx.comparisonOperator().getChild(0)).getSymbol()),
+(Expression) visit(ctx.value),
+(Expression) visit(ctx.right))
+}
+
+//@Override
+func (node *AstBuilder) VisitDistinctFrom(ctx *DistinctFromContext)
+{
+Expression expression = new ComparisonExpression(
+getLocation(ctx),
+ComparisonExpressionType.IS_DISTINCT_FROM,
+(Expression) visit(ctx.value),
+(Expression) visit(ctx.right))
+
+if (ctx.NOT() != nil) {
+expression = new NotExpression(getLocation(ctx), expression)
+}
+
+return expression
+}
+
+//@Override
+func (node *AstBuilder) VisitBetween(ctx *BetweenContext)
+{
+Expression expression = new BetweenPredicate(
+getLocation(ctx),
+(Expression) visit(ctx.value),
+(Expression) visit(ctx.lower),
+(Expression) visit(ctx.upper))
+
+if (ctx.NOT() != nil) {
+expression = new NotExpression(getLocation(ctx), expression)
+}
+
+return expression
+}
+
+//@Override
+func (node *AstBuilder) VisitNullPredicate(ctx *NullPredicateContext)
+{
+Expression child = (Expression) visit(ctx.value)
+
+if (ctx.NOT() == nil) {
+return new IsNullPredicate(getLocation(ctx), child)
+}
+
+return new IsNotNullPredicate(getLocation(ctx), child)
+}
+
+//@Override
+func (node *AstBuilder) VisitLike(ctx *LikeContext)
+{
+Expression escape = nil
+if (ctx.escape != nil) {
+escape = (Expression) visit(ctx.escape)
+}
+
+Expression result = new LikePredicate(getLocation(ctx), (Expression) visit(ctx.value), (Expression) visit(ctx.pattern), escape)
+
+if (ctx.NOT() != nil) {
+result = new NotExpression(getLocation(ctx), result)
+}
+
+return result
+}
+
+//@Override
+func (node *AstBuilder) VisitInList(ctx *InListContext)
+{
+Expression result = new InPredicate(
+getLocation(ctx),
+(Expression) visit(ctx.value),
+new InListExpression(getLocation(ctx), visit(ctx.expression(), Expression.class)))
+
+if (ctx.NOT() != nil) {
+result = new NotExpression(getLocation(ctx), result)
+}
+
+return result
+}
+
+//@Override
+func (node *AstBuilder) VisitInSubquery(ctx *InSubqueryContext)
+{
+Expression result = new InPredicate(
+getLocation(ctx),
+(Expression) visit(ctx.value),
+new SubqueryExpression(getLocation(ctx), (Query) visit(ctx.query())))
+
+if (ctx.NOT() != nil) {
+result = new NotExpression(getLocation(ctx), result)
+}
+
+return result
+}
+
+//@Override
+func (node *AstBuilder) VisitExists(ctx *ExistsContext)
+{
+return new ExistsPredicate(getLocation(ctx), new SubqueryExpression(getLocation(ctx), (Query) visit(ctx.query())))
+}
+
+//@Override
+func (node *AstBuilder) VisitQuantifiedComparison(ctx *QuantifiedComparisonContext)
+{
+return new QuantifiedComparisonExpression(
+getLocation(ctx.comparisonOperator()),
+getComparisonOperator(((TerminalNode) ctx.comparisonOperator().getChild(0)).getSymbol()),
+getComparisonQuantifier(((TerminalNode) ctx.comparisonQuantifier().getChild(0)).getSymbol()),
+(Expression) visit(ctx.value),
+new SubqueryExpression(getLocation(ctx.query()), (Query) visit(ctx.query())))
+}
+
+// ************** value expressions **************
+
+//@Override
+func (node *AstBuilder) VisitArithmeticUnary(ctx *ArithmeticUnaryContext)
+{
+Expression child = (Expression) visit(ctx.valueExpression())
+
+switch (ctx.operator.getType()) {
+case SqlBaseLexer.MINUS:
+return ArithmeticUnaryExpression.negative(getLocation(ctx), child)
+case SqlBaseLexer.PLUS:
+return ArithmeticUnaryExpression.positive(getLocation(ctx), child)
+default:
+throw new UnsupportedOperationException("Unsupported sign: " + ctx.operator.getText())
+}
+}
+
+//@Override
+func (node *AstBuilder) VisitArithmeticBinary(ctx *ArithmeticBinaryContext)
+{
+return new ArithmeticBinaryExpression(
+getLocation(ctx.operator),
+getArithmeticBinaryOperator(ctx.operator),
+(Expression) visit(ctx.left),
+(Expression) visit(ctx.right))
+}
+
+//@Override
+func (node *AstBuilder) VisitConcatenation(ctx *ConcatenationContext)
+{
+return new FunctionCall(
+getLocation(ctx.CONCAT()),
+QualifiedName.of("concat"), ImmutableList.of(
+(Expression) visit(ctx.left),
+(Expression) visit(ctx.right)))
+}
+
+//@Override
+func (node *AstBuilder) VisitAtTimeZone(ctx *AtTimeZoneContext)
+{
+return new AtTimeZone(
+getLocation(ctx.AT()),
+(Expression) visit(ctx.valueExpression()),
+(Expression) visit(ctx.timeZoneSpecifier()))
+}
+
+//@Override
+func (node *AstBuilder) VisitTimeZoneInterval(ctx *TimeZoneIntervalContext)
+{
+return visit(ctx.interval())
+}
+
+//@Override
+func (node *AstBuilder) VisitTimeZoneString(ctx *TimeZoneStringContext)
+{
+return new StringLiteral(getLocation(ctx), unquote(ctx.STRING().getText()))
+}
+
+// ********************* primary expressions **********************
+
+//@Override
+func (node *AstBuilder) VisitParenthesizedExpression(ctx *ParenthesizedExpressionContext)
+{
+return visit(ctx.expression())
+}
+
+//@Override
+func (node *AstBuilder) VisitRowConstructor(ctx *RowConstructorContext)
+{
+return new Row(getLocation(ctx), visit(ctx.expression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitArrayConstructor(ctx *ArrayConstructorContext)
+{
+return new ArrayConstructor(getLocation(ctx), visit(ctx.expression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitCast(ctx *CastContext)
+{
+boolean isTryCast = ctx.TRY_CAST() != nil
+return new Cast(getLocation(ctx), (Expression) visit(ctx.expression()), getType(ctx.type()), isTryCast)
+}
+
+//@Override
+func (node *AstBuilder) VisitSpecialDateTimeFunction(ctx *SpecialDateTimeFunctionContext)
+{
+CurrentTime.Type type = getDateTimeFunctionType(ctx.name)
+
+if (ctx.precision != nil) {
+return new CurrentTime(getLocation(ctx), type, Integer.parseInt(ctx.precision.getText()))
+}
+
+return new CurrentTime(getLocation(ctx), type)
+}
+
+//@Override
+func (node *AstBuilder) VisitExtract(ctx *ExtractContext)
+{
+String fieldString = ctx.identifier().getText()
+Extract.Field field
+try {
+field = Extract.Field.valueOf(fieldString.toUpperCase())
+}
+catch (IllegalArgumentException e) {
+throw new ParsingException(format("Invalid EXTRACT field: %s", fieldString), nil, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine())
+}
+return new Extract(getLocation(ctx), (Expression) visit(ctx.valueExpression()), field)
+}
+
+//@Override
+func (node *AstBuilder) VisitSubstring(ctx *SubstringContext)
+{
+return new FunctionCall(getLocation(ctx), QualifiedName.of("substr"), visit(ctx.valueExpression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitPosition(ctx *PositionContext)
+{
+List<Expression> arguments = Lists.reverse(visit(ctx.valueExpression(), Expression.class))
+return new FunctionCall(getLocation(ctx), QualifiedName.of("strpos"), arguments)
+}
+
+//@Override
+func (node *AstBuilder) VisitNormalize(ctx *NormalizeContext)
+{
+Expression str = (Expression) visit(ctx.valueExpression())
+String normalForm = Optional.ofNullable(ctx.normalForm()).map(ParserRuleContext::getText).orElse("NFC")
+return new FunctionCall(getLocation(ctx), QualifiedName.of("normalize"), ImmutableList.of(str, new StringLiteral(getLocation(ctx), normalForm)))
+}
+
+//@Override
+func (node *AstBuilder) VisitSubscript(ctx *SubscriptContext)
+{
+return new SubscriptExpression(getLocation(ctx), (Expression) visit(ctx.value), (Expression) visit(ctx.index))
+}
+
+//@Override
+func (node *AstBuilder) VisitSubqueryExpression(ctx *SubqueryExpressionContext)
+{
+return new SubqueryExpression(getLocation(ctx), (Query) visit(ctx.query()))
+}
+
+//@Override
+func (node *AstBuilder) VisitDereference(ctx *DereferenceContext)
+{
+return new DereferenceExpression(getLocation(ctx), (Expression) visit(ctx.base), ctx.fieldName.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitColumnReference(ctx *ColumnReferenceContext)
+{
+return new Identifier(getLocation(ctx), ctx.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitSimpleCase(ctx *SimpleCaseContext)
+{
+return new SimpleCaseExpression(
+getLocation(ctx),
+(Expression) visit(ctx.valueExpression()),
+visit(ctx.whenClause(), WhenClause.class),
+visitIfPresent(ctx.elseExpression, Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitSearchedCase(ctx *SearchedCaseContext)
+{
+return new SearchedCaseExpression(
+getLocation(ctx),
+visit(ctx.whenClause(), WhenClause.class),
+visitIfPresent(ctx.elseExpression, Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitWhenClause(ctx *WhenClauseContext)
+{
+return new WhenClause(getLocation(ctx), (Expression) visit(ctx.condition), (Expression) visit(ctx.result))
+}
+
+//@Override
+func (node *AstBuilder) VisitFunctionCall(ctx *FunctionCallContext)
+{
+Optional<Expression> filter = visitIfPresent(ctx.filter(), Expression.class)
+Optional<Window> window = visitIfPresent(ctx.over(), Window.class)
+
+QualifiedName name = getQualifiedName(ctx.qualifiedName())
+
+boolean distinct = isDistinct(ctx.setQuantifier())
+
+if (name.toString().equalsIgnoreCase("if")) {
+check(ctx.expression().size() == 2 || ctx.expression().size() == 3, "Invalid number of arguments for 'if' function", context)
+check(!window.isPresent(), "OVER clause not valid for 'if' function", context)
+check(!distinct, "DISTINCT not valid for 'if' function", context)
+
+Expression elseExpression = nil
+if (ctx.expression().size() == 3) {
+elseExpression = (Expression) visit(ctx.expression(2))
+}
+
+return new IfExpression(
+getLocation(ctx),
+(Expression) visit(ctx.expression(0)),
+(Expression) visit(ctx.expression(1)),
+elseExpression)
+}
+if (name.toString().equalsIgnoreCase("nilif")) {
+check(ctx.expression().size() == 2, "Invalid number of arguments for 'nilif' function", context)
+check(!window.isPresent(), "OVER clause not valid for 'nilif' function", context)
+check(!distinct, "DISTINCT not valid for 'nilif' function", context)
+
+return new NullIfExpression(
+getLocation(ctx),
+(Expression) visit(ctx.expression(0)),
+(Expression) visit(ctx.expression(1)))
+}
+if (name.toString().equalsIgnoreCase("coalesce")) {
+check(!window.isPresent(), "OVER clause not valid for 'coalesce' function", context)
+check(!distinct, "DISTINCT not valid for 'coalesce' function", context)
+
+return new CoalesceExpression(getLocation(ctx), visit(ctx.expression(), Expression.class))
+}
+if (name.toString().equalsIgnoreCase("try")) {
+check(ctx.expression().size() == 1, "The 'try' function must have exactly one argument", context)
+check(!window.isPresent(), "OVER clause not valid for 'try' function", context)
+check(!distinct, "DISTINCT not valid for 'try' function", context)
+
+return new TryExpression(getLocation(ctx), (Expression) visit(getOnlyElement(ctx.expression())))
+}
+
+return new FunctionCall(
+getLocation(ctx),
+getQualifiedName(ctx.qualifiedName()),
+window,
+filter,
+distinct,
+visit(ctx.expression(), Expression.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitLambda(ctx *LambdaContext)
+{
+List<LambdaArgumentDeclaration> arguments = ctx.identifier().stream()
+.map(ctx *IdentifierContext::getText)
+.map(LambdaArgumentDeclaration::new)
+.collect(toList())
+
+Expression body = (Expression) visit(ctx.expression())
+
+return new LambdaExpression(arguments, body)
+}
+
+//@Override
+func (node *AstBuilder) VisitFilter(ctx *FilterContext)
+{
+return visit(ctx.booleanExpression())
+}
+
+//@Override
+func (node *AstBuilder) VisitOver(ctx *OverContext)
+{
+return new Window(
+getLocation(ctx),
+visit(ctx.partition, Expression.class),
+visit(ctx.sortItem(), SortItem.class),
+visitIfPresent(ctx.windowFrame(), WindowFrame.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitColumnDefinition(ctx *ColumnDefinitionContext)
+{
+Optional<String> comment = Optional.empty()
+if (ctx.COMMENT() != nil) {
+comment = Optional.of(unquote(ctx.STRING().getText()))
+}
+return new ColumnDefinition(getLocation(ctx), ctx.identifier().getText(), getType(ctx.type()), comment)
+}
+
+//@Override
+func (node *AstBuilder) VisitLikeClause(ctx *LikeClauseContext)
+{
+return new LikeClause(
+getLocation(ctx),
+getQualifiedName(ctx.qualifiedName()),
+Optional.ofNullable(ctx.optionType)
+.map(AstBuilder::getPropertiesOption))
+}
+
+//@Override
+func (node *AstBuilder) VisitSortItem(ctx *SortItemContext)
+{
+return new SortItem(
+getLocation(ctx),
+(Expression) visit(ctx.expression()),
+Optional.ofNullable(ctx.ordering)
+.map(AstBuilder::getOrderingType)
+.orElse(SortItem.Ordering.ASCENDING),
+Optional.ofNullable(ctx.nilOrdering)
+.map(AstBuilder::getNullOrderingType)
+.orElse(SortItem.NullOrdering.UNDEFINED))
+}
+
+//@Override
+func (node *AstBuilder) VisitWindowFrame(ctx *WindowFrameContext)
+{
+return new WindowFrame(
+getLocation(ctx),
+getFrameType(ctx.frameType),
+(FrameBound) visit(ctx.start),
+visitIfPresent(ctx.end, FrameBound.class))
+}
+
+//@Override
+func (node *AstBuilder) VisitUnboundedFrame(ctx *UnboundedFrameContext)
+{
+return new FrameBound(getLocation(ctx), getUnboundedFrameBoundType(ctx.boundType))
+}
+
+//@Override
+func (node *AstBuilder) VisitBoundedFrame(ctx *BoundedFrameContext)
+{
+return new FrameBound(getLocation(ctx), getBoundedFrameBoundType(ctx.boundType), (Expression) visit(ctx.expression()))
+}
+
+//@Override
+func (node *AstBuilder) VisitCurrentRowBound(ctx *CurrentRowBoundContext)
+{
+return new FrameBound(getLocation(ctx), FrameBound.Type.CURRENT_ROW)
+}
+
+// ************** literals **************
+
+//@Override
+func (node *AstBuilder) VisitNullLiteral(ctx *NullLiteralContext)
+{
+return new NullLiteral(getLocation(ctx))
+}
+
+//@Override
+func (node *AstBuilder) VisitStringLiteral(ctx *StringLiteralContext)
+{
+return new StringLiteral(getLocation(ctx), unquote(ctx.STRING().getText()))
+}
+
+//@Override
+func (node *AstBuilder) VisitBinaryLiteral(ctx *BinaryLiteralContext)
+{
+String raw = ctx.BINARY_LITERAL().getText()
+return new BinaryLiteral(getLocation(ctx), unquote(raw.substring(1)))
+}
+
+//@Override
+func (node *AstBuilder) VisitTypeConstructor(ctx *TypeConstructorContext)
+{
+String value = unquote(ctx.STRING().getText())
+
+if (ctx.DOUBLE_PRECISION() != nil) {
+// TODO: Temporary hack that should be removed with new planner.
+return new GenericLiteral(getLocation(ctx), "DOUBLE", value)
+}
+
+String tt = ctx.identifier().getText()
+if (tt.equalsIgnoreCase("time")) {
+return new TimeLiteral(getLocation(ctx), value)
+}
+if (tt.equalsIgnoreCase("timestamp")) {
+return new TimestampLiteral(getLocation(ctx), value)
+}
+if (tt.equalsIgnoreCase("decimal")) {
+return new DecimalLiteral(getLocation(ctx), value)
+}
+if (tt.equalsIgnoreCase("char")) {
+return new CharLiteral(getLocation(ctx), value)
+}
+
+return new GenericLiteral(getLocation(ctx), tt, value)
+}
+
+//@Override
+func (node *AstBuilder) VisitIntegerLiteral(ctx *IntegerLiteralContext)
+{
+return new LongLiteral(getLocation(ctx), ctx.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitDecimalLiteral(ctx *DecimalLiteralContext)
+{
+return new DoubleLiteral(getLocation(ctx), ctx.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitBooleanValue(ctx *BooleanValueContext)
+{
+return new BooleanLiteral(getLocation(ctx), ctx.getText())
+}
+
+//@Override
+func (node *AstBuilder) VisitInterval(ctx *IntervalContext)
+{
+return new IntervalLiteral(
+getLocation(ctx),
+unquote(ctx.STRING().getText()),
+Optional.ofNullable(ctx.sign)
+.map(AstBuilder::getIntervalSign)
+.orElse(IntervalLiteral.Sign.POSITIVE),
+getIntervalFieldType((Token) ctx.from.getChild(0).getPayload()),
+Optional.ofNullable(ctx.to)
+.map((x) -> x.getChild(0).getPayload())
+.map(Token.class::cast)
+.map(AstBuilder::getIntervalFieldType))
+}
+
+//@Override
+func (node *AstBuilder) VisitParameter(ctx *ParameterContext)
+{
+Parameter parameter = new Parameter(getLocation(ctx), parameterPosition)
+parameterPosition++
+return parameter
+}
+
+// ***************** arguments *****************
+
+//@Override
+func (node *AstBuilder) VisitPositionalArgument(ctx *PositionalArgumentContext)
+{
+return new CallArgument(getLocation(ctx), (Expression) visit(ctx.expression()))
+}
+
+//@Override
+func (node *AstBuilder) VisitNamedArgument(ctx *NamedArgumentContext)
+{
+return new CallArgument(getLocation(ctx), ctx.identifier().getText(), (Expression) visit(ctx.expression()))
+}
+
+// ***************** helpers *****************
+
+//@Override
+protected Node defaultResult()
+{
+return nil
+}
+
+//@Override
+protected Node aggregateResult(Node aggregate, Node nextResult)
+{
+if (nextResult == nil) {
+throw new UnsupportedOperationException("not yet implemented")
+}
+
+if (aggregate == nil) {
+return nextResult
+}
+
+throw new UnsupportedOperationException("not yet implemented")
+}
+
+func <T> Optional<T> visitIfPresent(ParserRuleContext context, Class<T> clazz)
+{
+return Optional.ofNullable(ctx)
+.map(this::visit)
+.map(clazz::cast)
+}
+
+func <T> List<T> visit(List<? extends ParserRuleContext> contexts, Class<T> clazz)
+{
+return contexts.stream()
+.map(this::visit)
+.map(clazz::cast)
+.collect(toList())
+}
+
+func String unquote(String value)
+{
+return value.substring(1, value.length() - 1)
+.replace("''", "'")
+}
+
+func LikeClause.PropertiesOption getPropertiesOption(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.INCLUDING:
+return LikeClause.PropertiesOption.INCLUDING
+case SqlBaseLexer.EXCLUDING:
+return LikeClause.PropertiesOption.EXCLUDING
+}
+throw new IllegalArgumentException("Unsupported LIKE option type: " + token.getText())
+}
+
+func QualifiedName getQualifiedName(ctx *QualifiedNameContext)
+{
+List<String> parts = context
+.identifier().stream()
+.map(ParseTree::getText)
+.collect(toList())
+
+return QualifiedName.of(parts)
+}
+
+func boolean isDistinct(ctx *SetQuantifierContext setQuantifier)
+{
+return setQuantifier != nil && setQuantifier.DISTINCT() != nil
+}
+
+func Optional<String> getTextIfPresent(ParserRuleContext)
+{
+return Optional.ofNullable(ctx)
+.map(ParseTree::getText)
+}
+
+func Optional<String> getTextIfPresent(Token token)
+{
+return Optional.ofNullable(token)
+.map(Token::getText)
+}
+
+func List<String> getColumnAliases(ctx *ColumnAliasesContext columnAliasesContext)
+{
+if (columnAliasesContext == nil) {
+return nil
+}
+
+return columnAliasesContext
+.identifier().stream()
+.map(ParseTree::getText)
+.collect(toList())
+}
+
+func ArithmeticBinaryExpression.Type getArithmeticBinaryOperator(Token operator)
+{
+switch (operator.getType()) {
+case SqlBaseLexer.PLUS:
+return ArithmeticBinaryExpression.Type.ADD
+case SqlBaseLexer.MINUS:
+return ArithmeticBinaryExpression.Type.SUBTRACT
+case SqlBaseLexer.ASTERISK:
+return ArithmeticBinaryExpression.Type.MULTIPLY
+case SqlBaseLexer.SLASH:
+return ArithmeticBinaryExpression.Type.DIVIDE
+case SqlBaseLexer.PERCENT:
+return ArithmeticBinaryExpression.Type.MODULUS
+}
+
+throw new UnsupportedOperationException("Unsupported operator: " + operator.getText())
+}
+
+func ComparisonExpressionType getComparisonOperator(Token symbol)
+{
+switch (symbol.getType()) {
+case SqlBaseLexer.EQ:
+return ComparisonExpressionType.EQUAL
+case SqlBaseLexer.NEQ:
+return ComparisonExpressionType.NOT_EQUAL
+case SqlBaseLexer.LT:
+return ComparisonExpressionType.LESS_THAN
+case SqlBaseLexer.LTE:
+return ComparisonExpressionType.LESS_THAN_OR_EQUAL
+case SqlBaseLexer.GT:
+return ComparisonExpressionType.GREATER_THAN
+case SqlBaseLexer.GTE:
+return ComparisonExpressionType.GREATER_THAN_OR_EQUAL
+}
+
+throw new IllegalArgumentException("Unsupported operator: " + symbol.getText())
+}
+
+func CurrentTime.Type getDateTimeFunctionType(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.CURRENT_DATE:
+return CurrentTime.Type.DATE
+case SqlBaseLexer.CURRENT_TIME:
+return CurrentTime.Type.TIME
+case SqlBaseLexer.CURRENT_TIMESTAMP:
+return CurrentTime.Type.TIMESTAMP
+case SqlBaseLexer.LOCALTIME:
+return CurrentTime.Type.LOCALTIME
+case SqlBaseLexer.LOCALTIMESTAMP:
+return CurrentTime.Type.LOCALTIMESTAMP
+}
+
+throw new IllegalArgumentException("Unsupported special function: " + token.getText())
+}
+
+func IntervalLiteral.IntervalField getIntervalFieldType(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.YEAR:
+return IntervalLiteral.IntervalField.YEAR
+case SqlBaseLexer.MONTH:
+return IntervalLiteral.IntervalField.MONTH
+case SqlBaseLexer.DAY:
+return IntervalLiteral.IntervalField.DAY
+case SqlBaseLexer.HOUR:
+return IntervalLiteral.IntervalField.HOUR
+case SqlBaseLexer.MINUTE:
+return IntervalLiteral.IntervalField.MINUTE
+case SqlBaseLexer.SECOND:
+return IntervalLiteral.IntervalField.SECOND
+}
+
+throw new IllegalArgumentException("Unsupported interval field: " + token.getText())
+}
+
+func IntervalLiteral.Sign getIntervalSign(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.MINUS:
+return IntervalLiteral.Sign.NEGATIVE
+case SqlBaseLexer.PLUS:
+return IntervalLiteral.Sign.POSITIVE
+}
+
+throw new IllegalArgumentException("Unsupported sign: " + token.getText())
+}
+
+func WindowFrame.Type getFrameType(Token type)
+{
+switch (type.getType()) {
+case SqlBaseLexer.RANGE:
+return WindowFrame.Type.RANGE
+case SqlBaseLexer.ROWS:
+return WindowFrame.Type.ROWS
+}
+
+throw new IllegalArgumentException("Unsupported frame type: " + type.getText())
+}
+
+func FrameBound.Type getBoundedFrameBoundType(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.PRECEDING:
+return FrameBound.Type.PRECEDING
+case SqlBaseLexer.FOLLOWING:
+return FrameBound.Type.FOLLOWING
+}
+
+throw new IllegalArgumentException("Unsupported bound type: " + token.getText())
+}
+
+func FrameBound.Type getUnboundedFrameBoundType(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.PRECEDING:
+return FrameBound.Type.UNBOUNDED_PRECEDING
+case SqlBaseLexer.FOLLOWING:
+return FrameBound.Type.UNBOUNDED_FOLLOWING
+}
+
+throw new IllegalArgumentException("Unsupported bound type: " + token.getText())
+}
+
+func SampledRelation.Type getSamplingMethod(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.BERNOULLI:
+return SampledRelation.Type.BERNOULLI
+case SqlBaseLexer.SYSTEM:
+return SampledRelation.Type.SYSTEM
+}
+
+throw new IllegalArgumentException("Unsupported sampling method: " + token.getText())
+}
+
+func LogicalBinaryExpression.Type getLogicalBinaryOperator(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.AND:
+return LogicalBinaryExpression.Type.AND
+case SqlBaseLexer.OR:
+return LogicalBinaryExpression.Type.OR
+}
+
+throw new IllegalArgumentException("Unsupported operator: " + token.getText())
+}
+
+func SortItem.NullOrdering getNullOrderingType(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.FIRST:
+return SortItem.NullOrdering.FIRST
+case SqlBaseLexer.LAST:
+return SortItem.NullOrdering.LAST
+}
+
+throw new IllegalArgumentException("Unsupported ordering: " + token.getText())
+}
+
+func SortItem.Ordering getOrderingType(Token token)
+{
+switch (token.getType()) {
+case SqlBaseLexer.ASC:
+return SortItem.Ordering.ASCENDING
+case SqlBaseLexer.DESC:
+return SortItem.Ordering.DESCENDING
+}
+
+throw new IllegalArgumentException("Unsupported ordering: " + token.getText())
+}
+
+func QuantifiedComparisonExpression.Quantifier getComparisonQuantifier(Token symbol)
+{
+switch (symbol.getType()) {
+case SqlBaseLexer.ALL:
+return QuantifiedComparisonExpression.Quantifier.ALL
+case SqlBaseLexer.ANY:
+return QuantifiedComparisonExpression.Quantifier.ANY
+case SqlBaseLexer.SOME:
+return QuantifiedComparisonExpression.Quantifier.SOME
+}
+
+throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText())
+}
+
+func String getType(ctx *TypeContext type)
+{
+if (type.baseType() != nil) {
+String signature = type.baseType().getText()
+if (type.baseType().DOUBLE_PRECISION() != nil) {
+// TODO: Temporary hack that should be removed with new planner.
+signature = "DOUBLE"
+}
+if (!type.typeParameter().isEmpty()) {
+String typeParameterSignature = type
+.typeParameter()
+.stream()
+.map(AstBuilder::typeParameterToString)
+.collect(Collectors.joining(","))
+signature += "(" + typeParameterSignature + ")"
+}
+return signature
+}
+
+if (type.ARRAY() != nil) {
+return "ARRAY(" + getType(type.type(0)) + ")"
+}
+
+if (type.MAP() != nil) {
+return "MAP(" + getType(type.type(0)) + "," + getType(type.type(1)) + ")"
+}
+
+if (type.ROW() != nil) {
+StringBuilder builder = new StringBuilder("(")
+for (int i = 0; i < type.identifier().size(); i++) {
+if (i != 0) {
+builder.append(",")
+}
+builder.append(type.identifier(i).getText())
+.append(" ")
+.append(getType(type.type(i)))
+}
+builder.append(")")
+return "ROW" + builder.toString()
+}
+
+throw new IllegalArgumentException("Unsupported type specification: " + type.getText())
+}
+
+func typeParameterToString(typeParameter TypeParameterContext) string {
+	if (typeParameter.INTEGER_VALUE() != nil) {
+		return typeParameter.INTEGER_VALUE().toString()
+	}
+	if (typeParameter.type() != nil) {
+	return getType(typeParameter.type())
+	}
+	throw new IllegalArgumentException("Unsupported typeParameter: " + typeParameter.getText())
+}
+
+func check(condition bool, message string, ctx ParserRuleContext)
+{
+if (!condition) {
+throw new ParsingException(message, nil, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine())
+}
+}
+
+public static NodeLocation getLocation(TerminalNode terminalNode)
+{
+requireNonNull(terminalNode, "terminalNode is nil")
+return getLocation(terminalNode.getSymbol())
+}
+
+public static NodeLocation getLocation(ParserRuleContext parserRuleContext)
+{
+requireNonNull(parserRuleContext, "parserRuleContext is nil")
+return getLocation(parserRuleContext.getStart())
+}
+
+public static NodeLocation getLocation(Token token)
+{
+requireNonNull(token, "token is nil")
+return new NodeLocation(token.getLine(), token.getCharPositionInLine())
+}
+}
+
+*/

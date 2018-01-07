@@ -1,0 +1,8 @@
+root_directory: /go/src/github.com/alpacahq/marketstore/cmd/tools/mkts/examples/testdir
+listen_port: 6993
+polling_interval: 60
+log_level: info
+queryable: true
+stop_grace_period: 0
+wal_rotate_interval: 5
+start_time: 2016-09-15 13:45

@@ -1,0 +1,8 @@
+.envrc
+/bin/
+/pkg/
+/vendor/
+**/*.swp
+.idea/
+/data/
+*.pyc

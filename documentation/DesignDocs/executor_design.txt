@@ -1,0 +1,64 @@
+Marketstore Executor
+4/24/2016
+
+- Design considerations
+
+We want to support a flexible way to process a block of time series data for consumption by query clients. Typical patterns today include:
+- Date Range: return all data that lies between a beginning and ending time
+- Latest 200 Entries: return the latest 200 entries in the records
+
+In the near future we can expect to see more complex patterns:
+- 200 Day Moving Average: return the calculated moving average for the provided date range
+- Min, Max, Average, etc: Aggregate values of specific fields
+
+There are many other useful patterns and in fact many of them are composites of each other. For instance, most query results will start with one or both of the first restrictions and add one or more from the second group.
+
+--- Performance and scale
+
+We should be careful to enable direct calculations on the underlying data in preference over abstract interfaces that hide the underlying datatypes. For instance, we should recognize that aggregates are most commonly performed on supported numeric types including float32 and float64 and consequently, we can build a method for each of those types that uses native addressing for that type. An alternative abstract approach would use indirection for the type and cast values during the loop execution inside one method. The benefit of the direct approach can be a 200x performance improvement as compared to an abstract implementation.
+
+==============
+Design
+==============
+
+----------------------------
+Materialize, don't pipeline
+----------------------------
+
+We should materialize intermediate results if we are chaining operations together.  For instance, if we are calculating the avg of a date restricted set:
+
+    Example - Average of "Open" field from 1/1/2010 to 1/15/2011
+
+The query execution implies that we will chain a data restriction operation together with an AVG operator on the results. For efficiency, we should materialize some or all of the result of the restriction operator into memory, then perform the average operator on the materialized result. By contrast, a pipelined executor would take each row from the results of the first operator, pass it to the next and so on. The consequence of this materialization is that the columns not used in the AVG operator are lost to possible downstream operations:
+
+    Example - [Open,High,Low,Close 1/1/2010-1/15/2011] ==> AVG("Open") ==> result: avg_open
+
+So how should we compute the average of all four fields? After the AVG operation on "Open" we've discarded the information necessary to compute AVG for the other fields. One approach is that we can use a stage of aggregation that computes all of the averages at once:
+
+    Example - [Open,High,Low,Close 1/1/2010-1/15/2011] ==> AVG("Open","High","Low","Close") ==> result: []avg_ohlc
+
+For more types of operators applied to the same data, we could stack operations:
+
+    Example - [Open,High,Low,Close 1/1/2010-1/15/2011] ==> AVG("Open","High","Low","Close") ==> result: []avg_ohlc,
+                                                       ==> MIN("Open","High","Low","Close") ==>         []min_ohlc,
+                                                       ==> MAX("Open","High","Low","Close") ==>         []max_ohlc,
+                                                       ==> 200ema("Close") ==>                          []200ema_ohlc
+
+Using this approach, we can imagine querying once to get a list of useful statistics with varying dimensionality over a date range. Note that the 200 day exponential moving average will return a column of values over the date range.
+
+----------------------------
+Chaining Operations
+----------------------------
+
+We would like to re-use common operations like date restriction and qualifiers like "> value", so logically we want to enable plans like:
+
+    Example - [Open,High,Low,Close 1/1/2010-1/15/2011] ==> ["Open > 210"] ==> AVG("Open","Close") => result: []avg_oc,
+
+In this case, we know that the full results are available to the AVG operation, but we also may want plans like:
+
+    Example - [Open,High,Low,Close 1/1/2010-1/15/2011] ==> 200ema("Close") ==> 200ema_close
+                                                       ==> ["Open > 200ema_close"] ==> AVG("Open","Close") => result: []avg_oc,
+
+We used the result of a previous operation in the stack to compute the next in the stack - a dependency.
+
+--------------------------------------> WIP

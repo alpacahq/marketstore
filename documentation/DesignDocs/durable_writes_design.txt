@@ -1,0 +1,200 @@
+
+MarketStore Durable Writes Design
+5/26/2016
+
+-------------------------------------------------------------------
+References:
+https://blogs.oracle.com/bonwick/entry/zfs_end_to_end_data
+-------------------------------------------------------------------
+
+We are writing data to instances of MarketStore on a regular basis, typically as a result of gathering upstream changes to equities on a set interval of 1 minute. When we write new data to a permanent storage device, disk or SSD etc (hereafter called "disk"), we have to ensure data integrity in case of events like poweroff or a backup that reads the disk data. In these situations, there may be data in volatile memory that is either not written to disk or might be in the process of being written. We need to provide the ability to be certain of these two conditions:
+    A) The data present on disk is always valid and complete
+    B) Data we have reported as "committed" is on disk
+
+- Design considerations
+
+--- Performance and scale
+
+We are storing data for an increasing number of equities, with a target of 10-20,000 in the near term. At a minimum, we need to be able to keep up with the incoming feed of data which is currently arriving in one minute batches. A naive strategy of performing a filesystem sync after every write is incapable of keeping up with one minute data and has the additional disadvantage of performing too many small writes, which can prematurely "burn out" devices with limited write cycle durability. Modern SSD devices are limited to 800-5,000 write cycles before failure, though on-device DRAM can mitigate this effect depending on OS support for sync to the device DRAM.
+
+One potential performance / resilience issue that has been raised is: "Can we safely write to 10,000 or more open files at once?" The question arises because the data management design of MarketStore uses a file for each data element and year so that when we write data for 10,000 or more equities we will be writing to that number of files. The question is, can the filesystem to support the opening and writing of this many files? Following is a benchmark that shows scaling of create/open + write + sync/flush of files on an Ubuntu 14.04 LTS OS (64-bit) with a single NVMe Samsung 950 Pro SSD using the Ext4 filesystem:
+       10 Files: Create/Write/Sync:       788.236µs/       34.806µs/     12.93972ms
+      100 Files: Create/Write/Sync:     11.973554ms/      233.731µs/    10.789751ms
+     1000 Files: Create/Write/Sync:     27.777789ms/     2.522766ms/    13.038387ms
+    10000 Files: Create/Write/Sync:     102.15737ms/    22.830742ms/     63.56693ms
+   100000 Files: Create/Write/Sync:    650.908721ms/   222.027727ms/   502.374885ms
+   200000 Files: Create/Write/Sync:    1.172028003s/   487.288013ms/   1.031838266s
+   300000 Files: Create/Write/Sync:    1.756031641s/   859.496203ms/   1.598832165s
+   400000 Files: Create/Write/Sync:    2.438942589s/   1.086874386s/    1.95530974s
+   900000 Files: Create/Write/Sync:    6.458735099s/   3.340919389s/   2.573787103s
+
+We can see there is linear scaling of writes up to 900,000 files and a combination of O(1) and O(N) scaling for file system sync operations. These results indicate that we should be fine writing to tens of thousands of files at a time, at least on the Ext4 filesystem.
+
+--- Data integrity and management alternatives
+
+Common schemes used to ensure that writes to disk are not lost involves an implementation of writing the data twice. When combined with a marker that shows successful completion of the first write, the second write can be replaced on system startup with the "known good" contents of the first write to remove remnants of partially written data. In database systems, these schemes are referred to as "logging". With PostgreSQL, the logging scheme is called "Write Ahead Log" or WAL where data is written first to the WAL, then a background process writes it to the primary store. In Oracle, the log is called a "Redo Log". In both systems, in order to maximize timeliness and availability of the written data, the data is read from a buffer cache of pending committed data in volatile RAM - in PostgreSQL it's the "buffer cache" and in Oracle it's the "System Global Area" or SGA.
+
+Alternatives to the traditional logging schemes include using a quorum of servers that store the data in RAM. A write is posted to all of the servers in the cluster and when a quorum report that the data is in volatile RAM, the data is considered to be committed. The volatile RAM contents can then be written sometime later to disk. The premise of this approach is that it is very unlikely that the cluster will all be affected by a poweroff event simultaneously, so the contents of volatile RAM across the quorum should be considered durable. The drawbacks of this approach include the increased complexity required to run a quorum cluster of servers and a more subtle problem of RAM corruptions due to programming bugs and/or security infiltrations.
+
+--- Futures
+
+In the near future, perhaps by 2018, there are expected to be a new class of non-volatile memory devices that feature RAM-like latency for writing of data (1us to write a 16Byte datum) and capacities that rival hard disks. These devices will ultimately change the way that persistent data is managed, but for at least the next few years they will be treated like super fast disk devices. The most likely short term technology is Intel's 3D Xpoint memory, which is expected to be available in DDR4 slot packaging in the 2018 timeframe. Until the OS and device driver makers change the programming paradigm, we should not expect these devices to alter our requirements to treat "disk" separately from RAM, but it is important to consider their architecture as a mid-term target for this system.
+
+==============
+Design
+==============
+
+---------------------
+Elements
+---------------------
+
+We will implement a logging system for durable writes with the following elements:
+        0) Message ID (MID): Every message written to the WAL is prepended by the MID, indicating what type of message follows. The MID is structured on-disk:
+                type MID struct {
+                    MID         int8   //Message ID:
+                                            // 0: TG data
+                                            // 1: TI - Transaction Info (see below)
+                                            // 2: WALStatus - WAL Status info (see below)
+                }
+
+        0a) Transaction Info (TI): A transaction info message marks the write status of transactions. It is used in two situations: When a TG is written to the WAL and when the BW writes a TG to the primary store. The on-disk format of a TI is:
+                type TI struct {
+                    TGID        int64
+                    DestID      int8   //Identifier for which location [ is being / has been ] written
+                                       //0: WAL, 1: Primary Store
+                    Status      int8   //0: Preparing to commit, 1: ***Commit intent sent, 2: Commit complete
+                }
+                *** Note: Commit intent state is for future multi-party commit support. Typical processes will only use states 0 and 2
+
+        1) Transaction Group (TG): A group of data committed at one time to WAL and primary store
+Each TG is composed of some number of WTSets and is the smallest unit of data committed to disk. A TG has an ID that is used to verify whether the TG has been successfully written. A TG has the following on-disk structure:
+                type TG struct {
+                    TGLen               int64          //The length of the TG data for this TGID, starting with the TGID and excluding the checksum
+                    TGID                int64          //A "locally unique" transaction group identifier, can be a clock value
+                    WTCount             int64          //The count of WTSets in this TG
+                    WTGroup             [WTCount]WTSet //The contents of the WTSets
+                    Checksum            [16]byte       //MD5 checksum of the TG contents prior to the checksum
+                }
+
+        2) Write Transaction Set (WTSet): An individual writeable "chunk" of data
+New data to be written is composed as a "Write Transaction Set" or WTSet. Each WTSet can be written independently and has sufficient information to be written directly by the OS, i.e. it has the "File" location and the interval index within the file incorporated into the WTSet format in addition to the data to be written. Each record in the WTSet has the format:
+                type Record struct {
+                    Data    []byte  // Serialized byte formatted data
+                }
+
+A WTSet has the following on-disk structure:
+                type WTSet struct {
+		    RecordType  int8				//Direct or Indirect IO (for variable or fixed length records)
+                    FPLen       int16                           //Length of FilePath string
+                    FilePath    string                          //FilePath is relative to the root directory, string is ASCII encoded without a trailing null
+                    Year        int16                           //Year associated with this file
+                    Intervals   int64                           //Number of intervals per day in this file
+                    RecordCount int32                           //Count of records in this WT set
+                    DataOnlyLen int64                           //Length of each data element in this set in bytes, excluding the index
+                    Index       [RecordCount]int64              //Interval Index based on the intervals/day of the target file
+                    Buffer      [RecordCount*RecordLen]byte     //Data bytes
+                }
+
+        3) Write Ahead Log (WAL): Is the first place data is written to disk
+The WAL is a file that contains a record of all data written to disk. The WAL is used in two processes:
+                    A) TGs are written to the WAL - after the write is complete, a follow-up item is written to the log to show completion of the write
+                    B) Startup processing - during system startup, the WAL is "replayed" to establish correctness of written data
+
+        4) Background Writer (BW): An asynchronous process that writes the TG data to the primary store. Note that the TGs are written to the WAL and the primary data store independently. After the BG writes a TG to the primary store, it also writes a "commit complete" for that TG to the WAL.
+
+        5) Write Validation: Log entries that verify that the BW has successfully committed data to the primary store
+
+--------------------
+WAL Format
+---------------------
+
+The WAL file is created using a unique filename derived from UTC system time in nanoseconds, for example:
+    /RootDir/WALFile.1465405207042113300
+
+Each message written to the WAL is prepended by the MID, followed by the message contents, currently either a TG or TI message.
+
+Note that the WAL can only be read forward as we have to anticipate partially written data.
+
+The first message in a WAL file is always the WAL Status Message, which has the format:
+                type WALStatus struct {
+                    FileStatus    int8  // 1: Actively in use or not closed programatically
+                                        // 2: Closed (no process is using file)
+                    ReplayState   int8  // 1: Not yet processed for replay
+                                        // 2: Replayed successfully
+                                        // 3: Replay in process
+                    OwningPID     int64 // PID of the process using this WAL file
+                }
+
+Generally, if a WAL file  has the state: WALStatus{2,2} it can be safely deleted because it has been processed and the contents are durably written to the primary store. Here is a summary of each state and the inferred consequences:
+                WALStatus       State                               Actions at System Startup
+                ---------       -------------------------------     ------------------------------
+                {1,1}           Active - File is being used OR      File should be checked for an active
+                                       - Unclean shutdown           process owning this file using the OwningPID and if none,
+                                                                    this WAL file should be replayed and state moved to {2,2}.
+                                                                    If a process is found, terminate system startup.
+
+                {1,2}           Active - Replay has occurred but    Move to state {1,1} and continue
+                                         file was not cleanly
+                                         closed after replay
+
+                {2,1}           Active - No process is using        Move to state {1,1}, do not check PID, and continue
+                                         this WAL file, but
+                                         it isn't replayed yet
+
+                {2,2}           Inactive - File is fully            Optionally delete file to save disk space
+                                           processed
+
+
+--------------------
+WAL Write Process
+---------------------
+
+A TG is built in memory by the primary writer and at some point the writer enters the commit process where the TG will be written to disk. A TGID is assigned to the in memory data, possibly using the real time clock value, then a TI is written to the WAL indicating the "Prepare to Commit" status of the writer. The writer then writes the contents of the TG to disk, followed by a checksum of the TG. Finally, a TI is written to the WAL to indicate "Commit Complete" status.
+
+---------------------
+Primary Write Process
+---------------------
+
+TG data is written to the primary data location some time after the TG is written to the WAL. After the TG is written to the primary store, a TI is written to the WAL indicating "Commit Complete". Note that it is not necessary to write a "Prepare to Commit" to the WAL for the primary data.
+ 
+In order to remove the possibility of partially written data being visible to read clients, the BG writes the TG data in a specific order:
+    1) The data excluding the index value is written. For example if we are writing OHLC, we write the 4 float32 values but not the int64 index value
+    1a) The OS file cache is sync'ed
+    2) The index values are written
+    2a) The OS file cache is sync'ed
+    3) A TI Commit Complete message is written to the WAL indicating the TG is committed to the primary store
+
+Because we write the index values after the data values, only records with complete data will be visible. Because the index values are 64-bit aligned, we should also only experience fully written index values on disk since the index writes will not straddle OS disk page boundaries.
+
+---------------------
+Startup
+---------------------
+
+During the startup of the system we need to "replay" the WAL to establish the integrity of the written data. The WAL is read from the beginning forward to establish the last known TG written to the primary store. TGS after that point are then written to the primary store.
+
+A TG is judged "correctly written" when this condition is met for a TGID:
+    1) A TI Complete message is found for both the WAL and Primary
+
+Other states that might be encountered:
+    2) TI Complete for WAL but not for Primary
+    3) TI Prepare for WAL and no TI Complete for WAL (or Primary)
+
+In both cases (2) and (3), we are able to reconstruct the correct state of committed data in the system based on the WAL contents provided that the system is only reporting the end of write transactions when the TI Complete message is written to the WAL.
+
+After the WAL replay and before the system is ready to write new data, the WAL is "cleaned up" by truncation. The lack of an available WAL indicates that no WAL replay should be performed upon startup.
+
+---------------------
+Transaction Visibility
+---------------------
+
+The system will provide "READ COMMITTED" visibility as specified in this design per Jim Gray's visibility definitions. 
+    A) All data that are read by a client has been committed to the system. In-process data is not visible.
+
+However, this version of READ COMMITTED differs from Oracle and Postgres in this regard:
+    B) All data present in the committed state is visible to transactions.
+
+In order to get the more complete version of this visibility in our system, we have to enable the readers to view the TG data that has been committed to the WAL. This is possible in our system by implementation of some process on the read side, beyond the scope of this document.
+
+
+===================END
+Luke Lonergan, Alpaca, 5/26/16, Mooooo.
