@@ -2,14 +2,15 @@ package feedmanager
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/log"
 	"os"
 	"path/filepath"
 	"plugin"
 	"strings"
+
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
-func OpenPluginInGOPATH(pluginName string) (pi *plugin.Plugin, err error) {
+func LoadFromGOPATH(pluginName string) (pi *plugin.Plugin, err error) {
 	envGOPATH := os.Getenv("GOPATH")
 	gopaths := strings.Split(envGOPATH, ":")
 	if len(gopaths) == 0 {
