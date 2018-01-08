@@ -103,9 +103,9 @@ type CandleDuration struct {
 func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 	switch cd.suffix {
 	case "W":
-		_, tsW := ts.ISOWeek()
-		_, sW := start.ISOWeek()
-		if tsW == sW {
+		tsY, tsW := ts.ISOWeek()
+		sY, sW := start.ISOWeek()
+		if tsY == sY && tsW == sW {
 			return true
 		}
 	case "M":
@@ -142,6 +142,8 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 	return false
 }
 
+// Truncate returns the lower boundary time of this candle window that
+// ts belongs to.
 func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 	switch cd.suffix {
 	case "M":
@@ -149,6 +151,24 @@ func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 	default:
 		return ts.Truncate(cd.duration)
 	}
+}
+
+// Ceil returns the upper boundary time of this candle window that
+// ts belongs to.
+func (cd *CandleDuration) Ceil(ts time.Time) time.Time {
+	if cd.suffix == "M" {
+		year := ts.Year()
+		month := ts.Month()
+		if month == time.December {
+			year += 1
+			month = time.January
+		} else {
+			month += 1
+		}
+		return time.Date(year, month, 1, 0, 0, 0, 0, ts.Location())
+	}
+
+	return (ts.Add(cd.duration)).Truncate(cd.duration)
 }
 
 func (cd *CandleDuration) QueryableTimeframe() string {
