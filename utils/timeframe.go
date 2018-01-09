@@ -194,14 +194,19 @@ func (cd *CandleDuration) QueryableNrecords(tf string, nrecords int) int {
 	}
 }
 
+func (cd *CandleDuration) Duration() time.Duration {
+	return cd.duration
+}
+
 func CandleDurationFromString(tf string) (cd *CandleDuration) {
-	re := regexp.MustCompile("([0-9]+)")
-	prefix := re.FindAllString(tf, -1)[0]
-	mult, err := strconv.Atoi(prefix)
-	if err != nil {
+	re := regexp.MustCompile("([0-9]+)(Sec|Min|H|D|W|M|Y)")
+	groups := re.FindStringSubmatch(tf)
+	if len(groups) == 0 {
 		return nil
 	}
-	suffix := strings.Split(tf, prefix)[1]
+	prefix := groups[1]
+	mult, _ := strconv.Atoi(prefix)
+	suffix := groups[2]
 	return &CandleDuration{
 		String:     tf,
 		multiplier: mult,

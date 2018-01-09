@@ -283,7 +283,7 @@ func AppendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) 
 }
 
 func WriteBufferToFile(fp *os.File, offsetIndexDataBuffer []byte) (err error) {
-	offset := ToInt64(offsetIndexDataBuffer[:7])
+	offset := ToInt64(offsetIndexDataBuffer[:8])
 	_, err = fp.WriteAt(offsetIndexDataBuffer[8:], offset)
 	if err != nil {
 		return err
@@ -301,7 +301,7 @@ func WriteBufferToFileIndirect(fp *os.File, offsetIndexDataBuffer []byte) (err e
 		Here we write the data payload of the buffer to the end of the data file
 	*/
 
-	primaryOffset := ToInt64(offsetIndexDataBuffer[:7]) // Offset to storage of indirect record info
+	primaryOffset := ToInt64(offsetIndexDataBuffer[:8]) // Offset to storage of indirect record info
 
 	index := ToInt64(offsetIndexDataBuffer[8:])
 	dataToBeWritten := offsetIndexDataBuffer[16:] // data payload begins at 8 + 8 = 16

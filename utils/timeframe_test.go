@@ -87,4 +87,6 @@ func (s *UtilsTestSuite) TestCandleDuration(c *C) {
 	within = cd.IsWithin(val, start)
 	c.Assert(within, Equals, true)
 
+	cd = CandleDurationFromString("abc")
+	c.Assert(cd, IsNil)
 }

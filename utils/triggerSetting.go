@@ -27,11 +27,11 @@ func (ts *TriggerSetting) NewInstance() *trigger.TriggerMatcher {
 		return nil
 	}
 
-	newFunc := sym.(func(map[string]interface{}) (trigger.Trigger, error))
-	//if !ok {
-	//	glog.Errorf("NewTrigger does not comply trigger.NewFuncType")
-	//	return nil
-	//}
+	newFunc, ok := sym.(func(map[string]interface{}) (trigger.Trigger, error))
+	if !ok {
+		glog.Errorf("NewTrigger does not comply trigger.NewFuncType")
+		return nil
+	}
 	trig, err := newFunc(ts.Config)
 	if err != nil {
 		glog.Errorf("Error returned while creating a trigger: %v", err)
