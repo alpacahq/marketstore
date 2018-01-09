@@ -19,6 +19,8 @@
 //
 // The "on" value is matched with the file path to decide whether the trigger
 // is fired or not.  It can contain wildcard character "*".
+// As of now, trigger fires only on the running state.  Trigger on WAL replay
+// may be added later.
 package trigger
 
 import (
@@ -30,9 +32,9 @@ import (
 type Trigger interface {
 	// Fire is called when the target file has been modified.
 	// keyPath is the string path of the modified file relative
-	// from the catalog root directory.  offsets is a slice
+	// from the catalog root directory.  indexes is a slice
 	// containing indexes of the rows being modified.
-	Fire(keyPath string, offsets []int64)
+	Fire(keyPath string, indexes []int64)
 }
 
 // TriggerMatcher checks if the trigger should be fired or not.

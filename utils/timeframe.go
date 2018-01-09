@@ -13,7 +13,9 @@ const Week = 7 * Day
 const Year = 365 * Day
 
 var timeframeDefs = []Timeframe{
+	{"S", time.Second},
 	{"Sec", time.Second},
+	{"T", time.Minute},
 	{"Min", time.Minute},
 	{"H", time.Hour},
 	{"D", Day},
@@ -216,7 +218,9 @@ func CandleDurationFromString(tf string) (cd *CandleDuration) {
 }
 
 var suffixDefs = map[string]time.Duration{
+	"S":   time.Second,
 	"Sec": time.Second,
+	"T":   time.Minute,
 	"Min": time.Minute,
 	"H":   time.Hour,
 	"D":   Day,

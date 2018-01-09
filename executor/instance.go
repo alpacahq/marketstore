@@ -56,7 +56,7 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 	Log(INFO, "Root Directory: %s", relRootDir)
 	rootDir, err := filepath.Abs(filepath.Clean(relRootDir))
 	if err != nil {
-		Log(ERROR, "Can not take absolute path of root directory %s", err.Error())
+		Log(ERROR, "Cannot take absolute path of root directory %s", err.Error())
 	}
 	ThisInstance.InstanceID = time.Now().UTC().UnixNano()
 	ThisInstance.RootDir = rootDir
