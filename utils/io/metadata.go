@@ -6,12 +6,13 @@ import (
 	"unsafe"
 
 	"fmt"
-	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/log"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/utils"
+	. "github.com/alpacahq/marketstore/utils/log"
 )
 
 const Headersize = 37024
@@ -197,7 +198,7 @@ func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 }
 
 func (f *TimeBucketInfo) readHeader(path string) (err error) {
-	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
+	file, err := os.Open(path)
 	defer file.Close()
 	if err != nil {
 		Log(ERROR, "Failed to open file: %v - Error: %v", path, err)

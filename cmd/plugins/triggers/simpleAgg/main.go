@@ -86,7 +86,6 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
 	q.SetRange(start, end)
-	glog.Infof("start=%v, end=%v", start, end)
 	parsed, err := q.Parse()
 	if err != nil {
 		glog.Errorf("%v", err)
@@ -102,7 +101,6 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 		glog.Errorf("%v", err)
 		return
 	}
-	glog.Infof("csm=%v", csm)
 	cs := csm[*tbk]
 	if cs.Len() == 0 {
 		// Nothing to do.  Really?
@@ -115,7 +113,7 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 
 	w, err := getWriter(theInstance, targetTbk, int16(year), cs.GetDataShapes())
 	if err != nil {
-		glog.Errorf("Failed to get Writer: %v", err)
+		glog.Errorf("Failed to get Writer for %s/%d: %v", targetTbk.String(), year, err)
 		return
 	}
 	w.WriteRecords(rs.GetTime(), rs.GetData())
@@ -192,6 +190,8 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 func getWriter(theInstance *executor.InstanceMetadata, tbk *io.TimeBucketKey, year int16, dataShapes []io.DataShape) (*executor.Writer, error) {
 	catalogDir := theInstance.CatalogDir
 	tbi, err := catalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	// TODO: refactor to common code
+	// TODO: check existing file with new dataShapes
 	if err != nil {
 		tf, err := tbk.GetTimeFrame()
 		if err != nil {
