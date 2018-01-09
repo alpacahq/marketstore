@@ -52,12 +52,12 @@ func (s *TestSuite) SetUpSuite(c *C) {
 
 func (s *TestSuite) TestPluginLoading(c *C) {
 	var err error
-	_, err = plugins.LoadFromGOPATH(s.TestPluginLib)
+	_, err = plugins.Load(s.TestPluginLib)
 	if err != nil {
 		fmt.Println(err)
 	}
 	c.Assert(err == nil, Equals, true)
-	_, err = plugins.LoadFromGOPATH("@@@badpluginname@@@")
+	_, err = plugins.Load("@@@badpluginname@@@")
 	fmt.Println("error: ", err)
 	c.Assert(err != nil, Equals, true)
 }

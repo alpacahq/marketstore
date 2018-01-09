@@ -18,7 +18,7 @@ update:
 plugins:
 	go build -o /go/bin/simpleAgg.so -buildmode=plugin ./cmd/plugins/triggers/simpleAgg
 
-unittest: configure
+unittest:
 	! gofmt -l $(shell glide novendor -no-subdir) | grep .
 	go vet $(shell glide novendor)
 	go test -ldflags -s -cover $(shell glide novendor | grep -v cmd)
