@@ -26,21 +26,32 @@ import (
 	"strings"
 )
 
+// Trigger is an interface every trigger plugin has to implement.
 type Trigger interface {
+	// Fire is called when the target file has been modified.
+	// keyPath is the string path of the modified file relative
+	// from the catalog root directory.  offsets is a slice
+	// containing indexes of the rows being modified.
 	Fire(keyPath string, offsets []int64)
 }
 
+// TriggerMatcher checks if the trigger should be fired or not.
 type TriggerMatcher struct {
 	Trigger Trigger
-	On      string
+	// On is a string representing the condition of the trigger
+	// fire event.  It is the prefix of file path such as
+	// ""*/1Min/OHLC"
+	On string
 }
 
+// NewMatcher creates a new TriggerMatcher.
 func NewMatcher(trigger Trigger, on string) *TriggerMatcher {
 	return &TriggerMatcher{
 		Trigger: trigger, On: on,
 	}
 }
 
+// Match returns true if keyPath matches the On condition.
 func (tm *TriggerMatcher) Match(keyPath string) bool {
 	pattern := strings.Replace(tm.On, "*", "[^/]+", -1)
 	matched, _ := regexp.MatchString(pattern, keyPath)

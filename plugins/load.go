@@ -15,6 +15,9 @@ import (
 // If the path is an absolute path, it loads from the path. err is nil
 // if it succeeds.
 func Load(pluginName string) (pi *plugin.Plugin, err error) {
+	if filepath.IsAbs(pluginName) {
+		return plugin.Open(pluginName)
+	}
 	envGOPATH := os.Getenv("GOPATH")
 	gopaths := strings.Split(envGOPATH, ":")
 	if len(gopaths) == 0 {

@@ -16,8 +16,9 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type TestSuite struct {
-	TestPluginLib string
-	OldGoPath     string
+	TestPluginLib    string
+	AbsTestPluginLib string
+	OldGoPath        string
 }
 
 var _ = Suite(&TestSuite{})
@@ -58,6 +59,7 @@ func main() {}
 	goPath := os.Getenv("GOPATH")
 	newGoPath := dirName + ":" + goPath
 	s.OldGoPath = goPath
+	s.AbsTestPluginLib = soFilePath
 	os.Setenv("GOPATH", newGoPath)
 }
 
@@ -71,6 +73,15 @@ func (s *TestSuite) TestLoadFromGOPATH(c *C) {
 	var pi *plugin.Plugin
 	var err error
 	pi, err = Load(s.TestPluginLib)
+	c.Check(pi, NotNil)
+	c.Check(err, IsNil)
+
+	pi, err = Load("nonexistent")
+	c.Check(pi, IsNil)
+	c.Check(err, NotNil)
+
+	// abs path case
+	pi, err = Load(s.AbsTestPluginLib)
 	c.Check(pi, NotNil)
 	c.Check(err, IsNil)
 }
