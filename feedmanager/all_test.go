@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/executor"
+	"github.com/alpacahq/marketstore/plugins"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "gopkg.in/check.v1"
@@ -51,12 +52,12 @@ func (s *TestSuite) SetUpSuite(c *C) {
 
 func (s *TestSuite) TestPluginLoading(c *C) {
 	var err error
-	_, err = OpenPluginInGOPATH(s.TestPluginLib)
+	_, err = plugins.LoadFromGOPATH(s.TestPluginLib)
 	if err != nil {
 		fmt.Println(err)
 	}
 	c.Assert(err == nil, Equals, true)
-	_, err = OpenPluginInGOPATH("@@@badpluginname@@@")
+	_, err = plugins.LoadFromGOPATH("@@@badpluginname@@@")
 	fmt.Println("error: ", err)
 	c.Assert(err != nil, Equals, true)
 }

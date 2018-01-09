@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/catalog"
+	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
@@ -24,6 +25,7 @@ type InstanceMetadata struct {
 	WALWg           sync.WaitGroup
 	ShutdownPending bool
 	WALBypass       bool
+	TriggerMatchers []*trigger.TriggerMatcher
 }
 
 func NewInstanceSetup(relRootDir string, options ...bool) {
@@ -54,7 +56,7 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 	Log(INFO, "Root Directory: %s", relRootDir)
 	rootDir, err := filepath.Abs(filepath.Clean(relRootDir))
 	if err != nil {
-		Log(ERROR, "Can not take absolute path of root directory %s", err.Error())
+		Log(ERROR, "Cannot take absolute path of root directory %s", err.Error())
 	}
 	ThisInstance.InstanceID = time.Now().UTC().UnixNano()
 	ThisInstance.RootDir = rootDir

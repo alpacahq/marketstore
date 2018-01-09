@@ -1,3 +1,5 @@
+.PHONY: plugins
+
 all:
 	go install -ldflags "-s -X utils.Version=$(shell date -u +%Y-%m-%d-%H-%M-%S)" ./cmd/marketstore ./cmd/tools/...
 
@@ -12,6 +14,9 @@ configure:
 
 update:
 	glide update
+
+plugins:
+	go build -o /go/bin/simpleAgg.so -buildmode=plugin ./cmd/plugins/triggers/simpleAgg
 
 unittest: configure
 	! gofmt -l $(shell glide novendor -no-subdir) | grep .

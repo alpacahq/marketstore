@@ -261,6 +261,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	/*
 		Write the buffers to primary files (should happen after WAL writes)
 	*/
+	writtenIndexes := NewWrittenIndexes()
 	for fullPath, writes := range bufferedPrimaryWritesFixed {
 		cfp := NewCachedFP() // Cached open file pointer
 		fp, err := cfp.GetFP(fullPath)
@@ -272,6 +273,8 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 				return err
 			}
 			writes[i] = nil // for GC
+			// collect written offsets for triggers
+			writtenIndexes.Add(wf.FullPathToWALKey(fullPath), buffer)
 		}
 		bufferedPrimaryWritesFixed[fullPath] = nil // for GC
 	}
@@ -286,9 +289,14 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 				return err
 			}
 			writes[i] = nil // for GC
+			// collect written offsets for triggers
+			writtenIndexes.Add(wf.FullPathToWALKey(fullPath), buffer)
 		}
 		bufferedPrimaryWritesVariable[fullPath] = nil // for GC
 	}
+
+	// This has to be async, to get out of the lock held
+	go writtenIndexes.Dispatch()
 
 	return nil
 }

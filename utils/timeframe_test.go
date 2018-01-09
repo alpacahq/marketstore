@@ -41,3 +41,52 @@ func (s *UtilsTestSuite) TestTimeframeFromString(c *C) {
 	tf = TimeframeFromString("0H")
 	c.Assert(tf, IsNil)
 }
+
+func (s *UtilsTestSuite) TestCandleDuration(c *C) {
+	var cd *CandleDuration
+	var val, start time.Time
+	var within bool
+	cd = CandleDurationFromString("5Min")
+	val = time.Date(2017, 9, 10, 13, 47, 0, 0, time.UTC)
+	c.Assert(cd.Truncate(val), Equals, time.Date(2017, 9, 10, 13, 45, 0, 0, time.UTC))
+	c.Assert(cd.Ceil(val), Equals, time.Date(2017, 9, 10, 13, 50, 0, 0, time.UTC))
+	start = cd.Truncate(val)
+	within = cd.IsWithin(time.Date(2017, 9, 10, 13, 46, 0, 0, time.UTC), start)
+	c.Assert(within, Equals, true)
+	within = cd.IsWithin(time.Date(2017, 9, 10, 13, 51, 0, 0, time.UTC), start)
+	c.Assert(within, Equals, false)
+
+	cd = CandleDurationFromString("1M")
+	val = time.Date(2017, 9, 10, 13, 47, 0, 0, time.UTC)
+	c.Assert(cd.Truncate(val), Equals, time.Date(2017, 9, 1, 0, 0, 0, 0, time.UTC))
+	c.Assert(cd.Ceil(val), Equals, time.Date(2017, 10, 1, 0, 0, 0, 0, time.UTC))
+	start = cd.Truncate(val)
+	within = cd.IsWithin(time.Date(2017, 9, 26, 0, 0, 0, 0, time.UTC), start)
+	c.Assert(within, Equals, true)
+	within = cd.IsWithin(time.Date(2017, 10, 1, 0, 0, 0, 0, time.UTC), start)
+	c.Assert(within, Equals, false)
+	within = cd.IsWithin(time.Date(2017, 8, 31, 0, 0, 0, 0, time.UTC), start)
+	c.Assert(within, Equals, false)
+
+	val = time.Date(2017, 12, 10, 13, 47, 0, 0, time.UTC)
+	c.Assert(cd.Truncate(val), Equals, time.Date(2017, 12, 1, 0, 0, 0, 0, time.UTC))
+	c.Assert(cd.Ceil(val), Equals, time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC))
+	start = cd.Truncate(val)
+	within = cd.IsWithin(time.Date(2018, 1, 26, 0, 0, 0, 0, time.UTC), start)
+	c.Assert(within, Equals, false)
+	within = cd.IsWithin(time.Date(2016, 12, 10, 0, 0, 0, 0, time.UTC), start)
+	c.Assert(within, Equals, false)
+
+	cd = CandleDurationFromString("1W")
+	val = time.Date(2017, 1, 8, 0, 0, 0, 0, time.UTC)
+	start = time.Date(2018, 1, 7, 0, 0, 0, 0, time.UTC)
+	within = cd.IsWithin(val, start)
+	c.Assert(within, Equals, false)
+	val = time.Date(2018, 1, 8, 0, 0, 0, 0, time.UTC)
+	start = time.Date(2018, 1, 8, 0, 0, 0, 0, time.UTC)
+	within = cd.IsWithin(val, start)
+	c.Assert(within, Equals, true)
+
+	cd = CandleDurationFromString("abc")
+	c.Assert(cd, IsNil)
+}

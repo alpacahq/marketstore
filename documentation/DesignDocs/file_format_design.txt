@@ -135,9 +135,9 @@ Example 2) OHLCV data, Element size: 32-bit
 B) Variable width data records
 =============================================================================================
 
-We need an indirect access structure when we have variable length data. One example is trading data (tick data) where there are a variable number of entries in a given time period. 
+We need an indirect access structure when we have variable length data. One example is trading data (tick data) where there are a variable number of entries in a given time period.
 
-We can extend the fixed length format to accomodate indirection - instead of writing data to the record locations identified by our offset, we write the location of where the data for that time period is located within the file along with it's length. We can write an arbitrary amount of data for each interval at the end of the file, and then we write the offset to the beginning of that data in the interval's time indexed slot.
+We can extend the fixed length format to accommodate indirection - instead of writing data to the record locations identified by our offset, we write the location of where the data for that time period is located within the file along with it's length. We can write an arbitrary amount of data for each interval at the end of the file, and then we write the offset to the beginning of that data in the interval's time indexed slot.
 
 Each data record format is defined by the header values for ElementTypes, with the data aligned to 64-bit boundaries
 

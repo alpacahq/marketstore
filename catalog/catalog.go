@@ -105,7 +105,7 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 	}
 
-	//Create a new data file using the TimeBucketInfo
+	// Create a new data file using the TimeBucketInfo
 	if err = newTimeBucketInfoFromTemplate(f); err != nil {
 		return err
 	}

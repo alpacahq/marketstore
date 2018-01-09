@@ -13,7 +13,9 @@ const Week = 7 * Day
 const Year = 365 * Day
 
 var timeframeDefs = []Timeframe{
+	{"S", time.Second},
 	{"Sec", time.Second},
+	{"T", time.Minute},
 	{"Min", time.Minute},
 	{"H", time.Hour},
 	{"D", Day},
@@ -103,9 +105,9 @@ type CandleDuration struct {
 func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 	switch cd.suffix {
 	case "W":
-		_, tsW := ts.ISOWeek()
-		_, sW := start.ISOWeek()
-		if tsW == sW {
+		tsY, tsW := ts.ISOWeek()
+		sY, sW := start.ISOWeek()
+		if tsY == sY && tsW == sW {
 			return true
 		}
 	case "M":
@@ -142,6 +144,8 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 	return false
 }
 
+// Truncate returns the lower boundary time of this candle window that
+// ts belongs to.
 func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 	switch cd.suffix {
 	case "M":
@@ -149,6 +153,24 @@ func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 	default:
 		return ts.Truncate(cd.duration)
 	}
+}
+
+// Ceil returns the upper boundary time of this candle window that
+// ts belongs to.
+func (cd *CandleDuration) Ceil(ts time.Time) time.Time {
+	if cd.suffix == "M" {
+		year := ts.Year()
+		month := ts.Month()
+		if month == time.December {
+			year += 1
+			month = time.January
+		} else {
+			month += 1
+		}
+		return time.Date(year, month, 1, 0, 0, 0, 0, ts.Location())
+	}
+
+	return (ts.Add(cd.duration)).Truncate(cd.duration)
 }
 
 func (cd *CandleDuration) QueryableTimeframe() string {
@@ -174,14 +196,19 @@ func (cd *CandleDuration) QueryableNrecords(tf string, nrecords int) int {
 	}
 }
 
+func (cd *CandleDuration) Duration() time.Duration {
+	return cd.duration
+}
+
 func CandleDurationFromString(tf string) (cd *CandleDuration) {
-	re := regexp.MustCompile("([0-9]+)")
-	prefix := re.FindAllString(tf, -1)[0]
-	mult, err := strconv.Atoi(prefix)
-	if err != nil {
+	re := regexp.MustCompile("([0-9]+)(Sec|Min|H|D|W|M|Y)")
+	groups := re.FindStringSubmatch(tf)
+	if len(groups) == 0 {
 		return nil
 	}
-	suffix := strings.Split(tf, prefix)[1]
+	prefix := groups[1]
+	mult, _ := strconv.Atoi(prefix)
+	suffix := groups[2]
 	return &CandleDuration{
 		String:     tf,
 		multiplier: mult,
@@ -191,7 +218,9 @@ func CandleDurationFromString(tf string) (cd *CandleDuration) {
 }
 
 var suffixDefs = map[string]time.Duration{
+	"S":   time.Second,
 	"Sec": time.Second,
+	"T":   time.Minute,
 	"Min": time.Minute,
 	"H":   time.Hour,
 	"D":   Day,

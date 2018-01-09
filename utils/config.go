@@ -13,6 +13,12 @@ import (
 
 var InstanceConfig MktsConfig
 
+type TriggerSetting struct {
+	Module string
+	On     string
+	Config map[string]interface{}
+}
+
 type MktsConfig struct {
 	RootDirectory     string
 	ListenPort        string
@@ -23,6 +29,7 @@ type MktsConfig struct {
 	EnableRemove      bool
 	EnableLastKnown   bool
 	StartTime         time.Time
+	Triggers          []*TriggerSetting
 }
 
 func (m *MktsConfig) Parse(data []byte) error {
@@ -37,6 +44,11 @@ func (m *MktsConfig) Parse(data []byte) error {
 		EnableAdd         string `yaml:"enable_add"`
 		EnableRemove      string `yaml:"enable_remove"`
 		EnableLastKnown   string `yaml:"enable_last_known"`
+		Triggers          []struct {
+			Module string                 `yaml:"module"`
+			On     string                 `yaml:"on"`
+			Config map[string]interface{} `yaml:"config"`
+		} `yaml:"triggers"`
 	}
 
 	if err := yaml.Unmarshal(data, &aux); err != nil {
@@ -110,5 +122,14 @@ func (m *MktsConfig) Parse(data []byte) error {
 	*/
 	m.RootDirectory = aux.RootDirectory
 	m.ListenPort = fmt.Sprintf(":%v", aux.ListenPort)
+
+	for _, trig := range aux.Triggers {
+		triggerSetting := &TriggerSetting{
+			Module: trig.Module,
+			On:     trig.On,
+			Config: trig.Config,
+		}
+		m.Triggers = append(m.Triggers, triggerSetting)
+	}
 	return err
 }
