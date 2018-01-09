@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/marketstore/cmd/plugins/datafeeds"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
-	plugins "github.com/alpacahq/marketstore/plugins"
+	"github.com/alpacahq/marketstore/plugins"
 	io2 "github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
 )
@@ -46,7 +46,7 @@ func NewFeed(pluginName, baseURL string, d *catalog.Directory, destinations []*i
 		/*
 			Load the plugin
 		*/
-		pi, err := plugins.LoadFromGOPATH(pluginName)
+		pi, err := plugins.Load(pluginName)
 		if err != nil {
 			log.Log(log.ERROR, "Unable to open plugin: "+err.Error())
 			return nil, err

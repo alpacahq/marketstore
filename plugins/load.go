@@ -1,4 +1,4 @@
-package feedmanager
+package plugins
 
 import (
 	"fmt"
@@ -10,7 +10,11 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
 )
 
-func LoadFromGOPATH(pluginName string) (pi *plugin.Plugin, err error) {
+// Load loads plugin module.  If pluginName is relative path name, it is
+// loaded from one of the current GOPATH directories or current working directory.
+// If the path is an absolute path, it loads from the path. err is nil
+// if it succeeds.
+func Load(pluginName string) (pi *plugin.Plugin, err error) {
 	envGOPATH := os.Getenv("GOPATH")
 	gopaths := strings.Split(envGOPATH, ":")
 	if len(gopaths) == 0 {

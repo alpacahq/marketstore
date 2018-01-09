@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/executor"
-	plugins "github.com/alpacahq/marketstore/plugins"
+	"github.com/alpacahq/marketstore/plugins"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "gopkg.in/check.v1"

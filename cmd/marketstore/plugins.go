@@ -4,7 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/alpacahq/marketstore/executor"
-	plugins "github.com/alpacahq/marketstore/plugins"
+	"github.com/alpacahq/marketstore/plugins"
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 )
@@ -22,7 +22,7 @@ func InitializeTriggers() {
 }
 
 func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
-	pi, err := plugins.LoadFromGOPATH(ts.Module)
+	pi, err := plugins.Load(ts.Module)
 	if err != nil {
 		glog.Errorf("Unable to open plugin %s: %v", ts.Module, err)
 		return nil
