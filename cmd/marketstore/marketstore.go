@@ -87,6 +87,7 @@ func shutdown() {
 
 func Run() {
 	executor.NewInstanceSetup(utils.InstanceConfig.RootDirectory, true, true, true)
+	InitializeTriggers()
 	//server, service := frontend.NewServer()
 	server, _ := frontend.NewServer()
 

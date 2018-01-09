@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 
+	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/plugins/trigger"
@@ -15,15 +17,40 @@ import (
 )
 
 type SimpleAggTrigger struct {
-	config map[string]interface{}
+	config       map[string]interface{}
+	destinations []string
 }
 
 var _ trigger.Trigger = &SimpleAggTrigger{}
 
+var loadError = errors.New("plugin load error")
+
 func NewTrigger(config map[string]interface{}) (trigger.Trigger, error) {
 	glog.Infof("NewTrigger")
+
+	destIns, ok := config["destinations"]
+	if !ok {
+		glog.Errorf("no destinations are configured")
+		return nil, loadError
+	}
+
+	params, ok := destIns.([]interface{})
+	if !ok {
+		glog.Errorf("destinations do not look like an array")
+		return nil, loadError
+	}
+	destinations := []string{}
+	for _, ifval := range params {
+		timeframe, ok := ifval.(string)
+		if !ok {
+			glog.Errorf("destination %v does not look like string", ifval)
+		}
+		destinations = append(destinations, timeframe)
+	}
+	glog.Infof("%d destination(s) configured", len(destinations))
 	return &SimpleAggTrigger{
-		config: config,
+		config:       config,
+		destinations: destinations,
 	}, nil
 }
 
@@ -33,13 +60,7 @@ func (s *SimpleAggTrigger) Fire(keyPath string, indexes []int64) {
 	headIndex := indexes[0]
 	tailIndex := indexes[len(indexes)-1]
 
-	// TODO precheck on loading
-	destinations, ok := s.config["destinations"].([]string)
-	if !ok {
-		glog.Errorf("")
-		return
-	}
-	for _, timeframe := range destinations {
+	for _, timeframe := range s.destinations {
 		processFor(timeframe, keyPath, headIndex, tailIndex)
 	}
 }
@@ -50,7 +71,8 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 	elements := strings.Split(keyPath, "/")
 	tbkString := strings.Join(elements[:len(elements)-1], "/")
 	tf := utils.NewTimeframe(elements[1])
-	year, _ := strconv.Atoi(elements[len(elements)-1])
+	fileName := elements[len(elements)-1]
+	year, _ := strconv.Atoi(strings.Replace(fileName, ".bin", "", 1))
 	tbk := io.NewTimeBucketKey(tbkString)
 	headTs := io.IndexToTime(headIndex, int64(tf.PeriodsPerDay()), int16(year))
 	tailTs := io.IndexToTime(tailIndex, int64(tf.PeriodsPerDay()), int16(year))
@@ -64,6 +86,7 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
 	q.SetRange(start, end)
+	glog.Infof("start=%v, end=%v", start, end)
 	parsed, err := q.Parse()
 	if err != nil {
 		glog.Errorf("%v", err)
@@ -79,6 +102,7 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 		glog.Errorf("%v", err)
 		return
 	}
+	glog.Infof("csm=%v", csm)
 	cs := csm[*tbk]
 	if cs.Len() == 0 {
 		// Nothing to do.  Really?
@@ -88,7 +112,12 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 
 	targetTbkString := elements[0] + "/" + timeframe + "/" + elements[2]
 	targetTbk := io.NewTimeBucketKey(targetTbkString)
-	w, err := getWriter(theInstance, targetTbk)
+
+	w, err := getWriter(theInstance, targetTbk, int16(year), cs.GetDataShapes())
+	if err != nil {
+		glog.Errorf("Failed to get Writer: %v", err)
+		return
+	}
 	w.WriteRecords(rs.GetTime(), rs.GetData())
 
 	wal := theInstance.WALFile
@@ -105,14 +134,14 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 	scanHigh := cs.GetColumn("High").([]float32)
 	scanLow := cs.GetColumn("Low").([]float32)
 	scanClose := cs.GetColumn("Close").([]float32)
-	scanVolume := cs.GetColumn("Volume").([]float64)
+	scanVolume := cs.GetColumn("Volume").([]float32)
 
 	outEpoch := make([]int64, 0)
 	outOpen := make([]float32, 0)
 	outHigh := make([]float32, 0)
 	outLow := make([]float32, 0)
 	outClose := make([]float32, 0)
-	outVolume := make([]float64, 0)
+	outVolume := make([]float32, 0)
 
 	groupKey := ts[0]
 	groupStart := 0
@@ -124,7 +153,7 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 			h := maxFloat32(scanHigh[groupStart:i])
 			l := minFloat32(scanLow[groupStart:i])
 			c := lastFloat32(scanClose[groupStart:i])
-			v := sumFloat64(scanVolume[groupStart:i])
+			v := sumFloat32(scanVolume[groupStart:i])
 			outEpoch = append(outEpoch, groupKey.Unix())
 			outOpen = append(outOpen, o)
 			outHigh = append(outHigh, h)
@@ -139,7 +168,7 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 	h := maxFloat32(scanHigh[groupStart:])
 	l := minFloat32(scanLow[groupStart:])
 	c := lastFloat32(scanClose[groupStart:])
-	v := sumFloat64(scanVolume[groupStart:])
+	v := sumFloat32(scanVolume[groupStart:])
 	outEpoch = append(outEpoch, groupKey.Unix())
 	outOpen = append(outOpen, o)
 	outHigh = append(outHigh, h)
@@ -160,7 +189,27 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 	return rs
 }
 
-func getWriter(theInstance *executor.InstanceMetadata, tbk *io.TimeBucketKey) (*executor.Writer, error) {
+func getWriter(theInstance *executor.InstanceMetadata, tbk *io.TimeBucketKey, year int16, dataShapes []io.DataShape) (*executor.Writer, error) {
+	catalogDir := theInstance.CatalogDir
+	tbi, err := catalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	if err != nil {
+		tf, err := tbk.GetTimeFrame()
+		if err != nil {
+			return nil, err
+		}
+
+		tbi = io.NewTimeBucketInfo(
+			*tf, tbk.GetPathToYearFiles(catalogDir.GetPath()),
+			"Created By Trigger", year,
+			dataShapes, io.FIXED,
+		)
+		err = catalogDir.AddTimeBucket(tbk, tbi)
+		if err != nil {
+			if _, ok := err.(catalog.FileAlreadyExists); !ok {
+				return nil, err
+			}
+		}
+	}
 	q := planner.NewQuery(theInstance.CatalogDir)
 	q.AddTargetKey(tbk)
 	parsed, err := q.Parse()
@@ -198,8 +247,8 @@ func lastFloat32(values []float32) float32 {
 	return values[len(values)-1]
 }
 
-func sumFloat64(values []float64) float64 {
-	sum := float64(0)
+func sumFloat32(values []float32) float32 {
+	sum := float32(0)
 	for _, val := range values {
 		sum += val
 	}

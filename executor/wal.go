@@ -293,7 +293,8 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		bufferedPrimaryWritesVariable[fullPath] = nil // for GC
 	}
 
-	writtenIndexes.Dispatch()
+	// This has to be async, to get out of holding lock
+	go writtenIndexes.Dispatch()
 
 	return nil
 }

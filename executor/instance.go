@@ -10,7 +10,6 @@ import (
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
-	"github.com/golang/glog"
 )
 
 var ThisInstance *InstanceMetadata
@@ -84,18 +83,6 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, utils.InstanceConfig.WALRotateInterval)
 			ThisInstance.WALWg.Add(1)
 		}
-	}
-
-	InitializeTriggers()
-}
-
-func InitializeTriggers() {
-	glog.Info("InitializeTriggers")
-	config := utils.InstanceConfig
-	for _, triggerSetting := range config.Triggers {
-		glog.Infof("triggerSetting = %v", triggerSetting)
-		tmatcher := triggerSetting.NewInstance()
-		ThisInstance.TriggerMatchers = append(ThisInstance.TriggerMatchers, tmatcher)
 	}
 }
 

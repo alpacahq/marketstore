@@ -13,6 +13,12 @@ import (
 
 var InstanceConfig MktsConfig
 
+type TriggerSetting struct {
+	Module string
+	On     string
+	Config map[string]interface{}
+}
+
 type MktsConfig struct {
 	RootDirectory     string
 	ListenPort        string
@@ -23,7 +29,7 @@ type MktsConfig struct {
 	EnableRemove      bool
 	EnableLastKnown   bool
 	StartTime         time.Time
-	Triggers          []TriggerSetting
+	Triggers          []*TriggerSetting
 }
 
 func (m *MktsConfig) Parse(data []byte) error {
@@ -118,7 +124,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 	m.ListenPort = fmt.Sprintf(":%v", aux.ListenPort)
 
 	for _, trig := range aux.Triggers {
-		triggerSetting := TriggerSetting{
+		triggerSetting := &TriggerSetting{
 			Module: trig.Module,
 			On:     trig.On,
 			Config: trig.Config,

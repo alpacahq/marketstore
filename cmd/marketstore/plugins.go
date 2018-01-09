@@ -1,21 +1,27 @@
-package utils
+package main
 
 import (
 	"github.com/golang/glog"
 
+	"github.com/alpacahq/marketstore/executor"
 	plugins "github.com/alpacahq/marketstore/plugins"
 	"github.com/alpacahq/marketstore/plugins/trigger"
+	"github.com/alpacahq/marketstore/utils"
 )
 
-type TriggerSetting struct {
-	Module string
-	On     string
-	Config map[string]interface{}
+func InitializeTriggers() {
+	glog.Info("InitializeTriggers")
+	config := utils.InstanceConfig
+	theInstance := executor.ThisInstance
+	for _, triggerSetting := range config.Triggers {
+		glog.Infof("triggerSetting = %v", triggerSetting)
+		tmatcher := NewTriggerMatcher(triggerSetting)
+		theInstance.TriggerMatchers = append(
+			theInstance.TriggerMatchers, tmatcher)
+	}
 }
 
-// NewInstance creates trigger.TriggerMatcher instance by loading the plugin
-// as specified in the setting.
-func (ts *TriggerSetting) NewInstance() *trigger.TriggerMatcher {
+func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
 	pi, err := plugins.LoadFromGOPATH(ts.Module)
 	if err != nil {
 		glog.Errorf("Unable to open plugin %s: %v", ts.Module, err)
