@@ -2,6 +2,7 @@ package feedmanager
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"testing"
@@ -48,6 +49,10 @@ func (s *TestSuite) SetUpSuite(c *C) {
 	fmt.Println("Succeeded in building test plugin")
 
 	executor.NewInstanceSetup(c.MkDir(), true, true, false, true)
+}
+
+func (s *TestSuite) TearDownSuite(c *C) {
+	os.Remove(s.TestPluginLib)
 }
 
 func (s *TestSuite) TestPluginLoading(c *C) {
