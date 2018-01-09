@@ -18,10 +18,8 @@ type InstanceMetadata struct {
 	InstanceID      int64
 	RootDir         string
 	CatalogDir      *catalog.Directory
-	MetadataDBpath  string
 	TXNPipe         *TransactionPipe
 	WALFile         *WALFileType
-	AggregateCache  AggCache
 	WALWg           sync.WaitGroup
 	ShutdownPending bool
 	WALBypass       bool
@@ -60,8 +58,6 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 	}
 	ThisInstance.InstanceID = time.Now().UTC().UnixNano()
 	ThisInstance.RootDir = rootDir
-	ThisInstance.MetadataDBpath = filepath.Join(rootDir, "metadata.db")
-	ThisInstance.AggregateCache.DataMap = make(map[io.TimeBucketKey][]byte)
 	// Initialize a global catalog
 	if initCatalog {
 		ThisInstance.CatalogDir = catalog.NewDirectory(rootDir)
