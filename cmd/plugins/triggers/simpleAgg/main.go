@@ -82,6 +82,9 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 	// TODO: this is not needed once we support "<" operator
 	end = end.Add(-time.Second)
 
+	targetTbkString := elements[0] + "/" + timeframe + "/" + elements[2]
+	targetTbk := io.NewTimeBucketKey(targetTbkString)
+
 	// Scan
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
@@ -106,10 +109,7 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 		// Nothing to do.  Really?
 		return
 	}
-	rs := aggregate(cs, tbk)
-
-	targetTbkString := elements[0] + "/" + timeframe + "/" + elements[2]
-	targetTbk := io.NewTimeBucketKey(targetTbkString)
+	rs := aggregate(cs, targetTbk)
 
 	w, err := getWriter(theInstance, targetTbk, int16(year), cs.GetDataShapes())
 	if err != nil {
@@ -141,12 +141,11 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 	outClose := make([]float32, 0)
 	outVolume := make([]float32, 0)
 
-	groupKey := ts[0]
+	groupKey := timeWindow.Truncate(ts[0])
 	groupStart := 0
 	for i, t := range ts {
 		if !timeWindow.IsWithin(t, groupKey) {
 			// Emit new row and re-init aggState
-
 			o := firstFloat32(scanOpen[groupStart:i])
 			h := maxFloat32(scanHigh[groupStart:i])
 			l := minFloat32(scanLow[groupStart:i])
@@ -162,28 +161,30 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 			groupStart = i
 		}
 	}
-	o := firstFloat32(scanOpen[groupStart:])
-	h := maxFloat32(scanHigh[groupStart:])
-	l := minFloat32(scanLow[groupStart:])
-	c := lastFloat32(scanClose[groupStart:])
-	v := sumFloat32(scanVolume[groupStart:])
-	outEpoch = append(outEpoch, groupKey.Unix())
-	outOpen = append(outOpen, o)
-	outHigh = append(outHigh, h)
-	outLow = append(outLow, l)
-	outClose = append(outClose, c)
-	outVolume = append(outVolume, v)
+	if groupStart < len(ts)-1 {
+		o := firstFloat32(scanOpen[groupStart:])
+		h := maxFloat32(scanHigh[groupStart:])
+		l := minFloat32(scanLow[groupStart:])
+		c := lastFloat32(scanClose[groupStart:])
+		v := sumFloat32(scanVolume[groupStart:])
+		outEpoch = append(outEpoch, groupKey.Unix())
+		outOpen = append(outOpen, o)
+		outHigh = append(outHigh, h)
+		outLow = append(outLow, l)
+		outClose = append(outClose, c)
+		outVolume = append(outVolume, v)
+	}
 
-	outCsm := io.NewColumnSeries()
-	outCsm.AddColumn("Epoch", outEpoch)
-	outCsm.AddColumn("Open", outOpen)
-	outCsm.AddColumn("High", outHigh)
-	outCsm.AddColumn("Low", outLow)
-	outCsm.AddColumn("Close", outClose)
-	outCsm.AddColumn("Volume", outVolume)
+	outCs := io.NewColumnSeries()
+	outCs.AddColumn("Epoch", outEpoch)
+	outCs.AddColumn("Open", outOpen)
+	outCs.AddColumn("High", outHigh)
+	outCs.AddColumn("Low", outLow)
+	outCs.AddColumn("Close", outClose)
+	outCs.AddColumn("Volume", outVolume)
 
 	// TODO: create RowSeries without proxying via ColumnSeries
-	rs := cs.ToRowSeries(*tbk)
+	rs := outCs.ToRowSeries(*tbk)
 	return rs
 }
 

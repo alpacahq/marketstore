@@ -124,6 +124,7 @@ enable_remove: false
 
 * __root_directory__: allows the user to specify the directory in which the MarketStore database resides (string)
 * __listen_port__: specifies the port that MarketStore will serve through (integer)
+* __timezone__: system timezone by name of TZ database (e.g. America/New_York) default=UTC
 * __log_level__: allows the user to specify the log level (string: info, warning, error)
 * __queryable__: allows the user to run MarketStore in polling-only mode, where it will not respond to query (bool)
 * __stop_grace_period__: sets the amount of time MarketStore will wait to shutdown after a SIGINT signal is received (integer: seconds)

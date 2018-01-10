@@ -13,6 +13,10 @@ import (
 
 var InstanceConfig MktsConfig
 
+func init() {
+	InstanceConfig.Timezone = time.UTC
+}
+
 type TriggerSetting struct {
 	Module string
 	On     string
@@ -22,6 +26,7 @@ type TriggerSetting struct {
 type MktsConfig struct {
 	RootDirectory     string
 	ListenPort        string
+	Timezone          *time.Location
 	Queryable         bool
 	StopGracePeriod   time.Duration
 	WALRotateInterval int
@@ -37,6 +42,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 	var aux struct {
 		RootDirectory     string `yaml:"root_directory"`
 		ListenPort        string `yaml:"listen_port"`
+		Timezone          string `yaml:"timezone"`
 		LogLevel          string `yaml:"log_level"`
 		Queryable         string `yaml:"queryable"`
 		StopGracePeriod   int    `yaml:"stop_grace_period"`
@@ -61,6 +67,13 @@ func (m *MktsConfig) Parse(data []byte) error {
 	if aux.ListenPort == "" {
 		Log(FATAL, "Invalid listen port.")
 		return errors.New("Invalid listen port.")
+	}
+
+	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
+	m.Timezone, err = time.LoadLocation(aux.Timezone)
+	if err != nil {
+		Log(FATAL, "Invalid timezone.")
+		return errors.New("Invalid timezone")
 	}
 
 	if aux.WALRotateInterval == 0 {

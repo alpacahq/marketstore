@@ -1,13 +1,23 @@
 package io
 
-import "time"
+import (
+	"time"
+
+	"github.com/alpacahq/marketstore/utils"
+)
+
+func ToSystemTimezone(t time.Time) time.Time {
+	loc := utils.InstanceConfig.Timezone
+	return t.In(loc)
+}
 
 func IndexToTime(index, intervalsPerDay int64, year int16) time.Time {
 	secondsPerDay := int64(86400)
 	totalSeconds := int64(float64(secondsPerDay*(index-1)) / (float64(intervalsPerDay)))
-	t0 := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	loc := utils.InstanceConfig.Timezone
+	t0 := time.Date(int(year), time.January, 1, 0, 0, 0, 0, loc)
 	t0 = t0.Add(time.Duration(totalSeconds) * time.Second)
-	return time.Date(t0.Year(), t0.Month(), t0.Day(), t0.Hour(), t0.Minute(), 0, 0, time.UTC)
+	return time.Date(t0.Year(), t0.Month(), t0.Day(), t0.Hour(), t0.Minute(), t0.Second(), t0.Nanosecond(), loc)
 }
 
 /*
