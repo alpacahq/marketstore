@@ -25,6 +25,7 @@ func (fl SortedFileList) Swap(i, j int)      { fl[i], fl[j] = fl[j], fl[i] }
 func (fl SortedFileList) Less(i, j int) bool { return fl[i].File.Year < fl[j].File.Year }
 
 type ioFilePlan struct {
+	tbi      *TimeBucketInfo
 	Offset   int64
 	Length   int64
 	FullPath string // Full file path, including leaf (Year) file
@@ -34,7 +35,7 @@ type ioFilePlan struct {
 }
 
 func (iofp *ioFilePlan) GetFileYear() int16 {
-	return int16(time.Unix(iofp.BaseTime, 0).UTC().Year())
+	return iofp.tbi.Year
 }
 
 type ioplan struct {
@@ -45,6 +46,7 @@ type ioplan struct {
 	VariableRecordLen int
 	IntervalSeconds   int64 // Interval size in seconds
 	Limit             *planner.RowLimit
+	TimeQuals         []planner.TimeQualFunc
 }
 
 func (iop *ioplan) GetIntervalsPerDay() int64 {
@@ -83,7 +85,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 		}
 		if file.File.Year < pr.Range.StartYear {
 			// Add the whole file to the previous files list for use in back scanning before the start
-			prevPaths = append(prevPaths, &ioFilePlan{startOffset, length, file.File.Path, fileStartTime.Unix(), false})
+			prevPaths = append(prevPaths, &ioFilePlan{file.File, startOffset, length, file.File.Path, fileStartTime.Unix(), false})
 		} else if file.File.Year <= pr.Range.EndYear {
 			/*
 			 Calculate the number of bytes to be read for each file and the offset
@@ -106,7 +108,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 			if length > maxLength {
 				length = maxLength
 			}
-			fp := &ioFilePlan{startOffset, length, file.File.Path, fileStartTime.Unix(), false}
+			fp := &ioFilePlan{file.File, startOffset, length, file.File.Path, fileStartTime.Unix(), false}
 			if iop.Limit.Direction == LAST {
 				fp.seekingLast = true
 			}
@@ -115,7 +117,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 			// Add a previous file if we are at the beginning of the range
 			if file.File.Year == pr.Range.StartYear {
 				length := startOffset - int64(Headersize)
-				prevPaths = append(prevPaths, &ioFilePlan{int64(Headersize), length, file.File.Path, fileStartTime.Unix(), false})
+				prevPaths = append(prevPaths, &ioFilePlan{file.File, int64(Headersize), length, file.File.Path, fileStartTime.Unix(), false})
 			}
 		}
 	}
@@ -123,6 +125,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 	for i := len(prevPaths) - 1; i >= 0; i-- {
 		iop.PrevFilePlan = append(iop.PrevFilePlan, prevPaths[i])
 	}
+	iop.TimeQuals = pr.TimeQuals
 	return iop, nil
 }
 
@@ -229,6 +232,8 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 		}
 	}
 
+	ex := newIoExec(iop)
+
 	/*
 		if direction == FIRST
 			Read Forward to fill final buffer
@@ -254,7 +259,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 	if direction == FIRST || direction == 0 {
 		for _, fp := range iop.FilePlan {
 			dataLen := len(resultBuffer)
-			resultBuffer, finished, err = readForward(resultBuffer,
+			resultBuffer, finished, err = ex.readForward(resultBuffer,
 				fp,
 				iop.IntervalSeconds,
 				iop.RecordLen,
@@ -286,7 +291,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 			finished = false
 			for _, fp := range iop.PrevFilePlan {
 				var tPrevBuff []byte
-				tPrevBuff, finished, bytesRead, err := readBackward(
+				tPrevBuff, finished, bytesRead, err := ex.readBackward(
 					tPrevBuff,
 					fp,
 					iop.IntervalSeconds,
@@ -317,7 +322,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 		var bytesRead int32
 		for i := len(fp) - 1; i >= 0; i-- {
 			// Backward scan - we know that we are going to produce a limited result set here
-			resultBuffer, finished, bytesRead, err = readBackward(resultBuffer,
+			resultBuffer, finished, bytesRead, err = ex.readBackward(resultBuffer,
 				fp[i],
 				iop.IntervalSeconds,
 				iop.RecordLen,
@@ -393,8 +398,12 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 	return resultBuffer, tPrev, err
 }
 
-func packingReader(packedBuffer *[]byte, f io.ReadSeeker, recordSize int32, buffer []byte,
-	maxRead, intervalSecs int64, fp *ioFilePlan) error {
+type ioExec struct {
+	plan *ioplan
+}
+
+func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []byte,
+	maxRead int64, fp *ioFilePlan) error {
 	// Reads data from file f positioned after the header
 	// Will read records of size recordsize, decoding the index value to determine if this is a null or valid record
 	// The output is a buffer "packedBuffer" that contains only valid records
@@ -404,6 +413,8 @@ func packingReader(packedBuffer *[]byte, f io.ReadSeeker, recordSize int32, buff
 	// Exit conditions:
 	// ==> leftbytes <= 0
 
+	recordSize := ex.plan.RecordLen
+	intervalSecs := ex.plan.IntervalSeconds
 	baseTime := fp.BaseTime
 
 	var totalRead int64
@@ -434,6 +445,9 @@ func packingReader(packedBuffer *[]byte, f io.ReadSeeker, recordSize int32, buff
 			if index != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
 				index = baseTime + (index-1)*intervalSecs
+				if !ex.checkTimeQuals(index) {
+					continue
+				}
 				*(*int64)(unsafe.Pointer(&buffer[curpos])) = index
 				*packedBuffer = append(*packedBuffer, buffer[curpos:curpos+int64(recordSize)]...)
 
@@ -453,31 +467,29 @@ func packingReader(packedBuffer *[]byte, f io.ReadSeeker, recordSize int32, buff
 	}
 }
 
-func readForward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64, recordLen, bytesToRead int32, readBuffer []byte) (
+func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64, recordLen, bytesToRead int32, readBuffer []byte) (
 	resultBuffer []byte, finished bool, err error) {
 
-	filepath := fp.FullPath
-	offset := fp.Offset
-	length := fp.Length
+	filePath := fp.FullPath
 
 	if finalBuffer == nil {
 		finalBuffer = make([]byte, 0, len(readBuffer))
 	}
 	// Forward scan
-	f, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
-		Log(ERROR, "Read: opening %s\n%s", filepath, err)
+		Log(ERROR, "Read: opening %s\n%s", filePath, err)
 		return nil, false, err
 	}
 	defer f.Close()
 
-	if _, err = f.Seek(offset, os.SEEK_SET); err != nil {
-		Log(ERROR, "Read: seeking in %s\n%s", filepath, err)
+	if _, err = f.Seek(fp.Offset, os.SEEK_SET); err != nil {
+		Log(ERROR, "Read: seeking in %s\n%s", filePath, err)
 		return finalBuffer, false, err
 	}
 
-	if err = packingReader(&finalBuffer, f, recordLen, readBuffer, length, intervalSeconds, fp); err != nil {
-		Log(ERROR, "Read: reading data from %s\n%s", filepath, err)
+	if err = ex.packingReader(&finalBuffer, f, readBuffer, fp.Length, fp); err != nil {
+		Log(ERROR, "Read: reading data from %s\n%s", filePath, err)
 		return finalBuffer, false, err
 
 	}
@@ -490,42 +502,41 @@ func readForward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64, reco
 	return finalBuffer, false, nil
 }
 
-func readBackward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64,
+func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64,
 	recordLen, bytesToRead int32, readBuffer []byte, fileBuffer []byte) (
 	result []byte, finished bool, bytesRead int32, err error) {
 
-	filepath := fp.FullPath
+	filePath := fp.FullPath
 	beginPos := fp.Offset
-	length := fp.Length
 
 	maxToBuffer := int32(len(readBuffer))
 	if finalBuffer == nil {
 		finalBuffer = make([]byte, bytesToRead, bytesToRead)
 	}
 
-	f, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
-		Log(ERROR, "Read: opening %s\n%s", filepath, err)
+		Log(ERROR, "Read: opening %s\n%s", filePath, err)
 		return nil, false, 0, err
 	}
 	defer f.Close()
 
 	// Seek to the right end of the search set
-	f.Seek(beginPos+length, os.SEEK_SET)
+	f.Seek(beginPos+fp.Length, os.SEEK_SET)
 	// Seek backward one buffer size (max)
 	maxToRead, curpos, err := seekBackward(f, maxToBuffer, beginPos)
 	if err != nil {
-		Log(ERROR, "Read: seeking within %s\n%s", filepath, err)
+		Log(ERROR, "Read: seeking within %s\n%s", filePath, err)
 		return nil, false, 0, err
 	}
 
 	for {
 		fileBuffer = fileBuffer[:0]
 		// Read a packed buffer of data max size maxToBuffer
-		if err = packingReader(&fileBuffer, f, recordLen, readBuffer,
-			maxToRead, intervalSeconds, fp); err != nil {
+		if err = ex.packingReader(&fileBuffer, f, readBuffer,
+			maxToRead, fp); err != nil {
 
-			Log(ERROR, "Read: reading data from %s\n%s", filepath, err)
+			Log(ERROR, "Read: reading data from %s\n%s", filePath, err)
 			return nil, false, 0, err
 		}
 
@@ -555,7 +566,7 @@ func readBackward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64,
 			maxToRead -= int64(maxToBuffer)
 			// Exit the read operation if we get here with an error
 			if err != nil {
-				Log(ERROR, "Read: seeking within %s\n%s", filepath, err)
+				Log(ERROR, "Read: seeking within %s\n%s", filePath, err)
 				return nil, false, 0, err
 			}
 		} else {
@@ -590,4 +601,22 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 		return 0, curpos, err
 	}
 	return seekAmt, curpos, nil
+}
+
+func (ex *ioExec) checkTimeQuals(epoch int64) bool {
+	if len(ex.plan.TimeQuals) > 0 {
+		t := time.Unix(epoch, 0).In(utils.InstanceConfig.Timezone)
+		for _, timeQual := range ex.plan.TimeQuals {
+			if !timeQual(t) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func newIoExec(iop *ioplan) *ioExec {
+	return &ioExec{
+		plan: iop,
+	}
 }
