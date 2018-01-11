@@ -23,6 +23,12 @@ type TriggerSetting struct {
 	Config map[string]interface{}
 }
 
+type BgWorkerSetting struct {
+	Module string
+	Name   string
+	Config map[string]interface{}
+}
+
 type MktsConfig struct {
 	RootDirectory     string
 	ListenPort        string
@@ -35,6 +41,7 @@ type MktsConfig struct {
 	EnableLastKnown   bool
 	StartTime         time.Time
 	Triggers          []*TriggerSetting
+	BgWorkers         []*BgWorkerSetting
 }
 
 func (m *MktsConfig) Parse(data []byte) error {
@@ -55,6 +62,11 @@ func (m *MktsConfig) Parse(data []byte) error {
 			On     string                 `yaml:"on"`
 			Config map[string]interface{} `yaml:"config"`
 		} `yaml:"triggers"`
+		BgWorkers []struct {
+			Module string                 `yaml:"module"`
+			Name   string                 `yaml:"name"`
+			Config map[string]interface{} `yaml:"config"`
+		} `yaml:"bgworkers"`
 	}
 
 	if err := yaml.Unmarshal(data, &aux); err != nil {
@@ -143,6 +155,13 @@ func (m *MktsConfig) Parse(data []byte) error {
 			Config: trig.Config,
 		}
 		m.Triggers = append(m.Triggers, triggerSetting)
+	}
+	for _, bg := range aux.BgWorkers {
+		bgWorkerSetting := &BgWorkerSetting{
+			Module: bg.Module,
+			Config: bg.Config,
+		}
+		m.BgWorkers = append(m.BgWorkers, bgWorkerSetting)
 	}
 	return err
 }
