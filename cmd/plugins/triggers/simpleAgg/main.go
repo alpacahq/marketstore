@@ -1,3 +1,26 @@
+// SimpleAgg implements a trigger to downsample base timeframe data
+// and write to disk.  Underlying data schema is expected at least
+// - Open:float32
+// - High:float32
+// - Low:float32
+// - Close:float32
+// optionally,
+// - Volume:one of float32, float64, or int32
+//
+// Example:
+// 	triggers:
+// 	  - module: simpleAgg.so
+// 	    on: */1Min/OHLCV
+// 	    config:
+// 	      filter: "nasdaq"
+// 	      destinations:
+// 	        - 5Min
+// 	        - 15Min
+// 	        - 1H
+// 	        - 1D
+//
+// destinations are downsample target time windows.  Optionally, if filter
+// is set to "nasdaq", it filters the scan data by NASDAQ market hours.
 package main
 
 import (
@@ -9,6 +32,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/alpacahq/marketstore/catalog"
+	"github.com/alpacahq/marketstore/cmd/plugins/triggers/simpleAgg/calendar"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/plugins/trigger"
@@ -19,6 +43,8 @@ import (
 type SimpleAggTrigger struct {
 	config       map[string]interface{}
 	destinations []string
+	// filter by market hours if this is "nasdaq"
+	filter string
 }
 
 var _ trigger.Trigger = &SimpleAggTrigger{}
@@ -48,24 +74,24 @@ func NewTrigger(config map[string]interface{}) (trigger.Trigger, error) {
 		destinations = append(destinations, timeframe)
 	}
 	glog.Infof("%d destination(s) configured", len(destinations))
+	filter, ok := config["filter"]
 	return &SimpleAggTrigger{
 		config:       config,
 		destinations: destinations,
+		filter:       filter.(string),
 	}, nil
 }
 
 func (s *SimpleAggTrigger) Fire(keyPath string, indexes []int64) {
-	glog.Infof("keyPath=%s len(indexes)=%d", keyPath, len(indexes))
-
 	headIndex := indexes[0]
 	tailIndex := indexes[len(indexes)-1]
 
 	for _, timeframe := range s.destinations {
-		processFor(timeframe, keyPath, headIndex, tailIndex)
+		s.processFor(timeframe, keyPath, headIndex, tailIndex)
 	}
 }
 
-func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
+func (s *SimpleAggTrigger) processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 	theInstance := executor.ThisInstance
 	catalogDir := theInstance.CatalogDir
 	elements := strings.Split(keyPath, "/")
@@ -89,6 +115,16 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
 	q.SetRange(start, end)
+	applyingFilter := false
+	if s.filter == "nasdaq" && timeWindow.Duration() >= 24*time.Hour {
+		calendarTz := calendar.Nasdaq.Tz()
+		if utils.InstanceConfig.Timezone != calendarTz {
+			glog.Errorf("misconfiguration... system must be configure in %s", calendarTz)
+		} else {
+			q.AddTimeQual(calendar.Nasdaq.IsMarketOpen)
+			applyingFilter = true
+		}
+	}
 	parsed, err := q.Parse()
 	if err != nil {
 		glog.Errorf("%v", err)
@@ -105,8 +141,11 @@ func processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 		return
 	}
 	cs := csm[*tbk]
-	if cs.Len() == 0 {
-		// Nothing to do.  Really?
+	if cs == nil || cs.Len() == 0 {
+		if !applyingFilter {
+			// Nothing in there... really?
+			glog.Errorf("result is empty for %s -> %s", tbk, targetTbk)
+		}
 		return
 	}
 	rs := aggregate(cs, targetTbk)
@@ -250,6 +289,23 @@ func lastFloat32(values []float32) float32 {
 
 func sumFloat32(values []float32) float32 {
 	sum := float32(0)
+	for _, val := range values {
+		sum += val
+	}
+	return sum
+}
+
+func sumFloat64(values []float64) float64 {
+	sum := float64(0)
+	for _, val := range values {
+		sum += val
+	}
+	return sum
+}
+
+func sumInt32(values []int32) int32 {
+	// TODO: check overflow
+	sum := int32(0)
 	for _, val := range values {
 		sum += val
 	}

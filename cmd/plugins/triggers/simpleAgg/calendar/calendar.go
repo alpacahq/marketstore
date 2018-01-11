@@ -127,3 +127,7 @@ func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 		}
 	}
 }
+
+func (calendar *Calendar) Tz() *time.Location {
+	return calendar.tz
+}

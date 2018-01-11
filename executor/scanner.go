@@ -46,6 +46,7 @@ type ioplan struct {
 	VariableRecordLen int
 	IntervalSeconds   int64 // Interval size in seconds
 	Limit             *planner.RowLimit
+	TimeQuals         []planner.TimeQualFunc
 }
 
 func (iop *ioplan) GetIntervalsPerDay() int64 {
@@ -124,6 +125,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 	for i := len(prevPaths) - 1; i >= 0; i-- {
 		iop.PrevFilePlan = append(iop.PrevFilePlan, prevPaths[i])
 	}
+	iop.TimeQuals = pr.TimeQuals
 	return iop, nil
 }
 
@@ -443,8 +445,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 			if index != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
 				index = baseTime + (index-1)*intervalSecs
-				t := IndexToTime(index, ex.plan.IntervalSeconds, fp.tbi.Year)
-				if !ex.checkTimeQuals(t) {
+				if !ex.checkTimeQuals(index) {
 					continue
 				}
 				*(*int64)(unsafe.Pointer(&buffer[curpos])) = index
@@ -602,7 +603,15 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 	return seekAmt, curpos, nil
 }
 
-func (ex *ioExec) checkTimeQuals(t time.Time) bool {
+func (ex *ioExec) checkTimeQuals(epoch int64) bool {
+	if len(ex.plan.TimeQuals) > 0 {
+		t := time.Unix(epoch, 0).In(utils.InstanceConfig.Timezone)
+		for _, timeQual := range ex.plan.TimeQuals {
+			if !timeQual(t) {
+				return false
+			}
+		}
+	}
 	return true
 }
 
