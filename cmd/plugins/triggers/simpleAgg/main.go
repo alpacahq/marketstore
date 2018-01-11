@@ -74,11 +74,15 @@ func NewTrigger(config map[string]interface{}) (trigger.Trigger, error) {
 		destinations = append(destinations, timeframe)
 	}
 	glog.Infof("%d destination(s) configured", len(destinations))
-	filter, ok := config["filter"]
+	filterVal, ok := config["filter"]
+	filter := ""
+	if ok {
+		filter = filterVal.(string)
+	}
 	return &SimpleAggTrigger{
 		config:       config,
 		destinations: destinations,
-		filter:       filter.(string),
+		filter:       filter,
 	}, nil
 }
 
@@ -115,10 +119,12 @@ func (s *SimpleAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
 	q.SetRange(start, end)
+
+	// decide whether to apply market-hour filter
 	applyingFilter := false
 	if s.filter == "nasdaq" && timeWindow.Duration() >= 24*time.Hour {
 		calendarTz := calendar.Nasdaq.Tz()
-		if utils.InstanceConfig.Timezone != calendarTz {
+		if utils.InstanceConfig.Timezone.String() != calendarTz.String() {
 			glog.Errorf("misconfiguration... system must be configure in %s", calendarTz)
 		} else {
 			q.AddTimeQual(calendar.Nasdaq.IsMarketOpen)
@@ -148,6 +154,7 @@ func (s *SimpleAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 		}
 		return
 	}
+	// calculate aggregated values
 	rs := aggregate(cs, targetTbk)
 
 	w, err := getWriter(theInstance, targetTbk, int16(year), cs.GetDataShapes())
@@ -155,8 +162,10 @@ func (s *SimpleAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 		glog.Errorf("Failed to get Writer for %s/%d: %v", targetTbk.String(), year, err)
 		return
 	}
+	// now write these records
 	w.WriteRecords(rs.GetTime(), rs.GetData())
 
+	// and flush
 	wal := theInstance.WALFile
 	tgc := theInstance.TXNPipe
 	wal.FlushToWAL(tgc)
@@ -165,64 +174,45 @@ func (s *SimpleAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 
 func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 	timeWindow := utils.CandleDurationFromString(tbk.GetItemInCategory("Timeframe"))
-	ts := cs.GetTime()
-	// TODO: generalize aggregate later
-	scanOpen := cs.GetColumn("Open").([]float32)
-	scanHigh := cs.GetColumn("High").([]float32)
-	scanLow := cs.GetColumn("Low").([]float32)
-	scanClose := cs.GetColumn("Close").([]float32)
-	scanVolume := cs.GetColumn("Volume").([]float32)
 
+	params := []accumParam{
+		accumParam{"Open", "first", "Open"},
+		accumParam{"High", "max", "High"},
+		accumParam{"Low", "min", "Low"},
+		accumParam{"Close", "last", "Close"},
+	}
+	if cs.Exists("Volume") {
+		params = append(params, accumParam{"Volume", "sum", "Volume"})
+	}
+	accumGroup := newAccumGroup(cs, params)
+
+	ts := cs.GetTime()
 	outEpoch := make([]int64, 0)
-	outOpen := make([]float32, 0)
-	outHigh := make([]float32, 0)
-	outLow := make([]float32, 0)
-	outClose := make([]float32, 0)
-	outVolume := make([]float32, 0)
 
 	groupKey := timeWindow.Truncate(ts[0])
 	groupStart := 0
+	// accumulate inputs.  Since the input is ordered by
+	// time, it is just to slice by correct boundaries
 	for i, t := range ts {
 		if !timeWindow.IsWithin(t, groupKey) {
 			// Emit new row and re-init aggState
-			o := firstFloat32(scanOpen[groupStart:i])
-			h := maxFloat32(scanHigh[groupStart:i])
-			l := minFloat32(scanLow[groupStart:i])
-			c := lastFloat32(scanClose[groupStart:i])
-			v := sumFloat32(scanVolume[groupStart:i])
 			outEpoch = append(outEpoch, groupKey.Unix())
-			outOpen = append(outOpen, o)
-			outHigh = append(outHigh, h)
-			outLow = append(outLow, l)
-			outClose = append(outClose, c)
-			outVolume = append(outVolume, v)
+			accumGroup.apply(groupStart, i)
 			groupKey = timeWindow.Truncate(t)
 			groupStart = i
 		}
 	}
+	// accumulate any remaining values if not yet
 	if groupStart < len(ts)-1 {
-		o := firstFloat32(scanOpen[groupStart:])
-		h := maxFloat32(scanHigh[groupStart:])
-		l := minFloat32(scanLow[groupStart:])
-		c := lastFloat32(scanClose[groupStart:])
-		v := sumFloat32(scanVolume[groupStart:])
 		outEpoch = append(outEpoch, groupKey.Unix())
-		outOpen = append(outOpen, o)
-		outHigh = append(outHigh, h)
-		outLow = append(outLow, l)
-		outClose = append(outClose, c)
-		outVolume = append(outVolume, v)
+		accumGroup.apply(groupStart, len(ts))
 	}
 
+	// finalize output
 	outCs := io.NewColumnSeries()
 	outCs.AddColumn("Epoch", outEpoch)
-	outCs.AddColumn("Open", outOpen)
-	outCs.AddColumn("High", outHigh)
-	outCs.AddColumn("Low", outLow)
-	outCs.AddColumn("Close", outClose)
-	outCs.AddColumn("Volume", outVolume)
+	accumGroup.addColumns(outCs)
 
-	// TODO: create RowSeries without proxying via ColumnSeries
 	rs := outCs.ToRowSeries(*tbk)
 	return rs
 }
@@ -257,59 +247,6 @@ func getWriter(theInstance *executor.InstanceMetadata, tbk *io.TimeBucketKey, ye
 		return nil, err
 	}
 	return executor.NewWriter(parsed, theInstance.TXNPipe, theInstance.CatalogDir)
-}
-
-func firstFloat32(values []float32) float32 {
-	return values[0]
-}
-
-func minFloat32(values []float32) float32 {
-	min := values[0]
-	for _, val := range values[1:] {
-		if val < min {
-			min = val
-		}
-	}
-	return min
-}
-
-func maxFloat32(values []float32) float32 {
-	max := values[0]
-	for _, val := range values[1:] {
-		if val > max {
-			max = val
-		}
-	}
-	return max
-}
-
-func lastFloat32(values []float32) float32 {
-	return values[len(values)-1]
-}
-
-func sumFloat32(values []float32) float32 {
-	sum := float32(0)
-	for _, val := range values {
-		sum += val
-	}
-	return sum
-}
-
-func sumFloat64(values []float64) float64 {
-	sum := float64(0)
-	for _, val := range values {
-		sum += val
-	}
-	return sum
-}
-
-func sumInt32(values []int32) int32 {
-	// TODO: check overflow
-	sum := int32(0)
-	for _, val := range values {
-		sum += val
-	}
-	return sum
 }
 
 func main() {
