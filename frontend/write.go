@@ -3,9 +3,7 @@ package frontend
 import (
 	"net/http"
 
-	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 )
@@ -38,7 +36,7 @@ func (s *DataService) Write(r *http.Request, reqs *MultiWriteRequest, response *
 			appendErrorResponse(err, response)
 			continue
 		}
-		if err = WriteCSM(csm, req.IsVariableLength); err != nil {
+		if err = executor.WriteCSM(csm, req.IsVariableLength); err != nil {
 			appendErrorResponse(err, response)
 			continue
 		}
@@ -57,64 +55,4 @@ func appendErrorResponse(err error, response *MultiWriteResponse) {
 			utils.Version,
 		},
 	)
-}
-
-func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
-	d := executor.ThisInstance.CatalogDir
-	for tbk, cs := range csm {
-		tf, err := tbk.GetTimeFrame()
-		if err != nil {
-			return err
-		}
-
-		tbi, err := d.GetLatestTimeBucketInfoFromKey(&tbk)
-		if err != nil {
-			var recordType io.EnumRecordType
-			if isVariableLength {
-				recordType = io.VARIABLE
-			} else {
-				recordType = io.FIXED
-			}
-
-			tbi = io.NewTimeBucketInfo(
-				*tf,
-				tbk.GetPathToYearFiles(d.GetPath()),
-				"Created By Writer", 2017,
-				cs.GetDataShapes(), recordType)
-
-			/*
-				Verify there is an available TimeBucket for the destination
-			*/
-			err = d.AddTimeBucket(&tbk, tbi)
-			if err != nil {
-				// If File Exists error, ignore it, otherwise return the error
-				if _, ok := err.(catalog.FileAlreadyExists); !ok {
-					return err
-				}
-			}
-		}
-
-		/*
-			Create a writer for this TimeBucket
-		*/
-		q := planner.NewQuery(d)
-		q.AddTargetKey(&tbk)
-		pr, err := q.Parse()
-		if err != nil {
-			return err
-		}
-		wr, err := executor.NewWriter(pr, executor.ThisInstance.TXNPipe, d)
-		if err != nil {
-			return err
-		}
-		rs := cs.ToRowSeries(tbk)
-		rowdata := rs.GetData()
-		times := rs.GetTime()
-		wr.WriteRecords(times, rowdata)
-	}
-	wal := executor.ThisInstance.WALFile
-	tgc := executor.ThisInstance.TXNPipe
-	wal.FlushToWAL(tgc)
-	wal.FlushToPrimary()
-	return nil
 }

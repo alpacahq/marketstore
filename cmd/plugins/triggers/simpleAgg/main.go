@@ -155,24 +155,16 @@ func (s *SimpleAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 		return
 	}
 	// calculate aggregated values
-	rs := aggregate(cs, targetTbk)
+	outCs := aggregate(cs, targetTbk)
+	outCsm := io.NewColumnSeriesMap()
+	outCsm.AddColumnSeries(*targetTbk, outCs)
 
-	w, err := getWriter(theInstance, targetTbk, int16(year), cs.GetDataShapes())
-	if err != nil {
-		glog.Errorf("Failed to get Writer for %s/%d: %v", targetTbk.String(), year, err)
-		return
+	if err := executor.WriteCSM(outCsm, false); err != nil {
+		glog.Errorf("failed to wriet CSM: %v", err)
 	}
-	// now write these records
-	w.WriteRecords(rs.GetTime(), rs.GetData())
-
-	// and flush
-	wal := theInstance.WALFile
-	tgc := theInstance.TXNPipe
-	wal.FlushToWAL(tgc)
-	wal.FlushToPrimary()
 }
 
-func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
+func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	timeWindow := utils.CandleDurationFromString(tbk.GetItemInCategory("Timeframe"))
 
 	params := []accumParam{
@@ -213,8 +205,7 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.RowSeries {
 	outCs.AddColumn("Epoch", outEpoch)
 	accumGroup.addColumns(outCs)
 
-	rs := outCs.ToRowSeries(*tbk)
-	return rs
+	return outCs
 }
 
 func getWriter(theInstance *executor.InstanceMetadata, tbk *io.TimeBucketKey, year int16, dataShapes []io.DataShape) (*executor.Writer, error) {

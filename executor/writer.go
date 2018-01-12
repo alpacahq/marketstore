@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/planner"
+	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
 	"github.com/golang/glog"
 )
@@ -244,5 +245,69 @@ func WriteBufferToFileIndirect(fp *os.File, offsetIndexDataBuffer []byte) (err e
 		return err
 	}
 
+	return nil
+}
+
+// WriteCSM writs ColumnSeriesMap csm to each destination file, and flush it to the disk,
+// isVariableLength is set to true if the record content is variable-length type.
+func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
+	cDir := ThisInstance.CatalogDir
+	for tbk, cs := range csm {
+		tf, err := tbk.GetTimeFrame()
+		if err != nil {
+			return err
+		}
+
+		// TODO check if the previsouly-written data schema matches the input
+		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
+		if err != nil {
+			var recordType io.EnumRecordType
+			if isVariableLength {
+				recordType = io.VARIABLE
+			} else {
+				recordType = io.FIXED
+			}
+
+			year := int16(cs.GetTime()[0].Year())
+			tbi = io.NewTimeBucketInfo(
+				*tf,
+				tbk.GetPathToYearFiles(cDir.GetPath()),
+				"Created By Writer", year,
+				cs.GetDataShapes(), recordType)
+
+			/*
+				Verify there is an available TimeBucket for the destination
+			*/
+			err = cDir.AddTimeBucket(&tbk, tbi)
+			if err != nil {
+				// If File Exists error, ignore it, otherwise return the error
+				if _, ok := err.(catalog.FileAlreadyExists); !ok {
+					return err
+				}
+			}
+		}
+
+		/*
+			Create a writer for this TimeBucket
+		*/
+		q := planner.NewQuery(cDir)
+		q.AddTargetKey(&tbk)
+		pr, err := q.Parse()
+		if err != nil {
+			return err
+		}
+		wr, err := NewWriter(pr, ThisInstance.TXNPipe, cDir)
+		if err != nil {
+			return err
+		}
+		rs := cs.ToRowSeries(tbk)
+		rowdata := rs.GetData()
+		times := rs.GetTime()
+		wr.WriteRecords(times, rowdata)
+	}
+	wal := ThisInstance.WALFile
+	tgc := ThisInstance.TXNPipe
+	wal.FlushToWAL(tgc)
+	wal.FlushToPrimary()
 	return nil
 }

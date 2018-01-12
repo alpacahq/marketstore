@@ -38,7 +38,7 @@ func Load(loader SymbolLoader, config map[string]interface{}) (BgWorker, error) 
 
 	newFunc, ok := sym.(func(map[string]interface{}) (BgWorker, error))
 	if !ok {
-		return nil, fmt.Errorf("%s does not comply function spec")
+		return nil, fmt.Errorf("%s does not comply function spec", symbolName)
 	}
 	return newFunc(config)
 }

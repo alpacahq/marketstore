@@ -61,7 +61,7 @@ func Load(loader SymbolLoader, config map[string]interface{}) (Trigger, error) {
 
 	newFunc, ok := sym.(func(map[string]interface{}) (Trigger, error))
 	if !ok {
-		return nil, fmt.Errorf("%s does not comply function spec")
+		return nil, fmt.Errorf("%s does not comply function spec", symbolName)
 	}
 	return newFunc(config)
 }
