@@ -17,6 +17,7 @@ update:
 
 plugins:
 	go build -o /go/bin/simpleAgg.so -buildmode=plugin ./cmd/plugins/triggers/simpleAgg
+	go build -o /go/bin/gdaxfeed.so -buildmode=plugin ./contrib/gdaxfeed
 
 unittest:
 	! gofmt -l $(shell glide novendor -no-subdir) | grep .

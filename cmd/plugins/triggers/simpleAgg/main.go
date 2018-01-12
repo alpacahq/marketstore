@@ -31,7 +31,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/cmd/plugins/triggers/simpleAgg/calendar"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -86,9 +85,29 @@ func NewTrigger(config map[string]interface{}) (trigger.Trigger, error) {
 	}, nil
 }
 
+func minInt64(values []int64) int64 {
+	min := values[0]
+	for _, v := range values[1:] {
+		if v < min {
+			min = v
+		}
+	}
+	return min
+}
+
+func maxInt64(values []int64) int64 {
+	max := values[0]
+	for _, v := range values[1:] {
+		if v > max {
+			max = v
+		}
+	}
+	return max
+}
+
 func (s *SimpleAggTrigger) Fire(keyPath string, indexes []int64) {
-	headIndex := indexes[0]
-	tailIndex := indexes[len(indexes)-1]
+	headIndex := minInt64(indexes)
+	tailIndex := maxInt64(indexes)
 
 	for _, timeframe := range s.destinations {
 		s.processFor(timeframe, keyPath, headIndex, tailIndex)
@@ -206,38 +225,6 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	accumGroup.addColumns(outCs)
 
 	return outCs
-}
-
-func getWriter(theInstance *executor.InstanceMetadata, tbk *io.TimeBucketKey, year int16, dataShapes []io.DataShape) (*executor.Writer, error) {
-	catalogDir := theInstance.CatalogDir
-	tbi, err := catalogDir.GetLatestTimeBucketInfoFromKey(tbk)
-	// TODO: refactor to common code
-	// TODO: check existing file with new dataShapes
-	if err != nil {
-		tf, err := tbk.GetTimeFrame()
-		if err != nil {
-			return nil, err
-		}
-
-		tbi = io.NewTimeBucketInfo(
-			*tf, tbk.GetPathToYearFiles(catalogDir.GetPath()),
-			"Created By Trigger", year,
-			dataShapes, io.FIXED,
-		)
-		err = catalogDir.AddTimeBucket(tbk, tbi)
-		if err != nil {
-			if _, ok := err.(catalog.FileAlreadyExists); !ok {
-				return nil, err
-			}
-		}
-	}
-	q := planner.NewQuery(theInstance.CatalogDir)
-	q.AddTargetKey(tbk)
-	parsed, err := q.Parse()
-	if err != nil {
-		return nil, err
-	}
-	return executor.NewWriter(parsed, theInstance.TXNPipe, theInstance.CatalogDir)
 }
 
 func main() {
