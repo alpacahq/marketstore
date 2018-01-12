@@ -32,6 +32,7 @@ type WALFileType struct {
 	WrittenTGIDs []int64
 	FilePtr      *os.File   // Active file pointer to FileName
 	flushMutex   sync.Mutex // Taken while flushing WAL
+	tgidMutex    sync.Mutex // Guard for WrittenTGIDs
 }
 
 func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
@@ -254,7 +255,9 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 
 		// WAL Transaction Commit Complete Message
 		wf.WriteTransactionInfo(tgc.TGID, WAL, COMMITCOMPLETE)
+		wf.tgidMutex.Lock()
 		wf.WrittenTGIDs = append(wf.WrittenTGIDs, tgc.TGID)
+		wf.tgidMutex.Unlock()
 		tgc.NewTGID()
 	}
 
@@ -302,6 +305,8 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 }
 
 func (wf *WALFileType) FlushToPrimary() error {
+	wf.tgidMutex.Lock()
+	defer wf.tgidMutex.Unlock()
 	if len(wf.WrittenTGIDs) == 0 {
 		return nil
 	}
@@ -615,7 +620,9 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 			}
 			cursor += 8 + 8 + dataLen
 		}
+		wf.tgidMutex.Lock()
 		wf.WrittenTGIDs = append(wf.WrittenTGIDs, TGID)
+		wf.tgidMutex.Unlock()
 		wf.FlushToPrimary()
 	}
 	return nil
