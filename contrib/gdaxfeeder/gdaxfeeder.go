@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/executor"
+	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
@@ -21,14 +22,16 @@ func (a ByTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByTime) Less(i, j int) bool { return a[i].Time.Before(a[j].Time) }
 
 type FetcherConfig struct {
-	Symbols    []string `json:"symbols"`
-	QueryStart string   `json:"query_start"`
+	Symbols       []string `json:"symbols"`
+	QueryStart    string   `json:"query_start"`
+	BaseTimeframe string   `json:"base_timeframe"`
 }
 
 type GdaxFetcher struct {
-	config     map[string]interface{}
-	symbols    []string
-	queryStart time.Time
+	config        map[string]interface{}
+	symbols       []string
+	queryStart    time.Time
+	baseTimeframe *utils.Timeframe
 }
 
 func recast(config map[string]interface{}) *FetcherConfig {
@@ -62,11 +65,32 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 			}
 		}
 	}
+	timeframeStr := "1Min"
 	return &GdaxFetcher{
-		config:     conf,
-		symbols:    symbols,
-		queryStart: queryStart,
+		config:        conf,
+		symbols:       symbols,
+		queryStart:    queryStart,
+		baseTimeframe: utils.NewTimeframe(timeframeStr),
 	}, nil
+}
+
+func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
+	cDir := executor.ThisInstance.CatalogDir
+	query := planner.NewQuery(cDir)
+	query.AddTargetKey(tbk)
+	query.SetRowLimit(io.LAST, 1)
+	parsed, err := query.Parse()
+	if err != nil {
+		return time.Time{}
+	}
+	reader, err := executor.NewReader(parsed)
+	csm, _, err := reader.Read()
+	cs := csm[*tbk]
+	if cs == nil || cs.Len() == 0 {
+		return time.Time{}
+	}
+	ts := cs.GetTime()
+	return ts[0]
 }
 
 func (gd *GdaxFetcher) Run() {
@@ -75,15 +99,23 @@ func (gd *GdaxFetcher) Run() {
 	timeStart := time.Now().UTC().Add(-time.Hour)
 	if !gd.queryStart.IsZero() {
 		timeStart = gd.queryStart
+	} else {
+		for _, symbol := range symbols {
+			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+			lastTimestamp := findLastTimestamp(symbol, tbk)
+			if !lastTimestamp.IsZero() && lastTimestamp.Before(timeStart) {
+				timeStart = lastTimestamp
+			}
+		}
 	}
 	for {
-		timeEnd := timeStart.Add(time.Hour)
+		timeEnd := timeStart.Add(gd.baseTimeframe.Duration * 300)
 		lastTime := timeStart
 		for _, symbol := range symbols {
 			params := gdax.GetHistoricRatesParams{
 				Start:       timeStart,
 				End:         timeEnd,
-				Granularity: 60,
+				Granularity: int(gd.baseTimeframe.Duration.Seconds()),
 			}
 			glog.Infof("Requesting %s %v - %v", symbol, timeStart, timeEnd)
 			rates, err := client.GetHistoricRates(symbol+"-USD", params)
@@ -121,13 +153,14 @@ func (gd *GdaxFetcher) Run() {
 			glog.Infof("%s: %d rates between %v - %v", symbol, len(rates),
 				rates[0].Time, rates[(len(rates))-1].Time)
 			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKey(symbol + "/1Min/OHLCV")
+			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
 			executor.WriteCSM(csm, false)
 		}
-		timeStart = lastTime
-		// minute bar start + 1 minute (to the next) + 1 minute (for the last to complete)
-		nextExpected := lastTime.Add(2 * time.Minute)
+		// next fetch start point
+		timeStart = lastTime.Add(gd.baseTimeframe.Duration)
+		// for the next bar to complete, add it once more
+		nextExpected := timeStart.Add(gd.baseTimeframe.Duration)
 		now := time.Now()
 		toSleep := nextExpected.Sub(now)
 		glog.Infof("next expected(%v) - now(%v) = %v", nextExpected, now, toSleep)
