@@ -21,12 +21,20 @@ func (a ByTime) Len() int           { return len(a) }
 func (a ByTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByTime) Less(i, j int) bool { return a[i].Time.Before(a[j].Time) }
 
+// FetchConfig is the configuration for GdaxFetcher you can define in
+// marketstore's config file through bgworker extension.
 type FetcherConfig struct {
-	Symbols       []string `json:"symbols"`
-	QueryStart    string   `json:"query_start"`
-	BaseTimeframe string   `json:"base_timeframe"`
+	// list of currency symbols, defults to ["BTC", "ETH", "LTC", "BCH"]
+	Symbols []string `json:"symbols"`
+	// time string when to start first time, in "YYYY-MM-DD HH:MM" format
+	// if it is restarting, the start is the last written data timestamp
+	// otherwise, it starts from an hour ago by default
+	QueryStart string `json:"query_start"`
+	// such as 5Min, 1D.  defaults to 1Min
+	BaseTimeframe string `json:"base_timeframe"`
 }
 
+// GdaxFetcher is the main worker instance.  It implements bgworker.Run().
 type GdaxFetcher struct {
 	config        map[string]interface{}
 	symbols       []string
@@ -41,6 +49,8 @@ func recast(config map[string]interface{}) *FetcherConfig {
 	return &ret
 }
 
+// NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
+// for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	symbols := []string{"BTC", "ETH", "LTC", "BCH"}
 
@@ -66,6 +76,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		}
 	}
 	timeframeStr := "1Min"
+	if config.BaseTimeframe != "" {
+		timeframeStr = config.BaseTimeframe
+	}
 	return &GdaxFetcher{
 		config:        conf,
 		symbols:       symbols,
@@ -93,19 +106,25 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
+// Run() runs forever to get public historical rate for each configured symbol,
+// and writes in marketstore data format.  In case any error including rate limit
+// is returned from GDAX, it waits for a minute.
 func (gd *GdaxFetcher) Run() {
 	symbols := gd.symbols
 	client := gdax.NewClient("", "", "")
-	timeStart := time.Now().UTC().Add(-time.Hour)
-	if !gd.queryStart.IsZero() {
-		timeStart = gd.queryStart
-	} else {
-		for _, symbol := range symbols {
-			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
-			lastTimestamp := findLastTimestamp(symbol, tbk)
-			if !lastTimestamp.IsZero() && lastTimestamp.Before(timeStart) {
-				timeStart = lastTimestamp
-			}
+	timeStart := time.Time{}
+	for _, symbol := range symbols {
+		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+		lastTimestamp := findLastTimestamp(symbol, tbk)
+		if !lastTimestamp.IsZero() && lastTimestamp.Before(timeStart) {
+			timeStart = lastTimestamp
+		}
+	}
+	if timeStart.IsZero() {
+		if !gd.queryStart.IsZero() {
+			timeStart = gd.queryStart
+		} else {
+			timeStart = time.Now().UTC().Add(-time.Hour)
 		}
 	}
 	for {
