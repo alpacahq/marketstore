@@ -1,15 +1,15 @@
-// SimpleAgg implements a trigger to downsample base timeframe data
+// OnDiskAgg implements a trigger to downsample base timeframe data
 // and write to disk.  Underlying data schema is expected at least
-// - Open:float32
-// - High:float32
-// - Low:float32
-// - Close:float32
+// - Open:float32 or float64
+// - High:float32 or float64
+// - Low:float32 or float64
+// - Close:float32 or float64
 // optionally,
 // - Volume:one of float32, float64, or int32
 //
 // Example:
 // 	triggers:
-// 	  - module: simpleAgg.so
+// 	  - module: ondiskagg.so
 // 	    on: */1Min/OHLCV
 // 	    config:
 // 	      filter: "nasdaq"
@@ -24,6 +24,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -31,7 +32,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/alpacahq/marketstore/cmd/plugins/triggers/simpleAgg/calendar"
+	"github.com/alpacahq/marketstore/contrib/ondiskagg/calendar"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/plugins/trigger"
@@ -39,48 +40,49 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 )
 
-type SimpleAggTrigger struct {
+// AggTriggerConfig is the configuration for OnDiskAggTrigger you can define in
+// marketstore's config file under triggers extension.
+type AggTriggerConfig struct {
+	Destinations []string `json:"destinations"`
+	Filter       string   `json:"filter"`
+}
+
+// OnDiskAggTrigger is the main trigger.
+type OnDiskAggTrigger struct {
 	config       map[string]interface{}
 	destinations []string
 	// filter by market hours if this is "nasdaq"
 	filter string
 }
 
-var _ trigger.Trigger = &SimpleAggTrigger{}
+var _ trigger.Trigger = &OnDiskAggTrigger{}
 
 var loadError = errors.New("plugin load error")
 
-func NewTrigger(config map[string]interface{}) (trigger.Trigger, error) {
-	glog.Infof("NewTrigger")
+func recast(config map[string]interface{}) *AggTriggerConfig {
+	data, _ := json.Marshal(config)
+	ret := AggTriggerConfig{}
+	json.Unmarshal(data, &ret)
+	return &ret
+}
 
-	destIns, ok := config["destinations"]
-	if !ok {
+// NewTrigger returns a new on-disk aggregate trigger based on the configuration.
+func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
+	config := recast(conf)
+	if len(config.Destinations) == 0 {
 		glog.Errorf("no destinations are configured")
 		return nil, loadError
 	}
 
-	params, ok := destIns.([]interface{})
-	if !ok {
-		glog.Errorf("destinations do not look like an array")
-		return nil, loadError
+	glog.Infof("%d destination(s) configured", len(config.Destinations))
+	filter := config.Filter
+	if filter != "" && filter != "nasdaq" {
+		glog.Infof("filter value \"%s\" is not recognized", filter)
+		filter = ""
 	}
-	destinations := []string{}
-	for _, ifval := range params {
-		timeframe, ok := ifval.(string)
-		if !ok {
-			glog.Errorf("destination %v does not look like string", ifval)
-		}
-		destinations = append(destinations, timeframe)
-	}
-	glog.Infof("%d destination(s) configured", len(destinations))
-	filterVal, ok := config["filter"]
-	filter := ""
-	if ok {
-		filter = filterVal.(string)
-	}
-	return &SimpleAggTrigger{
-		config:       config,
-		destinations: destinations,
+	return &OnDiskAggTrigger{
+		config:       conf,
+		destinations: config.Destinations,
 		filter:       filter,
 	}, nil
 }
@@ -105,7 +107,8 @@ func maxInt64(values []int64) int64 {
 	return max
 }
 
-func (s *SimpleAggTrigger) Fire(keyPath string, indexes []int64) {
+// Fire implements trigger interface.
+func (s *OnDiskAggTrigger) Fire(keyPath string, indexes []int64) {
 	headIndex := minInt64(indexes)
 	tailIndex := maxInt64(indexes)
 
@@ -114,7 +117,7 @@ func (s *SimpleAggTrigger) Fire(keyPath string, indexes []int64) {
 	}
 }
 
-func (s *SimpleAggTrigger) processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
+func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tailIndex int64) {
 	theInstance := executor.ThisInstance
 	catalogDir := theInstance.CatalogDir
 	elements := strings.Split(keyPath, "/")
@@ -214,10 +217,8 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 		}
 	}
 	// accumulate any remaining values if not yet
-	if groupStart < len(ts)-1 {
-		outEpoch = append(outEpoch, groupKey.Unix())
-		accumGroup.apply(groupStart, len(ts))
-	}
+	outEpoch = append(outEpoch, groupKey.Unix())
+	accumGroup.apply(groupStart, len(ts))
 
 	// finalize output
 	outCs := io.NewColumnSeries()

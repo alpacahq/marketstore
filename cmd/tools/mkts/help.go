@@ -15,57 +15,6 @@ func processHelp(line string) {
 		helpKey = args[0]
 	}
 	switch helpKey {
-	case "feed":
-		fmt.Println(`
-			>> \feed [start,list,kill] options
-
-		Manages data feed processes with options on a running Marketstore server
-		The data feeds are plugins built to process upstream data provider sources
-		Each feed is started as an asynchronous Go process and can be listed and
-		killed using the PID of the process
-
-		===== Starting a feed
-			>> \feed start pluginName symbolList timeframe formatName pollingFrequency [variable]
-
-		- Example 1: Three symbols polled every 30s and stored in a 1Min Timeframe bucket with record name SNAPQUOTE:
-			>> \feed start yahoo-free-csv-poller AAPL,TSLA,MSFT 1Min SNAPQUOTE 30s
-
-		- Example 2: One symbol (AAPL) polled every 10s and stored in a 1H Timeframe bucket with record name TICKS with
-		variable length records:
-			>> \feed start yahoo-free-csv-poller AAPL 1H TICKS 10s variable
-
-		===== Listing the running feeds
-			>> \feed list
-
-		===== Kill running feeds
-			>> \feed kill [pid,"all"]
-
-		- Example 1: Kill a specific feed
-			>> \feed list
-			PID                     Description
-			--------                --------------------------------------
-       			2                VariableLen 1m0s:Polled yahoo-free-csv-poller.so 1H/TICKS [TSLA,MSFT,CG,JPM]
-       			1                FixedLength 5s:Polled yahoo-free-csv-poller.so 1Min/SNAP1MIN [AAPL]
-			>> \feed kill 2
-			>> \feed list
-			PID                     Description
-			--------                --------------------------------------
-       			1                FixedLength 5s:Polled yahoo-free-csv-poller.so 1Min/SNAP1MIN [AAPL]
-
-		- Example 2: Kill all running feeds
-			>> \feed list
-			PID                     Description
-			--------                --------------------------------------
-       			1                FixedLength 5s:Polled yahoo-free-csv-poller.so 1Min/SNAP1MIN [AAPL]
-       			3                FixedLength 5s:Polled yahoo-free-csv-poller.so 1Min/SNAP1MIN [AAPL]
-       			4                FixedLength 5s:Polled yahoo-free-csv-poller.so 1Min/SNAP1MIN [JPM,MSFT,CG]
-			>> \feed kill all
-			>> \feed list
-			PID                     Description
-			--------                --------------------------------------
-
-`)
-
 	case "show", "trim", "gaps":
 		fmt.Println(`
 		Syntax: (same for show/trim/gaps):

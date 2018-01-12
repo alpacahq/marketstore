@@ -1,5 +1,6 @@
 root_directory: /project/data/mktsdb
 listen_port: 5993
+# timezone: "America/New_York"
 log_level: info
 queryable: true
 stop_grace_period: 0
@@ -7,3 +8,17 @@ wal_rotate_interval: 5
 enable_add: true
 enable_remove: false
 enable_last_known: false
+# triggers:
+#   - module: ondiskagg.so
+#     on: "*/1Min/OHLCV"
+#     config:
+#       destinations:
+#         - 5Min
+#         - 15Min
+#         - 1H
+#         - 1D
+# bgworkers:
+#   - module: gdaxfeeder.so
+#     name: GdaxFetcher
+#     config:
+#       query_start: "2017-09-01 00:00"

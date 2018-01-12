@@ -145,10 +145,10 @@ func (gd *GdaxFetcher) Run() {
 				continue
 			}
 			epoch := make([]int64, 0)
-			open := make([]float32, 0)
-			high := make([]float32, 0)
-			low := make([]float32, 0)
-			close := make([]float32, 0)
+			open := make([]float64, 0)
+			high := make([]float64, 0)
+			low := make([]float64, 0)
+			close := make([]float64, 0)
 			volume := make([]float64, 0)
 			sort.Sort(ByTime(rates))
 			for _, rate := range rates {
@@ -156,10 +156,10 @@ func (gd *GdaxFetcher) Run() {
 					lastTime = rate.Time
 				}
 				epoch = append(epoch, rate.Time.Unix())
-				open = append(open, float32(rate.Open))
-				high = append(high, float32(rate.High))
-				low = append(low, float32(rate.Low))
-				close = append(close, float32(rate.Close))
+				open = append(open, float64(rate.Open))
+				high = append(high, float64(rate.High))
+				low = append(low, float64(rate.Low))
+				close = append(close, float64(rate.Close))
 				volume = append(volume, rate.Volume)
 			}
 			cs := io.NewColumnSeries()

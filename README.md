@@ -132,6 +132,8 @@ enable_remove: false
 * __stale_threshold__: threshold by which MarketStore will declare a symbol stale (integer, days)
 * __enable_add__: flag allowing new symbols to be added to DB via /write API
 * __enable_remove__: flag allowing symbols to be removed from DB via /write API
+* __triggers__: list of trigger plugins
+* __bgworkers__: list of background worker plugins
 
 ## Update dependency
 

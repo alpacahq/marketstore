@@ -17,7 +17,7 @@ update:
 	glide update
 
 plugins:
-	go build -o $(GOPATH0)/bin/simpleAgg.so -buildmode=plugin ./cmd/plugins/triggers/simpleAgg
+	$(MAKE) -C contrib/ondiskagg
 	$(MAKE) -C contrib/gdaxfeeder
 
 unittest:

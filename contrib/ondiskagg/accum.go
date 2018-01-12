@@ -10,7 +10,21 @@ func firstFloat32(values []float32) float32 {
 	return values[0]
 }
 
+func firstFloat64(values []float64) float64 {
+	return values[0]
+}
+
 func minFloat32(values []float32) float32 {
+	min := values[0]
+	for _, val := range values[1:] {
+		if val < min {
+			min = val
+		}
+	}
+	return min
+}
+
+func minFloat64(values []float64) float64 {
 	min := values[0]
 	for _, val := range values[1:] {
 		if val < min {
@@ -30,7 +44,21 @@ func maxFloat32(values []float32) float32 {
 	return max
 }
 
+func maxFloat64(values []float64) float64 {
+	max := values[0]
+	for _, val := range values[1:] {
+		if val > max {
+			max = val
+		}
+	}
+	return max
+}
+
 func lastFloat32(values []float32) float32 {
+	return values[len(values)-1]
+}
+
+func lastFloat64(values []float64) float64 {
 	return values[len(values)-1]
 }
 
@@ -107,6 +135,9 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 		case []float32:
 			ifunc = firstFloat32
 			iout = make([]float32, 0)
+		case []float64:
+			ifunc = firstFloat64
+			iout = make([]float64, 0)
 		default:
 			glog.Errorf("no compatible function")
 			return nil
@@ -117,6 +148,9 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 		case []float32:
 			ifunc = maxFloat32
 			iout = make([]float32, 0)
+		case []float64:
+			ifunc = maxFloat64
+			iout = make([]float64, 0)
 		default:
 			glog.Errorf("no compatible function")
 			return nil
@@ -127,6 +161,9 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 		case []float32:
 			ifunc = minFloat32
 			iout = make([]float32, 0)
+		case []float64:
+			ifunc = minFloat64
+			iout = make([]float64, 0)
 		default:
 			glog.Errorf("no compatible function")
 			return nil
@@ -137,6 +174,9 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 		case []float32:
 			ifunc = lastFloat32
 			iout = make([]float32, 0)
+		case []float64:
+			ifunc = lastFloat64
+			iout = make([]float64, 0)
 		default:
 			glog.Errorf("no compatible function")
 			return nil

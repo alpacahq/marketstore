@@ -49,7 +49,6 @@ var completer = readline.NewPrefixCompleter(
 	readline.PcItem("\\show"),
 	readline.PcItem("\\load"),
 	readline.PcItem("\\create"),
-	readline.PcItem("\\feed"),
 	readline.PcItem("\\trim"),
 	readline.PcItem("\\help"),
 	readline.PcItem("\\exit"),
@@ -127,8 +126,6 @@ func main() {
 			processGapFinder(line)
 		case strings.HasPrefix(line, "\\load"):
 			processLoad(line)
-		case strings.HasPrefix(line, "\\feed"):
-			processFeed(line)
 		case strings.HasPrefix(line, "\\create"):
 			processCreate(line)
 		case strings.HasPrefix(line, "\\help") || strings.HasPrefix(line, "\\?"):
@@ -426,99 +423,6 @@ func processLoad(line string) {
 	}
 }
 
-func processFeed(line string) {
-	if localMode {
-		fmt.Println("\\feed commands only work when in remote mode connected via network to a server")
-		return
-	}
-	args := strings.Split(line, " ")
-	args = args[1:]
-
-	switch args[0] {
-	case "start":
-		args = args[1:]
-		if len(args) < 5 {
-			fmt.Println("Not enough arguments to feed - try help")
-			return
-		}
-		pluginName, formatName, tf, symbolList, pollingFrequency, isVariable := parseFeedArgs(args)
-
-		clientArgs := &frontend.FeedStartArgs{
-			PluginName:       pluginName + ".so",
-			FormatName:       formatName,
-			SymbolList:       symbolList,
-			Timeframe:        tf,
-			PollingFrequency: pollingFrequency,
-			IsVariable:       isVariable,
-		}
-
-		cl, err := client.NewClient(baseURL)
-		if err != nil {
-			return
-		}
-		csm, err := cl.DoRPC("FeedStart", clientArgs)
-		if err != nil {
-			fmt.Println("Error when running DoRPC: ", err)
-			return
-		}
-		for _, cs := range csm {
-			pid := cs.GetColumn("PID")
-			fmt.Println("Feed Process PID: ", pid)
-		}
-	case "list":
-		clientArgs := &frontend.FeedListArgs{}
-		cl, err := client.NewClient(baseURL)
-		if err != nil {
-			return
-		}
-		csm, err := cl.DoRPC("FeedList", clientArgs)
-		if err != nil {
-			fmt.Println("Error when running DoRPC: ", err)
-			return
-		}
-		var cs *ColumnSeries
-		for _, cols := range csm {
-			cs = cols
-			break
-		}
-
-		descriptions := cs.GetColumn("Descriptions").(map[string]string)
-		fmt.Printf("PID     \t\tDescription\n")
-		fmt.Printf("--------\t\t--------------------------------------\n")
-		for pid, desc := range descriptions {
-			fmt.Printf("%8s\t\t%s\n", pid, desc)
-		}
-	case "kill":
-		args = args[1:]
-		if len(args) < 1 {
-			fmt.Println("Not enough arguments to feed - try help")
-			return
-		}
-		clientArgs := &frontend.FeedKillArgs{}
-		var err error
-		args[0] = strings.Trim(args[0], " ")
-		if strings.EqualFold(args[0], "all") {
-			clientArgs.PID = -1
-		} else {
-			clientArgs.PID, err = strconv.Atoi(args[0])
-			if err != nil {
-				fmt.Printf("Error converting PID:%s to int\n", args[0])
-				return
-			}
-		}
-
-		cl, err := client.NewClient(baseURL)
-		if err != nil {
-			return
-		}
-		_, err = cl.DoRPC("FeedKill", clientArgs)
-		if err != nil {
-			fmt.Println("Error when running DoRPC: ", err)
-			return
-		}
-	}
-}
-
 func writeCSVChunk(dbWriter *executor.Writer, dataShapes []DataShape, dbKey TimeBucketKey, columnIndex []int, csvDataChunk [][]string, conf *csvreader.Configuration) (start, end time.Time) {
 	epochCol, nanosCol := csvreader.TimeColumnsFromCSV(csvDataChunk, columnIndex, conf)
 	if epochCol == nil {
@@ -604,32 +508,6 @@ func parseLoadArgs(args []string) (symbol, timeframe string, inputFD, controlFD 
 	}
 
 	return "", "", nil, nil
-}
-
-func parseFeedArgs(args []string) (pluginName, formatName, tf string, symbolList []string,
-	pollingFrequency time.Duration, isVariable bool) {
-	//	>> \feed start pluginName symbolList timeframe formatName pollingFrequency [variable]
-	pluginName = args[0]
-
-	symbolList = strings.Split(args[1], ",")
-
-	tf = args[2]
-
-	formatName = args[3]
-
-	pollingFrequency, err := time.ParseDuration(args[4])
-	if err != nil {
-		fmt.Printf("Unable to parse polling frequency: %s\n", err)
-	}
-
-	if len(args) > 5 {
-		if strings.EqualFold(args[5], "variable") {
-			isVariable = true
-		} else {
-			fmt.Printf("Unable to parse argument to feed: %s, expected \"variable\"\n", args[6])
-		}
-	}
-	return pluginName, formatName, tf, symbolList, pollingFrequency, isVariable
 }
 
 func processQueryLocal(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSeriesMap, err error) {
