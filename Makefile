@@ -1,5 +1,6 @@
 .PHONY: plugins
 
+GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
 all:
 	go install -ldflags "-s -X utils.Version=$(shell date -u +%Y-%m-%d-%H-%M-%S)" ./cmd/marketstore ./cmd/tools/...
 
@@ -16,8 +17,8 @@ update:
 	glide update
 
 plugins:
-	go build -o /go/bin/simpleAgg.so -buildmode=plugin ./cmd/plugins/triggers/simpleAgg
-	go build -o /go/bin/gdaxfeed.so -buildmode=plugin ./contrib/gdaxfeed
+	go build -o $(GOPATH0)/bin/simpleAgg.so -buildmode=plugin ./cmd/plugins/triggers/simpleAgg
+	$(MAKE) -C contrib/gdaxfeeder
 
 unittest:
 	! gofmt -l $(shell glide novendor -no-subdir) | grep .

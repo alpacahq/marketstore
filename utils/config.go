@@ -159,6 +159,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 	for _, bg := range aux.BgWorkers {
 		bgWorkerSetting := &BgWorkerSetting{
 			Module: bg.Module,
+			Name:   bg.Name,
 			Config: bg.Config,
 		}
 		m.BgWorkers = append(m.BgWorkers, bgWorkerSetting)
