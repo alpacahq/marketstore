@@ -10,6 +10,31 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
 )
 
+type SymbolLoader struct {
+	module *plugin.Plugin
+}
+
+// NewSymbolLoader creates a SymbolLoader that loads symbol from a particular module.
+// moduleName can be a file name under one of $GOPATH directories or current working
+// directory, or an absolute path to the file.
+func NewSymbolLoader(moduleName string) (*SymbolLoader, error) {
+	pi, err := Load(moduleName)
+	if err != nil {
+		return nil, err
+	}
+	return &SymbolLoader{
+		module: pi,
+	}, nil
+}
+
+// LoadSymbol looks up a symbol from the module.  Plugin packages can accept this
+// by defining an interface type without importing this package.  It is important
+// to note that each plugin package cannot import this plugins package since
+// plugin module cannot import any packages that import built-in plugin package.
+func (l *SymbolLoader) LoadSymbol(symbolName string) (interface{}, error) {
+	return l.module.Lookup(symbolName)
+}
+
 // Load loads plugin module.  If pluginName is relative path name, it is
 // loaded from one of the current GOPATH directories or current working directory.
 // If the path is an absolute path, it loads from the path. err is nil

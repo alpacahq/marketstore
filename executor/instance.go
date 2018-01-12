@@ -8,7 +8,6 @@ import (
 	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
 )
 
@@ -80,9 +79,4 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 			ThisInstance.WALWg.Add(1)
 		}
 	}
-}
-
-type AggCache struct {
-	sync.RWMutex
-	DataMap map[io.TimeBucketKey][]byte
 }
