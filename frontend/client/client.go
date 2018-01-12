@@ -73,31 +73,6 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (csm io.ColumnSer
 			return nil, err
 		}
 		return ConvertMultiQueryReplyToColumnSeries(result)
-	case "FeedStart":
-		result := &frontend.FeedStartReply{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		if len(result.ErrorText) != 0 {
-			return nil, fmt.Errorf("%s", result.ErrorText)
-		}
-		csm := io.NewColumnSeriesMap()
-		cs := io.NewColumnSeries()
-		cs.AddColumn("PID", []int{result.PID})
-		tbk, _ := io.NewTimeBucketKeyFromString("NA:NA")
-		csm.AddColumnSeries(*tbk, cs)
-		return csm, nil
-	case "FeedList":
-		result := &frontend.FeedListReply{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		csm := io.NewColumnSeriesMap()
-		cs := io.NewColumnSeries()
-		cs.AddColumn("Descriptions", result.Descriptions)
-		tbk, _ := io.NewTimeBucketKeyFromString("NA:NA")
-		csm.AddColumnSeries(*tbk, cs)
-		return csm, nil
-	case "FeedKill":
-		result := &frontend.FeedKillReply{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		return nil, nil
 	case "Write":
 		result := &frontend.MultiWriteResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
