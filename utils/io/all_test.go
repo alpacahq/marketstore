@@ -49,6 +49,12 @@ func (s *TestSuite) TestConvertByteSlice(c *C) {
 		c.Assert(val, Equals, buffer[i])
 	}
 
+	bytearray = CastToByteSlice(myarray)
+	c.Assert(len(bytearray), Equals, 48)
+	for i, val := range bytearray {
+		c.Assert(val, Equals, buffer[i])
+	}
+
 	i_myarray = SwapSliceData(buffer, ohlc{})
 	myarray = i_myarray.([]ohlc)
 	c.Assert(len(myarray), Equals, 2)

@@ -1,13 +1,11 @@
 package io
 
+// TODO: this is no longer numpy.  rename later.
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-	"unicode"
+
+	"github.com/golang/glog"
 )
 
 var (
@@ -25,10 +23,21 @@ var (
 	}
 )
 
+var typeStrMap = func() map[string]EnumElementType {
+	m := map[string]EnumElementType{}
+	for key, val := range typeMap {
+		m[val] = key
+	}
+	return m
+}()
+
 type NumpyDataset struct {
-	Header      []byte   `msgpack:"header"`
-	ColumnNames []string `msgpack:"columnnames"`
-	ColumnData  [][]byte `msgpack:"columndata"`
+	// a list of type strings such as i4 and f8
+	ColumnTypes []string `msgpack:"types"`
+	// a list of column names
+	ColumnNames []string `msgpack:"names"`
+	// two dimentional byte arrays holding the column data
+	ColumnData [][]byte `msgpack:"data"`
 	/*
 		These two fields aren't exported, so are used only in the build and extension
 	*/
@@ -40,92 +49,38 @@ func NewNumpyDataset(cs *ColumnSeries) (nds *NumpyDataset, err error) {
 	nds = new(NumpyDataset)
 	nds.length = cs.Len()
 	nds.dataShapes = cs.GetDataShapes()
-	nds.updateHeader()
-	if err != nil {
-		return nil, err
-	}
 	for i, name := range cs.GetColumnNames() {
 		nds.ColumnNames = append(nds.ColumnNames, name)
-		nds.ColumnData = append(nds.ColumnData, []byte{})
-		i_col := cs.GetColumn(name)
-		switch col := i_col.(type) {
-		case []int8:
-			byteData, _ := Serialize(nil, col)
-			nds.ColumnData[i] = append(nds.ColumnData[i], byteData...)
-		case []int16:
-			byteData, _ := Serialize(nil, col)
-			nds.ColumnData[i] = append(nds.ColumnData[i], byteData...)
-		case []int32:
-			byteData, _ := Serialize(nil, col)
-			nds.ColumnData[i] = append(nds.ColumnData[i], byteData...)
-		case []int64:
-			byteData, _ := Serialize(nil, col)
-			nds.ColumnData[i] = append(nds.ColumnData[i], byteData...)
-		case []float32:
-			byteData, _ := Serialize(nil, col)
-			nds.ColumnData[i] = append(nds.ColumnData[i], byteData...)
-		case []float64:
-			byteData, _ := Serialize(nil, col)
-			nds.ColumnData[i] = append(nds.ColumnData[i], byteData...)
-		default:
-			return nil, errors.New("Unknown type when converting colseries to npd")
+		colBytes := CastToByteSlice(cs.GetColumn(name))
+		nds.ColumnData = append(nds.ColumnData, colBytes)
+		if typeStr, ok := typeMap[nds.dataShapes[i].Type]; !ok {
+			glog.Errorf("unsupported type %v", nds.dataShapes[i].String())
+			return nil, fmt.Errorf("unsupported type")
+		} else {
+			nds.ColumnTypes = append(nds.ColumnTypes, typeStr)
 		}
 	}
 	return nds, nil
 }
 
-func (nds *NumpyDataset) updateHeader() (err error) {
-	/*
-		This uses "dataShapes" inside the nds to compose the header.
-		If this nds was transferred from somewhere else without the
-		nds.dataShapes being filled in, we would have a problem, so
-		we catch that condition and throw an error.
-	*/
-	if nds.dataShapes == nil {
-		return fmt.Errorf("dataShapes is empty, must have a valid dataShapes slice to proceed")
-	}
-	writer := &bytes.Buffer{}
-	/*
-		Preamble
-	*/
-	writer.Write([]byte("\x93NUMPY"))
-	binary.Write(writer, binary.LittleEndian, uint8(1))
-	binary.Write(writer, binary.LittleEndian, uint8(0))
-
-	/*
-		ColumnShapes, including overall length
-	*/
-	columnShapeSection := "["
-	for _, shape := range nds.dataShapes {
-		name := shape.Name
-		typ := shape.Type
-		if s, ok := typeMap[typ]; ok {
-			columnShapeSection += fmt.Sprintf("('%v', '<%v', (%v,)), ", name, s, nds.length)
-		} else {
-			return fmt.Errorf("unable to map type, have: %v", typ)
-		}
-	}
-	columnShapeSection += "]"
-
-	/*
-		Complete Header
-		Hardwired to a single dimensional array
-	*/
-	shapeString := "(1,)"
-	header := fmt.Sprintf("{'descr': %s, 'fortran_order': False, 'shape': %s,}", columnShapeSection, shapeString)
-	pad := 16 - ((10 + len(header)) % 16)
-	if pad > 0 {
-		header += strings.Repeat(" ", pad)
-	}
-
-	binary.Write(writer, binary.LittleEndian, uint16(len(header)))
-	writer.Write([]byte(header))
-	nds.Header = writer.Bytes()
-	return nil
-}
-
 func (nds *NumpyDataset) Len() int {
 	return nds.length
+}
+
+func (nds *NumpyDataset) buildDataShapes() ([]DataShape, int, error) {
+	etypes := []EnumElementType{}
+	for _, typeStr := range nds.ColumnTypes {
+		if typ, ok := typeStrMap[typeStr]; !ok {
+			return nil, 0, fmt.Errorf("unsupported type string %s", typeStr)
+		} else {
+			etypes = append(etypes, typ)
+		}
+	}
+	length := 0
+	if len(nds.ColumnData) > 0 {
+		length = len(nds.ColumnData[0]) / etypes[0].Size()
+	}
+	return NewDataShapeVector(nds.ColumnNames, etypes), length, nil
 }
 
 func (nds *NumpyDataset) ToColumnSeries(options ...int) (cs *ColumnSeries, err error) {
@@ -147,7 +102,7 @@ func (nds *NumpyDataset) ToColumnSeries(options ...int) (cs *ColumnSeries, err e
 		Coerce the []byte for each column into it's native pointer type
 	*/
 	if nds.dataShapes == nil {
-		nds.dataShapes, nds.length, err = GetDataShapesFromNumpyHeader(nds.Header)
+		nds.dataShapes, nds.length, err = nds.buildDataShapes()
 		if err != nil {
 			return nil, err
 		}
@@ -171,7 +126,7 @@ type NumpyMultiDataset struct {
 func NewNumpyMultiDataset(nds *NumpyDataset, tbk TimeBucketKey) (nmds *NumpyMultiDataset, err error) {
 	nmds = &NumpyMultiDataset{
 		NumpyDataset: NumpyDataset{
-			Header:      nds.Header,
+			ColumnTypes: nds.ColumnTypes,
 			ColumnNames: nds.ColumnNames,
 			ColumnData:  nds.ColumnData,
 			dataShapes:  nds.dataShapes,
@@ -220,73 +175,8 @@ func (nmds *NumpyMultiDataset) Append(cs *ColumnSeries, tbk TimeBucketKey) (err 
 	nmds.Lengths[tbk.String()] = cs.Len()
 	nmds.length += cs.Len()
 	for idx, col := range colSeriesNames {
-		newBuffer := SwapSliceData(cs.GetColumn(col), byte(0)).([]byte)
+		newBuffer := CastToByteSlice(cs.GetColumn(col))
 		nmds.ColumnData[idx] = append(nmds.ColumnData[idx], newBuffer...)
 	}
-	nmds.updateHeader()
 	return nil
-}
-
-/*
-Utility Functions
-*/
-
-type AlphaString string
-
-func (a *AlphaString) Scan(state fmt.ScanState, verb rune) error {
-	token, err := state.Token(true, unicode.IsLetter)
-	if err != nil {
-		if err != nil {
-			return err
-		}
-	}
-	*a = AlphaString(token)
-	return nil
-}
-
-func GetDataShapesFromNumpyHeader(header []byte) (dsv []DataShape, length int, err error) {
-	/*
-		This is completely untested - left here just in case...
-	*/
-	var names []string
-	var etypes []EnumElementType
-
-	start := bytes.Index(header, []byte("["))
-	end := bytes.Index(header, []byte("]"))
-	if start == -1 || end == -1 {
-		return nil, 0, errors.New("incorrectly formatted Numpy header")
-	}
-	tgt := strings.Trim(string(header[start+1:end-1]), " ")
-	typeStrings := strings.Split(tgt, "),")
-	for _, typeStr := range typeStrings {
-		if len(typeStr) == 0 {
-			break
-		}
-		typeStr := strings.Trim(typeStr, " ")
-		var name string
-		var dtype string
-		var lengthStr string
-		name = strings.Split(typeStr, ",")[0]
-		dtype = strings.Split(typeStr, ",")[1]
-		lengthStr = strings.Split(typeStr, ",")[2]
-		name = strings.Trim(name, "( ' ")
-		dtype = strings.Trim(dtype, "' <")
-		lengthStr = strings.Trim(lengthStr, "( , )")
-		length, err = strconv.Atoi(lengthStr)
-		if err != nil {
-			return nil, 0, fmt.Errorf("unable to parse header, token:%s, err:%s",
-				typeStr, err.Error())
-		}
-		names = append(names, string(name))
-		for key, el := range typeMap {
-			if strings.EqualFold(dtype, el) {
-				etypes = append(etypes, key)
-				break
-			}
-		}
-		if len(names) != len(etypes) {
-			return nil, 0, fmt.Errorf("unable to map datatype")
-		}
-	}
-	return NewDataShapeVector(names, etypes), length, nil
 }
