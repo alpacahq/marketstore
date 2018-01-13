@@ -188,9 +188,6 @@ func (r *reader) Read() (csm ColumnSeriesMap, tPrevMap map[TimeBucketKey]int64, 
 			return nil, nil, err
 		}
 		tPrevMap[key] = tPrev
-		if len(buffer) == 0 {
-			continue
-		}
 		rs := NewRowSeries(key, tPrev, buffer, dsMap[key], rlen, cat, rt)
 		key, cs := rs.ToColumnSeries()
 		csm[key] = cs

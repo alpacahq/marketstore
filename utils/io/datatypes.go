@@ -243,6 +243,9 @@ Utility functions
 func getFloat32Column(offset, reclen, nrecs int, data []byte) (col []float32) {
 	//	fmt.Println("offset, reclen, nrecs: ", offset, reclen, nrecs)
 	col = make([]float32, nrecs)
+	if nrecs == 0 {
+		return col
+	}
 	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
 	arg6 := (*C.float)(unsafe.Pointer(&col[0]))
 	C.wordCopyFloat32(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
@@ -250,6 +253,9 @@ func getFloat32Column(offset, reclen, nrecs int, data []byte) (col []float32) {
 }
 func getFloat64Column(offset, reclen, nrecs int, data []byte) (col []float64) {
 	col = make([]float64, nrecs)
+	if nrecs == 0 {
+		return col
+	}
 	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
 	arg6 := (*C.double)(unsafe.Pointer(&col[0]))
 	C.wordCopyFloat64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
@@ -257,6 +263,9 @@ func getFloat64Column(offset, reclen, nrecs int, data []byte) (col []float64) {
 }
 func getInt32Column(offset, reclen, nrecs int, data []byte) (col []int32) {
 	col = make([]int32, nrecs)
+	if nrecs == 0 {
+		return col
+	}
 	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
 	arg6 := (*C.int32_t)(unsafe.Pointer(&col[0]))
 	C.wordCopyInt32(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
@@ -264,6 +273,9 @@ func getInt32Column(offset, reclen, nrecs int, data []byte) (col []int32) {
 }
 func getInt64Column(offset, reclen, nrecs int, data []byte) (col []int64) {
 	col = make([]int64, nrecs)
+	if nrecs == 0 {
+		return col
+	}
 	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
 	arg6 := (*C.int64_t)(unsafe.Pointer(&col[0]))
 	C.wordCopyInt64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
@@ -271,6 +283,9 @@ func getInt64Column(offset, reclen, nrecs int, data []byte) (col []int64) {
 }
 func getByteColumn(offset, reclen, nrecs int, data []byte) (col []byte) {
 	col = make([]byte, nrecs)
+	if nrecs == 0 {
+		return col
+	}
 	for i := 0; i < nrecs; i++ {
 		col[i] = data[i*reclen+offset]
 	}
