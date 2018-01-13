@@ -36,17 +36,18 @@ type MultiQueryRequest struct {
 }
 
 type QueryResponse struct {
-	Result       *io.NumpyMultiDataset `msgpack:"result"`
-	PreviousTime map[string]int64      `msgpack:"previoustime"` // Timestamp prior to first response time in Result
-	Version      string                `msgpack:"version"`      // Server Version
-	Timezone     string                `msgpack:"timezone"`     // Server timezone
+	Result *io.NumpyMultiDataset `msgpack:"result"`
 }
 
 type MultiQueryResponse struct {
 	Responses []QueryResponse `msgpack:"responses"`
+	Version   string          `msgpack:"version"`  // Server Version
+	Timezone  string          `msgpack:"timezone"` // Server timezone
 }
 
 func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *MultiQueryResponse) (err error) {
+	response.Version = utils.Version
+	response.Timezone = utils.InstanceConfig.Timezone.String()
 	for _, req := range reqs.Requests {
 		switch req.IsSQLStatement {
 		case true:
@@ -77,9 +78,6 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			response.Responses = append(response.Responses,
 				QueryResponse{
 					nmds,
-					nil,
-					utils.Version,
-					utils.InstanceConfig.Timezone.String(),
 				})
 
 		case false:
@@ -165,9 +163,6 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			response.Responses = append(response.Responses,
 				QueryResponse{
 					nmds,
-					tpmStr,
-					utils.Version,
-					utils.InstanceConfig.Timezone.String(),
 				})
 
 		}

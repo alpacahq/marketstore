@@ -38,16 +38,14 @@ type NumpyDataset struct {
 	ColumnNames []string `msgpack:"names"`
 	// two dimentional byte arrays holding the column data
 	ColumnData [][]byte `msgpack:"data"`
-	/*
-		These two fields aren't exported, so are used only in the build and extension
-	*/
-	length     int
+	Length     int      `msgpack:"length"`
+	// hidden
 	dataShapes []DataShape
 }
 
 func NewNumpyDataset(cs *ColumnSeries) (nds *NumpyDataset, err error) {
 	nds = new(NumpyDataset)
-	nds.length = cs.Len()
+	nds.Length = cs.Len()
 	nds.dataShapes = cs.GetDataShapes()
 	for i, name := range cs.GetColumnNames() {
 		nds.ColumnNames = append(nds.ColumnNames, name)
@@ -64,23 +62,19 @@ func NewNumpyDataset(cs *ColumnSeries) (nds *NumpyDataset, err error) {
 }
 
 func (nds *NumpyDataset) Len() int {
-	return nds.length
+	return nds.Length
 }
 
-func (nds *NumpyDataset) buildDataShapes() ([]DataShape, int, error) {
+func (nds *NumpyDataset) buildDataShapes() ([]DataShape, error) {
 	etypes := []EnumElementType{}
 	for _, typeStr := range nds.ColumnTypes {
 		if typ, ok := typeStrMap[typeStr]; !ok {
-			return nil, 0, fmt.Errorf("unsupported type string %s", typeStr)
+			return nil, fmt.Errorf("unsupported type string %s", typeStr)
 		} else {
 			etypes = append(etypes, typ)
 		}
 	}
-	length := 0
-	if len(nds.ColumnData) > 0 {
-		length = len(nds.ColumnData[0]) / etypes[0].Size()
-	}
-	return NewDataShapeVector(nds.ColumnNames, etypes), length, nil
+	return NewDataShapeVector(nds.ColumnNames, etypes), nil
 }
 
 func (nds *NumpyDataset) ToColumnSeries(options ...int) (cs *ColumnSeries, err error) {
@@ -102,7 +96,7 @@ func (nds *NumpyDataset) ToColumnSeries(options ...int) (cs *ColumnSeries, err e
 		Coerce the []byte for each column into it's native pointer type
 	*/
 	if nds.dataShapes == nil {
-		nds.dataShapes, nds.length, err = nds.buildDataShapes()
+		nds.dataShapes, err = nds.buildDataShapes()
 		if err != nil {
 			return nil, err
 		}
@@ -129,14 +123,14 @@ func NewNumpyMultiDataset(nds *NumpyDataset, tbk TimeBucketKey) (nmds *NumpyMult
 			ColumnTypes: nds.ColumnTypes,
 			ColumnNames: nds.ColumnNames,
 			ColumnData:  nds.ColumnData,
+			Length:      nds.Length,
 			dataShapes:  nds.dataShapes,
-			length:      nds.length,
 		},
 	}
 	nmds.StartIndex = make(map[string]int)
 	nmds.Lengths = make(map[string]int)
 	nmds.StartIndex[tbk.String()] = 0
-	nmds.Lengths[tbk.String()] = nds.length
+	nmds.Lengths[tbk.String()] = nds.Length
 	return nmds, nil
 }
 
@@ -171,9 +165,9 @@ func (nmds *NumpyMultiDataset) Append(cs *ColumnSeries, tbk TimeBucketKey) (err 
 			return
 		}
 	}
-	nmds.StartIndex[tbk.String()] = nmds.length
+	nmds.StartIndex[tbk.String()] = nmds.Length
 	nmds.Lengths[tbk.String()] = cs.Len()
-	nmds.length += cs.Len()
+	nmds.Length += cs.Len()
 	for idx, col := range colSeriesNames {
 		newBuffer := CastToByteSlice(cs.GetColumn(col))
 		nmds.ColumnData[idx] = append(nmds.ColumnData[idx], newBuffer...)
