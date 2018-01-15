@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
@@ -91,6 +92,9 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 	cDir := executor.ThisInstance.CatalogDir
 	query := planner.NewQuery(cDir)
 	query.AddTargetKey(tbk)
+	start := time.Unix(0, 0).In(utils.InstanceConfig.Timezone)
+	end := time.Unix(math.MaxInt64, 0).In(utils.InstanceConfig.Timezone)
+	query.SetRange(start, end)
 	query.SetRowLimit(io.LAST, 1)
 	parsed, err := query.Parse()
 	if err != nil {
@@ -116,7 +120,8 @@ func (gd *GdaxFetcher) Run() {
 	for _, symbol := range symbols {
 		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
 		lastTimestamp := findLastTimestamp(symbol, tbk)
-		if !lastTimestamp.IsZero() && lastTimestamp.Before(timeStart) {
+		glog.Infof("lastTimestamp for %s = %v", symbol, lastTimestamp)
+		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
 		}
 	}
@@ -142,6 +147,10 @@ func (gd *GdaxFetcher) Run() {
 				glog.Errorf("Response error: %v", err)
 				// including rate limit case
 				time.Sleep(time.Minute)
+				continue
+			}
+			if len(rates) == 0 {
+				glog.Info("len(rates) == 0")
 				continue
 			}
 			epoch := make([]int64, 0)
