@@ -3,10 +3,6 @@ import pandas as pd
 import six
 
 
-def f(a):
-    a.names = [n.lower() for n in a.names]
-
-
 def decode(packed):
     dt = np.dtype([
         (colname, coltype)
