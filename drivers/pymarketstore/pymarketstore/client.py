@@ -1,9 +1,7 @@
 from tempfile import TemporaryFile
 import numpy as np
 import pandas as pd
-import six
 import requests
-import msgpack
 import struct
 import logging
 
@@ -70,7 +68,6 @@ class Params(object):
         return f'Params({content})'
 
 
-
 class Client(object):
 
     def __init__(self, endpoint='http://localhost:5993/rpc'):
@@ -89,10 +86,8 @@ class Client(object):
             raise
 
     def query(self, params):
-        single_result = False
         if not isiterable(params):
             params = [params]
-            single_result = True
         query = self.build_query(params)
         reply = self._request('DataService.Query', **query)
         return QueryReply(reply)
@@ -103,8 +98,8 @@ class Client(object):
         data['columnnames'] = np_arr.dtype.names
         data['columndata'] = self.get_column_data(np_arr, len(np_arr[0][0]))
         data['length'] = len(np_arr[0][0])
-        data['startindex'] = {tbk:0}
-        data['lengths'] = {tbk:len(np_arr[0][0])}
+        data['startindex'] = {tbk: 0}
+        data['lengths'] = {tbk: len(np_arr[0][0])}
         write_request = {}
         write_request['data'] = data
         write_request['isvariablelength'] = False
@@ -113,14 +108,14 @@ class Client(object):
         try:
             reply = self.rpc.call("DataService.Write", **writer)
         except requests.exceptions.ConnectionError:
-            raise requests.exceptions.ConnectionError("Could not contact server")
+            raise requests.exceptions.ConnectionError(
+                "Could not contact server")
         reply_obj = self.rpc.codec.loads(reply.content, encoding='utf-8')
         resp = self.rpc.response(reply_obj)
         return resp
 
     def get_column_data(self, data, length):
         col_data = []
-        prev_index = 0
         for idx, name in enumerate(data.dtype.names):
             buf = ''
             record_type = data.dtype[idx]

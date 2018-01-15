@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 import six
-import struct
+
 
 def f(a):
     a.names = [n.lower() for n in a.names]
+
 
 def decode(packed):
     dt = np.dtype([
@@ -26,7 +27,7 @@ def decode_responses(responses):
         for tbk, start_idx in six.iteritems(packed['startindex']):
             length = packed['lengths'][tbk]
             key = tbk.split(':')[0]
-            array_dict[key] = array[start_idx:start_idx+length]
+            array_dict[key] = array[start_idx:start_idx + length]
         results.append(array_dict)
     return results
 
@@ -75,7 +76,7 @@ class QueryResult(object):
         self.result = {
             key: DataSet(value, key, reply)
             for key, value in six.iteritems(result)
-            }
+        }
         self.reply = reply
 
     @property
