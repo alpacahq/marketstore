@@ -16,20 +16,14 @@ type TimeBucketKey struct {
 	*/
 }
 
-var (
-	defaultTimeBucketSchema string
-)
-
-func init() {
-	defaultTimeBucketSchema = "Symbol/Timeframe/AttributeGroup"
-}
+const DefaultTimeBucketSchema = "Symbol/Timeframe/AttributeGroup"
 
 func NewTimeBucketKey(itemKey string, categoryKey_opt ...string) (mk *TimeBucketKey) {
 	var categoryKey string
-	if len(categoryKey_opt) != 0 {
+	if len(categoryKey_opt) != 0 && categoryKey_opt[0] != "" {
 		categoryKey = categoryKey_opt[0]
 	} else {
-		categoryKey = defaultTimeBucketSchema
+		categoryKey = DefaultTimeBucketSchema
 	}
 	mk = new(TimeBucketKey)
 	mk.Key = itemKey + ":" + categoryKey

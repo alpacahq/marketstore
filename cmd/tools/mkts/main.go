@@ -550,14 +550,18 @@ func processQueryRemote(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSe
 	if end == nil {
 		end = &planner.MaxTime
 	}
+	epochStart := start.UTC().Unix()
+	epochEnd := end.UTC().Unix()
 	req := frontend.QueryRequest{
 		IsSQLStatement: false,
 		SQLStatement:   string(0),
-		Destination:    *tbk,
-		TimeStart:      start.UTC().Unix(),
-		TimeEnd:        end.UTC().Unix(),
+		Destination:    tbk.String(),
+		EpochStart:     &epochStart,
+		EpochEnd:       &epochEnd,
 	}
-	args := &frontend.MultiQueryRequest{Requests: []frontend.QueryRequest{req}}
+	args := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{req},
+	}
 
 	cl, err := client.NewClient(baseURL)
 	if err != nil {

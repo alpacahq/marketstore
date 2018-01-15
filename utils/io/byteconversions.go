@@ -103,6 +103,23 @@ func SwapSliceData(src_slice interface{}, target_type interface{}) interface{} {
 	return rightSlice.Interface()
 }
 
+// Cast sliceData's memory chunk to a byte slice without copy.
+func CastToByteSlice(sliceData interface{}) []byte {
+	sliceValue := reflect.ValueOf(sliceData)
+	sliceLen := sliceValue.Len()
+	elemType := sliceValue.Type().Elem()
+	elemSize := elemType.Size()
+
+	bufLen := sliceLen * int(elemSize)
+	buffer := make([]byte, 0, 0)
+	bufHeader := (*reflect.SliceHeader)(unsafe.Pointer(&buffer))
+	bufHeader.Len = bufLen
+	bufHeader.Cap = bufLen
+	bufHeader.Data = sliceValue.Pointer()
+
+	return buffer
+}
+
 // Takes a primary (non slice, non pointer) type and returns a []byte of the base type data
 func DataToByteSlice(srcData interface{}) []byte {
 	value := reflect.ValueOf(srcData)
