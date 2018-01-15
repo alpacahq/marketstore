@@ -19,14 +19,16 @@ import (
 )
 
 type QueryRequest struct {
-	IsSQLStatement     bool             `msgpack:"issqlstatement"` // If this is a SQL request, Only SQLStatement is relevant
-	SQLStatement       string           `msgpack:"sqlstatement"`
-	Destination        io.TimeBucketKey `msgpack:"destination"`
-	TimeStart          int64            `msgpack:"timestart"` // Unix Epoch based time limits
-	TimeEnd            int64            `msgpack:"timeend"`   // Unix Epoch based time limits
-	LimitRecordCount   int              `msgpack:"limitrecordcount"`
-	TimeOrderAscending bool             `msgpack:"timeorderascending"` // If Nrecords is non-zero, order the records ascending in time
-	Functions          []string         `msgpack:"functions"`
+	IsSQLStatement bool   `msgpack:"is_sqlstatement"` // If this is a SQL request, Only SQLStatement is relevant
+	SQLStatement   string `msgpack:"sql_statement"`
+	Destination    string `msgpack:"destination"`
+	KeyCategory    string `msgpack:"key_category,omitempty"`
+	// Destination        io.TimeBucketKey `msgpack:"destination"`
+	EpochStart       *int64   `msgpack:"epoch_start,omitempty"` // Unix Epoch based time limits
+	EpochEnd         *int64   `msgpack:"epoch_end,omitempty"`   // Unix Epoch based time limits
+	LimitRecordCount *int     `msgpack:"limit_record_count,omitempty"`
+	LimitFromFirst   *bool    `msgpack:"limit_from_first,omitempty"` // If Nrecords is non-zero, order the records ascending in time
+	Functions        []string `msgpack:"functions,omitempty"`
 }
 
 type MultiQueryRequest struct {
@@ -93,10 +95,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 				- If there is more than one record format in a single destination, we return an error
 				- If there is more than one Timeframe in a single destination, we return an error
 			*/
-			dest, err := io.NewTimeBucketKeyFromString(req.Destination.Key)
-			if err != nil {
-				return err
-			}
+			dest := io.NewTimeBucketKey(req.Destination, req.KeyCategory)
 			/*
 				All destinations in a request must share the same record format (AttributeGroup) and Timeframe
 			*/
@@ -109,17 +108,30 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 					dest.String())
 			}
 
-			systemTz := utils.InstanceConfig.Timezone
-			start := time.Unix(req.TimeStart, 0).In(systemTz)
-			stop := time.Unix(req.TimeEnd, 0).In(systemTz)
-			if req.TimeEnd == 0 {
-				stop = time.Unix(math.MaxInt64, 0).In(systemTz)
+			epochStart := int64(0)
+			epochEnd := int64(math.MaxInt64)
+			if req.EpochStart != nil {
+				epochStart = *req.EpochStart
+			}
+			if req.EpochEnd != nil {
+				epochEnd = *req.EpochEnd
+			}
+			limitRecordCount := 0
+			if req.LimitRecordCount != nil {
+				limitRecordCount = *req.LimitRecordCount
+			}
+			limitFromFirst := false
+			if req.LimitFromFirst != nil {
+				limitFromFirst = *req.LimitFromFirst
 			}
 
+			systemTz := utils.InstanceConfig.Timezone
+			start := time.Unix(epochStart, 0).In(systemTz)
+			stop := time.Unix(epochEnd, 0).In(systemTz)
 			csm, tpm, err := executeQuery(
 				dest,
 				start, stop,
-				req.LimitRecordCount, req.TimeOrderAscending,
+				limitRecordCount, limitFromFirst,
 			)
 			if err != nil {
 				return err

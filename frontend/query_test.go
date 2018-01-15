@@ -13,36 +13,53 @@ import (
 	. "gopkg.in/check.v1"
 )
 
+func newQueryRequest(destination string) QueryRequest {
+	return QueryRequest{
+		Destination: destination,
+	}
+}
+func (qr QueryRequest) epochStart(value int64) QueryRequest {
+	qr.EpochStart = &value
+	return qr
+}
+func (qr QueryRequest) epochEnd(value int64) QueryRequest {
+	qr.EpochEnd = &value
+	return qr
+}
+func (qr QueryRequest) limitRecordCount(value int) QueryRequest {
+	qr.LimitRecordCount = &value
+	return qr
+}
+func (qr QueryRequest) limitFromFirst(value bool) QueryRequest {
+	qr.LimitFromFirst = &value
+	return qr
+}
+func (qr QueryRequest) functions(value []string) QueryRequest {
+	qr.Functions = value
+	return qr
+}
+
 func (s *ServerTestSuite) TestQueryCustomTimeframes(c *C) {
 	service := &DataService{}
 	service.Init()
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("USDJPY,EURUSD/30Min/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   10,
-				TimeOrderAscending: false,
-			},
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("USDJPY,EURUSD/1W/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   10,
-				TimeOrderAscending: false,
-			},
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("USDJPY/1M/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   5,
-				TimeOrderAscending: false,
-			},
+			(newQueryRequest("USDJPY,EURUSD/30Min/OHLC").
+				epochStart(0).
+				epochEnd(math.MaxInt32).
+				limitRecordCount(10).
+				limitFromFirst(false)),
+			(newQueryRequest("USDJPY,EURUSD/1W/OHLC").
+				epochStart(0).
+				epochEnd(math.MaxInt32).
+				limitRecordCount(10).
+				limitFromFirst(false)),
+			(newQueryRequest("USDJPY/1M/OHLC").
+				epochStart(0).
+				epochEnd(math.MaxInt32).
+				limitRecordCount(5).
+				limitFromFirst(false)),
 		},
 	}
 
@@ -83,14 +100,11 @@ func (s *ServerTestSuite) TestQuery(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("USDJPY/1Min/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   200,
-				TimeOrderAscending: false,
-			},
+			(newQueryRequest("USDJPY/1Min/OHLC").
+				epochStart(0).
+				epochEnd(math.MaxInt32).
+				limitRecordCount(200).
+				limitFromFirst(false)),
 		},
 	}
 
@@ -118,14 +132,11 @@ func (s *ServerTestSuite) TestQueryFirstN(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("USDJPY/1Min/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   200,
-				TimeOrderAscending: true,
-			},
+			(newQueryRequest("USDJPY/1Min/OHLC").
+				epochStart(0).
+				epochEnd(math.MaxInt32).
+				limitRecordCount(200).
+				limitFromFirst(true)),
 		},
 	}
 
@@ -151,15 +162,11 @@ func (s *ServerTestSuite) TestQueryRange(c *C) {
 	{
 		args := &MultiQueryRequest{
 			Requests: []QueryRequest{
-				QueryRequest{
-					IsSQLStatement:     false,
-					SQLStatement:       "",
-					Destination:        *io.NewTimeBucketKey("USDJPY/5Min/OHLC"),
-					TimeStart:          time.Date(2002, time.October, 1, 10, 5, 0, 0, time.UTC).Unix(),
-					TimeEnd:            time.Date(2002, time.October, 1, 15, 5, 0, 0, time.UTC).Unix(),
-					LimitRecordCount:   0,
-					TimeOrderAscending: false,
-				},
+				(newQueryRequest("USDJPY/1Min/OHLC").
+					epochStart(time.Date(2002, time.October, 1, 10, 5, 0, 0, time.UTC).Unix()).
+					epochEnd(time.Date(2002, time.October, 1, 15, 5, 0, 0, time.UTC).Unix()).
+					limitRecordCount(0).
+					limitFromFirst(false)),
 			},
 		}
 
@@ -169,21 +176,17 @@ func (s *ServerTestSuite) TestQueryRange(c *C) {
 		}
 		cs, _ := response.Responses[0].Result.ToColumnSeries()
 		index := cs.GetEpoch()
-		c.Assert(time.Unix(index[0], 0), Equals, time.Unix(args.Requests[0].TimeStart, 0))
+		c.Assert(time.Unix(index[0], 0), Equals, time.Unix(*args.Requests[0].EpochStart, 0))
 	}
 
 	{
 		args := &MultiQueryRequest{
 			Requests: []QueryRequest{
-				QueryRequest{
-					IsSQLStatement:     false,
-					SQLStatement:       "",
-					Destination:        *io.NewTimeBucketKey("USDJPY/5Min/OHLC"),
-					TimeStart:          test.ParseT("2002-12-31 00:00:00").Unix(),
-					TimeEnd:            math.MaxInt32,
-					LimitRecordCount:   0,
-					TimeOrderAscending: false,
-				},
+				(newQueryRequest("USDJPY/5Min/OHLC").
+					epochStart(test.ParseT("2002-12-31 00:00:00").Unix()).
+					epochEnd(math.MaxInt32).
+					limitRecordCount(0).
+					limitFromFirst(false)),
 			},
 		}
 
@@ -203,15 +206,9 @@ func (s *ServerTestSuite) TestQueryNpyMulti(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement:     false,
-				SQLStatement:       "",
-				Destination:        *io.NewTimeBucketKey("USDJPY,EURUSD/1Min/OHLC"),
-				TimeStart:          0,
-				TimeEnd:            math.MaxInt32,
-				LimitRecordCount:   200,
-				TimeOrderAscending: false,
-			},
+			(newQueryRequest("USDJPY,EURUSD/1Min/OHLC").
+				limitRecordCount(200).
+				limitFromFirst(false)),
 		},
 	}
 
@@ -238,15 +235,8 @@ func (s *ServerTestSuite) TestQueryMulti(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement:     false,
-				SQLStatement:       "",
-				Destination:        *io.NewTimeBucketKey("USDJPY,EURUSD/1Min/OHLC"),
-				TimeStart:          0,
-				TimeEnd:            math.MaxInt32,
-				LimitRecordCount:   200,
-				TimeOrderAscending: false,
-			},
+			(newQueryRequest("USDJPY,EURUSD/1Min/OHLC").
+				limitRecordCount(200)),
 		},
 	}
 
@@ -372,15 +362,9 @@ func (s *ServerTestSuite) TestFunctions(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("USDJPY/1Min/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   200,
-				TimeOrderAscending: false,
-				Functions:          []string{"candlecandler('5Min',Open,High,Low,Close)"},
-			},
+			(newQueryRequest("USDJPY/1Min/OHLC").
+				limitRecordCount(200).
+				functions([]string{"candlecandler('5Min',Open,High,Low,Close)"})),
 		},
 	}
 

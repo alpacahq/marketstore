@@ -3,8 +3,6 @@ package frontend
 import (
 	"github.com/alpacahq/marketstore/utils/io"
 
-	"math"
-
 	"fmt"
 
 	"strconv"
@@ -20,14 +18,8 @@ func (s *ServerTestSuite) TestWrite(c *C) {
 
 	qargs := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("USDJPY,EURUSD/1Min/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   201,
-				TimeOrderAscending: false,
-			},
+			(newQueryRequest("USDJPY,EURUSD/1Min/OHLC").
+				limitRecordCount(201)),
 		},
 	}
 
@@ -89,14 +81,8 @@ func (s *ServerTestSuite) TestWrite(c *C) {
 	*/
 	qargs = &MultiQueryRequest{
 		Requests: []QueryRequest{
-			QueryRequest{
-				IsSQLStatement: false,
-				SQLStatement:   "",
-				Destination:    *io.NewTimeBucketKey("TEST0,TEST1/1Min/OHLC"),
-				TimeStart:      0, TimeEnd: math.MaxInt32,
-				LimitRecordCount:   200,
-				TimeOrderAscending: false,
-			},
+			(newQueryRequest("TEST0,TEST1/1Min/OHLC").
+				limitRecordCount(200)),
 		},
 	}
 

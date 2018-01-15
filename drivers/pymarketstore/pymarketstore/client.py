@@ -42,15 +42,17 @@ def get_timestamp(value):
 class Params(object):
 
     def __init__(self, symbols, timeframe, attrgroup,
-                 start=None, end=None, limit=None, limitfromfirst=False):
+                 start=None, end=None,
+                 limit=None, limit_from_first=None):
         if not isiterable(symbols):
             symbols = [symbols]
         self.tbk = ','.join(symbols) + "/" + timeframe + "/" + attrgroup
-        self.category_key = 'Symbol/Timeframe/AttributeGroup'
+        self.key_category = None  # server default
         self.start = get_timestamp(start)
         self.end = get_timestamp(end)
         self.limit = limit
-        self.limitfromfirst = limitfromfirst
+        self.limit_from_first = limit_from_first
+        self.functions = None
 
     def set(self, key, val):
         if not hasattr(self, key):
@@ -59,10 +61,12 @@ class Params(object):
             setattr(self, key, get_timestamp(val))
         else:
             setattr(self, key, val)
+        return self
 
     def __repr__(self):
         content = (f'tbk={self.tbk}, start={self.start}, end={self.end}, ' +
-                   f'limit={self.limit}, limitfromfirst={self.limitfromfirst}')
+                   f'limit={self.limit}, ' +
+                   f'limit_from_first={self.limit_from_first}')
         return f'Params({content})'
 
 
@@ -141,15 +145,20 @@ class Client(object):
             params = [params]
         for param in params:
             req = {
-                'destination': {'key': param.tbk + ':' + param.category_key},
+                'destination': param.tbk,
             }
+            if param.key_category is not None:
+                req['key_category'] = param.key_category
             if param.start is not None:
-                req['timestart'] = param.start
+                req['epoch_start'] = int(param.start.value / (10 ** 9))
             if param.end is not None:
-                req['timeend'] = param.end
+                req['epoch_end'] = int(param.end.value / (10 ** 9))
             if param.limit is not None:
-                req['limitrecourdcount'] = param.limit
-            req['timeorderascending'] = param.limitfromfirst
+                req['limit_record_count'] = int(param.limit)
+            if param.limit_from_first is not None:
+                req['limit_from_first'] = bool(param.limit_from_first)
+            if param.functions is not None:
+                req['functions'] = param.functions
             reqs.append(req)
         return {
             'requests': reqs,
