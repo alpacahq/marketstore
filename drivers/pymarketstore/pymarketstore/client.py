@@ -1,5 +1,6 @@
 from tempfile import TemporaryFile
 import numpy as np
+import pandas as pd
 import six
 import requests
 import msgpack
@@ -30,26 +31,40 @@ def get_rpc_client(codec='msgpack'):
     return jsonrpc.JsonRpcClient
 
 
+def get_timestamp(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, np.integer)):
+        return pd.Timestamp(value, unit='s')
+    return pd.Timestamp(value)
+
+
 class Params(object):
 
-    time_bucket = None
-    start = None
-    end = None
+    def __init__(self, symbols, timeframe, attrgroup,
+                 start=None, end=None, limit=None, limitfromfirst=False):
+        if not isiterable(symbols):
+            symbols = [symbols]
+        self.tbk = ','.join(symbols) + "/" + timeframe + "/" + attrgroup
+        self.category_key = 'Symbol/Timeframe/AttributeGroup'
+        self.start = get_timestamp(start)
+        self.end = get_timestamp(end)
+        self.limit = limit
+        self.limitfromfirst = limitfromfirst
 
-    def __init__(self, symbol, time_frame, attr_group, start, end):
-        self.time_bucket = symbol + "/" + time_frame + "/" + attr_group + ":"
-        self.time_bucket += "Symbol/Timeframe/AttributeGroup"
-        if isinstance(start, int) and isinstance(end, int):
-            self.start = start
-            self.end = end
+    def set(self, key, val):
+        if not hasattr(self, key):
+            raise AttributeError()
+        if key in ('start', 'end'):
+            setattr(self, key, get_timestamp(val))
         else:
-            raise ValueError("start and end times must be integers")
+            setattr(self, key, val)
 
-    def append_symbol(self, symbol):
-        orig_symbols = self.time_bucket.split('/', 1)[0]
-        rest = '/' + self.time_bucket.split('/', 1)[1]
-        new_symbols = orig_symbols + ',' + symbol
-        self.time_bucket = new_symbols + rest
+    def __repr__(self):
+        content = (f'tbk={self.tbk}, start={self.start}, end={self.end}, ' +
+                   f'limit={self.limit}, limitfromfirst={self.limitfromfirst}')
+        return f'Params({content})'
+
 
 
 class Client(object):
@@ -125,11 +140,20 @@ class Client(object):
         if not isiterable(params):
             params = [params]
         for param in params:
-            reqs.append({
-                'destination': {'key': param.time_bucket},
-                'timestart': param.start,
-                'timeend': param.end,
-            })
+            req = {
+                'destination': {'key': param.tbk + ':' + param.category_key},
+            }
+            if param.start is not None:
+                req['timestart'] = param.start
+            if param.end is not None:
+                req['timeend'] = param.end
+            if param.limit is not None:
+                req['limitrecourdcount'] = param.limit
+            req['timeorderascending'] = param.limitfromfirst
+            reqs.append(req)
         return {
             'requests': reqs,
         }
+
+    def __repr__(self):
+        return f'Client("{self.endpoint}")'

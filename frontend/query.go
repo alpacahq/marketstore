@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"math"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -111,6 +112,9 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			systemTz := utils.InstanceConfig.Timezone
 			start := time.Unix(req.TimeStart, 0).In(systemTz)
 			stop := time.Unix(req.TimeEnd, 0).In(systemTz)
+			if req.TimeEnd == 0 {
+				stop = time.Unix(math.MaxInt64, 0).In(systemTz)
+			}
 
 			csm, tpm, err := executeQuery(
 				dest,

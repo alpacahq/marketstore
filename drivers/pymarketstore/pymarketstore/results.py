@@ -82,12 +82,11 @@ class QueryResult(object):
     def timezone(self):
         return self.reply['timezone']
 
-    @property
     def keys(self):
         return list(self.result.keys())
 
     def first(self):
-        return self.result[self.keys[0]]
+        return self.result[self.keys()[0]]
 
     def all(self):
         return self.result
@@ -119,16 +118,15 @@ class QueryReply(object):
             datasets.update(result.all())
         return datasets
 
-    @property
     def keys(self):
         keys = []
         for result in self.results:
-            keys += result.keys
+            keys += result.keys()
         return keys
 
     def get_catkeys(self, catnum):
         ret = set()
-        for key in self.keys:
+        for key in self.keys():
             elems = key.split('/')
             ret.add(elems[catnum])
         return list(ret)
