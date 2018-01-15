@@ -18,8 +18,9 @@ func (s *ServerTestSuite) TestWrite(c *C) {
 
 	qargs := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("USDJPY,EURUSD/1Min/OHLC").
-				limitRecordCount(201)),
+			(NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
+				LimitRecordCount(201).
+				End()),
 		},
 	}
 
@@ -81,8 +82,9 @@ func (s *ServerTestSuite) TestWrite(c *C) {
 	*/
 	qargs = &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("TEST0,TEST1/1Min/OHLC").
-				limitRecordCount(200)),
+			(NewQueryRequestBuilder("TEST0,TEST1/1Min/OHLC").
+				LimitRecordCount(200).
+				End()),
 		},
 	}
 

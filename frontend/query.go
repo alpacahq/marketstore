@@ -18,17 +18,27 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
 )
 
+// This is the parameter interface for DataService.Query method.
 type QueryRequest struct {
+	// Note: SQL is not fully supported
 	IsSQLStatement bool   `msgpack:"is_sqlstatement"` // If this is a SQL request, Only SQLStatement is relevant
 	SQLStatement   string `msgpack:"sql_statement"`
-	Destination    string `msgpack:"destination"`
-	KeyCategory    string `msgpack:"key_category,omitempty"`
-	// Destination        io.TimeBucketKey `msgpack:"destination"`
-	EpochStart       *int64   `msgpack:"epoch_start,omitempty"` // Unix Epoch based time limits
-	EpochEnd         *int64   `msgpack:"epoch_end,omitempty"`   // Unix Epoch based time limits
-	LimitRecordCount *int     `msgpack:"limit_record_count,omitempty"`
-	LimitFromFirst   *bool    `msgpack:"limit_from_first,omitempty"` // If Nrecords is non-zero, order the records ascending in time
-	Functions        []string `msgpack:"functions,omitempty"`
+
+	// Destination is <symbol>/<timeframe>/<attributegroup>
+	Destination string `msgpack:"destination"`
+	// This is not usually set, defaults to Symbol/Timeframe/AttributeGroup
+	KeyCategory string `msgpack:"key_category,omitempty"`
+	// Lower time predicate (i.e. index >= start) in unix epoch second
+	EpochStart *int64 `msgpack:"epoch_start,omitempty"`
+	// Upper time predicate (i.e. index <= end) in unix epoch second
+	EpochEnd *int64 `msgpack:"epoch_end,omitempty"`
+	// Number of max returned rows from lower/upper bound
+	LimitRecordCount *int `msgpack:"limit_record_count,omitempty"`
+	// Set to true if LimitRecordCount should be from the lower
+	LimitFromStart *bool `msgpack:"limit_from_start,omitempty"`
+
+	// Support for functions is experimental and subject to change
+	Functions []string `msgpack:"functions,omitempty"`
 }
 
 type MultiQueryRequest struct {
@@ -45,7 +55,7 @@ type QueryResponse struct {
 type MultiQueryResponse struct {
 	Responses []QueryResponse `msgpack:"responses"`
 	Version   string          `msgpack:"version"`  // Server Version
-	Timezone  string          `msgpack:"timezone"` // Server timezone
+	Timezone  string          `msgpack:"timezone"` // Server Timezone
 }
 
 func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *MultiQueryResponse) (err error) {
@@ -120,9 +130,9 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			if req.LimitRecordCount != nil {
 				limitRecordCount = *req.LimitRecordCount
 			}
-			limitFromFirst := false
-			if req.LimitFromFirst != nil {
-				limitFromFirst = *req.LimitFromFirst
+			limitFromStart := false
+			if req.LimitFromStart != nil {
+				limitFromStart = *req.LimitFromStart
 			}
 
 			systemTz := utils.InstanceConfig.Timezone
@@ -131,7 +141,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			csm, tpm, err := executeQuery(
 				dest,
 				start, stop,
-				limitRecordCount, limitFromFirst,
+				limitRecordCount, limitFromStart,
 			)
 			if err != nil {
 				return err
@@ -195,51 +205,6 @@ type RangeLimitReply struct {
 	End   int64 //Unix Epoch Timestamp
 }
 
-func (s *DataService) RangeLimit(r *http.Request, args *RangeLimitArgs, response *RangeLimitReply) (err error) {
-	if atomic.LoadUint32(&Queryable) == 0 {
-		return queryableError
-	}
-	if args == nil {
-		return argsNilError
-	}
-	tbk, err := io.NewTimeBucketKeyFromString(args.Destination.Key)
-	if err != nil {
-		return err
-	}
-
-	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
-	query.AddTargetKey(tbk)
-
-	// Let's get the first record
-	query.SetRowLimit(io.FIRST, 1)
-	parseResult, err := query.Parse()
-	if err != nil {
-		log.Log(log.ERROR, "Parsing query: %s\n", err)
-		return err
-	}
-	scanner, err := executor.NewReader(parseResult)
-	if err != nil {
-		log.Log(log.ERROR, "Unable to create new reader", err)
-		return err
-	}
-	startResultMap, _, err := scanner.Read()
-
-	query.SetRowLimit(io.LAST, 1)
-	parseResult, err = query.Parse()
-	if err != nil {
-		log.Log(log.ERROR, "Parsing query: %s\n", err)
-		return err
-	}
-	scanner, err = executor.NewReader(parseResult)
-	endResultMap, _, err := scanner.Read()
-
-	for key, cs := range startResultMap {
-		response.Start = cs.GetEpoch()[0]
-		response.End = endResultMap[key].GetEpoch()[0]
-	}
-	return err
-}
-
 type ListSymbolsReply struct {
 	Results []string
 }
@@ -261,7 +226,7 @@ Utility functions
 */
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
-	TimeOrderAscending bool) (io.ColumnSeriesMap, map[io.TimeBucketKey]int64, error) {
+	LimitFromStart bool) (io.ColumnSeriesMap, map[io.TimeBucketKey]int64, error) {
 
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
@@ -276,7 +241,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 
 	if LimitRecordCount != 0 {
 		direction := io.LAST
-		if TimeOrderAscending {
+		if LimitFromStart {
 			direction = io.FIRST
 		}
 		query.SetRowLimit(

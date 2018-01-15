@@ -43,7 +43,7 @@ class Params(object):
 
     def __init__(self, symbols, timeframe, attrgroup,
                  start=None, end=None,
-                 limit=None, limit_from_first=None):
+                 limit=None, limit_from_start=None):
         if not isiterable(symbols):
             symbols = [symbols]
         self.tbk = ','.join(symbols) + "/" + timeframe + "/" + attrgroup
@@ -51,7 +51,7 @@ class Params(object):
         self.start = get_timestamp(start)
         self.end = get_timestamp(end)
         self.limit = limit
-        self.limit_from_first = limit_from_first
+        self.limit_from_start = limit_from_start
         self.functions = None
 
     def set(self, key, val):
@@ -66,7 +66,7 @@ class Params(object):
     def __repr__(self):
         content = (f'tbk={self.tbk}, start={self.start}, end={self.end}, ' +
                    f'limit={self.limit}, ' +
-                   f'limit_from_first={self.limit_from_first}')
+                   f'limit_from_start={self.limit_from_start}')
         return f'Params({content})'
 
 
@@ -155,8 +155,8 @@ class Client(object):
                 req['epoch_end'] = int(param.end.value / (10 ** 9))
             if param.limit is not None:
                 req['limit_record_count'] = int(param.limit)
-            if param.limit_from_first is not None:
-                req['limit_from_first'] = bool(param.limit_from_first)
+            if param.limit_from_start is not None:
+                req['limit_from_start'] = bool(param.limit_from_start)
             if param.functions is not None:
                 req['functions'] = param.functions
             reqs.append(req)

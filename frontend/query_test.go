@@ -13,53 +13,30 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-func newQueryRequest(destination string) QueryRequest {
-	return QueryRequest{
-		Destination: destination,
-	}
-}
-func (qr QueryRequest) epochStart(value int64) QueryRequest {
-	qr.EpochStart = &value
-	return qr
-}
-func (qr QueryRequest) epochEnd(value int64) QueryRequest {
-	qr.EpochEnd = &value
-	return qr
-}
-func (qr QueryRequest) limitRecordCount(value int) QueryRequest {
-	qr.LimitRecordCount = &value
-	return qr
-}
-func (qr QueryRequest) limitFromFirst(value bool) QueryRequest {
-	qr.LimitFromFirst = &value
-	return qr
-}
-func (qr QueryRequest) functions(value []string) QueryRequest {
-	qr.Functions = value
-	return qr
-}
-
 func (s *ServerTestSuite) TestQueryCustomTimeframes(c *C) {
 	service := &DataService{}
 	service.Init()
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("USDJPY,EURUSD/30Min/OHLC").
-				epochStart(0).
-				epochEnd(math.MaxInt32).
-				limitRecordCount(10).
-				limitFromFirst(false)),
-			(newQueryRequest("USDJPY,EURUSD/1W/OHLC").
-				epochStart(0).
-				epochEnd(math.MaxInt32).
-				limitRecordCount(10).
-				limitFromFirst(false)),
-			(newQueryRequest("USDJPY/1M/OHLC").
-				epochStart(0).
-				epochEnd(math.MaxInt32).
-				limitRecordCount(5).
-				limitFromFirst(false)),
+			(NewQueryRequestBuilder("USDJPY,EURUSD/30Min/OHLC").
+				EpochStart(0).
+				EpochEnd(math.MaxInt32).
+				LimitRecordCount(10).
+				LimitFromStart(false).
+				End()),
+			(NewQueryRequestBuilder("USDJPY,EURUSD/1W/OHLC").
+				EpochStart(0).
+				EpochEnd(math.MaxInt32).
+				LimitRecordCount(10).
+				LimitFromStart(false).
+				End()),
+			(NewQueryRequestBuilder("USDJPY/1M/OHLC").
+				EpochStart(0).
+				EpochEnd(math.MaxInt32).
+				LimitRecordCount(5).
+				LimitFromStart(false).
+				End()),
 		},
 	}
 
@@ -100,11 +77,12 @@ func (s *ServerTestSuite) TestQuery(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("USDJPY/1Min/OHLC").
-				epochStart(0).
-				epochEnd(math.MaxInt32).
-				limitRecordCount(200).
-				limitFromFirst(false)),
+			(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+				EpochStart(0).
+				EpochEnd(math.MaxInt32).
+				LimitRecordCount(200).
+				LimitFromStart(false).
+				End()),
 		},
 	}
 
@@ -132,11 +110,12 @@ func (s *ServerTestSuite) TestQueryFirstN(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("USDJPY/1Min/OHLC").
-				epochStart(0).
-				epochEnd(math.MaxInt32).
-				limitRecordCount(200).
-				limitFromFirst(true)),
+			(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+				EpochStart(0).
+				EpochEnd(math.MaxInt32).
+				LimitRecordCount(200).
+				LimitFromStart(true).
+				End()),
 		},
 	}
 
@@ -162,11 +141,12 @@ func (s *ServerTestSuite) TestQueryRange(c *C) {
 	{
 		args := &MultiQueryRequest{
 			Requests: []QueryRequest{
-				(newQueryRequest("USDJPY/1Min/OHLC").
-					epochStart(time.Date(2002, time.October, 1, 10, 5, 0, 0, time.UTC).Unix()).
-					epochEnd(time.Date(2002, time.October, 1, 15, 5, 0, 0, time.UTC).Unix()).
-					limitRecordCount(0).
-					limitFromFirst(false)),
+				(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+					EpochStart(time.Date(2002, time.October, 1, 10, 5, 0, 0, time.UTC).Unix()).
+					EpochEnd(time.Date(2002, time.October, 1, 15, 5, 0, 0, time.UTC).Unix()).
+					LimitRecordCount(0).
+					LimitFromStart(false).
+					End()),
 			},
 		}
 
@@ -182,11 +162,12 @@ func (s *ServerTestSuite) TestQueryRange(c *C) {
 	{
 		args := &MultiQueryRequest{
 			Requests: []QueryRequest{
-				(newQueryRequest("USDJPY/5Min/OHLC").
-					epochStart(test.ParseT("2002-12-31 00:00:00").Unix()).
-					epochEnd(math.MaxInt32).
-					limitRecordCount(0).
-					limitFromFirst(false)),
+				(NewQueryRequestBuilder("USDJPY/5Min/OHLC").
+					EpochStart(test.ParseT("2002-12-31 00:00:00").Unix()).
+					EpochEnd(math.MaxInt32).
+					LimitRecordCount(0).
+					LimitFromStart(false).
+					End()),
 			},
 		}
 
@@ -206,9 +187,10 @@ func (s *ServerTestSuite) TestQueryNpyMulti(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("USDJPY,EURUSD/1Min/OHLC").
-				limitRecordCount(200).
-				limitFromFirst(false)),
+			(NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
+				LimitRecordCount(200).
+				LimitFromStart(false).
+				End()),
 		},
 	}
 
@@ -235,8 +217,9 @@ func (s *ServerTestSuite) TestQueryMulti(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("USDJPY,EURUSD/1Min/OHLC").
-				limitRecordCount(200)),
+			(NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
+				LimitRecordCount(200).
+				End()),
 		},
 	}
 
@@ -302,35 +285,6 @@ func (s *ServerTestSuite) TestListSymbols(c *C) {
 	c.Assert(contains(resp.Results, "USDJPY"), Equals, true)
 }
 
-func (s *ServerTestSuite) TestRangeLimit(c *C) {
-	service := &DataService{}
-	service.Init()
-	args := &RangeLimitArgs{
-		Destination: *io.NewTimeBucketKey("USDJPY/5Min/OHLC"),
-	}
-
-	var response RangeLimitReply
-	if err := service.RangeLimit(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err)
-	}
-
-	startTime := response.Start
-	endTime := response.End
-
-	c.Assert(startTime, Equals, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC).Unix())
-	c.Assert(endTime, Equals, time.Date(2002, 12, 31, 23, 55, 0, 0, time.UTC).Unix())
-}
-
-func (s *ServerTestSuite) TestRangeLimitError(c *C) {
-	service := &DataService{}
-	service.Init()
-
-	var response RangeLimitReply
-	if err := service.RangeLimit(nil, nil, &response); err != nil {
-		c.Assert(response.Start, Equals, int64(0))
-	}
-}
-
 func (s *ServerTestSuite) TestFunctions(c *C) {
 	service := &DataService{}
 	service.Init()
@@ -362,9 +316,10 @@ func (s *ServerTestSuite) TestFunctions(c *C) {
 
 	args := &MultiQueryRequest{
 		Requests: []QueryRequest{
-			(newQueryRequest("USDJPY/1Min/OHLC").
-				limitRecordCount(200).
-				functions([]string{"candlecandler('5Min',Open,High,Low,Close)"})),
+			(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+				LimitRecordCount(200).
+				Functions([]string{"candlecandler('5Min',Open,High,Low,Close)"}).
+				End()),
 		},
 	}
 
