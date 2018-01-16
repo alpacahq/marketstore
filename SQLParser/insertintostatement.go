@@ -122,8 +122,7 @@ func (is *InsertIntoStatement) Materialize() (outputColumnSeries *io.ColumnSerie
 	}
 
 	writer.WriteRecords(indexTime, data)
-	wal.FlushToWAL(tgc)
-	wal.FlushToPrimary()
+	wal.RequestFlush()
 
 	outputColumnSeries = io.NewColumnSeries()
 	outputColumnSeries.AddColumn("Epoch",

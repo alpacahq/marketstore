@@ -306,8 +306,6 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		wr.WriteRecords(times, rowdata)
 	}
 	wal := ThisInstance.WALFile
-	tgc := ThisInstance.TXNPipe
-	wal.FlushToWAL(tgc)
-	wal.FlushToPrimary()
+	wal.RequestFlush()
 	return nil
 }

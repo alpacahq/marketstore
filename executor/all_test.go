@@ -3,6 +3,7 @@ package executor
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
@@ -122,8 +123,8 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.FlushToPrimary()
+	s.WALFile.flushToWAL(tgc)
+	s.WALFile.createCheckpoint()
 
 	q = NewQuery(s.DataDirectory)
 	q.AddRestriction("Timeframe", "1Min")
@@ -173,8 +174,8 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.FlushToPrimary()
+	s.WALFile.flushToWAL(tgc)
+	s.WALFile.createCheckpoint()
 
 	/*
 		Read the data back
@@ -210,8 +211,8 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.FlushToPrimary()
+	s.WALFile.flushToWAL(tgc)
+	s.WALFile.createCheckpoint()
 
 	csm, _, err = reader.Read()
 	c.Assert(err == nil, Equals, true)
@@ -490,7 +491,7 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	buffer, _ := Serialize([]byte{}, row)
 	w.WriteRecords([]time.Time{ts}, buffer)
 	c.Assert(err == nil, Equals, true)
-	err = ThisInstance.WALFile.FlushToWAL(ThisInstance.TXNPipe)
+	err = ThisInstance.WALFile.flushToWAL(ThisInstance.TXNPipe)
 	c.Assert(err == nil, Equals, true)
 
 	q = NewQuery(d)
@@ -531,8 +532,8 @@ func (s *TestSuite) TestWriter(c *C) {
 	buffer, _ := Serialize([]byte{}, row)
 	writer.WriteRecords([]time.Time{ts}, buffer)
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.FlushToPrimary()
+	s.WALFile.flushToWAL(tgc)
+	s.WALFile.createCheckpoint()
 }
 
 func (s *DestructiveWALTests) SetUpSuite(c *C) {
@@ -565,14 +566,14 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
 	originalFileContents := createBufferFromFiles(queryFiles, c)
 
-	err = s.WALFile.FlushToWAL(tgc)
+	err = s.WALFile.flushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
 	// Verify that the file contents have not changed
 	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, true)
 
-	err = s.WALFile.FlushToPrimary()
+	err = s.WALFile.createCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -586,7 +587,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 		c.Fail()
 	}
 
-	err = s.WALFile.FlushToWAL(tgc)
+	err = s.WALFile.flushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -622,7 +623,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	// Note that at this point the files are unmodified
 	//	originalFileContents := createBufferFromFiles(tgc, c)
 
-	err = s.WALFile.FlushToWAL(tgc)
+	err = s.WALFile.flushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -634,7 +635,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
 	c.Assert(int64(n), Equals, fsize)
 
-	err = s.WALFile.FlushToPrimary()
+	err = s.WALFile.createCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -712,21 +713,22 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 		}
 	}
 
-	err = s.WALFile.FlushToWAL(tgc)
+	err = s.WALFile.flushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	// Save the WALFile contents after WAL flush, but before flush to primary
+	// Save the WALFile contents after WAL flush, but before checkpoint
 	fstat, _ := s.WALFile.FilePtr.Stat()
 	fsize := fstat.Size()
 	WALFileAfterWALFlush := make([]byte, fsize)
 	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
 	c.Assert(int64(n) == fsize, Equals, true)
 
-	err = s.WALFile.FlushToPrimary()
+	err = s.WALFile.createCheckpoint()
 	if err != nil {
 		fmt.Println(err)
+		c.FailNow()
 	}
 	// Put the modified files into a buffer and then verify the state of the files
 	modifiedFileContents := createBufferFromFiles(queryFiles2002, c)
@@ -758,13 +760,16 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 
 	// Take over the new WALFile and replay it into a new TG cache
 	WALFile, err := NewWALFile(s.Rootdir, newWALFilePath)
+	data, _ := ioutil.ReadFile(newWALFilePath)
+	ioutil.WriteFile("/tmp/wal", data, 0644)
 	newTGC := NewTransactionPipe()
 	c.Assert(newTGC != nil, Equals, true)
 	// Verify that our files are in original state prior to replay
 	c.Assert(compareFileToBuf(fileContentsOriginal2002, queryFiles2002, c), Equals, true)
 
 	// Replay the WALFile into the new cache
-	c.Assert(WALFile.Replay(true) == nil, Equals, true)
+	err = WALFile.Replay(true)
+	c.Assert(err, IsNil)
 
 	// Verify that the files are in the correct state after replay
 	postReplayFileContents := createBufferFromFiles(queryFiles2002, c)

@@ -15,7 +15,7 @@ type DestEnum int8
 
 const (
 	WAL DestEnum = iota
-	PRIMARY
+	CHECKPOINT
 )
 
 // --- Status
