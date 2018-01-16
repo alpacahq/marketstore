@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"bytes"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/golang/glog"
 )
 
 /*
@@ -27,17 +27,15 @@ type WALFileType struct {
 	ReplayState      ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath     string // Path to the root directory, base of FileName
-	FilePath     string // WAL file full path
-	WrittenTGIDs []int64
-	FilePtr      *os.File   // Active file pointer to FileName
-	flushMutex   sync.Mutex // Taken while flushing WAL
-	tgidMutex    sync.Mutex // Guard for WrittenTGIDs
+	RootPath          string   // Path to the root directory, base of FileName
+	FilePath          string   // WAL file full path
+	lastCommittedTGID int64    // TGID to be checkpointed
+	FilePtr           *os.File // Active file pointer to FileName
 }
 
 func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
-	wf.WrittenTGIDs = make([]int64, 0)
+	wf.lastCommittedTGID = 0
 
 	if len(existingFilePath) == 0 {
 		if err = wf.createFile(rootDir); err != nil {
@@ -173,12 +171,14 @@ func (cfp *CachedFP) GetFP(fileName string) (fp *os.File, err error) {
 	return cfp.fp, nil
 }
 
-func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
+// A.k.a. Commit transaction
+func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	/*
 		Here we flush the contents of the Mkts write cache to:
 		- Primary storage via the OS write cache - data is visible to readers
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/
+
 	WALBypass := ThisInstance.WALBypass
 	//WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
@@ -187,12 +187,10 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		return nil
 	}
 
-	// take the lock to make sure we work on WTCount
-	wf.flushMutex.Lock()
-	defer wf.flushMutex.Unlock()
-
 	WTCount := len(tgc.writeChannel)
 	if WTCount == 0 {
+		// refresh TGID so requester can confirm it went through even if nothing is written
+		tgc.NewTGID()
 		return nil
 	}
 
@@ -202,12 +200,12 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		}
 
 		// WAL Transaction Preparing Message
-		wf.WriteTransactionInfo(tgc.TGID, WAL, PREPARING)
+		wf.WriteTransactionInfo(tgc.TGID(), WAL, PREPARING)
 	}
 
 	// Serialize all data to be written except for the size of this buffer
 	var TG_Serialized, TGLen_Serialized []byte
-	TG_Serialized, _ = io.Serialize(TG_Serialized, tgc.TGID)
+	TG_Serialized, _ = io.Serialize(TG_Serialized, tgc.TGID())
 	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
 	/*
 		This loop serializes write transactions from the channel for writing to disk
@@ -254,10 +252,9 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		wf.FilePtr.Sync()       // Flush the OS buffer
 
 		// WAL Transaction Commit Complete Message
-		wf.WriteTransactionInfo(tgc.TGID, WAL, COMMITCOMPLETE)
-		wf.tgidMutex.Lock()
-		wf.WrittenTGIDs = append(wf.WrittenTGIDs, tgc.TGID)
-		wf.tgidMutex.Unlock()
+		TGID := tgc.TGID()
+		wf.WriteTransactionInfo(TGID, WAL, COMMITCOMPLETE)
+		wf.lastCommittedTGID = TGID
 		tgc.NewTGID()
 	}
 
@@ -298,16 +295,19 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		bufferedPrimaryWritesVariable[fullPath] = nil // for GC
 	}
 
-	// This has to be async, to get out of the lock held
+	// The dispatch task does not belong to WAL work, so
+	// has to be in a aseprate goroutine.
 	go writtenIndexes.Dispatch()
 
 	return nil
 }
 
-func (wf *WALFileType) FlushToPrimary() error {
-	wf.tgidMutex.Lock()
-	defer wf.tgidMutex.Unlock()
-	if len(wf.WrittenTGIDs) == 0 {
+// createCheckpoint flushes all primary dirty pages to disk, and
+// so closes out the previous WAL state to end.  Note, this is
+// not goroutine-safe with flushToWAL and caller should make sure
+// it is streamlined.
+func (wf *WALFileType) createCheckpoint() error {
+	if wf.lastCommittedTGID == 0 {
 		return nil
 	}
 	if ThisInstance.WALBypass {
@@ -315,13 +315,13 @@ func (wf *WALFileType) FlushToPrimary() error {
 	} else {
 		// WAL Transaction Preparing Message
 		// Get the latest TGID and write a prepare message
-		TGID := wf.WrittenTGIDs[len(wf.WrittenTGIDs)-1]
-		wf.WriteTransactionInfo(TGID, PRIMARY, PREPARING)
+		TGID := wf.lastCommittedTGID
+		wf.WriteTransactionInfo(TGID, CHECKPOINT, PREPARING)
 		// Sync the filesystem, after this point the filesystem cache data is committed to disk
 		io.Syncfs()
-		wf.WriteTransactionInfo(TGID, PRIMARY, COMMITCOMPLETE)
+		wf.WriteTransactionInfo(TGID, CHECKPOINT, COMMITCOMPLETE)
 	}
-	wf.WrittenTGIDs = make([]int64, 0)
+	wf.lastCommittedTGID = 0
 	return nil
 }
 
@@ -415,7 +415,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			switch destination {
 			case WAL:
 				txnStateWAL[TGID] = txnStatus
-			case PRIMARY:
+			case CHECKPOINT:
 				if _, ok := TGData[TGID]; ok && txnStatus == COMMITCOMPLETE {
 					// Remove all TGData for TGID less than this complete one
 					for tgid, _ := range TGData {
@@ -435,6 +435,8 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			if continueRead = fullRead(err); !continueRead {
 				break // Break out of switch
 			}
+		default:
+			glog.Warningf("Unknown meessage id %d", MID)
 		}
 	}
 
@@ -457,7 +459,9 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
 			if writeData {
 				Log(INFO, "Replaying TGID: %d, data length is: %d bytes", tgid, len(TG_Serialized))
-				wf.replayTGData(TG_Serialized)
+				if err := wf.replayTGData(TG_Serialized); err != nil {
+					return err
+				}
 			} else {
 				Log(INFO, "Replay for TGID: %d, data length is: %d bytes", tgid, len(TG_Serialized))
 			}
@@ -504,19 +508,13 @@ func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, 
 	}
 	tgid, destination, txnStatus = io.ToInt64(buf), DestEnum(buf[8]), TxnStatusEnum(buf[9])
 	switch destination {
-	case PRIMARY:
-		fallthrough
-	case WAL:
+	case CHECKPOINT, WAL:
 		break
 	default:
 		return 0, 0, 0, fmt.Errorf("WALFileType.readTransactionInfo Invalid destination ID: %d", destination)
 	}
 	switch txnStatus {
-	case PREPARING:
-		fallthrough
-	case COMMITINTENDED:
-		fallthrough
-	case COMMITCOMPLETE:
+	case PREPARING, COMMITINTENDED, COMMITCOMPLETE:
 		break
 	default:
 		return 0, 0, 0, fmt.Errorf("WALFileType.readTransactionInfo Invalid Txn Status: %d", txnStatus)
@@ -539,11 +537,7 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	}
 	MID := MIDEnum(buf[0])
 	switch MID {
-	case TGDATA:
-		fallthrough
-	case TXNINFO:
-		fallthrough
-	case STATUS:
+	case TGDATA, TXNINFO, STATUS:
 		return MID, nil
 	}
 	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d", MID)
@@ -587,8 +581,8 @@ func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error
 	return TGID, TG_Serialized, nil
 }
 func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
-	TGID := io.ToInt64(TG_Serialized[0:7])
-	WTCount := io.ToInt64(TG_Serialized[8:15])
+	TGID := io.ToInt64(TG_Serialized[0:8])
+	WTCount := io.ToInt64(TG_Serialized[8:16])
 	cursor := 16
 	if int(WTCount) != 0 {
 		cfp := NewCachedFP() // Cached open file pointer
@@ -620,10 +614,8 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 			}
 			cursor += 8 + 8 + dataLen
 		}
-		wf.tgidMutex.Lock()
-		wf.WrittenTGIDs = append(wf.WrittenTGIDs, TGID)
-		wf.tgidMutex.Unlock()
-		wf.FlushToPrimary()
+		wf.lastCommittedTGID = TGID
+		wf.createCheckpoint()
 	}
 	return nil
 }
@@ -754,10 +746,13 @@ func StartupCacheAndWAL(rootDir string) (tgc *TransactionPipe, wf *WALFileType, 
 	return NewTransactionPipe(), wf, nil
 }
 
+var haveWALWriter = false
+
 func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRotateInterval int) {
 	/*
 	   Example: syncWAL(500 * time.Millisecond, 15 * time.Minute)
 	*/
+	haveWALWriter = true
 	tickerWAL := time.NewTicker(WALRefresh)
 	tickerPrimary := time.NewTicker(PrimaryRefresh)
 	primaryFlushCounter := 0
@@ -765,11 +760,15 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 		if !ThisInstance.ShutdownPending {
 			select {
 			case <-tickerWAL.C:
-				if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {
+				if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
+					Log(FATAL, err.Error())
+				}
+			case <-ThisInstance.TXNPipe.flushChannel:
+				if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
 					Log(FATAL, err.Error())
 				}
 			case <-tickerPrimary.C:
-				wf.FlushToPrimary()
+				wf.createCheckpoint()
 				primaryFlushCounter++
 				if primaryFlushCounter%walRotateInterval == 0 {
 					Log(INFO, "Truncating WAL file...")
@@ -779,8 +778,41 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 				}
 			}
 		} else {
+			haveWALWriter = false
+			glog.Info("Flushing to WAL...")
+			wf.flushToWAL(ThisInstance.TXNPipe)
+			glog.Info("Flushing to disk...")
+			wf.createCheckpoint()
 			ThisInstance.WALWg.Done()
 			return
+		}
+	}
+}
+
+// RequestFlush requests WAL Flush to the WAL writer goroutine
+// if it exists, or just does the work in the same goroutine otherwise.
+// It waits for the transaction to be flushed to WAL, or timeouts
+// with warning after deadline.  This currently does not wait for
+// the primary to be written, but only for WAL to be flushed.
+func (wf *WALFileType) RequestFlush() bool {
+	if !haveWALWriter {
+		wf.flushToWAL(ThisInstance.TXNPipe)
+		return true
+	}
+	current := ThisInstance.TXNPipe.TGID()
+	ThisInstance.TXNPipe.flushChannel <- 1
+	interval := 100 * time.Millisecond
+	checkInterval := time.NewTicker(interval)
+	deadline := time.NewTicker(1000 * interval)
+	for {
+		select {
+		case <-checkInterval.C:
+			if ThisInstance.TXNPipe.TGID() > current {
+				return true
+			}
+		case <-deadline.C:
+			glog.Warning("WAL flush request did not go through")
+			return false
 		}
 	}
 }

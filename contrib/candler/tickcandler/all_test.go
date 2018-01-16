@@ -154,6 +154,5 @@ func createTickBucket(symbol string) {
 		buffer, _ := io.Serialize([]byte{}, row)
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
-	wf.FlushToWAL(tgc)
-	wf.FlushToPrimary()
+	wf.RequestFlush()
 }

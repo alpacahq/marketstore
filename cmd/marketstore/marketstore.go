@@ -76,11 +76,7 @@ func main() {
 
 func shutdown() {
 	executor.ThisInstance.ShutdownPending = true
-	Log(INFO, "Flushing to WAL...")
 	executor.ThisInstance.WALWg.Wait()
-	executor.ThisInstance.WALFile.FlushToWAL(executor.ThisInstance.TXNPipe)
-	Log(INFO, "Flushing to disk...")
-	executor.ThisInstance.WALFile.FlushToPrimary()
 	Log(INFO, "Exiting...")
 	os.Exit(0)
 }
