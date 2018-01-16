@@ -454,8 +454,7 @@ func writeCSVChunk(dbWriter *executor.Writer, dataShapes []DataShape, dbKey Time
 	}
 	dbWriter.WriteRecords(indexTime, rs.GetData())
 
-	executor.ThisInstance.WALFile.FlushToWAL(executor.ThisInstance.TXNPipe)
-	executor.ThisInstance.WALFile.FlushToPrimary()
+	executor.ThisInstance.WALFile.RequestFlush()
 	fmt.Printf("Done.\n")
 
 	start = time.Unix(epochCol[0], 0).UTC()

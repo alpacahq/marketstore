@@ -295,7 +295,8 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		bufferedPrimaryWritesVariable[fullPath] = nil // for GC
 	}
 
-	// This has to be async, to get out of the lock held
+	// The dispatch task does not belong to WAL work, so
+	// has to be in a aseprate goroutine.
 	go writtenIndexes.Dispatch()
 
 	return nil
@@ -773,12 +774,21 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 				}
 			}
 		} else {
+			haveWALWriter = false
+			glog.Info("Flushing to WAL...")
+			wf.flushToWAL(ThisInstance.TXNPipe)
+			glog.Info("Flushing to disk...")
+			wf.createCheckpoint()
 			ThisInstance.WALWg.Done()
 			return
 		}
 	}
 }
 
+// RequestFlush requests WAL Flush to the WAL writer goroutine
+// if it exists, or just does the work in the same goroutine otherwise.
+// It waits for the transaction to be flushed to WAL, or timeouts
+// with warning after deadline.
 func (wf *WALFileType) RequestFlush() bool {
 	if !haveWALWriter {
 		wf.flushToWAL(ThisInstance.TXNPipe)
