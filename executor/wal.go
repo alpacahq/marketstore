@@ -302,6 +302,10 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	return nil
 }
 
+// createCheckpoint flushes all primary dirty pages to disk, and
+// so closes out the previous WAL state to end.  Note, this is
+// not goroutine-safe with flushToWAL and caller should make sure
+// it is streamlined.
 func (wf *WALFileType) createCheckpoint() error {
 	if wf.lastCommittedTGID == 0 {
 		return nil
@@ -788,7 +792,8 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 // RequestFlush requests WAL Flush to the WAL writer goroutine
 // if it exists, or just does the work in the same goroutine otherwise.
 // It waits for the transaction to be flushed to WAL, or timeouts
-// with warning after deadline.
+// with warning after deadline.  This currently does not wait for
+// the primary to be written, but only for WAL to be flushed.
 func (wf *WALFileType) RequestFlush() bool {
 	if !haveWALWriter {
 		wf.flushToWAL(ThisInstance.TXNPipe)
