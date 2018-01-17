@@ -193,15 +193,6 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 	return nil
 }
 
-type RangeLimitArgs struct {
-	Destination io.TimeBucketKey `msgpack:"destination"`
-}
-
-type RangeLimitReply struct {
-	Start int64 //Unix Epoch Timestamp
-	End   int64 //Unix Epoch Timestamp
-}
-
 type ListSymbolsReply struct {
 	Results []string
 }

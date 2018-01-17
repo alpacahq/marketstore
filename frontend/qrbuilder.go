@@ -1,5 +1,10 @@
 package frontend
 
+// QueryRequestBuilder is a builder for QueryRequest to set
+// various parameters flexibly.
+//
+//   qr := NewQueryRequestBuilder("TSLA/1D/OHLCV").LimitRecourdCount(100).End()
+//
 type QueryRequestBuilder struct {
 	qr *QueryRequest
 }
@@ -12,6 +17,7 @@ func NewQueryRequestBuilder(destination string) *QueryRequestBuilder {
 	}
 }
 
+//
 func (b *QueryRequestBuilder) EpochStart(value int64) *QueryRequestBuilder {
 	b.qr.EpochStart = &value
 	return b
