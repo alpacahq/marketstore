@@ -11,7 +11,7 @@ tick-level for the entire US equities or exploding crypto currencies
 space.  If you are struggling with managing lots of HDF5 files, this is
 perfect solution to your problem.
 
-The battery is inside so you can start pulling crypto price data from GDAX
+The battery is inside so you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates)
 right after you install MarketStore. Then you can query DataFrame content
 over network at as low latency as your local HDF5 files from disk, and
 appending new data to the end is two orders of magnitude faster than
