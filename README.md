@@ -179,6 +179,9 @@ For more information, see [GDAX Feeder Document](./contrib/gdaxfeeder/)
 You only need to collect tick/minute level data.  Time-based aggregation
 on disk can be done via [On-Disk Aggregate](./contrib/ondiskagg/)
 
+## Query Parameter Spec
+
+Please see [another doc](./frontend/)
 
 ## Plug-in Architecture
 

@@ -10,7 +10,7 @@ import (
 
 type WriteRequest struct {
 	Data             *io.NumpyMultiDataset `msgpack:"dataset"`
-	IsVariableLength bool
+	IsVariableLength bool                  `msgpack:"is_variable_length"`
 }
 
 type MultiWriteRequest struct {
