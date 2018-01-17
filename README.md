@@ -1,5 +1,7 @@
 # MarketStore
 
+![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb)
+
 MarketStore is a database server optimized for financial timeseries data.
 You can think it as a DataFrame service extensible and accessible from
 anywhere in your system, at higher scalability.
