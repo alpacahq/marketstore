@@ -27,7 +27,7 @@ source pretty easily.  If you want to start right away, use our docker image.
 
 ## Build From Source
 
-## Prerequisite
+### Prerequisite
 
 You need go 1.9+ and [glide](http://glide.sh/).
 
@@ -50,14 +50,14 @@ $ make configure
 $ make all plugins
 ```
 
-## Test
+### Test
 
 ```
 $ make unittest
 ```
 
 
-### Example
+## Tutorial
 
 Let's test out marketstore by running the ```runtest.sh``` example under ```cmd/tools/mkts/examples```.
 
