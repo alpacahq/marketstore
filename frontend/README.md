@@ -5,19 +5,17 @@
 MarketStore communicates with its clients through standard HTTP in
 Messagepack RPC (Messagepack version of JSON-RPC 2.0).
 
-## API Calls
+## DataService.ListSymbols()
 
-### DataService.ListSymbols()
-
-#### Input
+### Input
 no parameters
 
-#### Output
+### Output
 list of string for each unique symbol stored in the server.
 
-### DataService.Query()
+## DataService.Query()
 
-#### Input
+### Input
 Query() interface accepts a list of "requests", each of which is a map with the following fields.
 
 * destination (`string`)
@@ -42,7 +40,7 @@ Query() interface accepts a list of "requests", each of which is a map with the 
 
 Note: It is also possible to query multiple TimeBucketKeys at once. The requests parameter is passed a list of query structures (See examples).
 
-#### Output
+### Output
 The output returns the same number of "responses" as the requests, each of which has the following fields.
 
 * result
@@ -50,9 +48,9 @@ The output returns the same number of "responses" as the requests, each of which
 	A MultiDataset type.  See below for this type.
 
 
-### DataService.Write()
+## DataService.Write()
 
-#### Input
+### Input
 
 * dataset
 
@@ -62,7 +60,7 @@ The output returns the same number of "responses" as the requests, each of which
 
 	A boolean value for telling MarketStore if the write procedure will be dynamic in length.
 
-#### Output
+### Output
 The API will return an empty response on success. Should the write call fail, the response will include the original input as well as an error returned by the server.
 
 
