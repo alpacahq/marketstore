@@ -59,6 +59,57 @@ $ make unittest
 
 ## Tutorial
 
+### Python Client
+[pymarketstore](https://github.com/alpacahq/pymarketstore) is the standard
+python client.
+
+```
+In [1]: import pymarketstore as pymkts
+
+## query data
+
+In [2]: param = pymkts.Params('BTC', '1Min', 'OHLCV', limit=10)
+
+In [3]: cli = pymkts.Client()
+
+In [4]: reply = cli.query(param)
+
+In [5]: reply.first().df()
+Out[5]:
+                               Open      High       Low     Close     Volume
+Epoch
+2018-01-17 17:19:00+00:00  10400.00  10400.25  10315.00  10337.25   7.772154
+2018-01-17 17:20:00+00:00  10328.22  10359.00  10328.22  10337.00  14.206040
+2018-01-17 17:21:00+00:00  10337.01  10337.01  10180.01  10192.15   7.906481
+2018-01-17 17:22:00+00:00  10199.99  10200.00  10129.88  10160.08  28.119562
+2018-01-17 17:23:00+00:00  10140.01  10161.00  10115.00  10115.01  11.283704
+2018-01-17 17:24:00+00:00  10115.00  10194.99  10102.35  10194.99  10.617131
+2018-01-17 17:25:00+00:00  10194.99  10240.00  10194.98  10220.00   8.586766
+2018-01-17 17:26:00+00:00  10210.02  10210.02  10101.00  10138.00   6.616969
+2018-01-17 17:27:00+00:00  10137.99  10138.00  10108.76  10124.94   9.962978
+2018-01-17 17:28:00+00:00  10124.95  10142.39  10124.94  10142.39   2.262249
+
+## write data
+
+In [7]: import numpy as np
+
+In [8]: import pandas as pd
+
+In [9]: data = np.array([(pd.Timestamp('2017-01-01 00:00').value / 10**9, 10.0)], dtype=[('Epoch', 'i8'), ('Ask', 'f4')])
+
+In [10]: cli.write(data, 'TEST/1Min/Tick')
+Out[10]: {'responses': None}
+
+In [11]: cli.query(pymkts.Params('TEST', '1Min', 'Tick')).first().df()
+Out[11]:
+                            Ask
+Epoch
+2017-01-01 00:00:00+00:00  10.0
+
+```
+
+### Command-Line Client mkts
+
 Let's test out marketstore by running the ```runtest.sh``` example under ```cmd/tools/mkts/examples```.
 
 This test script will create a bucket, load example tick data into the bucket, and run a simple query.
@@ -117,10 +168,6 @@ enable_remove: false
 * __triggers__: list of trigger plugins
 * __bgworkers__: list of background worker plugins
 
-
-## Python Driver
-
-[pymarketstore](https://github.com/alpacahq/pymarketstore/) is the default client library for Python.
 
 ## GDAX Data Fetcher
 
