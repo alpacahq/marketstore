@@ -1,81 +1,63 @@
+# MarketStore
+
+MarketStore is a database server optimized for financial timeseries data.
+You can think it as a DataFrame service extensible and accessible from
+anywhere in your system, at higher scalability.
+
+It is designed from ground to address scalability issue to handle large
+amount of financial market data, in such as algorithm trading backtesting,
+charting, and analyzing price history with many year amount of data like
+tick-level for the entire US equities or exploding crypto currencies
+space.  If you are struggling with managing lots of HDF5 files, this is
+perfect solution to your problem.
+
+The battery is inside so you can start pulling crypto price data from GDAX
+right after you install MarketStore. Then you can query DataFrame content
+over network at as low latency as your local HDF5 files from disk, and
+appending new data to the end is two orders of magnitude faster than
+DataFrame would be.  This is because the storage format is optimized for
+the type of data and use cases as well as for modern filesystem/hardware
+characteristics.
+
+
 ## Install
 
-### Install Golang
-If you are running macOS and have brew installed, run the following and skip to **Install Glide**:
+MarketStore is in pure Go (with some CGO code), so you can build it from
+source pretty easily.  If you want to start right away, use our docker image.
 
-```shell
-$ brew install golang
+## Build From Source
+
+## Prerequisite
+
+You need go 1.9+ and [glide](http://glide.sh/).
+
 ```
-
-To install on Linux, download the most recent archive from [golang.org](https://golang.org/dl/), then extract to `/usr/local`.
-
-```shell
-$ sudo tar -C /usr/local -xzf go$VERSION.$OS-$ARCH.tar.gz
-```
-
-Then add `/usr/local/go/bin` to the PATH environment variable by adding the following to the bottom
-of your `~/.profile`.
-
-```shell
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=$HOME
-```
-
-Lastly, source your `~/.profile`.
-
-```shell
-$ source ~/.profile
-```
-
-Test your installation with `go version`.
-
-### Install Glide (Golang's Vendor Package Management)
-
-You need [glide](http://glide.sh/) to download dependencies.  If you have installed brew, simply
-
-```shell
 $ brew install glide
 ```
 
-Otherwise, run the following.
+or
 
-```shell
-$ go get github.com/Masterminds/glide
+```
 $ go install github.com/Masterminds/glide
 ```
 
-You will find glide in `$GOPATH/bin`.
-
-### Build and Install marketstore
-
-`make configure` will download dependencies in `src/vendor`.
-
-`make unittest` will confirm a working installation.
-
-`make` will install the marketstore executables to `$GOPATH/bin`.
-
-```shell
-make configure
-make unittest
-make
+```
+$ mkdir -p /go/src/github.com/alpacahq
+$ cd /go/src/github.com/alpacahq
+$ git clone https://github.com/alpacahq/marketstore.git
+$ cd marketstore
+$ make configure
+$ make all plugins
 ```
 
-To verify, the output below should match the last few lines of
-your output for ```make unittest```.
+## Test
 
 ```
-ok      github.com/alpacahq/marketstore/utils   1.006s  coverage: 17.4% of statements
-ok      github.com/alpacahq/marketstore/utils/functions 0.004s  coverage: 61.9% of statements
-ok      github.com/alpacahq/marketstore/utils/io        0.006s  coverage: 31.3% of statements
-?       github.com/alpacahq/marketstore/utils/log       [no test files]
-ok      github.com/alpacahq/marketstore/utils/rpc/msgpack2      0.004s  coverage: 83.3% of statements
-?       github.com/alpacahq/marketstore/utils/stats     [no test files]
-?       github.com/alpacahq/marketstore/utils/test      [no test files]
-ok      github.com/alpacahq/marketstore/feedmanager     4.083s  coverage: 85.1% of statements
-?       github.com/alpacahq/marketstore/feedmanager/testplugin  [no test files]
+$ make unittest
 ```
 
-### Test an Example
+
+### Example
 
 Let's test out marketstore by running the ```runtest.sh``` example under ```cmd/tools/mkts/examples```.
 
@@ -135,38 +117,34 @@ enable_remove: false
 * __triggers__: list of trigger plugins
 * __bgworkers__: list of background worker plugins
 
-## Update dependency
 
-If you need update the code version in `src/vendor`, run make update.  `src/glide.lock` will be updated.
-If you need to add more dependencies, update `src/glide.yaml` and `make update`
+## Python Driver
 
-## Release
+[pymarketstore](https://github.com/alpacahq/pymarketstore/) is the default client library for Python.
 
-The release procedure for MarketStore is as follows:
+## GDAX Data Fetcher
 
-    - git flow release start <version>
+You can start pulling data from GDAX if you configure the data poller.
+For more information, see [GDAX Feeder Document](./contrib/gdaxfeeder/)
 
-Note that the version will take the form of: 1.0.0, but the tag will look like: v1.0.0
+## On-Disk Aggregate
 
-At this point, no further commits will be made except for bug fixes found during testing.
-If changes are made, make them in this branch, and merge them back into the main release branch.
+You only need to collect tick/minute level data.  Time-based aggregation
+on disk can be done via [On-Disk Aggregate](./contrib/ondiskagg/)
 
-    - git flow release finish <version>
-    - git push origin v<version>
-    - git push origin master
-    - git push origin develop
 
-Upon completion, CircleCI will build a docker container for the release, with the name:
+## Plug-in Architecture
 
-    alpacahq/marketstore:v<version>
+We know the needs and requirements in this space is diverse.  MarketStore
+server provides strong core functionality with flexible plug-in architecture.
+If you want to build your own, look around [plugins](./plugins/)
 
-The marketstore container can then be pulled down from dockerhub, and run using the makefile located
-in dockerfiles/marketstore in the trading repo.
+## Bug Report & Contribution
 
-In case a hotfix is needed:
+If you are interested in improving MarketStore, more than welcome!  Just file issues or request in github or contact oss@alpaca.markets.
 
-    - git flow hotfix start <next version>
-    - git cherry-pick <commit>
-    - git flow hotfix finish <version>
-    - git push origin v<version>
-    - git push origin master
+## Is This Production-Ready?
+
+Yes, absolutely!  It has been used in production for years in serious business.
+But we also never felt this is complete.  You can use it for your purpose
+and give more feedback.
