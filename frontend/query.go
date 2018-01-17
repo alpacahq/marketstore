@@ -80,10 +80,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			if err != nil {
 				return err
 			}
-			tbk, err := io.NewTimeBucketKeyFromString(req.SQLStatement + ":SQL")
-			if err != nil {
-				return err
-			}
+			tbk := io.NewTimeBucketKeyFromString(req.SQLStatement + ":SQL")
 			nmds, err := io.NewNumpyMultiDataset(nds, *tbk)
 			if err != nil {
 				return err

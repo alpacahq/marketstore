@@ -30,14 +30,12 @@ func NewTimeBucketKey(itemKey string, categoryKey_opt ...string) (mk *TimeBucket
 	return mk
 }
 
-func NewTimeBucketKeyFromString(itemCategoryString string) (mk *TimeBucketKey, err error) {
+func NewTimeBucketKeyFromString(itemCategoryString string) (mk *TimeBucketKey) {
 	splitKey := strings.Split(itemCategoryString, ":")
-	if len(splitKey) != 2 {
-		return nil,
-			fmt.Errorf("TimeBucketKey string should be of form \"itemKey:catKey\" - have %s",
-				itemCategoryString)
+	if len(splitKey) < 2 {
+		return NewTimeBucketKey(splitKey[0])
 	}
-	return NewTimeBucketKey(splitKey[0], splitKey[1]), nil
+	return NewTimeBucketKey(splitKey[0], splitKey[1])
 }
 
 func (mk *TimeBucketKey) String() (stringKey string) {

@@ -9,7 +9,7 @@ import (
 )
 
 type WriteRequest struct {
-	Data             *io.NumpyMultiDataset `msgpack:"data"`
+	Data             *io.NumpyMultiDataset `msgpack:"dataset"`
 	IsVariableLength bool
 }
 

@@ -94,7 +94,7 @@ func ConvertMultiQueryReplyToColumnSeries(result *frontend.MultiQueryResponse) (
 			if err != nil {
 				return nil, err
 			}
-			tbk, _ := io.NewTimeBucketKeyFromString(tbkStr)
+			tbk := io.NewTimeBucketKeyFromString(tbkStr)
 			csm[*tbk] = cs
 		}
 	}

@@ -37,11 +37,7 @@ func (s *ServerTestSuite) TestWrite(c *C) {
 	si := make(map[string]int)
 	li := make(map[string]int)
 	for tbkStr, val := range nmds.StartIndex {
-		tbk, err := io.NewTimeBucketKeyFromString(tbkStr)
-		if err != nil {
-			fmt.Println(err)
-			c.Fail()
-		}
+		tbk := io.NewTimeBucketKeyFromString(tbkStr)
 		tbk.SetItemInCategory("Symbol", "TEST"+strconv.Itoa(i))
 		si[tbk.String()] = val
 		li[tbk.String()] = nmds.Lengths[tbkStr]

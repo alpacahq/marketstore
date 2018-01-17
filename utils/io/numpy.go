@@ -147,7 +147,7 @@ func (nmds *NumpyMultiDataset) ToColumnSeriesMap() (csm ColumnSeriesMap, err err
 		} else {
 			cs = NewColumnSeries()
 		}
-		tbk, _ := NewTimeBucketKeyFromString(tbkStr)
+		tbk := NewTimeBucketKeyFromString(tbkStr)
 		csm.AddColumnSeries(*tbk, cs)
 	}
 	return csm, nil
