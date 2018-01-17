@@ -12,7 +12,7 @@ generate:
 
 configure:
 	glide install
-	make -C contrib/gdaxfeeder
+	make -C contrib/gdaxfeeder $@
 
 update:
 	glide update
