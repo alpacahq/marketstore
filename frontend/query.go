@@ -132,9 +132,8 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 				limitFromStart = *req.LimitFromStart
 			}
 
-			systemTz := utils.InstanceConfig.Timezone
-			start := time.Unix(epochStart, 0).In(systemTz)
-			stop := time.Unix(epochEnd, 0).In(systemTz)
+			start := time.Unix(epochStart, 0).UTC()
+			stop := time.Unix(epochEnd, 0).UTC()
 			csm, tpm, err := executeQuery(
 				dest,
 				start, stop,
