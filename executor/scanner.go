@@ -602,9 +602,8 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 
 func (ex *ioExec) checkTimeQuals(epoch int64) bool {
 	if len(ex.plan.TimeQuals) > 0 {
-		t := time.Unix(epoch, 0).In(utils.InstanceConfig.Timezone)
 		for _, timeQual := range ex.plan.TimeQuals {
-			if !timeQual(t) {
+			if !timeQual(epoch) {
 				return false
 			}
 		}
