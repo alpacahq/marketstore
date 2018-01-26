@@ -149,7 +149,7 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 		if utils.InstanceConfig.Timezone.String() != calendarTz.String() {
 			glog.Errorf("misconfiguration... system must be configure in %s", calendarTz)
 		} else {
-			q.AddTimeQual(calendar.Nasdaq.IsMarketOpen)
+			q.AddTimeQual(calendar.Nasdaq.EpochIsMarketOpen)
 			applyingFilter = true
 		}
 	}

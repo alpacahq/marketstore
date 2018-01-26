@@ -92,6 +92,12 @@ func (calendar *Calendar) IsMarketDay(t time.Time) bool {
 	return true
 }
 
+// EpochIsMarketOpen returns true if epoch in calendar's timezone is in the market hours
+func (calendar *Calendar) EpochIsMarketOpen(epoch int64) bool {
+	t := time.Unix(epoch, 0).In(calendar.tz)
+	return calendar.IsMarketOpen(t)
+}
+
 // IsMarketOpen returns true if t is in the market hours
 func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 	wd := t.Weekday()

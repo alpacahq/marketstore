@@ -13,7 +13,7 @@ import (
 	. "github.com/alpacahq/marketstore/utils/log"
 )
 
-type TimeQualFunc func(t time.Time) bool
+type TimeQualFunc func(epoch int64) bool
 type RestrictionList map[string][]string                     //Key is category, items list is target
 func (r RestrictionList) GetRestrictionMap() RestrictionList { return r }
 func (r RestrictionList) AddRestriction(category string, item string) {
