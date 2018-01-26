@@ -182,7 +182,7 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	outCsm.AddColumnSeries(*targetTbk, outCs)
 
 	if err := executor.WriteCSM(outCsm, false); err != nil {
-		glog.Errorf("failed to wriet CSM: %v", err)
+		glog.Errorf("failed to write CSM: %v", err)
 	}
 }
 

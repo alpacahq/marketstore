@@ -262,8 +262,8 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		Write the buffers to primary files (should happen after WAL writes)
 	*/
 	writtenIndexes := NewWrittenIndexes()
+	cfp := NewCachedFP() // Cached open file pointer
 	for fullPath, writes := range bufferedPrimaryWritesFixed {
-		cfp := NewCachedFP() // Cached open file pointer
 		fp, err := cfp.GetFP(fullPath)
 		if err != nil {
 			return err
@@ -279,7 +279,6 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		bufferedPrimaryWritesFixed[fullPath] = nil // for GC
 	}
 	for fullPath, writes := range bufferedPrimaryWritesVariable {
-		cfp := NewCachedFP() // Cached open file pointer
 		fp, err := cfp.GetFP(fullPath)
 		if err != nil {
 			return err
@@ -297,6 +296,9 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 
 	// The dispatch task does not belong to WAL work, so
 	// has to be in a aseprate goroutine.
+	if cfp.fp != nil {
+		cfp.fp.Close()
+	}
 	go writtenIndexes.Dispatch()
 
 	return nil
