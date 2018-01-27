@@ -70,12 +70,12 @@ func (rows *Rows) GetTime() []time.Time {
 	nsi := rows.GetColumn("Nanoseconds")
 	if nsi == nil {
 		for i, secs := range ep {
-			ts[i] = ToSystemTimezone(time.Unix(secs, 0))
+			ts[i] = time.Unix(secs, 0).UTC()
 		}
 	} else {
 		ns := nsi.([]int32)
 		for i, secs := range ep {
-			ts[i] = ToSystemTimezone(time.Unix(secs, int64(ns[i])))
+			ts[i] = time.Unix(secs, int64(ns[i])).UTC()
 		}
 	}
 	return ts

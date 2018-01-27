@@ -43,9 +43,9 @@ var MinTime = time.Unix(0, 0)
 func NewDateRange() *DateRange {
 	dr := new(DateRange)
 	dr.Start = MinTime
-	dr.StartYear = int16(dr.Start.Year())
+	dr.StartYear = int16(dr.Start.UTC().Year())
 	dr.End = MaxTime
-	dr.EndYear = int16(dr.End.Year())
+	dr.EndYear = int16(dr.End.UTC().Year())
 	return dr
 }
 

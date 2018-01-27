@@ -66,9 +66,8 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 		2) create a list of files with times prior to the date range in reverse order
 	*/
 	prevPaths := make([]*ioFilePlan, 0)
-	systemTz := utils.InstanceConfig.Timezone
 	for _, file := range fl {
-		fileStartTime := time.Date(int(file.File.Year), time.January, 1, 0, 0, 0, 0, systemTz)
+		fileStartTime := time.Date(int(file.File.Year), time.January, 1, 0, 0, 0, 0, time.UTC)
 		startOffset := int64(Headersize)
 		endOffset := int64(FileSize(file.File.GetIntervals(), int(file.File.Year), int(file.File.GetRecordLength())))
 		length := endOffset - startOffset

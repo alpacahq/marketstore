@@ -129,8 +129,8 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	headTs := io.IndexToTime(headIndex, int64(tf.PeriodsPerDay()), int16(year))
 	tailTs := io.IndexToTime(tailIndex, int64(tf.PeriodsPerDay()), int16(year))
 	timeWindow := utils.CandleDurationFromString(timeframe)
-	start := timeWindow.Truncate(headTs)
-	end := timeWindow.Ceil(tailTs)
+	start := timeWindow.Truncate(headTs.In(utils.InstanceConfig.Timezone))
+	end := timeWindow.Ceil(tailTs.In(utils.InstanceConfig.Timezone))
 	// TODO: this is not needed once we support "<" operator
 	end = end.Add(-time.Second)
 
@@ -140,7 +140,7 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	// Scan
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
-	q.SetRange(start, end)
+	q.SetRange(start.UTC(), end.UTC())
 
 	// decide whether to apply market-hour filter
 	applyingFilter := false
@@ -172,7 +172,13 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	if cs == nil || cs.Len() == 0 {
 		if !applyingFilter {
 			// Nothing in there... really?
-			glog.Errorf("result is empty for %s -> %s", tbk, targetTbk)
+			glog.Errorf(
+				"result is empty for %s -> %s - query: %v - %v",
+				tbk,
+				targetTbk,
+				q.Range.Start,
+				q.Range.End,
+			)
 		}
 		return
 	}
@@ -203,16 +209,17 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	ts := cs.GetTime()
 	outEpoch := make([]int64, 0)
 
-	groupKey := timeWindow.Truncate(ts[0])
+	groupKey := timeWindow.Truncate(ts[0].In(utils.InstanceConfig.Timezone))
 	groupStart := 0
 	// accumulate inputs.  Since the input is ordered by
 	// time, it is just to slice by correct boundaries
 	for i, t := range ts {
-		if !timeWindow.IsWithin(t, groupKey) {
+		tLocal := t.In(utils.InstanceConfig.Timezone)
+		if !timeWindow.IsWithin(tLocal, groupKey) {
 			// Emit new row and re-init aggState
 			outEpoch = append(outEpoch, groupKey.Unix())
 			accumGroup.apply(groupStart, i)
-			groupKey = timeWindow.Truncate(t)
+			groupKey = timeWindow.Truncate(tLocal)
 			groupStart = i
 		}
 	}
@@ -224,7 +231,6 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	outCs := io.NewColumnSeries()
 	outCs.AddColumn("Epoch", outEpoch)
 	accumGroup.addColumns(outCs)
-
 	return outCs
 }
 
