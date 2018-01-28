@@ -215,11 +215,11 @@ func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 
 func (f *TimeBucketInfo) readHeader(path string) (err error) {
 	file, err := os.Open(path)
-	defer file.Close()
 	if err != nil {
 		Log(ERROR, "Failed to open file: %v - Error: %v", path, err)
 		return err
 	}
+	defer file.Close()
 	var buffer [Headersize]byte
 	header := (*Header)(unsafe.Pointer(&buffer))
 	// Read the top part of the header, which is not dependent on the number of elements
@@ -263,8 +263,9 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	f.version = hp.Version
 	f.description = string(bytes.Trim(hp.Description[:], "\x00"))
 	f.Year = int16(hp.Year)
-	f.intervals = hp.Intervals
 	f.Path = filepath.Clean(path)
+	f.IsRead = true
+	f.intervals = hp.Intervals
 	f.nElements = int32(hp.NElements)
 	f.recordLength = int32(hp.RecordLength)
 	f.recordType = EnumRecordType(hp.RecordType)
@@ -275,6 +276,12 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 		f.elementNames = append(f.elementNames, strings.Title(baseName)) // Convert to title case
 		f.elementTypes = append(f.elementTypes, EnumElementType(hp.ElementTypes[i]))
 	}
+}
+
+func NewTimeBucketInfoFromHeader(hp *Header, path string) *TimeBucketInfo {
+	tbi := new(TimeBucketInfo)
+	tbi.load(hp, path)
+	return tbi
 }
 
 // Header is the on-disk byte representation of the file header
