@@ -224,8 +224,7 @@ func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
 				if dfile.Path == path {
-					fi := *dfile
-					tbinfo = &fi
+					tbinfo = dfile.GetDeepCopy()
 					return
 				}
 			}

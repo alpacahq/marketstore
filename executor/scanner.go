@@ -11,7 +11,6 @@ import (
 
 	"github.com/alpacahq/marketstore/executor/readhint"
 	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
 )

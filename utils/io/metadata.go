@@ -3,6 +3,7 @@ package io
 import (
 	"bytes"
 	"os"
+	"sync"
 	"unsafe"
 
 	"fmt"
@@ -47,6 +48,8 @@ type TimeBucketInfo struct {
 	variableRecordLength int32 // In case of variable recordType, the sum of field lengths in elementTypes
 	elementNames         []string
 	elementTypes         []EnumElementType
+
+	once sync.Once
 }
 
 func AlignedSize(unalignedSize int) (alignedSize int) {
@@ -116,77 +119,90 @@ func (f *TimeBucketInfo) getFieldRecordLength() (fieldRecordLength int) {
 	}
 	return fieldRecordLength
 }
+
+// GetDeepCopy returns a copy of this TimeBucketInfo.
 func (f *TimeBucketInfo) GetDeepCopy() *TimeBucketInfo {
-	if !f.IsRead {
-		f.InitFromFile()
+	f.once.Do(f.initFromFile)
+	fcopy := TimeBucketInfo{
+		Year:                 f.Year,
+		Path:                 f.Path,
+		IsRead:               f.IsRead,
+		version:              f.version,
+		description:          f.description,
+		intervals:            f.intervals,
+		nElements:            f.nElements,
+		recordType:           f.recordType,
+		recordLength:         f.recordLength,
+		variableRecordLength: f.variableRecordLength,
 	}
-	fcopy := *f
+	fcopy.elementNames = make([]string, len(f.elementNames))
+	fcopy.elementTypes = make([]EnumElementType, len(f.elementTypes))
+	copy(fcopy.elementNames, f.elementNames)
+	copy(fcopy.elementTypes, f.elementTypes)
 	return &fcopy
 }
-func (f *TimeBucketInfo) InitFromFile() {
+
+func (f *TimeBucketInfo) initFromFile() {
+	if f.IsRead {
+		// do nothing if we found it already done
+		return
+	}
 	if err := f.readHeader(f.Path); err != nil {
 		Log(FATAL, err.Error())
 	}
 	f.IsRead = true
 }
+
 func (f *TimeBucketInfo) GetVersion() int64 {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.version
 }
+
 func (f *TimeBucketInfo) GetDescription() string {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.description
 }
+
 func (f *TimeBucketInfo) GetIntervals() int64 {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.intervals
 }
+
 func (f *TimeBucketInfo) GetNelements() int32 {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.nElements
 }
+
 func (f *TimeBucketInfo) GetRecordLength() int32 {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.recordLength
 }
+
 func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
-	if f.variableRecordLength == 0 {
+	f.once.Do(f.initFromFile)
+
+	if f.recordType == VARIABLE && f.variableRecordLength == 0 {
 		// Variable records use the raw element sizes plus a 4-byte trailer for interval ticks
 		f.variableRecordLength = int32(f.getFieldRecordLength()) + 4 // Variable records have a 4-byte trailer
 	}
 	return f.variableRecordLength
 }
+
 func (f *TimeBucketInfo) GetRecordType() EnumRecordType {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.recordType
 }
+
 func (f *TimeBucketInfo) GetElementNames() []string {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.elementNames
 }
+
 func (f *TimeBucketInfo) GetElementTypes() []EnumElementType {
-	if !f.IsRead {
-		f.InitFromFile()
-	}
+	f.once.Do(f.initFromFile)
 	return f.elementTypes
 }
+
 func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 	if len(newTypes) != len(f.elementTypes) {
 		return fmt.Errorf("Element count not equal")
@@ -239,11 +255,11 @@ func (f *TimeBucketInfo) readHeader(path string) (err error) {
 			return err
 		}
 	}
-	f.Load(header, path)
+	f.load(header, path)
 	return nil
 }
 
-func (f *TimeBucketInfo) Load(hp *Header, path string) {
+func (f *TimeBucketInfo) load(hp *Header, path string) {
 	f.version = hp.Version
 	f.description = string(bytes.Trim(hp.Description[:], "\x00"))
 	f.Year = int16(hp.Year)
@@ -261,6 +277,7 @@ func (f *TimeBucketInfo) Load(hp *Header, path string) {
 	}
 }
 
+// Header is the on-disk byte representation of the file header
 type Header struct {
 	Version      int64
 	Description  [256]byte
@@ -283,6 +300,7 @@ func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 	_, err := file.Write(bp[:])
 	return err
 }
+
 func (hp *Header) Load(f *TimeBucketInfo) {
 	hp.Version = f.GetVersion()
 	copy(hp.Description[:], f.GetDescription())
