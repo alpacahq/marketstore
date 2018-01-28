@@ -2,11 +2,14 @@ package io
 
 import (
 	"math"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 	"unsafe"
 
+	"github.com/alpacahq/marketstore/utils"
 	. "gopkg.in/check.v1"
 )
 
@@ -309,4 +312,39 @@ func (s *TestSuite) TestSerializeColumnsToRows(c *C) {
 	data, reclen = SerializeColumnsToRows(csA, dsvProjected, true)
 	c.Assert(reclen == expectedLen, Equals, true)
 	c.Assert(reclen*3 == len(data), Equals, true)
+}
+
+func (s *TestSuite) TestTimeBucketInfo(c *C) {
+	tempDir := c.MkDir()
+	timeframe := utils.NewTimeframe("1Min")
+	filePath := filepath.Join(tempDir, "2018.bin")
+	description := "testing"
+	year := int16(2018)
+	dsv := NewDataShapeVector([]string{
+		"Open", "Close",
+	}, []EnumElementType{
+		FLOAT32, FLOAT32,
+	})
+	recType := FIXED
+	tbi := NewTimeBucketInfo(*timeframe, filePath, description, year, dsv, recType)
+
+	testFilePath, err := os.Create(filePath)
+	c.Check(err, IsNil)
+	WriteHeader(testFilePath, tbi)
+
+	tbi2 := TimeBucketInfo{
+		Year: year,
+		Path: filePath,
+	}
+
+	nElements := tbi2.GetNelements()
+	c.Check(nElements, Equals, int32(2))
+
+	c.Check(tbi2.GetVariableRecordLength(), Equals, int32(0))
+
+	fcopy := tbi2.GetDeepCopy()
+	c.Check(fcopy.intervals, Equals, tbi.intervals)
+
+	dsv2 := tbi2.GetDataShapes()
+	c.Check(dsv2[0].String(), Equals, dsv[0].String())
 }

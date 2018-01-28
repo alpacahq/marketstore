@@ -264,8 +264,7 @@ func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filenam
 
 func fixKnownHeaderProblems(buffer []byte, filePath string) {
 	header := (*io.Header)(unsafe.Pointer(&buffer[0]))
-	tbinfo := new(io.TimeBucketInfo)
-	tbinfo.Load(header, filePath)
+	tbinfo := io.NewTimeBucketInfoFromHeader(header, filePath)
 
 	/*
 		Check for OHLC with elementTypes = {1,1,1,1}
