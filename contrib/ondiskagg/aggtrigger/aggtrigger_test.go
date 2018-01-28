@@ -9,7 +9,6 @@ import (
 
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "gopkg.in/check.v1"
@@ -93,9 +92,6 @@ func (t *TestSuite) TestFire(c *C) {
 	trig, err := NewTrigger(ts.Config)
 	if err != nil {
 		panic(err)
-	}
-	executor.ThisInstance.TriggerMatchers = []*trigger.TriggerMatcher{
-		trigger.NewMatcher(trig, ts.On),
 	}
 
 	epoch := []int64{
