@@ -172,9 +172,24 @@ func AppendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) 
 
 func WriteBufferToFile(fp *os.File, offsetIndexDataBuffer []byte) (err error) {
 	offset := ToInt64(offsetIndexDataBuffer[:8])
-	_, err = fp.WriteAt(offsetIndexDataBuffer[8:], offset)
-	if err != nil {
-		return err
+	bytesToWrite := offsetIndexDataBuffer[8:]
+	retry := 3
+	for {
+		n, err := fp.WriteAt(bytesToWrite, offset)
+		if err != nil {
+			return err
+		}
+		if n < len(bytesToWrite) {
+			retry--
+			if retry < 0 {
+				return fmt.Errorf("write failed after retries")
+			}
+			glog.Errorf("Partial write [retry=%d] %d < %d", retry, n, len(bytesToWrite))
+			bytesToWrite = bytesToWrite[n:]
+			offset += int64(n)
+		} else {
+			break
+		}
 	}
 	return nil
 }
