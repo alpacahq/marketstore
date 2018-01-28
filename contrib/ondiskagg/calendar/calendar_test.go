@@ -30,6 +30,7 @@ func (s *CalendarTestSuite) TestCalendar(c *C) {
 	julThirdAM := time.Date(2018, 7, 3, 11, 0, 0, 0, NY)
 	julThirdPM := time.Date(2018, 7, 3, 15, 0, 0, 0, NY)
 	c.Assert(Nasdaq.IsMarketOpen(julThirdAM), Equals, true)
+	c.Assert(Nasdaq.EpochIsMarketOpen(julThirdAM.Unix()), Equals, true)
 	c.Assert(Nasdaq.IsMarketDay(julThirdAM), Equals, true)
 
 	c.Assert(Nasdaq.IsMarketOpen(julThirdPM), Equals, false)
@@ -47,4 +48,6 @@ func (s *CalendarTestSuite) TestCalendar(c *C) {
 
 	c.Assert(Nasdaq.IsMarketOpen(bestDayLate), Equals, false)
 	c.Assert(Nasdaq.IsMarketDay(bestDayLate), Equals, true)
+
+	c.Assert(Nasdaq.Tz().String(), Equals, "America/New_York")
 }

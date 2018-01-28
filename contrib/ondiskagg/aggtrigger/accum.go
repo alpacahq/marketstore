@@ -1,4 +1,4 @@
-package main
+package aggtrigger
 
 import (
 	"github.com/golang/glog"
