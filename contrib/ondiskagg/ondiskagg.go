@@ -1,3 +1,5 @@
+// This is a shim package for buiding a plugin module wrapping
+// the importable aggtrigger package.  For more details, see aggtrigger.
 package main
 
 import (
