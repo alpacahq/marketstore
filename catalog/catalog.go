@@ -128,6 +128,7 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 
 	return nil
 }
+
 func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	/*
 		Deletes the item at the last level specified in the dataItemKey
@@ -173,6 +174,7 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	}
 	return nil
 }
+
 func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 	// Returns a list of fileinfo for all datafiles in this directory or nil if there are none
 	d.RLock()
@@ -186,6 +188,7 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 	}
 	return tbinfolist
 }
+
 func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
 	// Locates a path in the directory and returns the TimeBucketInfo for that path or error if it isn't there
 	// Must be thread-safe for READ access
@@ -201,6 +204,7 @@ func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
 	d.recurse(&fileInfoList, fileInfoFunc)
 	return fileInfoList
 }
+
 func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *io.TimeBucketInfo, err error) {
 	path := key.GetPathToYearFiles(d.pathToItemName)
 	fullFilePath := path + "/1970.bin" // Put a dummy file at the end of the path
@@ -210,6 +214,7 @@ func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *i
 	}
 	return subDir.getLatestYearFile()
 }
+
 func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error) {
 	/*
 		Finds the TimeBucketInfo file in this directory based on a full file path argument
@@ -237,6 +242,7 @@ func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error
 		return tbinfo, nil
 	}
 }
+
 func (d *Directory) GetDataShapes(key *io.TimeBucketKey) (dsv []io.DataShape, err error) {
 	fi, err := d.GetLatestTimeBucketInfoFromKey(key)
 	if err != nil {
@@ -282,6 +288,7 @@ func (subDir *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err
 
 	return newFileInfo, nil
 }
+
 func (d *Directory) DirHasDataFiles() bool {
 	d.RLock()
 	defer d.RUnlock()
@@ -293,11 +300,13 @@ func (d *Directory) GetName() string {
 	defer d.RUnlock()
 	return d.itemName
 }
+
 func (d *Directory) GetPath() string {
 	d.RLock()
 	defer d.RUnlock()
 	return d.pathToItemName
 }
+
 func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Directory, err error) {
 	// Must be thread-safe for READ access
 	dirPath := path.Dir(fullFilePath)
@@ -309,6 +318,7 @@ func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Director
 		return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
 	}
 }
+
 func (d *Directory) GetListOfSubDirs() (subDirList []*Directory) {
 	// For a single directory, return a list of subdirectories it contains
 	d.RLock()
@@ -322,6 +332,7 @@ func (d *Directory) GetListOfSubDirs() (subDirList []*Directory) {
 	}
 	return subDirList
 }
+
 func (d *Directory) GetSubDirWithItemName(itemName string) (subDir *Directory) {
 	// For a single directory, return a subdirectory that matches the name "itemName"
 	d.RLock()
@@ -334,6 +345,7 @@ func (d *Directory) GetSubDirWithItemName(itemName string) (subDir *Directory) {
 	}
 	return nil
 }
+
 func (d *Directory) DirHasSubDirs() bool {
 	// Returns true if this directory has subdirectories
 	d.RLock()
@@ -352,19 +364,19 @@ func (d *Directory) GetCategory() string {
 	defer d.RUnlock()
 	return d.category
 }
+
 func (d *Directory) GatherCategoriesFromCache() (catList map[string]int8) {
 	// Must be thread-safe for WRITE access
 	// Provides a map of categories contained within and below this directory. Will create the list cache if nil.
 	d.RLock()
-	needToUpdate := (d.catList == nil)
+	catList = d.catList
 	d.RUnlock()
-	if needToUpdate {
-		d.gatherCategoriesUpdateCache()
+	if catList == nil {
+		return d.gatherCategoriesUpdateCache()
 	}
-	d.RLock()
-	defer d.RUnlock()
-	return d.catList
+	return catList
 }
+
 func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
 	// Must be thread-safe for READ access
 	// Provides a map of categories and items within and below this directory
@@ -428,7 +440,8 @@ func (d *Directory) gatherFilePaths() []string {
 	d.recurse(&filePathList, filePathListFunc)
 	return filePathList
 }
-func (d *Directory) gatherCategoriesUpdateCache() {
+
+func (d *Directory) gatherCategoriesUpdateCache() map[string]int8 {
 	// Must be thread-safe for WRITE access
 	// Note that this should be called whenever catalog structure is modified to update the cache
 	catListFunc := func(d *Directory, i_list interface{}) {
@@ -440,7 +453,9 @@ func (d *Directory) gatherCategoriesUpdateCache() {
 	d.Lock()
 	d.catList = newCatList
 	d.Unlock()
+	return newCatList
 }
+
 func (d *Directory) getOwningSubDirectoryByRecursion(filePath string) (subDir *Directory, err error) {
 	// Locates the directory in the catalog that matches the path - note that this is O(N)
 	// Must be thread-safe for READ access
@@ -511,28 +526,6 @@ func (d *Directory) removeSubDir(subDirItemName string, directMap DMap) {
 	if len(d.subDirs) == 0 {
 		d.subDirs = nil
 	}
-}
-func (d *Directory) getDeepSubDirWithItemName(itemName string) (subDir *Directory) {
-	// For directory tree, return a subdirectory from the tree that matches the name "itemName"
-	d.RLock()
-	defer d.RUnlock()
-	if d.itemName == itemName {
-		return d
-	}
-	subDir = nil
-	var findItem func(sd *Directory)
-	findItem = func(sd *Directory) {
-		subDir = sd.GetSubDirWithItemName(itemName)
-		if subDir != nil {
-			return
-		} else {
-			for _, dir := range sd.subDirs {
-				findItem(dir)
-			}
-		}
-	}
-	findItem(d)
-	return subDir
 }
 
 func (d *Directory) recurse(elem interface{}, levelFunc LevelFunc) {
@@ -645,6 +638,7 @@ func (d *Directory) load(rootPath string) error {
 	}
 	return loader(d, rootPath, rootPath)
 }
+
 func removeDirFiles(td *Directory) {
 	os.RemoveAll(td.pathToItemName)
 }
