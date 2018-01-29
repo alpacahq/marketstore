@@ -4,7 +4,7 @@ RUN apk update
 
 RUN apk --no-cache add git make tar curl alpine-sdk
 
-RUN go get github.com/Masterminds/glide && mv /go/bin/glide /usr/local/bin/glide
+RUN  go get -u github.com/golang/dep/... && mv /go/bin/dep /usr/local/bin/dep
 
 WORKDIR /go/src/github.com/alpacahq/marketstore
 

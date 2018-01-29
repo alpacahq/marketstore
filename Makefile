@@ -11,20 +11,20 @@ generate:
 	go generate $(shell find . -path ./vendor -prune -o -name \*.go -exec grep -q go:generate {} \; -print | while read file; do echo `dirname $$file`; done | xargs)
 
 configure:
-	glide install
+	dep ensure
 	make -C contrib/gdaxfeeder $@
 
 update:
-	glide update
+	dep ensure -update
 
 plugins:
 	$(MAKE) -C contrib/ondiskagg
 	$(MAKE) -C contrib/gdaxfeeder
 
 unittest:
-	! gofmt -l $(shell glide novendor -no-subdir) | grep .
-	go vet $(shell glide novendor)
-	go test -ldflags -s -cover $(shell glide novendor | grep -v cmd)
+	go fmt ./...
+	go vet ./...
+	go test ./...
 
 unittest-with-docker:
 	docker build -t gobuild .
