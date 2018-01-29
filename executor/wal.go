@@ -3,6 +3,7 @@ package executor
 import (
 	"crypto/md5"
 	"fmt"
+	goio "io"
 	"os"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/alpacahq/marketstore/executor/buffile"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
 	"github.com/golang/glog"
@@ -149,6 +151,24 @@ func (wf *WALFileType) WALKeyToFullPath(keyPath string) (fullPath string) {
 	return filepath.Join(wf.RootPath, keyPath)
 }
 
+type offsetIndexBuffer []byte
+
+func (b offsetIndexBuffer) Offset() int64 {
+	return io.ToInt64(b[:8])
+}
+
+func (b offsetIndexBuffer) Index() int64 {
+	return io.ToInt64(b[8:16])
+}
+
+func (b offsetIndexBuffer) IndexAndPayload() []byte {
+	return b[8:]
+}
+
+func (b offsetIndexBuffer) Payload() []byte {
+	return b[16:]
+}
+
 type CachedFP struct {
 	fileName string
 	fp       *os.File
@@ -157,6 +177,7 @@ type CachedFP struct {
 func NewCachedFP() *CachedFP {
 	return new(CachedFP)
 }
+
 func (cfp *CachedFP) GetFP(fileName string) (fp *os.File, err error) {
 	if fileName == cfp.fileName {
 		return cfp.fp, nil
@@ -169,6 +190,13 @@ func (cfp *CachedFP) GetFP(fileName string) (fp *os.File, err error) {
 	}
 	cfp.fileName = fileName
 	return cfp.fp, nil
+}
+
+func (cfp *CachedFP) Close() error {
+	if cfp.fp != nil {
+		return cfp.fp.Close()
+	}
+	return nil
 }
 
 // A.k.a. Commit transaction
@@ -207,11 +235,11 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	var TG_Serialized, TGLen_Serialized []byte
 	TG_Serialized, _ = io.Serialize(TG_Serialized, tgc.TGID())
 	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
+	writesPerFile := map[string][]offsetIndexBuffer{}
+	fileRecordTypes := map[string]io.EnumRecordType{}
 	/*
 		This loop serializes write transactions from the channel for writing to disk
 	*/
-	bufferedPrimaryWritesFixed := make(map[string][][]byte) // For buffering primary file writes
-	bufferedPrimaryWritesVariable := make(map[string][][]byte)
 	for i := 0; i < WTCount; i++ {
 		command := <-tgc.writeChannel
 		TG_Serialized, _ = io.Serialize(TG_Serialized, int8(command.RecordType))
@@ -223,15 +251,12 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		TG_Serialized, _ = io.Serialize(TG_Serialized, command.Offset)
 		TG_Serialized, _ = io.Serialize(TG_Serialized, command.Index)
 		TG_Serialized = append(TG_Serialized, command.Data...)
-		fullPath := wf.WALKeyToFullPath(command.WALKeyPath)
+		keyPath := command.WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
-		switch command.RecordType {
-		case io.FIXED:
-			bufferedPrimaryWritesFixed[fullPath] = append(bufferedPrimaryWritesFixed[fullPath],
-				TG_Serialized[oStart:oStart+bufferSize])
-		case io.VARIABLE:
-			bufferedPrimaryWritesVariable[fullPath] = append(bufferedPrimaryWritesVariable[fullPath],
-				TG_Serialized[oStart:oStart+bufferSize])
+		writesPerFile[keyPath] = append(writesPerFile[keyPath],
+			offsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
+		if _, ok := fileRecordTypes[keyPath]; !ok {
+			fileRecordTypes[keyPath] = command.RecordType
 		}
 	}
 	if !WALBypass {
@@ -262,45 +287,58 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		Write the buffers to primary files (should happen after WAL writes)
 	*/
 	writtenIndexes := NewWrittenIndexes()
-	cfp := NewCachedFP() // Cached open file pointer
-	for fullPath, writes := range bufferedPrimaryWritesFixed {
-		fp, err := cfp.GetFP(fullPath)
-		if err != nil {
+	for keyPath, writes := range writesPerFile {
+		recordType := fileRecordTypes[keyPath]
+		if err := wf.writePrimary(keyPath, writes, recordType); err != nil {
 			return err
 		}
 		for i, buffer := range writes {
-			if err = WriteBufferToFile(fp, buffer); err != nil {
-				return err
-			}
+			writtenIndexes.Add(keyPath, buffer)
 			writes[i] = nil // for GC
-			// collect written offsets for triggers
-			writtenIndexes.Add(wf.FullPathToWALKey(fullPath), buffer)
 		}
-		bufferedPrimaryWritesFixed[fullPath] = nil // for GC
-	}
-	for fullPath, writes := range bufferedPrimaryWritesVariable {
-		fp, err := cfp.GetFP(fullPath)
-		if err != nil {
-			return err
-		}
-		for i, buffer := range writes {
-			if err = WriteBufferToFileIndirect(fp, buffer); err != nil {
-				return err
-			}
-			writes[i] = nil // for GC
-			// collect written offsets for triggers
-			writtenIndexes.Add(wf.FullPathToWALKey(fullPath), buffer)
-		}
-		bufferedPrimaryWritesVariable[fullPath] = nil // for GC
+		writesPerFile[keyPath] = nil // for GC
 	}
 
 	// The dispatch task does not belong to WAL work, so
 	// has to be in a aseprate goroutine.
-	if cfp.fp != nil {
-		cfp.fp.Close()
-	}
 	go writtenIndexes.Dispatch()
 
+	return nil
+}
+
+func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType) error {
+	fullPath := wf.WALKeyToFullPath(keyPath)
+	type WriteAtCloser interface {
+		goio.WriterAt
+		goio.Closer
+	}
+	const batchThreshold = 100
+	var fp WriteAtCloser
+	var err error
+	if recordType == io.FIXED && len(writes) >= batchThreshold {
+		fp, err = buffile.New(fullPath)
+	} else {
+		fp, err = os.OpenFile(fullPath, os.O_RDWR, 0700)
+	}
+	if err != nil {
+		// this is critical, in fact, since tx has been committed
+		glog.Errorf("cannot open file %s for write: %v", fullPath, err)
+		return err
+	}
+	defer fp.Close()
+
+	for _, buffer := range writes {
+		switch recordType {
+		case io.FIXED:
+			err = WriteBufferToFile(fp, buffer)
+		case io.VARIABLE:
+			err = WriteBufferToFileIndirect(fp.(*os.File), buffer)
+		}
+		if err != nil {
+			glog.Errorf("failed to write committed data: %v", err)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -588,6 +626,7 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 	cursor := 16
 	if int(WTCount) != 0 {
 		cfp := NewCachedFP() // Cached open file pointer
+		defer cfp.Close()
 		for i := 0; i < int(WTCount); i++ {
 			RecordType := int(io.ToInt8(TG_Serialized[cursor : cursor+1]))
 			cursor += 1
