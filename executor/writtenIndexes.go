@@ -3,7 +3,6 @@ package executor
 import (
 	"runtime/debug"
 
-	. "github.com/alpacahq/marketstore/utils/io"
 	"github.com/golang/glog"
 )
 
@@ -22,9 +21,9 @@ func NewWrittenIndexes() *WrittenIndexes {
 }
 
 // Add collects the index value from the serialized buffer.
-func (wo *WrittenIndexes) Add(keyPath string, offsetIndexDataBuffer []byte) {
-	offset := ToInt64(offsetIndexDataBuffer[8:])
-	wo.indexesMap[keyPath] = append(wo.indexesMap[keyPath], offset)
+func (wo *WrittenIndexes) Add(keyPath string, buffer offsetIndexBuffer) {
+	index := buffer.Index()
+	wo.indexesMap[keyPath] = append(wo.indexesMap[keyPath], index)
 }
 
 // Dispatch iterates over the registered triggers and fire the event

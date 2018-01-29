@@ -40,6 +40,7 @@ func NewTransactionPipe() *TransactionPipe {
 }
 
 func (tgc *TransactionPipe) NewTGID() int64 {
+	// TODO: use atomic.Add() to guarantee monotonically-increasing behavior
 	return atomic.SwapInt64(&tgc.tgID, time.Now().UTC().UnixNano())
 }
 

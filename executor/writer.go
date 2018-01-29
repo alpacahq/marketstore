@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	stdio "io"
 	"os"
 	"sort"
 	"time"
@@ -170,44 +171,26 @@ func AppendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) 
 	return outBuf
 }
 
-func WriteBufferToFile(fp *os.File, offsetIndexDataBuffer []byte) (err error) {
-	offset := ToInt64(offsetIndexDataBuffer[:8])
-	bytesToWrite := offsetIndexDataBuffer[8:]
-	retry := 3
-	for {
-		n, err := fp.WriteAt(bytesToWrite, offset)
-		if err != nil {
-			return err
-		}
-		if n < len(bytesToWrite) {
-			retry--
-			if retry < 0 {
-				return fmt.Errorf("write failed after retries")
-			}
-			glog.Errorf("Partial write [retry=%d] %d < %d", retry, n, len(bytesToWrite))
-			bytesToWrite = bytesToWrite[n:]
-			offset += int64(n)
-		} else {
-			break
-		}
-	}
-	return nil
+func WriteBufferToFile(fp stdio.WriterAt, buffer offsetIndexBuffer) error {
+	offset := buffer.Offset()
+	data := buffer.IndexAndPayload()
+	_, err := fp.WriteAt(data, offset)
+	return err
 }
 
 type IndirectRecordInfo struct {
 	Index, Offset, Len int64
 }
 
-func WriteBufferToFileIndirect(fp *os.File, offsetIndexDataBuffer []byte) (err error) {
+func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer) (err error) {
 	// TODO: Incorporate previously written data into new writes - requires re-read of existing into buffer
 	/*
 		Here we write the data payload of the buffer to the end of the data file
 	*/
 
-	primaryOffset := ToInt64(offsetIndexDataBuffer[:8]) // Offset to storage of indirect record info
-
-	index := ToInt64(offsetIndexDataBuffer[8:])
-	dataToBeWritten := offsetIndexDataBuffer[16:] // data payload begins at 8 + 8 = 16
+	primaryOffset := buffer.Offset() // Offset to storage of indirect record info
+	index := buffer.Index()
+	dataToBeWritten := buffer.Payload()
 	dataLen := int64(len(dataToBeWritten))
 
 	/*
