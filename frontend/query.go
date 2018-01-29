@@ -3,6 +3,7 @@ package frontend
 import (
 	"math"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -202,9 +203,14 @@ func (s *DataService) ListSymbols(r *http.Request, args *ListSymbolsArgs, respon
 	if atomic.LoadUint32(&Queryable) == 0 {
 		return queryableError
 	}
-	for symbol := range executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"] {
-		response.Results = append(response.Results, symbol)
+	m, ok := executor.ThisInstance.CatalogDir.GatherCategoriesAndItems().Load("Symbol")
+	if !ok || m == nil {
+		return nil
 	}
+	m.(*sync.Map).Range(func(k, v interface{}) bool {
+		response.Results = append(response.Results, k.(string))
+		return true
+	})
 	return err
 }
 

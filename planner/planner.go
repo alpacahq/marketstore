@@ -236,7 +236,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	// Check to see that the categories in the query are present in the DB directory
 	CatList := q.DataDir.GatherCategoriesFromCache()
 	for key := range q.Restriction.GetRestrictionMap() {
-		if _, ok := CatList[key]; !ok {
+		if _, ok := CatList.Load(key); !ok {
 			return nil, errors.New(fmt.Sprintf("Category: %s not in catalog\n", key))
 		}
 	}

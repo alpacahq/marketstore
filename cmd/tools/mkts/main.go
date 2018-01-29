@@ -312,28 +312,21 @@ func processLoad(line string) {
 		return
 	}
 
-	symbol, timeframe, dataFD, loaderCtl := parseLoadArgs(args)
+	tbk, dataFD, loaderCtl := parseLoadArgs(args)
 	if dataFD != nil {
 		defer dataFD.Close()
 	}
 	fmt.Println("Beginning parse...")
-
-	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
-	query.AddRestriction("Symbol", symbol)
-	query.AddRestriction("Timeframe", timeframe)
-
-	pr, err := query.Parse()
+	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	if err != nil {
-		err = fmt.Errorf("No results when parsing query: %v", err.Error())
-		fmt.Println(err.Error())
-		Log(ERROR, "%v", err)
+		Log(ERROR, "Error while generating TimeBucketInfo: %v", err)
+		fmt.Println(err)
 		return
 	}
-
 	/*
 		Obtain a writer
 	*/
-	dbWriter, err := executor.NewWriter(pr, executor.ThisInstance.TXNPipe, executor.ThisInstance.CatalogDir)
+	dbWriter, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, executor.ThisInstance.CatalogDir)
 	if err != nil {
 		Log(ERROR, "Error return from query scanner: %v", err)
 		fmt.Println(err)
@@ -350,8 +343,6 @@ func processLoad(line string) {
 			break
 		}
 	*/
-	dbKey := pr.QualifiedFiles[0].Key
-
 	/*
 		Obtain the dataShapes for the DB columns
 	*/
@@ -362,12 +353,9 @@ func processLoad(line string) {
 	dataShapes = append(dataShapes, DataShape{Name: "Epoch-date", Type: INT64})
 	dataShapes = append(dataShapes, DataShape{Name: "Epoch-time", Type: INT64})
 	fmt.Printf("Column Names from Data Bucket: ")
-	for _, shapeVector := range pr.GetDataShapes() {
-		for _, shape := range shapeVector {
-			fmt.Printf("%s, ", shape.Name)
-			dataShapes = append(dataShapes, shape) // Use the first shape vector in the result, as they should all be the same
-		}
-		break
+	for _, shape := range tbi.GetDataShapes() {
+		fmt.Printf("%s, ", shape.Name)
+		dataShapes = append(dataShapes, shape) // Use the first shape vector in the result, as they should all be the same
 	}
 	fmt.Printf("\n")
 
@@ -402,7 +390,7 @@ func processLoad(line string) {
 		}
 		fmt.Printf("Read next %d lines from CSV file...", linesRead)
 
-		l_start, l_end := writeCSVChunk(dbWriter, dataShapes, dbKey, columnIndex, csvChunk, conf)
+		l_start, l_end := writeCSVChunk(dbWriter, dataShapes, *tbk, columnIndex, csvChunk, conf)
 		if start.IsZero() {
 			start, end = l_start, l_end
 		}
@@ -463,14 +451,12 @@ func writeCSVChunk(dbWriter *executor.Writer, dataShapes []DataShape, dbKey Time
 	return start, end
 }
 
-func parseLoadArgs(args []string) (symbol, timeframe string, inputFD, controlFD *os.File) {
-	mk := NewTimeBucketKey(args[0])
+func parseLoadArgs(args []string) (mk *TimeBucketKey, inputFD, controlFD *os.File) {
+	mk = NewTimeBucketKey(args[0])
 	if mk == nil {
 		fmt.Println("Key is not in proper format, see \"\\help load\" ")
 		return
 	}
-	symbol = mk.GetItemInCategory("Symbol")
-	timeframe = mk.GetItemInCategory("Timeframe")
 	/*
 		We need to read two file names that open successfully
 	*/
@@ -496,17 +482,17 @@ func parseLoadArgs(args []string) (symbol, timeframe string, inputFD, controlFD 
 			}
 		} else {
 			fmt.Printf("- unable to open file: %s\n", err.Error())
-			return "", "", nil, nil
+			return nil, nil, nil
 		}
 	}
 
 	if second {
-		return symbol, timeframe, inputFD, controlFD
+		return mk, inputFD, controlFD
 	} else if first {
-		return symbol, timeframe, inputFD, nil
+		return mk, inputFD, nil
 	}
 
-	return "", "", nil, nil
+	return nil, nil, nil
 }
 
 func processQueryLocal(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSeriesMap, err error) {

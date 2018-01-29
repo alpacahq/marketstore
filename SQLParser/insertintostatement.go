@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils/io"
 )
 
@@ -106,10 +105,11 @@ func (is *InsertIntoStatement) Materialize() (outputColumnSeries *io.ColumnSerie
 	tgc := executor.ThisInstance.TXNPipe
 	catDir := executor.ThisInstance.CatalogDir
 	wal := executor.ThisInstance.WALFile
-	q := planner.NewQuery(catDir)
-	q.AddTargetKey(targetMK)
-	parsed, _ := q.Parse()
-	writer, err := executor.NewWriter(parsed, tgc, catDir)
+	tbi, err := catDir.GetLatestTimeBucketInfoFromKey(targetMK)
+	if err != nil {
+		return nil, err
+	}
+	writer, err := executor.NewWriter(tbi, tgc, catDir)
 	if err != nil {
 		return nil, err
 	}
