@@ -1,3 +1,0 @@
-package: github.com/alpacahq/contrib/gdaxfeed
-import:
-- package: github.com/preichenberger/go-gdax

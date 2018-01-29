@@ -3,4 +3,4 @@ all:
 	go build -o $(GOPATH0)/bin/gdaxfeeder.so -buildmode=plugin .
 	
 configure:
-	glide install
+	dep ensure

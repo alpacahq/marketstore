@@ -1,6 +1,0 @@
-hash: 69be578023a13d78b3b173ad84579487bbe373daecbb6b645617e83ac97d6a2b
-updated: 2018-01-11T20:34:04.404561433Z
-imports:
-- name: github.com/preichenberger/go-gdax
-  version: a9c11d54432fa151e34d836d69770d7ff3e1d6ef
-testImports: []

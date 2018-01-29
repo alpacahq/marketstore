@@ -31,17 +31,12 @@ source pretty easily.  If you want to start right away, use our docker image.
 
 ### Prerequisite
 
-You need go 1.9+ and [glide](http://glide.sh/).
+You need go 1.9+ and [dep](https://github.com/golang/dep).
 
 ```
-$ brew install glide
+$ go get -u github.com/golang/dep/...
 ```
 
-or
-
-```
-$ go install github.com/Masterminds/glide
-```
 
 ```
 $ mkdir -p /go/src/github.com/alpacahq

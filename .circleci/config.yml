@@ -18,7 +18,7 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-      - run: go get github.com/Masterminds/glide
+      - run: go get -u github.com/golang/dep/...
       - run: make configure
       - run: make all plugins
       - run: make unittest
