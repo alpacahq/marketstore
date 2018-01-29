@@ -3,7 +3,6 @@ package frontend
 import (
 	"math"
 	"net/http"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -95,10 +94,8 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			/*
 				Assumption: Within each TimeBucketKey, we have one or more of each category, with the exception of
 				the AttributeGroup (aka Record Format) and Timeframe
-
 				Within each TimeBucketKey in the request, we allow for a comma separated list of items, e.g.:
 					destination1.items := "TSLA,AAPL,CG/1Min/OHLCV"
-
 				Constraints:
 				- If there is more than one record format in a single destination, we return an error
 				- If there is more than one Timeframe in a single destination, we return an error
@@ -203,14 +200,9 @@ func (s *DataService) ListSymbols(r *http.Request, args *ListSymbolsArgs, respon
 	if atomic.LoadUint32(&Queryable) == 0 {
 		return queryableError
 	}
-	m, ok := executor.ThisInstance.CatalogDir.GatherCategoriesAndItems().Load("Symbol")
-	if !ok || m == nil {
-		return nil
+	for symbol := range executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"] {
+		response.Results = append(response.Results, symbol)
 	}
-	m.(*sync.Map).Range(func(k, v interface{}) bool {
-		response.Results = append(response.Results, k.(string))
-		return true
-	})
 	return err
 }
 

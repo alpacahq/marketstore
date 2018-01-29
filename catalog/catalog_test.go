@@ -3,7 +3,6 @@ package catalog
 import (
 	"fmt"
 	"path"
-	"sync"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -44,22 +43,12 @@ func (s *TestSuite) TestGetDirectMap(c *C) {
 			fmt.Println(key)
 		}
 	*/
-	length := 0
-	s.DataDirectory.directMap.Range(func(k, v interface{}) bool {
-		length++
-		return true
-	})
-	c.Assert(length, Equals, 18)
+	c.Assert(len(s.DataDirectory.directMap), Equals, 18)
 }
 
 func (s *TestSuite) TestGetCatList(c *C) {
 	CatList := s.DataDirectory.GatherCategoriesFromCache()
-	length := 0
-	CatList.Range(func(k, v interface{}) bool {
-		length++
-		return true
-	})
-	c.Assert(length, Equals, 4)
+	c.Assert(len(CatList), Equals, 4)
 }
 func (s *TestSuite) TestGetCatItemMap(c *C) {
 	catList := s.DataDirectory.GatherCategoriesAndItems()
@@ -77,12 +66,7 @@ func (s *TestSuite) TestGetCatItemMap(c *C) {
 			fmt.Printf("}\n")
 		}
 	*/
-	length := 0
-	catList.Range(func(k, v interface{}) bool {
-		length++
-		return true
-	})
-	c.Assert(length, Equals, 4)
+	c.Assert(len(catList), Equals, 4)
 }
 func (s *TestSuite) TestGetDirList(c *C) {
 	dirList := s.DataDirectory.gatherDirectories()
@@ -145,6 +129,33 @@ func (s *TestSuite) TestAddFile(c *C) {
 	// fmt.Println("New Latest Year:", latestFile.Year, latestFile.Path)
 }
 
+func (s *TestSuite) TestCloneDir(c *C) {
+	d := NewDirectory(s.Rootdir)
+	tf := utils.TimeframeFromString("1Min")
+	fp := path.Join(s.Rootdir, "EURUSD", "1Min", "OHLC")
+	dsv := io.NewDataShapeVector(
+		[]string{"Open", "High", "Low", "Close"},
+		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32},
+	)
+	tbinfo := io.NewTimeBucketInfo(*tf, fp, "Fake fileinfo", int16(2016), dsv, io.FIXED)
+	// Add a new item "GBPUSD" to the top level of the directory
+	err := d.cloneDir(tbinfo, "GBPUSD")
+	c.Assert(err, Equals, nil)
+	catList := d.GatherCategoriesAndItems()
+	// Construct the known new path to this subdirectory so that we can verify it is in the catalog
+
+	oldFilePath := path.Join(s.Rootdir, "EURUSD", "1Min", "OHLC", "2000.bin")
+	_, err = d.GetOwningSubDirectory(oldFilePath)
+	c.Assert(err == nil, Equals, true)
+
+	newFilePath := path.Join(s.Rootdir, "GBPUSD", "1Min", "OHLC", "2000.bin")
+	_, err = d.GetOwningSubDirectory(newFilePath)
+	c.Assert(err == nil, Equals, true)
+
+	_, ok := catList["Symbol"]["GBPUSD"]
+	c.Assert(ok, Equals, true)
+}
+
 func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 	d := NewDirectory(s.Rootdir)
 	catKey := "Symbol/Timeframe/AttributeGroup"
@@ -161,9 +172,7 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 	err := d.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, Equals, nil)
 	catList := d.GatherCategoriesAndItems()
-	m, ok := catList.Load("Symbol")
-	c.Assert(ok, Equals, true)
-	_, ok = m.(*sync.Map).Load("TEST")
+	_, ok := catList["Symbol"]["TEST"]
 	c.Assert(ok, Equals, true)
 	// Construct the known new path to this subdirectory so that we can verify it is in the catalog
 
@@ -181,9 +190,7 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 	}
 	c.Assert(err == nil, Equals, true)
 	catList = d.GatherCategoriesAndItems()
-	m, ok = catList.Load("Symbol")
-	c.Assert(ok, Equals, true)
-	_, ok = m.(*sync.Map).Load("TEST")
+	_, ok = catList["Symbol"]["TEST"]
 	c.Assert(ok, Equals, false)
 	npath := newFilePath
 	c.Assert(exists(npath), Equals, false)
@@ -214,9 +221,7 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 	c.Assert(err, Equals, nil)
 
 	catList = d.GatherCategoriesAndItems()
-	m, ok = catList.Load("Symbol")
-	c.Assert(ok, Equals, true)
-	_, ok = m.(*sync.Map).Load("TEST")
+	_, ok = catList["Symbol"]["TEST"]
 	c.Assert(ok, Equals, true)
 	newFilePath = path.Join(rootDir, "TEST", "1Min", "OHLCV", "2016.bin")
 	npath = newFilePath
@@ -244,9 +249,7 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 	err = d.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, Equals, nil)
 	catList = d.GatherCategoriesAndItems()
-	m, ok = catList.Load("Symbol")
-	c.Assert(ok, Equals, true)
-	_, ok = m.(*sync.Map).Load("TEST2")
+	_, ok = catList["Symbol"]["TEST2"]
 	c.Assert(ok, Equals, true)
 
 	// This should fail
@@ -303,9 +306,7 @@ func (s *TestSuite) TestCreateNewDirectory(c *C) {
 	err := d.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, Equals, nil)
 	catList := d.GatherCategoriesAndItems()
-	m, ok := catList.Load("Symbol")
-	c.Assert(ok, Equals, true)
-	_, ok = m.(*sync.Map).Load("TEST")
+	_, ok := catList["Symbol"]["TEST"]
 	c.Assert(ok, Equals, true)
 
 	// Construct the known new path to this subdirectory so that we can verify it is in the catalog

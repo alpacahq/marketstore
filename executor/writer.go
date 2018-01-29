@@ -39,6 +39,8 @@ func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog
 }
 
 func (w *Writer) AddNewYearFile(year int16) (err error) {
+	w.root.RLock()
+	defer w.root.RUnlock()
 	dir, err := w.root.GetOwningSubDirectory(w.tbi.Path)
 	if err != nil {
 		return err
