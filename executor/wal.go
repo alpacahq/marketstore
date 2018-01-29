@@ -796,7 +796,10 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 	haveWALWriter = true
 	tickerWAL := time.NewTicker(WALRefresh)
 	tickerPrimary := time.NewTicker(PrimaryRefresh)
+	tickerCheck := time.NewTicker(WALRefresh / 100)
 	primaryFlushCounter := 0
+
+	chanCap := cap(ThisInstance.TXNPipe.writeChannel)
 	for {
 		if !ThisInstance.ShutdownPending {
 			select {
@@ -807,6 +810,13 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 			case <-ThisInstance.TXNPipe.flushChannel:
 				if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
 					Log(FATAL, err.Error())
+				}
+			case <-tickerCheck.C:
+				queued := len(ThisInstance.TXNPipe.writeChannel)
+				if float64(queued)/float64(chanCap) >= 0.8 {
+					if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
+						Log(FATAL, err.Error())
+					}
 				}
 			case <-tickerPrimary.C:
 				wf.createCheckpoint()
