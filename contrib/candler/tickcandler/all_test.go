@@ -136,13 +136,10 @@ func createTickBucket(symbol string) {
 	/*
 		Write some data
 	*/
-	q := planner.NewQuery(dd)
-	q.AddRestriction("Symbol", "TEST")
-	q.AddRestriction("AttributeGroup", "TICK")
-	q.AddRestriction("Timeframe", "1Min")
-	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
-	parsed, _ := q.Parse()
-	writer, _ := executor.NewWriter(parsed, tgc, dd)
+	w, err := executor.NewWriter(tbinfo, tgc, dd)
+	if err != nil {
+		panic(err)
+	}
 	row := struct {
 		Epoch    int64
 		Bid, Ask float32
@@ -152,7 +149,7 @@ func createTickBucket(symbol string) {
 		ts = ts.Add(time.Second)
 		row.Epoch = ts.Unix()
 		buffer, _ := io.Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		w.WriteRecords([]time.Time{ts}, buffer)
 	}
 	wf.RequestFlush()
 }

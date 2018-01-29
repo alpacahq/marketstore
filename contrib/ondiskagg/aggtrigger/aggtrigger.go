@@ -186,9 +186,14 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	outCs := aggregate(cs, targetTbk)
 	outCsm := io.NewColumnSeriesMap()
 	outCsm.AddColumnSeries(*targetTbk, outCs)
-
+	epoch := outCs.GetEpoch()
 	if err := executor.WriteCSM(outCsm, false); err != nil {
-		glog.Errorf("failed to write CSM: %v", err)
+		glog.Errorf(
+			"failed to write %v CSM from: %v to %v - Error: %v",
+			targetTbk.String(),
+			time.Unix(epoch[0], 0),
+			time.Unix(epoch[len(epoch)-1], 0),
+			err)
 	}
 }
 

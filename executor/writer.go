@@ -4,29 +4,22 @@ import (
 	"fmt"
 	stdio "io"
 	"os"
-	"sort"
+	"strings"
 	"time"
 
 	"github.com/alpacahq/marketstore/catalog"
-	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
 	"github.com/golang/glog"
 )
 
 type Writer struct {
-	pr             planner.ParseResult
-	iop            *ioplan
-	BaseDirectory  *catalog.Directory
-	tgc            *TransactionPipe
-	FileInfoByYear map[int16]*TimeBucketInfo // One-one relationship for a writer between year and target file
-	KeyPathByYear  map[int16]string          // This key includes the year filename
+	root *catalog.Directory
+	tgc  *TransactionPipe
+	tbi  *io.TimeBucketInfo
 }
 
-func NewWriter(pr *planner.ParseResult, tgc *TransactionPipe, rootCatDir *catalog.Directory) (w *Writer, err error) {
-	if pr.IntervalsPerDay == 0 {
-		return nil, fmt.Errorf("No query results, cannot create writer")
-	}
+func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog.Directory) (*Writer, error) {
 	/*
 		A writer is produced that complies with the parsed query results, including a possible date
 		range restriction.  If there is a date range restriction, the write() routine should produce
@@ -34,54 +27,23 @@ func NewWriter(pr *planner.ParseResult, tgc *TransactionPipe, rootCatDir *catalo
 	*/
 	// Check to ensure there is a valid WALFile for this instance before writing
 	if ThisInstance.WALFile == nil {
-		err = fmt.Errorf("There is not an active WALFile for this instance, so cannot write.")
+		err := fmt.Errorf("there is not an active WALFile for this instance, so cannot write")
 		glog.Errorf("NewWriter: %v", err)
 		return nil, err
 	}
-	w = new(Writer)
-	SortedFiles := SortedFileList(pr.QualifiedFiles)
-	sort.Sort(SortedFiles)
-	w.pr = *pr
-	if pr.Range == nil {
-		pr.Range = planner.NewDateRange()
-	}
-	secondsPerInterval := 3600 * 24 / pr.IntervalsPerDay
-	if w.iop, err = NewIOPlan(SortedFiles, pr, secondsPerInterval); err != nil {
-		return nil, err
-	}
-
-	// Process the ioplan to determine if it has a single base directory target, required for a writer
-	baseDirectories := make(map[string]int, 0)
-	w.FileInfoByYear = make(map[int16]*TimeBucketInfo, 0)
-	w.KeyPathByYear = make(map[int16]string, 0)
-	for _, fp := range w.iop.FilePlan {
-		if w.BaseDirectory == nil {
-			if w.BaseDirectory, err = rootCatDir.GetOwningSubDirectory(fp.FullPath); err != nil {
-				glog.Errorf("NewWriter: %v", err)
-				return nil, err
-			}
-		}
-		baseDirectories[w.BaseDirectory.GetPath()] = 0
-		year := fp.GetFileYear()
-		if w.FileInfoByYear[year], err = w.BaseDirectory.PathToTimeBucketInfo(fp.FullPath); err != nil {
-			glog.Errorf("NewWriter: %v", err)
-			return nil, err
-		}
-		w.KeyPathByYear[year] = ThisInstance.WALFile.FullPathToWALKey(w.FileInfoByYear[year].Path)
-	}
-	if len(baseDirectories) != 1 {
-		return nil, SingleTargetRequiredForWriter("NewWriter")
-	}
-	w.tgc = tgc // TransactionPipe, will be used to implement all writes
-
-	return w, nil
+	return &Writer{
+		root: rootCatDir,
+		tgc:  tgc,
+		tbi:  tbi,
+	}, nil
 }
+
 func (w *Writer) AddNewYearFile(year int16) (err error) {
-	w.FileInfoByYear[year], err = w.BaseDirectory.AddFile(year)
+	newTbi, err := w.root.GetSubDirectoryAndAddFile(w.tbi.Path, year)
 	if err != nil {
 		return err
 	}
-	w.KeyPathByYear[year] = ThisInstance.WALFile.FullPathToWALKey(w.FileInfoByYear[year].Path)
+	w.tbi = newTbi
 	return nil
 }
 
@@ -100,16 +62,15 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			Incoming data records ALWAYS have the 8-byte Epoch column first
 		*/
 		record = record[8:] // Chop off the Epoch column
-		if w.iop.RecordType == VARIABLE {
+		if w.tbi.GetRecordType() == VARIABLE {
 			/*
 				Trim the Epoch column off and replace it with ticks since bucket time
 			*/
 			outBuf = append(buf, record...)
 			outBuf = AppendIntervalTicks(outBuf, t, index, intervalsPerDay)
 			return outBuf
-		} else {
-			return record
 		}
+		return record
 	}
 
 	for i := 0; i < numRows; i++ {
@@ -117,18 +78,20 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		record := data[pos : pos+rowLen]
 		t := ts[i]
 		year := int16(t.Year())
-		if _, ok := w.FileInfoByYear[year]; !ok {
-			w.AddNewYearFile(year)
+		if year != w.tbi.Year {
+			if err := w.AddNewYearFile(year); err != nil {
+				panic(err)
+			}
 		}
-		intervalsPerDay := w.FileInfoByYear[year].GetIntervals()
-		offset := TimeToOffset(t, intervalsPerDay, w.FileInfoByYear[year].GetRecordLength())
+		intervalsPerDay := w.tbi.GetIntervals()
+		offset := TimeToOffset(t, intervalsPerDay, w.tbi.GetRecordLength())
 		index := TimeToIndex(t, intervalsPerDay)
 
 		if i == 0 {
 			prevIndex = index
 			cc = &WriteCommand{
-				RecordType: w.iop.RecordType,
-				WALKeyPath: w.KeyPathByYear[year],
+				RecordType: w.tbi.GetRecordType(),
+				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
 				Offset:     offset,
 				Index:      index,
 				Data:       nil}
@@ -149,8 +112,8 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			prevIndex = index
 			outBuf = formatRecord([]byte{}, record, t, index, intervalsPerDay)
 			cc = &WriteCommand{
-				RecordType: w.iop.RecordType,
-				WALKeyPath: w.KeyPathByYear[year],
+				RecordType: w.tbi.GetRecordType(),
+				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
 				Offset:     offset,
 				Index:      index,
 				Data:       outBuf}
@@ -276,10 +239,9 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			/*
 				Verify there is an available TimeBucket for the destination
 			*/
-			err = cDir.AddTimeBucket(&tbk, tbi)
-			if err != nil {
+			if err := cDir.AddTimeBucket(&tbk, tbi); err != nil {
 				// If File Exists error, ignore it, otherwise return the error
-				if _, ok := err.(catalog.FileAlreadyExists); !ok {
+				if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
 					return err
 				}
 			}
@@ -288,20 +250,14 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Create a writer for this TimeBucket
 		*/
-		q := planner.NewQuery(cDir)
-		q.AddTargetKey(&tbk)
-		pr, err := q.Parse()
-		if err != nil {
-			return err
-		}
-		wr, err := NewWriter(pr, ThisInstance.TXNPipe, cDir)
+		w, err := NewWriter(tbi, ThisInstance.TXNPipe, cDir)
 		if err != nil {
 			return err
 		}
 		rs := cs.ToRowSeries(tbk)
 		rowdata := rs.GetData()
 		times := rs.GetTime()
-		wr.WriteRecords(times, rowdata)
+		w.WriteRecords(times, rowdata)
 	}
 	wal := ThisInstance.WALFile
 	wal.RequestFlush()

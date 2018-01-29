@@ -94,10 +94,8 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			/*
 				Assumption: Within each TimeBucketKey, we have one or more of each category, with the exception of
 				the AttributeGroup (aka Record Format) and Timeframe
-
 				Within each TimeBucketKey in the request, we allow for a comma separated list of items, e.g.:
 					destination1.items := "TSLA,AAPL,CG/1Min/OHLCV"
-
 				Constraints:
 				- If there is more than one record format in a single destination, we return an error
 				- If there is more than one Timeframe in a single destination, we return an error

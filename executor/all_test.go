@@ -98,17 +98,14 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	dsv := NewDataShapeVector(eNames, eTypes)
 	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, FIXED)
 	err := ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
-	c.Assert(err == nil, Equals, true)
+	c.Assert(err, IsNil)
 	tgc := ThisInstance.TXNPipe
 	/*
 		Write some data
 	*/
-	q := NewQuery(s.DataDirectory)
-	q.AddRestriction("Symbol", "AAPL")
-	q.AddRestriction("AttributeGroup", "OHLCV")
-	q.AddRestriction("Timeframe", "1Min")
-	parsed, _ := q.Parse()
-	writer, err := NewWriter(parsed, tgc, s.DataDirectory)
+	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	c.Assert(err, IsNil)
+	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
 	row := struct {
 		Epoch                  int64
@@ -126,10 +123,10 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	s.WALFile.flushToWAL(tgc)
 	s.WALFile.createCheckpoint()
 
-	q = NewQuery(s.DataDirectory)
+	q := NewQuery(s.DataDirectory)
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRowLimit(LAST, 5)
-	parsed, _ = q.Parse()
+	parsed, _ := q.Parse()
 	reader, _ := NewReader(parsed)
 	csm, _, _ := reader.Read()
 	c.Assert(len(csm) >= 4, Equals, true)
@@ -146,7 +143,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	dsv := NewDataShapeVector(eNames, eTypes)
 	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, VARIABLE)
 	err := ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
-	c.Assert(err == nil, Equals, true)
+	c.Assert(err, IsNil)
 	tgc := ThisInstance.TXNPipe
 
 	/*
@@ -158,7 +155,9 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
-	writer, err := NewWriter(parsed, tgc, s.DataDirectory)
+	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	c.Assert(err, IsNil)
+	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
 	row := struct {
 		Epoch    int64
@@ -484,7 +483,9 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	q := NewQuery(d)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ := q.Parse()
-	w, err := NewWriter(pr, ThisInstance.TXNPipe, d)
+	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	c.Assert(err, IsNil)
+	w, err := NewWriter(tbi, ThisInstance.TXNPipe, d)
 	c.Assert(err, Equals, nil)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
@@ -519,13 +520,11 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 
 func (s *TestSuite) TestWriter(c *C) {
 	tgc := ThisInstance.TXNPipe
-
-	q := NewQuery(s.DataDirectory)
-	q.AddRestriction("Symbol", "NZDUSD")
-	q.AddRestriction("AttributeGroup", "OHLC")
-	q.AddRestriction("Timeframe", "1Min")
-	parsed, _ := q.Parse()
-	writer, err := NewWriter(parsed, tgc, s.DataDirectory)
+	dataItemKey := "TEST/1Min/OHLCV"
+	tbk := NewTimeBucketKey(dataItemKey)
+	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	c.Assert(err, IsNil)
+	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
@@ -950,7 +949,8 @@ func addTGData(root *Directory, tgc *TransactionPipe, number int, mixup bool) (q
 		for key, cs := range csmSym {
 			// Add this result data to the overall
 			csm[key] = cs
-			writerByKey[key], err = NewWriter(parsed, tgc, root)
+			tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(&key)
+			writerByKey[key], err = NewWriter(tbi, tgc, root)
 			if err != nil {
 				fmt.Printf("Failed to create a new writer")
 				return nil, err

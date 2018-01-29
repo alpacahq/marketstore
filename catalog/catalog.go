@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -50,6 +49,8 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 		Adds a (possibly) new data item to a rootpath. Takes an existing catalog directory and
 		adds the new data item to that data directory.
 	*/
+	dRoot.Lock()
+	defer dRoot.Unlock()
 	exists := func(path string) bool {
 		_, err := os.Stat(path)
 		if err == nil {
@@ -125,7 +126,6 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	childNodePath := filepath.Join(dRoot.GetPath(), childNodeName)
 	childDirectory := NewDirectory(childNodePath)
 	dRoot.addSubdir(childDirectory, childNodeName)
-
 	return nil
 }
 
@@ -256,7 +256,6 @@ func (subDir *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err
 	/*
 	 Adds a new primary storage file for the provided year to this directory
 	 Returns an error if this directory does not already contain a primary storage file
-
 	 !!! NOTE !!! This should be called from the subdirectory that "owns" the file
 	*/
 	subDir.RLock()
@@ -279,6 +278,9 @@ func (subDir *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err
 	newFileInfo.Path = path.Join(subDir.pathToItemName, strconv.Itoa(int(newYear))+".bin")
 	subDir.RUnlock()
 	if err = newTimeBucketInfoFromTemplate(newFileInfo); err != nil {
+		if _, ok := err.(FileAlreadyExists); ok {
+			return newFileInfo, nil
+		}
 		return nil, err
 	}
 	// Locate the directory in the catalog
@@ -302,9 +304,17 @@ func (d *Directory) GetName() string {
 }
 
 func (d *Directory) GetPath() string {
-	d.RLock()
-	defer d.RUnlock()
 	return d.pathToItemName
+}
+
+func (d *Directory) GetSubDirectoryAndAddFile(fullFilePath string, year int16) (*io.TimeBucketInfo, error) {
+	d.Lock()
+	defer d.Unlock()
+	dirPath := path.Dir(fullFilePath)
+	if dir, ok := d.directMap[dirPath]; ok {
+		return dir.AddFile(year)
+	}
+	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
 }
 
 func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Directory, err error) {
@@ -314,9 +324,8 @@ func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Director
 	defer d.RUnlock()
 	if dir, ok := d.directMap[dirPath]; ok {
 		return dir, nil
-	} else {
-		return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
 	}
+	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
 }
 
 func (d *Directory) GetListOfSubDirs() (subDirList []*Directory) {
@@ -502,8 +511,6 @@ func (d *Directory) pathToKey(fullPath string) (key string) {
 }
 func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	subDir.itemName = subDirItemName
-	d.Lock()
-	defer d.Unlock()
 	d.catList = nil // Reset the category list
 	if d.subDirs == nil {
 		d.subDirs = make(DMap)
@@ -539,46 +546,6 @@ func (d *Directory) recurse(elem interface{}, levelFunc LevelFunc) {
 			pd.recurse(elem, levelFunc)
 		}
 	}
-}
-
-func (d *Directory) cloneDir(fileInfoTemplate *io.TimeBucketInfo, destItemName string) (err error) {
-	/*
-		Takes a fileinfo pointer, and creates a clone of the directory, with a new dir name
-		and adds it to the catalog. All of the remaining attributes of the fileinfo are
-		retained, except for the relative top level name.
-	*/
-	// make directory
-	destDirPath := path.Join(d.pathToItemName, destItemName)
-	srcKey := d.pathToKey(fileInfoTemplate.Path)
-	srcDirPath := path.Join(d.pathToItemName, strings.Split(srcKey, "/")[0])
-
-	// check validity of clone
-	destParts := strings.Split(destDirPath, "/")
-	srcParts := strings.Split(srcDirPath, "/")
-	if len(destParts) != len(srcParts) {
-		errStr := fmt.Sprintf("Invalid clone operation. Depth source the target - Source: %v Target: %v", srcDirPath, destDirPath)
-		return errors.New(errStr)
-	}
-
-	err = io.CopyDir(srcDirPath, destDirPath)
-	if err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-	}
-
-	// Create the new file
-	relFilePath, err := filepath.Rel(srcDirPath, fileInfoTemplate.Path)
-	if err != nil {
-		return err
-	}
-	relFilePathDir := filepath.Dir(filepath.Join(destDirPath, relFilePath))
-	newFileInfo := fileInfoTemplate.GetDeepCopy()
-	newFileInfo.Path = path.Join(relFilePathDir, strconv.Itoa(int(newFileInfo.Year))+".bin")
-	if err = newTimeBucketInfoFromTemplate(newFileInfo); err != nil {
-		return err
-	}
-	newDir := NewDirectory(destDirPath)
-	d.addSubdir(newDir, destItemName)
-	return nil
 }
 
 func (d *Directory) load(rootPath string) error {

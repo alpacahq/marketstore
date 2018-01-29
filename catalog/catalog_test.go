@@ -7,11 +7,12 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"os"
+	"path/filepath"
+
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/test"
-	"os"
-	"path/filepath"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -126,33 +127,6 @@ func (s *TestSuite) TestAddFile(c *C) {
 	_, err = subDir.getLatestYearFile()
 	c.Assert(err == nil, Equals, true)
 	// fmt.Println("New Latest Year:", latestFile.Year, latestFile.Path)
-}
-
-func (s *TestSuite) TestCloneDir(c *C) {
-	d := NewDirectory(s.Rootdir)
-	tf := utils.TimeframeFromString("1Min")
-	fp := path.Join(s.Rootdir, "EURUSD", "1Min", "OHLC")
-	dsv := io.NewDataShapeVector(
-		[]string{"Open", "High", "Low", "Close"},
-		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32},
-	)
-	tbinfo := io.NewTimeBucketInfo(*tf, fp, "Fake fileinfo", int16(2016), dsv, io.FIXED)
-	// Add a new item "GBPUSD" to the top level of the directory
-	err := d.cloneDir(tbinfo, "GBPUSD")
-	c.Assert(err, Equals, nil)
-	catList := d.GatherCategoriesAndItems()
-	// Construct the known new path to this subdirectory so that we can verify it is in the catalog
-
-	oldFilePath := path.Join(s.Rootdir, "EURUSD", "1Min", "OHLC", "2000.bin")
-	_, err = d.GetOwningSubDirectory(oldFilePath)
-	c.Assert(err == nil, Equals, true)
-
-	newFilePath := path.Join(s.Rootdir, "GBPUSD", "1Min", "OHLC", "2000.bin")
-	_, err = d.GetOwningSubDirectory(newFilePath)
-	c.Assert(err == nil, Equals, true)
-
-	_, ok := catList["Symbol"]["GBPUSD"]
-	c.Assert(ok, Equals, true)
 }
 
 func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
