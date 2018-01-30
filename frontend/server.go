@@ -26,7 +26,7 @@ type RpcServer struct {
 }
 
 func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("marketstore-version", utils.Version)
+	w.Header().Set("marketstore-version", utils.GitHash)
 	s.Server.ServeHTTP(w, r)
 }
 

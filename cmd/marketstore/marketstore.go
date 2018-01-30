@@ -23,7 +23,7 @@ import (
 func init() {
 	utils.InstanceConfig.StartTime = time.Now()
 	configFlag := flag.String("config", "mkts_config.yaml", "MarketStore YAML configuration file")
-	printVersion := flag.Bool("version", false, "print version string and exits")
+	printVersion := flag.Bool("version", false, "MarketStore version information")
 
 	flag.Parse()
 
@@ -65,7 +65,9 @@ func init() {
 	Log(INFO, "Initializing MarketStore...")
 
 	if *printVersion {
-		fmt.Printf("marketstore version %s (%s)\n", utils.Version, utils.Sha1hash)
+		fmt.Printf("Version Tag: %v\n", utils.Tag)
+		fmt.Printf("Git Commit Hash: %v\n", utils.GitHash)
+		fmt.Printf("UTC Build Time: %v\n", utils.BuildStamp)
 		os.Exit(0)
 	}
 }

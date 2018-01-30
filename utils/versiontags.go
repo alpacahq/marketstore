@@ -2,5 +2,8 @@
 
 package utils
 
-var Sha1hash string
-var Version string = "dev"
+var (
+	Tag        string = "dev"
+	GitHash    string
+	BuildStamp string
+)

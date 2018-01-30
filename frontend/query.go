@@ -59,7 +59,7 @@ type MultiQueryResponse struct {
 }
 
 func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *MultiQueryResponse) (err error) {
-	response.Version = utils.Version
+	response.Version = utils.GitHash
 	response.Timezone = utils.InstanceConfig.Timezone.String()
 	for _, req := range reqs.Requests {
 		switch req.IsSQLStatement {

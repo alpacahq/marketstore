@@ -52,7 +52,7 @@ func appendErrorResponse(err error, response *MultiWriteResponse) {
 	response.Responses = append(response.Responses,
 		WriteResponse{
 			err.Error(),
-			utils.Version,
+			utils.GitHash,
 		},
 	)
 }

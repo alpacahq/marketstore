@@ -2,7 +2,7 @@
 
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
 all:
-	go install -ldflags "-s -X utils.Version=$(shell date -u +%Y-%m-%d-%H-%M-%S)" ./cmd/marketstore ./cmd/tools/...
+	go install -ldflags "-s -X utils.Tag=$(BUILD_TAG) -X utils.BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X utils.GitHash=$(shell git rev-parse HEAD)" ./cmd/marketstore ./cmd/tools/...
 
 install: all
 
@@ -26,6 +26,7 @@ unittest:
 	go vet ./...
 	go test ./...
 
-unittest-with-docker:
-	docker build -t gobuild .
-	docker run -v $(CURDIR):/go/src/github.com/alpacahq/marketstore gobuild make unittest
+push:
+	docker build -t alpacamarkets/marketstore:$(DOCKER_TAG)
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
+	docker push alpacamarkets/marketstore:$(DOCKER_TAG)
