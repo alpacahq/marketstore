@@ -1,24 +1,45 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
   build:
     docker:
-      # specify the version
-      - image: circleci/golang:1.9
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
+      - image: circleci/golang:1.9.3
 
     working_directory: /go/src/github.com/alpacahq/marketstore
     steps:
       - checkout
-
-      # specify any bash command here prefixed with `run: `
       - run: go get -u github.com/golang/dep/...
-      - run: make configure
-      - run: make all plugins
-      - run: make unittest
+      - run: make configure all plugins
+
+  test:
+    docker:
+      - image: circleci/golang:1.9.3
+
+    working_directory: /go/src/github.com/alpacahq/marketstore
+    steps:
+      - checkout
+      - run: go get -u github.com/golang/dep/...
+      - run: make configure unittest
+
+  deploy:
+    docker:
+      - image: circleci/golang:1.9.3
+
+    working_directory: /go/src/github.com/alpacahq/marketstore
+    steps:
+      - checkout
+      - run: go get -u github.com/golang/dep/...
+      - run: BUILD_TAG=$(CIRCLE_TAG) DOCKER_TAG=$(CIRCLE_BRANCH) make configure push
+
+workflows:
+  version: 2
+  build_test_deploy:
+    jobs:
+      - build
+      - test
+      - deploy:
+          requires:
+            - build
+            - test
+          filters:
+            branches:
+              only: master

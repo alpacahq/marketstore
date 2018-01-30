@@ -15,6 +15,7 @@ var Queryable uint32 // treated as bool
 type HeartbeatMessage struct {
 	Status  string `json:"status"`
 	Version string `json:"version"`
+	GitHash string `json:"git_hash"`
 	Uptime  string `json:"uptime"`
 }
 
@@ -35,7 +36,8 @@ func handler(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(rw).Encode(HeartbeatMessage{
 			Status:  "queryable",
-			Version: utils.Version,
+			Version: utils.Tag,
+			GitHash: utils.GitHash,
 			Uptime:  uptime,
 		})
 		if err != nil {
@@ -46,7 +48,8 @@ func handler(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusServiceUnavailable)
 		err := json.NewEncoder(rw).Encode(HeartbeatMessage{
 			Status:  "not queryable",
-			Version: utils.Version,
+			Version: utils.Tag,
+			GitHash: utils.GitHash,
 			Uptime:  uptime,
 		})
 		if err != nil {
