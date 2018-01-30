@@ -2,7 +2,7 @@
 
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
 all:
-	go install -ldflags "-s -X utils.Tag=$(BUILD_TAG) -X utils.BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X utils.GitHash=$(shell git rev-parse HEAD)" ./cmd/marketstore ./cmd/tools/...
+	go install -ldflags "-s -X utils.Tag=$(DOCKER_TAG) -X utils.BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X utils.GitHash=$(shell git rev-parse HEAD)" ./cmd/marketstore ./cmd/tools/...
 
 install: all
 

@@ -19,7 +19,7 @@ jobs:
       - checkout
       - run: go get -u github.com/golang/dep/...
       - run: make configure unittest
-
+  
   deploy:
     docker:
       - image: circleci/golang:1.9.3
@@ -28,7 +28,7 @@ jobs:
     steps:
       - checkout
       - run: go get -u github.com/golang/dep/...
-      - run: BUILD_TAG=$(CIRCLE_TAG) DOCKER_TAG=$(CIRCLE_BRANCH) make configure push
+      - run: DOCKER_TAG=$CIRCLE_TAG make configure push
 
 workflows:
   version: 2
@@ -41,5 +41,7 @@ workflows:
             - build
             - test
           filters:
+            tags:
+              only: /v[0-9]+(.[0-9]+)*/
             branches:
-              only: master
+              ignore: /.*/
