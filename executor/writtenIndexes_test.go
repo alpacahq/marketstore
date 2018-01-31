@@ -14,6 +14,7 @@ var _ = Suite(&WrittenIndexesTests{})
 type FakeTrigger struct {
 	calledWith [][]interface{}
 	toPanic    bool
+	fireC      chan struct{}
 }
 
 func (t *FakeTrigger) Fire(keyPath string, indexes []int64) {
@@ -21,6 +22,7 @@ func (t *FakeTrigger) Fire(keyPath string, indexes []int64) {
 		panic("panic test")
 	}
 	t.calledWith = append(t.calledWith, []interface{}{keyPath, indexes})
+	t.fireC <- struct{}{}
 }
 
 func (s *WrittenIndexesTests) SetUpSuite(c *C) {
@@ -39,20 +41,22 @@ func (s *WrittenIndexesTests) SetTrigger(t trigger.Trigger, on string) {
 }
 
 func (s *WrittenIndexesTests) TestWrittenIndexes(c *C) {
-	t := &FakeTrigger{}
+	t := &FakeTrigger{fireC: make(chan struct{})}
 	s.SetTrigger(t, "AAPL/1Min/OHLCV")
 
-	wi := NewWrittenIndexes()
 	buffer := io.SwapSliceData([]int64{0, 5}, byte(0)).([]byte)
-	wi.Add("AAPL/1Min/OHLCV/2017.bin", buffer)
-	wi.Add("TSLA/1Min/OHLCV/2017.bin", buffer)
-	wi.Dispatch()
+	addWrittenIndex("AAPL/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).Index())
+	addWrittenIndex("TSLA/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).Index())
+	dispatchWrittenIndexes()
 
+	<-t.fireC
 	c.Check(t.calledWith[0][0].(string), Equals, "AAPL/1Min/OHLCV/2017.bin")
 	c.Check(len(t.calledWith), Equals, 1)
 
 	t.calledWith = [][]interface{}{}
 	t.toPanic = true
-	wi.Dispatch()
+	dispatchWrittenIndexes()
 	c.Check(len(t.calledWith), Equals, 0)
+
+	FinishAndWait()
 }

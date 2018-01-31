@@ -286,23 +286,18 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	/*
 		Write the buffers to primary files (should happen after WAL writes)
 	*/
-	writtenIndexes := NewWrittenIndexes()
 	for keyPath, writes := range writesPerFile {
 		recordType := fileRecordTypes[keyPath]
 		if err := wf.writePrimary(keyPath, writes, recordType); err != nil {
 			return err
 		}
 		for i, buffer := range writes {
-			writtenIndexes.Add(keyPath, buffer)
+			addWrittenIndex(keyPath, buffer.Index())
 			writes[i] = nil // for GC
 		}
 		writesPerFile[keyPath] = nil // for GC
 	}
-
-	// The dispatch task does not belong to WAL work, so
-	// has to be in a aseprate goroutine.
-	go writtenIndexes.Dispatch()
-
+	dispatchWrittenIndexes()
 	return nil
 }
 
