@@ -27,6 +27,7 @@ jobs:
     working_directory: /go/src/github.com/alpacahq/marketstore
     steps:
       - checkout
+      - setup_remote_docker
       - run: go get -u github.com/golang/dep/...
       - run: DOCKER_TAG=$CIRCLE_TAG make configure push
 
