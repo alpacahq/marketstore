@@ -8,12 +8,6 @@
   revision = "b31f603f5e1e047fdb38584e1a922dcc5c4de5c8"
 
 [[projects]]
-  name = "github.com/AlpacaDB/slait"
-  packages = ["cache","commitlog","rest","rest/client","socket","utils","utils/log"]
-  revision = "9a2d84e8319e451f0145d3d6c10467cd6821540f"
-  version = "v2.2.0"
-
-[[projects]]
   name = "github.com/BurntSushi/toml"
   packages = ["."]
   revision = "b26d9c308763d68093482582cea63d69be07a0f0"
@@ -24,6 +18,12 @@
   name = "github.com/Joker/jade"
   packages = ["."]
   revision = "35b3f5bdbcc920cd31f4870536dbc63be8530541"
+
+[[projects]]
+  name = "github.com/alpacahq/slait"
+  packages = ["cache","commitlog","rest","rest/client","socket","utils","utils/log"]
+  revision = "a005b9a8641d951c7cac4f94e5be8e6773d49ffa"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/antlr/antlr4"
@@ -214,7 +214,8 @@
 [[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  revision = "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -229,12 +230,6 @@
   version = "v20160617"
 
 [[projects]]
-  name = "github.com/vmihailenco/msgpack"
-  packages = ["codes"]
-  revision = "a2885efdac59c3f72964b70a6b1d9f6053acea2a"
-  version = "v3.2.5"
-
-[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["acme","acme/autocert"]
@@ -244,13 +239,13 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","html","html/atom"]
-  revision = "309822c5b9b9f80db67f016069a12628d94fad34"
+  revision = "d19327ad09a0acfc17c9de97813e81b669bb1c4a"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "3dbebcf8efb6a5011a60c2b4591c1022a759af8a"
+  revision = "8f27ce8a604014414f8dfffc25cbcde83a3f2216"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -266,8 +261,9 @@
 
 [[projects]]
   name = "gopkg.in/vmihailenco/msgpack.v2"
-  packages = ["."]
-  revision = "de4b4857c10538d591bee30e8114176008f8b9d0"
+  packages = [".","codes"]
+  revision = "f4f8982de4ef0de18be76456617cc3f5d8d8141e"
+  version = "v2.9.1"
 
 [[projects]]
   branch = "v2"
@@ -278,6 +274,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d469b1773ecd6124ee15ac1644c44788ae9b7a37815a2e58fa2ba40d3297a0d0"
+  inputs-digest = "85efa398efb9e7a4edb1b3f92cd0f81f57b846332c11840489908ba15838868d"
   solver-name = "gps-cdcl"
   solver-version = 1
