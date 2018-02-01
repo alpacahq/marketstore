@@ -41,12 +41,12 @@ func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err e
 
 	if len(existingFilePath) == 0 {
 		if err = wf.createFile(rootDir); err != nil {
-			Log(FATAL, io.GetCallerFileContext(0)+": Can not create new WALFile")
+			Log(FATAL, "%v: Can not create new WALFile - Error: %v", io.GetCallerFileContext(0), err)
 		}
 		wf.WriteStatus(OPEN, NOTREPLAYED)
 	} else {
 		if err = wf.takeOverFile(rootDir, existingFilePath); err != nil {
-			Log(FATAL, io.GetCallerFileContext(0)+": Can not take over existing WALFile")
+			Log(FATAL, "%v: Can not take over existing WALFile - Error: %v", io.GetCallerFileContext(0), err)
 		}
 		// We call this to take over the file by writing our PID to it
 		fileStatus, replayState, _ := wf.readStatus()

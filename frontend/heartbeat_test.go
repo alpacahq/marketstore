@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 
+	"github.com/alpacahq/marketstore/utils"
 	. "gopkg.in/check.v1"
 )
 
@@ -15,6 +16,7 @@ type HeartbeatTestSuite struct{}
 var _ = Suite(&HeartbeatTestSuite{})
 
 func (s *HeartbeatTestSuite) TestHandler(c *C) {
+	utils.Tag = "dev"
 	var TestValues = map[string]struct {
 		Recorder        *httptest.ResponseRecorder
 		Version         string

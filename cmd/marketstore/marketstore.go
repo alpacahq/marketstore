@@ -27,6 +27,13 @@ func init() {
 
 	flag.Parse()
 
+	if *printVersion {
+		fmt.Printf("Version Tag: %v\n", utils.Tag)
+		fmt.Printf("Git Commit Hash: %v\n", utils.GitHash)
+		fmt.Printf("UTC Build Time: %v\n", utils.BuildStamp)
+		os.Exit(0)
+	}
+
 	// set logging to output to standard error
 	flag.Lookup("logtostderr").Value.Set("true")
 
@@ -63,28 +70,9 @@ func init() {
 	signal.Notify(sigChannel, syscall.SIGINT)
 
 	Log(INFO, "Initializing MarketStore...")
-
-	if *printVersion {
-		fmt.Printf("Version Tag: %v\n", utils.Tag)
-		fmt.Printf("Git Commit Hash: %v\n", utils.GitHash)
-		fmt.Printf("UTC Build Time: %v\n", utils.BuildStamp)
-		os.Exit(0)
-	}
 }
 
 func main() {
-	Run()
-}
-
-func shutdown() {
-	executor.ThisInstance.ShutdownPending = true
-	executor.ThisInstance.WALWg.Wait()
-	executor.FinishAndWait()
-	Log(INFO, "Exiting...")
-	os.Exit(0)
-}
-
-func Run() {
 	executor.NewInstanceSetup(utils.InstanceConfig.RootDirectory, true, true, true)
 	InitializeTriggers()
 	RunBgWorkers()
@@ -105,4 +93,11 @@ func Run() {
 	if err != nil {
 		Log(FATAL, "Failed to start server - Error: %s", err)
 	}
+}
+
+func shutdown() {
+	executor.ThisInstance.ShutdownPending = true
+	executor.ThisInstance.WALWg.Wait()
+	Log(INFO, "Exiting...")
+	os.Exit(0)
 }

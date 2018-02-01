@@ -3,7 +3,7 @@
 package utils
 
 var (
-	Tag        string = "dev"
+	Tag        string
 	GitHash    string
 	BuildStamp string
 )
