@@ -261,9 +261,8 @@
 
 [[projects]]
   name = "gopkg.in/vmihailenco/msgpack.v2"
-  packages = [".","codes"]
-  revision = "f4f8982de4ef0de18be76456617cc3f5d8d8141e"
-  version = "v2.9.1"
+  packages = ["."]
+  revision = "de4b4857c10538d591bee30e8114176008f8b9d0"
 
 [[projects]]
   branch = "v2"
