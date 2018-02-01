@@ -135,7 +135,7 @@ Elapsed query time: 4.707 ms
 ## Configuration
 
 In order to run MarketStore, a configuration .yaml file is needed. A default file is included in the codebase
-above and is called mkts_config.yaml. This path to this file is passed in to the launcher binary with the
+above and is called mkts.yml. This path to this file is passed in to the launcher binary with the
 '-config' flag, or by default it finds a file with that name in the directory it is running from. This file
 should look as follows:
 

@@ -2,8 +2,8 @@ package catalog
 
 import (
 	"fmt"
+
 	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
 )
 
 type SubdirectoryDoesNotContainFiles string
@@ -50,6 +50,5 @@ func (msg NotFoundError) Error() string {
 
 func errReport(base string, msg string) string {
 	base = io.GetCallerFileContext(2) + ":" + base
-	Log(ERROR, base, msg)
 	return fmt.Sprintf(base, msg)
 }

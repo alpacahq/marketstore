@@ -39,7 +39,7 @@ func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
 }
 
 func RunBgWorkers() {
-	glog.Info("InitialieBgWorkers")
+	glog.Info("InitializeBgWorkers")
 	config := utils.InstanceConfig
 	for _, bgWorkerSetting := range config.BgWorkers {
 		glog.Infof("bgWorkerSetting = %v", bgWorkerSetting)
