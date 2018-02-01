@@ -79,6 +79,7 @@ func main() {
 func shutdown() {
 	executor.ThisInstance.ShutdownPending = true
 	executor.ThisInstance.WALWg.Wait()
+	executor.FinishAndWait()
 	Log(INFO, "Exiting...")
 	os.Exit(0)
 }
