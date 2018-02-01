@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AlpacaDB/slait/cache"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
+	"github.com/alpacahq/slait/cache"
 
 	. "gopkg.in/check.v1"
 )

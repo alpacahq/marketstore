@@ -10,12 +10,12 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/AlpacaDB/slait/cache"
-	"github.com/AlpacaDB/slait/rest/client"
-	"github.com/AlpacaDB/slait/socket"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/slait/cache"
+	"github.com/alpacahq/slait/rest/client"
+	"github.com/alpacahq/slait/socket"
 	"github.com/gorilla/websocket"
 )
 
