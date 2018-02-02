@@ -3,6 +3,7 @@ package executor
 import (
 	"runtime/debug"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -13,6 +14,7 @@ var once sync.Once
 var c chan writtenIndexes
 var done chan struct{}
 var m map[string][]int64
+var triggerWg sync.WaitGroup
 
 type writtenIndexes struct {
 	key     string
@@ -49,7 +51,8 @@ func run() {
 	for wi := range c {
 		for _, tmatcher := range ThisInstance.TriggerMatchers {
 			if tmatcher.Match(wi.key) {
-				fire(tmatcher.Trigger, wi.key, wi.indexes)
+				triggerWg.Add(1)
+				go fire(tmatcher.Trigger, wi.key, wi.indexes)
 			}
 		}
 	}
@@ -57,6 +60,7 @@ func run() {
 
 func fire(trig trigger.Trigger, key string, indexes []int64) {
 	defer func() {
+		triggerWg.Done()
 		if r := recover(); r != nil {
 			glog.Errorf("recovering from %v\n%s", r, string(debug.Stack()))
 		}
@@ -67,6 +71,13 @@ func fire(trig trigger.Trigger, key string, indexes []int64) {
 // FinishAndWait closes the writtenIndexes channel, and waits
 // for the remaining triggers to fire, returning
 func FinishAndWait() {
-	close(c)
-	<-done
+	triggerWg.Wait()
+	for {
+		if len(ThisInstance.TXNPipe.writeChannel) == 0 && len(c) == 0 {
+			close(c)
+			<-done
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
 }

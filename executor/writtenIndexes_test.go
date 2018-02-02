@@ -27,6 +27,7 @@ func (t *FakeTrigger) Fire(keyPath string, indexes []int64) {
 
 func (s *WrittenIndexesTests) SetUpSuite(c *C) {
 	ThisInstance = &InstanceMetadata{}
+	ThisInstance.TXNPipe = NewTransactionPipe()
 }
 
 func (s *WrittenIndexesTests) TearDownSuite(c *C) {
