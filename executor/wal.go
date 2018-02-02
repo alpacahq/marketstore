@@ -207,6 +207,8 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/
 
+	defer dispatchWrittenIndexes()
+
 	WALBypass := ThisInstance.WALBypass
 	//WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
@@ -297,7 +299,6 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		}
 		writesPerFile[keyPath] = nil // for GC
 	}
-	dispatchWrittenIndexes()
 	return nil
 }
 
