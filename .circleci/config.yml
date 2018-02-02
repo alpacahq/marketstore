@@ -35,8 +35,14 @@ workflows:
   version: 2
   build_test_deploy:
     jobs:
-      - build
-      - test
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          filters:
+            tags:
+              only: /.*/
       - deploy:
           requires:
             - build
