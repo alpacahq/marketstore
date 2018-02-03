@@ -38,7 +38,7 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (csm io.ColumnSer
 	if err != nil {
 		return nil, err
 	}
-	reqURL := cl.BaseURL + "rpc"
+	reqURL := cl.BaseURL + "/rpc"
 	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(message))
 	if err != nil {
 		return nil, err
