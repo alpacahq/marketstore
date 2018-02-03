@@ -25,7 +25,7 @@ characteristics.
 ## Install
 
 MarketStore is in pure Go (with some CGO code), so you can build it from
-source pretty easily.  If you want to start right away, use our docker image.
+source pretty easily.  If you want to start right away, use our [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/).
 
 ## Build From Source
 
