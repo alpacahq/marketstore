@@ -347,4 +347,5 @@ func (s *TestSuite) TestTimeBucketInfo(c *C) {
 
 	dsv2 := tbi2.GetDataShapes()
 	c.Check(dsv2[0].String(), Equals, dsv[0].String())
+	c.Check(dsv2[0].Equal(dsv[0]), Equals, true)
 }
