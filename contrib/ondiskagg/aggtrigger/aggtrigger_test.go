@@ -115,7 +115,8 @@ func (t *TestSuite) TestFire(c *C) {
 	tbk := io.NewTimeBucketKey("TEST/1Min/OHLC")
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*tbk, cs)
-	executor.WriteCSM(csm, false)
+	err = executor.WriteCSM(csm, false)
+	c.Assert(err, IsNil)
 
 	indexes := make([]int64, 0)
 	intervalsPerDay := int64(60 * 24)

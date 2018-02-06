@@ -230,6 +230,12 @@
   version = "v20160617"
 
 [[projects]]
+  name = "github.com/vmihailenco/msgpack"
+  packages = ["codes"]
+  revision = "a2885efdac59c3f72964b70a6b1d9f6053acea2a"
+  version = "v3.2.5"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["acme","acme/autocert"]
@@ -273,6 +279,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "85efa398efb9e7a4edb1b3f92cd0f81f57b846332c11840489908ba15838868d"
+  inputs-digest = "2616b677f0e72d43935eaa4b756a2c8bb69ae61b526e1271de047fcfa5d1dd27"
   solver-name = "gps-cdcl"
   solver-version = 1
