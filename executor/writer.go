@@ -47,6 +47,11 @@ func (w *Writer) AddNewYearFile(year int16) (err error) {
 	return nil
 }
 
+// WriteRecords creates a WriteCommand from the supplied timestamp and data buffer,
+// and sends it over the write channel to be flushed to disk in the WAL sync subroutine.
+// The caller should assume that by calling WriteRecords directly, the data will be written
+// to the file regardless if it satisfies the on-disk data shape, possible corrupting
+// the data files. It is recommended to call WriteCSM() for any writes as it is safer.
 func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
@@ -83,9 +88,8 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 				panic(err)
 			}
 		}
-		intervalsPerDay := w.tbi.GetIntervals()
-		offset := TimeToOffset(t, intervalsPerDay, w.tbi.GetRecordLength())
-		index := TimeToIndex(t, intervalsPerDay)
+		index := TimeToIndex(t, w.tbi.GetTimeframe())
+		offset := IndexToOffset(index, w.tbi.GetRecordLength())
 
 		if i == 0 {
 			prevIndex = index
@@ -100,7 +104,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			/*
 				This is the interior of a multi-row write buffer
 			*/
-			outBuf = formatRecord(outBuf, record, t, index, intervalsPerDay)
+			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals())
 			cc.Data = outBuf
 		}
 		if index != prevIndex {
@@ -110,7 +114,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			w.tgc.writeChannel <- cc
 			// Setup next command
 			prevIndex = index
-			outBuf = formatRecord([]byte{}, record, t, index, intervalsPerDay)
+			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals())
 			cc = &WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
@@ -210,7 +214,10 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer) (err error
 }
 
 // WriteCSM writs ColumnSeriesMap csm to each destination file, and flush it to the disk,
-// isVariableLength is set to true if the record content is variable-length type.
+// isVariableLength is set to true if the record content is variable-length type. WriteCSM
+// also verifies the DataShapeVector of the incoming ColumnSeriesMap matches the on-disk
+// DataShapeVector defined by the file header. WriteCSM will create any files if they do
+// not already exist for the given ColumnSeriesMap based on its TimeBucketKey.
 func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	cDir := ThisInstance.CatalogDir
 	for tbk, cs := range csm {
@@ -253,6 +260,16 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		w, err := NewWriter(tbi, ThisInstance.TXNPipe, cDir)
 		if err != nil {
 			return err
+		}
+		for i, ds := range tbi.GetDataShapesWithEpoch() {
+			if csDs := cs.GetDataShapes()[i]; !ds.Equal(csDs) {
+				return fmt.Errorf(
+					"data shape does not match on-disk data shape: %v != %v",
+					cs.GetDataShapes(),
+					tbi.GetDataShapesWithEpoch(),
+				)
+
+			}
 		}
 		rs := cs.ToRowSeries(tbk)
 		rowdata := rs.GetData()

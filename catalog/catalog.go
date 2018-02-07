@@ -628,7 +628,7 @@ func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err er
 	if err = io.WriteHeader(fp, newTimeBucketInfo); err != nil {
 		return UnableToWriteHeader(err.Error())
 	}
-	if err = fp.Truncate(io.FileSize(newTimeBucketInfo.GetIntervals(), int(newTimeBucketInfo.Year), int(newTimeBucketInfo.GetRecordLength()))); err != nil {
+	if err = fp.Truncate(io.FileSize(newTimeBucketInfo.GetTimeframe(), int(newTimeBucketInfo.Year), int(newTimeBucketInfo.GetRecordLength()))); err != nil {
 		return UnableToCreateFile(err.Error())
 	}
 

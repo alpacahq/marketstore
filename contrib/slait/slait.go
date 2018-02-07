@@ -158,18 +158,20 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 }
 
 func (ss *SlaitSubscriber) publicationToCSM(p cache.Publication) (*io.ColumnSeriesMap, error) {
-	columns := make(map[string]interface{}, len(ss.shape))
+	columns := make([]interface{}, len(ss.shape))
+	names := make([]string, len(ss.shape))
 	length := p.Entries.Len()
-	for _, shape := range ss.shape {
+	for i, shape := range ss.shape {
+		names[i] = shape.Name
 		switch shape.Type {
 		case io.INT32:
-			columns[shape.Name] = make([]int32, length)
+			columns[i] = make([]int32, length)
 		case io.INT64:
-			columns[shape.Name] = make([]int64, length)
+			columns[i] = make([]int64, length)
 		case io.FLOAT32:
-			columns[shape.Name] = make([]float32, length)
+			columns[i] = make([]float32, length)
 		case io.FLOAT64:
-			columns[shape.Name] = make([]float64, length)
+			columns[i] = make([]float64, length)
 		default:
 			panic(fmt.Sprintf("unsupported shape: %v", shape.Type))
 		}
@@ -191,14 +193,18 @@ func (ss *SlaitSubscriber) publicationToCSM(p cache.Publication) (*io.ColumnSeri
 			} else {
 				v = reflect.ValueOf(data)
 			}
-			value := reflect.ValueOf(columns[name])
-			e := value.Index(i)
-			e.Set(reflect.ValueOf(v.Convert(reflect.TypeOf(e.Interface())).Interface()))
+			for j, colName := range names {
+				if name == colName {
+					value := reflect.ValueOf(columns[j])
+					e := value.Index(i)
+					e.Set(reflect.ValueOf(v.Convert(reflect.TypeOf(e.Interface())).Interface()))
+				}
+			}
 		}
 	}
 	cs := io.NewColumnSeries()
-	for name, data := range columns {
-		cs.AddColumn(name, data)
+	for i, col := range columns {
+		cs.AddColumn(names[i], col)
 	}
 	csm := io.NewColumnSeriesMap()
 	tbk := io.NewTimeBucketKey(fmt.Sprintf("%v/1Min/%v", p.Partition, ss.attributeGroup))
@@ -219,7 +225,7 @@ func (ss *SlaitSubscriber) read() (err error) {
 		}
 		err = ss.handleMessage(msg, msgType)
 		if err != nil {
-			glog.Errorf("Failed to handle websocket message: %v - Error: %v", string(msg), err)
+			glog.Errorf("Failed to handle websocket message - Error: %v", err)
 			return err
 		}
 	}

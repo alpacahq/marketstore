@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	. "github.com/alpacahq/marketstore/catalog"
+	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
 )
@@ -43,9 +44,9 @@ var MinTime = time.Unix(0, 0)
 func NewDateRange() *DateRange {
 	dr := new(DateRange)
 	dr.Start = MinTime
-	dr.StartYear = int16(dr.Start.UTC().Year())
+	dr.StartYear = int16(dr.Start.Year())
 	dr.End = MaxTime
-	dr.EndYear = int16(dr.End.UTC().Year())
+	dr.EndYear = int16(dr.End.Year())
 	return dr
 }
 
@@ -329,8 +330,16 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 				pr.Range.EndYear = qf.File.Year
 			}
 		}
-		pr.Range.Start = time.Date(int(pr.Range.StartYear), time.January, 1, 0, 0, 0, 0, time.UTC)
-		pr.Range.End = time.Date(int(pr.Range.EndYear), time.December, 31, 23, 59, 59, 0, time.UTC)
+		pr.Range.Start = time.Date(
+			int(pr.Range.StartYear),
+			time.January,
+			1, 0, 0, 0, 0,
+			utils.InstanceConfig.Timezone)
+		pr.Range.End = time.Date(
+			int(pr.Range.EndYear),
+			time.December,
+			31, 23, 59, 59, 0,
+			utils.InstanceConfig.Timezone)
 	}
 	pr.TimeQuals = q.TimeQuals
 	return pr, nil

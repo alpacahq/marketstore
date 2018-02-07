@@ -70,12 +70,38 @@ func (t *TestSuite) TestAgg(c *C) {
 	c.Assert(outCs.GetColumn("High").([]float32)[1], Equals, float32(4.1))
 	c.Assert(outCs.GetColumn("Low").([]float32)[0], Equals, float32(0.9))
 	c.Assert(outCs.GetColumn("Close").([]float32)[1], Equals, float32(4.05))
+
+	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")
+
+	epoch = []int64{
+		time.Date(2017, 12, 15, 10, 3, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 15, 10, 4, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 16, 10, 5, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 16, 10, 6, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 16, 10, 10, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+	}
+
+	tbk = io.NewTimeBucketKey("TEST/1D/OHLC")
+	cs = io.NewColumnSeries()
+	cs.AddColumn("Epoch", epoch)
+	cs.AddColumn("Open", open)
+	cs.AddColumn("High", high)
+	cs.AddColumn("Low", low)
+	cs.AddColumn("Close", close)
+
+	outCs = aggregate(cs, tbk)
+	c.Assert(outCs.Len(), Equals, 2)
+	d1 := time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
+	d2 := time.Date(2017, 12, 16, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
+	c.Assert(outCs.GetEpoch()[0], Equals, d1.Unix())
+	c.Assert(outCs.GetEpoch()[1], Equals, d2.Unix())
 }
 
 func (t *TestSuite) TestFire(c *C) {
 	// We assume WriteCSM here is synchronous by not running
 	// background writer
-	utils.InstanceConfig.Timezone = time.UTC
+	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")
+
 	rootDir := filepath.Join(c.MkDir(), "mktsdb")
 	os.MkdirAll(rootDir, 0777)
 	executor.NewInstanceSetup(
@@ -83,10 +109,10 @@ func (t *TestSuite) TestFire(c *C) {
 		true, true, false, false)
 	ts := utils.TriggerSetting{
 		Module: "ondiskagg.so",
-		On:     "*/1Min/OHLCV",
+		On:     "*/1Min/OHLC",
 		Config: map[string]interface{}{
 			"filter":       "nasdaq",
-			"destinations": []string{"5Min"},
+			"destinations": []string{"5Min", "1D"},
 		},
 	}
 	trig, err := NewTrigger(ts.Config)
@@ -95,16 +121,21 @@ func (t *TestSuite) TestFire(c *C) {
 	}
 
 	epoch := []int64{
-		time.Date(2017, 12, 15, 10, 3, 0, 0, time.UTC).Unix(),
-		time.Date(2017, 12, 15, 10, 4, 0, 0, time.UTC).Unix(),
-		time.Date(2017, 12, 15, 10, 5, 0, 0, time.UTC).Unix(),
-		time.Date(2017, 12, 15, 10, 6, 0, 0, time.UTC).Unix(),
-		time.Date(2017, 12, 15, 10, 10, 0, 0, time.UTC).Unix(),
+		time.Date(2017, 12, 14, 10, 3, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 14, 10, 4, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 14, 10, 5, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 14, 10, 6, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 14, 10, 10, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 15, 10, 3, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 15, 10, 4, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 15, 10, 5, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 15, 10, 6, 0, 0, utils.InstanceConfig.Timezone).Unix(),
+		time.Date(2017, 12, 15, 10, 10, 0, 0, utils.InstanceConfig.Timezone).Unix(),
 	}
-	open := []float32{1., 2., 3., 4., 5.}
-	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1}
-	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9}
-	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05}
+	open := []float32{1., 2., 3., 4., 5., 1., 2., 3., 4., 5.}
+	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1, 1.1, 2.1, 3.1, 4.1, 5.1}
+	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9, 0.9, 1.9, 2.9, 3.9, 4.9}
+	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05, 1.05, 2.05, 3.05, 4.05, 5.05}
 
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
@@ -115,16 +146,19 @@ func (t *TestSuite) TestFire(c *C) {
 	tbk := io.NewTimeBucketKey("TEST/1Min/OHLC")
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*tbk, cs)
-	executor.WriteCSM(csm, false)
+	err = executor.WriteCSM(csm, false)
+	c.Assert(err, IsNil)
 
 	indexes := make([]int64, 0)
-	intervalsPerDay := int64(60 * 24)
+
 	for _, val := range epoch {
-		index := io.TimeToIndex(time.Unix(val, 0).UTC(), intervalsPerDay)
+		index := io.TimeToIndex(time.Unix(val, 0).In(
+			utils.InstanceConfig.Timezone), time.Minute)
 		indexes = append(indexes, index)
 	}
 	trig.Fire("TEST/1Min/OHLC/2017.bin", indexes)
 
+	// verify 5Min agg
 	catalogDir := executor.ThisInstance.CatalogDir
 	q := planner.NewQuery(catalogDir)
 	tbk5 := io.NewTimeBucketKey("TEST/5Min/OHLC")
@@ -138,5 +172,24 @@ func (t *TestSuite) TestFire(c *C) {
 	c.Check(err, IsNil)
 	cs5 := csm5[*tbk5]
 	c.Check(cs5, NotNil)
-	c.Check(cs5.Len(), Equals, 3)
+	c.Check(cs5.Len(), Equals, 6)
+
+	// verify 1D agg
+	tbk1D := io.NewTimeBucketKey("TEST/1D/OHLC")
+	q = planner.NewQuery(catalogDir)
+	q.AddTargetKey(tbk1D)
+	q.SetRange(planner.MinTime, planner.MaxTime)
+	parsed, err = q.Parse()
+	c.Check(err, IsNil)
+	scanner, err = executor.NewReader(parsed)
+	c.Check(err, IsNil)
+	csm1D, _, err := scanner.Read()
+	c.Check(err, IsNil)
+	cs1D := csm1D[*tbk1D]
+	c.Check(cs1D, NotNil)
+	c.Check(cs1D.Len(), Equals, 2)
+	t1 := time.Unix(cs1D.GetEpoch()[0], 0).In(utils.InstanceConfig.Timezone)
+	c.Assert(t1.Equal(time.Date(2017, 12, 14, 0, 0, 0, 0, utils.InstanceConfig.Timezone)), Equals, true)
+	t2 := time.Unix(cs1D.GetEpoch()[1], 0).In(utils.InstanceConfig.Timezone)
+	c.Assert(t2.Equal(time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)), Equals, true)
 }
