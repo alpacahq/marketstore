@@ -70,6 +70,7 @@ func AlignedSize(unalignedSize int) (alignedSize int) {
 func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16, dsv []DataShape, recordType EnumRecordType) (f *TimeBucketInfo) {
 	elementTypes, elementNames := CreateShapesForTimeBucketInfo(dsv)
 	f = new(TimeBucketInfo)
+	f.version = FileinfoVersion
 	f.Path = filepath.Join(path, strconv.Itoa(int(year))+".bin")
 	f.IsRead = true
 	f.timeframe = tf.Duration
