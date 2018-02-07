@@ -17,15 +17,21 @@ import (
 )
 
 const Headersize = 37024
-const FileinfoVersion = int64(1.0)
+const FileinfoVersion = int64(2.0)
 
 func daysInYear(year int) int {
 	testYear := time.Date(year, time.December, 31, 0, 0, 0, 0, time.Local)
 	return testYear.YearDay()
 }
 
-func FileSize(intervalsPerDay int64, year int, recordSize int) int64 {
-	return Headersize + intervalsPerDay*int64(daysInYear(year)*recordSize)
+func nanosecondsInYear(year int) int64 {
+	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+	end := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local)
+	return int64(end.Sub(start).Nanoseconds())
+}
+
+func FileSize(tf time.Duration, year int, recordSize int) int64 {
+	return Headersize + (nanosecondsInYear(year)/int64(tf.Nanoseconds()))*int64(recordSize)
 }
 
 type TimeBucketInfo struct {
@@ -36,7 +42,7 @@ type TimeBucketInfo struct {
 
 	version     int64
 	description string
-	intervals   int64 // Number of time intervals per day
+	timeframe   time.Duration
 	nElements   int32
 	recordType  EnumRecordType
 	/*
@@ -64,9 +70,10 @@ func AlignedSize(unalignedSize int) (alignedSize int) {
 func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16, dsv []DataShape, recordType EnumRecordType) (f *TimeBucketInfo) {
 	elementTypes, elementNames := CreateShapesForTimeBucketInfo(dsv)
 	f = new(TimeBucketInfo)
+	f.version = FileinfoVersion
 	f.Path = filepath.Join(path, strconv.Itoa(int(year))+".bin")
 	f.IsRead = true
-	f.intervals = int64(tf.PeriodsPerDay())
+	f.timeframe = tf.Duration
 	f.description = description
 	f.Year = year
 	f.nElements = int32(len(elementTypes))
@@ -129,7 +136,7 @@ func (f *TimeBucketInfo) GetDeepCopy() *TimeBucketInfo {
 		IsRead:               f.IsRead,
 		version:              f.version,
 		description:          f.description,
-		intervals:            f.intervals,
+		timeframe:            f.timeframe,
 		nElements:            f.nElements,
 		recordType:           f.recordType,
 		recordLength:         f.recordLength,
@@ -153,31 +160,48 @@ func (f *TimeBucketInfo) initFromFile() {
 	f.IsRead = true
 }
 
+// GetVersion returns the version number for the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetVersion() int64 {
 	f.once.Do(f.initFromFile)
 	return f.version
 }
 
+// GetDescription returns the description string contained in the
+// given TimeBucketInfo.
 func (f *TimeBucketInfo) GetDescription() string {
 	f.once.Do(f.initFromFile)
 	return f.description
 }
 
-func (f *TimeBucketInfo) GetIntervals() int64 {
+// GetTimeframe returns the duration for which each record's data is valid.
+// This means for 1Min resolution data, GetTimeframe will return time.Minute.
+func (f *TimeBucketInfo) GetTimeframe() time.Duration {
 	f.once.Do(f.initFromFile)
-	return f.intervals
+	return f.timeframe
 }
 
+// GetIntervals returns the number of records that can fit in a 24 hour day.
+func (f *TimeBucketInfo) GetIntervals() int64 {
+	f.once.Do(f.initFromFile)
+	return int64(utils.Day.Nanoseconds()) / int64(f.timeframe.Nanoseconds())
+}
+
+// GetNelements returns the number of elements (data fields) for a given
+// TimeBucketInfo.
 func (f *TimeBucketInfo) GetNelements() int32 {
 	f.once.Do(f.initFromFile)
 	return f.nElements
 }
 
+// GetRecordLength returns the length of a single record in the file described
+// by the given TimeBucketInfo
 func (f *TimeBucketInfo) GetRecordLength() int32 {
 	f.once.Do(f.initFromFile)
 	return f.recordLength
 }
 
+// GetVariableRecordLength returns the length of a single record for a variable
+// length TimeBucketInfo file
 func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
 	f.once.Do(f.initFromFile)
 
@@ -188,21 +212,29 @@ func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
 	return f.variableRecordLength
 }
 
+// GetRecordType returns the type of the file described by the TimeBucketInfo
+// as an EnumRecordType
 func (f *TimeBucketInfo) GetRecordType() EnumRecordType {
 	f.once.Do(f.initFromFile)
 	return f.recordType
 }
 
+// GetElementNames returns the field names contained by the file described by
+// the given TimeBucketInfo
 func (f *TimeBucketInfo) GetElementNames() []string {
 	f.once.Do(f.initFromFile)
 	return f.elementNames
 }
 
+// GetElementTypes returns the field types contained by the file described by
+// the given TimeBucketInfo
 func (f *TimeBucketInfo) GetElementTypes() []EnumElementType {
 	f.once.Do(f.initFromFile)
 	return f.elementTypes
 }
 
+// SetElementTypes sets the field types contained by the file described by
+// the given TimeBucketInfo
 func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 	if len(newTypes) != len(f.elementTypes) {
 		return fmt.Errorf("Element count not equal")
@@ -265,7 +297,7 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	f.Year = int16(hp.Year)
 	f.Path = filepath.Clean(path)
 	f.IsRead = true
-	f.intervals = hp.Intervals
+	f.timeframe = time.Duration(hp.Timeframe)
 	f.nElements = int32(hp.NElements)
 	f.recordLength = int32(hp.RecordLength)
 	f.recordType = EnumRecordType(hp.RecordType)
@@ -278,6 +310,7 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	}
 }
 
+// NewTimeBucketInfoFromHeader creates a TimeBucketInfo from a given Header
 func NewTimeBucketInfoFromHeader(hp *Header, path string) *TimeBucketInfo {
 	tbi := new(TimeBucketInfo)
 	tbi.load(hp, path)
@@ -289,7 +322,7 @@ type Header struct {
 	Version      int64
 	Description  [256]byte
 	Year         int64
-	Intervals    int64
+	Timeframe    int64 // Duration in nanoseconds
 	RecordType   int64
 	NElements    int64
 	RecordLength int64
@@ -300,6 +333,8 @@ type Header struct {
 	reserved2    [365]int64
 }
 
+// WriteHeader writes the header described by a given TimeBucketInfo to the
+// supplied file pointer.
 func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 	header := Header{}
 	header.Load(f)
@@ -308,11 +343,17 @@ func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 	return err
 }
 
+// Load loads the header information from a given TimeBucketInfo
 func (hp *Header) Load(f *TimeBucketInfo) {
+	if f.GetVersion() != FileinfoVersion {
+		Log(WARNING,
+			"FileInfoVersion does not match this version of MarketStore %v != %v",
+			f.GetVersion(), FileinfoVersion)
+	}
 	hp.Version = f.GetVersion()
 	copy(hp.Description[:], f.GetDescription())
 	hp.Year = int64(f.Year)
-	hp.Intervals = f.GetIntervals()
+	hp.Timeframe = int64(f.GetTimeframe().Nanoseconds())
 	hp.NElements = int64(f.GetNelements())
 	hp.RecordLength = int64(f.GetRecordLength())
 	hp.RecordType = int64(f.GetRecordType())

@@ -4,16 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
+	"path/filepath"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
 
 	. "gopkg.in/check.v1"
-
-	"math"
-	"path/filepath"
-	"reflect"
 
 	. "github.com/alpacahq/marketstore/catalog"
 	. "github.com/alpacahq/marketstore/planner"
@@ -457,8 +456,10 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
 	scanner, err = NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
-	csm, _, _ = scanner.Read()
+	c.Assert(err, IsNil)
+	csm, _, err = scanner.Read()
+	c.Assert(err, IsNil)
+	c.Assert(csm.IsEmpty(), Equals, false)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		//printoutCandles(cs, 0, -1)

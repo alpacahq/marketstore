@@ -11,6 +11,7 @@ import (
 
 	"github.com/alpacahq/marketstore/executor/readhint"
 	"github.com/alpacahq/marketstore/planner"
+	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
 )
@@ -43,20 +44,14 @@ type ioplan struct {
 	RecordLen         int32
 	RecordType        EnumRecordType
 	VariableRecordLen int
-	IntervalSeconds   int64 // Interval size in seconds
 	Limit             *planner.RowLimit
 	TimeQuals         []planner.TimeQualFunc
 }
 
-func (iop *ioplan) GetIntervalsPerDay() int64 {
-	return (24 * 60 * 60) / iop.IntervalSeconds
-}
-
-func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64) (iop *ioplan, err error) {
+func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err error) {
 	iop = new(ioplan)
 	iop.FilePlan = make([]*ioFilePlan, 0)
 	iop.PrevFilePlan = make([]*ioFilePlan, 0)
-	iop.IntervalSeconds = secsPerInterval
 	iop.Limit = pr.Limit
 	/*
 		At this point we have a date unconstrained group of sorted files
@@ -66,11 +61,18 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 	*/
 	prevPaths := make([]*ioFilePlan, 0)
 	for _, file := range fl {
-		fileStartTime := time.Date(int(file.File.Year), time.January, 1, 0, 0, 0, 0, time.UTC)
+		fileStartTime := time.Date(
+			int(file.File.Year),
+			time.January,
+			1, 0, 0, 0, 0,
+			utils.InstanceConfig.Timezone)
 		startOffset := int64(Headersize)
-		endOffset := int64(FileSize(file.File.GetIntervals(), int(file.File.Year), int(file.File.GetRecordLength())))
+		endOffset := FileSize(
+			file.File.GetTimeframe(),
+			int(file.File.Year),
+			int(file.File.GetRecordLength()))
 		length := endOffset - startOffset
-		maxLength := length
+		maxLength := length + int64(file.File.GetRecordLength())
 		if iop.RecordLen == 0 {
 			iop.RecordLen = file.File.GetRecordLength()
 			iop.RecordType = file.File.GetRecordType()
@@ -83,17 +85,27 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, secsPerInterval int64
 		}
 		if file.File.Year < pr.Range.StartYear {
 			// Add the whole file to the previous files list for use in back scanning before the start
-			prevPaths = append(prevPaths, &ioFilePlan{file.File, startOffset, length, file.File.Path, fileStartTime.Unix(), false})
+			prevPaths = append(
+				prevPaths,
+				&ioFilePlan{
+					file.File,
+					startOffset,
+					length,
+					file.File.Path,
+					fileStartTime.Unix(),
+					false,
+				},
+			)
 		} else if file.File.Year <= pr.Range.EndYear {
 			/*
 			 Calculate the number of bytes to be read for each file and the offset
 			*/
 			// Set the starting and ending indices based on the range
 			if file.File.Year == pr.Range.StartYear {
-				startOffset = TimeToOffset(pr.Range.Start, file.File.GetIntervals(), file.File.GetRecordLength())
+				startOffset = TimeToOffset(pr.Range.Start, file.File.GetTimeframe(), file.File.GetRecordLength())
 			}
 			if file.File.Year == pr.Range.EndYear {
-				endOffset = TimeToOffset(pr.Range.End, file.File.GetIntervals(), file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
+				endOffset = TimeToOffset(pr.Range.End, file.File.GetTimeframe(), file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
 			}
 			if lastKnownOffset, ok := readhint.GetLastKnown(file.File.Path); ok {
 				hinted := lastKnownOffset + int64(file.File.GetRecordLength())
@@ -142,7 +154,6 @@ func NewReader(pr *planner.ParseResult) (r *reader, err error) {
 	if pr.Range == nil {
 		pr.Range = planner.NewDateRange()
 	}
-	secondsPerInterval := 3600 * 24 / pr.IntervalsPerDay
 
 	sortedFileMap := make(map[TimeBucketKey]SortedFileList)
 	for _, qf := range pr.QualifiedFiles {
@@ -152,7 +163,7 @@ func NewReader(pr *planner.ParseResult) (r *reader, err error) {
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
-		if r.IOPMap[key], err = NewIOPlan(sfl, pr, secondsPerInterval); err != nil {
+		if r.IOPMap[key], err = NewIOPlan(sfl, pr); err != nil {
 			return nil, err
 		}
 		recordLen := r.IOPMap[key].RecordLen
@@ -172,7 +183,6 @@ func NewReader(pr *planner.ParseResult) (r *reader, err error) {
 func (r *reader) Read() (csm ColumnSeriesMap, tPrevMap map[TimeBucketKey]int64, err error) {
 	csm = NewColumnSeriesMap()
 	tPrevMap = make(map[TimeBucketKey]int64)
-
 	catMap := r.pr.GetCandleAttributes()
 	rtMap := r.pr.GetRowType()
 	dsMap := r.pr.GetDataShapes()
@@ -190,7 +200,6 @@ func (r *reader) Read() (csm ColumnSeriesMap, tPrevMap map[TimeBucketKey]int64, 
 		key, cs := rs.ToColumnSeries()
 		csm[key] = cs
 	}
-
 	return csm, tPrevMap, err
 }
 
@@ -256,7 +265,6 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 			dataLen := len(resultBuffer)
 			resultBuffer, finished, err = ex.readForward(resultBuffer,
 				fp,
-				iop.IntervalSeconds,
 				iop.RecordLen,
 				limitBytes,
 				readBuffer)
@@ -267,7 +275,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 						FullPath:  fp.FullPath,
 						Data:      resultBuffer[dataLen:],
 						VarRecLen: iop.VariableRecordLen,
-						Intervals: iop.GetIntervalsPerDay(),
+						Intervals: fp.tbi.GetIntervals(),
 					})
 				}
 			}
@@ -289,7 +297,6 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 				tPrevBuff, finished, bytesRead, err := ex.readBackward(
 					tPrevBuff,
 					fp,
-					iop.IntervalSeconds,
 					iop.RecordLen,
 					iop.RecordLen,
 					readBuffer,
@@ -317,13 +324,14 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 		var bytesRead int32
 		for i := len(fp) - 1; i >= 0; i-- {
 			// Backward scan - we know that we are going to produce a limited result set here
-			resultBuffer, finished, bytesRead, err = ex.readBackward(resultBuffer,
+			resultBuffer, finished, bytesRead, err = ex.readBackward(
+				resultBuffer,
 				fp[i],
-				iop.IntervalSeconds,
 				iop.RecordLen,
 				bytesLeftToFill,
 				readBuffer,
 				r.fileBuffer)
+
 			bytesLeftToFill -= bytesRead
 			if iop.RecordType == VARIABLE {
 				// If we've added data to the buffer from this file, record it for possible later use
@@ -335,7 +343,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 						FullPath:  fp[i].FullPath,
 						Data:      resultBuffer[bytesLeftToFill:],
 						VarRecLen: iop.VariableRecordLen,
-						Intervals: iop.GetIntervalsPerDay(),
+						Intervals: fp[i].tbi.GetIntervals(),
 					})
 				}
 			}
@@ -409,8 +417,6 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 	// ==> leftbytes <= 0
 
 	recordSize := ex.plan.RecordLen
-	intervalSecs := ex.plan.IntervalSeconds
-	baseTime := fp.BaseTime
 
 	var totalRead int64
 	for {
@@ -439,7 +445,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 			index := *(*int64)(unsafe.Pointer(&buffer[curpos]))
 			if index != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
-				index = baseTime + (index-1)*intervalSecs
+				index = IndexToTime(index, fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
 				if !ex.checkTimeQuals(index) {
 					continue
 				}
@@ -462,7 +468,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 	}
 }
 
-func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64, recordLen, bytesToRead int32, readBuffer []byte) (
+func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, recordLen, bytesToRead int32, readBuffer []byte) (
 	resultBuffer []byte, finished bool, err error) {
 
 	filePath := fp.FullPath
@@ -497,7 +503,7 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, intervalSecond
 	return finalBuffer, false, nil
 }
 
-func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan, intervalSeconds int64,
+func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	recordLen, bytesToRead int32, readBuffer []byte, fileBuffer []byte) (
 	result []byte, finished bool, bytesRead int32, err error) {
 
@@ -528,7 +534,9 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan, intervalSecon
 	for {
 		fileBuffer = fileBuffer[:0]
 		// Read a packed buffer of data max size maxToBuffer
-		if err = ex.packingReader(&fileBuffer, f, readBuffer,
+		if err = ex.packingReader(
+			&fileBuffer,
+			f, readBuffer,
 			maxToRead, fp); err != nil {
 
 			Log(ERROR, "Read: reading data from %s\n%s", filePath, err)
@@ -571,9 +579,8 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan, intervalSecon
 	}
 	if bytesToRead == 0 {
 		return finalBuffer, true, bytesRead, nil
-	} else {
-		return finalBuffer, false, bytesRead, nil
 	}
+	return finalBuffer, false, bytesRead, nil
 }
 
 func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt int64, curpos int64, err error) {

@@ -158,9 +158,9 @@ func DummyDataFromText(rootDir, symbol, timeframe, data string) {
 		checkfail(err, "Unable to write header to: "+fileName)
 
 		for _, candle := range candles {
-			offset := TimeToOffset(candle.t, fileInfo.GetIntervals(), fileInfo.GetRecordLength())
+			offset := TimeToOffset(candle.t, fileInfo.GetTimeframe(), fileInfo.GetRecordLength())
 			ondisk := ohlc{
-				index: TimeToIndex(candle.t, fileInfo.GetIntervals()),
+				index: TimeToIndex(candle.t, fileInfo.GetTimeframe()),
 				o:     candle.o,
 				h:     candle.h,
 				l:     candle.l,

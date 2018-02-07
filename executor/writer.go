@@ -88,9 +88,8 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 				panic(err)
 			}
 		}
-		intervalsPerDay := w.tbi.GetIntervals()
-		offset := TimeToOffset(t, intervalsPerDay, w.tbi.GetRecordLength())
-		index := TimeToIndex(t, intervalsPerDay)
+		index := TimeToIndex(t, w.tbi.GetTimeframe())
+		offset := IndexToOffset(index, w.tbi.GetRecordLength())
 
 		if i == 0 {
 			prevIndex = index
@@ -105,7 +104,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			/*
 				This is the interior of a multi-row write buffer
 			*/
-			outBuf = formatRecord(outBuf, record, t, index, intervalsPerDay)
+			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals())
 			cc.Data = outBuf
 		}
 		if index != prevIndex {
@@ -115,7 +114,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			w.tgc.writeChannel <- cc
 			// Setup next command
 			prevIndex = index
-			outBuf = formatRecord([]byte{}, record, t, index, intervalsPerDay)
+			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals())
 			cc = &WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),

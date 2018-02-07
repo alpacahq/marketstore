@@ -290,14 +290,14 @@ func processTrim(line string) {
 	fInfos := executor.ThisInstance.CatalogDir.GatherTimeBucketInfo()
 	for _, info := range fInfos {
 		if info.Year == int16(trimDate.Year()) {
-			offset := TimeToOffset(trimDate, info.GetIntervals(), info.GetRecordLength())
+			offset := TimeToOffset(trimDate, info.GetTimeframe(), info.GetRecordLength())
 			fp, err := os.OpenFile(info.Path, os.O_CREATE|os.O_RDWR, 0600)
 			if err != nil {
 				Log(ERROR, "Failed to open file %v - Error: %v", info.Path, err)
 				continue
 			}
 			fp.Seek(offset, os.SEEK_SET)
-			zeroes := make([]byte, FileSize(info.GetIntervals(), int(info.Year), int(info.GetRecordLength()))-offset)
+			zeroes := make([]byte, FileSize(info.GetTimeframe(), int(info.Year), int(info.GetRecordLength()))-offset)
 			fp.Write(zeroes)
 			fp.Close()
 		}
@@ -806,7 +806,7 @@ func printResult(queryText string, cs *ColumnSeries, optional_writer ...*csv.Wri
 		var element string
 		for _, name := range cs.GetColumnNames() {
 			if strings.EqualFold(name, "Epoch") {
-				fmt.Printf("%29s  ", time.Unix(ts, 0).UTC().String()) // Epoch
+				fmt.Printf("%29s  ", ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 				continue
 			}
 			col := cs.GetByName(name)

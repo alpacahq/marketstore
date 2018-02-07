@@ -126,11 +126,11 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	fileName := elements[len(elements)-1]
 	year, _ := strconv.Atoi(strings.Replace(fileName, ".bin", "", 1))
 	tbk := io.NewTimeBucketKey(tbkString)
-	headTs := io.IndexToTime(headIndex, int64(tf.PeriodsPerDay()), int16(year))
-	tailTs := io.IndexToTime(tailIndex, int64(tf.PeriodsPerDay()), int16(year))
+	headTs := io.IndexToTime(headIndex, tf.Duration, int16(year))
+	tailTs := io.IndexToTime(tailIndex, tf.Duration, int16(year))
 	timeWindow := utils.CandleDurationFromString(timeframe)
-	start := timeWindow.Truncate(headTs.In(utils.InstanceConfig.Timezone))
-	end := timeWindow.Ceil(tailTs.In(utils.InstanceConfig.Timezone))
+	start := timeWindow.Truncate(headTs)
+	end := timeWindow.Ceil(tailTs)
 	// TODO: this is not needed once we support "<" operator
 	end = end.Add(-time.Second)
 
@@ -140,11 +140,11 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	// Scan
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
-	q.SetRange(start.UTC(), end.UTC())
+	q.SetRange(start, end)
 
 	// decide whether to apply market-hour filter
 	applyingFilter := false
-	if s.filter == "nasdaq" && timeWindow.Duration() >= 24*time.Hour {
+	if s.filter == "nasdaq" && timeWindow.Duration() >= utils.Day {
 		calendarTz := calendar.Nasdaq.Tz()
 		if utils.InstanceConfig.Timezone.String() != calendarTz.String() {
 			glog.Errorf("misconfiguration... system must be configure in %s", calendarTz)
@@ -214,17 +214,16 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	ts := cs.GetTime()
 	outEpoch := make([]int64, 0)
 
-	groupKey := timeWindow.Truncate(ts[0].In(utils.InstanceConfig.Timezone))
+	groupKey := timeWindow.Truncate(ts[0])
 	groupStart := 0
 	// accumulate inputs.  Since the input is ordered by
 	// time, it is just to slice by correct boundaries
 	for i, t := range ts {
-		tLocal := t.In(utils.InstanceConfig.Timezone)
-		if !timeWindow.IsWithin(tLocal, groupKey) {
+		if !timeWindow.IsWithin(t, groupKey) {
 			// Emit new row and re-init aggState
 			outEpoch = append(outEpoch, groupKey.Unix())
 			accumGroup.apply(groupStart, i)
-			groupKey = timeWindow.Truncate(tLocal)
+			groupKey = timeWindow.Truncate(t)
 			groupStart = i
 		}
 	}

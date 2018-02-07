@@ -104,6 +104,10 @@ type CandleDuration struct {
 
 func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 	switch cd.suffix {
+	case "D":
+		yy0, mm0, dd0 := ts.Date()
+		yy1, mm1, dd1 := start.In(ts.Location()).Date()
+		return yy0 == yy1 && mm0 == mm1 && dd0 == dd1
 	case "W":
 		tsY, tsW := ts.ISOWeek()
 		sY, sW := start.ISOWeek()
@@ -119,16 +123,14 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 			} else {
 				if int(ts.Month())-int(start.Month()) < cd.multiplier {
 					return true
-				} else {
-					return false
 				}
+				return false
 			}
 		} else if ts.Year() > start.Year() {
 			if int(ts.Month())-(12-int(start.Month())) < cd.multiplier {
 				return true
-			} else {
-				return false
 			}
+			return false
 		} else {
 			return false
 		}
@@ -148,6 +150,9 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 // ts belongs to.
 func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 	switch cd.suffix {
+	case "D":
+		yy, mm, dd := ts.Date()
+		return time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
 	case "M":
 		return time.Date(ts.Year(), ts.Month(), 1, 0, 0, 0, 0, ts.Location())
 	default:
@@ -158,14 +163,18 @@ func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 // Ceil returns the upper boundary time of this candle window that
 // ts belongs to.
 func (cd *CandleDuration) Ceil(ts time.Time) time.Time {
+	if cd.suffix == "D" {
+		yy, mm, dd := ts.Add(Day).Date()
+		return time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
+	}
 	if cd.suffix == "M" {
 		year := ts.Year()
 		month := ts.Month()
 		if month == time.December {
-			year += 1
+			year++
 			month = time.January
 		} else {
-			month += 1
+			month++
 		}
 		return time.Date(year, month, 1, 0, 0, 0, 0, ts.Location())
 	}
@@ -187,13 +196,11 @@ func (cd *CandleDuration) QueryableTimeframe() string {
 func (cd *CandleDuration) QueryableNrecords(tf string, nrecords int) int {
 	if cd.String == tf {
 		return nrecords
-	} else {
-		if cd.suffix == "M" {
-			return 31 * nrecords
-		} else {
-			return nrecords * int(cd.duration/TimeframeFromString(tf).Duration)
-		}
 	}
+	if cd.suffix == "M" {
+		return 31 * nrecords
+	}
+	return nrecords * int(cd.duration/TimeframeFromString(tf).Duration)
 }
 
 func (cd *CandleDuration) Duration() time.Duration {
