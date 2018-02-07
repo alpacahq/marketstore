@@ -17,7 +17,7 @@ import (
 )
 
 const Headersize = 37024
-const FileinfoVersion = int64(1.0)
+const FileinfoVersion = int64(2.0)
 
 func daysInYear(year int) int {
 	testYear := time.Date(year, time.December, 31, 0, 0, 0, 0, time.Local)
@@ -159,36 +159,48 @@ func (f *TimeBucketInfo) initFromFile() {
 	f.IsRead = true
 }
 
+// GetVersion returns the version number for the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetVersion() int64 {
 	f.once.Do(f.initFromFile)
 	return f.version
 }
 
+// GetDescription returns the description string contained in the
+// given TimeBucketInfo.
 func (f *TimeBucketInfo) GetDescription() string {
 	f.once.Do(f.initFromFile)
 	return f.description
 }
 
+// GetTimeframe returns the duration for which each record's data is valid.
+// This means for 1Min resolution data, GetTimeframe will return time.Minute.
 func (f *TimeBucketInfo) GetTimeframe() time.Duration {
 	f.once.Do(f.initFromFile)
 	return f.timeframe
 }
 
+// GetIntervals returns the number of records that can fit in a 24 hour day.
 func (f *TimeBucketInfo) GetIntervals() int64 {
 	f.once.Do(f.initFromFile)
 	return int64(utils.Day.Nanoseconds()) / int64(f.timeframe.Nanoseconds())
 }
 
+// GetNelements returns the number of elements (data fields) for a given
+// TimeBucketInfo.
 func (f *TimeBucketInfo) GetNelements() int32 {
 	f.once.Do(f.initFromFile)
 	return f.nElements
 }
 
+// GetRecordLength returns the length of a single record in the file described
+// by the given TimeBucketInfo
 func (f *TimeBucketInfo) GetRecordLength() int32 {
 	f.once.Do(f.initFromFile)
 	return f.recordLength
 }
 
+// GetVariableRecordLength returns the length of a single record for a variable
+// length TimeBucketInfo file
 func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
 	f.once.Do(f.initFromFile)
 
@@ -199,21 +211,29 @@ func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
 	return f.variableRecordLength
 }
 
+// GetRecordType returns the type of the file described by the TimeBucketInfo
+// as an EnumRecordType
 func (f *TimeBucketInfo) GetRecordType() EnumRecordType {
 	f.once.Do(f.initFromFile)
 	return f.recordType
 }
 
+// GetElementNames returns the field names contained by the file described by
+// the given TimeBucketInfo
 func (f *TimeBucketInfo) GetElementNames() []string {
 	f.once.Do(f.initFromFile)
 	return f.elementNames
 }
 
+// GetElementTypes returns the field types contained by the file described by
+// the given TimeBucketInfo
 func (f *TimeBucketInfo) GetElementTypes() []EnumElementType {
 	f.once.Do(f.initFromFile)
 	return f.elementTypes
 }
 
+// SetElementTypes sets the field types contained by the file described by
+// the given TimeBucketInfo
 func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 	if len(newTypes) != len(f.elementTypes) {
 		return fmt.Errorf("Element count not equal")
@@ -289,6 +309,7 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	}
 }
 
+// NewTimeBucketInfoFromHeader creates a TimeBucketInfo from a given Header
 func NewTimeBucketInfoFromHeader(hp *Header, path string) *TimeBucketInfo {
 	tbi := new(TimeBucketInfo)
 	tbi.load(hp, path)
@@ -311,6 +332,8 @@ type Header struct {
 	reserved2    [365]int64
 }
 
+// WriteHeader writes the header described by a given TimeBucketInfo to the
+// supplied file pointer.
 func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 	header := Header{}
 	header.Load(f)
@@ -319,6 +342,7 @@ func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 	return err
 }
 
+// Load loads the header information from a given TimeBucketInfo
 func (hp *Header) Load(f *TimeBucketInfo) {
 	hp.Version = f.GetVersion()
 	copy(hp.Description[:], f.GetDescription())
