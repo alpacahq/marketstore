@@ -105,8 +105,9 @@ type CandleDuration struct {
 func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 	switch cd.suffix {
 	case "D":
-		_, _, dd := ts.Add(-Day * time.Duration(cd.multiplier-1)).Date()
-		return dd == start.In(ts.Location()).Day()
+		yy0, mm0, dd0 := ts.Date()
+		yy1, mm1, dd1 := start.In(ts.Location()).Date()
+		return yy0 == yy1 && mm0 == mm1 && dd0 == dd1
 	case "W":
 		tsY, tsW := ts.ISOWeek()
 		sY, sW := start.ISOWeek()
@@ -150,7 +151,7 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 	switch cd.suffix {
 	case "D":
-		yy, mm, dd := ts.Add(-Day * time.Duration(cd.multiplier-1)).Date()
+		yy, mm, dd := ts.Date()
 		return time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
 	case "M":
 		return time.Date(ts.Year(), ts.Month(), 1, 0, 0, 0, 0, ts.Location())
@@ -163,7 +164,7 @@ func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 // ts belongs to.
 func (cd *CandleDuration) Ceil(ts time.Time) time.Time {
 	if cd.suffix == "D" {
-		yy, mm, dd := ts.Add(Day * time.Duration(cd.multiplier)).Date()
+		yy, mm, dd := ts.Add(Day).Date()
 		return time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
 	}
 	if cd.suffix == "M" {

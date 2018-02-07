@@ -443,7 +443,6 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 		for i = 0; i < numToRead; i++ {
 			curpos := i * int64(recordSize)
 			index := *(*int64)(unsafe.Pointer(&buffer[curpos]))
-			// fmt.Println(index, curpos, IndexToTime(index, fp.tbi.GetTimeframe(), fp.GetFileYear()))
 			if index != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
 				index = IndexToTime(index, fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()

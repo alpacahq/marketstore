@@ -89,7 +89,7 @@ func (s *UtilsTestSuite) TestCandleDuration(c *C) {
 
 	loc, _ := time.LoadLocation("America/New_York")
 	cd = CandleDurationFromString("1D")
-	val = time.Date(2017, 1, 8, 0, 0, 0, 0, loc)
+	val = time.Date(2018, 1, 8, 0, 0, 0, 0, loc)
 	start = cd.Truncate(val)
 	c.Assert(start.Hour(), Equals, 0)
 	c.Assert(start.Minute(), Equals, 0)
@@ -101,14 +101,6 @@ func (s *UtilsTestSuite) TestCandleDuration(c *C) {
 	c.Assert(cd.IsWithin(val, time.Date(2018, 1, 8, 0, 0, 0, 0, loc)), Equals, true)
 	c.Assert(cd.IsWithin(val, time.Date(2018, 1, 8, 0, 0, 0, 0, time.UTC)), Equals, false)
 	c.Assert(cd.IsWithin(val, time.Date(2018, 1, 8, 23, 59, 0, 0, time.UTC)), Equals, true)
-
-	cd = CandleDurationFromString("3D")
-	start = cd.Truncate(val)
-	c.Assert(start.Hour(), Equals, 0)
-	c.Assert(start.Minute(), Equals, 0)
-	c.Assert(start.Day(), Equals, val.Day()-2)
-	c.Assert(start.Month(), Equals, val.Month())
-	c.Assert(start.Year(), Equals, val.Year())
 
 	cd = CandleDurationFromString("abc")
 	c.Assert(cd, IsNil)

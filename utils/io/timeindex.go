@@ -6,6 +6,8 @@ import (
 	"github.com/alpacahq/marketstore/utils"
 )
 
+// IndexToTime returns the time.Time represented by the given index
+// in the system timezone (UTC by default).
 func IndexToTime(index int64, tf time.Duration, year int16) time.Time {
 	t0 := time.Date(
 		int(year),
@@ -18,10 +20,15 @@ func IndexToTime(index int64, tf time.Duration, year int16) time.Time {
 	return t0.Add(tf * time.Duration(index-1))
 }
 
+// ToSystemTimezone converts the given time.Time to the system timezone.
 func ToSystemTimezone(t time.Time) time.Time {
 	return t.In(utils.InstanceConfig.Timezone)
 }
 
+// TimeToIndex converts a given time.Time to a file index based upon the supplied
+// timeframe (time.Duration). TimeToIndex takes into account the system timzeone,
+// and converts the supplied timestamp to the system timezone specified in the
+// MarketStore configuration file (or UTC by default),
 func TimeToIndex(t time.Time, tf time.Duration) int64 {
 	tLocal := ToSystemTimezone(t)
 	// special 1D case (maximum supported on-disk size)

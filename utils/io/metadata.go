@@ -344,6 +344,11 @@ func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 
 // Load loads the header information from a given TimeBucketInfo
 func (hp *Header) Load(f *TimeBucketInfo) {
+	if f.GetVersion() != FileinfoVersion {
+		Log(WARNING,
+			"FileInfoVersion does not match this version of MarketStore %v != %v",
+			f.GetVersion(), FileinfoVersion)
+	}
 	hp.Version = f.GetVersion()
 	copy(hp.Description[:], f.GetDescription())
 	hp.Year = int64(f.Year)
