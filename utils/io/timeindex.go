@@ -2,33 +2,47 @@ package io
 
 import (
 	"time"
+
+	"github.com/alpacahq/marketstore/utils"
 )
 
-func IndexToTime(index, intervalsPerDay int64, year int16) time.Time {
-	secondsPerDay := int64(86400)
-	totalSeconds := int64(float64(secondsPerDay*(index-1)) / (float64(intervalsPerDay)))
-	t0 := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC)
-	return t0.Add(time.Duration(totalSeconds) * time.Second)
+func IndexToTime(index int64, tf time.Duration, year int16) time.Time {
+	t0 := time.Date(
+		int(year),
+		time.January,
+		1, 0, 0, 0, 0,
+		utils.InstanceConfig.Timezone)
+	if tf == utils.Day {
+		return t0.AddDate(0, 0, int(index))
+	}
+	return t0.Add(tf * time.Duration(index-1))
 }
 
-/*
-func IndexToTime(index, intervalsPerDay int64, year int16) time.Time {
-	secondsPerDay := float64(24 * 60 * 60)
-	SecondOfYear := time.Duration((float64(index-1) / float64(intervalsPerDay)) * secondsPerDay)
-	return time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC).Add(SecondOfYear * time.Second)
-}
-*/
-
-func TimeToIndex(t time.Time, intervalsPerDay int64) int64 {
-	intervalsPerSecond := float64(intervalsPerDay) / float64(24*60*60)
-	seconds := float64(t.Hour()*3600 + t.Minute()*60 + t.Second())
-	day := int64(t.YearDay() - 1)
-	return 1 + int64(day*intervalsPerDay+int64(seconds*intervalsPerSecond))
+func ToSystemTimezone(t time.Time) time.Time {
+	return t.In(utils.InstanceConfig.Timezone)
 }
 
-func TimeToOffset(t time.Time, intervalsPerDay int64, recordSize int32) int64 {
-	indx := TimeToIndex(t, intervalsPerDay)
-	return (indx-1)*int64(recordSize) + Headersize
+func TimeToIndex(t time.Time, tf time.Duration) int64 {
+	tLocal := ToSystemTimezone(t)
+	// special 1D case (maximum supported on-disk size)
+	if tf == utils.Day {
+		return int64(tLocal.YearDay() - 1)
+	}
+	return 1 + int64(tLocal.Sub(
+		time.Date(
+			tLocal.Year(),
+			time.January,
+			1, 0, 0, 0, 0,
+			tLocal.Location())).Nanoseconds())/int64(tf.Nanoseconds())
+}
+
+func TimeToOffset(t time.Time, tf time.Duration, recordSize int32) int64 {
+	index := TimeToIndex(t, tf)
+	return (index-1)*int64(recordSize) + Headersize
+}
+
+func IndexToOffset(index int64, recordSize int32) int64 {
+	return (index-1)*int64(recordSize) + Headersize
 }
 
 /*
@@ -43,8 +57,14 @@ func GetIntervalTicks32Bit(ts time.Time, index, intervalsPerDay int64) uint32 {
 		Returns the number of interval ticks between the timestamp and the base time
 		Each interval has up to 2^32 ticks
 	*/
-	baseTime := IndexToTime(index, intervalsPerDay, int16(ts.Year()))
+	baseTime := indexToTimeDepr(index, intervalsPerDay, int16(ts.Year()))
 	seconds := ts.Sub(baseTime).Seconds()
 	ticksPerSecond := float64(intervalsPerDay) * ticksPerIntervalDivSecsPerDay
 	return uint32(ticksPerSecond * seconds)
+}
+
+func indexToTimeDepr(index, intervalsPerDay int64, year int16) time.Time {
+	secondsPerDay := float64(24 * 60 * 60)
+	SecondOfYear := time.Duration((float64(index-1) / float64(intervalsPerDay)) * secondsPerDay)
+	return time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC).Add(SecondOfYear * time.Second)
 }

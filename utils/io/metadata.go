@@ -24,8 +24,14 @@ func daysInYear(year int) int {
 	return testYear.YearDay()
 }
 
-func FileSize(intervalsPerDay int64, year int, recordSize int) int64 {
-	return Headersize + intervalsPerDay*int64(daysInYear(year)*recordSize)
+func nanosecondsInYear(year int) int64 {
+	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+	end := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local)
+	return int64(end.Sub(start).Nanoseconds())
+}
+
+func FileSize(tf time.Duration, year int, recordSize int) int64 {
+	return Headersize + (nanosecondsInYear(year)/int64(tf.Nanoseconds()))*int64(recordSize)
 }
 
 type TimeBucketInfo struct {
@@ -36,7 +42,7 @@ type TimeBucketInfo struct {
 
 	version     int64
 	description string
-	intervals   int64 // Number of time intervals per day
+	timeframe   time.Duration
 	nElements   int32
 	recordType  EnumRecordType
 	/*
@@ -66,7 +72,7 @@ func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16,
 	f = new(TimeBucketInfo)
 	f.Path = filepath.Join(path, strconv.Itoa(int(year))+".bin")
 	f.IsRead = true
-	f.intervals = int64(tf.PeriodsPerDay())
+	f.timeframe = tf.Duration
 	f.description = description
 	f.Year = year
 	f.nElements = int32(len(elementTypes))
@@ -129,7 +135,7 @@ func (f *TimeBucketInfo) GetDeepCopy() *TimeBucketInfo {
 		IsRead:               f.IsRead,
 		version:              f.version,
 		description:          f.description,
-		intervals:            f.intervals,
+		timeframe:            f.timeframe,
 		nElements:            f.nElements,
 		recordType:           f.recordType,
 		recordLength:         f.recordLength,
@@ -163,9 +169,14 @@ func (f *TimeBucketInfo) GetDescription() string {
 	return f.description
 }
 
+func (f *TimeBucketInfo) GetTimeframe() time.Duration {
+	f.once.Do(f.initFromFile)
+	return f.timeframe
+}
+
 func (f *TimeBucketInfo) GetIntervals() int64 {
 	f.once.Do(f.initFromFile)
-	return f.intervals
+	return int64(utils.Day.Nanoseconds()) / int64(f.timeframe.Nanoseconds())
 }
 
 func (f *TimeBucketInfo) GetNelements() int32 {
@@ -265,7 +276,7 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	f.Year = int16(hp.Year)
 	f.Path = filepath.Clean(path)
 	f.IsRead = true
-	f.intervals = hp.Intervals
+	f.timeframe = time.Duration(hp.Timeframe)
 	f.nElements = int32(hp.NElements)
 	f.recordLength = int32(hp.RecordLength)
 	f.recordType = EnumRecordType(hp.RecordType)
@@ -289,7 +300,7 @@ type Header struct {
 	Version      int64
 	Description  [256]byte
 	Year         int64
-	Intervals    int64
+	Timeframe    int64 // Duration in nanoseconds
 	RecordType   int64
 	NElements    int64
 	RecordLength int64
@@ -312,7 +323,7 @@ func (hp *Header) Load(f *TimeBucketInfo) {
 	hp.Version = f.GetVersion()
 	copy(hp.Description[:], f.GetDescription())
 	hp.Year = int64(f.Year)
-	hp.Intervals = f.GetIntervals()
+	hp.Timeframe = int64(f.GetTimeframe().Nanoseconds())
 	hp.NElements = int64(f.GetNelements())
 	hp.RecordLength = int64(f.GetRecordLength())
 	hp.RecordType = int64(f.GetRecordType())

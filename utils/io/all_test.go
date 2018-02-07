@@ -88,8 +88,8 @@ func (s *TestSuite) TestVariableBoundaryCases(c *C) {
 	//fmt.Println("Test Time:  ", t1, " Minutes: ", t1.Minute(), " Seconds: ", t1.Second())
 
 	// Check the 1Min interval
-	index := TimeToIndex(t1, 1440)
-	o_t1 := IndexToTime(index, 1440, 2008)
+	index := TimeToIndex(t1, time.Minute)
+	o_t1 := IndexToTime(index, time.Minute, 2008)
 	//fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
 	c.Assert(o_t1.Minute(), Equals, 24)
 	c.Assert(o_t1.Second(), Equals, 0)
@@ -104,8 +104,8 @@ func (s *TestSuite) TestVariableBoundaryCases(c *C) {
 
 	t1 = time.Date(2008, time.January, 3, 16, 24, 59, 1000*839106, time.UTC)
 
-	index = TimeToIndex(t1, 1440)
-	o_t1 = IndexToTime(index, 1440, 2008)
+	index = TimeToIndex(t1, time.Minute)
+	o_t1 = IndexToTime(index, time.Minute, 2008)
 	//fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
 	c.Assert(o_t1.Minute(), Equals, 24)
 	c.Assert(o_t1.Second(), Equals, 0)
@@ -343,9 +343,70 @@ func (s *TestSuite) TestTimeBucketInfo(c *C) {
 	c.Check(tbi2.GetVariableRecordLength(), Equals, int32(0))
 
 	fcopy := tbi2.GetDeepCopy()
-	c.Check(fcopy.intervals, Equals, tbi.intervals)
+	c.Check(fcopy.timeframe.Nanoseconds(), Equals, tbi.timeframe.Nanoseconds())
 
 	dsv2 := tbi2.GetDataShapes()
 	c.Check(dsv2[0].String(), Equals, dsv[0].String())
 	c.Check(dsv2[0].Equal(dsv[0]), Equals, true)
+}
+
+func (s *TestSuite) TestIndexAndOffset(c *C) {
+	recSize := int32(28)
+	loc, _ := time.LoadLocation("America/New_York")
+	utils.InstanceConfig.Timezone = loc
+
+	// check the 1Min interval
+	t0 := time.Date(2018, time.January, 1, 0, 0, 0, 0, loc)
+	index := TimeToIndex(t0, time.Minute)
+	c.Assert(index, Equals, int64(1))
+	o_t0 := IndexToTime(index, time.Minute, 2018)
+	c.Assert(o_t0, Equals, t0)
+
+	offset := TimeToOffset(t0, time.Minute, recSize)
+	o_o0 := IndexToOffset(index, recSize)
+	c.Assert(o_o0, Equals, offset)
+
+	// Check the 5Min interval
+	t1 := time.Date(2018, time.January, 1, 0, 5, 0, 0, loc)
+	index = TimeToIndex(t1, 5*time.Minute)
+	c.Assert(index, Equals, int64(2))
+	o_t1 := IndexToTime(index, 5*time.Minute, 2018)
+	c.Assert(o_t1, Equals, t1)
+
+	offset = TimeToOffset(t1, 5*time.Minute, recSize)
+	o_o1 := IndexToOffset(index, recSize)
+	c.Assert(o_o1, Equals, offset)
+
+	// Check the 1D interval
+	t2 := time.Date(2018, time.February, 5, 0, 0, 0, 0, loc)
+	index = TimeToIndex(t2, utils.Day)
+	c.Assert(index, Equals, int64(35))
+	o_t2 := IndexToTime(index, utils.Day, 2018)
+	c.Assert(o_t2, Equals, t2)
+
+	offset = TimeToOffset(t2, utils.Day, recSize)
+	o_o2 := IndexToOffset(index, recSize)
+	c.Assert(o_o2, Equals, offset)
+
+	// Check 1D at end of year
+	t3 := time.Date(2018, time.December, 31, 0, 0, 0, 0, loc)
+	index = TimeToIndex(t3, utils.Day)
+	c.Assert(index, Equals, int64(364))
+	o_t3 := IndexToTime(index, utils.Day, 2018)
+	c.Assert(o_t3, Equals, t3)
+
+	offset = TimeToOffset(t3, utils.Day, recSize)
+	o_o3 := IndexToOffset(index, recSize)
+	c.Assert(o_o3, Equals, offset)
+
+	// Check 1Min at end of year
+	t4 := time.Date(2018, time.December, 31, 23, 59, 0, 0, loc)
+	index = TimeToIndex(t4, time.Minute)
+	c.Assert(index, Equals, int64(525600))
+	o_t4 := IndexToTime(index, time.Minute, 2018)
+	c.Assert(o_t4, Equals, t4)
+
+	offset = TimeToOffset(t4, time.Minute, recSize)
+	o_o4 := IndexToOffset(index, recSize)
+	c.Assert(o_o4, Equals, offset)
 }
