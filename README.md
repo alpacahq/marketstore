@@ -3,19 +3,13 @@
 ![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb)
 
 MarketStore is a database server optimized for financial timeseries data.
-You can think it as a DataFrame service extensible and accessible from
-anywhere in your system, at higher scalability.
+You can think of it as an extensible DataFrame service that is accessible from anywhere in your system, at higher scalability.
 
-It is designed from ground to address scalability issue to handle large
-amount of financial market data, in such as algorithm trading backtesting,
-charting, and analyzing price history with many year amount of data like
-tick-level for the entire US equities or exploding crypto currencies
-space.  If you are struggling with managing lots of HDF5 files, this is
-perfect solution to your problem.
+It is designed from the ground up to address scalability issues around handling large amounts of financial market data used in algorithmic trading backtesting, charting, and analyzing price history with data spanning many years, including tick-level for the all US equities or the exploding crypto currencies space. If you are struggling with managing lots of HDF5 files, this is perfect solution to your problem.
 
-The battery is inside so you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates)
+The batteries are included so you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates)
 right after you install MarketStore. Then you can query DataFrame content
-over network at as low latency as your local HDF5 files from disk, and
+over the network at as low latency as your local HDF5 files from disk, and
 appending new data to the end is two orders of magnitude faster than
 DataFrame would be.  This is because the storage format is optimized for
 the type of data and use cases as well as for modern filesystem/hardware
@@ -182,16 +176,16 @@ Please see [another doc](./frontend/)
 
 ## Plug-in Architecture
 
-We know the needs and requirements in this space is diverse.  MarketStore
-server provides strong core functionality with flexible plug-in architecture.
+We know the needs and requirements in this space are diverse.  TheMarketStore
+provides strong core functionality with flexible plug-in architecture.
 If you want to build your own, look around [plugins](./plugins/)
 
 ## Bug Report & Contribution
 
-If you are interested in improving MarketStore, more than welcome!  Just file issues or request in github or contact oss@alpaca.markets.
+If you are interested in improving MarketStore, you are more than welcome!  Just file issues or requests in github or contact oss@alpaca.markets.
 
 ## Is This Production-Ready?
 
-Yes, absolutely!  It has been used in production for years in serious business.
-But we also never felt this is complete.  You can use it for your purpose
-and give more feedback.
+Yes, absolutely!  It has been used in production for years in serious business,
+but we also never feel it is complete.  You can use it for your own purpose
+and give us more feedback.
