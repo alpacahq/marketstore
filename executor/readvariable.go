@@ -1,14 +1,15 @@
 package executor
 
 import (
-	. "github.com/alpacahq/marketstore/utils/io"
 	"os"
 	"unsafe"
+
+	. "github.com/alpacahq/marketstore/utils/io"
 )
 
 /*
 #include "rewriteBuffer.h"
-#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument -funroll-all-loops -ffast-math
+#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument
 */
 import "C"
 

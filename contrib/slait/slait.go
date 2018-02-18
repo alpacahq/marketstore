@@ -166,7 +166,6 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 }
 
 func (ss *SlaitSubscriber) write() {
-	start := time.Now()
 	csm := io.NewColumnSeriesMap()
 	buffered := 0
 	flush := func() {
@@ -174,7 +173,6 @@ func (ss *SlaitSubscriber) write() {
 			glog.Errorf("Failed to write CSM for - Error: %v", err)
 		}
 		buffered = 0
-		start = time.Now()
 		csm = io.NewColumnSeriesMap()
 	}
 	for {
