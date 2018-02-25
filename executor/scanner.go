@@ -449,8 +449,11 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 				if !ex.checkTimeQuals(index) {
 					continue
 				}
-				*(*int64)(unsafe.Pointer(&buffer[curpos])) = index
+				// *(*int64)(unsafe.Pointer(&buffer[curpos])) = index
+				idxpos := len(*packedBuffer)
 				*packedBuffer = append(*packedBuffer, buffer[curpos:curpos+int64(recordSize)]...)
+				b := *packedBuffer
+				*(*int64)(unsafe.Pointer(&b[idxpos])) = index
 
 				// Update lastKnown only once the first time
 				if fp.seekingLast {
