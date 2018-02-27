@@ -43,13 +43,20 @@ func TimeToIndex(t time.Time, tf time.Duration) int64 {
 			tLocal.Location())).Nanoseconds())/int64(tf.Nanoseconds())
 }
 
+func EpochToIndex(epoch int64, tf time.Duration) int64 {
+	return TimeToIndex(time.Unix(epoch, 0), tf)
+}
+
 func TimeToOffset(t time.Time, tf time.Duration, recordSize int32) int64 {
-	index := TimeToIndex(t, tf)
-	return (index-1)*int64(recordSize) + Headersize
+	return (TimeToIndex(t, tf)-1)*int64(recordSize) + Headersize
 }
 
 func IndexToOffset(index int64, recordSize int32) int64 {
 	return (index-1)*int64(recordSize) + Headersize
+}
+
+func EpochToOffset(epoch int64, tf time.Duration, recordSize int32) int64 {
+	return IndexToOffset(EpochToIndex(epoch, tf), recordSize)
 }
 
 /*

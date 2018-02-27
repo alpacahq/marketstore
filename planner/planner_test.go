@@ -36,7 +36,10 @@ func (s *TestSuite) TestQuery(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Symbol", "USDJPY")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetRange(time.Date(2001, 1, 1, 12, 0, 0, 0, time.UTC), time.Date(2002, 12, 20, 12, 0, 0, 0, time.UTC))
+	q.SetRange(
+		time.Date(2001, 1, 1, 12, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2002, 12, 20, 12, 0, 0, 0, time.UTC).Unix(),
+	)
 	pr, _ := q.Parse()
 	c.Assert(len(pr.QualifiedFiles), Equals, 6)
 

@@ -102,10 +102,17 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			*/
 			// Set the starting and ending indices based on the range
 			if file.File.Year == pr.Range.StartYear {
-				startOffset = TimeToOffset(pr.Range.Start, file.File.GetTimeframe(), file.File.GetRecordLength())
+				startOffset = EpochToOffset(
+					pr.Range.Start,
+					file.File.GetTimeframe(),
+					file.File.GetRecordLength(),
+				)
 			}
 			if file.File.Year == pr.Range.EndYear {
-				endOffset = TimeToOffset(pr.Range.End, file.File.GetTimeframe(), file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
+				endOffset = EpochToOffset(
+					pr.Range.End,
+					file.File.GetTimeframe(),
+					file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
 			}
 			if lastKnownOffset, ok := readhint.GetLastKnown(file.File.Path); ok {
 				hinted := lastKnownOffset + int64(file.File.GetRecordLength())
@@ -118,7 +125,14 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			if length > maxLength {
 				length = maxLength
 			}
-			fp := &ioFilePlan{file.File, startOffset, length, file.File.Path, fileStartTime.Unix(), false}
+			fp := &ioFilePlan{
+				file.File,
+				startOffset,
+				length,
+				file.File.Path,
+				fileStartTime.Unix(),
+				false,
+			}
 			if iop.Limit.Direction == LAST {
 				fp.seekingLast = true
 			}
@@ -127,7 +141,17 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			// Add a previous file if we are at the beginning of the range
 			if file.File.Year == pr.Range.StartYear {
 				length := startOffset - int64(Headersize)
-				prevPaths = append(prevPaths, &ioFilePlan{file.File, int64(Headersize), length, file.File.Path, fileStartTime.Unix(), false})
+				prevPaths = append(
+					prevPaths,
+					&ioFilePlan{
+						file.File,
+						int64(Headersize),
+						length,
+						file.File.Path,
+						fileStartTime.Unix(),
+						false,
+					},
+				)
 			}
 		}
 	}
