@@ -1,13 +1,13 @@
 package executor
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
 	"os"
 	"sort"
 	"time"
-	"unsafe"
 
 	"github.com/alpacahq/marketstore/executor/readhint"
 	"github.com/alpacahq/marketstore/planner"
@@ -304,7 +304,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 				if finished {
 					if bytesRead != 0 {
 						// We found a record, let's grab the tPrev time from it
-						tPrev = *((*int64)(unsafe.Pointer(&tPrevBuff[0])))
+						tPrev = int64(binary.LittleEndian.Uint64(tPrevBuff[0:]))
 					}
 					break
 				} else if err != nil {
@@ -373,7 +373,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 
 		if GatherTprev {
 			if len(resultBuffer) > 0 {
-				tPrev = *((*int64)(unsafe.Pointer(&resultBuffer[0])))
+				tPrev = int64(binary.LittleEndian.Uint64(resultBuffer[0:]))
 				// Chop off the first record
 				resultBuffer = resultBuffer[iop.RecordLen:]
 				if iop.RecordType == VARIABLE {
@@ -442,18 +442,17 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 		var i int64
 		for i = 0; i < numToRead; i++ {
 			curpos := i * int64(recordSize)
-			index := *(*int64)(unsafe.Pointer(&buffer[curpos]))
+			index := int64(binary.LittleEndian.Uint64(buffer[curpos:]))
 			if index != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
 				index = IndexToTime(index, fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
 				if !ex.checkTimeQuals(index) {
 					continue
 				}
-				// *(*int64)(unsafe.Pointer(&buffer[curpos])) = index
 				idxpos := len(*packedBuffer)
 				*packedBuffer = append(*packedBuffer, buffer[curpos:curpos+int64(recordSize)]...)
 				b := *packedBuffer
-				*(*int64)(unsafe.Pointer(&b[idxpos])) = index
+				binary.LittleEndian.PutUint64(b[idxpos:], uint64(index))
 
 				// Update lastKnown only once the first time
 				if fp.seekingLast {
