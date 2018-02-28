@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"math"
 	"os"
 	"os/signal"
 	"strconv"
@@ -503,9 +502,9 @@ func processQueryLocal(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSer
 		fmt.Println("No suitable date range supplied...")
 		return
 	} else if start != nil && end != nil {
-		query.SetRange(*start, *end)
+		query.SetRange(start.Unix(), end.Unix())
 	} else if end == nil {
-		query.SetRange(*start, time.Unix(math.MaxInt64, 0))
+		query.SetRange(start.Unix(), planner.MaxEpoch)
 	}
 
 	fmt.Printf("Query range: %v to %v\n", start, end)
@@ -533,7 +532,8 @@ func processQueryLocal(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSer
 
 func processQueryRemote(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSeriesMap, err error) {
 	if end == nil {
-		end = &planner.MaxTime
+		t := time.Unix(planner.MaxEpoch, 0)
+		end = &t
 	}
 	epochStart := start.UTC().Unix()
 	epochEnd := end.UTC().Unix()
@@ -622,9 +622,9 @@ func processGapFinder(line string) {
 	query.AddTargetKey(tbk)
 
 	if start != nil && end != nil {
-		query.SetRange(*start, *end)
+		query.SetRange(start.Unix(), end.Unix())
 	} else if end == nil {
-		query.SetRange(*start, time.Unix(math.MaxInt64, 0))
+		query.SetRange(start.Unix(), planner.MaxEpoch)
 	}
 
 	pr, err := query.Parse()

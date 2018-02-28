@@ -152,7 +152,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	q.AddRestriction("Symbol", "TEST-WV")
 	q.AddRestriction("AttributeGroup", "TICK-BIDASK")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
+	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC).Unix())
 	parsed, _ := q.Parse()
 	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
@@ -234,7 +234,10 @@ func (s *TestSuite) TestFileRead(c *C) {
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetRange(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC), time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC))
+	q.SetRange(
+		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC).Unix(),
+	)
 	parsed, err := q.Parse()
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
@@ -278,7 +281,10 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	//	q.AddRestriction("Symbol", "USDJPY")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetRange(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC), time.Date(2003, time.January, 1, 0, 0, 0, 0, time.UTC))
+	q.SetRange(
+		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2003, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+	)
 	parsed, err := q.Parse()
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
@@ -357,7 +363,10 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "5Min")
-	q.SetRange(time.Date(2001, time.January, 15, 12, 0, 0, 0, time.UTC), time.Date(2001, time.January, 15, 12, 5, 0, 0, time.UTC))
+	q.SetRange(
+		time.Date(2001, time.January, 15, 12, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2001, time.January, 15, 12, 5, 0, 0, time.UTC).Unix(),
+	)
 	parsed, err = q.Parse()
 	scanner, err = NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
@@ -377,7 +386,7 @@ func (s *TestSuite) TestCrossYear(c *C) {
 	q.AddRestriction("Timeframe", "5Min")
 	startDate := time.Date(2001, time.October, 15, 12, 0, 0, 0, time.UTC)
 	endDate := time.Date(2002, time.October, 15, 12, 5, 0, 0, time.UTC)
-	q.SetRange(startDate, endDate)
+	q.SetRange(startDate.Unix(), endDate.Unix())
 	parsed, _ := q.Parse()
 	scanner, err := NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
@@ -398,7 +407,10 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetRange(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC), time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC))
+	q.SetRange(
+		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC).Unix(),
+	)
 	q.SetRowLimit(LAST, 100)
 	parsed, _ := q.Parse()
 	scanner, err := NewReader(parsed)
@@ -435,7 +447,10 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetRange(time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC), time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC))
+	q.SetRange(
+		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
 	scanner, err = NewReader(parsed)
@@ -452,7 +467,10 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetRange(time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC), time.Date(2000, time.January, 1, 0, 1, 0, 0, time.UTC))
+	q.SetRange(
+		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2000, time.January, 1, 0, 1, 0, 0, time.UTC).Unix(),
+	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
 	scanner, err = NewReader(parsed)
@@ -857,7 +875,7 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Symbol", "USDJPY")
 	q.AddRestriction("Timeframe", "1D")
-	q.SetRange(startDate, endDate)
+	q.SetRange(startDate.Unix(), endDate.Unix())
 	q.SetRowLimit(FIRST, numRecs)
 	parsed, _ := q.Parse()
 	scanner, err := NewReader(parsed)

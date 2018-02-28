@@ -73,7 +73,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	q.AddRestriction("Symbol", "TEST")
 	q.AddRestriction("AttributeGroup", "TICK")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
+	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC).Unix())
 	parsed, _ := q.Parse()
 	reader, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
