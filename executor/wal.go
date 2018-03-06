@@ -803,10 +803,11 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 				if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
 					Log(FATAL, err.Error())
 				}
-			case <-ThisInstance.TXNPipe.flushChannel:
+			case f := <-ThisInstance.TXNPipe.flushChannel:
 				if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
 					Log(FATAL, err.Error())
 				}
+				f <- struct{}{}
 			case <-tickerCheck.C:
 				queued := len(ThisInstance.TXNPipe.writeChannel)
 				if float64(queued)/float64(chanCap) >= 0.8 {
@@ -838,28 +839,19 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 
 // RequestFlush requests WAL Flush to the WAL writer goroutine
 // if it exists, or just does the work in the same goroutine otherwise.
-// It waits for the transaction to be flushed to WAL, or timeouts
-// with warning after deadline.  This currently does not wait for
-// the primary to be written, but only for WAL to be flushed.
-func (wf *WALFileType) RequestFlush() bool {
+// The function blocks if there are no current queued flushes, and
+// returns if there is already one queued which will handle the data
+// present in the write channel, as it will flush as soon as possible.
+func (wf *WALFileType) RequestFlush() {
 	if !haveWALWriter {
 		wf.flushToWAL(ThisInstance.TXNPipe)
-		return true
+		return
 	}
-	current := ThisInstance.TXNPipe.TGID()
-	ThisInstance.TXNPipe.flushChannel <- 1
-	interval := 100 * time.Millisecond
-	checkInterval := time.NewTicker(interval)
-	deadline := time.NewTicker(1000 * interval)
-	for {
-		select {
-		case <-checkInterval.C:
-			if ThisInstance.TXNPipe.TGID() > current {
-				return true
-			}
-		case <-deadline.C:
-			glog.Warning("WAL flush request did not go through")
-			return false
-		}
+	// if there's already a queued flush, no need to queue another
+	if len(ThisInstance.TXNPipe.flushChannel) > 0 {
+		return
 	}
+	f := make(chan struct{})
+	ThisInstance.TXNPipe.flushChannel <- f
+	<-f
 }

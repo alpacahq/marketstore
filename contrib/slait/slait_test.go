@@ -108,7 +108,7 @@ func mockCryptoBar(t time.Time) []byte {
 	return buf
 }
 
-func (t *TestSuite) TestHandlePublication(c *C) {
+func (t *TestSuite) TestPublicationToCSM(c *C) {
 	// homogeneous crypto bar
 	ret, _ := NewBgWorker(cryptoConfig)
 	cb1 := mockCryptoBar(time.Now().Truncate(time.Minute).Add(-time.Minute))
@@ -128,26 +128,27 @@ func (t *TestSuite) TestHandlePublication(c *C) {
 		},
 	}
 	ss := ret.(*SlaitSubscriber)
-	pair, err := ss.handlePublication(p)
+	csm, err := ss.publicationToCSM(p)
 	c.Assert(err, IsNil)
-	c.Assert(pair.key, NotNil)
-	c.Assert(pair.columns, NotNil)
-	cs := pair.columns
-	epoch := cs.GetColumn("Epoch")
-	open := cs.GetColumn("Open")
-	high := cs.GetColumn("High")
-	low := cs.GetColumn("Low")
-	close := cs.GetColumn("Close")
-	volume := cs.GetColumn("Volume")
-	for i, e := range p.Entries {
-		cb := cryptoBar{}
-		json.Unmarshal(e.Data, &cb)
-		c.Assert(cb.Timestamp.Unix(), Equals, epoch.([]int64)[i])
-		c.Assert(cb.Open, Equals, open.([]float64)[i])
-		c.Assert(cb.High, Equals, high.([]float64)[i])
-		c.Assert(cb.Low, Equals, low.([]float64)[i])
-		c.Assert(cb.Close, Equals, close.([]float64)[i])
-		c.Assert(cb.Volume, Equals, volume.([]float64)[i])
+	c.Assert(csm, NotNil)
+	c.Assert(csm.IsEmpty(), Equals, false)
+	for _, cs := range csm {
+		epoch := cs.GetColumn("Epoch")
+		open := cs.GetColumn("Open")
+		high := cs.GetColumn("High")
+		low := cs.GetColumn("Low")
+		close := cs.GetColumn("Close")
+		volume := cs.GetColumn("Volume")
+		for i, e := range p.Entries {
+			cb := cryptoBar{}
+			json.Unmarshal(e.Data, &cb)
+			c.Assert(cb.Timestamp.Unix(), Equals, epoch.([]int64)[i])
+			c.Assert(cb.Open, Equals, open.([]float64)[i])
+			c.Assert(cb.High, Equals, high.([]float64)[i])
+			c.Assert(cb.Low, Equals, low.([]float64)[i])
+			c.Assert(cb.Close, Equals, close.([]float64)[i])
+			c.Assert(cb.Volume, Equals, volume.([]float64)[i])
+		}
 	}
 
 	// heterogenous stock bar
@@ -169,25 +170,29 @@ func (t *TestSuite) TestHandlePublication(c *C) {
 		},
 	}
 	ss = ret.(*SlaitSubscriber)
-	pair, err = ss.handlePublication(p)
+	csm, err = ss.publicationToCSM(p)
 	c.Assert(err, IsNil)
-	c.Assert(pair.key, NotNil)
-	c.Assert(pair.columns, NotNil)
-	cs = pair.columns
-	epoch = cs.GetColumn("Epoch")
-	open = cs.GetColumn("Open")
-	high = cs.GetColumn("High")
-	low = cs.GetColumn("Low")
-	close = cs.GetColumn("Close")
-	volume = cs.GetColumn("Volume")
-	for i, e := range p.Entries {
-		sb := stockBar{}
-		json.Unmarshal(e.Data, &sb)
-		c.Assert(sb.Timestamp.Unix(), Equals, epoch.([]int64)[i])
-		c.Assert(sb.Open, Equals, open.([]float32)[i])
-		c.Assert(sb.High, Equals, high.([]float32)[i])
-		c.Assert(sb.Low, Equals, low.([]float32)[i])
-		c.Assert(sb.Close, Equals, close.([]float32)[i])
-		c.Assert(sb.Volume, Equals, volume.([]int32)[i])
+	c.Assert(csm, NotNil)
+	c.Assert(csm.IsEmpty(), Equals, false)
+	for _, cs := range csm {
+		epoch := cs.GetColumn("Epoch")
+		open := cs.GetColumn("Open")
+		high := cs.GetColumn("High")
+		low := cs.GetColumn("Low")
+		close := cs.GetColumn("Close")
+		volume := cs.GetColumn("Volume")
+		for i, e := range p.Entries {
+			sb := stockBar{}
+			json.Unmarshal(e.Data, &sb)
+			c.Assert(sb.Timestamp.Unix(), Equals, epoch.([]int64)[i])
+			c.Assert(sb.Open, Equals, open.([]float32)[i])
+			c.Assert(sb.High, Equals, high.([]float32)[i])
+			c.Assert(sb.Low, Equals, low.([]float32)[i])
+			c.Assert(sb.Close, Equals, close.([]float32)[i])
+			c.Assert(sb.Volume, Equals, volume.([]int32)[i])
+		}
 	}
+
+	c.Assert(len(csm.GetMetadataKeys()), Equals, 1)
+	c.Assert(csm.IsEmpty(), Equals, false)
 }
