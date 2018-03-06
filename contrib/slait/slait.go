@@ -26,11 +26,6 @@ type SlaitSubscriberConfig struct {
 	Shape          [][]string `json:"shape"`
 }
 
-type keyColumnPair struct {
-	key     *io.TimeBucketKey
-	columns *io.ColumnSeries
-}
-
 type SlaitSubscriber struct {
 	config         map[string]interface{}
 	endpoint       string
@@ -40,7 +35,6 @@ type SlaitSubscriber struct {
 	cli            client.SlaitClient
 	conn           *websocket.Conn
 	done           chan struct{}
-	pairC          chan *keyColumnPair
 }
 
 func recast(config map[string]interface{}) *SlaitSubscriberConfig {
@@ -105,13 +99,10 @@ func (ss *SlaitSubscriber) subscribe() (err error) {
 		return ss.reconnect(5 * time.Second)
 	}
 
-	ss.done = make(chan struct{}, 2)
-	ss.pairC = make(chan *keyColumnPair, 10000)
+	ss.done = make(chan struct{})
 
 	// websocket read routine
 	go ss.read()
-	// write routine
-	go ss.write()
 
 	// subscribe to all symbols on the partition
 	subMsg := socket.SocketMessage{
@@ -126,7 +117,6 @@ func (ss *SlaitSubscriber) subscribe() (err error) {
 	for {
 		select {
 		case <-ss.done:
-			glog.Warning("SlaitSubscriber received signal on done channel")
 			return err
 		case <-time.After(time.Second):
 		}
@@ -154,44 +144,20 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 			glog.Errorf("Failed to unmarshal JSON from Slait - Msg: %v - Error: %v", string(msg), err)
 		} else {
 			if p.Entries.Len() > 0 {
-				pair, err := ss.handlePublication(p)
+				csm, err := ss.publicationToCSM(p)
 				if err != nil {
 					return err
 				}
-				ss.pairC <- pair
+				if err := executor.WriteCSM(csm, false); err != nil {
+					return fmt.Errorf("Failed to write CSM for %v - Error: %v", p.Partition, err)
+				}
 			}
 		}
 	}
 	return err
 }
 
-func (ss *SlaitSubscriber) write() {
-	csm := io.NewColumnSeriesMap()
-	buffered := 0
-	flush := func() {
-		if err := executor.WriteCSM(csm, false); err != nil {
-			glog.Errorf("Failed to write CSM for - Error: %v", err)
-		}
-		buffered = 0
-		csm = io.NewColumnSeriesMap()
-	}
-	for {
-		select {
-		case pair := <-ss.pairC:
-			csm.AddColumnSeries(*pair.key, pair.columns)
-			buffered++
-			if buffered > 100 {
-				flush()
-			}
-		case <-time.After(500 * time.Millisecond):
-			flush()
-		case <-ss.done:
-			return
-		}
-	}
-}
-
-func (ss *SlaitSubscriber) handlePublication(p cache.Publication) (*keyColumnPair, error) {
+func (ss *SlaitSubscriber) publicationToCSM(p cache.Publication) (io.ColumnSeriesMap, error) {
 	columns := make([]interface{}, len(ss.shape))
 	names := make([]string, len(ss.shape))
 	length := p.Entries.Len()
@@ -240,18 +206,16 @@ func (ss *SlaitSubscriber) handlePublication(p cache.Publication) (*keyColumnPai
 	for i, col := range columns {
 		cs.AddColumn(names[i], col)
 	}
+	csm := io.NewColumnSeriesMap()
 	tbk := io.NewTimeBucketKey(fmt.Sprintf("%v/1Min/%v", p.Partition, ss.attributeGroup))
-	return &keyColumnPair{key: tbk, columns: cs}, nil
+	csm.AddColumnSeries(*tbk, cs)
+	return csm, nil
 }
 
 func (ss *SlaitSubscriber) read() (err error) {
 	defer func() {
-		// for main routine
-		ss.done <- struct{}{}
-		// for write routine
 		ss.done <- struct{}{}
 		close(ss.done)
-		close(ss.pairC)
 	}()
 	for {
 		msgType, msg, err := ss.conn.ReadMessage()
@@ -259,7 +223,8 @@ func (ss *SlaitSubscriber) read() (err error) {
 			glog.Errorf("Failed to read message from Slait - Error: %v", err)
 			return err
 		}
-		if err = ss.handleMessage(msg, msgType); err != nil {
+		err = ss.handleMessage(msg, msgType)
+		if err != nil {
 			glog.Errorf("Failed to handle websocket message - Error: %v", err)
 			return err
 		}

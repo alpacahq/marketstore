@@ -219,7 +219,7 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 }
 func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey) (rs *RowSeries) {
 	dsv := cs.GetDataShapes()
-	data, recordLen := SerializeColumnsToRows(cs, dsv, false)
+	data, recordLen := SerializeColumnsToRows(cs, dsv, true)
 	rs = NewRowSeries(itemKey, 0, data, dsv, recordLen, cs.GetCandleAttributes(), NOTYPE)
 	return rs
 }
@@ -260,7 +260,7 @@ func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]Data
 	rsMap = make(map[TimeBucketKey]*RowSeries)
 	for key, columns := range csm {
 		dataShapes := dataShapesMap[key]
-		data, recordLen := SerializeColumnsToRows(columns, dataShapes, false)
+		data, recordLen := SerializeColumnsToRows(columns, dataShapes, true)
 		rsMap[key] = NewRowSeries(key, 0, data, dataShapes, recordLen, columns.GetCandleAttributes(), NOTYPE)
 	}
 	return rsMap
