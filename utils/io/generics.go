@@ -1,10 +1,10 @@
 package io
 
 import (
+	"encoding/binary"
 	"fmt"
 	"hash/fnv"
 	"reflect"
-	"unsafe"
 )
 
 type QuorumValue struct {
@@ -45,7 +45,7 @@ func (qv *QuorumValue) AddValue(ival interface{}) error {
 		return err
 	}
 	tval := hasher.Sum(nil)
-	hashval := int(*((*uint32)(unsafe.Pointer(&tval[0]))))
+	hashval := int(binary.LittleEndian.Uint32(tval[0:]))
 
 	/*
 		Note that this assumes the vals stored here are stable, i.e. not changing due to GC, etc
