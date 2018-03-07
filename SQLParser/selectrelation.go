@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils/io"
-	"strings"
-	"time"
 )
 
 type SelectRelation struct {
@@ -143,7 +144,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if sp.ContentsEnum.IsSet(INCLUSIVEMIN) {
 					val += 1
 				}
-				q.SetStart(time.Unix(val, 0).UTC())
+				q.SetStart(val)
 			}
 			if sp.ContentsEnum.IsSet(MAXBOUND) {
 				val, err := io.GetValueAsInt64(sp.max)
@@ -153,7 +154,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
 					val -= 1
 				}
-				q.SetEnd(time.Unix(val, 0).UTC())
+				q.SetEnd(val)
 			}
 		}
 

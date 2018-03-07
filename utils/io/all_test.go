@@ -366,6 +366,9 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	o_o0 := IndexToOffset(index, recSize)
 	c.Assert(o_o0, Equals, offset)
 
+	epoch := t0.Unix()
+	c.Assert(EpochToOffset(epoch, time.Minute, recSize), Equals, offset)
+
 	// Check the 5Min interval
 	t1 := time.Date(2018, time.January, 1, 0, 5, 0, 0, loc)
 	index = TimeToIndex(t1, 5*time.Minute)
@@ -376,6 +379,9 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	offset = TimeToOffset(t1, 5*time.Minute, recSize)
 	o_o1 := IndexToOffset(index, recSize)
 	c.Assert(o_o1, Equals, offset)
+
+	epoch = t1.Unix()
+	c.Assert(EpochToOffset(epoch, 5*time.Minute, recSize), Equals, offset)
 
 	// Check the 1D interval
 	t2 := time.Date(2018, time.February, 5, 0, 0, 0, 0, loc)
@@ -388,6 +394,9 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	o_o2 := IndexToOffset(index, recSize)
 	c.Assert(o_o2, Equals, offset)
 
+	epoch = t2.Unix()
+	c.Assert(EpochToOffset(epoch, utils.Day, recSize), Equals, offset)
+
 	// Check 1D at end of year
 	t3 := time.Date(2018, time.December, 31, 0, 0, 0, 0, loc)
 	index = TimeToIndex(t3, utils.Day)
@@ -399,6 +408,9 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	o_o3 := IndexToOffset(index, recSize)
 	c.Assert(o_o3, Equals, offset)
 
+	epoch = t3.Unix()
+	c.Assert(EpochToOffset(epoch, utils.Day, recSize), Equals, offset)
+
 	// Check 1Min at end of year
 	t4 := time.Date(2018, time.December, 31, 23, 59, 0, 0, loc)
 	index = TimeToIndex(t4, time.Minute)
@@ -409,4 +421,7 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	offset = TimeToOffset(t4, time.Minute, recSize)
 	o_o4 := IndexToOffset(index, recSize)
 	c.Assert(o_o4, Equals, offset)
+
+	epoch = t4.Unix()
+	c.Assert(EpochToOffset(epoch, time.Minute, recSize), Equals, offset)
 }

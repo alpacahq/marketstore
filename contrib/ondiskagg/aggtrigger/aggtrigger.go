@@ -140,7 +140,7 @@ func (s *OnDiskAggTrigger) processFor(timeframe, keyPath string, headIndex, tail
 	// Scan
 	q := planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk)
-	q.SetRange(start, end)
+	q.SetRange(start.Unix(), end.Unix())
 
 	// decide whether to apply market-hour filter
 	applyingFilter := false
