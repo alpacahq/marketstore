@@ -311,15 +311,18 @@ func processLoad(line string) {
 		return
 	}
 
-	tbk, dataFD, loaderCtl := parseLoadArgs(args)
+	tbk, dataFD, loaderCtl, err := parseLoadArgs(args)
+	if err != nil {
+		fmt.Printf("Error while parsing arguments: %v\n", err)
+		return
+	}
 	if dataFD != nil {
 		defer dataFD.Close()
 	}
 	fmt.Println("Beginning parse...")
 	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	if err != nil {
-		Log(ERROR, "Error while generating TimeBucketInfo: %v", err)
-		fmt.Println(err)
+		fmt.Printf("Error while generating TimeBucketInfo: %v", err)
 		return
 	}
 	/*
@@ -327,8 +330,7 @@ func processLoad(line string) {
 	*/
 	dbWriter, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, executor.ThisInstance.CatalogDir)
 	if err != nil {
-		Log(ERROR, "Error return from query scanner: %v", err)
-		fmt.Println(err)
+		fmt.Printf("Error return from query scanner: %v", err)
 		return
 	}
 
@@ -450,11 +452,13 @@ func writeCSVChunk(dbWriter *executor.Writer, dataShapes []DataShape, dbKey Time
 	return start, end
 }
 
-func parseLoadArgs(args []string) (mk *TimeBucketKey, inputFD, controlFD *os.File) {
+func parseLoadArgs(args []string) (mk *TimeBucketKey, inputFD, controlFD *os.File, err error) {
+	if len(args) < 2 {
+		return nil, nil, nil, errors.New("Not enough arguments, see \"\\help load\"")
+	}
 	mk = NewTimeBucketKey(args[0])
 	if mk == nil {
-		fmt.Println("Key is not in proper format, see \"\\help load\" ")
-		return
+		return nil, nil, nil, errors.New("Key is not in proper format, see \"\\help load\"")
 	}
 	/*
 		We need to read two file names that open successfully
@@ -463,35 +467,37 @@ func parseLoadArgs(args []string) (mk *TimeBucketKey, inputFD, controlFD *os.Fil
 	var tryFD *os.File
 	for _, arg := range args[1:] {
 		fmt.Printf("Opening %s as ", arg)
-		tryFD, _ = os.Open(arg)
+		tryFD, err = os.Open(arg)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 		fs, err := tryFD.Stat()
-		if err == nil {
-			if fs.Size() != 0 {
-				if first {
-					second = true
-					controlFD = tryFD
-					fmt.Printf("loader control (yaml) file.\n")
-					break
-				} else {
-					first = true
-					inputFD = tryFD
-					fmt.Printf("data file.\n")
-				}
-				continue
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if fs.Size() != 0 {
+			if first {
+				second = true
+				controlFD = tryFD
+				fmt.Printf("loader control (yaml) file.\n")
+				break
+			} else {
+				first = true
+				inputFD = tryFD
+				fmt.Printf("data file.\n")
 			}
+			continue
 		} else {
-			fmt.Printf("- unable to open file: %s\n", err.Error())
-			return nil, nil, nil
+			return nil, nil, nil, err
 		}
 	}
 
 	if second {
-		return mk, inputFD, controlFD
+		return mk, inputFD, controlFD, nil
 	} else if first {
-		return mk, inputFD, nil
+		return mk, inputFD, nil, nil
 	}
-
-	return nil, nil, nil
+	return nil, nil, nil, nil
 }
 
 func processQueryLocal(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSeriesMap, err error) {
