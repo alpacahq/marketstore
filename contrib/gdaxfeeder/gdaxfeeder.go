@@ -94,7 +94,7 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 	query.AddTargetKey(tbk)
 	start := time.Unix(0, 0).In(utils.InstanceConfig.Timezone)
 	end := time.Unix(math.MaxInt64, 0).In(utils.InstanceConfig.Timezone)
-	query.SetRange(start, end)
+	query.SetRange(start.Unix(), end.Unix())
 	query.SetRowLimit(io.LAST, 1)
 	parsed, err := query.Parse()
 	if err != nil {

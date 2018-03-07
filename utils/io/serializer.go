@@ -10,6 +10,12 @@ func Serialize(buffer []byte, datum interface{}) ([]byte, error) {
 	if buffer == nil {
 		buffer = make([]byte, 0)
 	}
+	// skip reflection & recurision if it's a byte slice
+	if b, ok := datum.([]byte); ok {
+		return append(buffer, b...), nil
+	}
+
+	// use reflection
 	value := ValueOf(datum)
 	var err error
 	switch value.Kind() {
