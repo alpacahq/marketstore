@@ -22,7 +22,7 @@ import (
 
 func init() {
 	utils.InstanceConfig.StartTime = time.Now()
-	configFlag := flag.String("config", "mkts_config.yaml", "MarketStore YAML configuration file")
+	configFlag := flag.String("config", "mkts.yml", "MarketStore YAML configuration file")
 	printVersion := flag.Bool("version", false, "MarketStore version information")
 
 	flag.Parse()
