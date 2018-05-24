@@ -1,4 +1,3 @@
-
 # Gopkg.toml example
 #
 # Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
@@ -17,13 +16,18 @@
 #   source = "github.com/myfork/project2"
 #
 # [[override]]
-#  name = "github.com/x/y"
-#  version = "2.4.0"
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
 
 
 [[constraint]]
   name = "github.com/alpacahq/slait"
-  version = "1.0.0"
+  version = "1.1.5"
 
 [[constraint]]
   name = "github.com/antlr/antlr4"
@@ -32,6 +36,14 @@
 [[constraint]]
   name = "github.com/chzyer/readline"
   version = "1.4.0"
+
+[[constraint]]
+  name = "github.com/eapache/channels"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/gobwas/glob"
+  version = "0.2.3"
 
 [[constraint]]
   branch = "master"
@@ -50,13 +62,17 @@
   version = "0.3.3"
 
 [[constraint]]
+  name = "github.com/vmihailenco/msgpack"
+  version = "3.3.2"
+
+[[constraint]]
   branch = "v1"
   name = "gopkg.in/check.v1"
 
 [[constraint]]
-  name = "gopkg.in/vmihailenco/msgpack.v2"
-  revision = "de4b4857c10538d591bee30e8114176008f8b9d0"
-
-[[constraint]]
-  branch = "v2"
   name = "gopkg.in/yaml.v2"
+  version = "2.2.1"
+
+[prune]
+  go-tests = true
+  unused-packages = true

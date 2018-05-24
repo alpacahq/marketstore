@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/Joker/jade"
   packages = ["."]
-  revision = "b6dd4ee919ca1c60a97e27b16868a5223f32033b"
+  revision = "8828253bfc54f2f91aaef5f32b44a244b0a98e4f"
 
 [[projects]]
   name = "github.com/alpacahq/slait"
@@ -90,6 +90,21 @@
   revision = "e7cf9ea5ca9c574f3fd5f83f7eed4a6162a67dea"
 
 [[projects]]
+  name = "github.com/gobwas/glob"
+  packages = [
+    ".",
+    "compiler",
+    "match",
+    "syntax",
+    "syntax/ast",
+    "syntax/lexer",
+    "util/runes",
+    "util/strings"
+  ]
+  revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
+  version = "v0.2.3"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/glog"
   packages = ["."]
@@ -98,8 +113,8 @@
 [[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/gorilla/rpc"
@@ -132,7 +147,7 @@
   branch = "master"
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "f89479f5c0d83b365504d632ab57390447bb406a"
+  revision = "2ddf6d758266fcb080a4f9e054b9f292c85e6798"
 
 [[projects]]
   branch = "master"
@@ -176,8 +191,8 @@
     "middleware/recover",
     "view"
   ]
-  revision = "41b17aca9ec493f6eedf17c0e5545cf134f2d445"
-  version = "v10.5.0"
+  revision = "c022b7a71255aef4412c06540ee9dfacd36b03f8"
+  version = "v10.6.4"
 
 [[projects]]
   branch = "master"
@@ -186,7 +201,7 @@
     ".",
     "terminal"
   ]
-  revision = "825e39f34365e7db2c9fbc3692c16220e3bd7418"
+  revision = "a9733b5b6b83d32b479aacd51d26ef6018261963"
 
 [[projects]]
   name = "github.com/kataras/survey"
@@ -270,10 +285,10 @@
   revision = "abc90934186a77966e2beeac62ed966aac0561d5"
 
 [[projects]]
+  branch = "master"
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
+  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
 
 [[projects]]
   branch = "master"
@@ -283,9 +298,12 @@
 
 [[projects]]
   name = "github.com/vmihailenco/msgpack"
-  packages = ["codes"]
-  revision = "a053f3dac71df214bfe8b367f34220f0029c9c02"
-  version = "v3.3.1"
+  packages = [
+    ".",
+    "codes"
+  ]
+  revision = "6ab02c0ddf38d837488a746aa8709f6ecffc2fde"
+  version = "v3.3.2"
 
 [[projects]]
   branch = "master"
@@ -294,7 +312,7 @@
     "acme",
     "acme/autocert"
   ]
-  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
+  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
 
 [[projects]]
   branch = "master"
@@ -304,13 +322,13 @@
     "html",
     "html/atom"
   ]
-  revision = "a35a21de978d84ffc92f010a153705b170b2f9d1"
+  revision = "2491c5de3490fced2f6cff376127c667efeed857"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "2f57af4873d00d535c5c9028850aa2152e6a5566"
+  revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -347,12 +365,7 @@
   branch = "v2"
   name = "gopkg.in/russross/blackfriday.v2"
   packages = ["."]
-  revision = "c455fd41c6baf2f78fd7ff0aadc4e4b4d52698b0"
-
-[[projects]]
-  name = "gopkg.in/vmihailenco/msgpack.v2"
-  packages = ["."]
-  revision = "de4b4857c10538d591bee30e8114176008f8b9d0"
+  revision = "3420fef03359a232d74c2ac1d237ac357cfca298"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -363,6 +376,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2616b677f0e72d43935eaa4b756a2c8bb69ae61b526e1271de047fcfa5d1dd27"
+  inputs-digest = "4c2d111e228938aadcc8c5252b9ede323397dff96469b6fb45bc47ea1298fd12"
   solver-name = "gps-cdcl"
   solver-version = 1

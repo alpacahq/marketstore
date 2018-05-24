@@ -30,14 +30,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
-
-	"github.com/alpacahq/marketstore/contrib/ondiskagg/calendar"
+	"github.com/alpacahq/marketstore/contrib/calendar"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/golang/glog"
 )
 
 // AggTriggerConfig is the configuration for OnDiskAggTrigger you can define in

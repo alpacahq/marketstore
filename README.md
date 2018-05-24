@@ -143,7 +143,6 @@ wal_rotate_interval: 5
 stale_threshold: 5
 enable_add: true
 enable_remove: false
-
 ```
 
 * __root_directory__: allows the user to specify the directory in which the MarketStore database resides (string)

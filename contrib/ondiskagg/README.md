@@ -1,6 +1,6 @@
 # On-disk Aggregate Trigger
 
-This module buidls a MarketStore trigger which updates the downsample data upon
+This module builds a MarketStore trigger which updates the downsample data upon
 the writes on the underlying timeframe.  This is typical use case for long historical
 price data where you don't want to read all the minute level data for years
 but want to keep the consistency between timeframes.  In a way, this provides

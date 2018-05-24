@@ -42,7 +42,7 @@ type calendarJson struct {
 }
 
 // Nasdaq implements market calendar for the NASDAQ.
-var Nasdaq *Calendar = New(NasdaqJson)
+var Nasdaq = New(NasdaqJson)
 
 func jd(t time.Time) int {
 	// Note: Date() is faster than calling Hour(), Month(), and Day() separately
@@ -115,9 +115,8 @@ func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 			close := time.Date(year, month, day, et.hour, et.minute, et.second, 0, calendar.tz)
 			if t.Before(open) || t.Equal(close) || t.After(close) {
 				return false
-			} else {
-				return true
 			}
+			return true
 		case Closed:
 			fallthrough
 		default:
@@ -128,10 +127,47 @@ func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 		close := time.Date(year, month, day, ct.hour, ct.minute, ct.second, 0, calendar.tz)
 		if t.Before(open) || t.Equal(close) || t.After(close) {
 			return false
-		} else {
-			return true
+		}
+		return true
+	}
+}
+
+// EpochMarketClose determines the market close time of the day that
+// the supplied epoch timestamp occurs on. Returns nil if it is not
+// a market day.
+func (calendar *Calendar) EpochMarketClose(epoch int64) *time.Time {
+	t := time.Unix(epoch, 0).In(calendar.tz)
+	return calendar.MarketClose(t)
+}
+
+// MarketClose determines the market close time of the day that the
+// supplied timestamp occurs on. Returns nil if it is not a market day.
+func (calendar *Calendar) MarketClose(t time.Time) (mktClose *time.Time) {
+	if state, ok := calendar.days[jd(t)]; ok {
+		switch state {
+		case EarlyClose:
+			earlyClose := time.Date(
+				t.Year(), t.Month(), t.Day(),
+				calendar.earlyCloseTime.hour,
+				calendar.earlyCloseTime.minute,
+				calendar.earlyCloseTime.second,
+				0, calendar.tz)
+
+			mktClose = &earlyClose
+		case Closed:
+			return
+		default:
+			normalClose := time.Date(
+				t.Year(), t.Month(), t.Day(),
+				calendar.closeTime.hour,
+				calendar.closeTime.minute,
+				calendar.closeTime.second,
+				0, calendar.tz)
+
+			mktClose = &normalClose
 		}
 	}
+	return nil
 }
 
 func (calendar *Calendar) Tz() *time.Location {
