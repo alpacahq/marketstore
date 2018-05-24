@@ -12,7 +12,7 @@ import (
 
 	"github.com/gorilla/rpc/v2"
 
-	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+	msgpack "github.com/vmihailenco/msgpack"
 )
 
 // var null = json.RawMessage([]byte("null"))

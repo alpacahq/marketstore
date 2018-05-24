@@ -17,6 +17,10 @@ enable_last_known: false
 #         - 15Min
 #         - 1H
 #         - 1D
+#   - module: stream.so
+#     on: "*/*/*"
+#     config:
+#       filter: nasdaq
 # bgworkers:
 #   - module: gdaxfeeder.so
 #     name: GdaxFetcher

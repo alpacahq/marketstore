@@ -14,6 +14,7 @@ import (
 
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/frontend"
+	"github.com/alpacahq/marketstore/frontend/stream"
 	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/log"
 )
@@ -74,23 +75,31 @@ func init() {
 
 func main() {
 	executor.NewInstanceSetup(utils.InstanceConfig.RootDirectory, true, true, true)
-	InitializeTriggers()
-	RunBgWorkers()
-	//server, service := frontend.NewServer()
+
 	server, _ := frontend.NewServer()
 
 	Log(INFO, "Launching rpc data server...")
 	go http.Handle("/rpc", server)
+
+	Log(INFO, "Initializing websocket...")
+	stream.Initialize()
+	go http.HandleFunc("/ws", stream.Handler)
+
+	InitializeTriggers()
+
+	RunBgWorkers()
+
 	Log(INFO, "Launching heartbeat service...")
 	go frontend.Heartbeat(utils.InstanceConfig.ListenPort)
+
 	Log(INFO, "Enabling Query Access...")
 	atomic.StoreUint32(&frontend.Queryable, 1)
+
 	/*
 		Running tcp listener mux
 	*/
 	Log(INFO, "Launching tcp listener for all services...")
-	err := http.ListenAndServe(utils.InstanceConfig.ListenPort, nil)
-	if err != nil {
+	if err := http.ListenAndServe(utils.InstanceConfig.ListenPort, nil); err != nil {
 		Log(FATAL, "Failed to start server - Error: %s", err)
 	}
 }
