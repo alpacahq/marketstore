@@ -39,4 +39,4 @@ It installs the new .so file to the first GOPATH/bin directory.
 
 ## Caveat
 Since this is implemented based on the Go's plugin mechanism, it is supported only
-on Linux as of Go 1.9
+on Linux & MacOS as of Go 1.10
