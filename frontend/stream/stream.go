@@ -212,8 +212,8 @@ func stream() {
 
 // Payload is used to send data over the websocket
 type Payload struct {
-	Key  string
-	Data interface{}
+	Key  string      `msgpack:"key"`
+	Data interface{} `msgpack:"data"`
 }
 
 // Push sends data over the stream interface
