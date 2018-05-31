@@ -1,3 +1,19 @@
+// Package stream implements websocket interface for streaming in the server core.
+// This package is to handle the basic websocket connection handling and message
+// routing.  The actual data is pushed by one of the plugins if configured. The
+// main motivation of this separation is that the requirements for each streaming
+// use case varies.  For particular streaming data handling, please see the document
+// of each plugin.
+//
+// The only requirement in this layer is the server accepts the incoming connection
+// and receives the "subscribe" request from the client.  The subscribe request
+// must have a valid streaming channel format of TimeBucketKey with three elements
+// in it.  Currently we do not check th existence of the requested key.
+//
+// A plugin can push a message by calling `Push`.  Each message data should be
+// enclosed by the structure with "key" (TimeBucketKey string) and "data" (opaque)
+// fields.
+//
 package stream
 
 import (
