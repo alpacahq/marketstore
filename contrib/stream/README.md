@@ -53,6 +53,25 @@ if err != nil {
 <-done
 ```
 
+All the messages are encoded in MessagePack. The message flow at low level looks
+as follows.
+
+```
+<Connection Made on "/ws">
+Client: {"streams": ["BTC-USD/*/*", "ETH-USD/1Min/OHLCV"]}
+Server: {"streams": ["BTC-USD/*/*", "ETH-USD/1Min/OHLCV"]}
+Server: {"key": "ETH-USD/1Min/OHLCV", "data": {'Low': 1088.54, 'Close': 1088.54, 'Volume': 23.002666809999997, 'Epoch': 1516368000, 'Open': 1088.54, 'High': 1088.55}}
+Server: {'key': 'BTC/1Min/OHLCV', 'data': {'Epoch': 1516386000, 'Open': 11301.01, 'High': 11301.01, 'Low': 11300.0, 'Close': 11301.01, 'Volume': 28.9793876}}
+...
+```
+
+If an error occurs during the "streams" request (i.e. the streams format is not
+valid), it will return error as below.
+
+```
+Server: {"error": "error message for details"}
+```
+
 ## Build
 If you need to change the code, you can build it from this directory by:
 

@@ -173,6 +173,13 @@ on disk can be done via [On-Disk Aggregate](./contrib/ondiskagg/)
 
 Please see [another doc](./frontend/)
 
+## Bars Streaming
+
+You can receive realtime bars updates through the WebSocket streaming. The
+backend core accepts the WebSocket connection on `/ws` but it is a plugin that
+pushes the data.  Take a look at [Streaming Trigger Document](./contrib/stream/)
+for more details.
+
 ## Plug-in Architecture
 
 We know the needs and requirements in this space are diverse.  TheMarketStore
