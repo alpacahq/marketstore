@@ -24,6 +24,7 @@ plugins:
 	$(MAKE) -C contrib/gdaxfeeder
 	$(MAKE) -C contrib/slait
 	$(MAKE) -C contrib/stream
+	$(MAKE) -C contrib/polygon
 
 unittest:
 	go fmt ./...

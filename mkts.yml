@@ -45,3 +45,8 @@ enable_last_known: false
 #             - float64
 #           - - Volume
 #             - float64
+#   - module: polygon.so
+#         name: Polygon
+#         config:
+#             api_key: your_api_key
+#             base_url: https://api.polygon.io
