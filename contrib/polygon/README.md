@@ -17,4 +17,7 @@ bgworkers:
       config:
           api_key: your_api_key
           base_url: https://api.polygon.io
+          symbols:
+            - AAPL
+            - SPY
 ```
