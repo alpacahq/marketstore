@@ -111,14 +111,24 @@ type StreamAggregate struct {
 	E int64   `json:"-"`
 }
 
-func Stream(handler func(m *nats.Msg)) error {
+func Stream(handler func(m *nats.Msg), symbols []string) (err error) {
 	servers := "nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403"
 
 	nc, _ := nats.Connect(
 		servers,
 		nats.Token(apiKey))
 
-	_, err := nc.Subscribe("AM.*", handler)
+	if symbols != nil && len(symbols) > 0 {
+		for _, symbol := range symbols {
+			if _, err = nc.Subscribe(
+				fmt.Sprintf("AM.%s", symbol),
+				handler); err != nil {
+				return
+			}
+		}
+	} else {
+		_, err = nc.Subscribe("AM.*", handler)
+	}
 
-	return err
+	return
 }
