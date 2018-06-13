@@ -17,19 +17,8 @@ import (
 )
 
 type PolygonFetcher struct {
-	config             FetcherConfig
-	backfillM, symbols *sync.Map
-}
-
-// IsRelevant determines whether or not the symbol is
-// in the list of symbols provided to the fetcher's
-// configuration (if it is provided)
-func (f *PolygonFetcher) IsRelevant(symbol string) bool {
-	if f.symbols != nil {
-		_, relevant := f.symbols.Load(symbol)
-		return relevant
-	}
-	return false
+	config    FetcherConfig
+	backfillM *sync.Map
 }
 
 type FetcherConfig struct {
@@ -49,19 +38,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := FetcherConfig{}
 	json.Unmarshal(data, &config)
 
-	var symbols *sync.Map
-
-	if len(config.Symbols) > 0 {
-		symbols = &sync.Map{}
-		for _, sym := range config.Symbols {
-			symbols.Store(sym, struct{}{})
-		}
-	}
-
 	return &PolygonFetcher{
 		backfillM: &sync.Map{},
 		config:    config,
-		symbols:   symbols,
 	}, nil
 }
 
@@ -72,7 +51,7 @@ func (pf *PolygonFetcher) Run() {
 
 	go pf.workBackfill()
 
-	if err := api.Stream(pf.streamHandler); err != nil {
+	if err := api.Stream(pf.streamHandler, pf.config.Symbols); err != nil {
 		glog.Fatalf("nats streaming error (%v)", err)
 	}
 
@@ -82,11 +61,6 @@ func (pf *PolygonFetcher) Run() {
 func (pf *PolygonFetcher) streamHandler(msg *nats.Msg) {
 	// quickly parse the json
 	symbol, _ := jsonparser.GetString(msg.Data, "sym")
-
-	// check if symbol is relevant
-	if !pf.IsRelevant(symbol) {
-		return
-	}
 
 	open, _ := jsonparser.GetFloat(msg.Data, "o")
 	high, _ := jsonparser.GetFloat(msg.Data, "h")
