@@ -51,6 +51,12 @@
   revision = "b565731e1464263de0bda75f2e45d97b54b60110"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/buger/jsonparser"
+  packages = ["."]
+  revision = "2cac668e8456b4284edb0715e17e2af02d3ec993"
+
+[[projects]]
   name = "github.com/chzyer/readline"
   packages = ["."]
   revision = "62c6fe6193755f722b8b8788aa7357be55a50ff1"
@@ -87,7 +93,7 @@
   branch = "master"
   name = "github.com/flosch/pongo2"
   packages = ["."]
-  revision = "e7cf9ea5ca9c574f3fd5f83f7eed4a6162a67dea"
+  revision = "67f4ff8560dfa2b00920118f228c0a2f68760631"
 
 [[projects]]
   name = "github.com/gobwas/glob"
@@ -147,7 +153,7 @@
   branch = "master"
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "2ddf6d758266fcb080a4f9e054b9f292c85e6798"
+  revision = "f2b4162afba35581b6d4a50d3b8f34e33c144682"
 
 [[projects]]
   branch = "master"
@@ -191,8 +197,8 @@
     "middleware/recover",
     "view"
   ]
-  revision = "c022b7a71255aef4412c06540ee9dfacd36b03f8"
-  version = "v10.6.4"
+  revision = "964fba44cf4f4b2e94b2cbd54fbbf4d264795df7"
+  version = "v10.6.6"
 
 [[projects]]
   branch = "master"
@@ -267,6 +273,22 @@
   version = "1.0.0"
 
 [[projects]]
+  name = "github.com/nats-io/go-nats"
+  packages = [
+    ".",
+    "encoders/builtin",
+    "util"
+  ]
+  revision = "062418ea1c2181f52dc0f954f6204370519a868b"
+  version = "v1.5.0"
+
+[[projects]]
+  name = "github.com/nats-io/nuid"
+  packages = ["."]
+  revision = "289cccf02c178dc782430d534e3c1f5b72af807f"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -302,8 +324,8 @@
     ".",
     "codes"
   ]
-  revision = "6ab02c0ddf38d837488a746aa8709f6ecffc2fde"
-  version = "v3.3.2"
+  revision = "b5e691b1eb52a28c05e67ab9df303626c095c23b"
+  version = "v3.3.3"
 
 [[projects]]
   branch = "master"
@@ -312,7 +334,7 @@
     "acme",
     "acme/autocert"
   ]
-  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
+  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
 
 [[projects]]
   branch = "master"
@@ -322,13 +344,13 @@
     "html",
     "html/atom"
   ]
-  revision = "2491c5de3490fced2f6cff376127c667efeed857"
+  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
+  revision = "56ede360ec1c541828fb88741b3f1049406d28f5"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -365,7 +387,7 @@
   branch = "v2"
   name = "gopkg.in/russross/blackfriday.v2"
   packages = ["."]
-  revision = "3420fef03359a232d74c2ac1d237ac357cfca298"
+  revision = "670777b536d38a1aef1d517f6330a77d52ceb02e"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -376,6 +398,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4c2d111e228938aadcc8c5252b9ede323397dff96469b6fb45bc47ea1298fd12"
+  inputs-digest = "0b1792f8f5e6028c98a7ea6872131af234eca422988af00d0ac303aeb53addba"
   solver-name = "gps-cdcl"
   solver-version = 1
