@@ -1,56 +1,91 @@
 # MarketStore
+![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore)
 
-![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb)
-
+## Introduction
 MarketStore is a database server optimized for financial timeseries data.
 You can think of it as an extensible DataFrame service that is accessible from anywhere in your system, at higher scalability.
 
-It is designed from the ground up to address scalability issues around handling large amounts of financial market data used in algorithmic trading backtesting, charting, and analyzing price history with data spanning many years, including tick-level for the all US equities or the exploding crypto currencies space. If you are struggling with managing lots of HDF5 files, this is perfect solution to your problem.
+It is designed from the ground up to address scalability issues around handling large amounts of financial market data used in algorithmic trading backtesting, charting, and analyzing price history with data spanning many years, and granularity down to tick-level for the all US equities or the exploding crypto currencies space. If you are struggling with managing lots of HDF5 files, this is perfect solution to your problem.
 
-The batteries are included so you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates)
-right after you install MarketStore. Then you can query DataFrame content
-over the network at as low latency as your local HDF5 files from disk, and
-appending new data to the end is two orders of magnitude faster than
-DataFrame would be.  This is because the storage format is optimized for
-the type of data and use cases as well as for modern filesystem/hardware
+The batteries are included with the basic install - you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates) and writing it to the db with a simple [plugin](#plugins) configuration.
+
+MarketStore enables you to query DataFrame content over the network at as low latency as your local HDF5 files from disk, and appending new data to the end is two orders of magnitude faster than DataFrame would be. This is because the storage format is optimized for the type of data and use cases as well as for modern filesystem/hardware
 characteristics.
 
+MarketStore is production ready! At [Alpaca](https://alpaca.markets) it has been used in production for years in serious business. If you encounter a bug or are interested in getting involved, please see the [contribution section](#development) for more details.
 
 ## Install
 
-MarketStore is in pure Go (with some CGO code), so you can build it from
-source pretty easily.  If you want to start right away, use our [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/).
+### Docker
+If you want to get started right away, you can bootstrap a marketstore db instance using our latest [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/).
 
-## Build From Source
-
-### Prerequisite
-
-You need go 1.9+ and [dep](https://github.com/golang/dep).
-
-```
-$ go get -u github.com/golang/dep/...
+``` sh
+docker run -p 5993:5993 alpacamarkets/marketstore:v2.1.2
 ```
 
-
+### Source
+MarketStore is implemented in Go (with some CGO), so you can build it from
+source pretty easily. You need Go 1.9+ and [dep](https://github.com/golang/dep).
+``` sh
+go get -u github.com/alpacahq/marketstore
 ```
-$ mkdir -p /go/src/github.com/alpacahq
-$ cd /go/src/github.com/alpacahq
-$ git clone https://github.com/alpacahq/marketstore.git
-$ cd marketstore
-$ make configure
-$ make all plugins
+and then in the repo directory, install dependencies using
+``` sh
+make configure
+```
+then compile and install the project binaries using
+``` sh
+make install
+```
+Optionally, you can install the project's included plugins using
+``` sh
+make plugins
 ```
 
-### Test
-
+## Usage
+Run it:
+``` sh
+marketstore
 ```
-$ make unittest
+To learn how to format a proper db query, please see [this](./frontend/)
+
+## Configuration
+In order to run MarketStore, a YAML config file is needed. A default file (mkts.yml) is included in the repo. The path to this file is passed in to the launcher binary with the `-config` flag, or by default it finds a file named mkts.yml in the directory it is running from.
+
+### Options
+Flag | Type | Description
+--- | --- | ---
+root_directory | string | Allows the user to specify the directory in which the MarketStore database resides
+listen_port | int | Port that MarketStore will serve through
+timezone | string | System timezone by name of TZ database (e.g. America/New_York)
+log_level | string  | Allows the user to specify the log level (info | warning | error)
+queryable | bool | Allows the user to run MarketStore in polling-only mode, where it will not respond to query
+stop_grace_period | int | Sets the amount of time MarketStore will wait to shutdown after a SIGINT signal is received
+wal_rotate_interval | int | Frequency (in mintues) at which the WAL file will be trimmed after being flushed to disk  
+stale_threshold | int | Threshold (in days) by which MarketStore will declare a symbol stale
+enable_add | bool | Allows new symbols to be added to DB via /write API
+enable_remove | bool | Allows symbols to be removed from DB via /write API  
+triggers | slice | List of trigger plugins
+bgworkers | slice | List of background worker plugins
+
+### Example mkts.yml
+```
+root_directory: /project/data/mktsdb
+listen_port: 5993
+log_level: info
+queryable: true
+stop_grace_period: 0
+wal_rotate_interval: 5
+stale_threshold: 5
+enable_add: true
+enable_remove: false
 ```
 
 
-## Tutorial
+## Clients
+After starting up a MarketStore instance on your machine, you're all set to be able to read and write tick data.
 
-### Python Client
+### Python
 [pymarketstore](https://github.com/alpacahq/pymarketstore) is the standard
 python client.
 
@@ -99,11 +134,12 @@ Epoch
 
 ```
 
-### Command-Line Client mkts
+### Command-line
+The `mkts` cli tool included with the project and built with
+`make all` allows a user to write/read data to time series buckets.
+Use the `runtest.sh` wrapper under `cmd/tools/mkts/examples` to see some examples of its usage.
 
-Let's test out marketstore by running the ```runtest.sh``` example under ```cmd/tools/mkts/examples```.
-
-This test script will create a bucket, load example tick data into the bucket, and run a simple query.
+This test script will create a bucket, load example tick data from a csv into the bucket, and run a simple query.
 
 The last few lines of output should match the following:
 
@@ -126,72 +162,41 @@ Elapsed parse time: 19.523 ms
 Elapsed query time: 4.707 ms
 ```
 
-## Configuration
 
-In order to run MarketStore, a configuration .yaml file is needed. A default file is included in the codebase
-above and is called mkts.yml. This path to this file is passed in to the launcher binary with the
-'-config' flag, or by default it finds a file with that name in the directory it is running from. This file
-should look as follows:
+## Plugins
+Go plugin architecture works best with Go1.10+ on linux. For more on plugins, see the [plugins package](./contrib/plugins/) Some featured plugins are covered here -
 
-```shell
-root_directory: /project/data/mktsdb
-listen_port: 5993
-log_level: info
-queryable: true
-stop_grace_period: 0
-wal_rotate_interval: 5
-stale_threshold: 5
-enable_add: true
-enable_remove: false
-```
-
-* __root_directory__: allows the user to specify the directory in which the MarketStore database resides (string)
-* __listen_port__: specifies the port that MarketStore will serve through (integer)
-* __timezone__: system timezone by name of TZ database (e.g. America/New_York) default=UTC
-* __log_level__: allows the user to specify the log level (string: info, warning, error)
-* __queryable__: allows the user to run MarketStore in polling-only mode, where it will not respond to query (bool)
-* __stop_grace_period__: sets the amount of time MarketStore will wait to shutdown after a SIGINT signal is received (integer: seconds)
-* __wal_rotate_interval__: frequency at which the WAL file will be trimmed after being flushed to disk (integer, minutes)
-* __stale_threshold__: threshold by which MarketStore will declare a symbol stale (integer, days)
-* __enable_add__: flag allowing new symbols to be added to DB via /write API
-* __enable_remove__: flag allowing symbols to be removed from DB via /write API
-* __triggers__: list of trigger plugins
-* __bgworkers__: list of background worker plugins
-
-
-## GDAX Data Fetcher
-
-You can start pulling data from GDAX if you configure the data poller.
-For more information, see [GDAX Feeder Document](./contrib/gdaxfeeder/)
-
-## On-Disk Aggregate
-
-You only need to collect tick/minute level data.  Time-based aggregation
-on disk can be done via [On-Disk Aggregate](./contrib/ondiskagg/)
-
-## Query Parameter Spec
-
-Please see [another doc](./frontend/)
-
-## Bars Streaming
-
-You can receive realtime bars updates through the WebSocket streaming. The
-backend core accepts the WebSocket connection on `/ws` but it is a plugin that
-pushes the data.  Take a look at [Streaming Trigger Document](./contrib/stream/)
+### Streaming
+You can receive realtime bars updates through the WebSocket streaming feature. The
+db server accepts a WebSocket connection on `/ws`, and we have built a plugin that
+pushes the data.  Take a look at [the package](./contrib/stream/)
 for more details.
 
-## Plug-in Architecture
+### GDAX Data Feeder
+The batteries are included so you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates)
+right after you install MarketStore. Then you can query DataFrame content
+over the network at as low latency as your local HDF5 files from disk, and
+appending new data to the end is two orders of magnitude faster than
+DataFrame would be.  This is because the storage format is optimized for
+the type of data and use cases as well as for modern filesystem/hardware
+characteristics.
 
-We know the needs and requirements in this space are diverse.  TheMarketStore
+You can start pulling data from GDAX if you configure the data poller.
+For more information, see [the package](./contrib/gdaxfeeder/)
+
+### On-Disk Aggregation
+This plugin allows you to only worry about writing tick/minute level data. This plugin handles time-based aggregation
+on disk. For more, see [the package](./contrib/ondiskagg/)
+
+
+## Development
+If you are interested in improving MarketStore, you are more than welcome! Just file issues or requests in github or contact oss@alpaca.markets. Before opening a PR please be sure tests pass-
+
+``` sh
+make unittest
+```
+
+### Plugins Development
+We know the needs and requirements in this space are diverse.  MarketStore
 provides strong core functionality with flexible plug-in architecture.
 If you want to build your own, look around [plugins](./plugins/)
-
-## Bug Report & Contribution
-
-If you are interested in improving MarketStore, you are more than welcome!  Just file issues or requests in github or contact oss@alpaca.markets.
-
-## Is This Production-Ready?
-
-Yes, absolutely!  It has been used in production for years in serious business,
-but we also never feel it is complete.  You can use it for your own purpose
-and give us more feedback.

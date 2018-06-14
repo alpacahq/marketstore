@@ -8,24 +8,30 @@ materialized views.
 
 ## Configuration
 ondiskagg.so comes with the server by default, so you can simply configure it
-in MarketStore configuration file.  Add the following to your config file.
+in MarketStore configuration file.
 
+### Options
+Name | Type | Default | Description
+--- | --- | --- | ---
+on | string | none | The file glob pattern to match on
+filter | string | none | Filters pushes to '1D' timeframes and above based on market hours. Only 'nasdaq' is supported at this time.
+destinations | slice of strings | Downsample target time windows
+
+### Example
+Add the following to your config file:
 ```
 triggers:
-    - module: ondiskagg.so
-      on: */1Min/OHLCV
-      config:
-          # filter: "nasdaq"
-          destinations:
-              - 5Min
-              - 15Min
-              - 1H
-              - 1D
+  - module: ondiskagg.so
+    on: */1Min/OHLCV
+    config:
+        filter: "nasdaq"
+        destinations:
+            - 5Min
+            - 15Min
+            - 1H
+            - 1D
 ```
 
-`destinations` are downsample target time windows.  Optionally, if filter
-is set to `nasdaq`, it filters the scan data by NASDAQ market hours for 1D or
-upper timeframes.
 
 ## Build
 If you need to change the code, you can build it from this directory by:
