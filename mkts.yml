@@ -53,3 +53,9 @@ enable_last_known: false
 #             symbols:
 #                 - AAPL
 #                 - SPY
+#   - module: bitmexfeeder.so
+#     name: BitmexFeeder
+#     config:
+#       query_start: "2018-06-16 00:00"
+#       symbols: ".XBT"
+#       base_timeframe: "5m"
