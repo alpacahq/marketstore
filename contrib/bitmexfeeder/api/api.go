@@ -47,7 +47,10 @@ func GetBuckets(symbol string, from time.Time) ([]TradeBucketedResponse, error) 
 		"reverse":   []string{"false"},
 		"startTime": []string{from.String()},
 	}
-	uri, _ := url.Parse(baseURL + "/api/v1/trade/bucketed")
+	uri, err := url.Parse(baseURL + "/api/v1/trade/bucketed")
+	if err != nil {
+		return nil, err
+	}
 	uri.RawQuery = values.Encode()
 	reqURL := uri.String()
 	log.Println(reqURL)
