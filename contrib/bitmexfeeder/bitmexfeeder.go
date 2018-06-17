@@ -127,7 +127,6 @@ func (gd *BitmexFetcher) Run() {
 			timeStart = time.Now().UTC().Add(-time.Hour)
 		}
 	}
-	responseTimelayout := "2006-01-02T03:04:05.000Z"
 	for {
 		lastTime := timeStart
 		for _, symbol := range symbols {
@@ -150,7 +149,7 @@ func (gd *BitmexFetcher) Run() {
 			close := make([]float64, 0)
 			volume := make([]float64, 0)
 			for _, rate := range rates {
-				parsedTime, err := time.Parse(responseTimelayout, rate.Timestamp)
+				parsedTime, err := time.Parse(time.RFC3339, rate.Timestamp)
 				if err != nil {
 					log.Panic(err)
 				}
