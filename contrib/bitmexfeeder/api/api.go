@@ -36,12 +36,12 @@ var (
 )
 
 // GetBuckets from bitmex Trade API
-func GetBuckets(symbol string, from time.Time) ([]TradeBucketedResponse, error) {
+func GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedResponse, error) {
 	resp := []TradeBucketedResponse{}
 
 	values := url.Values{
 		"symbol":    []string{symbol},
-		"binSize":   []string{"1m"},
+		"binSize":   []string{binSize},
 		"partial":   []string{"false"},
 		"count":     []string{"500"},
 		"reverse":   []string{"false"},

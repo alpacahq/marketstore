@@ -14,7 +14,7 @@ in MarketStore configuration file.
 | Name           | Type             | Default                  | Description                                               |
 | -------------- | ---------------- | ------------------------ | --------------------------------------------------------- |
 | query_start    | string           | 2017-01-01T00:00:00.000Z | The point in time from which to start fetching price data |
-| base_timeframe | string           | 1Min                     | The bar aggregation duration                              |
+| base_timeframe | string           | [1m, 5m, 1h, 1d]         | The bar aggregation duration                              |
 | symbols        | slice of strings | [.XBT, XBTM18, XBTU18]   | The symbols to retrieve data for                          |
 
 Symbols available:

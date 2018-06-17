@@ -19,13 +19,13 @@ import (
 // FetcherConfig is the configuration for BitmexFetcher you can define in
 // marketstore's config file through bgworker extension.
 type FetcherConfig struct {
-	// list of currency symbols, defults to ["BTC", "ETH", "LTC", "BCH"]
+	// list of currency symbols, defults to all symbols available to BitMEX
 	Symbols []string `json:"symbols"`
 	// time string when to start first time, in "YYYY-MM-DD HH:MM" format
 	// if it is restarting, the start is the last written data timestamp
 	// otherwise, it starts from an hour ago by default
 	QueryStart string `json:"query_start"`
-	// such as 5Min, 1D.  defaults to 1Min
+	// such as 5m, 1h, 1D.  defaults to 1m
 	BaseTimeframe string `json:"base_timeframe"`
 }
 
@@ -72,7 +72,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	} else {
 		queryStart = time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)
 	}
-	timeframeStr := "1Min"
+	timeframeStr := "1m"
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
 	}
@@ -131,7 +131,7 @@ func (gd *BitmexFetcher) Run() {
 		lastTime := timeStart
 		for _, symbol := range symbols {
 			glog.Infof("Requesting %s %v with 500 time periods", symbol, timeStart)
-			rates, err := api.GetBuckets(symbol, timeStart)
+			rates, err := api.GetBuckets(symbol, timeStart, gd.baseTimeframe.String)
 			if err != nil {
 				glog.Errorf("Response error: %v", err)
 				// including rate limit case
@@ -197,6 +197,6 @@ func (gd *BitmexFetcher) Run() {
 func main() {
 
 	start := time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)
-	res, err := api.GetBuckets("XBT", start)
+	res, err := api.GetBuckets("XBT", start, "5m")
 	fmt.Println(res, err)
 }
