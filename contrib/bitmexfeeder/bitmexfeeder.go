@@ -127,7 +127,7 @@ func (gd *BitmexFetcher) Run() {
 			timeStart = time.Now().UTC().Add(-time.Hour)
 		}
 	}
-	responseTimelayout := "2017-01-01T00:00:00.000Z"
+	responseTimelayout := "2006-01-02T03:04:05.000Z"
 	for {
 		lastTime := timeStart
 		for _, symbol := range symbols {
