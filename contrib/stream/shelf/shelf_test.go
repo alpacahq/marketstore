@@ -17,9 +17,11 @@ var _ = Suite(&ShelfTestSuite{})
 func (s *ShelfTestSuite) TestShelf(c *C) {
 	// normal expiration
 	{
+		expC := make(chan struct{}, 1)
 		expired := false
 		h := NewShelfHandler(func(tbk io.TimeBucketKey, data interface{}) error {
 			expired = true
+			expC <- struct{}{}
 			return nil
 		})
 
@@ -29,15 +31,17 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 
 		shelf.Store(tbk, genColumns(), time.Now().Add(time.Millisecond))
 
-		<-time.After(2 * time.Millisecond)
+		<-expC
 
 		c.Assert(expired, Equals, true)
 	}
 	// replacement with same deadline, then expiration
 	{
+		expC := make(chan struct{}, 1)
 		expireCount := 0
 		h := NewShelfHandler(func(tbk io.TimeBucketKey, data interface{}) error {
 			expireCount++
+			expC <- struct{}{}
 			return nil
 		})
 
@@ -53,15 +57,19 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 		// replace
 		shelf.Store(tbk, genColumns(), deadline)
 
-		<-time.After(200 * time.Millisecond)
+		<-expC
 
 		c.Assert(expireCount, Equals, 1)
 	}
 	// replacement with new deadline, then expiration
 	{
+		expC := make(chan struct{}, 2)
+
 		expireCount := 0
 		h := NewShelfHandler(func(tbk io.TimeBucketKey, data interface{}) error {
 			expireCount++
+			expC <- struct{}{}
+
 			return nil
 		})
 
@@ -77,11 +85,11 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 		// replace
 		shelf.Store(tbk, genColumns(), deadline.Add(100*time.Millisecond))
 
-		<-time.After(150 * time.Millisecond)
+		<-expC
 
 		c.Assert(expireCount, Equals, 1)
 
-		<-time.After(60 * time.Millisecond)
+		<-expC
 
 		c.Assert(expireCount, Equals, 2)
 	}

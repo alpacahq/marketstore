@@ -37,7 +37,7 @@ func (t *TestSuite) TestNew(c *C) {
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
 	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, 59)
+	c.Assert(len(worker.symbols), Equals, 28)
 
 	config = getConfig(`{
 	    "query_start": "2017-01-02 00:00"
