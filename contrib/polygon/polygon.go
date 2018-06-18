@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -29,6 +30,10 @@ type FetcherConfig struct {
 	BaseURL string `json:"base_url"`
 	// list of symbols that are important
 	Symbols []string `json:"symbols"`
+	// time string when to start first time, in "YYYY-MM-DD HH:MM" format
+	// if it is restarting, the start is the last written data timestamp
+	// otherwise, it starts from the latest streamed bar
+	QueryStart string `json:"query_start"`
 }
 
 // NewBgWorker returns a new instances of PolygonFetcher. See FetcherConfig
@@ -95,29 +100,46 @@ func (pf *PolygonFetcher) workBackfill() {
 	ticker := time.NewTicker(30 * time.Second)
 
 	for range ticker.C {
+		wg := sync.WaitGroup{}
+		count := 0
+
 		// range over symbols that need backfilling, and
 		// backfill them from the last written record
 		pf.backfillM.Range(func(key, value interface{}) bool {
 			symbol := key.(string)
-
 			// make sure epoch value isn't nil (i.e. hasn't
 			// been backfilled already)
 			if value != nil {
-				backfill(symbol, *value.(*int64))
-				pf.backfillM.Store(key, nil)
+				go func() {
+					wg.Add(1)
+					defer wg.Done()
+
+					// backfill the symbol in parallel
+					pf.backfill(symbol, *value.(*int64))
+					pf.backfillM.Store(key, nil)
+				}()
+			}
+
+			// limit 10 goroutines per CPU core
+			if count >= runtime.NumCPU()*10 {
+				return false
 			}
 
 			return true
 		})
+		wg.Wait()
 	}
 }
 
-func backfill(symbol string, endEpoch int64) {
-	var csm io.ColumnSeriesMap
+func (pf *PolygonFetcher) backfill(symbol string, endEpoch int64) {
 	tbk := io.NewTimeBucketKey(fmt.Sprintf("%s/1Min/OHLCV", symbol))
+	var (
+		from time.Time
+		err  error
+	)
 
 	// query the latest entry prior to the streamed record
-	{
+	if pf.config.QueryStart == "" {
 		instance := executor.ThisInstance
 		cDir := instance.CatalogDir
 		q := planner.NewQuery(cDir)
@@ -137,32 +159,52 @@ func backfill(symbol string, endEpoch int64) {
 			return
 		}
 
-		csm, _, err = scanner.Read()
+		csm, _, err := scanner.Read()
 		if err != nil {
 			glog.Errorf("scanner read error (%v)", err)
 			return
 		}
-	}
 
-	epoch := csm[*tbk].GetEpoch()
+		epoch := csm[*tbk].GetEpoch()
 
-	// no gap to fill
-	if len(epoch) == 0 {
-		return
+		// no gap to fill
+		if len(epoch) == 0 {
+			return
+		}
+
+		glog.Infof("backfilling %v from %v to %v",
+			symbol, time.Unix(epoch[len(epoch)-1], 0),
+			time.Unix(endEpoch, 0))
+
+		from = time.Unix(epoch[len(epoch)-1], 0)
+
+	} else {
+		for _, layout := range []string{
+			"2006-01-02 03:04:05",
+			"2006-01-02T03:04:05",
+			"2006-01-02 03:04",
+			"2006-01-02T03:04",
+			"2006-01-02",
+		} {
+			from, err = time.Parse(layout, pf.config.QueryStart)
+			if err == nil {
+				break
+			}
+		}
 	}
 
 	// request & write the missing bars
 	{
-		resp, err := api.GetAggregates(symbol, time.Unix(epoch[len(epoch)-1], 0))
+		resp, err := api.GetAggregates(symbol, from)
 
 		if err != nil {
 			glog.Errorf("failed to backfill aggregates (%v)", err)
 			return
 		}
 
-		csm = io.NewColumnSeriesMap()
+		csm := io.NewColumnSeriesMap()
 
-		epoch = make([]int64, len(resp.Ticks))
+		epoch := make([]int64, len(resp.Ticks))
 		open := make([]float32, len(resp.Ticks))
 		high := make([]float32, len(resp.Ticks))
 		low := make([]float32, len(resp.Ticks))
