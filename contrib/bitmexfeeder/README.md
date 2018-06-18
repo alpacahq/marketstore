@@ -11,21 +11,22 @@ in MarketStore configuration file.
 
 ### Options
 
-| Name           | Type             | Default                  | Description                                               |
-| -------------- | ---------------- | ------------------------ | --------------------------------------------------------- |
-| query_start    | string           | 2017-01-01T00:00:00.000Z | The point in time from which to start fetching price data |
-| base_timeframe | string           | [1m, 5m, 1h, 1d]         | The bar aggregation duration                              |
-| symbols        | slice of strings | [.XBT, XBTM18, XBTU18]   | The symbols to retrieve data for                          |
+| Name           | Type             | Default                | Description                                               |
+| -------------- | ---------------- | ---------------------- | --------------------------------------------------------- |
+| query_start    | string           | 2017-01-01 00:00       | The point in time from which to start fetching price data |
+| base_timeframe | string           | [1Min, 5Min, 1H, 1D]   | The bar aggregation duration                              |
+| symbols        | slice of strings | [.XBT, XBTM18, XBTU18] | The symbols to retrieve data for                          |
 
 Symbols available:
 
 ```text
-.ADAXBT, .ADAXBT30M, .BCHXBT, .BCHXBT30M, .BVOL, .BVOL24H, .BVOL7D, .BXBT, .BXBT30M, .BXBTJPY,
-.BXBTJPY30M, .DASHXBT, .DASHXBT30M, .EOSXBT, .EOSXBT30M, .ETCXBT, .ETCXBT30M, .ETHBON, .ETHBON2H, .ETHBON8H,
-.ETHXBT, .ETHXBT30M, .EVOL7D, .LTCXBT, .LTCXBT30M, .NEOXBT, .NEOXBT30M, .USDBON, .USDBON2H, .USDBON8H,
-.XBT, .XBT30M, .XBTBON, .XBTBON2H, .XBTBON8H, .XBTJPY, .XBTJPY30M, .XBTUSDPI, .XBTUSDPI2H, .XBTUSDPI8H,
-.XLMXBT, .XLMXBT30M, .XMRXBT, .XMRXBT30M, .XRPXBT, .XRPXBT30M, .ZECXBT, .ZECXBT30M, ADAM18, BCHM18,
-BTC/USD, EOSM18, ETHM18, LTCM18, XBT7D_D95, XBT7D_U105, XBTM18, XBTU18, XRPM18
+.ADAXBT, .BCHXBT, .BXBT, .BXBTJPY,
+.DASHXBT, .EOSXBT, .ETCXBT, .ETHBON,
+.ETHXBT, .LTCXBT, .NEOXBT, .USDBON,
+.XBT, .XBTBON, .XBTJPY, .XBTUSDPI,
+.XLMXBT, .XMRXBT, .XRPXBT, .ZECXBT,
+EOSM18, ETHM18, LTCM18, XBT7D_D95,
+XBT7D_U105, XBTM18, XBTU18, XRPM18
 ```
 
 #### Query Start

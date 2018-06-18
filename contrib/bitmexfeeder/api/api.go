@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -32,7 +31,13 @@ var (
 	client = &http.Client{
 		Timeout: time.Second * 10,
 	}
-	baseURL = "https://www.bitmex.com"
+	baseURL       = "https://www.bitmex.com"
+	bitmexBinSize = map[string]string{
+		"1Min": "1m",
+		"5Min": "5m",
+		"1H":   "1h",
+		"1D":   "1d",
+	}
 )
 
 // GetBuckets from bitmex Trade API
@@ -41,7 +46,7 @@ func GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedR
 
 	values := url.Values{
 		"symbol":    []string{symbol},
-		"binSize":   []string{binSize},
+		"binSize":   []string{bitmexBinSize[binSize]},
 		"partial":   []string{"false"},
 		"count":     []string{"500"},
 		"reverse":   []string{"false"},
@@ -53,7 +58,6 @@ func GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedR
 	}
 	uri.RawQuery = values.Encode()
 	reqURL := uri.String()
-	log.Println(reqURL)
 	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
 		return nil, err

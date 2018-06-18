@@ -47,7 +47,7 @@ func recast(config map[string]interface{}) *FetcherConfig {
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	symbols := []string{".ADAXBT", ".ADAXBT30M", ".BCHXBT", ".BCHXBT30M", ".BVOL", ".BVOL24H", ".BVOL7D", ".BXBT", ".BXBT30M", ".BXBTJPY", ".BXBTJPY30M", ".DASHXBT", ".DASHXBT30M", ".EOSXBT", ".EOSXBT30M", ".ETCXBT", ".ETCXBT30M", ".ETHBON", ".ETHBON2H", ".ETHBON8H", ".ETHXBT", ".ETHXBT30M", ".EVOL7D", ".LTCXBT", ".LTCXBT30M", ".NEOXBT", ".NEOXBT30M", ".USDBON", ".USDBON2H", ".USDBON8H", ".XBT", ".XBT30M", ".XBTBON", ".XBTBON2H", ".XBTBON8H", ".XBTJPY", ".XBTJPY30M", ".XBTUSDPI", ".XBTUSDPI2H", ".XBTUSDPI8H", ".XLMXBT", ".XLMXBT30M", ".XMRXBT", ".XMRXBT30M", ".XRPXBT", ".XRPXBT30M", ".ZECXBT", ".ZECXBT30M", "ADAM18", "BCHM18", "BTC/USD", "EOSM18", "ETHM18", "LTCM18", "XBT7D_D95", "XBT7D_U105", "XBTM18", "XBTU18", "XRPM18"}
+	symbols := []string{".ADAXBT", ".BCHXBT", ".BXBT", ".BXBTJPY", ".DASHXBT", ".EOSXBT", ".ETCXBT", ".ETHBON", ".ETHXBT", ".LTCXBT", ".NEOXBT", ".USDBON", ".XBT", ".XBTBON", ".XBTJPY", ".XBTUSDPI", ".XLMXBT", ".XMRXBT", ".XRPXBT", ".ZECXBT", "EOSM18", "ETHM18", "LTCM18", "XBT7D_D95", "XBT7D_U105", "XBTM18", "XBTU18", "XRPM18"}
 
 	config := recast(conf)
 	if len(config.Symbols) > 0 {
