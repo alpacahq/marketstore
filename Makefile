@@ -25,6 +25,7 @@ plugins:
 	$(MAKE) -C contrib/slait
 	$(MAKE) -C contrib/stream
 	$(MAKE) -C contrib/polygon
+	$(MAKE) -C contrib/bitmexfeeder
 
 unittest:
 	go fmt ./...
