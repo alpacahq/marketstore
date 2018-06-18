@@ -25,6 +25,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/alpacahq/marketstore/utils/io"
 )
 
 // Trigger is an interface every trigger plugin has to implement.
@@ -33,7 +36,7 @@ type Trigger interface {
 	// keyPath is the string path of the modified file relative
 	// from the catalog root directory.  indexes is a slice
 	// containing indexes of the rows being modified.
-	Fire(keyPath string, indexes []int64)
+	Fire(keyPath string, records []Record)
 }
 
 // TriggerMatcher checks if the trigger should be fired or not.
@@ -48,6 +51,93 @@ type TriggerMatcher struct {
 // SymbolLoader is an interface to retrieve symbol object from plugin
 type SymbolLoader interface {
 	LoadSymbol(symbolName string) (interface{}, error)
+}
+
+// Record represents a serialized byte buffer
+// for a record written to the DB
+type Record []byte
+
+// Bytes returns the raw record buffer
+func (r *Record) Bytes() []byte {
+	return *r
+}
+
+// Index returns the index of the record
+func (r *Record) Index() int64 {
+	if r == nil {
+		return 0
+	}
+	return io.ToInt64((*r)[0:8])
+}
+
+// Payload returns the data payload of the record,
+// excluding the index
+func (r *Record) Payload() []byte {
+	if r == nil {
+		return nil
+	}
+	return (*r)[8:]
+}
+
+// ColumnSeriesToRecords takes a TimeBucketKey and a ColumnSeries and converts
+// them to a slice of trigger.Record
+func ColumnSeriesToRecords(tbk io.TimeBucketKey, cs io.ColumnSeries) ([]Record, error) {
+	rs := cs.ToRowSeries(tbk)
+	epochs := rs.GetEpoch()
+
+	tf, err := tbk.GetTimeFrame()
+	if err != nil {
+		return nil, err
+	}
+
+	records := make([]Record, len(epochs))
+
+	for i, epoch := range epochs {
+		buf, err := io.Serialize(nil, io.EpochToIndex(epoch, tf.Duration))
+		if err != nil {
+			return nil, err
+		}
+
+		records[i] = Record(append(buf, rs.GetRow(i)[len(buf):]...))
+	}
+
+	return records, nil
+}
+
+// RecordsToColumnSeries takes a slice of Record, along with the required
+// information for constructing a ColumnSeries, and builds it from the
+// slice of Record.
+func RecordsToColumnSeries(
+	tbk io.TimeBucketKey,
+	ds []io.DataShape,
+	ca *io.CandleAttributes,
+	tf time.Duration,
+	year int16,
+	records []Record) *io.ColumnSeries {
+
+	cs := io.NewColumnSeries()
+
+	index := 0
+
+	for _, s := range ds {
+		data := []byte{}
+
+		for _, record := range records {
+			slc := record.Bytes()[index : index+s.Len()]
+			if strings.EqualFold(s.Name, "Epoch") {
+				buf, _ := io.Serialize(nil,
+					io.IndexToTime(io.ToInt64(slc), tf, year).Unix())
+				data = append(data, buf...)
+			} else {
+				data = append(data, slc...)
+			}
+		}
+
+		cs.AddColumn(s.Name, s.Type.ConvertByteSliceInto(data))
+		index += s.Len()
+	}
+
+	return cs
 }
 
 // Load loads a function named NewTrigger with a parameter type map[string]interface{}

@@ -425,3 +425,61 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	epoch = t4.Unix()
 	c.Assert(EpochToOffset(epoch, time.Minute, recSize), Equals, offset)
 }
+
+func (s *TestSuite) TestUnion(c *C) {
+	csA := makeTestCS()
+	csB := makeTestCS()
+
+	// identical cs join
+	cs := ColumnSeriesUnion(csA, csB)
+
+	for name, col := range cs.GetColumns() {
+		switch reflect.TypeOf(col).Kind() {
+		case reflect.Slice:
+			av := reflect.ValueOf(csA.columns[name])
+			bv := reflect.ValueOf(csB.columns[name])
+			cv := reflect.ValueOf(col)
+
+			c.Assert(av.Len(), Equals, cv.Len())
+			c.Assert(bv.Len(), Equals, cv.Len())
+
+			for i := 0; i < cv.Len(); i++ {
+				c.Assert(av.Index(i).Interface(), Equals, cv.Index(i).Interface())
+				c.Assert(bv.Index(i).Interface(), Equals, cv.Index(i).Interface())
+			}
+		}
+	}
+
+	// shorter cs union
+	c.Assert(csA.RestrictLength(2, LAST), IsNil)
+
+	cs = ColumnSeriesUnion(csA, csB)
+
+	c.Assert(len(cs.GetEpoch()), Equals, 3)
+	c.Assert(cs.GetEpoch()[0], Equals, csB.GetEpoch()[0])
+	c.Assert(cs.GetEpoch()[1], Equals, csA.GetEpoch()[0])
+	c.Assert(cs.GetEpoch()[2], Equals, csA.GetEpoch()[1])
+
+	// appending union
+	col1 := []float32{4, 5, 6}
+	col2 := []float64{4, 5, 6}
+	col3 := []int32{4, 5, 6}
+	col4 := []int64{4, 5, 6}
+	col5 := []byte{4, 5, 6}
+	csC := NewColumnSeries()
+	csC.AddColumn("Epoch", col4)
+	csC.AddColumn("One", col1)
+	csC.AddColumn("Two", col2)
+	csC.AddColumn("Three", col3)
+	csC.AddColumn("Four", col4)
+	csC.AddColumn("Five", col5)
+
+	cs = ColumnSeriesUnion(csB, csC)
+	c.Assert(len(cs.GetEpoch()), Equals, 6)
+	c.Assert(cs.GetEpoch()[0], Equals, csB.GetEpoch()[0])
+	c.Assert(cs.GetEpoch()[1], Equals, csB.GetEpoch()[1])
+	c.Assert(cs.GetEpoch()[2], Equals, csB.GetEpoch()[2])
+	c.Assert(cs.GetEpoch()[3], Equals, csC.GetEpoch()[0])
+	c.Assert(cs.GetEpoch()[4], Equals, csC.GetEpoch()[1])
+	c.Assert(cs.GetEpoch()[5], Equals, csC.GetEpoch()[2])
+}

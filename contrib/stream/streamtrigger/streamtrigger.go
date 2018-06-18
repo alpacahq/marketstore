@@ -67,7 +67,12 @@ func maxInt64(values []int64) int64 {
 
 // Fire is the hook to retrieve the latest written data
 // and stream it over the websocket
-func (s *StreamTrigger) Fire(keyPath string, indexes []int64) {
+func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
+	indexes := make([]int64, len(records))
+	for i, record := range records {
+		indexes[i] = record.Index()
+	}
+
 	tail := maxInt64(indexes)
 
 	cDir := executor.ThisInstance.CatalogDir

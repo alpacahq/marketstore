@@ -10,62 +10,64 @@ import (
 	"github.com/alpacahq/marketstore/plugins/trigger"
 )
 
-var once sync.Once
-var c chan writtenIndexes
-var done chan struct{}
-var m map[string][]int64
-var triggerWg sync.WaitGroup
+var (
+	once      sync.Once
+	c         chan writtenRecords
+	done      chan struct{}
+	m         map[string][]trigger.Record
+	triggerWg sync.WaitGroup
+)
 
-type writtenIndexes struct {
+type writtenRecords struct {
 	key     string
-	indexes []int64
+	records []trigger.Record
 }
 
 func setup() {
-	c = make(chan writtenIndexes, WriteChannelCommandDepth)
+	c = make(chan writtenRecords, WriteChannelCommandDepth)
 	done = make(chan struct{})
 	go run()
 }
 
-// AddWrittenIndex collects the index value from the serialized buffer.
-func addWrittenIndex(keyPath string, index int64) {
+// appendRecord collects the record from the serialized buffer.
+func appendRecord(keyPath string, record []byte) {
 	once.Do(setup)
 	if m == nil {
-		m = make(map[string][]int64)
+		m = make(map[string][]trigger.Record)
 	}
-	m[keyPath] = append(m[keyPath], index)
+	m[keyPath] = append(m[keyPath], record)
 }
 
-// DispatchWrittenIndexes iterates over the registered triggers and fire the event
+// dispatchRecords iterates over the registered triggers and fire the event
 // if the file path matches the condition.  This is meant to be
 // run in a separate goroutine and recovers from panics in the triggers.
-func dispatchWrittenIndexes() {
-	for key, indexes := range m {
-		c <- writtenIndexes{key: key, indexes: indexes}
+func dispatchRecords() {
+	for key, records := range m {
+		c <- writtenRecords{key: key, records: records}
 	}
 	m = nil // for GC
 }
 
 func run() {
 	defer func() { done <- struct{}{} }()
-	for wi := range c {
+	for wr := range c {
 		for _, tmatcher := range ThisInstance.TriggerMatchers {
-			if tmatcher.Match(wi.key) {
+			if tmatcher.Match(wr.key) {
 				triggerWg.Add(1)
-				go fire(tmatcher.Trigger, wi.key, wi.indexes)
+				go fire(tmatcher.Trigger, wr.key, wr.records)
 			}
 		}
 	}
 }
 
-func fire(trig trigger.Trigger, key string, indexes []int64) {
+func fire(trig trigger.Trigger, key string, records []trigger.Record) {
 	defer func() {
 		triggerWg.Done()
 		if r := recover(); r != nil {
 			glog.Errorf("recovering from %v\n%s", r, string(debug.Stack()))
 		}
 	}()
-	trig.Fire(key, indexes)
+	trig.Fire(key, records)
 }
 
 // FinishAndWait closes the writtenIndexes channel, and waits

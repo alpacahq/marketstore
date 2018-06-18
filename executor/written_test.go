@@ -17,11 +17,11 @@ type FakeTrigger struct {
 	fireC      chan struct{}
 }
 
-func (t *FakeTrigger) Fire(keyPath string, indexes []int64) {
+func (t *FakeTrigger) Fire(keyPath string, records []trigger.Record) {
 	if t.toPanic {
 		panic("panic test")
 	}
-	t.calledWith = append(t.calledWith, []interface{}{keyPath, indexes})
+	t.calledWith = append(t.calledWith, []interface{}{keyPath, records})
 	t.fireC <- struct{}{}
 }
 
@@ -46,9 +46,9 @@ func (s *WrittenIndexesTests) TestWrittenIndexes(c *C) {
 	s.SetTrigger(t, "AAPL/1Min/OHLCV")
 
 	buffer := io.SwapSliceData([]int64{0, 5}, byte(0)).([]byte)
-	addWrittenIndex("AAPL/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).Index())
-	addWrittenIndex("TSLA/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).Index())
-	dispatchWrittenIndexes()
+	appendRecord("AAPL/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).IndexAndPayload())
+	appendRecord("TSLA/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).IndexAndPayload())
+	dispatchRecords()
 
 	<-t.fireC
 	c.Check(t.calledWith[0][0].(string), Equals, "AAPL/1Min/OHLCV/2017.bin")
@@ -56,7 +56,7 @@ func (s *WrittenIndexesTests) TestWrittenIndexes(c *C) {
 
 	t.calledWith = [][]interface{}{}
 	t.toPanic = true
-	dispatchWrittenIndexes()
+	dispatchRecords()
 	c.Check(len(t.calledWith), Equals, 0)
 
 	FinishAndWait()
