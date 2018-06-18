@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/alpacahq/marketstore/plugins/trigger"
+
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
@@ -207,7 +209,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/
 
-	defer dispatchWrittenIndexes()
+	defer dispatchRecords()
 
 	WALBypass := ThisInstance.WALBypass
 	//WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
@@ -294,7 +296,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 			return err
 		}
 		for i, buffer := range writes {
-			addWrittenIndex(keyPath, buffer.Index())
+			appendRecord(keyPath, trigger.Record(buffer.IndexAndPayload()))
 			writes[i] = nil // for GC
 		}
 		writesPerFile[keyPath] = nil // for GC

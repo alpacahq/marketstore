@@ -3,6 +3,7 @@ package io
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -41,9 +42,11 @@ func NewColumnSeries() *ColumnSeries {
 	cs.nameIncrement = make(map[string]int)
 	return cs
 }
+
 func (cs *ColumnSeries) GetColumn(name string) interface{} {
 	return cs.GetByName(name)
 }
+
 func (cs *ColumnSeries) GetDataShapes() (ds []DataShape) {
 	var et []EnumElementType
 	for _, name := range cs.orderedNames {
@@ -51,6 +54,7 @@ func (cs *ColumnSeries) GetDataShapes() (ds []DataShape) {
 	}
 	return NewDataShapeVector(cs.orderedNames, et)
 }
+
 func (cs *ColumnSeries) Len() int {
 	if len(cs.orderedNames) == 0 {
 		return 0
@@ -58,6 +62,7 @@ func (cs *ColumnSeries) Len() int {
 	i_col := cs.GetByName(cs.orderedNames[0])
 	return reflect.ValueOf(i_col).Len()
 }
+
 func (cs *ColumnSeries) GetTime() []time.Time {
 	ep := cs.GetColumn("Epoch").([]int64)
 	ts := make([]time.Time, len(ep))
@@ -82,12 +87,15 @@ func (cs *ColumnSeries) GetColumnNames() (columnNames []string) {
 func (cs *ColumnSeries) GetCandleAttributes() (cat *CandleAttributes) {
 	return cs.candleAttributes
 }
+
 func (cs *ColumnSeries) SetCandleAttributes(cat *CandleAttributes) {
 	cs.candleAttributes = cat
 }
+
 func (cs *ColumnSeries) GetColumns() map[string]interface{} {
 	return cs.columns
 }
+
 func (cs *ColumnSeries) AddColumn(name string, columnData interface{}) (outname string) {
 	if _, ok := cs.columns[name]; ok {
 		// Name collision, make the name unique
@@ -209,6 +217,7 @@ func (cs *ColumnSeries) GetByName(name string) interface{} {
 		return cs.columns[name]
 	}
 }
+
 func (cs *ColumnSeries) GetEpoch() []int64 {
 	col := cs.GetByName("Epoch")
 	if col == nil {
@@ -217,14 +226,131 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 		return col.([]int64)
 	}
 }
+
 func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey) (rs *RowSeries) {
 	dsv := cs.GetDataShapes()
 	data, recordLen := SerializeColumnsToRows(cs, dsv, true)
 	rs = NewRowSeries(itemKey, 0, data, dsv, recordLen, cs.GetCandleAttributes(), NOTYPE)
 	return rs
 }
+
 func (cs *ColumnSeries) AddNullColumn(ds DataShape) {
 	cs.AddColumn(ds.Name, ds.Type.SliceOf(cs.Len()))
+}
+
+// SliceColumnSeriesByEpoch slices the column series by the provided epochs,
+// returning a new column series with only records occurring
+// between the two provided epoch times. If only one is provided,
+// only one is used to slice and all remaining records are also
+// returned.
+func SliceColumnSeriesByEpoch(cs ColumnSeries, start, end *int64) (slc ColumnSeries, err error) {
+	slc = ColumnSeries{
+		orderedNames:     cs.orderedNames,
+		candleAttributes: cs.candleAttributes,
+		nameIncrement:    cs.nameIncrement,
+		columns:          map[string]interface{}{},
+	}
+
+	for name, col := range cs.columns {
+		slc.columns[name] = col
+	}
+
+	epochs := slc.GetEpoch()
+
+	var index int
+
+	if start != nil {
+		for ; index < len(epochs); index++ {
+			if epochs[index] >= *start {
+				if err = slc.RestrictLength(len(epochs)-index, FIRST); err != nil {
+					return
+				}
+				break
+			}
+		}
+	}
+
+	if end != nil {
+		epochs = slc.GetEpoch()
+
+		for index = len(epochs) - 1; index > 0; index-- {
+			if epochs[index] <= *end {
+				if err = slc.RestrictLength(index, LAST); err != nil {
+					return
+				}
+				break
+			}
+		}
+	}
+
+	return
+}
+
+func max(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
+}
+
+// ColumnSeriesUnion takes to column series and creates a union
+// and returns another column series. The values in the union
+// are unique, and right values overwrite left values in when
+// epochs are duplicated.
+func ColumnSeriesUnion(left, right *ColumnSeries) *ColumnSeries {
+	out := NewColumnSeries()
+
+	out.candleAttributes = left.candleAttributes
+	out.orderedNames = left.orderedNames
+	out.nameIncrement = make(map[string]int, len(left.nameIncrement))
+	for k, v := range left.nameIncrement {
+		out.nameIncrement[k] = v
+	}
+
+	type entry struct {
+		epoch     int64
+		index     int
+		refSeries *ColumnSeries
+	}
+
+	m := map[int64]*entry{}
+
+	for i, epoch := range left.GetEpoch() {
+		m[epoch] = &entry{epoch: epoch, index: i, refSeries: left}
+	}
+
+	for i, epoch := range right.GetEpoch() {
+		m[epoch] = &entry{epoch: epoch, index: i, refSeries: right}
+	}
+
+	entries := make([]*entry, len(m))
+	i := 0
+
+	for _, entry := range m {
+		entries[i] = entry
+		i++
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].epoch < entries[j].epoch })
+
+	for _, entry := range entries {
+		rs := entry.refSeries
+		for name, col := range rs.columns {
+			iv := reflect.ValueOf(col)
+
+			if _, ok := out.columns[name]; !ok {
+				slc := reflect.MakeSlice(reflect.TypeOf(col), 0, 0)
+				slc = reflect.Append(slc, iv.Index(entry.index))
+				out.columns[name] = slc.Interface()
+			} else {
+				outCol := out.columns[name]
+				ov := reflect.ValueOf(outCol)
+				ov = reflect.Append(ov, iv.Index(entry.index))
+				out.columns[name] = ov.Interface()
+			}
+		}
+	}
+
+	return out
 }
 
 type ColumnSeriesMap map[TimeBucketKey]*ColumnSeries

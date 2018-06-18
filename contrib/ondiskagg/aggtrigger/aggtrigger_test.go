@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/plugins/trigger"
+
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils"
@@ -107,6 +109,7 @@ func (t *TestSuite) TestFire(c *C) {
 	executor.NewInstanceSetup(
 		rootDir,
 		true, true, false, false)
+
 	ts := utils.TriggerSetting{
 		Module: "ondiskagg.so",
 		On:     "*/1Min/OHLC",
@@ -115,6 +118,7 @@ func (t *TestSuite) TestFire(c *C) {
 			"destinations": []string{"5Min", "1D"},
 		},
 	}
+
 	trig, err := NewTrigger(ts.Config)
 	if err != nil {
 		panic(err)
@@ -132,6 +136,7 @@ func (t *TestSuite) TestFire(c *C) {
 		time.Date(2017, 12, 15, 10, 6, 0, 0, utils.InstanceConfig.Timezone).Unix(),
 		time.Date(2017, 12, 15, 10, 10, 0, 0, utils.InstanceConfig.Timezone).Unix(),
 	}
+
 	open := []float32{1., 2., 3., 4., 5., 1., 2., 3., 4., 5.}
 	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1, 1.1, 2.1, 3.1, 4.1, 5.1}
 	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9, 0.9, 1.9, 2.9, 3.9, 4.9}
@@ -149,14 +154,26 @@ func (t *TestSuite) TestFire(c *C) {
 	err = executor.WriteCSM(csm, false)
 	c.Assert(err, IsNil)
 
-	indexes := make([]int64, 0)
+	rs := cs.ToRowSeries(*tbk)
+	rowData := rs.GetData()
+	times := rs.GetTime()
+	numRows := len(times)
+	rowLen := len(rowData) / numRows
 
-	for _, val := range epoch {
-		index := io.TimeToIndex(time.Unix(val, 0).In(
-			utils.InstanceConfig.Timezone), time.Minute)
-		indexes = append(indexes, index)
+	records := make([]trigger.Record, numRows)
+
+	for i := 0; i < numRows; i++ {
+		pos := i * rowLen
+		record := rowData[pos : pos+rowLen]
+		index := io.TimeToIndex(times[i], time.Minute)
+
+		buf, _ := io.Serialize(nil, index)
+		buf = append(buf, record[8:]...)
+
+		records[i] = trigger.Record(buf)
 	}
-	trig.Fire("TEST/1Min/OHLC/2017.bin", indexes)
+
+	trig.Fire("TEST/1Min/OHLC/2017.bin", records)
 
 	// verify 5Min agg
 	catalogDir := executor.ThisInstance.CatalogDir
