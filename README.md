@@ -1,5 +1,5 @@
 # MarketStore
-![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore)
+![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore) [Telegram group](https://t.me/joinchat/HKxN3BGm6mE5YBt79CMM3Q)
 
 ## Introduction
 MarketStore is a database server optimized for financial timeseries data.
