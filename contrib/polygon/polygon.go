@@ -172,10 +172,6 @@ func (pf *PolygonFetcher) backfill(symbol string, endEpoch int64) {
 			return
 		}
 
-		glog.Infof("backfilling %v from %v to %v",
-			symbol, time.Unix(epoch[len(epoch)-1], 0),
-			time.Unix(endEpoch, 0))
-
 		from = time.Unix(epoch[len(epoch)-1], 0)
 
 	} else {
@@ -199,6 +195,10 @@ func (pf *PolygonFetcher) backfill(symbol string, endEpoch int64) {
 
 		if err != nil {
 			glog.Errorf("failed to backfill aggregates (%v)", err)
+			return
+		}
+
+		if len(resp.Ticks) == 0 {
 			return
 		}
 
