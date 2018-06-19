@@ -145,14 +145,17 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 
 Query:
 	csm, err := s.query(tbk, window, head, tail)
-	if err != nil {
+	if err != nil || csm == nil {
 		glog.Errorf("query error for %v (%v)", tbk.String(), err)
 		return
 	}
 
 	cs := (*csm)[*tbk]
 
-	s.write(tbk, cs, tail, head, elements)
+	if cs != nil {
+		s.write(tbk, cs, tail, head, elements)
+	}
+
 	return
 }
 
