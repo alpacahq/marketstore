@@ -25,7 +25,7 @@ Example of running it using the default mkts.yml file and publishing it to port 
 docker run -p 5993:5993 alpacamarkets/marketstore:v2.1.2
 ```
 
-The following example runs the docker image using a temporary configuration file mkts.yml located in the /tmp folder. The -v refers to mounting to a volume. So, the "/tmp/mktsdb" eplaces the original "/project/data/mktsdb" root directory. Note that you can edit this mkts.yml. 
+The following example runs the docker image using a temporary configuration file mkts.yml located in the /tmp folder. The -v refers to mounting to a volume. So, the "/tmp/mktsdb" replaces the original "/project/data/mktsdb" root directory. Note that you can edit this mkts.yml. 
 
 ``` sh
 docker run -v /tmp/mktsdb:/project/data/mktsdb -v /tmp/mkts.yml:/tmp/mkts.yml -p 5993:5993 alpacamarkets/marketstore:v2.1.2 marketstore -config /tmp/mkts.yml
