@@ -1,27 +1,24 @@
-# GDAX Data Fetcher
-
+# Binance Data Fetcher
+Replicates many of the features from [gdaxfeeder] (https://github.com/alpacahq/marketstore/tree/master/contrib/gdaxfeeder)
 This module builds a MarketStore background worker which fetches historical
-price data of cryptocurrencies from GDAX public API.  It runs as a goroutine
+price data of cryptocurrencies from Binance's public API.  It runs as a goroutine
 behind the MarketStore process and keeps writing to the disk.
 
 ## Configuration
-gdaxfeeder.so comes with the server by default, so you can simply configure it
+binancefeeder.so comes with the server by default, so you can simply configure it
 in MarketStore configuration file.
 
 ### Options
 Name | Type | Default | Description
 --- | --- | --- | ---
 query_start | string | none | The point in time from which to start fetching price data
+query_end | string | none | The point in time from which to end fetching price data. 
 base_timeframe | string | 1Min | The bar aggregation duration
-symbols | slice of strings | [BTC, ETH, LTC, BCH] | The symbols to retrieve data for
+symbols | slice of strings | [All "trading" symbols from https://api.binance.com/api/v1/exchangeInfo] | The symbols to retrieve data for
 
 #### Query Start
 The fetcher keeps filling data up to the current time eventually and writes new data as it is
-generated.  Once data starts to fetch, it restarts from the last-written data
-timestamp even after the server is restarted.  You can specify fewer symbols
-if you don't need others.  Since GDAX API has rate limit, this may help to
-fill the historical data if you start from old.  Note that the data fetch timestamp
-is identical among symbols, so if one symbol lags other fetches may not be
+generated. It writes data every 30 * your time interval. It then pauses for 1 second after each call. Note that the data fetch timestamp is identical among symbols, so if one symbol lags other fetches may not be
 up to speed.
 
 #### Base Timeframe
@@ -31,12 +28,14 @@ The daily bars are written at the boundary of system timezone configured in the 
 Add the following to your config file:
 ```
 bgworkers:
-  - module: gdaxfeeder.so
+  - module: binancefeeder.so
+    name: BinanceFetcher
     config:
-      query_start: "2018-01-01 00:00"
       symbols:
-        - BTC
-      base_timeframe: "1D"
+        - ETH
+      base_timeframe: "1Min"
+      query_start: "2018-01-01 00:00"
+      query_end: "2018-01-02 00:00"
 ```
 
 
