@@ -23,6 +23,11 @@ If you want to get started right away, you can bootstrap a marketstore db instan
 docker run -p 5993:5993 alpacamarkets/marketstore:v2.1.2
 ```
 
+To run with a configuration file mkts.yml
+
+``` sh
+docker run -v /tmp/mktsdb:/project/data/mktsdb -v /tmp/mkts.yml:/tmp/mkts.yml -p 5993:5993 alpacamarkets/marketstore:v2.1.2 marketstore -config /tmp/mkts.yml
+```
 ### Source
 MarketStore is implemented in Go (with some CGO), so you can build it from
 source pretty easily. You need Go 1.9+ and [dep](https://github.com/golang/dep).
@@ -43,11 +48,41 @@ make plugins
 ```
 
 ## Usage
-Run it:
+You can run it by:
 ``` sh
 marketstore
 ```
+or 
+``` sh
+$GOPATH/bin/marketstore
+```
+depending on your GOPATH
+
+
+To run marketstore with a configuration file named "mkts.yml":
+``` sh
+$GOPATH/bin/marketstore -config mkts.yml
+```
 To learn how to format a proper db query, please see [this](./frontend/)
+### Example output when marketstore runs
+```
+example@alpaca:~/go/bin/src/github.com/alpacahq/marketstore$ marketstore
+I0619 16:29:30.102101    7835 log.go:14] Disabling "enable_last_known" feature until it is fixed...
+I0619 16:29:30.102980    7835 log.go:14] Initializing MarketStore...
+I0619 16:29:30.103092    7835 log.go:14] WAL Setup: initCatalog true, initWALCache true, backgroundSync true, WALBypass false: 
+I0619 16:29:30.103179    7835 log.go:14] Root Directory: /example/go/bin/src/github.com/alpacahq/marketstore/project/data/mktsdb
+I0619 16:29:30.144461    7835 log.go:14] My WALFILE: WALFile.1529450970104303654.walfile
+I0619 16:29:30.144486    7835 log.go:14] Found a WALFILE: WALFile.1529450306968096708.walfile, entering replay...
+I0619 16:29:30.244778    7835 log.go:14] Beginning WAL Replay
+I0619 16:29:30.244861    7835 log.go:14] Partial Read
+I0619 16:29:30.244882    7835 log.go:14] Entering replay of TGData
+I0619 16:29:30.244903    7835 log.go:14] Replay of WAL file /example/go/bin/src/github.com/alpacahq/marketstore/project/data/mktsdb/WALFile.1529450306968096708.walfile finished
+I0619 16:29:30.289401    7835 log.go:14] Finished replay of TGData
+I0619 16:29:30.340760    7835 log.go:14] Launching rpc data server...
+I0619 16:29:30.340792    7835 log.go:14] Initializing websocket...
+I0619 16:29:30.340814    7835 plugins.go:14] InitializeTriggers
+I0619 16:29:30.340824    7835 plugins.go:42] InitializeBgWorkers
+```
 
 ## Configuration
 In order to run MarketStore, a YAML config file is needed. A default file (mkts.yml) is included in the repo. The path to this file is passed in to the launcher binary with the `-config` flag, or by default it finds a file named mkts.yml in the directory it is running from.
@@ -87,7 +122,7 @@ After starting up a MarketStore instance on your machine, you're all set to be a
 
 ### Python
 [pymarketstore](https://github.com/alpacahq/pymarketstore) is the standard
-python client.
+python client. Make sure that in another terminal, you have marketstore running
 
 ```
 In [1]: import pymarketstore as pymkts
