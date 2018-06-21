@@ -51,6 +51,8 @@ func GetAggregates(symbol string, from time.Time) (*GetAggregatesResponse, error
 	from = from.In(NY)
 	to := from.Add(7 * 24 * time.Hour)
 
+	retry := 0
+
 	for {
 		url := fmt.Sprintf("%s/v1/historic/agg/%s/%s?apiKey=%s&from=%s&to=%s",
 			baseURL, "minute", symbol,
@@ -82,8 +84,19 @@ func GetAggregates(symbol string, from time.Time) (*GetAggregatesResponse, error
 			return nil, err
 		}
 
+		// Sometimes polygon returns empty data set even though the data
+		// is there. Here we retry up to 5 times to ensure the data
+		// is really empty. This does add overhead, but since it is only
+		// called for the beginning backfill, it is worth it to not miss
+		// any data. Usually the data is returned within 3 retries.
 		if len(r.Ticks) == 0 {
-			break
+			if retry <= 5 && from.Before(time.Now()) {
+				retry++
+				continue
+			} else {
+				retry = 0
+				break
+			}
 		}
 
 		resp.Ticks = append(resp.Ticks, r.Ticks...)
