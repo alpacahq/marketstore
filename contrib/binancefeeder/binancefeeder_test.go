@@ -35,11 +35,11 @@ func (t *TestSuite) TestNew(c *C) {
 	//The symbols from the biannce API can very well change so
 	//if this test fails, consider that the API might of changed with more symbols
 
-	config = getConfig(``)
-	ret, err = NewBgWorker(config)
-	worker = ret.(*BinanceFetcher)
-	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, 357)
+	// config = getConfig(``)
+	// ret, err = NewBgWorker(config)
+	// worker = ret.(*BinanceFetcher)
+	// c.Assert(err, IsNil)
+	// c.Assert(len(worker.symbols), Equals, 357)
 
 	config = getConfig(`{
         "query_start": "2017-01-02 00:00"
