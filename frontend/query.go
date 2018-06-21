@@ -58,6 +58,31 @@ type MultiQueryResponse struct {
 	Timezone  string          `msgpack:"timezone"` // Server Timezone
 }
 
+// ToColumnSeriesMap converts a MultiQueryResponse to a
+// ColumnSeriesMap, returning an error if there is any
+// issue encountered while converting.
+func (resp *MultiQueryResponse) ToColumnSeriesMap() (*io.ColumnSeriesMap, error) {
+	if resp == nil {
+		return nil, nil
+	}
+
+	csm := io.NewColumnSeriesMap()
+
+	for _, ds := range resp.Responses { // Datasets are packed in a slice, each has a NumpyMultiDataset inside
+		nmds := ds.Result
+		for tbkStr, startIndex := range nmds.StartIndex {
+			cs, err := nmds.ToColumnSeries(startIndex, nmds.Lengths[tbkStr])
+			if err != nil {
+				return nil, err
+			}
+			tbk := io.NewTimeBucketKeyFromString(tbkStr)
+			csm[*tbk] = cs
+		}
+	}
+
+	return &csm, nil
+}
+
 func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *MultiQueryResponse) (err error) {
 	response.Version = utils.GitHash
 	response.Timezone = utils.InstanceConfig.Timezone.String()
@@ -190,13 +215,13 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 	return nil
 }
 
-type ListSymbolsReply struct {
+type ListSymbolsResponse struct {
 	Results []string
 }
 
 type ListSymbolsArgs struct{}
 
-func (s *DataService) ListSymbols(r *http.Request, args *ListSymbolsArgs, response *ListSymbolsReply) (err error) {
+func (s *DataService) ListSymbols(r *http.Request, args *ListSymbolsArgs, response *ListSymbolsResponse) (err error) {
 	if atomic.LoadUint32(&Queryable) == 0 {
 		return queryableError
 	}

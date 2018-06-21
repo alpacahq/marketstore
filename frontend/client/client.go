@@ -22,6 +22,7 @@ type Client struct {
 	BaseURL string
 }
 
+// NewClient intializes a new MarketStore RPC client
 func NewClient(baseurl string) (cl *Client, err error) {
 	cl = new(Client)
 	_, err = url.Parse(baseurl)
@@ -32,7 +33,8 @@ func NewClient(baseurl string) (cl *Client, err error) {
 	return cl, nil
 }
 
-func (cl *Client) DoRPC(functionName string, args interface{}) (csm io.ColumnSeriesMap, err error) {
+// DoRPC makes an RPC request to MarketStore's API
+func (cl *Client) DoRPC(functionName string, args interface{}) (response interface{}, err error) {
 	/*
 		Does a remote procedure call using the msgpack2 protocol for RPC that return a QueryReply
 	*/
@@ -78,33 +80,21 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (csm io.ColumnSer
 			fmt.Printf("Error decoding: %s\n", err)
 			return nil, err
 		}
-		return ConvertMultiQueryReplyToColumnSeries(result)
+
+		return result.ToColumnSeriesMap()
+	case "ListSymbols":
+		result := &frontend.ListSymbolsResponse{}
+		err = msgpack2.DecodeClientResponse(resp.Body, result)
+		return result.Results, nil
 	case "Write":
 		result := &frontend.MultiWriteResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		return nil, nil
+
 	default:
 		return nil, fmt.Errorf("unsupported RPC response")
 	}
-}
 
-func ConvertMultiQueryReplyToColumnSeries(result *frontend.MultiQueryResponse) (csm io.ColumnSeriesMap, err error) {
-	if result == nil {
-		return nil, nil
-	}
-	csm = io.NewColumnSeriesMap()
-	for _, ds := range result.Responses { // Datasets are packed in a slice, each has a NumpyMultiDataset inside
-		nmds := ds.Result
-		for tbkStr, startIndex := range nmds.StartIndex {
-			cs, err := nmds.ToColumnSeries(startIndex, nmds.Lengths[tbkStr])
-			if err != nil {
-				return nil, err
-			}
-			tbk := io.NewTimeBucketKeyFromString(tbkStr)
-			csm[*tbk] = cs
-		}
-	}
-	return csm, nil
+	return nil, nil
 }
 
 func ColumnSeriesFromResult(shapes []io.DataShape, columns map[string]interface{}) (cs *io.ColumnSeries, err error) {
@@ -113,14 +103,16 @@ func ColumnSeriesFromResult(shapes []io.DataShape, columns map[string]interface{
 		name := shape.Name
 		typ := shape.Type
 		base := columns[name].([]interface{})
+
 		if base == nil {
 			return nil, fmt.Errorf("unable to unpack %s", name)
 		}
-		i_column, err := io.CreateSliceFromSliceOfInterface(base, typ)
+
+		iCol, err := io.CreateSliceFromSliceOfInterface(base, typ)
 		if err != nil {
 			return nil, err
 		}
-		cs.AddColumn(name, i_column)
+		cs.AddColumn(name, iCol)
 	}
 	return cs, nil
 }
