@@ -1,24 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"encoding/csv"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
+	"os/user"
+	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/chzyer/readline"
-
-	"bytes"
-	"io"
-	"os/user"
-	"path/filepath"
-	"reflect"
 
 	"github.com/alpacahq/marketstore/SQLParser"
 	"github.com/alpacahq/marketstore/cmd/tools/mkts/csvreader"
@@ -29,6 +26,7 @@ import (
 	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/chzyer/readline"
 )
 
 var _ConnectURL = flag.String("serverURL", "", "network connect to server at \"hostname:port\"")
@@ -195,8 +193,12 @@ func processSQLRemote(line string) (cs *ColumnSeries, err error) {
 	if err != nil {
 		return nil, err
 	}
-	csm, err := cl.DoRPC("Query", args)
-	for _, sub := range csm {
+	resp, err := cl.DoRPC("Query", args)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sub := range *resp.(*ColumnSeriesMap) {
 		cs = sub
 		break
 	}
@@ -558,11 +560,12 @@ func processQueryRemote(tbk *TimeBucketKey, start, end *time.Time) (csm ColumnSe
 	if err != nil {
 		return nil, err
 	}
-	csm, err = cl.DoRPC("Query", args)
+	resp, err := cl.DoRPC("Query", args)
 	if err != nil {
 		return nil, err
 	}
-	return csm, nil
+
+	return *resp.(*ColumnSeriesMap), nil
 }
 
 func processQuery(line string) {
