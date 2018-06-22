@@ -242,7 +242,7 @@ func (bn *BinanceFetcher) Run() {
 			// glog.Infof("%s: %d rates between %v - %v", symbol, len(rates),
 			// 	timeStart.String(), timeEnd.String())
 			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKey(symbol + "/" + timeStart.String() + "/" + timeEnd.String() + "/" + bn.baseTimeframe.String + "/OHLCV")
+			tbk := io.NewTimeBucketKey(symbol + "/" + bn.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
 			executor.WriteCSM(csm, false)
 		}
