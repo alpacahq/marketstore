@@ -79,6 +79,12 @@ func QueryTime(query string) time.Time {
 	return time.Time{}
 }
 
+//Convert time from milliseconds to Unix
+func ConvertMillToTime(originalTime int64) time.Time {
+	i := time.Unix(0, originalTime*int64(time.Millisecond))
+	return i
+}
+
 //Gets all symbols from binance
 func GetAllSymbols() []string {
 	client := binance.NewClient("", "")
@@ -128,8 +134,13 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timeframeStr = config.BaseTimeframe
 	}
 
-	queryStart = QueryTime(config.QueryStart)
-	queryEnd = QueryTime(config.QueryEnd)
+	if config.QueryStart != "" {
+		queryStart = QueryTime(config.QueryStart)
+	}
+
+	if config.QueryEnd != "" {
+		queryEnd = QueryTime(config.QueryEnd)
+	}
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -218,7 +229,7 @@ func (bn *BinanceFetcher) Run() {
 
 			for _, rate := range rates {
 				errorsConversion = errorsConversion[:0]
-				openTime = append(openTime, rate.OpenTime)
+				openTime = append(openTime, ConvertMillToTime(rate.OpenTime).Unix())
 				open = append(open, ConvertStringToFloat(rate.Open))
 				high = append(high, ConvertStringToFloat(rate.High))
 				low = append(low, ConvertStringToFloat(rate.Low))
