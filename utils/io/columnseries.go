@@ -238,6 +238,39 @@ func (cs *ColumnSeries) AddNullColumn(ds DataShape) {
 	cs.AddColumn(ds.Name, ds.Type.SliceOf(cs.Len()))
 }
 
+// ApplyTimeQual takes a function that determines whether or
+// not a given epoch time is valid, and applies that function
+// to the ColumnSeries, removing invalid entries.
+func (cs *ColumnSeries) ApplyTimeQual(tq func(epoch int64) bool) *ColumnSeries {
+	indexes := []int{}
+
+	out := &ColumnSeries{
+		orderedNames:     cs.orderedNames,
+		candleAttributes: cs.candleAttributes,
+		nameIncrement:    cs.nameIncrement,
+		columns:          map[string]interface{}{},
+	}
+
+	for i, epoch := range cs.GetEpoch() {
+		if tq(epoch) {
+			indexes = append(indexes, i)
+		}
+	}
+
+	for name, col := range cs.columns {
+		iv := reflect.ValueOf(col)
+		slc := reflect.MakeSlice(reflect.TypeOf(col), 0, 0)
+
+		for _, index := range indexes {
+			slc = reflect.Append(slc, iv.Index(index))
+		}
+
+		out.columns[name] = slc.Interface()
+	}
+
+	return out
+}
+
 // SliceColumnSeriesByEpoch slices the column series by the provided epochs,
 // returning a new column series with only records occurring
 // between the two provided epoch times. If only one is provided,
@@ -262,7 +295,7 @@ func SliceColumnSeriesByEpoch(cs ColumnSeries, start, end *int64) (slc ColumnSer
 	if start != nil {
 		for ; index < len(epochs); index++ {
 			if epochs[index] >= *start {
-				if err = slc.RestrictLength(len(epochs)-index, FIRST); err != nil {
+				if err = slc.RestrictLength(len(epochs)-index, LAST); err != nil {
 					return
 				}
 				break
@@ -272,10 +305,9 @@ func SliceColumnSeriesByEpoch(cs ColumnSeries, start, end *int64) (slc ColumnSer
 
 	if end != nil {
 		epochs = slc.GetEpoch()
-
-		for index = len(epochs) - 1; index > 0; index-- {
-			if epochs[index] <= *end {
-				if err = slc.RestrictLength(index, LAST); err != nil {
+		for index = len(epochs) - 1; index >= 0; index-- {
+			if epochs[index] < *end {
+				if err = slc.RestrictLength(index+1, FIRST); err != nil {
 					return
 				}
 				break
