@@ -96,7 +96,6 @@ func GetAllSymbols() []string {
 	validSymbols := make([]string, 0)
 
 	if err != nil {
-		fmt.Println(err)
 		symbols := []string{"BTC", "EOS", "ETH", "BNB", "TRX", "ONT", "XRP", "ADA",
 			"LTC", "BCC", "TUSD", "IOTA", "ETC", "ICX", "NEO", "XLM", "QTUM", "BCH"}
 		return symbols
