@@ -20,6 +20,12 @@
   revision = "8828253bfc54f2f91aaef5f32b44a244b0a98e4f"
 
 [[projects]]
+  name = "github.com/adshao/go-binance"
+  packages = ["."]
+  revision = "6cf0e802b22a56ff09523536cf27fbb666180a98"
+  version = "1.1.2"
+
+[[projects]]
   name = "github.com/alpacahq/slait"
   packages = [
     "cache",
@@ -49,6 +55,12 @@
     "parser"
   ]
   revision = "b565731e1464263de0bda75f2e45d97b54b60110"
+
+[[projects]]
+  name = "github.com/bitly/go-simplejson"
+  packages = ["."]
+  revision = "aabad6e819789e569bd6aabf444c935aa9ba1e44"
+  version = "v0.5.0"
 
 [[projects]]
   branch = "master"
@@ -397,6 +409,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0b1792f8f5e6028c98a7ea6872131af234eca422988af00d0ac303aeb53addba"
+  inputs-digest = "1a17f8ee8522fb718c2435215b88c237ab4ff6c9649b14f84625bd4179173057"
   solver-name = "gps-cdcl"
   solver-version = 1

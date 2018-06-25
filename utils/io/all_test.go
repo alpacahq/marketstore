@@ -483,3 +483,81 @@ func (s *TestSuite) TestUnion(c *C) {
 	c.Assert(cs.GetEpoch()[4], Equals, csC.GetEpoch()[1])
 	c.Assert(cs.GetEpoch()[5], Equals, csC.GetEpoch()[2])
 }
+
+func (s *TestSuite) TestSliceByEpoch(c *C) {
+	cs := makeTestCS()
+
+	// just start
+	start := int64(2)
+	slc, err := SliceColumnSeriesByEpoch(*cs, &start, nil)
+	c.Assert(err, IsNil)
+	c.Assert(slc, NotNil)
+	c.Assert(slc.Len(), Equals, 2)
+	c.Assert(slc.GetEpoch()[0], Equals, cs.GetEpoch()[1])
+
+	// no slice
+	start = int64(0)
+	slc, err = SliceColumnSeriesByEpoch(*cs, &start, nil)
+	c.Assert(err, IsNil)
+	c.Assert(slc, NotNil)
+	c.Assert(slc.Len(), Equals, 3)
+	c.Assert(slc.GetEpoch()[0], Equals, cs.GetEpoch()[0])
+
+	// just end
+	end := int64(3)
+	slc, err = SliceColumnSeriesByEpoch(*cs, nil, &end)
+	c.Assert(err, IsNil)
+	c.Assert(slc, NotNil)
+	c.Assert(slc.Len(), Equals, 2)
+	c.Assert(slc.GetEpoch()[1], Equals, cs.GetEpoch()[1])
+
+	// no slice
+	end = int64(4)
+	slc, err = SliceColumnSeriesByEpoch(*cs, nil, &end)
+	c.Assert(err, IsNil)
+	c.Assert(slc, NotNil)
+	c.Assert(slc.Len(), Equals, 3)
+	c.Assert(slc.GetEpoch()[2], Equals, cs.GetEpoch()[2])
+
+	// start and end
+	start = int64(2)
+	end = int64(3)
+	slc, err = SliceColumnSeriesByEpoch(*cs, &start, &end)
+	c.Assert(err, IsNil)
+	c.Assert(slc, NotNil)
+	c.Assert(slc.Len(), Equals, 1)
+	c.Assert(slc.GetEpoch()[0], Equals, cs.GetEpoch()[1])
+
+	// no slice
+	start = int64(0)
+	end = int64(4)
+	slc, err = SliceColumnSeriesByEpoch(*cs, &start, &end)
+	c.Assert(err, IsNil)
+	c.Assert(slc, NotNil)
+	c.Assert(slc.Len(), Equals, 3)
+	c.Assert(slc.GetEpoch()[0], Equals, cs.GetEpoch()[0])
+	c.Assert(slc.GetEpoch()[2], Equals, cs.GetEpoch()[2])
+}
+
+func (s *TestSuite) TestApplyTimeQual(c *C) {
+	cs := makeTestCS()
+
+	tq := func(epoch int64) bool {
+		if epoch == int64(2) {
+			return true
+		}
+		return false
+	}
+
+	tqCS := cs.ApplyTimeQual(tq)
+
+	c.Assert(tqCS.Len(), Equals, 1)
+	c.Assert(tqCS.GetEpoch()[0], Equals, cs.GetEpoch()[1])
+	c.Assert(tqCS.GetByName("One").([]float32)[0], Equals, cs.GetByName("One").([]float32)[1])
+
+	tq = func(epoch int64) bool {
+		return false
+	}
+
+	c.Assert(cs.ApplyTimeQual(tq).Len(), Equals, 0)
+}
