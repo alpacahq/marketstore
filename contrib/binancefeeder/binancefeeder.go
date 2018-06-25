@@ -199,6 +199,11 @@ func (bn *BinanceFetcher) Run() {
 		correctIntervalSymbol = "1Min"
 	}
 
+	//Time end issue
+	if finalTime.IsZero() {
+		finalTime = time.Now().UTC()
+	}
+
 	//Replace interval string with correct one with API call
 	timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
 
@@ -226,7 +231,14 @@ func (bn *BinanceFetcher) Run() {
 
 		diffTimes := finalTime.Sub(timeEnd)
 
-		if diffTimes < 0 {
+		//Reset time. Make sure you get all data possible
+		if diffTimes < 0{
+			timeStart = timeStart.Add(-bn.baseTimeframe.Duration * 300)
+			timeEnd = finalTime
+		} 
+
+		
+		if diffTimes == 0 {
 			glog.Infof("Got all data from: %v to %v", bn.queryStart, bn.queryEnd)
 			glog.Infof("Continuing...")
 		}
