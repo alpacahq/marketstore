@@ -57,6 +57,14 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 func (pf *PolygonFetcher) Run() {
 	api.SetAPIKey(pf.config.APIKey)
 
+	if pf.config.BaseURL != "" {
+		api.SetBaseURL(pf.config.BaseURL)
+	}
+
+	if pf.config.NatsServers != "" {
+		api.SetNatsServers(pf.config.NatsServers)
+	}
+
 	go pf.workBackfill()
 
 	if err := api.Stream(pf.streamHandler, pf.config.Symbols); err != nil {
