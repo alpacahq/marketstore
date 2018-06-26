@@ -226,6 +226,10 @@ func (s *OnDiskAggTrigger) writeAggregates(
 		return err
 	}
 
+	if len(slc.GetEpoch()) == 0 {
+		return nil
+	}
+
 	// decide whether to apply market-hour filter
 	applyingFilter := false
 	if s.filter == "nasdaq" && window.Duration() >= utils.Day {
