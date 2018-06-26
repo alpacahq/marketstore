@@ -15,6 +15,7 @@ Name | Type | Default | Description
 --- | --- | --- | ---
 api_key | string | none | Your polygon api key
 base_url | string | none | The URL to use in the HTTP client
+nats_servers | string | Comma separated list of nats servers to connect to
 symbols | slice of strings | none | The symbols to retrieve chart bars for
 
 ### Example
@@ -25,6 +26,7 @@ bgworkers:
     config:
         api_key: your_api_key
         base_url: https://api.polygon.io
+        nats_servers: nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403
         symbols:
           - AAPL
           - SPY
