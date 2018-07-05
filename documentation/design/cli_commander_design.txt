@@ -1,0 +1,15 @@
+Marketstore CLI Framework Design - v1.0
+08/03/2018
+
+Unifying common database processes with CLI commands
+
+
+- Design considerations
+
+- Performance and scale
+
+
+
+==============
+Design
+==============

@@ -1,4 +1,4 @@
-package main
+package start
 
 import (
 	"github.com/golang/glog"

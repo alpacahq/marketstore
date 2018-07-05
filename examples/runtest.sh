@@ -1,4 +1,5 @@
 #!/bin/bash
+# Deprecated. 
 
 rm -rf testdir
 mkdir testdir

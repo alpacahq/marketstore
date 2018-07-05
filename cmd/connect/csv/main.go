@@ -1,4 +1,4 @@
-package csvreader
+package csv
 
 import (
 	"encoding/csv"
@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/executor"
+	"github.com/alpacahq/marketstore/utils/io"
+	. "github.com/alpacahq/marketstore/utils/log"
 
 	"gopkg.in/yaml.v2"
 )
@@ -24,7 +26,7 @@ func NewConfiguration() *Configuration {
 	return new(Configuration)
 }
 
-func ReadCSVFileMetadata(dataFD, controlFD *os.File, dataShapes []DataShape) (columnIndex []int, csvReader *csv.Reader, conf *Configuration, err error) {
+func ReadMetadata(dataFD, controlFD *os.File, dataShapes []io.DataShape) (columnIndex []int, csvReader *csv.Reader, conf *Configuration, err error) {
 	conf = NewConfiguration()
 	conf.TimeFormat = "1/2/2006 3:04:05 PM" // a default
 	conf.Timezone = "UTC"
@@ -147,7 +149,7 @@ func ReadCSVFileMetadata(dataFD, controlFD *os.File, dataShapes []DataShape) (co
 	return columnIndex, csvReader, conf, nil
 }
 
-func TimeColumnsFromCSV(csvData [][]string, columnIndex []int, conf *Configuration) (epochCol []int64, nanosCol []int32) {
+func ReadTimeColumns(csvData [][]string, columnIndex []int, conf *Configuration) (epochCol []int64, nanosCol []int32) {
 	var err error
 	epochCol = make([]int64, len(csvData))
 	nanosCol = make([]int32, len(csvData))
@@ -208,6 +210,74 @@ func TimeColumnsFromCSV(csvData [][]string, columnIndex []int, conf *Configurati
 	return epochCol, nanosCol
 }
 
+func NewWriter(tbk *io.TimeBucketKey, start, end *time.Time) (writer *csv.Writer) {
+	var err error
+	//var file *os.File
+	Log(ERROR, "Failed to create csv file - Error: %v", err)
+	// if *_OutputDir != "" && toCsv {
+	// 	if end != nil {
+	// 		file, err = os.Create(
+	// 			fmt.Sprintf("%v_%v_%v.csv",
+	// 				tbk.String(),
+	// 				start.Format("2006-01-02-15:04"),
+	// 				end.Format("2006-01-02-15:04")))
+	// 	} else {
+	// 		file, err = os.Create(
+	// 			fmt.Sprintf("%v_%v.csv", tbk.String(), *start))
+	// 		defer file.Close()
+	// 	}
+	//
+	// 	if err != nil {
+	// 		Log(ERROR, "Failed to create csv file - Error: %v", err)
+	// 		return
+	// 	}
+	// 	writer = csv.NewWriter(file)
+	// }
+	return writer
+}
+
+// WriteChunk word
+func WriteChunk(dbWriter *executor.Writer, dataShapes []io.DataShape, dbKey io.TimeBucketKey, columnIndex []int, csvDataChunk [][]string, conf *Configuration) (start, end time.Time) {
+
+	epochCol, nanosCol := ReadTimeColumns(csvDataChunk, columnIndex, conf)
+	if epochCol == nil {
+		fmt.Println("Error building time columns from csv data")
+		return
+	}
+
+	csmInit := io.NewColumnSeriesMap()
+	csmInit.AddColumn(dbKey, "Epoch", epochCol)
+	csm := ColumnSeriesMapFromCSVData(csmInit, dbKey, csvDataChunk, columnIndex[2:], dataShapes)
+	csmInit.AddColumn(dbKey, "Nanoseconds", nanosCol)
+
+	dsMap := make(map[io.TimeBucketKey][]io.DataShape)
+	dsMap[dbKey] = dataShapes
+	rsMap := csm.ToRowSeriesMap(dsMap)
+	rs := rsMap[dbKey]
+	if rs.GetNumRows() != len(csvDataChunk) {
+		fmt.Println("Error obtaining rows from CSV file - not enough rows converted")
+		fmt.Println("Expected: ", len(csvDataChunk), " Got: ", rs.GetNumRows())
+		for _, cs := range csm {
+			fmt.Println("ColNames: ", cs.GetColumnNames())
+		}
+		return
+	}
+	fmt.Printf("beginning to write %d records...", rs.GetNumRows())
+	indexTime := make([]time.Time, 0)
+	for i := 0; i < rs.GetNumRows(); i++ {
+		indexTime = append(indexTime, time.Unix(epochCol[i], int64(nanosCol[i])).UTC())
+	}
+	dbWriter.WriteRecords(indexTime, rs.GetData())
+
+	executor.ThisInstance.WALFile.RequestFlush()
+	fmt.Printf("Done.\n")
+
+	start = time.Unix(epochCol[0], 0).UTC()
+	end = time.Unix(epochCol[len(epochCol)-1], 0).UTC()
+
+	return start, end
+}
+
 func parseTime(format, dateTime string, tzLoc *time.Location, formatFixupState int) (parsedTime time.Time, err error) {
 
 	dateString := dateTime[:len(dateTime)-formatFixupState]
@@ -249,11 +319,12 @@ func columnError(err error, name string) bool {
 	}
 	return false
 }
-func ColumnSeriesMapFromCSVData(csmInit ColumnSeriesMap, key TimeBucketKey, csvRows [][]string, columnIndex []int,
-	dataShapes []DataShape) (csm ColumnSeriesMap) {
+
+func ColumnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey, csvRows [][]string, columnIndex []int,
+	dataShapes []io.DataShape) (csm io.ColumnSeriesMap) {
 
 	if csmInit == nil {
-		csm = NewColumnSeriesMap()
+		csm = io.NewColumnSeriesMap()
 	} else {
 		csm = csmInit
 	}
@@ -264,25 +335,25 @@ func ColumnSeriesMapFromCSVData(csmInit ColumnSeriesMap, key TimeBucketKey, csvR
 				We skip the first column, as it's the Epoch and we parse that independently
 			*/
 			switch shape.Type {
-			case FLOAT32:
+			case io.FLOAT32:
 				col, err := GetFloat32ColumnFromCSVRows(csvRows, index)
 				if columnError(err, shape.Name) {
 					return nil
 				}
 				csm.AddColumn(key, shape.Name, col)
-			case FLOAT64:
+			case io.FLOAT64:
 				col, err := GetFloat64ColumnFromCSVRows(csvRows, index)
 				if columnError(err, shape.Name) {
 					return nil
 				}
 				csm.AddColumn(key, shape.Name, col)
-			case INT32:
+			case io.INT32:
 				col, err := GetInt32ColumnFromCSVRows(csvRows, index)
 				if columnError(err, shape.Name) {
 					return nil
 				}
 				csm.AddColumn(key, shape.Name, col)
-			case INT64:
+			case io.INT64:
 				col, err := GetInt64ColumnFromCSVRows(csvRows, index)
 				if columnError(err, shape.Name) {
 					return nil

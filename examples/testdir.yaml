@@ -1,4 +1,4 @@
-root_directory: /go/src/github.com/alpacahq/marketstore/cmd/tools/mkts/examples/testdir
+root_directory: /go/src/github.com/alpacahq/marketstore/examples/testdir
 listen_port: 6993
 polling_interval: 60
 log_level: info
