@@ -148,6 +148,8 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 		c := v.(*cachedAgg)
 
 		if !c.Valid(tail, head) {
+			glog.Infof("invalidating cache for: %v", tbk.String())
+
 			s.aggCache.Delete(tbk.String())
 
 			goto Query
@@ -206,7 +208,7 @@ type cachedAgg struct {
 }
 
 func (c *cachedAgg) Valid(tail, head time.Time) bool {
-	return tail.Equal(c.tail) && head.Equal(c.head)
+	return tail.Unix() >= c.tail.Unix() && head.Unix() <= c.head.Unix()
 }
 
 func (s *OnDiskAggTrigger) writeAggregates(
