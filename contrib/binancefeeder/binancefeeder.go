@@ -203,6 +203,7 @@ func (bn *BinanceFetcher) Run() {
 	timeStart := time.Time{}
 	finalTime := bn.queryEnd
 	baseCurrency := bn.baseCurrency
+	loopForever := false
 
 	originalInterval := bn.baseTimeframe.String
 	re := regexp.MustCompile("[0-9]+")
@@ -222,6 +223,7 @@ func (bn *BinanceFetcher) Run() {
 	//Time end check
 	if finalTime.IsZero() {
 		finalTime = time.Now().UTC()
+		loopForever = true
 	}
 
 	//Replace interval string with correct one with API call
@@ -251,10 +253,15 @@ func (bn *BinanceFetcher) Run() {
 
 		diffTimes := finalTime.Sub(timeEnd)
 
-		//Reset time. Make sure you get all data possible
+		// Reset time. Make sure you get all data possible
+		// Will continue forever
 		if diffTimes < 0 {
 			timeStart = timeStart.Add(-bn.baseTimeframe.Duration * 300)
-			timeEnd = finalTime
+			if loopForever {
+				finalTime = time.Now().UTC()
+			} else {
+				timeEnd = finalTime
+			}
 		}
 
 		if diffTimes == 0 {

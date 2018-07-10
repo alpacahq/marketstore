@@ -12,7 +12,7 @@ in MarketStore configuration file.
 Name | Type | Default | Description
 --- | --- | --- | ---
 query_start | string | none | The point in time from which to start fetching price data
-query_end | string | none | The point in time from which to end fetching price data.
+query_end | string | none | The point in time from which to end fetching price data. If not set, the binancefeeder will forever grab data. If set, it will end on query_end and continually retrieve "query_end" to "query_end" data since this is a background worker and will forver run in the background. 
 base_currency | string | USDT | Base currency for symbols. ex: BTC, ETH, USDT
 base_timeframe | string | 1Min | The bar aggregation duration
 symbols | slice of strings | [All "trading" symbols from https://api.binance.com/api/v1/exchangeInfo] | The symbols to retrieve data for
