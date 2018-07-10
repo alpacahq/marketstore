@@ -115,7 +115,7 @@ func GetAllSymbols() []string {
 		return symbols
 	} else {
 		for _, info := range exchangeinfo.Symbols {
-			symbol, notRepeated = AppendIfMissing(symbol, info.baseAsset)
+			symbol, notRepeated = AppendIfMissing(symbol, info.BaseAsset)
 			if notRepeated == true {
 				status = append(status, info.Status)
 			}
