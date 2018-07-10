@@ -101,13 +101,14 @@ func AppendIfMissing(slice []string, i string) ([]string, bool) {
 }
 
 //Gets all symbols from binance
-func GetAllSymbols() []string {
+func GetAllSymbols(quoteAsset string) []string {
 	client := binance.NewClient("", "")
 	exchangeinfo, err := client.NewExchangeInfoService().Do(context.Background())
 	symbol := make([]string, 0)
 	status := make([]string, 0)
 	validSymbols := make([]string, 0)
 	notRepeated := true
+	quote := ""
 
 	if err != nil {
 		symbols := []string{"BTC", "EOS", "ETH", "BNB", "TRX", "ONT", "XRP", "ADA",
@@ -115,9 +116,13 @@ func GetAllSymbols() []string {
 		return symbols
 	} else {
 		for _, info := range exchangeinfo.Symbols {
-			symbol, notRepeated = AppendIfMissing(symbol, info.BaseAsset)
-			if notRepeated == true {
-				status = append(status, info.Status)
+			quote = info.QuoteAsset
+			// Check if data is the right base currency and then check if it's already recorded
+			if quote == quoteAsset {
+				symbol, notRepeated = AppendIfMissing(symbol, info.BaseAsset)
+				if notRepeated {
+					status = append(status, info.Status)
+				}
 			}
 		}
 
@@ -163,13 +168,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var symbols []string
 	baseCurrency := "USDT"
 
-	//First see if config has symbols, if not retrieve all from binance as default
-	if len(config.Symbols) > 0 {
-		symbols = config.Symbols
-	} else {
-		symbols = GetAllSymbols()
-	}
-
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
 	}
@@ -184,6 +182,13 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 	if config.QueryEnd != "" {
 		queryEnd = QueryTime(config.QueryEnd)
+	}
+
+	//First see if config has symbols, if not retrieve all from binance as default
+	if len(config.Symbols) > 0 {
+		symbols = config.Symbols
+	} else {
+		symbols = GetAllSymbols(baseCurrency)
 	}
 
 	return &BinanceFetcher{
@@ -283,6 +288,8 @@ func (bn *BinanceFetcher) Run() {
 			if err != nil {
 				glog.Errorf("Response error: %v", err)
 				time.Sleep(time.Minute)
+				// Go back to last time
+				timeStart = timeEnd.Add(-bn.baseTimeframe.Duration * 300)
 				continue
 			}
 			if len(rates) == 0 {
