@@ -25,9 +25,10 @@ var suffixBinanceDefs = map[string]string{
 	"W":   "w",
 }
 
-//For ConvertStringToFloat function and Run() function to making exiting easier
+// For ConvertStringToFloat function and Run() function to making exiting easier
 var errorsConversion []error
 
+// FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols       []string `json:"symbols"`
 	BaseCurrency  string   `json:"base_currency"`
@@ -36,7 +37,7 @@ type FetcherConfig struct {
 	BaseTimeframe string   `json:"base_timeframe"`
 }
 
-//BinanceFetcher is the main worker for Binance
+// BinanceFetcher is the main worker for Binance
 type BinanceFetcher struct {
 	config        map[string]interface{}
 	symbols       []string
@@ -46,6 +47,7 @@ type BinanceFetcher struct {
 	baseTimeframe *utils.Timeframe
 }
 
+// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
 func recast(config map[string]interface{}) *FetcherConfig {
 	data, _ := json.Marshal(config)
 	ret := FetcherConfig{}
@@ -53,7 +55,8 @@ func recast(config map[string]interface{}) *FetcherConfig {
 	return &ret
 }
 
-func ConvertStringToFloat(str string) float64 {
+//Convert string to float64 using strconv
+func convertStringToFloat(str string) float64 {
 	convertedString, err := strconv.ParseFloat(str, 64)
 	//Store error in string array which will be checked in main fucntion later to see if there is a need to exit
 	if err != nil {
@@ -64,7 +67,7 @@ func ConvertStringToFloat(str string) float64 {
 }
 
 //Checks time string and returns correct time format
-func QueryTime(query string) time.Time {
+func queryTime(query string) time.Time {
 	trials := []string{
 		"2006-01-02 03:04:05",
 		"2006-01-02T03:04:05",
@@ -84,14 +87,14 @@ func QueryTime(query string) time.Time {
 }
 
 //Convert time from milliseconds to Unix
-func ConvertMillToTime(originalTime int64) time.Time {
+func convertMillToTime(originalTime int64) time.Time {
 	i := time.Unix(0, originalTime*int64(time.Millisecond))
 	return i
 }
 
 // Append if String is Missing from array
 // All credit to Sonia: https://stackoverflow.com/questions/9251234/go-append-if-unique
-func AppendIfMissing(slice []string, i string) ([]string, bool) {
+func appendIfMissing(slice []string, i string) ([]string, bool) {
 	for _, ele := range slice {
 		if ele == i {
 			return slice, false
@@ -101,25 +104,26 @@ func AppendIfMissing(slice []string, i string) ([]string, bool) {
 }
 
 //Gets all symbols from binance
-func GetAllSymbols(quoteAsset string) []string {
+func getAllSymbols(quoteAsset string) []string {
 	client := binance.NewClient("", "")
 	exchangeinfo, err := client.NewExchangeInfoService().Do(context.Background())
 	symbol := make([]string, 0)
 	status := make([]string, 0)
 	validSymbols := make([]string, 0)
-	notRepeated := true
 	quote := ""
 
 	if err != nil {
+		glog.Infof("Binance /exchangeInfo API error: %v", err)
 		symbols := []string{"BTC", "EOS", "ETH", "BNB", "TRX", "ONT", "XRP", "ADA",
 			"LTC", "BCC", "TUSD", "IOTA", "ETC", "ICX", "NEO", "XLM", "QTUM", "BCH"}
 		return symbols
 	} else {
 		for _, info := range exchangeinfo.Symbols {
 			quote = info.QuoteAsset
+			notRepeated := true
 			// Check if data is the right base currency and then check if it's already recorded
 			if quote == quoteAsset {
-				symbol, notRepeated = AppendIfMissing(symbol, info.BaseAsset)
+				symbol, notRepeated = appendIfMissing(symbol, info.BaseAsset)
 				if notRepeated {
 					status = append(status, info.Status)
 				}
@@ -159,7 +163,7 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-//Register new background worker
+// NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
 	var queryStart time.Time
@@ -177,18 +181,18 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 
 	if config.QueryStart != "" {
-		queryStart = QueryTime(config.QueryStart)
+		queryStart = queryTime(config.QueryStart)
 	}
 
 	if config.QueryEnd != "" {
-		queryEnd = QueryTime(config.QueryEnd)
+		queryEnd = queryTime(config.QueryEnd)
 	}
 
 	//First see if config has symbols, if not retrieve all from binance as default
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	} else {
-		symbols = GetAllSymbols(baseCurrency)
+		symbols = getAllSymbols(baseCurrency)
 	}
 
 	return &BinanceFetcher{
@@ -201,7 +205,8 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}, nil
 }
 
-//Grab data in hour intervals from starting time to ending time
+// Run grabs data in intervals from starting time to ending time.
+// If query_end is not set, it will run forever.
 func (bn *BinanceFetcher) Run() {
 	symbols := bn.symbols
 	client := binance.NewClient("", "")
@@ -308,12 +313,12 @@ func (bn *BinanceFetcher) Run() {
 
 			for _, rate := range rates {
 				errorsConversion = errorsConversion[:0]
-				openTime = append(openTime, ConvertMillToTime(rate.OpenTime).Unix())
-				open = append(open, ConvertStringToFloat(rate.Open))
-				high = append(high, ConvertStringToFloat(rate.High))
-				low = append(low, ConvertStringToFloat(rate.Low))
-				close = append(close, ConvertStringToFloat(rate.Close))
-				volume = append(volume, ConvertStringToFloat(rate.Volume))
+				openTime = append(openTime, convertMillToTime(rate.OpenTime).Unix())
+				open = append(open, convertStringToFloat(rate.Open))
+				high = append(high, convertStringToFloat(rate.High))
+				low = append(low, convertStringToFloat(rate.Low))
+				close = append(close, convertStringToFloat(rate.Close))
+				volume = append(volume, convertStringToFloat(rate.Volume))
 
 				for _, e := range errorsConversion {
 					if e != nil {
@@ -339,7 +344,7 @@ func (bn *BinanceFetcher) Run() {
 
 		//Sleep for a second before next call
 		if slowDown {
-			time.Sleep(time.Minute)
+			time.Sleep(30 * time.Second)
 		} else {
 			time.Sleep(time.Second)
 		}
