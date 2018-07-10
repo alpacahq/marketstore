@@ -209,6 +209,7 @@ func (bn *BinanceFetcher) Run() {
 	finalTime := bn.queryEnd
 	baseCurrency := bn.baseCurrency
 	loopForever := false
+	slowDown := false
 
 	originalInterval := bn.baseTimeframe.String
 	re := regexp.MustCompile("[0-9]+")
@@ -267,6 +268,7 @@ func (bn *BinanceFetcher) Run() {
 			} else {
 				timeEnd = finalTime
 			}
+			slowDown = true
 		}
 
 		if diffTimes == 0 {
@@ -336,7 +338,12 @@ func (bn *BinanceFetcher) Run() {
 		}
 
 		//Sleep for a second before next call
-		time.Sleep(time.Second)
+		if slowDown {
+			time.Sleep(time.Minute)
+		} else {
+			time.Sleep(time.Second)
+		}
+
 	}
 }
 
