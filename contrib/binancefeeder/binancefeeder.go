@@ -30,6 +30,7 @@ var errorsConversion []error
 
 type FetcherConfig struct {
 	Symbols       []string `json:"symbols"`
+	BaseCurrency  string   `json:"base_currency"`
 	QueryStart    string   `json:"query_start"`
 	QueryEnd      string   `json:"query_end"`
 	BaseTimeframe string   `json:"base_timeframe"`
@@ -39,6 +40,7 @@ type FetcherConfig struct {
 type BinanceFetcher struct {
 	config        map[string]interface{}
 	symbols       []string
+	baseCurrency  string
 	queryStart    time.Time
 	queryEnd      time.Time
 	baseTimeframe *utils.Timeframe
@@ -87,6 +89,17 @@ func ConvertMillToTime(originalTime int64) time.Time {
 	return i
 }
 
+// Append if String is Missing from array
+// All credit to Sonia: https://stackoverflow.com/questions/9251234/go-append-if-unique
+func AppendIfMissing(slice []string, i string) ([]string, bool) {
+	for _, ele := range slice {
+		if ele == i {
+			return slice, false
+		}
+	}
+	return append(slice, i), true
+}
+
 //Gets all symbols from binance
 func GetAllSymbols() []string {
 	client := binance.NewClient("", "")
@@ -94,6 +107,7 @@ func GetAllSymbols() []string {
 	symbol := make([]string, 0)
 	status := make([]string, 0)
 	validSymbols := make([]string, 0)
+	notRepeated := true
 
 	if err != nil {
 		symbols := []string{"BTC", "EOS", "ETH", "BNB", "TRX", "ONT", "XRP", "ADA",
@@ -101,8 +115,10 @@ func GetAllSymbols() []string {
 		return symbols
 	} else {
 		for _, info := range exchangeinfo.Symbols {
-			symbol = append(symbol, info.Symbol)
-			status = append(status, info.Status)
+			symbol, notRepeated = AppendIfMissing(symbol, info.BaseAsset)
+			if notRepeated == true {
+				status = append(status, info.Status)
+			}
 		}
 
 		//Check status and append to symbols list if valid
@@ -145,6 +161,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryEnd time.Time
 	timeframeStr := "1Min"
 	var symbols []string
+	baseCurrency := "USDT"
 
 	//First see if config has symbols, if not retrieve all from binance as default
 	if len(config.Symbols) > 0 {
@@ -157,6 +174,10 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timeframeStr = config.BaseTimeframe
 	}
 
+	if config.BaseCurrency != "" {
+		baseCurrency = config.BaseCurrency
+	}
+
 	if config.QueryStart != "" {
 		queryStart = QueryTime(config.QueryStart)
 	}
@@ -165,11 +186,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		queryEnd = QueryTime(config.QueryEnd)
 	}
 
-	if config.BaseTimeframe != "" {
-		timeframeStr = config.BaseTimeframe
-	}
 	return &BinanceFetcher{
 		config:        conf,
+		baseCurrency:  baseCurrency,
 		symbols:       symbols,
 		queryStart:    queryStart,
 		queryEnd:      queryEnd,
@@ -183,6 +202,7 @@ func (bn *BinanceFetcher) Run() {
 	client := binance.NewClient("", "")
 	timeStart := time.Time{}
 	finalTime := bn.queryEnd
+	baseCurrency := bn.baseCurrency
 
 	originalInterval := bn.baseTimeframe.String
 	re := regexp.MustCompile("[0-9]+")
@@ -199,7 +219,7 @@ func (bn *BinanceFetcher) Run() {
 		correctIntervalSymbol = "1Min"
 	}
 
-	//Time end issue
+	//Time end check
 	if finalTime.IsZero() {
 		finalTime = time.Now().UTC()
 	}
@@ -232,12 +252,11 @@ func (bn *BinanceFetcher) Run() {
 		diffTimes := finalTime.Sub(timeEnd)
 
 		//Reset time. Make sure you get all data possible
-		if diffTimes < 0{
+		if diffTimes < 0 {
 			timeStart = timeStart.Add(-bn.baseTimeframe.Duration * 300)
 			timeEnd = finalTime
-		} 
+		}
 
-		
 		if diffTimes == 0 {
 			glog.Infof("Got all data from: %v to %v", bn.queryStart, bn.queryEnd)
 			glog.Infof("Continuing...")
@@ -252,7 +271,7 @@ func (bn *BinanceFetcher) Run() {
 		for _, symbol := range symbols {
 			glog.Infof("Requesting %s %v - %v", symbol, timeStart, timeEnd)
 
-			rates, err := client.NewKlinesService().Symbol(symbol + "USDT").Interval(timeInterval).StartTime(timeStartM).EndTime(timeEndM).Do(context.Background())
+			rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).Interval(timeInterval).StartTime(timeStartM).EndTime(timeEndM).Do(context.Background())
 
 			if err != nil {
 				glog.Errorf("Response error: %v", err)
@@ -308,11 +327,12 @@ func (bn *BinanceFetcher) Run() {
 }
 
 func main() {
-	symbol := "BTCUSDT"
+	symbol := "BTC"
 	interval := "1m"
+	baseCurrency := "USDT"
 
 	client := binance.NewClient("", "")
-	klines, err := client.NewKlinesService().Symbol(symbol).
+	klines, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
 		Interval(interval).Do(context.Background())
 	if err != nil {
 		fmt.Println(err)
