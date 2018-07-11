@@ -162,10 +162,10 @@
   revision = "ad9fb86c356f971f30319c40ddbdcf72129a2791"
 
 [[projects]]
-  branch = "master"
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "f2b4162afba35581b6d4a50d3b8f34e33c144682"
+  revision = "ab8a2e0c74be9d3be70b3184d9acc634935ded82"
+  version = "1.1.4"
 
 [[projects]]
   branch = "master"
@@ -209,7 +209,7 @@
     "middleware/recover",
     "view"
   ]
-  revision = "964fba44cf4f4b2e94b2cbd54fbbf4d264795df7"
+  revision = "eba6adbd78bb547b220f7fe7fbda331532134e87"
   version = "v10.6.6"
 
 [[projects]]
@@ -222,10 +222,14 @@
   revision = "a9733b5b6b83d32b479aacd51d26ef6018261963"
 
 [[projects]]
+  branch = "master"
   name = "github.com/kataras/survey"
-  packages = ["."]
-  revision = "18a4dbb1d9d05349aea1a2bf9c84028c36817c10"
-  version = "v1.3.4"
+  packages = [
+    ".",
+    "core",
+    "terminal"
+  ]
+  revision = "00934ae069eda15df26fa427ac393e67e239380c"
 
 [[projects]]
   name = "github.com/klauspost/compress"
@@ -233,8 +237,8 @@
     "flate",
     "gzip"
   ]
-  revision = "6c8db69c4b49dd4df1fff66996cf556176d0b9bf"
-  version = "v1.2.1"
+  revision = "b939724e787a27c0005cabe3f78e7ed7987ac74f"
+  version = "v1.4.0"
 
 [[projects]]
   name = "github.com/klauspost/cpuid"
@@ -243,10 +247,16 @@
   version = "v1.1"
 
 [[projects]]
-  name = "github.com/klauspost/crc32"
+  name = "github.com/kr/pretty"
   packages = ["."]
-  revision = "cb6bfca970f6908083f26f39a79009d608efd5cd"
-  version = "v1.1"
+  revision = "73f6ac0b30a98e433b289500d779f50c1a6f0712"
+  version = "v0.1.0"
+
+[[projects]]
+  name = "github.com/kr/text"
+  packages = ["."]
+  revision = "e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f"
+  version = "v0.1.0"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -270,7 +280,7 @@
   branch = "master"
   name = "github.com/microcosm-cc/bluemonday"
   packages = ["."]
-  revision = "995366fdf961d03629cd17361bddd32745718e2c"
+  revision = "f0761eb8ed07c1cc892ef631b00c33463b9b6868"
 
 [[projects]]
   name = "github.com/modern-go/concurrent"
@@ -281,8 +291,8 @@
 [[projects]]
   name = "github.com/modern-go/reflect2"
   packages = ["."]
-  revision = "1df9eeb2bb81f327b96228865c5687bc2194af3f"
-  version = "1.0.0"
+  revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
+  version = "1.0.1"
 
 [[projects]]
   name = "github.com/nats-io/go-nats"
@@ -309,8 +319,8 @@
 [[projects]]
   name = "github.com/preichenberger/go-gdax"
   packages = ["."]
-  revision = "77508b321c9785d9d8d804d564794d5bf6d4283e"
-  version = "0.3.3"
+  revision = "30444f6c08e4879aa6409d9ae086db95b03d4ea1"
+  version = "0.3.4"
 
 [[projects]]
   branch = "master"
@@ -346,7 +356,7 @@
     "acme",
     "acme/autocert"
   ]
-  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
   branch = "master"
@@ -356,13 +366,13 @@
     "html",
     "html/atom"
   ]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+  revision = "039a4258aec0ad3c79b905677cceeab13b296a77"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "56ede360ec1c541828fb88741b3f1049406d28f5"
+  revision = "1b2967e3c290b7c545b3db0deeda16e9be4f98a2"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -377,23 +387,14 @@
     "internal/modules",
     "internal/remote_api"
   ]
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
-
-[[projects]]
-  name = "gopkg.in/AlecAivazis/survey.v1"
-  packages = [
-    "core",
-    "terminal"
-  ]
-  revision = "e752db451e07e09c7d7dc8cada807a44bdb0fd47"
-  version = "v1.5.3"
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "v1"
   name = "gopkg.in/check.v1"
   packages = ["."]
-  revision = "20d25e2804050c1cd24a7eea1e7a6447dd0e74ec"
+  revision = "788fd78401277ebd861206a03c884797c6ec5541"
 
 [[projects]]
   branch = "v2"
@@ -405,10 +406,11 @@
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1a17f8ee8522fb718c2435215b88c237ab4ff6c9649b14f84625bd4179173057"
+  inputs-digest = "00e43627d560b402e9670c1551d76ce38a0d7a062186dd2ac32e536569e71fa1"
   solver-name = "gps-cdcl"
   solver-version = 1
