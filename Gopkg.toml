@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/alpacahq/slait"
-  version = "1.1.5"
+  version = "1.1.6"
 
 [[constraint]]
   name = "github.com/antlr/antlr4"
