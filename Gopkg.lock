@@ -36,8 +36,8 @@
     "utils",
     "utils/log"
   ]
-  revision = "47502040aeaf411c91623ebc64f284a0416dd312"
-  version = "v1.1.5"
+  revision = "303fb5d37292c008366615d90c0b4e704cdac2f5"
+  version = "v1.1.6"
 
 [[projects]]
   name = "github.com/antlr/antlr4"
@@ -153,7 +153,7 @@
   branch = "master"
   name = "github.com/hashicorp/go-version"
   packages = ["."]
-  revision = "23480c0665776210b5fbbac6eaaee40e3e6a96b7"
+  revision = "270f2f71b1ee587f3b609f00f422b76a6b28f348"
 
 [[projects]]
   branch = "master"
@@ -162,10 +162,10 @@
   revision = "ad9fb86c356f971f30319c40ddbdcf72129a2791"
 
 [[projects]]
+  branch = "master"
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "ab8a2e0c74be9d3be70b3184d9acc634935ded82"
-  version = "1.1.4"
+  revision = "10a568c51178f31e41456cedaac7838e0f4f7360"
 
 [[projects]]
   branch = "master"
@@ -222,7 +222,6 @@
   revision = "a9733b5b6b83d32b479aacd51d26ef6018261963"
 
 [[projects]]
-  branch = "master"
   name = "github.com/kataras/survey"
   packages = [
     ".",
@@ -230,6 +229,7 @@
     "terminal"
   ]
   revision = "00934ae069eda15df26fa427ac393e67e239380c"
+  version = "v2.0.0"
 
 [[projects]]
   name = "github.com/klauspost/compress"
@@ -277,10 +277,10 @@
   revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
-  branch = "master"
   name = "github.com/microcosm-cc/bluemonday"
   packages = ["."]
-  revision = "f0761eb8ed07c1cc892ef631b00c33463b9b6868"
+  revision = "dafebb5b6ff2861a0d69af64991e10866c19be85"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/modern-go/concurrent"
@@ -356,7 +356,7 @@
     "acme",
     "acme/autocert"
   ]
-  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
+  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
 
 [[projects]]
   branch = "master"
@@ -366,13 +366,13 @@
     "html",
     "html/atom"
   ]
-  revision = "039a4258aec0ad3c79b905677cceeab13b296a77"
+  revision = "3673e40ba22529d22c3fd7c93e97b0ce50fa7bdd"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "1b2967e3c290b7c545b3db0deeda16e9be4f98a2"
+  revision = "e072cadbbdc8dd3d3ffa82b8b4b9304c261d9311"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -411,6 +411,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "00e43627d560b402e9670c1551d76ce38a0d7a062186dd2ac32e536569e71fa1"
+  inputs-digest = "6eb0917b12d9fbbcbad5a55d29780edf202e2a0c7c3a88ed19362bad137ff67e"
   solver-name = "gps-cdcl"
   solver-version = 1
