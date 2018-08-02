@@ -295,15 +295,15 @@ func (bn *BinanceFetcher) Run() {
 	// Note that the max amount is 1000 candlesticks which is no problem
 	var timeStartM int64
 	var timeEndM int64
-	var diffTimes time.Duration
 	var timeEnd time.Time
-	var finalTime time.Time
 	var originalTimeStart time.Time
 	var originalTimeEnd time.Time
-	timeEnd = timeStart
+	var originalTimeEndZero time.Time
+	var waitTill time.Time
 	firstLoop := true
+
 	for {
-		finalTime = time.Now().UTC()
+		// finalTime = time.Now().UTC()
 		originalTimeStart = timeStart
 		originalTimeEnd = timeEnd
 
@@ -318,11 +318,12 @@ func (bn *BinanceFetcher) Run() {
 				// Keep timeStart as original value
 				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * 300)
 			}
-
-			diffTimes = finalTime.Sub(timeEnd)
-			if diffTimes < 0 {
+			if timeEnd.After(time.Now().UTC()) {
 				slowDown = true
 			}
+		} else {
+			// Set to the :00 of previous TimeEnd to ensure that the complete candle that was not formed before is written
+			originalTimeEnd = originalTimeEndZero
 		}
 
 		// Sleep for the timeframe
@@ -353,6 +354,7 @@ func (bn *BinanceFetcher) Run() {
 			default:
 				glog.Infof("Incorrect format: %v", originalInterval)
 			}
+			waitTill = timeEnd.Add(bn.baseTimeframe.Duration)
 
 			timeStartM := timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 			timeEndM := timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
@@ -373,6 +375,7 @@ func (bn *BinanceFetcher) Run() {
 				}
 			}
 
+			originalTimeEndZero = timeEnd
 			// Change timeEnd to the correct time where the last candle is formed
 			timeEnd = time.Now().UTC()
 		}
@@ -424,8 +427,8 @@ func (bn *BinanceFetcher) Run() {
 				} else {
 					glog.Info("No value in rate %v", rate)
 				}
-
 			}
+
 			validWriting := true
 			if len(openTime) == 0 || len(open) == 0 || len(high) == 0 || len(low) == 0 || len(close) == 0 || len(volume) == 0 {
 				validWriting = false
@@ -433,6 +436,18 @@ func (bn *BinanceFetcher) Run() {
 			// if data is nil, do not write to csm
 			if validWriting {
 				cs := io.NewColumnSeries()
+				// Remove last incomplete candle if it exists since that is incomplete
+				// Since all are the same length we can just check one
+				// We know that the last one on the list is the incomplete candle because in
+				// the gotCandle loop we only move on when the incomplete candle appears which is the last entry from the API
+				if slowDown && len(openTime) > 1 {
+					openTime = openTime[:len(openTime)-1]
+					open = open[:len(open)-1]
+					high = high[:len(high)-1]
+					low = low[:len(low)-1]
+					close = close[:len(close)-1]
+					volume = volume[:len(volume)-1]
+				}
 				cs.AddColumn("Epoch", openTime)
 				cs.AddColumn("Open", open)
 				cs.AddColumn("High", high)
@@ -444,11 +459,12 @@ func (bn *BinanceFetcher) Run() {
 				csm.AddColumnSeries(*tbk, cs)
 				executor.WriteCSM(csm, false)
 			}
+
 		}
 
 		if slowDown {
-			// Sleep for time duration for the next candle
-			time.Sleep(bn.baseTimeframe.Duration)
+			// Sleep till next :00 time
+			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
 			// Binance rate limit is 20 reequests per second so this shouldn't be an issue.
 			time.Sleep(time.Second)
