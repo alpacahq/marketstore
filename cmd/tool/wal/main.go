@@ -5,27 +5,27 @@ import (
 	"path/filepath"
 
 	"github.com/alpacahq/marketstore/executor"
-	. "github.com/alpacahq/marketstore/utils/log"
 	"github.com/alpacahq/slait/utils/log"
 	"github.com/spf13/cobra"
 )
 
 const (
-	walUsage        = "wal"
-	walShortDesc    = "TODO: wal debugger short desc"
-	walLongDesc     = "TODO: wal debugger long desc"
-	walFilePathDesc = "Path to WAL File"
+	usage           = "wal"
+	short           = "Examine a WAL file's unwritten transactions"
+	long            = "This command examines a WAL file's unwritten transactions"
+	example         = "marketstore tool wal --file <path>"
+	walFilePathDesc = "set the path to the WAL file"
 )
 
 var (
 	// Cmd is the wal command.
 	Cmd = &cobra.Command{
-		Use:     walUsage,
-		Short:   walShortDesc,
-		Long:    walLongDesc,
+		Use:     usage,
+		Short:   short,
+		Long:    long,
 		Aliases: []string{"waldebugger"},
-		Example: "TODO: wal example",
-		Run:     executeWAL,
+		Example: example,
+		RunE:    executeWAL,
 	}
 	// walfilePath is the path to the walfile.
 	walfilePath string
@@ -33,11 +33,11 @@ var (
 
 func init() {
 	// Parse flags.
-	Cmd.Flags().StringVarP(&walfilePath, "walFile", "w", "", walFilePathDesc)
-	Cmd.MarkFlagRequired("walFile")
+	Cmd.Flags().StringVarP(&walfilePath, "file", "f", "", walFilePathDesc)
+	Cmd.MarkFlagRequired("file")
 }
 
-func executeWAL(cmd *cobra.Command, args []string) {
+func executeWAL(cmd *cobra.Command, args []string) error {
 	log.SetLogLevel(log.INFO)
 
 	// Read in WALFile.
@@ -46,11 +46,11 @@ func executeWAL(cmd *cobra.Command, args []string) {
 	}
 	filePtr, err := os.OpenFile(wf.FilePath, os.O_RDONLY, 0600)
 	if err != nil {
-		Log(FATAL, err.Error())
+		return err
 	}
 	wf.FilePtr = filePtr
 	wf.RootPath = filepath.Base(wf.FilePath)
 
 	// Execute.
-	wf.Replay(false)
+	return wf.Replay(false)
 }

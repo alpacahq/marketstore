@@ -1,6 +1,7 @@
 package start
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -19,24 +20,24 @@ import (
 )
 
 const (
-	startUsage            = "start"
-	startShortDesc        = "Starts a marketstore database server"
-	startLongDesc         = "This command starts a marketstore database server.. Lorem ipsum.."
-	startExample          = "marketstore start --config PATH_TO_FILE"
+	usage                 = "start"
+	short                 = "Start a marketstore database server"
+	long                  = "This command starts a marketstore database server"
+	example               = "marketstore start --config <path>"
 	defaultConfigFilePath = "./mkts.yml"
-	configDesc            = "Set the path for the marketstore YAML configuration file using --config or -c"
+	configDesc            = "set the path for the marketstore YAML configuration file"
 )
 
 var (
 	// Cmd is the start command.
 	Cmd = &cobra.Command{
-		Use:        startUsage,
-		Short:      startShortDesc,
-		Long:       startLongDesc,
+		Use:        usage,
+		Short:      short,
+		Long:       long,
 		Aliases:    []string{"s"},
-		SuggestFor: []string{"boot", "up"},
-		Example:    startExample,
-		Run:        executeStart,
+		SuggestFor: []string{"boot", "up", "init"},
+		Example:    example,
+		RunE:       executeStart,
 	}
 	// configFilePath set flag for a path to the config file.
 	configFilePath string
@@ -48,13 +49,12 @@ func init() {
 }
 
 // executeStart implements the start command.
-func executeStart(cmd *cobra.Command, args []string) {
+func executeStart(cmd *cobra.Command, args []string) error {
 
 	// Attempt to read config file.
 	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		Log(FATAL, "failed to read configuration file - Error: %v", err)
-		return
+		return fmt.Errorf("failed to read configuration file error: %s", err.Error())
 	}
 
 	// Log config location.
@@ -63,8 +63,7 @@ func executeStart(cmd *cobra.Command, args []string) {
 	// Attempt to set configuration.
 	err = utils.InstanceConfig.Parse(data)
 	if err != nil {
-		Log(FATAL, "failed to parse configuration file error: %v", err)
-		return
+		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
 
 	// Spawn a goroutine and listen for a signal.
@@ -117,11 +116,12 @@ func executeStart(cmd *cobra.Command, args []string) {
 	atomic.StoreUint32(&frontend.Queryable, 1)
 
 	// Serve.
-	// TODO: Not quite sure why no handler is specified..
 	Log(INFO, "launching tcp listener for all services...")
 	if err := http.ListenAndServe(utils.InstanceConfig.ListenPort, nil); err != nil {
-		Log(FATAL, "failed to start server - error: %s", err)
+		return fmt.Errorf("failed to start server - error: %s", err.Error())
 	}
+
+	return nil
 }
 
 func shutdown() {

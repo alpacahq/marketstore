@@ -11,33 +11,33 @@ import (
 const (
 	// Command
 	// -------------
-	connectUsage     = "connect"
-	connectShortDesc = "Opens a client for reading/writing values to a marketstore database"
-	connectLongDesc  = "This command opens a client connection to a marketstore instance.. Lorem ipsum."
-	connectExample   = "marketstore connect -serverURL example.com:5993"
+	usage   = "connect"
+	short   = "Open an interactive session with an existing marketstore database"
+	long    = "This command opens an interactive session with an existing marketstore database"
+	example = "marketstore connect --url <address>"
 
 	// Flags.
 	// -------------
-	// Remote URL.
+	// Network Address.
 	urlFlag    = "url"
 	defaultURL = ""
-	urlDesc    = "Network address to database instance at \"hostname:port\" when used in remote mode."
+	urlDesc    = "network address to database instance at \"hostname:port\" when used in remote mode"
 	// Local directory.
 	dirFlag    = "dir"
 	defaultDir = ""
-	dirDesc    = "Filesystem path of database files when used in local mode"
+	dirDesc    = "filesystem path of the directory containing database files when used in local mode"
 )
 
 var (
 	// Cmd is the connect command.
 	Cmd = &cobra.Command{
-		Use:        connectUsage,
-		Short:      connectShortDesc,
-		Long:       connectLongDesc,
+		Use:        usage,
+		Short:      short,
+		Long:       long,
 		SuggestFor: []string{"mkts", "open", "conn"},
-		Example:    connectExample,
+		Example:    example,
 		Args:       validateArgs,
-		Run:        executeConnect,
+		RunE:       executeConnect,
 	}
 
 	// url set via flag for remote db address.
@@ -47,8 +47,8 @@ var (
 )
 
 func init() {
-	Cmd.Flags().StringVar(&url, urlFlag, defaultURL, urlDesc)
-	Cmd.Flags().StringVar(&dir, dirFlag, defaultDir, dirDesc)
+	Cmd.Flags().StringVarP(&url, urlFlag, "u", defaultURL, urlDesc)
+	Cmd.Flags().StringVarP(&dir, dirFlag, "d", defaultDir, dirDesc)
 }
 
 // validateArgs returns an error that prevents cmd execution if
@@ -61,7 +61,7 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 }
 
 // executeConnect implements the connect command.
-func executeConnect(cmd *cobra.Command, args []string) {
+func executeConnect(cmd *cobra.Command, args []string) error {
 	//
 	var c *cli.Client
 	var err error
@@ -70,8 +70,7 @@ func executeConnect(cmd *cobra.Command, args []string) {
 	if len(dir) != 0 {
 		c, err = cli.NewLocalClient(dir)
 		if err != nil {
-			Log(INFO, err.Error())
-			return
+			return err
 		}
 	}
 
@@ -79,25 +78,23 @@ func executeConnect(cmd *cobra.Command, args []string) {
 	if len(url) != 0 {
 		c, err = cli.NewRemoteClient(url)
 		if err != nil {
-			Log(INFO, err.Error())
-			return
+			return err
 		}
 	}
 
 	// Initialize connection.
 	err = c.Connect()
 	if err != nil {
-		Log(INFO, err.Error())
-		return
+		return err
 	}
 
 	//	Start reader buffer.
 	err = c.Read()
 	if err != nil {
-		Log(INFO, err.Error())
-		return
+		return err
 	}
 
 	// TODO: Gracefully close connections and clean up.
 	Log(INFO, "closed connection")
+	return nil
 }

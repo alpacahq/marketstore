@@ -7,21 +7,20 @@ import (
 )
 
 const (
-	toolUsage     = "tool"
-	toolShortDesc = "Executes tools as subcommands"
-	toolLongDesc  = "This command executes the specified tool. Lorem ipsum.."
-	toolExample   = "marketstore tool wal [flags]"
+	usage   = "tool"
+	short   = "Execute the specified tool"
+	long    = "This command executes the specified tool"
+	example = "marketstore tool wal --file <path>"
 )
 
 var (
 	// Cmd is the tool command.
 	Cmd = &cobra.Command{
-		Use:        toolUsage,
-		Short:      toolShortDesc,
-		Long:       toolLongDesc,
-		Aliases:    []string{"s"},
+		Use:        usage,
+		Short:      short,
+		Long:       long,
 		SuggestFor: []string{"wal", "integrity"},
-		Example:    toolExample,
+		Example:    example,
 	}
 )
 

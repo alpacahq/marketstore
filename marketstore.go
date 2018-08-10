@@ -13,10 +13,16 @@
 package main
 
 import (
+	"os"
+
 	"github.com/alpacahq/marketstore/cmd"
 )
 
-// Builds the command heirarchy and parses statements.
+// Builds the command hierarchy and parses statements.
 func main() {
-	cmd.Root.Execute()
+	err := cmd.Execute()
+	// Errors are already handled by the framework.
+	if err != nil {
+		os.Exit(0)
+	}
 }

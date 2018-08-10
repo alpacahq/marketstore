@@ -9,33 +9,33 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	// Root is the root cli command.
-	Root = &cobra.Command{
+// flagPrintVersion set flag to show current marketstore version.
+var flagPrintVersion bool
+
+// Execute builds the command tree and executes commands.
+func Execute() error {
+
+	// c is the root command.
+	c := &cobra.Command{
 		Use: "marketstore",
-		Run: executeRoot,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Print version if specified.
+			if flagPrintVersion {
+				Log(INFO, "version: %+v\n", utils.Tag)
+				Log(INFO, "commit hash: %+v\n", utils.GitHash)
+				Log(INFO, "utc build time: %+v\n", utils.BuildStamp)
+				return nil
+			}
+			// Print information regarding usage.
+			return cmd.Usage()
+		},
 	}
-	// flagPrintVersion set flag to show current marketstore version.
-	flagPrintVersion bool
-)
 
-func init() {
-	Root.AddCommand(start.Cmd)
-	Root.AddCommand(tool.Cmd)
-	Root.AddCommand(connect.Cmd)
-	Root.Flags().BoolVarP(&flagPrintVersion, "version", "v", false, "show the version info and exit")
-}
+	// Adds subcommands and version flag.
+	c.AddCommand(start.Cmd)
+	c.AddCommand(tool.Cmd)
+	c.AddCommand(connect.Cmd)
+	c.Flags().BoolVarP(&flagPrintVersion, "version", "v", false, "show the version info and exit")
 
-// executeRoot implements the root command.
-// All this does now is print version or usage.
-func executeRoot(cmd *cobra.Command, args []string) {
-	// Print version if specified.
-	if flagPrintVersion {
-		Log(INFO, "version: %+v\n", utils.Tag)
-		Log(INFO, "commit hash: %+v\n", utils.GitHash)
-		Log(INFO, "utc build time: %+v\n", utils.BuildStamp)
-		return
-	}
-	// Print information regarding usage.
-	cmd.Usage()
+	return c.Execute()
 }

@@ -15,26 +15,26 @@ import (
 )
 
 const (
-	integrityUsage     = "integrity"
-	integrityShortDesc = "TODO: integrity check short description"
-	integrityLongDesc  = "TODO: integrity check long description"
+	usage   = "integrity"
+	short   = "Evaluate checksums on database internals"
+	long    = "This command evaluates checksums on database internals"
+	example = "marketstore tool integrity --dir <path> --fix --parallel"
 
 	// Flag descriptions.
-	rootDirPathDesc      = "Root directory to be checked"
-	numChunksPerFileDesc = "Number of checksum chunks per file, excluding the header"
-	yearStartDesc        = "Limit the checker to years later than and including yearStart"
-	yearEndDesc          = "Limit the checker to years earlier than and including yearEnd"
-	monthStartDesc       = "Limit the checker to months later than and including monthStart"
-	monthEndDesc         = "Limit the checker to months earlier than and including monthEnd"
-	parallelDesc         = "Run checker in parallel, default is false"
-	fixHeadersDesc       = "Fix known errors in headers if found, default is false"
+	rootDirPathDesc      = "set filesystem path of the directory containing the files to evaulate"
+	numChunksPerFileDesc = "set number of checksum chunks per file, excluding the header"
+	yearStartDesc        = "limit the evaluation to years later than yearStart (inclusive)"
+	yearEndDesc          = "limit the evaluation to years earlier than yearEnd (inclusive)"
+	monthStartDesc       = "limit the evaluation to months later than monthStart (inclusive)"
+	monthEndDesc         = "limit the evaluation to months earlier than monthEnd (inclusive)"
+	parallelDesc         = "run evaluation in parallel, default is false"
+	fixHeadersDesc       = "fix known errors in headers if found, default is false"
 
 	// Flag defaults.
 	defaultNumChunksPerFile = 12
 )
 
 var (
-
 	// Available flags.
 	rootDirPath                              string
 	numChunksPerFile                         int
@@ -43,15 +43,14 @@ var (
 
 	// Cmd is the integrity command.
 	Cmd = &cobra.Command{
-		Use:     integrityUsage,
-		Short:   integrityShortDesc,
-		Long:    integrityLongDesc,
+		Use:     usage,
+		Short:   short,
+		Long:    long,
 		Aliases: []string{"ic", "integritycheck"},
-		Example: "TODO: integrity example",
-		Run:     executeIntegrity,
+		Example: example,
+		RunE:    executeIntegrity,
 	}
 
-	// Other junk.
 	cksums      []int64
 	filechunks  []string
 	readBuffers [][]byte
@@ -60,15 +59,15 @@ var (
 
 func init() {
 	// Parse flags.
-	Cmd.Flags().StringVar(&rootDirPath, "rootDir", "", rootDirPathDesc)
-	Cmd.MarkFlagRequired("rootDir")
-	Cmd.Flags().IntVar(&numChunksPerFile, "numChunksPerFile", defaultNumChunksPerFile, numChunksPerFileDesc)
+	Cmd.Flags().StringVarP(&rootDirPath, "dir", "d", "", rootDirPathDesc)
+	Cmd.MarkFlagRequired("dir")
+	Cmd.Flags().IntVar(&numChunksPerFile, "chunks", defaultNumChunksPerFile, numChunksPerFileDesc)
 	Cmd.Flags().IntVar(&yearStart, "yearStart", 0, yearStartDesc)
 	Cmd.Flags().IntVar(&yearEnd, "yearEnd", 0, yearEndDesc)
 	Cmd.Flags().IntVar(&monthStart, "monthStart", 0, monthStartDesc)
 	Cmd.Flags().IntVar(&monthEnd, "monthEnd", 0, monthEndDesc)
 	Cmd.Flags().BoolVar(&parallel, "parallel", false, parallelDesc)
-	Cmd.Flags().BoolVar(&fixHeaders, "fixHeaders", false, fixHeadersDesc)
+	Cmd.Flags().BoolVar(&fixHeaders, "fix", false, fixHeadersDesc)
 
 	rootDirPath = filepath.Clean(rootDirPath)
 	if !exists(rootDirPath) {
@@ -142,19 +141,19 @@ func init() {
 }
 
 // executeIntegrity implements the integrity tool.
-func executeIntegrity(cmd *cobra.Command, args []string) {
+func executeIntegrity(cmd *cobra.Command, args []string) error {
 
 	SetLogLevel(INFO)
 
 	Log(INFO, "Root directory: %v", rootDirPath)
 
 	// Perform integrity check.
-	filepath.Walk(rootDirPath, cksumDataFiles)
+	return filepath.Walk(rootDirPath, cksumDataFiles)
 }
 
 func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) {
 	if !isFile(filePath) {
-		return nil
+		return fmt.Errorf("%s is not a file", filePath)
 	}
 	checkFile, _ := filepath.Rel(rootDirPath, filePath)
 	ext := filepath.Ext(checkFile)
@@ -162,18 +161,17 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 		checkFile = checkFile[:len(checkFile)-4]
 		year, _ := strconv.Atoi(filepath.Base(checkFile))
 		if year < yearStart || year > yearEnd {
-			return nil
+			return fmt.Errorf("Incorrect start or end dates")
 		}
 
 		//Subtract the header size to get our gross chunksize
 		size := fi.Size() - io.Headersize
 		// Size the chunk buffer to be a multiple of 8-bytes
 		chunkSize := io.AlignedSize(int(size/int64(numChunksPerFile) + size%int64(numChunksPerFile)))
+		fmt.Println("Chunksize: ", chunkSize)
 
-		//		fmt.Println("Chunksize: ", chunkSize)
 		fp, err := os.Open(filePath)
 		if err != nil {
-			fmt.Println(err.Error())
 			return err
 		}
 
