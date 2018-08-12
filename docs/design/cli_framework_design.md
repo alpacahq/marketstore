@@ -1,5 +1,7 @@
 # Marketstore CLI Framework Design
+
 Date: 08/03/2018
+
 Author: Michael Ackley <ackleymi@gmail.com>
 
 ## Goal
@@ -21,6 +23,8 @@ No performance impacts are expected. Functionality is just reorganized regarding
 github.com/spf13/cobra is the cli commander library that provides a framework for building modern cli applications. The main concept is, a root command, in this case `marketstore` can have subcommands and flags. Those subcommands can also have subcommands and flags, effectively building a nice tree of logic and commands. Commands can also accept non-flag arguments where necessary.
 
 A few nice examples of this design (in production) are popular command-line applications like docker, kubernetes, hugo, cockroachdb, influxdb, etc.
+
+It is really easy to see how the commands and laid out in practice- simply run `marketstore`, nothing else, and it will print out the list of commands and a bunch of useful help information.
 
 ### Some features of this framework
 * All errors are handled in an idiomatic go fashion through return values and handled gracefully.
@@ -54,7 +58,7 @@ func main() {
 This function bootstraps the command hierarchy that exists in the cmd/ directory, then parses the arguments and executes the commands.
 
 ### How commands are organized
-You can find commands defined using this map of the relevant directory structure.
+You can find where commands are defined using this map of the relevant directory structure.
 ```
 marketstore/
   marketstore.go

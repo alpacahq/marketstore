@@ -3,7 +3,7 @@ package connect
 import (
 	"errors"
 
-	"github.com/alpacahq/marketstore/cmd/connect/cli"
+	"github.com/alpacahq/marketstore/cmd/connect/session"
 	. "github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
 )
@@ -62,13 +62,13 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 
 // executeConnect implements the connect command.
 func executeConnect(cmd *cobra.Command, args []string) error {
-	//
-	var c *cli.Client
+
+	var c *session.Client
 	var err error
 
 	// Attempt local mode.
 	if len(dir) != 0 {
-		c, err = cli.NewLocalClient(dir)
+		c, err = session.NewLocalClient(dir)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 
 	// Attempt remote mode.
 	if len(url) != 0 {
-		c, err = cli.NewRemoteClient(url)
+		c, err = session.NewRemoteClient(url)
 		if err != nil {
 			return err
 		}

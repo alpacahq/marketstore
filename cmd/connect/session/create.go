@@ -1,4 +1,4 @@
-package cli
+package session
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 )
 
-// create lorem ipsum..
+// create generates new subdirectories and buckets for a database.
 func (c *Client) create(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"

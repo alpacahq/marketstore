@@ -1,12 +1,13 @@
-package cli
+package session
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/cmd/connect/csv"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/planner"
@@ -55,7 +56,11 @@ func (c *Client) show(line string) {
 	}
 	key := csm.GetMetadataKeys()[0]
 	if c.target == file {
-		writer := csv.NewWriter(tbk, start, end)
+		writer, fileErr := newCSVWriter(tbk, start, end)
+		if fileErr != nil {
+			fmt.Println(fileErr)
+			return
+		}
 		printResult(line, csm[key], writer)
 
 	} else {
@@ -68,6 +73,29 @@ func (c *Client) show(line string) {
 	if c.timing {
 		fmt.Printf("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
+}
+
+// newCSVWriter returns a writer for a csv file.
+func newCSVWriter(tbk *io.TimeBucketKey, start, end *time.Time) (w *csv.Writer, err error) {
+	// format file name.
+	var file *os.File
+	if end != nil {
+		file, err = os.Create(
+			fmt.Sprintf("%v_%v_%v.csv",
+				tbk.String(),
+				start.Format("2006-01-02-15:04"),
+				end.Format("2006-01-02-15:04")))
+	} else {
+		file, err = os.Create(
+			fmt.Sprintf("%v_%v.csv", tbk.String(), *start))
+		defer file.Close()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return csv.NewWriter(file), nil
 }
 
 func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {

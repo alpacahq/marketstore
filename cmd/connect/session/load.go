@@ -1,4 +1,4 @@
-package cli
+package session
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/cmd/connect/csv"
+	"github.com/alpacahq/marketstore/cmd/connect/loader"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
 )
@@ -73,7 +73,7 @@ func (c *Client) load(line string) {
 	/*
 		Read the metadata about the CSV file
 	*/
-	columnIndex, csvReader, conf, err := csv.ReadMetadata(dataFD, loaderCtl, dataShapes)
+	columnIndex, csvReader, conf, err := loader.ReadMetadata(dataFD, loaderCtl, dataShapes)
 	if err != nil {
 		fmt.Println("Error: ", err.Error())
 		return
@@ -101,7 +101,7 @@ func (c *Client) load(line string) {
 		}
 		fmt.Printf("Read next %d lines from CSV file...", linesRead)
 
-		l_start, l_end := csv.WriteChunk(dbWriter, dataShapes, *tbk, columnIndex, csvChunk, conf)
+		l_start, l_end := loader.WriteChunk(dbWriter, dataShapes, *tbk, columnIndex, csvChunk, conf)
 		if start.IsZero() {
 			start, end = l_start, l_end
 		}

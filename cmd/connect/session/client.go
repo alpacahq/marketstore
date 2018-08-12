@@ -1,8 +1,8 @@
-// Package cli
-// This file is the hub of the `cli` package. The `Client` struct defined here
+// Package session
+// This file is the hub of the `session` package. The `Client` struct defined here
 // manages the database connection has the responsibility of interpreting user
 // inputs.
-package cli
+package session
 
 import (
 	"bytes"
@@ -43,7 +43,7 @@ const (
 )
 
 // Client represents an agent that manages a database
-// connection and performs transactions specified by a
+// connection and parses/executes the statements specified by a
 // user in a command-line buffer.
 type Client struct {
 	// timing flag determines to print query execution time.
@@ -58,8 +58,6 @@ type Client struct {
 	rc *client.Client
 	// dir is the optional filesystem location of a local db instance.
 	dir string
-	// outputDir is the optional location of the csv file to write to.
-	outputDir string
 }
 
 // NewLocalClient builds a new client struct in local mode.
@@ -86,8 +84,8 @@ func NewRemoteClient(url string) (c *Client, err error) {
 
 // Connect initializes a client connection.
 func (c *Client) Connect() error {
-	// Nothing to do here yet..
 	if c.mode == local {
+		// Nothing to do here yet..
 		return nil
 	}
 
