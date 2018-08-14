@@ -94,7 +94,6 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: Gracefully close connections and clean up.
 	Log(INFO, "closed connection")
 	return nil
 }

@@ -12,6 +12,7 @@ Unifies the project with one entrypoint, with database user interactions now lim
 * The one-off tools walDebugger and integrityChecker under the previous cmd/tools directory will be migrated to the new `marketstore tool <toolname> [flags]` command.
 * The functionality in the `mkts` application will be migrated to the new `marketstore connect [flags]` command.
 * The functionality in the main `marketstore` application will be migrated to the new `marketstore start [flags]` command.
+* A new command called `init` will create a new mkts.yml file in the current directory.
 * The `mtks` application used to be two giant files. It is now refactored out logically into a few packages and files.
 * runtest.sh and the example data (that had existing bugs in it) are now deprecated, TBD here..
 * Detailed application help information a user might need is easily accessible with every command using either `marketstore help <command>` or `marketstore <command> --help`.
@@ -24,7 +25,25 @@ github.com/spf13/cobra is the cli commander library that provides a framework fo
 
 A few nice examples of this design (in production) are popular command-line applications like docker, kubernetes, hugo, cockroachdb, influxdb, etc.
 
-It is really easy to see how the commands and laid out in practice- simply run `marketstore`, nothing else, and it will print out the list of commands and a bunch of useful help information.
+It is really easy to see how the commands and laid out in practice- simply run `marketstore`, nothing else, and it will print out the list of commands and a bunch of useful help information. It will look something like this-
+```
+Usage:
+  marketstore [flags]
+  marketstore [command]
+
+Available Commands:
+  connect     Open an interactive session with an existing marketstore database
+  help        Help about any command
+  init        Creates a new mkts.yml file
+  start       Start a marketstore database server
+  tool        Execute the specified tool
+
+Flags:
+  -h, --help      help for marketstore
+  -v, --version   show the version info and exit
+
+Use "marketstore [command] --help" for more information about a command.
+```
 
 ### Some features of this framework
 * All errors are handled in an idiomatic go fashion through return values and handled gracefully.
@@ -65,6 +84,8 @@ marketstore/
   cmd/
     main.go
     connect/
+      main.go
+		create/
       main.go
     start/
       main.go
@@ -134,6 +155,7 @@ Name | Shortcut | Purpose | Required | Default
 --- | --- | --- | --- | ---
 --config | -c | specifying the path of the config file | no | ./mkts.yml
 
+
 ### Connect
 This command opens an interactive session with an existing marketstore database where a user can execute sql statements (queries) and examine database diagnostics. This is accomplished by providing the command with either a location of on-disk marketstore database files OR a network address of a running marketstore server.
 
@@ -146,6 +168,17 @@ Name | Shortcut | Purpose | Required | Default
 --url | -u | specifying the address to database instance | no | none
 --dir | -d | specifying the path of database files | no | none
 
+
+### Init
+A super useful command for getting a new database up and running. It creates a new `mkts.yml` file in the current directory. This file is populated with defaults and examples.
+
+#### Example
+`marketstore init`
+
+#### Flags
+N/A
+
+
 ### Tool - WAL
 The WAL file debugging tool can now be executed as a command.
 
@@ -156,6 +189,7 @@ The WAL file debugging tool can now be executed as a command.
 Name | Shortcut | Purpose | Required | Default
 --- | --- | --- | --- | ---
 --file | -f | specifying the path of the WAL file | yes | none
+
 
 ### Tool - Integrity
 The integrity checker debugging tool can now be executed as a command.

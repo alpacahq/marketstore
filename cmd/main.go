@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/alpacahq/marketstore/cmd/connect"
+	"github.com/alpacahq/marketstore/cmd/create"
 	"github.com/alpacahq/marketstore/cmd/start"
 	"github.com/alpacahq/marketstore/cmd/tool"
 	"github.com/alpacahq/marketstore/utils"
@@ -32,6 +33,7 @@ func Execute() error {
 	}
 
 	// Adds subcommands and version flag.
+	c.AddCommand(create.Cmd)
 	c.AddCommand(start.Cmd)
 	c.AddCommand(tool.Cmd)
 	c.AddCommand(connect.Cmd)

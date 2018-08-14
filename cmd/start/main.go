@@ -35,7 +35,7 @@ var (
 		Short:      short,
 		Long:       long,
 		Aliases:    []string{"s"},
-		SuggestFor: []string{"boot", "up", "init"},
+		SuggestFor: []string{"boot", "up"},
 		Example:    example,
 		RunE:       executeStart,
 	}
