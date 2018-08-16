@@ -19,17 +19,21 @@ MarketStore is production ready! At [Alpaca](https://alpaca.markets) it has been
 ### Docker
 If you want to get started right away, you can bootstrap a marketstore db instance using our latest [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/).
 
-Example of running it using the default mkts.yml file and exposing the RPC interface to port 5993:
+These examples assume that the directory "/tmp" and the file "/tmp/mkts.yml" exist. So, the following procudure is needed when you run docker containers for the first time:
 
 ``` sh
-docker run -p 5993:5993 alpacamarkets/marketstore:v2.1.2
+$ mkdir /tmp
+$ pwd 
+/path/to/marketstore
+$ cp mkts.yml /tmp
 ```
 
 The following example runs the docker image using a temporary configuration file mkts.yml located in the /tmp folder. The -v refers to mounting to a volume. So, the "/tmp/mktsdb" replaces the original "/project/data/mktsdb" root directory. Note that you can edit this mkts.yml. 
 
 ``` sh
-docker run -v /tmp/mktsdb:/project/data/mktsdb -v /tmp/mkts.yml:/tmp/mkts.yml -p 5993:5993 alpacamarkets/marketstore:v2.1.2 marketstore -config /tmp/mkts.yml
+docker run -v /tmp/mktsdb:/project/data/mktsdb -v /tmp/mkts.yml:/tmp/mkts.yml -p 5993:5993 alpacamarkets/marketstore:v2.3.8 marketstore -config /tmp/mkts.yml
 ```
+
 ### Source
 MarketStore is implemented in Go (with some CGO), so you can build it from
 source pretty easily. You need Go 1.9+ and [dep](https://github.com/golang/dep).
