@@ -170,7 +170,7 @@ Name | Shortcut | Purpose | Required | Default
 
 
 ### Init
-A super useful command for getting a new database up and running. It creates a new `mkts.yml` file in the current directory. This file is populated with defaults and examples.
+A super useful command for getting a new database up and running. It creates a new `mkts.yml` file and an empty data/ directory in the current directory. This config file is populated with defaults and examples.
 
 #### Example
 `marketstore init`
