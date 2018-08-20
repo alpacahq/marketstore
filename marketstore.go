@@ -10,8 +10,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go-bindata -pkg create -o cmd/create/bindata.go cmd/create/default.yml
-
 package main
 
 import (

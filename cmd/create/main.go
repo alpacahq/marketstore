@@ -1,4 +1,5 @@
 // Package create - because packages cannot be named 'init' in go.
+//go:generate go-bindata -pkg create default.yml
 package create
 
 import (
@@ -30,7 +31,7 @@ var (
 // executeInit implements the init command.
 func executeInit(*cobra.Command, []string) error {
 	// serialize default file.
-	data, err := Asset("cmd/create/default.yml")
+	data, err := Asset("default.yml")
 	if err != nil {
 		return err
 	}

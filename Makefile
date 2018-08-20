@@ -33,6 +33,7 @@ unittest:
 	go test ./...
 
 push:
-	docker build --build-arg tag=$(DOCKER_TAG) -t alpacamarkets/marketstore:$(DOCKER_TAG) .
+	docker build --build-arg tag=$(DOCKER_TAG) -t alpacamarkets/marketstore:$(DOCKER_TAG) -t alpacamarkets/marketstore:latest .
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
 	docker push alpacamarkets/marketstore:$(DOCKER_TAG)
+	docker push alpacamarkets/marketstore:latest

@@ -283,10 +283,10 @@
   revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
+  branch = "master"
   name = "github.com/microcosm-cc/bluemonday"
   packages = ["."]
-  revision = "dafebb5b6ff2861a0d69af64991e10866c19be85"
-  version = "v1.0.0"
+  revision = "f2f6dc5b2a57d61194ac68bc1b82d0eebfd0c4e9"
 
 [[projects]]
   name = "github.com/modern-go/concurrent"
@@ -429,6 +429,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6eb0917b12d9fbbcbad5a55d29780edf202e2a0c7c3a88ed19362bad137ff67e"
+  inputs-digest = "def130fc3c477bd043dad536878c3fd8e26a8c9b6a534dbbad9494f260ca85b4"
   solver-name = "gps-cdcl"
   solver-version = 1

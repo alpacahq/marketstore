@@ -17,21 +17,21 @@ MarketStore is production ready! At [Alpaca](https://alpaca.markets) it has been
 ## Install
 
 ### Docker
-If you want to get started right away, you can bootstrap a marketstore db instance using our latest [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/).
-
-These examples assume that the directory "/tmp" and the file "/tmp/mkts.yml" exist. So, the following procedure is needed when you run docker containers for the first time:
-
+If you want to get started right away, you can bootstrap a marketstore db instance using our latest [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/). The image comes pre-loaded with the default mkts.yml file and declares the VOLUME `/data`, as its root directory. To run the container with the defaults:
 ``` sh
-$ mkdir /tmp
-$ pwd
-/path/to/marketstore
-$ cp mkts.yml /tmp
+docker run -i -p 5993:5993 alpacamarkets/marketstore:latest
 ```
 
-The following example runs the docker image using a temporary configuration file mkts.yml located in the /tmp folder. The -v refers to mounting to a volume. So, the "/tmp/mktsdb" replaces the original "/project/data/mktsdb" root directory. Note that you can edit this mkts.yml.
-
+If you want to run a custom `mkts.yml` with your instance, you can create a new container, load your mkts.yml file into it, then run it.
 ``` sh
-docker run -v /tmp/mktsdb:/project/data/mktsdb -v /tmp/mkts.yml:/tmp/mkts.yml -p 5993:5993 alpacamarkets/marketstore:v2.3.8 marketstore state --config /tmp/mkts.yml
+docker create --name mktsdb -p 5993:5993 alpacamarkets/marketstore:latest
+docker cp mkts.yml mktsdb:etc/mkts.yml
+docker start -i mktsdb
+```
+
+Open a session with your running docker instance using
+``` sh
+marketstore connect --url localhost:5993
 ```
 
 ### Source
