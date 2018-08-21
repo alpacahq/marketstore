@@ -1,13 +1,33 @@
-root_directory: /project/data/mktsdb
+# -----------------------------------------
+# Auto-generated marketstore configuration.
+# -----------------------------------------
+# root directory of the database
+root_directory: data
+# listen port - the port exposed by the database server
 listen_port: 5993
-# timezone: "America/New_York"
+# log level (info|warn|error)
 log_level: info
+# queryable - allows the database to be queried through a client connection
 queryable: true
+#
 stop_grace_period: 0
+#
 wal_rotate_interval: 5
+#
 enable_add: true
+#
 enable_remove: false
+#
 enable_last_known: false
+# 
+# timezone: "America/New_York"
+
+# ----------------------------------------
+# Example trigger modules
+#
+# Un-comment to enable.
+# ----------------------------------------
+#
 # triggers:
 #   - module: ondiskagg.so
 #     on: "*/1Min/OHLCV"
@@ -57,6 +77,6 @@ enable_last_known: false
 #     name: BitmexFeeder
 #     config:
 #       query_start: "2017-01-01 00:00"
-#       symbols: 
+#       symbols:
 #         - .XBT
 #       base_timeframe: "5Min"

@@ -1,49 +1,41 @@
-package csvreader
+package loader
 
 import (
 	"encoding/csv"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
-	. "github.com/alpacahq/marketstore/utils/io"
-
-	"gopkg.in/yaml.v2"
+	"github.com/alpacahq/marketstore/utils/io"
+	yaml "gopkg.in/yaml.v2"
 )
 
-type Configuration struct {
-	FirstRowHasColumnNames bool     `yaml:"firstRowHasColumnNames"`
-	TimeFormat             string   `yaml:"timeFormat"`
-	Timezone               string   `yaml:"timeZone"`
-	ColumnNameMap          []string `yaml:"columnNameMap"`
-}
-
-func NewConfiguration() *Configuration {
-	return new(Configuration)
-}
-
-func ReadCSVFileMetadata(dataFD, controlFD *os.File, dataShapes []DataShape) (columnIndex []int, csvReader *csv.Reader, conf *Configuration, err error) {
-	conf = NewConfiguration()
-	conf.TimeFormat = "1/2/2006 3:04:05 PM" // a default
-	conf.Timezone = "UTC"
+// ReadMetadata returns formatting info about the csv file containing
+// the data to be loaded into the database.
+func ReadMetadata(dataFD, controlFD *os.File, dataShapes []io.DataShape) (columnIndex []int, csvReader *csv.Reader, conf *Configuration, err error) {
+	// Defaults.
+	conf = &Configuration{
+		TimeFormat: "1/2/2006 3:04:05 PM",
+		Timezone:   "UTC",
+	}
 
 	var inputColNames []string
 	if dataFD == nil {
 		fmt.Println("Failed to open data file for loading")
 		return nil, nil, nil, err
 	}
+
 	if controlFD != nil {
 		// We have a loader control file, read the contents
 		defer controlFD.Close()
 
 		fs, _ := controlFD.Stat()
-		yamfileLen := fs.Size()
-		fmt.Printf("Reading control file %s with size %d bytes\n", fs.Name(), yamfileLen)
-		yamfile := make([]byte, yamfileLen)
-		_, err = controlFD.Read(yamfile)
-		err = yaml.Unmarshal(yamfile, conf)
+		yamlfileLen := fs.Size()
+		fmt.Printf("Reading control file %s with size %d bytes\n", fs.Name(), yamlfileLen)
+		yamlfile := make([]byte, yamlfileLen)
+		_, err = controlFD.Read(yamlfile)
+		err = yaml.Unmarshal(yamlfile, conf)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -147,7 +139,8 @@ func ReadCSVFileMetadata(dataFD, controlFD *os.File, dataShapes []DataShape) (co
 	return columnIndex, csvReader, conf, nil
 }
 
-func TimeColumnsFromCSV(csvData [][]string, columnIndex []int, conf *Configuration) (epochCol []int64, nanosCol []int32) {
+// readTimeColumns retuns the epoch and nano columns of a csv file.
+func readTimeColumns(csvData [][]string, columnIndex []int, conf *Configuration) (epochCol []int64, nanosCol []int32) {
 	var err error
 	epochCol = make([]int64, len(csvData))
 	nanosCol = make([]int32, len(csvData))
@@ -206,136 +199,4 @@ func TimeColumnsFromCSV(csvData [][]string, columnIndex []int, conf *Configurati
 	}
 
 	return epochCol, nanosCol
-}
-
-func parseTime(format, dateTime string, tzLoc *time.Location, formatFixupState int) (parsedTime time.Time, err error) {
-
-	dateString := dateTime[:len(dateTime)-formatFixupState]
-	if tzLoc != nil {
-		parsedTime, err = time.ParseInLocation(format, dateString, tzLoc)
-		if err != nil {
-			return time.Time{}, err
-		}
-	} else {
-		parsedTime, err = time.Parse(format, dateString)
-		if err != nil {
-			return time.Time{}, err
-		}
-	}
-	/*
-		Attempt to use the remainder of the time field if it fits a known pattern
-	*/
-	switch formatFixupState {
-	case 3:
-		remainder := dateTime[len(dateString):]
-		millis, err := strconv.ParseInt(remainder, 10, 64)
-		if err == nil {
-			parsedTime = parsedTime.Add(time.Duration(millis) * time.Millisecond)
-		}
-	case 7:
-		remainder := dateTime[len(dateString)+1:]
-		micros, err := strconv.ParseInt(remainder, 10, 64)
-		if err == nil {
-			parsedTime = parsedTime.Add(time.Duration(micros) * time.Microsecond)
-		}
-	}
-	return parsedTime, nil
-}
-
-func columnError(err error, name string) bool {
-	if err != nil {
-		fmt.Printf("Error obtaining column \"%s\" from csv data\n", name)
-		return true
-	}
-	return false
-}
-func ColumnSeriesMapFromCSVData(csmInit ColumnSeriesMap, key TimeBucketKey, csvRows [][]string, columnIndex []int,
-	dataShapes []DataShape) (csm ColumnSeriesMap) {
-
-	if csmInit == nil {
-		csm = NewColumnSeriesMap()
-	} else {
-		csm = csmInit
-	}
-	for i, shape := range dataShapes {
-		index := columnIndex[i]
-		if index != 0 {
-			/*
-				We skip the first column, as it's the Epoch and we parse that independently
-			*/
-			switch shape.Type {
-			case FLOAT32:
-				col, err := GetFloat32ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
-				}
-				csm.AddColumn(key, shape.Name, col)
-			case FLOAT64:
-				col, err := GetFloat64ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
-				}
-				csm.AddColumn(key, shape.Name, col)
-			case INT32:
-				col, err := GetInt32ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
-				}
-				csm.AddColumn(key, shape.Name, col)
-			case INT64:
-				col, err := GetInt64ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
-				}
-				csm.AddColumn(key, shape.Name, col)
-			}
-		}
-	}
-	return csm
-}
-
-func GetFloat32ColumnFromCSVRows(csvRows [][]string, index int) (col []float32, err error) {
-	col = make([]float32, len(csvRows))
-	for i, row := range csvRows {
-		val, err := strconv.ParseFloat(row[index], 32)
-		if err != nil {
-			return nil, err
-		}
-		col[i] = float32(val)
-	}
-	return col, nil
-}
-
-func GetFloat64ColumnFromCSVRows(csvRows [][]string, index int) (col []float64, err error) {
-	col = make([]float64, len(csvRows))
-	for i, row := range csvRows {
-		col[i], err = strconv.ParseFloat(row[index], 64)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return col, nil
-}
-
-func GetInt32ColumnFromCSVRows(csvRows [][]string, index int) (col []int32, err error) {
-	col = make([]int32, len(csvRows))
-	for i, row := range csvRows {
-		val, err := strconv.ParseInt(row[index], 10, 32)
-		if err != nil {
-			return nil, err
-		}
-		col[i] = int32(val)
-	}
-	return col, nil
-}
-
-func GetInt64ColumnFromCSVRows(csvRows [][]string, index int) (col []int64, err error) {
-	col = make([]int64, len(csvRows))
-	for i, row := range csvRows {
-		col[i], err = strconv.ParseInt(row[index], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return col, nil
 }

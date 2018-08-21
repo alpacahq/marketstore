@@ -1,56 +1,81 @@
-package main
+package integrity
 
 import (
-	"flag"
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"runtime/pprof"
 	"strconv"
 	"sync"
-	"syscall"
 	"unsafe"
 
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/spf13/cobra"
 )
 
-var rootDir string
-var numChunksPerFile int
-var cksums []int64
-var filechunks []string
-var readBuffers [][]byte
-var chunkNames []string
-var parallel, fixHeaders bool
-var yearStart, yearEnd, monthStart, monthEnd int
+const (
+	usage   = "integrity"
+	short   = "Evaluate checksums on database internals"
+	long    = "This command evaluates checksums on database internals"
+	example = "marketstore tool integrity --dir <path> --fix --parallel"
+
+	// Flag descriptions.
+	rootDirPathDesc      = "set filesystem path of the directory containing the files to evaulate"
+	numChunksPerFileDesc = "set number of checksum chunks per file, excluding the header"
+	yearStartDesc        = "limit the evaluation to years later than yearStart (inclusive)"
+	yearEndDesc          = "limit the evaluation to years earlier than yearEnd (inclusive)"
+	monthStartDesc       = "limit the evaluation to months later than monthStart (inclusive)"
+	monthEndDesc         = "limit the evaluation to months earlier than monthEnd (inclusive)"
+	parallelDesc         = "run evaluation in parallel, default is false"
+	fixHeadersDesc       = "fix known errors in headers if found, default is false"
+
+	// Flag defaults.
+	defaultNumChunksPerFile = 12
+)
+
+var (
+	// Available flags.
+	rootDirPath                              string
+	numChunksPerFile                         int
+	yearStart, yearEnd, monthStart, monthEnd int
+	parallel, fixHeaders                     bool
+
+	// Cmd is the integrity command.
+	Cmd = &cobra.Command{
+		Use:     usage,
+		Short:   short,
+		Long:    long,
+		Aliases: []string{"ic", "integritycheck"},
+		Example: example,
+		RunE:    executeIntegrity,
+	}
+
+	cksums      []int64
+	filechunks  []string
+	readBuffers [][]byte
+	chunkNames  []string
+)
 
 func init() {
-	// set logging to output to standard error
-	flag.Lookup("logtostderr").Value.Set("true")
-	SetLogLevel(INFO)
+	// Parse flags.
+	Cmd.Flags().StringVarP(&rootDirPath, "dir", "d", "", rootDirPathDesc)
+	Cmd.MarkFlagRequired("dir")
+	Cmd.Flags().IntVar(&numChunksPerFile, "chunks", defaultNumChunksPerFile, numChunksPerFileDesc)
+	Cmd.Flags().IntVar(&yearStart, "yearStart", 0, yearStartDesc)
+	Cmd.Flags().IntVar(&yearEnd, "yearEnd", 0, yearEndDesc)
+	Cmd.Flags().IntVar(&monthStart, "monthStart", 0, monthStartDesc)
+	Cmd.Flags().IntVar(&monthEnd, "monthEnd", 0, monthEndDesc)
+	Cmd.Flags().BoolVar(&parallel, "parallel", false, parallelDesc)
+	Cmd.Flags().BoolVar(&fixHeaders, "fix", false, fixHeadersDesc)
 
-	_rootDir := flag.String("rootDir", "", "Root directory to be checked")
-	flag.IntVar(&numChunksPerFile, "numChunksPerFile", 12, "Number of checksum chunks per file, excluding the header")
-	flag.IntVar(&yearStart, "yearStart", 0, "Limit the checker to years later than and including yearStart")
-	flag.IntVar(&yearEnd, "yearEnd", 0, "Limit the checker to years earlier than and including yearEnd")
-	flag.IntVar(&monthStart, "monthStart", 0, "Limit the checker to months later than and including monthStart")
-	flag.IntVar(&monthEnd, "monthEnd", 0, "Limit the checker to months earlier than and including monthEnd")
-	flag.BoolVar(&parallel, "parallel", false, "Run checker in parallel, default is false")
-	flag.BoolVar(&fixHeaders, "fixHeaders", false, "fix known errors in headers if found, default is false")
-	flag.Parse()
-	rootDir = filepath.Clean(*_rootDir)
-	if rootDir == "" {
-		fmt.Println("Must enter a root directory (-rootDir)")
+	rootDirPath = filepath.Clean(rootDirPath)
+	if !exists(rootDirPath) {
+		fmt.Printf("Root directory: %s does not exist\n", rootDirPath)
 		os.Exit(0)
 	}
-	if !exists(rootDir) {
-		fmt.Printf("Root directory: %s does not exist\n", rootDir)
-		os.Exit(0)
-	}
-	if !isDir(rootDir) {
-		fmt.Printf("Root directory: %s is not a directory\n", rootDir)
+	if !isDir(rootDirPath) {
+		fmt.Printf("Root directory: %s is not a directory\n", rootDirPath)
 		os.Exit(0)
 	}
 
@@ -113,51 +138,40 @@ func init() {
 		}
 	}
 
-	sigChannel := make(chan os.Signal)
-	go func() {
-		for sig := range sigChannel {
-			switch sig {
-			case syscall.SIGUSR1:
-				Log(INFO, "Dumping stack traces due to SIGUSR1 request")
-				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
-			case syscall.SIGINT:
-				Log(INFO, "Initiating shutdown due to SIGINT request")
-				os.Exit(0)
-			}
-		}
-	}()
-	signal.Notify(sigChannel, syscall.SIGUSR1)
-	signal.Notify(sigChannel, syscall.SIGINT)
-
 }
 
-func main() {
-	fmt.Println("Root directory: ", rootDir)
-	filepath.Walk(rootDir, cksumDataFiles)
+// executeIntegrity implements the integrity tool.
+func executeIntegrity(cmd *cobra.Command, args []string) error {
+
+	SetLogLevel(INFO)
+
+	Log(INFO, "Root directory: %v", rootDirPath)
+
+	// Perform integrity check.
+	return filepath.Walk(rootDirPath, cksumDataFiles)
 }
 
 func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) {
 	if !isFile(filePath) {
-		return nil
+		return fmt.Errorf("%s is not a file", filePath)
 	}
-	checkFile, _ := filepath.Rel(rootDir, filePath)
+	checkFile, _ := filepath.Rel(rootDirPath, filePath)
 	ext := filepath.Ext(checkFile)
 	if ext == ".bin" {
 		checkFile = checkFile[:len(checkFile)-4]
 		year, _ := strconv.Atoi(filepath.Base(checkFile))
 		if year < yearStart || year > yearEnd {
-			return nil
+			return fmt.Errorf("Incorrect start or end dates")
 		}
 
 		//Subtract the header size to get our gross chunksize
 		size := fi.Size() - io.Headersize
 		// Size the chunk buffer to be a multiple of 8-bytes
 		chunkSize := io.AlignedSize(int(size/int64(numChunksPerFile) + size%int64(numChunksPerFile)))
+		fmt.Println("Chunksize: ", chunkSize)
 
-		//		fmt.Println("Chunksize: ", chunkSize)
 		fp, err := os.Open(filePath)
 		if err != nil {
-			fmt.Println(err.Error())
 			return err
 		}
 

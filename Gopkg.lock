@@ -156,6 +156,12 @@
   revision = "270f2f71b1ee587f3b609f00f422b76a6b28f348"
 
 [[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+  version = "v1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/iris-contrib/formBinder"
   packages = ["."]
@@ -277,10 +283,10 @@
   revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
+  branch = "master"
   name = "github.com/microcosm-cc/bluemonday"
   packages = ["."]
-  revision = "dafebb5b6ff2861a0d69af64991e10866c19be85"
-  version = "v1.0.0"
+  revision = "f2f6dc5b2a57d61194ac68bc1b82d0eebfd0c4e9"
 
 [[projects]]
   name = "github.com/modern-go/concurrent"
@@ -339,6 +345,18 @@
   name = "github.com/shurcooL/sanitized_anchor_name"
   packages = ["."]
   revision = "86672fcb3f950f35f2e675df2240550f2a50762f"
+
+[[projects]]
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
+
+[[projects]]
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/vmihailenco/msgpack"
@@ -411,6 +429,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6eb0917b12d9fbbcbad5a55d29780edf202e2a0c7c3a88ed19362bad137ff67e"
+  inputs-digest = "def130fc3c477bd043dad536878c3fd8e26a8c9b6a534dbbad9494f260ca85b4"
   solver-name = "gps-cdcl"
   solver-version = 1

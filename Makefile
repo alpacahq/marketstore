@@ -1,11 +1,10 @@
 .PHONY: plugins
 
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
-
 UTIL_PATH := github.com/alpacahq/marketstore/utils
 
 all:
-	go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./cmd/marketstore ./cmd/tools/...
+	go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
 install: all
 
@@ -34,6 +33,7 @@ unittest:
 	go test ./...
 
 push:
-	docker build --build-arg tag=$(DOCKER_TAG) -t alpacamarkets/marketstore:$(DOCKER_TAG) .
+	docker build --build-arg tag=$(DOCKER_TAG) -t alpacamarkets/marketstore:$(DOCKER_TAG) -t alpacamarkets/marketstore:latest .
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
 	docker push alpacamarkets/marketstore:$(DOCKER_TAG)
+	docker push alpacamarkets/marketstore:latest

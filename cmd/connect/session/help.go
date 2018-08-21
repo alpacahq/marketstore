@@ -1,11 +1,12 @@
-package main
+package session
 
 import (
 	"fmt"
 	"strings"
 )
 
-func processHelp(line string) {
+// functionHelp prints helpful information about specific commands.
+func (c *Client) functionHelp(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "help"
 	var helpKey string
@@ -60,15 +61,17 @@ func processHelp(line string) {
 	`)
 	case "help":
 		fmt.Println(`
-		usage: help command_name
+		Usage: \help command_name
 
 		Available commands: show, trim, gaps, load, create, feed`)
 
 	case "create":
 		fmt.Println(`
+		The create command generates new subdirectories and buckets for a database, and requires specially formatted schema keys as arguments.
+
 		Syntax:
 
-			>> \create <full key spec> <row data shape spec> <row type>
+			>> \create <full key schema> <row data shape schema> <row type>
 
 		- Example: We create a new DB entry to store 1 minute candles for TSLA:
 
@@ -76,20 +79,20 @@ func processHelp(line string) {
 
 		where:
 
-		<full key spec>: The metadata key to be created. A combination of item name key and
+		<full key schema>: The metadata key to be created. A combination of item name key and
 		 	category key: Name1/Name2/Name3:Cat1/Cat2/Cat3
 
 		- Example: If we have Symbol/Timeframe/AttributeGroup as categories, we might have
 		TSLA/1Min/OHLCV as item names and the full key would be:
 
-			<full key spec> = TSLA/1Min/OHLCV:Symbol/Timeframe/AttributeGroup
+			<full key schema> = TSLA/1Min/OHLCV:Symbol/Timeframe/AttributeGroup
 
-		<row data shape spec>: The data types for each element
+		<row data shape schema>: The data types for each element
 			in a row: name1,name2,name3/type:name4,name5/type:name6/type
 
 		- Example: We have OHLCV data where prices are 32-bit floats and volume is 32-bit int:
 
-			<row data shape spec> = Open,High,Low,Close/float32:Volume/int32
+			<row data shape schema> = Open,High,Low,Close/float32:Volume/int32
 
 		<row type>: The type of rows to be stored, one of "fixed" or "variable":
 
@@ -99,6 +102,6 @@ func processHelp(line string) {
 			<row type> = variable`)
 
 	default:
-		fmt.Printf("	No help available for %s...\n", helpKey)
+		fmt.Printf("No help available for %s\n", helpKey)
 	}
 }
