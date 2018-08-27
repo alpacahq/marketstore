@@ -425,7 +425,7 @@ func (bn *BinanceFetcher) Run() {
 						}
 					}
 				} else {
-					glog.Info("No value in rate %v", rate)
+					glog.Infof("No value in rate %v", rate)
 				}
 			}
 
