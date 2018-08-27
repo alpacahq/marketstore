@@ -12,11 +12,11 @@ generate:
 	make -C SQLParser
 	go generate $(shell find . -path ./vendor -prune -o -name \*.go -exec grep -q go:generate {} \; -print | while read file; do echo `dirname $$file`; done | xargs)
 
-configure:
-	dep ensure
+vendor:
+	go mod vendor
 
 update:
-	dep ensure -update
+	go mod tidy
 
 plugins:
 	$(MAKE) -C contrib/ondiskagg
@@ -29,7 +29,6 @@ plugins:
 
 unittest:
 	go fmt ./...
-	go vet ./...
 	go test ./...
 
 push:
