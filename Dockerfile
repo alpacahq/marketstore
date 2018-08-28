@@ -26,7 +26,7 @@ RUN make install plugins
 # a very small output image for deployment.
 #
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /
 COPY --from=builder /go/bin/marketstore /bin/
 COPY --from=builder /go/bin/*.so /bin/
