@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	. "github.com/alpacahq/marketstore/utils/log"
+	"gopkg.in/yaml.v2"
 )
 
 var InstanceConfig MktsConfig

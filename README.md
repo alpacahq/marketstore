@@ -25,7 +25,7 @@ docker run -i -p 5993:5993 alpacamarkets/marketstore:latest
 If you want to run a custom `mkts.yml` with your instance, you can create a new container, load your mkts.yml file into it, then run it.
 ``` sh
 docker create --name mktsdb -p 5993:5993 alpacamarkets/marketstore:latest
-docker cp mkts.yml mktsdb:etc/mkts.yml
+docker cp mkts.yml mktsdb:/etc/mkts.yml
 docker start -i mktsdb
 ```
 
