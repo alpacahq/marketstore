@@ -1,0 +1,4 @@
+firstRowHasColumnNames: true
+timeFormat: "20060102 15:04:05"
+# If not blank, the time format must not feature a timezone
+# columnNameMap: [Epoch, Bid, Ask]
