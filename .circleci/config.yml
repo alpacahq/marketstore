@@ -26,7 +26,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: DOCKER_TAG=$CIRCLE_TAG make configure push
+      - run: DOCKER_TAG=$CIRCLE_TAG make push
 
 workflows:
   version: 2
