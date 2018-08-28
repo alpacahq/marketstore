@@ -8,15 +8,15 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.10.3-alpine AS builder
+FROM golang:1.11-alpine AS builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
+ENV GO111MODULE=on
 
 RUN apk --no-cache add git make gcc g++
-RUN go get -u github.com/golang/dep/...
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
-RUN dep ensure -vendor-only
+RUN make vendor
 RUN make install plugins
 
 #
