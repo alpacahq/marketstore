@@ -1,0 +1,31 @@
+MAKEFILE_PATH := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+PROJECT_ROOT := $(abspath $(MAKEFILE_PATH)/)
+DATA_DIR ?= $(PROJECT_ROOT)/data
+
+IMAGE_NAME=alpacahq/$(CONTAINER_NAME)
+
+DOCKER_CMD=
+
+DOCKER_OPTS_STANDALONE=\
+	$(DOCKER_ADDOPTS)
+
+DOCKER_OPTS=\
+	$(DOCKER_OPTS_STANDALONE)
+
+build:
+	docker build -t $(IMAGE_NAME) .
+
+run:
+	docker run $(DOCKER_OPTS) -d --name $(CONTAINER_NAME) $(IMAGE_NAME) $(DOCKER_CMD)
+
+rm:
+	docker rm -f $(CONTAINER_NAME) || echo
+
+logs:
+	docker logs -f --tail 100 $(CONTAINER_NAME)
+
+bash:
+	docker exec -i -t $(CONTAINER_NAME) bash
+
+cpsource:
+	docker cp ../. $(CONTAINER_NAME):/project
