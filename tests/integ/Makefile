@@ -24,7 +24,7 @@ LATEST_TAG = $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
 test_run_latest:
 	#if [ ! -d project ]; then mkdir -p project/data/mktsdb; fi
 	#docker run -i -v `pwd`/project:/project -p 5993:5993 alpacamarkets/marketstore:${LATEST_TAG}
-	docker run -i -p 5993:5993 alpacamarkets/marketstore:${LATEST_TAG}
+	docker run -i -p 5993:5993 alpacamarkets/marketstore:${LATEST_TAG} /bin/bash echo "OK"
 
 _test_import_csv: reset_marketstore
 	TEST_NUM=$(TEST_NUM) make -C dockerfiles/marketstore import_csv
