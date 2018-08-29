@@ -19,14 +19,19 @@ reset_marketstore:
 # Tests
 ################################################################################
 
+LATEST_TAG = $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
+
 test_run_latest:
-	docker run -i -p 5993:5993 alpacamarkets/marketstore:v2.3.8
+	#if [ ! -d project ]; then mkdir -p project/data/mktsdb; fi
+	#docker run -i -v `pwd`/project:/project -p 5993:5993 alpacamarkets/marketstore:${LATEST_TAG}
+	docker run -i -p 5993:5993 alpacamarkets/marketstore:${LATEST_TAG}
 
 _test_import_csv: reset_marketstore
 	TEST_NUM=$(TEST_NUM) make -C dockerfiles/marketstore import_csv
 	$(MAKE) test_mktsdb_conn
 	make -C dockerfiles/pyclient rm build run
 	TEST_FILENAME='/project/tests/test_not_empty.py' make -C dockerfiles/pyclient test
+	make -C dockerfiles/marketstore rm
 
 test_import_csv_1:
 	TEST_NUM=1 $(MAKE) _test_import_csv
