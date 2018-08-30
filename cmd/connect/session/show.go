@@ -24,6 +24,8 @@ func (c *Client) show(line string) {
 		return
 	}
 	c.target = terminal
+	// TODO: implement a switch between file and terminal in the CLI
+	//c.target = file
 	tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
 		fmt.Println("Could not parse arguments, see \"\\help show\" ")
@@ -77,19 +79,16 @@ func (c *Client) show(line string) {
 
 // newCSVWriter returns a writer for a csv file.
 func newCSVWriter(tbk *io.TimeBucketKey, start, end *time.Time) (w *csv.Writer, err error) {
-	// format file name.
-	var file *os.File
+	// Create a file name
+	startSTR := start.Format("2006-01-02-15:04")
+	var endSTR string
 	if end != nil {
-		file, err = os.Create(
-			fmt.Sprintf("%v_%v_%v.csv",
-				tbk.String(),
-				start.Format("2006-01-02-15:04"),
-				end.Format("2006-01-02-15:04")))
-	} else {
-		file, err = os.Create(
-			fmt.Sprintf("%v_%v.csv", tbk.String(), *start))
-		defer file.Close()
+		endSTR = end.Format("2006-01-02-15:04")
 	}
+	filename := fmt.Sprintf("%v_%v_%v.csv", tbk.String(), startSTR, endSTR)
+	filename = strings.Replace(filename, "/", "-", -1)
+	var file *os.File
+	file, err = os.Create(filename)
 
 	if err != nil {
 		return nil, err
