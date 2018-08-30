@@ -21,7 +21,9 @@ run: init
 
 get_data:
 	@mkdir data
-	wget https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz -O /tmp/mktsdb.tgz && tar -C data -xzf /tmp/mktsdb.tgz && rm /tmp/mktsdb.tgz
+	if [ ! -f /tmp/mktsdb.tgz ]; then \
+	wget https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz -O /tmp/mktsdb.tgz && tar -C data -xzf /tmp/mktsdb.tgz; fi
+
 
 startup:
 	docker run --name $(CONTAINER_NAME) -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
