@@ -9,16 +9,18 @@ DOCKER_ADDOPTS=-p 5993:5993 \
 loaddb:
 	docker run \
 		--entrypoint=/project/dockerfiles/marketstore/loaddb.sh \
-		$(DOCKER_OPTS) -it \
-		$(IMAGE_NAME) \
+		$(DOCKER_OPTS) -it $(IMAGE_NAME) \
 		https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz
-#		/project/dockerfiles/marketstore/loaddb.sh \
 
-resetdb:
-	docker exec -it $(CONTAINER_NAME) /project/dockerfiles/marketstore/resetdb.sh
+resetdb: build
+	docker run --entrypoint=/project/dockerfiles/marketstore/resetdb.sh \
+		$(DOCKER_OPTS) -it $(IMAGE_NAME) 
 
 ls_data:
 	docker exec -it $(CONTAINER_NAME) ls -alR /project/data/
 
 import_csv:
 	docker exec -it $(CONTAINER_NAME) bash -c "/project/tests/setup_mkts/tick/$(TEST_NUM)/load_csv.sh"
+
+clean:
+	docker rmi -f $(IMAGE_NAME)
