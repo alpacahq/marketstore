@@ -23,7 +23,7 @@ func (c *Client) show(line string) {
 		fmt.Println("Not enough arguments, see \"\\help show\" ")
 		return
 	}
-	c.target = file
+	c.target = terminal
 	tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
 		fmt.Println("Could not parse arguments, see \"\\help show\" ")
