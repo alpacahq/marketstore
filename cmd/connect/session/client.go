@@ -78,7 +78,7 @@ func NewRemoteClient(url string) (c *Client, err error) {
 		return nil, errors.New(msg)
 	}
 	// build url.
-	url = "http://" + url + "/"
+	url = "http://" + url
 	return &Client{url: url, mode: remote}, nil
 }
 
