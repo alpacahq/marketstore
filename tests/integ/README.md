@@ -27,12 +27,7 @@ make -C tests/integ test_import_csv_2
 
 - Status: **FAILING**
 
-Both versions of importing csv with the reader fail.
-
-The error message is:
-```
-Error while generating TimeBucketInfo: Directory path /project/data/mktsdb/TEST/1Min/1970.bin not found in catalog
-```
+The latest versions of Marketstore have a broken client interface for loading files
 
 ### test pymarketstore client
 
