@@ -13,10 +13,7 @@ connect: run
 	@curl -s --data-binary '{"jsonrpc":"2.0", "method":"DataService.ListSymbols", "id":1, "params": {"parameters": {}}}' -H 'Content-Type: application/json' http://localhost:5993/rpc ; if [ $$? -ne 0 ]; then echo "Failed"; else echo "Passed"; fi
 
 
-init:
-	@if [ ! -d data/mktsdb ]; then rm -rf data; $(MAKE) _get_data; fi
-
-run: init
+run: _init
 	@if [ `bin/check_running ${CONTAINER_NAME}` -eq 0 ]; then $(MAKE) _startup; fi
 
 stop:
@@ -29,6 +26,9 @@ clean: stop
 
 # Utils
 ################################################################################
+_init:
+	@if [ ! -d data/mktsdb ]; then rm -rf data; $(MAKE) _get_data; fi
+
 _get_data:
 	@mkdir data
 	@if [ ! -f /tmp/mktsdb.tgz ]; then \
