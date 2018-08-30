@@ -2,24 +2,20 @@
 # Commands to automate integration tests
 ################################################################################
 
+LATEST_TAG = $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
+
 # Utils
 ################################################################################
 
-test_mktsdb_conn:
+connect:
 	curl -s --data-binary '{"jsonrpc":"2.0", "method":"DataService.ListSymbols", "id":1, "params": {"parameters": {}}}' -H 'Content-Type: application/json' http://localhost:5993/rpc
 
-reset_marketstore:
-	$(MAKE) -C dockerfiles/marketstore build rm run resetdb rm
-	echo Waiting initialization of marketstore
-	sleep 2
-	$(MAKE) -C dockerfiles/marketstore rm run
-	sleep 2
-	$(MAKE) test_mktsdb_conn
+init:
+	if [ ! -d data ]; then mkdir data; else rm -rf data && mkdir data; fi
+	wget https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz -O /tmp/mktsdb.tgz && tar -C data -xzf /tmp/mktsdb.tgz && rm /tmp/mktsdb.tgz
 
 # Tests
 ################################################################################
-
-LATEST_TAG = $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
 
 test_run_latest:
 	docker run --entrypoint=/bin/ash -i alpacamarkets/marketstore:${LATEST_TAG} -c 'echo OK'
