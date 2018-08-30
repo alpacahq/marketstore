@@ -14,7 +14,7 @@ connect: run
 
 
 init:
-	@if [ ! -d data ]; then $(MAKE) get_data; fi
+	@if [ ! -d data/mktsdb ]; then rm -rf data; $(MAKE) get_data; fi
 
 run: init
 	@if [ $(shell bin/check_running $(CONTAINER_NAME)) -eq 0 ]; then $(MAKE) startup; fi
@@ -25,14 +25,14 @@ get_data:
 	wget https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz -O /tmp/mktsdb.tgz && tar -C data -xzf /tmp/mktsdb.tgz; fi
 
 
-startup:
+startup: stop
 	docker run --name $(CONTAINER_NAME) -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
 		start --config /project/bin/mkts.yml
 	sleep 2
 
 stop:
-	docker stop $(CONTAINER_NAME)
-	docker rm $(CONTAINER_NAME)
+	@if [ $(shell bin/check_running $(CONTAINER_NAME)) -eq 1 ]; then docker stop $(CONTAINER_NAME); fi
+	-docker rm $(CONTAINER_NAME)
 
 clean: stop
 	rm -rf data
