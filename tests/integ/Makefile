@@ -4,6 +4,7 @@
 
 LATEST_TAG = $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
 IMAGE_NAME = alpacamarkets/marketstore:${LATEST_TAG}
+CONTAINER_NAME = integration_tests_mstore
 
 # Utils
 ################################################################################
@@ -16,20 +17,20 @@ init:
 	@if [ ! -d data ]; then $(MAKE) get_data; fi
 
 run: init
-	@if [ $(shell bin/check_running integ_test) -eq 0 ]; then $(MAKE) startup; fi
+	@if [ $(shell bin/check_running $(CONTAINER_NAME)) -eq 0 ]; then $(MAKE) startup; fi
 
 get_data:
 	@mkdir data
 	wget https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz -O /tmp/mktsdb.tgz && tar -C data -xzf /tmp/mktsdb.tgz && rm /tmp/mktsdb.tgz
 
 startup:
-	docker run --name integ_test -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
+	docker run --name $(CONTAINER_NAME) -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
 		start --config /project/bin/mkts.yml
 	sleep 2
 
 stop:
-	docker stop integ_test
-	docker rm integ_test
+	docker stop $(CONTAINER_NAME)
+	docker rm $(CONTAINER_NAME)
 
 clean: stop
 	rm -rf data
