@@ -1,27 +1,24 @@
-# Tests status
+# System level tests for Marketstore
 
-Those tests are designed to monitor the status of the marketstore for supporting ticks:
 
-- tick csv import
+These tests are initially implemented test tick support in the published Marketstore docker image.
+
+Initial tests:
+- download and run latest marketstore docker image
+- import of tick data using csv files import
 - writing and querying ticks with pymarketstore client
-
-(+ some tests to check if latest docker image is runnable)
 
 This is a work in progress and tests will be modified or added according to the set of features we wish to monitor.
 
-## test_run_latest
+## Connection Test
 - Command
 ```
-make -C tests/integ test_run_latest
+make connect
 ```
 
-- Status: **FAILING**
+## WIP
 
-Running the latest marketstore without any option fails.
-It seems that it works if you mount the data directory to the local filesystem.
-
-
-## test_import_csv
+### test_import_csv
 - Command
 ```
 make -C tests/integ test_import_csv_1
@@ -37,7 +34,7 @@ The error message is:
 Error while generating TimeBucketInfo: Directory path /project/data/mktsdb/TEST/1Min/1970.bin not found in catalog
 ```
 
-## test pymarketstore client
+### test pymarketstore client
 
 - Command
 ```
