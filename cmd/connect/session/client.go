@@ -140,7 +140,11 @@ EVAL:
 		// Flip timing flag.
 		case strings.HasPrefix(line, "\\o"):
 			args := strings.Split(line, " ")
-			c.target = args[1]
+			if len(args) > 1 {
+				c.target = args[1]
+			} else {
+				c.target = ""
+			}
 		case strings.HasPrefix(line, "\\timing"):
 			c.timing = !c.timing
 		// Show.
@@ -247,6 +251,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		if err != nil {
 			return err
 		}
+		defer file.Close()
 		writer = csv.NewWriter(file)
 	}
 
@@ -283,7 +288,6 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		var element string
 		for _, name := range cs.GetColumnNames() {
 			if strings.EqualFold(name, "Epoch") {
-				fmt.Printf("%29s  ", dbio.ToSystemTimezone(time.Unix(ts, 0)).String())            // Epoch
 				element = fmt.Sprintf("%29s  ", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 			} else {
 				col := cs.GetByName(name)
@@ -323,6 +327,8 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	}
 	if writer == nil {
 		printHeaderLine(cs)
+	} else {
+		writer.Flush()
 	}
 	return err
 }
