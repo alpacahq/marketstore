@@ -11,6 +11,10 @@ import (
 
 // create generates new subdirectories and buckets for a database.
 func (c *Client) create(line string) {
+	if c.mode != local {
+		fmt.Println("Create currently only functions in local mode")
+		return
+	}
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
 	parts := strings.Split(args[0], ":")
