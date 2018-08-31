@@ -65,13 +65,15 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
 		if len(parts) != 2 {
-			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup")
+			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
+				req.Key)
 			appendErrorResponse(err, response)
 			continue
 		}
 		tbk := io.NewTimeBucketKey(parts[0], parts[1])
 		if tbk == nil {
-			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup")
+			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
+				req.Key)
 			appendErrorResponse(err, response)
 			continue
 		}

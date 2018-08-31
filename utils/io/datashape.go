@@ -1,8 +1,8 @@
 package io
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 )
 
 type DataShape struct {
