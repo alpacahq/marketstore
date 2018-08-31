@@ -80,6 +80,9 @@ func ReadMetadata(dataFD, controlFD *os.File, dataShapes []io.DataShape) (column
 	*/
 	switch {
 	case conf.FirstRowHasColumnNames && conf.ColumnNameMap == nil:
+		for i, name := range inputColNames {
+			inputColNames[i] = strings.TrimSpace(name)
+		}
 	case !conf.FirstRowHasColumnNames && conf.ColumnNameMap != nil:
 		/*
 			We are obtaining column names from user input

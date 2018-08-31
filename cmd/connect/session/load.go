@@ -14,6 +14,11 @@ import (
 
 // load executes data loading into the DB from csv files.
 func (c *Client) load(line string) {
+	// TODO: implement network protocol for load
+	if c.mode != local {
+		fmt.Println("The load command only works in local connection mode")
+		return
+	}
 	args := strings.Split(line, " ")
 	args = args[1:]
 	if len(args) == 0 {
