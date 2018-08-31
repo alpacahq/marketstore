@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	. "github.com/alpacahq/marketstore/utils/log"
+	"gopkg.in/yaml.v2"
 )
 
 var InstanceConfig MktsConfig
@@ -96,7 +95,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 	if aux.Queryable != "" {
 		queryable, err := strconv.ParseBool(aux.Queryable)
 		if err != nil {
-			Log(ERROR, "Invalid value: %v for Queryable. Running as queryable...")
+			Log(ERROR, "Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
 		} else {
 			m.Queryable = queryable
 		}

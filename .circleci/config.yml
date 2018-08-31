@@ -2,34 +2,31 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
 
-    working_directory: /go/src/github.com/alpacahq/marketstore
+    working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
-      - run: go get -u github.com/golang/dep/...
-      - run: make configure all plugins
+      - run: make vendor all plugins
 
   test:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
 
-    working_directory: /go/src/github.com/alpacahq/marketstore
+    working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
-      - run: go get -u github.com/golang/dep/...
-      - run: make configure unittest
+      - run: make vendor unittest
   
   deploy:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
 
-    working_directory: /go/src/github.com/alpacahq/marketstore
+    working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
       - setup_remote_docker
-      - run: go get -u github.com/golang/dep/...
-      - run: DOCKER_TAG=$CIRCLE_TAG make configure push
+      - run: DOCKER_TAG=$CIRCLE_TAG make push
 
 workflows:
   version: 2

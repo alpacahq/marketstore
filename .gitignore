@@ -8,3 +8,5 @@
 /tmp/
 *.pyc
 mktsdb/
+marketstore
+*.exe

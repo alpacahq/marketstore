@@ -204,7 +204,7 @@ func (cfp *CachedFP) Close() error {
 // A.k.a. Commit transaction
 func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	/*
-		Here we flush the contents of the Mkts write cache to:
+		Here we flush the contents of the write cache to:
 		- Primary storage via the OS write cache - data is visible to readers
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/

@@ -1,8 +1,8 @@
 # MarketStore
-![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore) [Telegram group](https://t.me/joinchat/HKxN3BGm6mE5YBt79CMM3Q)
+![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore) [![chatroom icon](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/joinchat/HKxN3BGm6mE5YBt79CMM3Q)
 
 ## Introduction
-MarketStore is a database server optimized for financial timeseries data.
+MarketStore is a database server optimized for financial time-series data.
 You can think of it as an extensible DataFrame service that is accessible from anywhere in your system, at higher scalability.
 
 It is designed from the ground up to address scalability issues around handling large amounts of financial market data used in algorithmic trading backtesting, charting, and analyzing price history with data spanning many years, and granularity down to tick-level for the all US equities or the exploding crypto currencies space. If you are struggling with managing lots of HDF5 files, this is perfect solution to your problem.
@@ -17,32 +17,32 @@ MarketStore is production ready! At [Alpaca](https://alpaca.markets) it has been
 ## Install
 
 ### Docker
-If you want to get started right away, you can bootstrap a marketstore db instance using our latest [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/).
-
-These examples assume that the directory "/tmp" and the file "/tmp/mkts.yml" exist. So, the following procudure is needed when you run docker containers for the first time:
-
+If you want to get started right away, you can bootstrap a marketstore db instance using our latest [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/). The image comes pre-loaded with the default mkts.yml file and declares the VOLUME `/data`, as its root directory. To run the container with the defaults:
 ``` sh
-$ mkdir /tmp
-$ pwd 
-/path/to/marketstore
-$ cp mkts.yml /tmp
+docker run -i -p 5993:5993 alpacamarkets/marketstore:latest
 ```
 
-The following example runs the docker image using a temporary configuration file mkts.yml located in the /tmp folder. The -v refers to mounting to a volume. So, the "/tmp/mktsdb" replaces the original "/project/data/mktsdb" root directory. Note that you can edit this mkts.yml. 
-
+If you want to run a custom `mkts.yml` with your instance, you can create a new container, load your mkts.yml file into it, then run it.
 ``` sh
-docker run -v /tmp/mktsdb:/project/data/mktsdb -v /tmp/mkts.yml:/tmp/mkts.yml -p 5993:5993 alpacamarkets/marketstore:v2.3.8 marketstore -config /tmp/mkts.yml
+docker create --name mktsdb -p 5993:5993 alpacamarkets/marketstore:latest
+docker cp mkts.yml mktsdb:/etc/mkts.yml
+docker start -i mktsdb
+```
+
+Open a session with your running docker instance using
+``` sh
+marketstore connect --url localhost:5993
 ```
 
 ### Source
 MarketStore is implemented in Go (with some CGO), so you can build it from
-source pretty easily. You need Go 1.9+ and [dep](https://github.com/golang/dep).
+source pretty easily. You need Go 1.11+ as it uses `go mod` to manage dependencies.
 ``` sh
 go get -u github.com/alpacahq/marketstore
 ```
 and then in the repo directory, install dependencies using
 ``` sh
-make configure
+make vendor
 ```
 then compile and install the project binaries using
 ``` sh
@@ -54,28 +54,31 @@ make plugins
 ```
 
 ## Usage
-You can run it by:
-``` sh
+You can list available commands by running
+```
 marketstore
 ```
-or 
-``` sh
+or
+```
 $GOPATH/bin/marketstore
 ```
-depending on your GOPATH
+depending on your GOPATH.
 
-
-To run marketstore with a configuration file named "mkts.yml":
-``` sh
-$GOPATH/bin/marketstore -config mkts.yml
+You can create a new configuration file named `mkts.yml`, populated with defaults by running:
 ```
-To learn how to format a proper db query, please see [this](./frontend/)
-### Example output when marketstore runs
+$GOPATH/bin/marketstore init
+```
+and then start the marketstore server with:
+```
+$GOPATH/bin/marketstore start
+```
+
+The output will look something like:
 ```
 example@alpaca:~/go/bin/src/github.com/alpacahq/marketstore$ marketstore
 I0619 16:29:30.102101    7835 log.go:14] Disabling "enable_last_known" feature until it is fixed...
 I0619 16:29:30.102980    7835 log.go:14] Initializing MarketStore...
-I0619 16:29:30.103092    7835 log.go:14] WAL Setup: initCatalog true, initWALCache true, backgroundSync true, WALBypass false: 
+I0619 16:29:30.103092    7835 log.go:14] WAL Setup: initCatalog true, initWALCache true, backgroundSync true, WALBypass false:
 I0619 16:29:30.103179    7835 log.go:14] Root Directory: /example/go/bin/src/github.com/alpacahq/marketstore/project/data/mktsdb
 I0619 16:29:30.144461    7835 log.go:14] My WALFILE: WALFile.1529450970104303654.walfile
 I0619 16:29:30.144486    7835 log.go:14] Found a WALFILE: WALFile.1529450306968096708.walfile, entering replay...
@@ -91,10 +94,10 @@ I0619 16:29:30.340824    7835 plugins.go:42] InitializeBgWorkers
 ```
 
 ## Configuration
-In order to run MarketStore, a YAML config file is needed. A default file (mkts.yml) is included in the repo. The path to this file is passed in to the launcher binary with the `-config` flag, or by default it finds a file named mkts.yml in the directory it is running from.
+In order to run MarketStore, a YAML config file is needed. A default file (mkts.yml) can be created using `marketstore init`. The path to this file is passed in to the `start` command with the `--config` flag, or by default it finds a file named mkts.yml in the directory it is running from.
 
 ### Options
-Flag | Type | Description
+Var | Type | Description
 --- | --- | ---
 root_directory | string | Allows the user to specify the directory in which the MarketStore database resides
 listen_port | int | Port that MarketStore will serve through
@@ -109,9 +112,9 @@ enable_remove | bool | Allows symbols to be removed from DB via /write API
 triggers | slice | List of trigger plugins
 bgworkers | slice | List of background worker plugins
 
-### Example mkts.yml
+### Default mkts.yml
 ```
-root_directory: /project/data/mktsdb
+root_directory: data
 listen_port: 5993
 log_level: info
 queryable: true
@@ -176,33 +179,14 @@ Epoch
 ```
 
 ### Command-line
-The `mkts` cli tool included with the project and built with
-`make all` allows a user to write/read data to time series buckets.
-Use the `runtest.sh` wrapper under `cmd/tools/mkts/examples` to see some examples of its usage.
-
-This test script will create a bucket, load example tick data from a csv into the bucket, and run a simple query.
-
-The last few lines of output should match the following:
-
+Connect to a marketstore instance with
 ```
-=============================  ==========  ==========  ==========  
-                        Epoch  Bid         Ask         Nanoseconds  
-=============================  ==========  ==========  ==========  
-2016-12-31 02:37:57 +0000 UTC  1.05185     1.05197     139999810   
-2016-12-31 02:38:02 +0000 UTC  1.05185     1.05198     389999832   
-2016-12-31 02:38:09 +0000 UTC  1.05188     1.052       389999583   
-2016-12-31 02:38:09 +0000 UTC  1.05189     1.05201     889999385   
-2016-12-31 02:38:10 +0000 UTC  1.05186     1.05197     139999706   
-2016-12-31 02:38:10 +0000 UTC  1.05186     1.05192     389999188   
-2016-12-31 02:38:10 +0000 UTC  1.05181     1.05189     639999508   
-2016-12-31 02:38:10 +0000 UTC  1.05182     1.0519      889999829   
-2016-12-31 02:38:11 +0000 UTC  1.05181     1.05189     389999631   
-2016-12-31 02:38:18 +0000 UTC  1.0518      1.0519      139999900   
-=============================  ==========  ==========  ==========  
-Elapsed parse time: 19.523 ms
-Elapsed query time: 4.707 ms
+// For a local db-
+marketstore connect --dir <path>
+// For a server-
+marketstore connect --url <address>
 ```
-
+and run commands through the sql session.
 
 ## Plugins
 Go plugin architecture works best with Go1.10+ on linux. For more on plugins, see the [plugins package](./contrib/plugins/) Some featured plugins are covered here -
