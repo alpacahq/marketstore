@@ -2,8 +2,8 @@
 # Commands to automate integration tests
 ################################################################################
 
-LATEST_TAG = $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
-IMAGE_NAME = alpacamarkets/marketstore:${LATEST_TAG}
+LATEST_TAG ?= $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
+IMAGE_NAME ?= alpacamarkets/marketstore:${LATEST_TAG}
 CONTAINER_NAME = integration_tests_mstore
 
 # User targets

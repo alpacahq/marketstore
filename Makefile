@@ -31,6 +31,15 @@ unittest:
 	go fmt ./...
 	go test ./...
 
+image:
+	docker build -t alpacamarkets/marketstore.test .
+
+runimage: 
+	make -C tests/integ run IMAGE_NAME=alpacamarkets/marketstore.test
+
+stopimage:
+	make -C tests/integ clean IMAGE_NAME=alpacamarkets/marketstore.test
+
 push:
 	docker build --build-arg tag=$(DOCKER_TAG) -t alpacamarkets/marketstore:$(DOCKER_TAG) -t alpacamarkets/marketstore:latest .
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)

@@ -73,6 +73,14 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	}
 
 	switch functionName {
+	case "Create":
+		result := &frontend.MultiServerResponse{}
+		err = msgpack2.DecodeClientResponse(resp.Body, result)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+
 	case "Query", "SQLStatement":
 		result := &frontend.MultiQueryResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)

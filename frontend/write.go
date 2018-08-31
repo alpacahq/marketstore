@@ -119,9 +119,15 @@ Utility functions
 */
 
 func appendErrorResponse(err error, response *MultiServerResponse) {
+	var errorText string
+	if err == nil {
+		errorText = ""
+	} else {
+		errorText = err.Error()
+	}
 	response.Responses = append(response.Responses,
 		ServerResponse{
-			err.Error(),
+			errorText,
 			utils.GitHash,
 		},
 	)

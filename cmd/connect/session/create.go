@@ -9,20 +9,25 @@ import (
 
 // create generates new subdirectories and buckets for a database.
 func (c *Client) create(line string) {
-	if c.mode != local {
-		fmt.Println("Create currently only functions in local mode")
-		return
-	}
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
 
-	reqs := frontend.MultiCreateRequest{
-		Requests: []frontend.CreateRequest{
-			{Key: args[0], DataShapes: args[1], RowType: args[2]},
-		}}
-	var responses frontend.MultiServerResponse
-	ds := frontend.DataService{}
-	err := ds.Create(nil, &reqs, &responses)
+	req := frontend.CreateRequest{Key: args[0], DataShapes: args[1], RowType: args[2]}
+	reqs := &frontend.MultiCreateRequest{
+		Requests: []frontend.CreateRequest{req},
+	}
+	responses := &frontend.MultiServerResponse{}
+	var err error
+	if c.mode == local {
+		ds := frontend.DataService{}
+		err = ds.Create(nil, reqs, responses)
+	} else {
+		var respI interface{}
+		respI, err = c.rc.DoRPC("Create", reqs)
+		if respI != nil {
+			responses = respI.(*frontend.MultiServerResponse)
+		}
+	}
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
 		return
