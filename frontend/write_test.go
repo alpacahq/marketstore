@@ -61,7 +61,7 @@ func (s *ServerTestSuite) TestWrite(c *C) {
 		},
 	}
 
-	var response MultiWriteResponse
+	var response MultiServerResponse
 	if err := service.Write(nil, args, &response); err != nil {
 		c.Fatalf("error returned: %s", err.Error())
 	}

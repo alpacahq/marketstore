@@ -87,7 +87,7 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
 		return result.Results, nil
 	case "Write":
-		result := &frontend.MultiWriteResponse{}
+		result := &frontend.MultiServerResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
 
 	default:

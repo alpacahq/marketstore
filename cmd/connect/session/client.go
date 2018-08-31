@@ -170,7 +170,6 @@ EVAL:
 			c.functionHelp("\\help")
 		// Quit.
 		case line == "\\stop", line == "\\quit", line == "\\q", line == "exit":
-			fmt.Println("got quit")
 			break EVAL
 			// Nothing to do.
 		case line == "":

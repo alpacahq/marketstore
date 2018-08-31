@@ -1,5 +1,10 @@
 package io
 
+import (
+	"strings"
+	"fmt"
+)
+
 type DataShape struct {
 	Name string
 	Type EnumElementType
@@ -28,4 +33,29 @@ func (ds *DataShape) String() (st string) {
 // if both are equal
 func (ds *DataShape) Equal(shape DataShape) bool {
 	return ds.Name == shape.Name && ds.Type == shape.Type
+}
+
+func DataShapesFromInputString(inputStr string) (dsa []DataShape, err error) {
+	splitString := strings.Split(inputStr, ":")
+	dsa = make([]DataShape, 0)
+	for _, group := range splitString {
+		twoParts := strings.Split(group, "/")
+		if len(twoParts) != 2 {
+			err = fmt.Errorf("error: %s: Data shape is not described by a list of column names followed by type.", group)
+			fmt.Println(err.Error())
+			return nil, err
+		}
+		elementNames := strings.Split(twoParts[0], ",")
+		elementType := twoParts[1]
+		eType := EnumElementTypeFromName(elementType)
+		if eType == NONE {
+			err = fmt.Errorf("error: %s: Data type is not a supported type", group)
+			fmt.Println(err.Error())
+			return nil, err
+		}
+		for _, name := range elementNames {
+			dsa = append(dsa, DataShape{Name: name, Type: eType})
+		}
+	}
+	return dsa, nil
 }
