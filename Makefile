@@ -20,12 +20,30 @@ update:
 
 plugins:
 	$(MAKE) -C contrib/ondiskagg
-	$(MAKE) -C contrib/gdaxfeeder
 	$(MAKE) -C contrib/slait
 	$(MAKE) -C contrib/stream
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/bitmexfeeder
-	$(MAKE) -C contrib/binancefeeder
+	$(MAKE) -C contrib/testgdax_usd
+	$(MAKE) -C contrib/testgdax_btc
+	$(MAKE) -C contrib/gdax_usd
+	$(MAKE) -C contrib/gdax_btc
+	$(MAKE) -C contrib/binance_usdt_1
+	$(MAKE) -C contrib/binance_btc_1
+	$(MAKE) -C contrib/binance_eth_1
+	$(MAKE) -C contrib/binance_bnb_1
+	$(MAKE) -C contrib/binance_usdt_2
+	$(MAKE) -C contrib/binance_btc_2
+	$(MAKE) -C contrib/binance_eth_2
+	$(MAKE) -C contrib/binance_bnb_2
+	$(MAKE) -C contrib/binance_usdt_3
+	$(MAKE) -C contrib/binance_btc_3
+	$(MAKE) -C contrib/binance_eth_3
+	$(MAKE) -C contrib/binance_bnb_3
+	$(MAKE) -C contrib/binance_usdt_4
+	$(MAKE) -C contrib/binance_btc_4
+	$(MAKE) -C contrib/binance_eth_4
+	$(MAKE) -C contrib/binance_bnb_4
 
 unittest:
 	go fmt ./...

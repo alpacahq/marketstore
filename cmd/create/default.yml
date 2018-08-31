@@ -1,82 +1,544 @@
-# -----------------------------------------
-# Auto-generated marketstore configuration.
-# -----------------------------------------
-# root directory of the database
-root_directory: data
-# listen port - the port exposed by the database server
+root_directory: /project/data/mktsdb
 listen_port: 5993
-# log level (info|warn|error)
 log_level: info
-# queryable - allows the database to be queried through a client connection
 queryable: true
-#
 stop_grace_period: 0
-#
 wal_rotate_interval: 5
-#
+stale_threshold: 5
 enable_add: true
-#
-enable_remove: false
-#
-enable_last_known: false
-# 
-# timezone: "America/New_York"
+enable_remove: true
+triggers:
+  - module: ondiskagg.so
+    on: "*/1Min/OHLCV"
+    config:
+      destinations:
+        - 5Min
+        - 15Min
+        - 30Min
+        - 45Min  
+        - 1H
+        - 2H
+        - 3H  
+        - 4H
+        - 6H
+        - 8H
+        - 1D
+        - 3D
+bgworkers:
+  - module: binance_usdt_1.so
+    name: Binance_USDT_1_Fetcher
+    config:
+      symbols:
+        - ADA
+        - BNB
+        - BTC
+        - EOS
+        - ETC
+        - ETH
+        - ICX
+        - IOTA
+        - LTC
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_usdt_2.so
+    name: Binance_USDT_2_Fetcher
+    config:
+      symbols:
+        - NEO
+        - NULS
+        - ONT
+        - QTUM
+        - TRX
+        - TUSD
+        - VEN
+        - VET
+        - XLM
+        - XRP
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"        
+  - module: binance_btc_1.so
+    name: Binance_BTC_1_Fetcher
+    config:
+      symbols:
+        - ADA
+        - ADX
+        - AE
+        - AGI
+        - AION
+        - AMB
+        - APPC
+        - ARDR
+        - ARK
+        - ARN
+        - AST
+        - BAT
+        - BCC
+        - BCD
+        - BCN
+        - BCPT
+        - BLZ
+        - BNB
+        - BNT
+        - BQX
+        - BRD
+        - BTG
+        - BTS
+        - CDT
+        - CHAT
+        - CLOAK
+        - CMT
+        - CND
+        - CVC
+        - DASH
+        - DATA
+        - DENT
+        - DLT
+        - DNT
+        - DOCK
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_btc_2.so
+    name: Binance_BTC_2_Fetcher
+    config:
+      symbols:
+        - GTO
+        - GVT
+        - GXS
+        - HC
+        - HOT
+        - HSR
+        - ICN
+        - ICX
+        - INS
+        - IOST
+        - IOTA
+        - IOTX
+        - KEY
+        - KMD
+        - KNC
+        - LEND
+        - LINK
+        - LOOM
+        - LRC
+        - LSK
+        - LTC
+        - LUN
+        - MANA
+        - MCO
+        - MDA
+        - MFT
+        - MOD
+        - MTH
+        - MTL
+        - NANO
+        - NAS
+        - NAV
+        - NCASH
+        - NEBL
+        - NEO
+        - NPXS
+        - NULS
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_btc_3.so
+    name: Binance_BTC_3_Fetcher
+    config:
+      symbols:
+        - PPT
+        - QKC
+        - QLC
+        - QSP
+        - QTUM
+        - RCN
+        - RDN
+        - REP
+        - REQ
+        - RLC
+        - RPX
+        - SALT
+        - SC
+        - SKY
+        - SNGLS
+        - SNM
+        - SNT
+        - STEEM
+        - STORJ
+        - STORM
+        - STRAT
+        - SUB
+        - SYS
+        - THETA
+        - TNB
+        - TNT
+        - TRIG
+        - TRX
+        - TUSD
+        - VEN
+        - VET
+        - VIA
+        - VIB
+        - VIBE
+        - WABI
+        - WAN
+        - WAVES
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+    - module: binance_btc_4.so
+    name: Binance_BTC_4_Fetcher
+    config:
+      symbols:
+        - ENG
+        - ENJ
+        - EOS
+        - ETC
+        - ETH
+        - EVX
+        - FUEL
+        - FUN
+        - GAS
+        - GNT
+        - GRS
+        - NXS
+        - OAX
+        - OMG
+        - ONT
+        - OST
+        - PHX
+        - PIVX
+        - POA
+        - POE
+        - POLY
+        - POWR
+        - WTC
+        - XEM
+        - XLM
+        - XMR
+        - XRP
+        - XVG
+        - XZC
+        - ZEC
+        - ZEN
+        - ZIL
+        - ZRX
+        - WINGS
+        - WPR
+        - EDO
+        - ELF
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_bnb_1.so
+    name: Binance_BNB_1_Fetcher
+    config:
+      symbols:
+        - ADA
+        - ADX
+        - AE
+        - AGI
+        - AION
+        - AMB
+        - APPC
+        - ARDR
+        - BAT
+        - BCN
+        - BCPT
+        - BLZ
+        - BRD
+        - BTS
+        - CMT
+        - CND
+        - CVC
+        - DLT
+        - ENJ
+        - EOS
+        - ETC
+        - GNT
+        - GTO
+        - ICX
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_bnb_2.so
+    name: Binance_BNB_2_Fetcher
+    config:
+      symbols:
+        - IOTA
+        - LOOM
+        - LSK
+        - LTC
+        - MCO
+        - MFT
+        - NANO
+        - NAS
+        - NAV
+        - NCASH
+        - NEBL
+        - NEO
+        - NULS
+        - NXS
+        - ONT
+        - OST
+        - PHX
+        - PIVX
+        - POA
+        - POLY
+        - POWR
+        - QLC
+        - QSP
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_bnb_3.so
+    name: Binance_BNB_3_Fetcher
+    config:
+      symbols:
+        - QTUM
+        - RCN
+        - RDN
+        - REP
+        - RLC
+        - RPX
+        - SC
+        - SKY
+        - STEEM
+        - STORM
+        - SYS
+        - THETA
+        - TRIG
+        - TUSD
+        - VEN
+        - VET
+        - VIA
+        - WABI
+        - WAN
+        - WAVES
+        - WTC
+        - XEM
+        - XLM
+        - XRP
+        - XZC
+        - ZEN
+        - ZIL
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_eth_1.so
+    name: Binance_ETH_1_Fetcher
+    config:
+      symbols:
+        - ADA
+        - ADX
+        - AE
+        - AGI
+        - AION
+        - AMB
+        - APPC
+        - ARDR
+        - ARK
+        - ARN
+        - AST
+        - BAT
+        - BCD
+        - BCN
+        - BCPT
+        - BLZ
+        - BNB
+        - BNT
+        - BQX
+        - BRD
+        - BTG
+        - BTS
+        - CDT
+        - CHAT
+        - CLOAK
+        - CMT
+        - CND
+        - CVC
+        - DASH
+        - DATA
+        - DENT
+        - DLT
+        - DNT
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_eth_2.so
+    name: Binance_ETH_2_Fetcher
+    config:
+      symbols:
+        - GTO
+        - GVT
+        - GXS
+        - HC
+        - HOT
+        - HSR
+        - ICN
+        - ICX
+        - INS
+        - IOST
+        - IOTA
+        - IOTX
+        - KEY
+        - KMD
+        - KNC
+        - LEND
+        - LINK
+        - LOOM
+        - LRC
+        - LSK
+        - LTC
+        - LUN
+        - MANA
+        - MCO
+        - MDA
+        - MFT
+        - MOD
+        - MTH
+        - MTL
+        - NANO
+        - NAS
+        - NAV
+        - NCASH
+        - NEBL
+        - NEO
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_eth_3.so
+    name: Binance_ETH_3_Fetcher
+    config:
+      symbols:
+        - QKC
+        - QLC
+        - QSP
+        - QTUM
+        - RCN
+        - RDN
+        - REP
+        - REQ
+        - RLC
+        - RPX
+        - SALT
+        - SC
+        - SKY
+        - SNGLS
+        - SNM
+        - SNT
+        - STEEM
+        - STORJ
+        - STORM
+        - STRAT
+        - SUB
+        - SYS
+        - THETA
+        - TNB
+        - TNT
+        - TRIG
+        - TRX
+        - TUSD
+        - VEN
+        - VET
+        - VIA
+        - VIB
+        - VIBE
+        - WABI
+        - WAN
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: binance_eth_4.so
+    name: Binance_ETH_4_Fetcher
+    config:
+      symbols:
+        - DOCK
+        - EDO
+        - ELF
+        - ENG
+        - ENJ
+        - EOS
+        - ETC
+        - EVX
+        - FUEL
+        - FUN
+        - GNT
+        - GRS
+        - GTO
+        - NPXS
+        - NULS
+        - NXS
+        - OAX
+        - OMG
+        - ONT
+        - OST
+        - PHX
+        - PIVX
+        - POA
+        - POE
+        - POWR
+        - PPT
+        - WAVES
+        - WINGS
+        - WPR
+        - WTC
+        - XEM
+        - XLM
+        - XMR
+        - XRP
+        - XVG
+        - XZC
+        - ZEC
+        - ZEN
+        - ZIL
+        - ZRX
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: gdax_usd.so
+    name: Gdax_USD_Fetcher
+    config:
+      symbols:
+        - BTC
+        - BCH
+        - ETC
+        - ETH
+        - LTC
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: gdax_btc.so
+    name: Gdax_BTC_Fetcher
+    config:
+      symbols:
+        - BCH
+        - ETC
+        - ETH
+        - LTC
+      base_timeframe: "1Min"
+      query_start: "2018-07-07 00:00"
+  - module: testgdax_usd.so
+    name: TestGdax_USD_Fetcher
+    config:
+      symbols:
+        - BTC
+        - BCH
+        - ETC
+        - ETH
+        - LTC
+      base_timeframe: "1Min"
+  - module: testgdax_btc.so
+    name: TestGdax_BTC_Fetcher
+    config:
+      symbols:
+        - BCH
+        - ETC
+        - ETH
+        - LTC
+      base_timeframe: "1Min"
+#    on: "*/1Min/kline"
+#    config:
+#      destinations:
+#        - 5Min
+#        - 15Min
+#        - 30Min
+#        - 45Min
+#        - 1H
+#        - 2H
+#        - 3H
+#        - 4H
+#        - 6H
+#        - 8H
+#        - 12H
+#        - 1D
+#        - 3D
 
-# ----------------------------------------
-# Example trigger modules
-#
-# Un-comment to enable.
-# ----------------------------------------
-#
-# triggers:
-#   - module: ondiskagg.so
-#     on: "*/1Min/OHLCV"
-#     config:
-#       destinations:
-#         - 5Min
-#         - 15Min
-#         - 1H
-#         - 1D
-#   - module: stream.so
-#     on: "*/*/*"
-#     config:
-#       filter: nasdaq
-# bgworkers:
-#   - module: gdaxfeeder.so
-#     name: GdaxFetcher
-#     config:
-#       query_start: "2017-09-01 00:00"
-#   - module: slait.so
-#       name: SlaitSubscriber
-#       config:
-#           endpoint: localhost:5000
-#           topic: bars_gdax
-#           attribute_group: OHLCV
-#           shape:
-#           - - Epoch
-#             - int64
-#           - - Open
-#             - float64
-#           - - High
-#             - float64
-#           - - Low
-#             - float64
-#           - - Close
-#             - float64
-#           - - Volume
-#             - float64
-#   - module: polygon.so
-#         name: Polygon
-#         config:
-#             api_key: your_api_key
-#             base_url: https://api.polygon.io
-#             symbols:
-#                 - AAPL
-#                 - SPY
-#   - module: bitmexfeeder.so
-#     name: BitmexFeeder
-#     config:
-#       query_start: "2017-01-01 00:00"
-#       symbols:
-#         - .XBT
-#       base_timeframe: "5Min"

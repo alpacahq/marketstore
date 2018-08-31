@@ -53,7 +53,7 @@ func recast(config map[string]interface{}) *FetcherConfig {
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	symbols := []string{"BTC", "ETH", "LTC", "BCH"}
+	symbols := []string{"ETH", "LTC", "BCH"}
 
 	config := recast(conf)
 	if len(config.Symbols) > 0 {
@@ -118,7 +118,7 @@ func (gd *GdaxFetcher) Run() {
 	client := gdax.NewClient("", "", "")
 	timeStart := time.Time{}
 	for _, symbol := range symbols {
-		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+		tbk := io.NewTimeBucketKey("gdax_btc_" + symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
 		lastTimestamp := findLastTimestamp(symbol, tbk)
 		glog.Infof("lastTimestamp for %s = %v", symbol, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -142,7 +142,7 @@ func (gd *GdaxFetcher) Run() {
 				Granularity: int(gd.baseTimeframe.Duration.Seconds()),
 			}
 			glog.Infof("Requesting %s %v - %v", symbol, timeStart, timeEnd)
-			rates, err := client.GetHistoricRates(symbol+"-USD", params)
+			rates, err := client.GetHistoricRates(symbol+"-BTC", params)
 			if err != nil {
 				glog.Errorf("Response error: %v", err)
 				// including rate limit case
@@ -181,7 +181,8 @@ func (gd *GdaxFetcher) Run() {
 			glog.Infof("%s: %d rates between %v - %v", symbol, len(rates),
 				rates[0].Time, rates[(len(rates))-1].Time)
 			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+			// creslin change from symbol to exchange_symbol_quote
+			tbk := io.NewTimeBucketKey("gdax_btc_" + symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
 			executor.WriteCSM(csm, false)
 		}
@@ -197,7 +198,7 @@ func (gd *GdaxFetcher) Run() {
 			time.Sleep(toSleep)
 		} else if time.Now().Sub(lastTime) < time.Hour {
 			// let's not go too fast if the catch up is less than an hour
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 2)
 		}
 	}
 }
@@ -210,6 +211,7 @@ func main() {
 		End:         time.Date(2017, 12, 1, 1, 0, 0, 0, time.UTC),
 		Granularity: 60,
 	}
-	res, err := client.GetHistoricRates("BTC-USD", params)
+	res, err := client.GetHistoricRates("LTC-BTC", params)
 	fmt.Println(res, err)
 }
+

@@ -160,7 +160,7 @@ func getAllSymbols(quoteAsset string) []string {
 
 	if err != nil {
 		glog.Errorf("Binance /exchangeInfo API error: %v", err)
-		tradingSymbols = []string{"BTC", "EOS", "ETH", "BNB", "TRX", "ONT", "XRP", "ADA",
+		tradingSymbols = []string{"EOS", "TRX", "ONT", "XRP", "ADA",
 			"LTC", "BCC", "TUSD", "IOTA", "ETC", "ICX", "NEO", "XLM", "QTUM"}
 	} else {
 		for _, info := range m.Symbols {
@@ -222,15 +222,16 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	baseCurrency := "USDT"
+	baseCurrency := "ETH"
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
 	}
 
-	if config.BaseCurrency != "" {
-		baseCurrency = config.BaseCurrency
-	}
+  // // Creslin - hard coding plugins to a quote currency ... names base in here. :/
+	// if config.BaseCurrency != "" {
+	// 	baseCurrency = config.BaseCurrency
+	// }
 
 	if config.QueryStart != "" {
 		queryStart = queryTime(config.QueryStart)
@@ -399,14 +400,17 @@ func (bn *BinanceFetcher) Run() {
 			// 	glog.Info("len(rates) == 0")
 			// 	continue
 			// }
-
 			openTime := make([]int64, 0)
 			open := make([]float64, 0)
 			high := make([]float64, 0)
 			low := make([]float64, 0)
 			close := make([]float64, 0)
 			volume := make([]float64, 0)
-
+			// closeTime := make([]int64, 0)
+			// quoteAssetVolume := make([]float64, 0)
+			// tradeNum := make([]int64, 0)
+			// takerBuyBaseAssetVolume := make([]float64, 0)
+			// takerBuyQuoteAssetVolume := make([]float64, 0)
 			for _, rate := range rates {
 				errorsConversion = errorsConversion[:0]
 				// if nil, do not append to list
@@ -419,6 +423,11 @@ func (bn *BinanceFetcher) Run() {
 					low = append(low, convertStringToFloat(rate.Low))
 					close = append(close, convertStringToFloat(rate.Close))
 					volume = append(volume, convertStringToFloat(rate.Volume))
+  				// closeTime = append(closeTime, convertMillToTime(rate.CloseTime).Unix())
+  				// quoteAssetVolume = append(quoteAssetVolume, convertStringToFloat(rate.QuoteAssetVolume))
+  				// tradeNum = append(tradeNum, rate.TradeNum)
+  				// takerBuyBaseAssetVolume  = append(takerBuyBaseAssetVolume, convertStringToFloat(rate.TakerBuyBaseAssetVolume))
+  				// takerBuyQuoteAssetVolume  = append(takerBuyQuoteAssetVolume, convertStringToFloat(rate.TakerBuyQuoteAssetVolume))
 					for _, e := range errorsConversion {
 						if e != nil {
 							return
@@ -447,6 +456,11 @@ func (bn *BinanceFetcher) Run() {
 					low = low[:len(low)-1]
 					close = close[:len(close)-1]
 					volume = volume[:len(volume)-1]
+  				// closeTime = closeTime[:len(closeTime)-1]
+  				// quoteAssetVolume = quoteAssetVolume[:len(QuoteAssetVolume)-1]
+  				// tradeNum = tradeNum[:len(TradeNum)-1]
+  				// takerBuyBaseAssetVolume = takerBuyBaseAssetVolume[:len(TakerBuyBaseAssetVolume)-1]
+  				// takerBuyQuoteAssetVolume = takerBuyQuoteAssetVolume[:len(TakerBuyQuoteAssetVolume)-1]
 				}
 				cs.AddColumn("Epoch", openTime)
 				cs.AddColumn("Open", open)
@@ -454,8 +468,14 @@ func (bn *BinanceFetcher) Run() {
 				cs.AddColumn("Low", low)
 				cs.AddColumn("Close", close)
 				cs.AddColumn("Volume", volume)
+        // cs.AddColumn("closeTime", closeTime)
+  			// cs.AddColumn("quoteAssetVolume", quoteAssetVolume)
+  			// cs.AddColumn("tradeNum", tradeNum)
+  			// cs.AddColumn("takerBuyBaseAssetVolume", takerBuyBaseAssetVolume)
+  			// cs.AddColumn("takerBuyQuoteAssetVolume", takerBuyQuoteAssetVolume)
 				csm := io.NewColumnSeriesMap()
-				tbk := io.NewTimeBucketKey(symbol + "/" + bn.baseTimeframe.String + "/OHLCV")
+  			// creslin change from symbol to exchange_symbol_quote
+				tbk := io.NewTimeBucketKey("binance_eth_" + symbol + "/" + bn.baseTimeframe.String + "/OHLCV")
 				csm.AddColumnSeries(*tbk, cs)
 				executor.WriteCSM(csm, false)
 			}
@@ -467,16 +487,17 @@ func (bn *BinanceFetcher) Run() {
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
 			// Binance rate limit is 20 reequests per second so this shouldn't be an issue.
-			time.Sleep(time.Second)
+      			// Changed to 100msec - Creslin
+			time.Sleep(time.Second * 10)
 		}
 
 	}
 }
 
 func main() {
-	// symbol := "BTC"
+	// symbol := "ETH"
 	// interval := "1m"
-	// baseCurrency := "USDT"
+	// baseCurrency := "ETH"
 	//
 	// client := binance.NewClient("", "")
 	// klines, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
@@ -488,8 +509,9 @@ func main() {
 	// for _, k := range klines {
 	// 	fmt.Println(k)
 	// }
-	// symbols := getAllSymbols("USDT")
+	// symbols := getAllSymbols("ETH")
 	// for _, s := range symbols {
 	// 	fmt.Println(s)
 	// }
 }
+
