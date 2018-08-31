@@ -107,6 +107,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 			appendErrorResponse(err, response)
 			continue
 		}
+		appendErrorResponse(err, response)
 	}
 	return nil
 }
