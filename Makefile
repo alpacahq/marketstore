@@ -24,8 +24,6 @@ plugins:
 	$(MAKE) -C contrib/stream
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/bitmexfeeder
-	$(MAKE) -C contrib/binancefeeder
-	$(MAKE) -C contrib/gdaxfeeder
 	$(MAKE) -C contrib/testgdax_usd
 	$(MAKE) -C contrib/testgdax_btc
 	$(MAKE) -C contrib/gdax_usd
