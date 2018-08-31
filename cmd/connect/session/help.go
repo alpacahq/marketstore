@@ -16,6 +16,21 @@ func (c *Client) functionHelp(line string) {
 		helpKey = args[0]
 	}
 	switch helpKey {
+
+	case "help":
+		fmt.Println(`
+		Usage: \help command_name
+
+		Available commands: o, timing, show, trim, gaps, load, create, feed`)
+
+	case "o":
+		fmt.Println(`
+		Sends output to the provided file name`)
+
+	case "timing":
+		fmt.Println(`
+		Toggles timing for commands`)
+
 	case "show", "trim", "gaps":
 		fmt.Println(`
 		Syntax: (same for show/trim/gaps):
@@ -59,11 +74,6 @@ func (c *Client) functionHelp(line string) {
 		If the input file has the time index epoch in separate date and time columns, you will
 		specify the epoch-date and epoch-time columns in the columnNameMap
 	`)
-	case "help":
-		fmt.Println(`
-		Usage: \help command_name
-
-		Available commands: show, trim, gaps, load, create, feed`)
 
 	case "create":
 		fmt.Println(`

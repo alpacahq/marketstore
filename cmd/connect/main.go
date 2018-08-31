@@ -88,7 +88,7 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	//	Start reader buffer.
+	// Enter command loop
 	err = c.Read()
 	if err != nil {
 		return err

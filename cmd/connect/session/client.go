@@ -34,22 +34,14 @@ const (
 	remote
 )
 
-// target is the client's write target
-type target int
-
-const (
-	terminal target = iota
-	file
-)
-
 // Client represents an agent that manages a database
 // connection and parses/executes the statements specified by a
 // user in a command-line buffer.
 type Client struct {
 	// timing flag determines to print query execution time.
 	timing bool
-	// target determines the target to write responses to.
-	target target
+	// output target - if empty, output to terminal, filename to output to file
+	target string
 	// mode determines local or remote.
 	mode mode
 	// url is the optional address of a db instance on a different machine.
@@ -146,6 +138,9 @@ EVAL:
 		// Evaulate.
 		switch {
 		// Flip timing flag.
+		case strings.HasPrefix(line, "\\o"):
+			args := strings.Split(line, " ")
+			c.target = args[1]
 		case strings.HasPrefix(line, "\\timing"):
 			c.timing = !c.timing
 		// Show.
@@ -237,10 +232,22 @@ func printColumnNames(colNames []string) {
 	fmt.Printf("\n")
 }
 
-func printResult(queryText string, cs *dbio.ColumnSeries, optional_writer ...*csv.Writer) (err error) {
+//func printResult(queryText string, cs *dbio.ColumnSeries, optional_writer ...*csv.Writer) (err error) {
+func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string) (err error) {
+
+	var oFile string
+	if len(optionalFile) != 0 {
+		// Might be a real filename
+		oFile = optionalFile[0]
+	}
 	var writer *csv.Writer
-	if len(optional_writer) != 0 {
-		writer = optional_writer[0]
+	if len(oFile) != 0 {
+		var file *os.File
+		file, err = os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, 0755)
+		if err != nil {
+			return err
+		}
+		writer = csv.NewWriter(file)
 	}
 
 	if cs == nil {
@@ -266,50 +273,57 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optional_writer ...*cs
 		return fmt.Errorf("Unable to convert Epoch column")
 	}
 
-	printHeaderLine(cs)
-	printColumnNames(cs.GetColumnNames())
-	printHeaderLine(cs)
+	if writer == nil {
+		printHeaderLine(cs)
+		printColumnNames(cs.GetColumnNames())
+		printHeaderLine(cs)
+	}
 	for i, ts := range epoch {
 		row := []string{}
 		var element string
 		for _, name := range cs.GetColumnNames() {
 			if strings.EqualFold(name, "Epoch") {
-				fmt.Printf("%29s  ", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
-				continue
-			}
-			col := cs.GetByName(name)
-			colType := reflect.TypeOf(col).Elem().Kind()
-			switch colType {
-			case reflect.Float32:
-				val := col.([]float32)[i]
-				element = strconv.FormatFloat(float64(val), 'f', -1, 32)
-			case reflect.Float64:
-				val := col.([]float64)[i]
-				element = strconv.FormatFloat(val, 'f', -1, 32)
-			case reflect.Int32:
-				val := col.([]int32)[i]
-				element = strconv.FormatInt(int64(val), 10)
-			case reflect.Int64:
-				val := col.([]int64)[i]
-				element = strconv.FormatInt(val, 10)
-			case reflect.Uint8:
-				val := col.([]byte)[i]
-				element = strconv.FormatInt(int64(val), 10)
-			}
-			if writer != nil {
-				row = append(row, element)
+				fmt.Printf("%29s  ", dbio.ToSystemTimezone(time.Unix(ts, 0)).String())            // Epoch
+				element = fmt.Sprintf("%29s  ", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 			} else {
-				fmt.Printf("%-10s  ", element)
+				col := cs.GetByName(name)
+				colType := reflect.TypeOf(col).Elem().Kind()
+				switch colType {
+				case reflect.Float32:
+					val := col.([]float32)[i]
+					element = strconv.FormatFloat(float64(val), 'f', -1, 32)
+				case reflect.Float64:
+					val := col.([]float64)[i]
+					element = strconv.FormatFloat(val, 'f', -1, 32)
+				case reflect.Int32:
+					val := col.([]int32)[i]
+					element = strconv.FormatInt(int64(val), 10)
+				case reflect.Int64:
+					val := col.([]int64)[i]
+					element = strconv.FormatInt(val, 10)
+				case reflect.Uint8:
+					val := col.([]byte)[i]
+					element = strconv.FormatInt(int64(val), 10)
+				}
+				element = fmt.Sprintf("%-10s", element)
+			}
+
+			if writer != nil {
+				row = append(row, strings.TrimSpace(element))
+			} else {
+				fmt.Printf("%s  ", element)
 			}
 		}
-		fmt.Printf("\n")
-		// write to csv
-		if writer != nil {
+		if writer == nil {
+			fmt.Printf("\n")
+		} else {
 			writer.Write(row)
 			row = []string{}
 		}
 	}
-	printHeaderLine(cs)
+	if writer == nil {
+		printHeaderLine(cs)
+	}
 	return err
 }
 
