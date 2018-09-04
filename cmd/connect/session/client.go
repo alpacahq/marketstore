@@ -159,9 +159,12 @@ EVAL:
 		// Load.
 		case strings.HasPrefix(line, "\\load"):
 			c.load(line)
-		// Create.
+			// Create.
 		case strings.HasPrefix(line, "\\create"):
 			c.create(line)
+		// Destroy.
+		case strings.HasPrefix(line, "\\destroy"):
+			c.destroy(line)
 		// Function help.
 		case strings.HasPrefix(line, "\\help") || strings.HasPrefix(line, "\\?"):
 			c.functionHelp(line)

@@ -114,6 +114,43 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 	return nil
 }
 
+type DestroyRequest struct {
+	Key string
+}
+type MultiDestroyRequest struct {
+	Requests []DestroyRequest
+}
+
+func (s *DataService) Destroy(r *http.Request, reqs *MultiDestroyRequest, response *MultiServerResponse) (err error) {
+	errorString := "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
+
+	for _, req := range reqs.Requests {
+		// Construct a time bucket key from the input string
+		parts := strings.Split(req.Key, ":")
+		if len(parts) < 2 {
+			// The schema string is optional for Delete, so we append a blank if none is provided
+			parts = append(parts, "")
+		}
+
+		tbk := io.NewTimeBucketKey(parts[0], parts[1])
+		if tbk == nil {
+			err = fmt.Errorf(errorString, req.Key)
+			appendErrorResponse(err, response)
+			continue
+		}
+
+		err = executor.ThisInstance.CatalogDir.RemoveTimeBucket(tbk)
+		if err != nil {
+			err = fmt.Errorf("removal of catalog entry failed: %s", err.Error())
+			appendErrorResponse(err, response)
+			continue
+		}
+		appendErrorResponse(err, response)
+	}
+
+	return nil
+}
+
 /*
 Utility functions
 */

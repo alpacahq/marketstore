@@ -34,7 +34,9 @@ func (c *Client) load(line string) {
 	if dataFD != nil {
 		defer dataFD.Close()
 	}
+
 	fmt.Println("Beginning parse...")
+
 	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	if err != nil {
 		fmt.Printf("Error while generating TimeBucketInfo: %v", err)
@@ -49,16 +51,6 @@ func (c *Client) load(line string) {
 		return
 	}
 
-	/*
-		Get the metadata key for the writer
-	*/
-	/*
-		var dbKey string
-		for _, key := range dbWriter.KeyPathByYear {
-			dbKey = filepath.Dir(key)
-			break
-		}
-	*/
 	/*
 		Obtain the dataShapes for the DB columns
 	*/
