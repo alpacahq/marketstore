@@ -12,7 +12,17 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 )
 
-// load executes data loading into the DB from csv files.
+/*
+	load executes data loading into the DB from csv files.
+
+	Note that the format of the CSV file used for loading can optionally include nanosecond precision extensions
+	to the timestamp used for the Epoch column. For example, a normal timestamp format would be like this:
+			Epoch
+			20161230 21:37:57
+	With the extension that includes nanosecond precision, we add the number of nanoseconds as a six digit fixed field:
+			Epoch
+			20161230 21:37:57 140000
+*/
 func (c *Client) load(line string) {
 	// TODO: implement network protocol for load
 	if c.mode != local {
