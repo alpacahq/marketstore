@@ -8,7 +8,7 @@ require (
 	github.com/adshao/go-binance v0.0.0-20180802133315-37ce96c6e857
 	github.com/ajg/form v0.0.0-20160822230020-523a5da1a92f // indirect
 	github.com/alpacahq/slait v1.1.6
-	github.com/antlr/antlr4 v0.0.0-20180728001836-7d0787e29ca8
+	github.com/antlr/antlr4 v0.0.0-20180905200841-432022fc1ca0
 	github.com/aymerick/raymond v2.0.2+incompatible // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -96,5 +96,3 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.2.1
 )
-
-replace github.com/antlr/antlr4 v0.0.0-20180728001836-7d0787e29ca8 => github.com/michilu/antlr4 v0.0.0-20180803091604-411960b1878f
