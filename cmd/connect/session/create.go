@@ -44,11 +44,15 @@ func (c *Client) getinfo(line string) {
 		// Print out the bucket information we obtained
 		fmt.Printf("Bucket: %s\n", args[0])
 		fmt.Printf("Latest Year: %v, RecordType: %v, TF: %v\n",
-			resp.LatestYear, resp.RecordType, resp.TimeFrame)
-		/*
-			fmt.Printf("Latest Year: %v, Path: %v, RecordType: %v\n",
-				tbi.Year, tbi.Path, tbi.Recor
-		*/
+			resp.LatestYear, resp.RecordType.String(), resp.TimeFrame)
+		fmt.Printf("Data Types: {")
+		for i, shape := range resp.DSV {
+			fmt.Printf("%s", shape.String())
+			if i < len(resp.DSV)-1 {
+				fmt.Printf(" ")
+			}
+		}
+		fmt.Printf("}\n")
 	}
 }
 
@@ -119,5 +123,5 @@ func (c *Client) destroy(line string) {
 			return
 		}
 	}
-	fmt.Printf("Successfully removed a catalog entry: %s\n", args[0])
+	fmt.Printf("Successfully removed catalog entry for key: %s\n", args[0])
 }
