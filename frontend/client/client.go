@@ -75,6 +75,14 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 
 	// Unpack and format the response from the RPC call
 	switch functionName {
+	case "GetInfo":
+		result := &frontend.MultiGetInfoResponse{}
+		err = msgpack2.DecodeClientResponse(resp.Body, result)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+
 	case "Create", "Destroy":
 		result := &frontend.MultiServerResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)

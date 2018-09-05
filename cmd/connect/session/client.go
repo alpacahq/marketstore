@@ -147,28 +147,22 @@ EVAL:
 			}
 		case strings.HasPrefix(line, "\\timing"):
 			c.timing = !c.timing
-		// Show.
 		case strings.HasPrefix(line, "\\show"):
 			c.show(line)
-		// Trim.
 		case strings.HasPrefix(line, "\\trim"):
 			c.trim(line)
-		// Gaps.
 		case strings.HasPrefix(line, "\\gaps"):
 			c.findGaps(line)
-		// Load.
 		case strings.HasPrefix(line, "\\load"):
 			c.load(line)
-			// Create.
 		case strings.HasPrefix(line, "\\create"):
 			c.create(line)
-		// Destroy.
 		case strings.HasPrefix(line, "\\destroy"):
 			c.destroy(line)
-		// Function help.
+		case strings.HasPrefix(line, "\\getinfo"):
+			c.getinfo(line)
 		case strings.HasPrefix(line, "\\help") || strings.HasPrefix(line, "\\?"):
 			c.functionHelp(line)
-		// Reader help.
 		case line == "help":
 			c.functionHelp("\\help")
 		// Quit.
