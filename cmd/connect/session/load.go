@@ -24,11 +24,6 @@ import (
 			20161230 21:37:57 140000
 */
 func (c *Client) load(line string) {
-	// TODO: implement network protocol for load
-	if c.mode != local {
-		fmt.Println("The load command only works in local connection mode")
-		return
-	}
 	args := strings.Split(line, " ")
 	args = args[1:]
 	if len(args) == 0 {
@@ -44,6 +39,17 @@ func (c *Client) load(line string) {
 	if dataFD != nil {
 		defer dataFD.Close()
 	}
+
+	/*
+		Verify the presence of a bucket with the input key
+	*/
+	resp, err := c.GetBucketInfo(tbk)
+	if err != nil {
+		fmt.Printf("Error finding existing bucket: %v\n", err)
+		return
+	}
+	fmt.Printf("Latest Year: %v\n", resp.LatestYear)
+	return
 
 	fmt.Println("Beginning parse...")
 

@@ -226,7 +226,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			return err
 		}
 
-		// TODO check if the previsouly-written data schema matches the input
+		// TODO check if the previously-written data schema matches the input
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
 		if err != nil {
 			var recordType io.EnumRecordType

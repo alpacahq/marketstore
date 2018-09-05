@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alpacahq/marketstore/utils/io"
+
 	"github.com/alpacahq/marketstore/frontend"
 )
 
@@ -12,48 +14,50 @@ func (c *Client) getinfo(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "getinfo"
 
-	req := frontend.KeyRequest{Key: args[0]}
-	reqs := &frontend.MultiKeyRequest{
-		Requests: []frontend.KeyRequest{req},
-	}
-	responses := &frontend.MultiGetInfoResponse{}
-	var err error
-	if c.mode == local {
-		ds := frontend.DataService{}
-		err = ds.GetInfo(nil, reqs, responses)
-	} else {
-		var respI interface{}
-		respI, err = c.rc.DoRPC("GetInfo", reqs)
-		if respI != nil {
-			responses = respI.(*frontend.MultiGetInfoResponse)
+	/*
+		req := frontend.KeyRequest{Key: args[0]}
+		reqs := &frontend.MultiKeyRequest{
+			Requests: []frontend.KeyRequest{req},
 		}
-	}
+		responses := &frontend.MultiGetInfoResponse{}
+		var err error
+		if c.mode == local {
+			ds := frontend.DataService{}
+			err = ds.GetInfo(nil, reqs, responses)
+		} else {
+			var respI interface{}
+			respI, err = c.rc.DoRPC("GetInfo", reqs)
+			if respI != nil {
+				responses = respI.(*frontend.MultiGetInfoResponse)
+			}
+		}
+		if err != nil {
+			fmt.Printf("Failed with error: %s\n", err.Error())
+			return
+		}
+	*/
+
+	tbk := io.NewTimeBucketKey(args[0])
+	resp, err := c.GetBucketInfo(tbk)
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
 		return
 	}
-
 	/*
 		Process the single response
 	*/
-	resp := responses.Responses[0]
-	if len(resp.ServerResp.Error) != 0 {
-		fmt.Printf("Failed with error: %s\n", resp.ServerResp.Error)
-		return
-	} else {
-		// Print out the bucket information we obtained
-		fmt.Printf("Bucket: %s\n", args[0])
-		fmt.Printf("Latest Year: %v, RecordType: %v, TF: %v\n",
-			resp.LatestYear, resp.RecordType.String(), resp.TimeFrame)
-		fmt.Printf("Data Types: {")
-		for i, shape := range resp.DSV {
-			fmt.Printf("%s", shape.String())
-			if i < len(resp.DSV)-1 {
-				fmt.Printf(" ")
-			}
+	// Print out the bucket information we obtained
+	fmt.Printf("Bucket: %s\n", args[0])
+	fmt.Printf("Latest Year: %v, RecordType: %v, TF: %v\n",
+		resp.LatestYear, resp.RecordType.String(), resp.TimeFrame)
+	fmt.Printf("Data Types: {")
+	for i, shape := range resp.DSV {
+		fmt.Printf("%s", shape.String())
+		if i < len(resp.DSV)-1 {
+			fmt.Printf(" ")
 		}
-		fmt.Printf("}\n")
 	}
+	fmt.Printf("}\n")
 }
 
 // create generates new subdirectories and buckets for a database.
@@ -124,4 +128,36 @@ func (c *Client) destroy(line string) {
 		}
 	}
 	fmt.Printf("Successfully removed catalog entry for key: %s\n", args[0])
+}
+
+func (c *Client) GetBucketInfo(key *io.TimeBucketKey) (resp *frontend.GetInfoResponse, err error) {
+	req := frontend.KeyRequest{Key: key.String()}
+	reqs := &frontend.MultiKeyRequest{
+		Requests: []frontend.KeyRequest{req},
+	}
+	responses := &frontend.MultiGetInfoResponse{}
+
+	if c.mode == local {
+		ds := frontend.DataService{}
+		err = ds.GetInfo(nil, reqs, responses)
+	} else {
+		var respI interface{}
+		respI, err = c.rc.DoRPC("GetInfo", reqs)
+		if respI != nil {
+			responses = respI.(*frontend.MultiGetInfoResponse)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		Process the single response
+	*/
+	resp = &responses.Responses[0]
+	if len(resp.ServerResp.Error) != 0 {
+		return nil, fmt.Errorf("%s", resp.ServerResp.Error)
+	}
+
+	return resp, nil
 }
