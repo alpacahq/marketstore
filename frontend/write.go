@@ -224,7 +224,7 @@ func (mg *MultiGetInfoResponse) appendResponse(tbi *io.TimeBucketInfo, err error
 			GetInfoResponse{
 				LatestYear: int(tbi.Year),
 				TimeFrame:  tbi.GetTimeframe(),
-				DSV:        tbi.GetDataShapes(),
+				DSV:        tbi.GetDataShapesWithEpoch(),
 				RecordType: tbi.GetRecordType(),
 				ServerResp: ServerResponse{
 					errorText,

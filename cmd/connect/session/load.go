@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/alpacahq/marketstore/cmd/connect/loader"
-	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
 )
 
@@ -31,7 +29,7 @@ func (c *Client) load(line string) {
 		return
 	}
 
-	tbk, dataFD, loaderCtl, err := parseLoadArgs(args)
+	tbk, dataFD, loaderFD, err := parseLoadArgs(args)
 	if err != nil {
 		fmt.Printf("Error while parsing arguments: %v\n", err)
 		return
@@ -49,90 +47,32 @@ func (c *Client) load(line string) {
 		return
 	}
 	fmt.Printf("Latest Year: %v\n", resp.LatestYear)
-	return
-
-	fmt.Println("Beginning parse...")
-
-	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
-	if err != nil {
-		fmt.Printf("Error while generating TimeBucketInfo: %v", err)
-		return
-	}
-	/*
-		Obtain a writer
-	*/
-	dbWriter, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, executor.ThisInstance.CatalogDir)
-	if err != nil {
-		fmt.Printf("Error return from query scanner: %v", err)
-		return
-	}
-
-	/*
-		Obtain the dataShapes for the DB columns
-	*/
-	dataShapes := make([]io.DataShape, 0)
-	/*
-		We add a couple of fake data items to the beginning - these are optionally looked for as named columns in the CSV
-	*/
-	dataShapes = append(dataShapes, io.DataShape{Name: "Epoch-date", Type: io.INT64})
-	dataShapes = append(dataShapes, io.DataShape{Name: "Epoch-time", Type: io.INT64})
-	fmt.Printf("Column Names from Data Bucket: ")
-	for _, shape := range tbi.GetDataShapes() {
-		fmt.Printf("%s, ", shape.Name)
-		dataShapes = append(dataShapes, shape) // Use the first shape vector in the result, as they should all be the same
-	}
-	fmt.Printf("\n")
 
 	/*
 		Read the metadata about the CSV file
 	*/
-	columnIndex, csvReader, conf, err := loader.ReadMetadata(dataFD, loaderCtl, dataShapes)
+	csvReader, cvm, err := loader.ReadMetadata(dataFD, loaderFD, resp.DSV)
 	if err != nil {
 		fmt.Println("Error: ", err.Error())
 		return
 	}
-	/*
-		Now that the columns in the CSV file are mapped into the columnIndex, we can chop the fake column names off
-	*/
-	dataShapes = dataShapes[2:]
 
-	var start, end time.Time
-	var totalLinesWritten int
+	//	fmt.Println("Composed metadata:")
+	//	fmt.Println(cvm)
+
 	for {
-		csvChunk := make([][]string, 0)
-		var linesRead int
-		for i := 0; i < 1000000; i++ {
-			row, err := csvReader.Read()
-			if err != nil {
-				break
-			}
-			csvChunk = append(csvChunk, row)
-			linesRead++
+		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, cvm, 1000000)
+		if err != nil {
+			fmt.Println("Error: ", err.Error())
+			return
 		}
-		if len(csvChunk) == 0 {
+		fmt.Println("Chunk line length: ", npm.Len())
+		if endReached {
 			break
 		}
-		fmt.Printf("Read next %d lines from CSV file...", linesRead)
-
-		l_start, l_end := loader.WriteChunk(dbWriter, dataShapes, *tbk, columnIndex, csvChunk, conf)
-		if start.IsZero() {
-			start, end = l_start, l_end
-		}
-		if l_start.Before(start) {
-			start = l_start
-		}
-		if l_end.After(end) {
-			end = l_end
-		}
-		totalLinesWritten += linesRead
 	}
 
-	if !start.IsZero() {
-		fmt.Printf("%d new lines written\n", totalLinesWritten)
-		fmt.Printf("New data written from %v to %v\n", start, end)
-	} else {
-		fmt.Println("No new data written")
-	}
+	return
 }
 
 func parseLoadArgs(args []string) (mk *io.TimeBucketKey, inputFD, controlFD *os.File, err error) {
