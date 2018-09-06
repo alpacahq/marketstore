@@ -52,6 +52,10 @@ func (c *Client) show(line string) {
 		return
 	}
 	key := csm.GetMetadataKeys()[0]
+	if csm[key].Len() == 0 {
+		fmt.Println("No results")
+		return
+	}
 
 	err = printResult(line, csm[key], c.target)
 	if err != nil {

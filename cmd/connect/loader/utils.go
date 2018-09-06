@@ -26,7 +26,7 @@ type CSVMetadata struct {
 	ColumnIndex []int          // Maps the index of the columns in the CSV file to each time bucket in the DB
 }
 
-func CSVtoNumpyMulti(csvReader *csv.Reader, cvm *CSVMetadata, chunkSize int) (npm *io.NumpyMultiDataset, endReached bool, err error) {
+func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetadata, chunkSize int) (npm *io.NumpyMultiDataset, endReached bool, err error) {
 	fmt.Println("Beginning parse...")
 
 	csvChunk := make([][]string, 0)
@@ -45,7 +45,6 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, cvm *CSVMetadata, chunkSize int) (np
 	}
 	fmt.Printf("Read next %d lines from CSV file...", linesRead)
 
-	tbk := *io.NewTimeBucketKey("chunk")
 	csm, err := convertCSVtoCSM(tbk, cvm, csvChunk)
 	if err != nil {
 		return nil, false, err

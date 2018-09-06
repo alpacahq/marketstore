@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alpacahq/marketstore/frontend"
+
 	"github.com/alpacahq/marketstore/cmd/connect/loader"
 	"github.com/alpacahq/marketstore/utils/io"
 )
@@ -29,7 +31,7 @@ func (c *Client) load(line string) {
 		return
 	}
 
-	tbk, dataFD, loaderFD, err := parseLoadArgs(args)
+	tbk_p, dataFD, loaderFD, err := parseLoadArgs(args)
 	if err != nil {
 		fmt.Printf("Error while parsing arguments: %v\n", err)
 		return
@@ -37,6 +39,7 @@ func (c *Client) load(line string) {
 	if dataFD != nil {
 		defer dataFD.Close()
 	}
+	tbk := *tbk_p
 
 	/*
 		Verify the presence of a bucket with the input key
@@ -57,22 +60,57 @@ func (c *Client) load(line string) {
 		return
 	}
 
-	//	fmt.Println("Composed metadata:")
-	//	fmt.Println(cvm)
-
+	/*
+		Read the CSV data in chunks until the end of the file
+	*/
 	for {
-		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, cvm, 1000000)
+		chunkSize := 100
+		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, tbk, cvm, chunkSize)
 		if err != nil {
 			fmt.Println("Error: ", err.Error())
 			return
 		}
-		fmt.Println("Chunk line length: ", npm.Len())
+		err = writeNumpy(c, npm, resp.RecordType == io.VARIABLE)
+		if err != nil {
+			fmt.Println("Error: ", err.Error())
+			return
+		}
 		if endReached {
 			break
 		}
 	}
 
 	return
+}
+
+func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err error) {
+	req := frontend.WriteRequest{npm, isVariable}
+	reqs := &frontend.MultiWriteRequest{
+		Requests: []frontend.WriteRequest{req},
+	}
+	responses := &frontend.MultiServerResponse{}
+
+	if c.mode == local {
+		ds := frontend.DataService{}
+		err = ds.Write(nil, reqs, responses)
+	} else {
+		var respI interface{}
+		respI, err = c.rc.DoRPC("Write", reqs)
+		if respI != nil {
+			responses = respI.(*frontend.MultiServerResponse)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	/*
+		Process the single response
+	*/
+	if len(responses.Responses) != 0 {
+		return fmt.Errorf("%s", responses.Responses[0].Error)
+	}
+
+	return nil
 }
 
 func parseLoadArgs(args []string) (mk *io.TimeBucketKey, inputFD, controlFD *os.File, err error) {

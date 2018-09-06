@@ -37,7 +37,12 @@ func (c *Client) getinfo(line string) {
 		}
 	*/
 
-	tbk := io.NewTimeBucketKey(args[0])
+	tbk_p := io.NewTimeBucketKey(args[0])
+	if tbk_p == nil {
+		fmt.Printf("Failed to convert argument to key: %s\n", args[0])
+		return
+	}
+	tbk := *tbk_p
 	resp, err := c.GetBucketInfo(tbk)
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
@@ -130,7 +135,7 @@ func (c *Client) destroy(line string) {
 	fmt.Printf("Successfully removed catalog entry for key: %s\n", args[0])
 }
 
-func (c *Client) GetBucketInfo(key *io.TimeBucketKey) (resp *frontend.GetInfoResponse, err error) {
+func (c *Client) GetBucketInfo(key io.TimeBucketKey) (resp *frontend.GetInfoResponse, err error) {
 	req := frontend.KeyRequest{Key: key.String()}
 	reqs := &frontend.MultiKeyRequest{
 		Requests: []frontend.KeyRequest{req},
