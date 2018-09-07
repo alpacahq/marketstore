@@ -27,7 +27,7 @@ func (c *Client) sql(line string) {
 
 	runTime := time.Since(timeStart)
 
-	err = printResult(line, cs)
+	err = printResult(line, cs, c.target)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

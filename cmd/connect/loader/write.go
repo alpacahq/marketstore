@@ -9,17 +9,8 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 )
 
-// Configuration is constructed from the control file
-// that specifies the formatting of the csv data.
-type Configuration struct {
-	FirstRowHasColumnNames bool     `yaml:"firstRowHasColumnNames"`
-	TimeFormat             string   `yaml:"timeFormat"`
-	Timezone               string   `yaml:"timeZone"`
-	ColumnNameMap          []string `yaml:"columnNameMap"`
-}
-
 // WriteChunk writes data to the database.
-func WriteChunk(dbWriter *executor.Writer, dataShapes []io.DataShape, dbKey io.TimeBucketKey, columnIndex []int, csvDataChunk [][]string, conf *Configuration) (start, end time.Time) {
+func WriteChunk(dbWriter *executor.Writer, dataShapes []io.DataShape, dbKey io.TimeBucketKey, columnIndex []int, csvDataChunk [][]string, conf *CSVConfig) (start, end time.Time) {
 
 	epochCol, nanosCol := readTimeColumns(csvDataChunk, columnIndex, conf)
 	if epochCol == nil {

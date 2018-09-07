@@ -3,8 +3,7 @@ package SQLParser
 import "github.com/alpacahq/marketstore/utils/io"
 
 //go:generate ./buildVisitorCode.sh visitorcodegenerated.go
-//go:generate stringer -type=StatementTypeEnum
-//go:generate stringer -type=PrimaryExpressionEnum
+//go:generate stringer -type=StatementTypeEnum,PrimaryExpressionEnum
 
 type Relation interface {
 	Materialize() (cs *io.ColumnSeries, err error)

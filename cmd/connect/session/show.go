@@ -1,10 +1,8 @@
 package session
 
 import (
-	"encoding/csv"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -23,7 +21,6 @@ func (c *Client) show(line string) {
 		fmt.Println("Not enough arguments, see \"\\help show\" ")
 		return
 	}
-	c.target = file
 	tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
 		fmt.Println("Could not parse arguments, see \"\\help show\" ")
@@ -55,47 +52,19 @@ func (c *Client) show(line string) {
 		return
 	}
 	key := csm.GetMetadataKeys()[0]
-	if c.target == file {
-		writer, fileErr := newCSVWriter(tbk, start, end)
-		if fileErr != nil {
-			fmt.Println(fileErr)
-			return
-		}
-		printResult(line, csm[key], writer)
+	if csm[key].Len() == 0 {
+		fmt.Println("No results")
+		return
+	}
 
-	} else {
-		err = printResult(line, csm[key])
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+	err = printResult(line, csm[key], c.target)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 
 	if c.timing {
 		fmt.Printf("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
-}
-
-// newCSVWriter returns a writer for a csv file.
-func newCSVWriter(tbk *io.TimeBucketKey, start, end *time.Time) (w *csv.Writer, err error) {
-	// format file name.
-	var file *os.File
-	if end != nil {
-		file, err = os.Create(
-			fmt.Sprintf("%v_%v_%v.csv",
-				tbk.String(),
-				start.Format("2006-01-02-15:04"),
-				end.Format("2006-01-02-15:04")))
-	} else {
-		file, err = os.Create(
-			fmt.Sprintf("%v_%v.csv", tbk.String(), *start))
-		defer file.Close()
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return csv.NewWriter(file), nil
 }
 
 func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
@@ -172,7 +141,7 @@ func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, en
 		case "between":
 		case "and":
 		case "csv":
-			c.target = file
+			c.target = "mstore-csv-output.csv"
 		default:
 			t, err := parseTime(arg)
 			if err != nil {

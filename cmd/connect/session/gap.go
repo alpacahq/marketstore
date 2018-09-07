@@ -14,7 +14,6 @@ import (
 func (c *Client) findGaps(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:]
-	c.target = terminal
 	tbk, start, end := c.parseQueryArgs(args)
 
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)

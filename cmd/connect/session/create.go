@@ -3,81 +3,166 @@ package session
 import (
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
+
+	"github.com/alpacahq/marketstore/frontend"
 )
+
+// getinfo gets information about a bucket in the database.
+func (c *Client) getinfo(line string) {
+	args := strings.Split(line, " ")
+	args = args[1:] // chop off the first word which should be "getinfo"
+
+	/*
+		req := frontend.KeyRequest{Key: args[0]}
+		reqs := &frontend.MultiKeyRequest{
+			Requests: []frontend.KeyRequest{req},
+		}
+		responses := &frontend.MultiGetInfoResponse{}
+		var err error
+		if c.mode == local {
+			ds := frontend.DataService{}
+			err = ds.GetInfo(nil, reqs, responses)
+		} else {
+			var respI interface{}
+			respI, err = c.rc.DoRPC("GetInfo", reqs)
+			if respI != nil {
+				responses = respI.(*frontend.MultiGetInfoResponse)
+			}
+		}
+		if err != nil {
+			fmt.Printf("Failed with error: %s\n", err.Error())
+			return
+		}
+	*/
+
+	tbk_p := io.NewTimeBucketKey(args[0])
+	if tbk_p == nil {
+		fmt.Printf("Failed to convert argument to key: %s\n", args[0])
+		return
+	}
+	tbk := *tbk_p
+	resp, err := c.GetBucketInfo(tbk)
+	if err != nil {
+		fmt.Printf("Failed with error: %s\n", err.Error())
+		return
+	}
+	/*
+		Process the single response
+	*/
+	// Print out the bucket information we obtained
+	fmt.Printf("Bucket: %s\n", args[0])
+	fmt.Printf("Latest Year: %v, RecordType: %v, TF: %v\n",
+		resp.LatestYear, resp.RecordType.String(), resp.TimeFrame)
+	fmt.Printf("Data Types: {")
+	for i, shape := range resp.DSV {
+		fmt.Printf("%s", shape.String())
+		if i < len(resp.DSV)-1 {
+			fmt.Printf(" ")
+		}
+	}
+	fmt.Printf("}\n")
+}
 
 // create generates new subdirectories and buckets for a database.
 func (c *Client) create(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
-	parts := strings.Split(args[0], ":")
-	if len(parts) != 2 {
-		fmt.Println("Key is not in proper format, see \"\\help create\" ")
-		return
-	}
-	tbk := io.NewTimeBucketKey(parts[0], parts[1])
-	if tbk == nil {
-		fmt.Println("Key is not in proper format, see \"\\help create\" ")
-		return
-	}
 
-	dsv, err := dataShapesFromInputString(args[1])
+	req := frontend.CreateRequest{Key: args[0], DataShapes: args[1], RowType: args[2]}
+	reqs := &frontend.MultiCreateRequest{
+		Requests: []frontend.CreateRequest{req},
+	}
+	responses := &frontend.MultiServerResponse{}
+	var err error
+	if c.mode == local {
+		ds := frontend.DataService{}
+		err = ds.Create(nil, reqs, responses)
+	} else {
+		var respI interface{}
+		respI, err = c.rc.DoRPC("Create", reqs)
+		if respI != nil {
+			responses = respI.(*frontend.MultiServerResponse)
+		}
+	}
 	if err != nil {
+		fmt.Printf("Failed with error: %s\n", err.Error())
 		return
 	}
 
-	rowType := args[2]
-	switch rowType {
-	case "fixed", "variable":
-	default:
-		fmt.Printf("Error: Record type \"%s\" is not one of fixed or variable\n", rowType)
-		return
+	for _, resp := range responses.Responses {
+		if len(resp.Error) != 0 {
+			fmt.Printf("Failed with error: %s\n", resp.Error)
+			return
+		}
 	}
-
-	rootDir := executor.ThisInstance.RootDir
-	year := int16(time.Now().Year())
-	tf, err := tbk.GetTimeFrame()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	rt := io.EnumRecordTypeByName(rowType)
-	tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, rt)
-
-	err = executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
-	if err != nil {
-		err = fmt.Errorf("Error: Creation of new catalog entry failed: %s", err.Error())
-		fmt.Println(err.Error())
-		return
-	}
-
-	fmt.Printf("Successfully created a new catalog entry: %s\n", tbk.GetItemKey())
+	fmt.Printf("Successfully created a new catalog entry for bucket %s\n", args[0])
 }
 
-func dataShapesFromInputString(inputStr string) (dsa []io.DataShape, err error) {
-	splitString := strings.Split(inputStr, ":")
-	dsa = make([]io.DataShape, 0)
-	for _, group := range splitString {
-		twoParts := strings.Split(group, "/")
-		if len(twoParts) != 2 {
-			err = fmt.Errorf("Error: %s: Data shape is not described by a list of column names followed by type.", group)
-			fmt.Println(err.Error())
-			return nil, err
-		}
-		elementNames := strings.Split(twoParts[0], ",")
-		elementType := twoParts[1]
-		eType := io.EnumElementTypeFromName(elementType)
-		if eType == io.NONE {
-			err = fmt.Errorf("Error: %s: Data type is not a supported type", group)
-			fmt.Println(err.Error())
-			return nil, err
-		}
-		for _, name := range elementNames {
-			dsa = append(dsa, io.DataShape{Name: name, Type: eType})
+// destroy removes the subdirectories and buckets for a provided key
+func (c *Client) destroy(line string) {
+	args := strings.Split(line, " ")
+	args = args[1:] // chop off the first word which should be "destroy"
+
+	req := frontend.KeyRequest{Key: args[0]}
+	reqs := &frontend.MultiKeyRequest{
+		Requests: []frontend.KeyRequest{req},
+	}
+	responses := &frontend.MultiServerResponse{}
+	var err error
+	if c.mode == local {
+		ds := frontend.DataService{}
+		err = ds.Destroy(nil, reqs, responses)
+	} else {
+		var respI interface{}
+		respI, err = c.rc.DoRPC("Destroy", reqs)
+		if respI != nil {
+			responses = respI.(*frontend.MultiServerResponse)
 		}
 	}
-	return dsa, nil
+	if err != nil {
+		fmt.Printf("Failed with error: %s\n", err.Error())
+		return
+	}
+
+	for _, resp := range responses.Responses {
+		if len(resp.Error) != 0 {
+			fmt.Printf("Failed with error: %s\n", resp.Error)
+			return
+		}
+	}
+	fmt.Printf("Successfully removed catalog entry for key: %s\n", args[0])
+}
+
+func (c *Client) GetBucketInfo(key io.TimeBucketKey) (resp *frontend.GetInfoResponse, err error) {
+	req := frontend.KeyRequest{Key: key.String()}
+	reqs := &frontend.MultiKeyRequest{
+		Requests: []frontend.KeyRequest{req},
+	}
+	responses := &frontend.MultiGetInfoResponse{}
+
+	if c.mode == local {
+		ds := frontend.DataService{}
+		err = ds.GetInfo(nil, reqs, responses)
+	} else {
+		var respI interface{}
+		respI, err = c.rc.DoRPC("GetInfo", reqs)
+		if respI != nil {
+			responses = respI.(*frontend.MultiGetInfoResponse)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		Process the single response
+	*/
+	resp = &responses.Responses[0]
+	if len(resp.ServerResp.Error) != 0 {
+		return nil, fmt.Errorf("%s", resp.ServerResp.Error)
+	}
+
+	return resp, nil
 }

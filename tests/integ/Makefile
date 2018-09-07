@@ -2,13 +2,15 @@
 # Commands to automate integration tests
 ################################################################################
 
-LATEST_TAG = $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
-IMAGE_NAME = alpacamarkets/marketstore:${LATEST_TAG}
+LATEST_TAG ?= $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
+IMAGE_NAME ?= alpacamarkets/marketstore:${LATEST_TAG}
 CONTAINER_NAME = integration_tests_mstore
+
+SHELL = bash
+.ONESHELL:
 
 # User targets
 ################################################################################
-
 connect: run
 	@curl -s --data-binary '{"jsonrpc":"2.0", "method":"DataService.ListSymbols", "id":1, "params": {"parameters": {}}}' -H 'Content-Type: application/json' http://localhost:5993/rpc ; if [ $$? -ne 0 ]; then echo "Failed"; else echo "Passed"; fi
 
@@ -20,6 +22,25 @@ stop:
 	-if [ `bin/check_running ${CONTAINER_NAME}` -eq 1 ]; then \
 		docker stop ${CONTAINER_NAME}; fi
 	-docker rm -f ${CONTAINER_NAME}
+
+test:
+	@rm -rf testdata test_ticks.csv && mkdir -p testdata/mktsdb
+	@marketstore connect -d `pwd`/testdata/mktsdb <<- EOF >& /dev/null && diff -q bin/ticks-example-1-output.csv test_ticks.csv && echo "Passed" || echo "Test Failed"
+	\create TEST/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
+	\getinfo TEST/1Min/TICK
+	\load TEST/1Min/TICK bin/ticks-example-1.csv bin/ticks-example-1.yaml
+	\o test_ticks.csv
+	\show TEST/1Min/TICK 1970-01-01
+	EOF
+	@rm -f test_ticks.csv
+	@marketstore connect -d `pwd`/testdata/mktsdb <<- EOF >& /dev/null && diff -q bin/ticks-example-2-output.csv test_ticks.csv && echo "Passed" || echo "Test Failed"
+	\create TEST/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
+	\getinfo TEST/1Min/TICK
+	\load TEST/1Min/TICK bin/ticks-example-2.csv bin/ticks-example-2.yaml
+	\o test_ticks.csv
+	\show TEST/1Min/TICK 1970-01-01
+	EOF
+	@rm -rf testdata test_ticks.csv
 
 clean: stop
 	rm -rf data

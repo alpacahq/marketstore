@@ -7,7 +7,7 @@ import (
 	"unsafe"
 )
 
-//go:generate stringer -type=EnumElementType datatypes.go byteconversions.go
+//go:generate stringer -type=EnumElementType,EnumRecordType datatypes.go byteconversions.go
 
 /*
 #include "utilityfuncs.h"

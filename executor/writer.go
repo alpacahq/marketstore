@@ -226,9 +226,21 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			return err
 		}
 
-		// TODO check if the previsouly-written data schema matches the input
+		/*
+			Prepare data for writing
+		*/
+		times := cs.GetTime()
+		if isVariableLength {
+			cs.Remove("Nanoseconds")
+		}
+		rs := cs.ToRowSeries(tbk)
+		rowdata := rs.GetData()
+
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
 		if err != nil {
+			/*
+				If we can't get the info, we try here to add a new one
+			*/
 			var recordType io.EnumRecordType
 			if isVariableLength {
 				recordType = io.VARIABLE
@@ -253,6 +265,17 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 				}
 			}
 		}
+		// Check if the previously-written data schema matches the input
+		columnMismatchError := "unable to match data columns (%v) to bucket columns (%v)"
+		dbDSV := tbi.GetDataShapesWithEpoch()
+		csDSV := cs.GetDataShapes()
+		if len(dbDSV) != len(csDSV) {
+			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
+		}
+		missing, coercion := GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
+		if missing != nil || coercion != nil {
+			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
+		}
 
 		/*
 			Create a writer for this TimeBucket
@@ -261,19 +284,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		if err != nil {
 			return err
 		}
-		for i, ds := range tbi.GetDataShapesWithEpoch() {
-			if csDs := cs.GetDataShapes()[i]; !ds.Equal(csDs) {
-				return fmt.Errorf(
-					"data shape does not match on-disk data shape: %v != %v",
-					cs.GetDataShapes(),
-					tbi.GetDataShapesWithEpoch(),
-				)
 
-			}
-		}
-		rs := cs.ToRowSeries(tbk)
-		rowdata := rs.GetData()
-		times := rs.GetTime()
 		w.WriteRecords(times, rowdata)
 	}
 	wal := ThisInstance.WALFile

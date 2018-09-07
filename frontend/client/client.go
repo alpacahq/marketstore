@@ -59,6 +59,7 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	}
 	defer resp.Body.Close()
 
+	// Handle any error in the RPC call
 	if resp.StatusCode != 200 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		var errText string
@@ -72,7 +73,24 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 		return nil, fmt.Errorf("response error (%d): %s", resp.StatusCode, errText)
 	}
 
+	// Unpack and format the response from the RPC call
 	switch functionName {
+	case "GetInfo":
+		result := &frontend.MultiGetInfoResponse{}
+		err = msgpack2.DecodeClientResponse(resp.Body, result)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+
+	case "Create", "Destroy":
+		result := &frontend.MultiServerResponse{}
+		err = msgpack2.DecodeClientResponse(resp.Body, result)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+
 	case "Query", "SQLStatement":
 		result := &frontend.MultiQueryResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
@@ -87,7 +105,7 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
 		return result.Results, nil
 	case "Write":
-		result := &frontend.MultiWriteResponse{}
+		result := &frontend.MultiServerResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
 
 	default:
