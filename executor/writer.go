@@ -274,16 +274,6 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		if err != nil {
 			return err
 		}
-		for i, ds := range tbi.GetDataShapesWithEpoch() {
-			if csDs := cs.GetDataShapes()[i]; !ds.Equal(csDs) {
-				return fmt.Errorf(
-					"data shape does not match on-disk data shape: %v != %v",
-					cs.GetDataShapes(),
-					tbi.GetDataShapesWithEpoch(),
-				)
-
-			}
-		}
 		rs := cs.ToRowSeries(tbk)
 		rowdata := rs.GetData()
 		times := rs.GetTime()
