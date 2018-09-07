@@ -226,9 +226,11 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			return err
 		}
 
-		// TODO check if the previously-written data schema matches the input
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
 		if err != nil {
+			/*
+				If we can't get the info, we try here to add a new one
+			*/
 			var recordType io.EnumRecordType
 			if isVariableLength {
 				recordType = io.VARIABLE
@@ -252,6 +254,17 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 					return err
 				}
 			}
+		}
+		// Check if the previously-written data schema matches the input
+		columnMismatchError := "unable to match data columns (%v) to bucket columns (%v)"
+		dbDSV := tbi.GetDataShapesWithEpoch()
+		csDSV := cs.GetDataShapes()
+		if len(dbDSV) != len(csDSV) {
+			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
+		}
+		missing, coercion := GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
+		if missing != nil || coercion != nil {
+			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
 
 		/*
