@@ -64,16 +64,38 @@ func (c *Client) load(line string) {
 		Read the CSV data in chunks until the end of the file
 	*/
 	for {
-		chunkSize := 100
-		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, tbk, cvm, chunkSize)
+		chunkSize := 1000000
+		// chunkSize := 100
+
+		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, tbk, cvm, chunkSize, resp.RecordType == io.VARIABLE)
 		if err != nil {
 			fmt.Println("Error: ", err.Error())
 			return
 		}
-		err = writeNumpy(c, npm, resp.RecordType == io.VARIABLE)
-		if err != nil {
-			fmt.Println("Error: ", err.Error())
-			return
+		if npm != nil { // npm will be empty if we've read the whole file in the last pass
+			// LAL ================= DEBUG
+			/*
+				//fmt.Println("LAL: npm:", npm)
+				csmT, err := npm.ToColumnSeriesMap()
+				if err != nil {
+					fmt.Println("LAL Error: ", err)
+					return
+				}
+				fmt.Println("LAL: csm:", csmT)
+				fmt.Println("LAL: cs:", csmT[tbk])
+			*/
+			// LAL ^^^^^^^^^^^^^^^^^^ DEBUG
+
+			err = writeNumpy(c, npm, resp.RecordType == io.VARIABLE)
+			if err != nil {
+				fmt.Println("Error: ", err.Error())
+				return
+			}
+			// LAL ================= DEBUG
+			/*
+				return
+			*/
+			// LAL ^^^^^^^^^^^^^^^^^^ DEBUG
 		}
 		if endReached {
 			break
