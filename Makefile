@@ -30,6 +30,7 @@ plugins:
 unittest:
 	go fmt ./...
 	go test ./...
+	$(MAKE) -C tests/integ test
 
 image:
 	docker build -t alpacamarkets/marketstore.test .
