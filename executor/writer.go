@@ -226,6 +226,16 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			return err
 		}
 
+		/*
+			Prepare data for writing
+		*/
+		times := cs.GetTime()
+		if isVariableLength {
+			cs.Remove("Nanoseconds")
+		}
+		rs := cs.ToRowSeries(tbk)
+		rowdata := rs.GetData()
+
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
 		if err != nil {
 			/*
@@ -274,9 +284,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		if err != nil {
 			return err
 		}
-		rs := cs.ToRowSeries(tbk)
-		rowdata := rs.GetData()
-		times := rs.GetTime()
+
 		w.WriteRecords(times, rowdata)
 	}
 	wal := ThisInstance.WALFile
