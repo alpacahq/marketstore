@@ -51,7 +51,7 @@ _init:
 	@if [ ! -d data/mktsdb ]; then rm -rf data; $(MAKE) _get_data; fi
 
 _get_data:
-	@mkdir data
+	@rm -rf data && mkdir data
 	@if [ ! -f /tmp/mktsdb.tgz ]; then wget https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz -O /tmp/mktsdb.tgz; fi
 	@tar -C data -xzf /tmp/mktsdb.tgz
 
