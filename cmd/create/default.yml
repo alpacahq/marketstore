@@ -1,0 +1,82 @@
+# -----------------------------------------
+# Auto-generated marketstore configuration.
+# -----------------------------------------
+# root directory of the database
+root_directory: data
+# listen port - the port exposed by the database server
+listen_port: 5993
+# log level (info|warn|error)
+log_level: info
+# queryable - allows the database to be queried through a client connection
+queryable: true
+#
+stop_grace_period: 0
+#
+wal_rotate_interval: 5
+#
+enable_add: true
+#
+enable_remove: false
+#
+enable_last_known: false
+# 
+# timezone: "America/New_York"
+
+# ----------------------------------------
+# Example trigger modules
+#
+# Un-comment to enable.
+# ----------------------------------------
+#
+# triggers:
+#   - module: ondiskagg.so
+#     on: "*/1Min/OHLCV"
+#     config:
+#       destinations:
+#         - 5Min
+#         - 15Min
+#         - 1H
+#         - 1D
+#   - module: stream.so
+#     on: "*/*/*"
+#     config:
+#       filter: nasdaq
+# bgworkers:
+#   - module: gdaxfeeder.so
+#     name: GdaxFetcher
+#     config:
+#       query_start: "2017-09-01 00:00"
+#   - module: slait.so
+#       name: SlaitSubscriber
+#       config:
+#           endpoint: localhost:5000
+#           topic: bars_gdax
+#           attribute_group: OHLCV
+#           shape:
+#           - - Epoch
+#             - int64
+#           - - Open
+#             - float64
+#           - - High
+#             - float64
+#           - - Low
+#             - float64
+#           - - Close
+#             - float64
+#           - - Volume
+#             - float64
+#   - module: polygon.so
+#         name: Polygon
+#         config:
+#             api_key: your_api_key
+#             base_url: https://api.polygon.io
+#             symbols:
+#                 - AAPL
+#                 - SPY
+#   - module: bitmexfeeder.so
+#     name: BitmexFeeder
+#     config:
+#       query_start: "2017-01-01 00:00"
+#       symbols:
+#         - .XBT
+#       base_timeframe: "5Min"

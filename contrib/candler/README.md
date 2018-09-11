@@ -1,13 +1,13 @@
 ## Financial Analysis UDA: Candler - converts raw price data to Candles for technical analysis
 
-This module aggregates time series data into candles using the marketstore UDA interface. 
+This module aggregates time series data into candles using the marketstore UDA interface.
 
 ### The interesting functions can be called from SQL
 
-Example: 
+Example:
 
 ```
-$ mkts -rootDir /data/market-data/mktsdb/
+$ marketstore connect --dir /data/market-data/mktsdb/
 » select candlecandler('12Min',Open,High,Low,Close,Avg::Volume,Sum::Volume) from `TSLA/1Min/OHLCV` where Epoch > '2017-01-01' limit 10;
               =============================  ==========  ==========  ==========  ==========  ==========  ==========
                                       Epoch  Open        High        Low         Close       Volume_SUM  Volume_AVG
@@ -57,4 +57,3 @@ func (ca *CandleCandler) Accum(cols io.ColumnInterface) error {
 		return err
 	}
 ```
-

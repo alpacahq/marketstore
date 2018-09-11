@@ -11,7 +11,7 @@ import (
 	"io"
 	"math/rand"
 
-	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+	msgpack "github.com/vmihailenco/msgpack"
 )
 
 // ----------------------------------------------------------------------------

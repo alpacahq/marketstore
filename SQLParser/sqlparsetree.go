@@ -1,18 +1,14 @@
 package SQLParser
 
 import (
-	"github.com/alpacahq/marketstore/SQLParser/parser"
-
+	"bytes"
+	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
-	"fmt"
-	"reflect"
-
-	"bytes"
-
+	"github.com/alpacahq/marketstore/SQLParser/parser"
 	"github.com/alpacahq/marketstore/utils/io"
-
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 

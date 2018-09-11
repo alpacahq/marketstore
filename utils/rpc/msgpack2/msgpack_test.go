@@ -14,8 +14,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gorilla/rpc/v2"
-	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+	rpc "github.com/gorilla/rpc/v2"
+	msgpack "github.com/vmihailenco/msgpack"
 )
 
 // ResponseRecorder is an implementation of http.ResponseWriter that

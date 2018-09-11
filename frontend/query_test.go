@@ -256,7 +256,7 @@ func (s *ServerTestSuite) TestListSymbols(c *C) {
 	service := &DataService{}
 	service.Init()
 
-	var response ListSymbolsReply
+	var response ListSymbolsResponse
 	if err := service.ListSymbols(nil, nil, &response); err != nil {
 		c.Fatalf("error returned: %s", err)
 	}
@@ -273,7 +273,7 @@ func (s *ServerTestSuite) TestListSymbols(c *C) {
 	c.Assert(contains(response.Results, "EURUSD"), Equals, true)
 	c.Assert(contains(response.Results, "USDJPY"), Equals, true)
 
-	var resp ListSymbolsReply
+	var resp ListSymbolsResponse
 
 	args := &ListSymbolsArgs{}
 

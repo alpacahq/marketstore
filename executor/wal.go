@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/alpacahq/marketstore/plugins/trigger"
+
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
@@ -202,12 +204,12 @@ func (cfp *CachedFP) Close() error {
 // A.k.a. Commit transaction
 func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	/*
-		Here we flush the contents of the Mkts write cache to:
+		Here we flush the contents of the write cache to:
 		- Primary storage via the OS write cache - data is visible to readers
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/
 
-	defer dispatchWrittenIndexes()
+	defer dispatchRecords()
 
 	WALBypass := ThisInstance.WALBypass
 	//WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
@@ -294,7 +296,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 			return err
 		}
 		for i, buffer := range writes {
-			addWrittenIndex(keyPath, buffer.Index())
+			appendRecord(keyPath, trigger.Record(buffer.IndexAndPayload()))
 			writes[i] = nil // for GC
 		}
 		writesPerFile[keyPath] = nil // for GC
