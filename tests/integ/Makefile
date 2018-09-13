@@ -43,7 +43,7 @@ test:
 	@rm -rf testdata test_ticks.csv
 
 clean: stop
-	rm -rf data
+	rm -rf data tests/__pycache__
 
 # Utils
 ################################################################################
@@ -67,24 +67,11 @@ _startup: stop
 
 # Tests
 ################################################################################
-
-test_run_latest:
-	docker run --entrypoint=/bin/ash -i alpacamarkets/marketstore:${LATEST_TAG} -c 'echo OK'
-
-_test_import_csv: reset_marketstore
-	TEST_NUM=$(TEST_NUM) make -C dockerfiles/marketstore import_csv
-	$(MAKE) test_mktsdb_conn
+_start_pyclient_container:
 	make -C dockerfiles/pyclient rm build run
-	TEST_FILENAME='/project/tests/test_not_empty.py' make -C dockerfiles/pyclient test
-	make -C dockerfiles/marketstore rm
 
-test_import_csv_1:
-	TEST_NUM=1 $(MAKE) _test_import_csv
+test_driver: clean run _start_pyclient_container
+	TEST_FILENAME='/project/tests/$@.py' make -C dockerfiles/pyclient test
 
-test_import_csv_2:
-	TEST_NUM=2 $(MAKE) _test_import_csv
-
-test_client: reset_marketstore
-	$(MAKE) test_mktsdb_conn
-	make -C dockerfiles/pyclient rm build run
-	TEST_FILENAME='/project/tests/test_ticks.py' make -C dockerfiles/pyclient test
+test_not_empty: clean run _start_pyclient_container
+	TEST_FILENAME='/project/tests/$@.py' make -C dockerfiles/pyclient test
