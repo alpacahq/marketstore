@@ -1,4 +1,4 @@
-package SQLParser
+package sqlparser
 
 func (this *StatementsParse) Accept(visitor IMSTreeVisitor) interface{} {
 	switch t := visitor.(type) {

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/SQLParser"
+	"github.com/alpacahq/marketstore/sqlparser"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/frontend/client"
 	"github.com/alpacahq/marketstore/utils"
@@ -261,7 +261,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	i_explain := cs.GetByName("explain-output")
 	if i_explain != nil {
 		explain := i_explain.([]string)
-		SQLParser.PrintExplain(queryText, explain)
+		sqlparser.PrintExplain(queryText, explain)
 		return
 	}
 	i_epoch := cs.GetByName("Epoch")

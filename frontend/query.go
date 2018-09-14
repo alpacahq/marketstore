@@ -10,7 +10,7 @@ import (
 
 	"strings"
 
-	"github.com/alpacahq/marketstore/SQLParser"
+	"github.com/alpacahq/marketstore/sqlparser"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils"
@@ -89,11 +89,11 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 	for _, req := range reqs.Requests {
 		switch req.IsSQLStatement {
 		case true:
-			ast, err := SQLParser.NewAstBuilder(req.SQLStatement)
+			ast, err := sqlparser.NewAstBuilder(req.SQLStatement)
 			if err != nil {
 				return err
 			}
-			es, err := SQLParser.NewExecutableStatement(ast.Mtree)
+			es, err := sqlparser.NewExecutableStatement(ast.Mtree)
 			if err != nil {
 				return err
 			}
@@ -299,7 +299,7 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries) (cs *io.Colum
 			return nil, err
 		}
 
-		agg := SQLParser.AggRegistry[strings.ToLower(aggName)]
+		agg := sqlparser.AggRegistry[strings.ToLower(aggName)]
 		if agg == nil {
 			return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 		}
