@@ -17,7 +17,6 @@ import (
 	"github.com/alpacahq/marketstore/executor/buffile"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/log"
-	"github.com/golang/glog"
 )
 
 /*
@@ -320,7 +319,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 	}
 	if err != nil {
 		// this is critical, in fact, since tx has been committed
-		glog.Errorf("cannot open file %s for write: %v", fullPath, err)
+		Log(ERROR, "cannot open file %s for write: %v", fullPath, err)
 		return err
 	}
 	defer fp.Close()
@@ -333,7 +332,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 			err = WriteBufferToFileIndirect(fp.(*os.File), buffer)
 		}
 		if err != nil {
-			glog.Errorf("failed to write committed data: %v", err)
+			Log(ERROR, "failed to write committed data: %v", err)
 			return err
 		}
 	}
@@ -474,7 +473,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 				break // Break out of switch
 			}
 		default:
-			glog.Warningf("Unknown meessage id %d", MID)
+			Log(WARNING, "Unknown meessage id %d", MID)
 		}
 	}
 
@@ -829,9 +828,9 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 			}
 		} else {
 			haveWALWriter = false
-			glog.Info("Flushing to WAL...")
+			Log(INFO, "Flushing to WAL...")
 			wf.flushToWAL(ThisInstance.TXNPipe)
-			glog.Info("Flushing to disk...")
+			Log(INFO, "Flushing to disk...")
 			wf.createCheckpoint()
 			ThisInstance.WALWg.Done()
 			return
