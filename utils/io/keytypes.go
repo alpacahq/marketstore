@@ -125,7 +125,12 @@ func (mk *TimeBucketKey) GetTimeFrame() (tf *utils.Timeframe, err error) {
 	if len(tfs) == 0 {
 		return &utils.Timeframe{}, fmt.Errorf("Error: Unable to get timeframe from key")
 	}
-	return utils.TimeframeFromString(tfs), nil
+
+	if tf = utils.TimeframeFromString(tfs); tf == nil {
+		err = fmt.Errorf("Error: Unable to get timeframe from key")
+	}
+
+	return
 }
 
 func (mk *TimeBucketKey) GetPathToYearFiles(rootDir string) string {
