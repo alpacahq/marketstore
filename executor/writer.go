@@ -163,7 +163,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer) (err error
 	/*
 		Write the data at the end of the file
 	*/
-	endOfFileOffset, _ := fp.Seek(0, os.SEEK_END)
+	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
 	_, err = fp.Write(dataToBeWritten)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer) (err error
 		Now we write or update the index record
 		First we read the file at the index location to see if this is an incremental write
 	*/
-	fp.Seek(primaryOffset, os.SEEK_SET)
+	fp.Seek(primaryOffset, stdio.SeekStart)
 	idBuf := make([]byte, 24) // {Index, Offset, Len}
 	_, err = fp.Read(idBuf)
 	if err != nil {
@@ -204,7 +204,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer) (err error
 	odata := []int64{targetRecInfo.Index, targetRecInfo.Offset, targetRecInfo.Len}
 	obuf := SwapSliceData(odata, byte(0)).([]byte)
 
-	fp.Seek(-24, os.SEEK_CUR)
+	fp.Seek(-24, stdio.SeekCurrent)
 	_, err = fp.Write(obuf)
 	if err != nil {
 		return err
