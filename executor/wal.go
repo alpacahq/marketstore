@@ -304,15 +304,14 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	return nil
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType) error {
-	fullPath := wf.WALKeyToFullPath(keyPath)
+func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType) (err error) {
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
 	}
 	const batchThreshold = 100
 	var fp WriteAtCloser
-	var err error
+	fullPath := wf.WALKeyToFullPath(keyPath)
 	if recordType == io.FIXED && len(writes) >= batchThreshold {
 		fp, err = buffile.New(fullPath)
 	} else {
@@ -330,7 +329,16 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 		case io.FIXED:
 			err = WriteBufferToFile(fp, buffer)
 		case io.VARIABLE:
-			err = WriteBufferToFileIndirect(fp.(*os.File), buffer)
+		    // Find the record length - we need it to use the time column as a sort key later
+			var ti *io.TimeBucketInfo
+			if ti, err = ThisInstance.CatalogDir.PathToTimeBucketInfo(fullPath); err != nil {
+				return err
+			}
+			err = WriteBufferToFileIndirect(
+				fp.(*os.File),
+				buffer,
+				ti.GetVariableRecordLength(),
+				)
 		}
 		if err != nil {
 			glog.Errorf("failed to write committed data: %v", err)
@@ -645,7 +653,15 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 					return err
 				}
 			case io.VARIABLE:
-				if err = WriteBufferToFileIndirect(fp, TG_Serialized[cursor:cursor+8+8+dataLen]); err != nil {
+				// Find the record length - we need it to use the time column as a sort key later
+				var ti *io.TimeBucketInfo
+				if ti, err = ThisInstance.CatalogDir.PathToTimeBucketInfo(fullPath); err != nil {
+					return err
+				}
+				if err = WriteBufferToFileIndirect(fp,
+					TG_Serialized[cursor:cursor+8+8+dataLen],
+					ti.GetVariableRecordLength(),
+				); err != nil {
 					return err
 				}
 			default:

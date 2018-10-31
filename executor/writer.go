@@ -1,17 +1,22 @@
 package executor
 
 import (
+	"encoding/binary"
 	"fmt"
 	stdio "io"
 	"os"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
 	"github.com/golang/glog"
 )
+
+//#include "quickSort.h"
+import "C"
 
 type Writer struct {
 	root *catalog.Directory
@@ -149,68 +154,87 @@ type IndirectRecordInfo struct {
 	Index, Offset, Len int64
 }
 
-func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer) (err error) {
-	// TODO: Incorporate previously written data into new writes - requires re-read of existing into buffer
+func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen int32) (err error) {
 	/*
 		Here we write the data payload of the buffer to the end of the data file
+		Prior to writing the new data, we fetch any previously written data and
+		prepend it to the current data. This implements "append"
 	*/
-
 	primaryOffset := buffer.Offset() // Offset to storage of indirect record info
 	index := buffer.Index()
 	dataToBeWritten := buffer.Payload()
 	dataLen := int64(len(dataToBeWritten))
-
-	/*
-		Write the data at the end of the file
-	*/
-	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
-	_, err = fp.Write(dataToBeWritten)
-	if err != nil {
-		return err
-	}
-
 	/*
 		Now we write or update the index record
 		First we read the file at the index location to see if this is an incremental write
 	*/
 	fp.Seek(primaryOffset, stdio.SeekStart)
 	idBuf := make([]byte, 24) // {Index, Offset, Len}
-	_, err = fp.Read(idBuf)
-	if err != nil {
+	if _, err = fp.Read(idBuf); err != nil {
 		return err
 	}
-
 	currentRecInfo := SwapSliceByte(idBuf, IndirectRecordInfo{}).([]IndirectRecordInfo)[0]
 	/*
-		The default is a new write at the end of the file
+		Read the data from the previously written location, if it exists
 	*/
-	targetRecInfo := IndirectRecordInfo{Index: index, Offset: endOfFileOffset, Len: dataLen}
-
-	/*
-		If this is a continuation write, we adjust the targetRecInfo accordingly
-	*/
-	if currentRecInfo.Index != 0 { // If the index from the file is 0, this is a new write
-		cursor := currentRecInfo.Offset + currentRecInfo.Len
-		if endOfFileOffset == cursor {
-			// Incremental write
-			targetRecInfo.Len += currentRecInfo.Len
-			targetRecInfo.Offset = currentRecInfo.Offset
+	if currentRecInfo.Index != 0 {
+		if _, err = fp.Seek(currentRecInfo.Offset, stdio.SeekStart); err != nil {
+			return err
 		}
+		oldData := make([]byte, currentRecInfo.Len)
+		if _, err := fp.Read(oldData); err != nil {
+			return err
+		}
+		dataToBeWritten = append(oldData, dataToBeWritten...)
+		dataLen = currentRecInfo.Len + dataLen
+	}
+	/*
+		Sort the data by the timestamp to maintain on-disk sorted order
+	 */
+	//insertionSort(dataToBeWritten, varRecLen)
+	arg1 := (*C.char)(unsafe.Pointer(&dataToBeWritten[0]))
+	C.quickSortKeyAtEndUINT32(arg1, C.int64_t(dataLen), C.int64_t(varRecLen))
+	/*
+		Write the data at the end of the file
+	*/
+	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
+	if _, err = fp.Write(dataToBeWritten); err != nil {
+		return err
 	}
 
 	/*
 		Write the indirect record info at the primaryOffset
 	*/
+	targetRecInfo := IndirectRecordInfo{Index: index, Offset: endOfFileOffset, Len: dataLen}
 	odata := []int64{targetRecInfo.Index, targetRecInfo.Offset, targetRecInfo.Len}
 	obuf := SwapSliceData(odata, byte(0)).([]byte)
 
-	fp.Seek(-24, stdio.SeekCurrent)
+	fp.Seek(primaryOffset, stdio.SeekStart)
 	_, err = fp.Write(obuf)
-	if err != nil {
-		return err
-	}
+	return err
+}
 
-	return nil
+func insertionSort(data []byte, rLen int32) {
+	recLen := int(rLen)
+	var n = len(data)/recLen
+	for i := 1; i < n; i++ {
+		j := i
+		for j > 0 {
+			li := (j-1)*recLen
+			ld := data[li:li+recLen]
+			lk := binary.BigEndian.Uint32(data[li+recLen-4:])
+			ri := li + recLen
+			rd := data[ri:ri+recLen]
+			rk := binary.BigEndian.Uint32(data[ri+recLen-4:])
+			if lk > rk {
+				lCopy := make([]byte, recLen)
+				copy(lCopy, ld)
+				copy(ld, rd)
+				copy(rd, lCopy)
+			}
+			j = j - 1
+		}
+	}
 }
 
 // WriteCSM writs ColumnSeriesMap csm to each destination file, and flush it to the disk,
@@ -289,5 +313,71 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	}
 	wal := ThisInstance.WALFile
 	wal.RequestFlush()
+	return nil
+}
+
+
+/*
+Legacy functions
+ */
+func WriteBufferToFileIndirectOverwrite(fp *os.File, buffer offsetIndexBuffer) (err error) {
+	/*
+		Here we write the data payload of the buffer to the end of the data file
+	*/
+	primaryOffset := buffer.Offset() // Offset to storage of indirect record info
+	index := buffer.Index()
+	dataToBeWritten := buffer.Payload()
+	dataLen := int64(len(dataToBeWritten))
+
+	/*
+		Write the data at the end of the file
+	*/
+	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
+	_, err = fp.Write(dataToBeWritten)
+	if err != nil {
+		return err
+	}
+
+	/*
+		Now we write or update the index record
+		First we read the file at the index location to see if this is an incremental write
+	*/
+	fp.Seek(primaryOffset, stdio.SeekStart)
+	idBuf := make([]byte, 24) // {Index, Offset, Len}
+	_, err = fp.Read(idBuf)
+	if err != nil {
+		return err
+	}
+
+	currentRecInfo := SwapSliceByte(idBuf, IndirectRecordInfo{}).([]IndirectRecordInfo)[0]
+	/*
+		The default is a new write at the end of the file
+	*/
+	targetRecInfo := IndirectRecordInfo{Index: index, Offset: endOfFileOffset, Len: dataLen}
+
+	/*
+		If this is a continuation write, we adjust the targetRecInfo accordingly
+	*/
+	if currentRecInfo.Index != 0 { // If the index from the file is 0, this is a new write
+		cursor := currentRecInfo.Offset + currentRecInfo.Len
+		if endOfFileOffset == cursor {
+			// Incremental write
+			targetRecInfo.Len += currentRecInfo.Len
+			targetRecInfo.Offset = currentRecInfo.Offset
+		}
+	}
+
+	/*
+		Write the indirect record info at the primaryOffset
+	*/
+	odata := []int64{targetRecInfo.Index, targetRecInfo.Offset, targetRecInfo.Len}
+	obuf := SwapSliceData(odata, byte(0)).([]byte)
+
+	fp.Seek(-24, stdio.SeekCurrent)
+	_, err = fp.Write(obuf)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
