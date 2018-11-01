@@ -11,7 +11,7 @@ import (
 	. "github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 type TimeQualFunc func(epoch int64) bool
@@ -175,7 +175,7 @@ type query struct {
 
 func NewQuery(d *Directory) *query {
 	if d == nil {
-		Log(ERROR, "Failed to query - catalog not initialized.")
+		log.Error("Failed to query - catalog not initialized.")
 		return nil
 	}
 	q := new(query)

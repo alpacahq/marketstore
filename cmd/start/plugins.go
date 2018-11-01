@@ -6,15 +6,15 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 func InitializeTriggers() {
-	Log(INFO, "InitializeTriggers")
+	log.Info("InitializeTriggers")
 	config := utils.InstanceConfig
 	theInstance := executor.ThisInstance
 	for _, triggerSetting := range config.Triggers {
-		Log(INFO, "triggerSetting = %v", triggerSetting)
+		log.Info("triggerSetting = %v", triggerSetting)
 		tmatcher := NewTriggerMatcher(triggerSetting)
 		if tmatcher != nil {
 			theInstance.TriggerMatchers = append(
@@ -26,28 +26,28 @@ func InitializeTriggers() {
 func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
 	loader, err := plugins.NewSymbolLoader(ts.Module)
 	if err != nil {
-		Log(ERROR, "Unable to open plugin for trigger in %s: %v", ts.Module, err)
+		log.Error("Unable to open plugin for trigger in %s: %v", ts.Module, err)
 		return nil
 	}
 	trig, err := trigger.Load(loader, ts.Config)
 	if err != nil {
-		Log(ERROR, "Error returned while creating a trigger: %v", err)
+		log.Error("Error returned while creating a trigger: %v", err)
 		return nil
 	}
 	return trigger.NewMatcher(trig, ts.On)
 }
 
 func RunBgWorkers() {
-	Log(INFO, "InitializeBgWorkers")
+	log.Info("InitializeBgWorkers")
 	config := utils.InstanceConfig
 	for _, bgWorkerSetting := range config.BgWorkers {
-		Log(INFO, "bgWorkerSetting = %v", bgWorkerSetting)
+		log.Info("bgWorkerSetting = %v", bgWorkerSetting)
 		bgWorker := NewBgWorker(bgWorkerSetting)
 		if bgWorker != nil {
 			// we should probably keep track of this process status
 			// and may want to kill it or get info.  utils.Process may help
 			// but will figure it out later.
-			Log(INFO, "Start running BgWorker %s...", bgWorkerSetting.Name)
+			log.Info("Start running BgWorker %s...", bgWorkerSetting.Name)
 			go bgWorker.Run()
 		}
 	}
@@ -56,12 +56,12 @@ func RunBgWorkers() {
 func NewBgWorker(s *utils.BgWorkerSetting) bgworker.BgWorker {
 	loader, err := plugins.NewSymbolLoader(s.Module)
 	if err != nil {
-		Log(ERROR, "Unable to open plugin for bgworker in %s: %v", s.Module, err)
+		log.Error("Unable to open plugin for bgworker in %s: %v", s.Module, err)
 		return nil
 	}
 	bgWorker, err := bgworker.Load(loader, s.Config)
 	if err != nil {
-		Log(ERROR, "Failed to create bgworker: %v", err)
+		log.Error("Failed to create bgworker: %v", err)
 	}
 	return bgWorker
 }

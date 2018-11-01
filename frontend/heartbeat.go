@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 var Queryable uint32 // treated as bool
@@ -41,7 +41,7 @@ func handler(rw http.ResponseWriter, r *http.Request) {
 			Uptime:  uptime,
 		})
 		if err != nil {
-			Log(ERROR, "Failed to write heartbeat message - Error: %v", err)
+			log.Error("Failed to write heartbeat message - Error: %v", err)
 		}
 	} else {
 		// not queryable
@@ -53,7 +53,7 @@ func handler(rw http.ResponseWriter, r *http.Request) {
 			Uptime:  uptime,
 		})
 		if err != nil {
-			Log(ERROR, "Failed to write heartbeat message - Error: %v", err)
+			log.Error("Failed to write heartbeat message - Error: %v", err)
 		}
 	}
 }

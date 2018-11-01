@@ -7,7 +7,7 @@ import (
 
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 // findGaps finds gaps in data in the date range.
@@ -27,18 +27,18 @@ func (c *Client) findGaps(line string) {
 
 	pr, err := query.Parse()
 	if err != nil {
-		Log(ERROR, "Parsing query: %v", err)
+		log.Error("Parsing query: %v", err)
 		os.Exit(1)
 	}
 
 	scanner, err := executor.NewReader(pr)
 	if err != nil {
-		Log(ERROR, "Error return from query scanner: %v", err)
+		log.Error("Error return from query scanner: %v", err)
 		return
 	}
 	csm, _, err := scanner.Read()
 	if err != nil {
-		Log(ERROR, "Error return from query scanner: %v", err)
+		log.Error("Error return from query scanner: %v", err)
 		return
 	}
 

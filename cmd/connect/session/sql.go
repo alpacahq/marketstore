@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/sqlparser"
 	"github.com/alpacahq/marketstore/frontend"
+	"github.com/alpacahq/marketstore/sqlparser"
 	"github.com/alpacahq/marketstore/utils/io"
 )
 

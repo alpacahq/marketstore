@@ -11,28 +11,29 @@ func init() {
 	zap.ReplaceGlobals(logger)
 }
 
-func Log(level Level, format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	switch level {
-	default:
-	case INFO:
-		if logLevel >= INFO {
-			zap.S().Info(msg)
-		}
-	case WARNING:
-		if logLevel >= WARNING {
-			zap.S().Warn(msg)
-		}
-	case ERROR:
-		if logLevel >= ERROR {
-			zap.S().Error(msg)
-		}
-	case FATAL:
-		zap.S().Fatal(msg)
+func Info(format string, args ...interface{}) {
+	if logLevel <= INFO {
+		zap.S().Info(fmt.Sprintf(format, args...))
 	}
 }
 
-func SetLogLevel(level Level) {
+func Warn(format string, args ...interface{}) {
+	if logLevel <= WARNING {
+		zap.S().Warn(fmt.Sprintf(format, args...))
+	}
+}
+
+func Error(format string, args ...interface{}) {
+	if logLevel <= ERROR {
+		zap.S().Warn(fmt.Sprintf(format, args...))
+	}
+}
+
+func Fatal(format string, args ...interface{}) {
+	zap.S().Fatal(fmt.Sprintf(format, args...))
+}
+
+func SetLevel(level Level) {
 	logLevel = level
 }
 
