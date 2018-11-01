@@ -13,7 +13,7 @@ import (
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 const RecordsPerRead = 2000
@@ -505,18 +505,18 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, recordLen, byt
 	// Forward scan
 	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
-		Log(ERROR, "Read: opening %s\n%s", filePath, err)
+		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, err
 	}
 	defer f.Close()
 
 	if _, err = f.Seek(fp.Offset, os.SEEK_SET); err != nil {
-		Log(ERROR, "Read: seeking in %s\n%s", filePath, err)
+		log.Error("Read: seeking in %s\n%s", filePath, err)
 		return finalBuffer, false, err
 	}
 
 	if err = ex.packingReader(&finalBuffer, f, readBuffer, fp.Length, fp); err != nil {
-		Log(ERROR, "Read: reading data from %s\n%s", filePath, err)
+		log.Error("Read: reading data from %s\n%s", filePath, err)
 		return finalBuffer, false, err
 
 	}
@@ -543,7 +543,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 
 	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
-		Log(ERROR, "Read: opening %s\n%s", filePath, err)
+		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, 0, err
 	}
 	defer f.Close()
@@ -553,7 +553,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	// Seek backward one buffer size (max)
 	maxToRead, curpos, err := seekBackward(f, maxToBuffer, beginPos)
 	if err != nil {
-		Log(ERROR, "Read: seeking within %s\n%s", filePath, err)
+		log.Error("Read: seeking within %s\n%s", filePath, err)
 		return nil, false, 0, err
 	}
 
@@ -565,7 +565,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 			f, readBuffer,
 			maxToRead, fp); err != nil {
 
-			Log(ERROR, "Read: reading data from %s\n%s", filePath, err)
+			log.Error("Read: reading data from %s\n%s", filePath, err)
 			return nil, false, 0, err
 		}
 
@@ -595,7 +595,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 			maxToRead -= int64(maxToBuffer)
 			// Exit the read operation if we get here with an error
 			if err != nil {
-				Log(ERROR, "Read: seeking within %s\n%s", filePath, err)
+				log.Error("Read: seeking within %s\n%s", filePath, err)
 				return nil, false, 0, err
 			}
 		} else {
@@ -613,7 +613,7 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 	// Find the current file position
 	curpos, err = f.Seek(0, os.SEEK_CUR)
 	if err != nil {
-		Log(ERROR, "Read: cannot find current file position: %s", err)
+		log.Error("Read: cannot find current file position: %s", err)
 		return 0, curpos, err
 	}
 	// If seeking backward would go lower than the lower bound, seek to lower bound

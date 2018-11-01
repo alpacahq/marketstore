@@ -10,7 +10,7 @@ import (
 
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
 )
 
@@ -80,9 +80,9 @@ func init() {
 	}
 
 	if !parallel {
-		Log(INFO, "Running single threaded")
+		log.Info("Running single threaded")
 	} else {
-		Log(INFO, "Running in parallel")
+		log.Info("Running in parallel")
 	}
 
 	if yearEnd == 0 {
@@ -92,12 +92,12 @@ func init() {
 		monthEnd = 10000
 	} else {
 		if monthEnd < 1 || monthEnd > 12 {
-			Log(FATAL, "Ending month must be in the range 1-12")
+			log.Fatal("Ending month must be in the range 1-12")
 		}
 	}
 	if monthStart != 0 {
 		if monthStart < 1 || monthStart > 12 {
-			Log(FATAL, "Start month must be in the range 1-12")
+			log.Fatal("Start month must be in the range 1-12")
 		}
 	}
 
@@ -143,9 +143,9 @@ func init() {
 // executeIntegrity implements the integrity tool.
 func executeIntegrity(cmd *cobra.Command, args []string) error {
 
-	SetLogLevel(INFO)
+	log.SetLevel(log.INFO)
 
-	Log(INFO, "Root directory: %v", rootDirPath)
+	log.Info("Root directory: %v", rootDirPath)
 
 	// Perform integrity check.
 	return filepath.Walk(rootDirPath, cksumDataFiles)
@@ -249,11 +249,11 @@ func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filenam
 	nread, err := fp.ReadAt(buffer, offset)
 	if err != nil {
 		if err.Error() != "EOF" {
-			Log(FATAL, "Error reading "+fp.Name()+": "+err.Error())
+			log.Fatal("Error reading " + fp.Name() + ": " + err.Error())
 		}
 	}
 	if nread == 0 {
-		Log(FATAL, "Short read "+fp.Name())
+		log.Fatal("Short read " + fp.Name())
 	}
 	// Align the checksum range to 8-bytes
 	sumRange := io.AlignedSize(nread)

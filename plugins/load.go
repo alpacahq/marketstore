@@ -50,10 +50,10 @@ func Load(pluginName string) (pi *plugin.Plugin, err error) {
 	}
 	for _, path := range gopaths {
 		pluginPath := filepath.Join(filepath.Join(path, "bin"), pluginName)
-		log.Log(log.INFO, "Trying to load module from path: %s...\n", pluginPath)
+		log.Info("Trying to load module from path: %s...\n", pluginPath)
 		pi, err = plugin.Open(pluginPath)
 		if err == nil {
-			log.Log(log.INFO, "Success loading module %s.\n", pluginPath)
+			log.Info("Success loading module %s.\n", pluginPath)
 			return pi, nil
 		}
 	}

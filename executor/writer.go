@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 //#include "quickSort.h"
@@ -33,7 +33,7 @@ func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog
 	// Check to ensure there is a valid WALFile for this instance before writing
 	if ThisInstance.WALFile == nil {
 		err := fmt.Errorf("there is not an active WALFile for this instance, so cannot write")
-		Log(ERROR, "NewWriter: %v", err)
+		log.Error("NewWriter: %v", err)
 		return nil, err
 	}
 	return &Writer{

@@ -15,7 +15,7 @@ import (
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/frontend/stream"
 	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +58,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	}
 
 	// Log config location.
-	Log(INFO, "using %v for configuration", configFilePath)
+	log.Info("using %v for configuration", configFilePath)
 
 	// Attempt to set configuration.
 	err = utils.InstanceConfig.Parse(data)
@@ -72,12 +72,12 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		for s := range signalChan {
 			switch s {
 			case syscall.SIGUSR1:
-				Log(INFO, "dumping stack traces due to SIGUSR1 request")
+				log.Info("dumping stack traces due to SIGUSR1 request")
 				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
 			case syscall.SIGINT:
-				Log(INFO, "initiating graceful shutdown due to SIGINT request")
+				log.Info("initiating graceful shutdown due to SIGINT request")
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
-				Log(INFO, "waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
+				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)
 				shutdown()
 			}
@@ -88,7 +88,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// Initialize marketstore services.
 	// --------------------------------
-	Log(INFO, "initializing marketstore...")
+	log.Info("initializing marketstore...")
 
 	//
 	executor.NewInstanceSetup(utils.InstanceConfig.RootDirectory, true, true, true)
@@ -96,11 +96,11 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	server, _ := frontend.NewServer()
 
 	// Set rpc handler.
-	Log(INFO, "launching rpc data server...")
+	log.Info("launching rpc data server...")
 	go http.Handle("/rpc", server)
 
 	// Set websocket handler.
-	Log(INFO, "initializing websocket...")
+	log.Info("initializing websocket...")
 	stream.Initialize()
 	go http.HandleFunc("/ws", stream.Handler)
 
@@ -109,14 +109,14 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	RunBgWorkers()
 
 	// Start heartbeat.
-	Log(INFO, "launching heartbeat service...")
+	log.Info("launching heartbeat service...")
 	go frontend.Heartbeat(utils.InstanceConfig.ListenPort)
 
-	Log(INFO, "enabling query access...")
+	log.Info("enabling query access...")
 	atomic.StoreUint32(&frontend.Queryable, 1)
 
 	// Serve.
-	Log(INFO, "launching tcp listener for all services...")
+	log.Info("launching tcp listener for all services...")
 	if err := http.ListenAndServe(utils.InstanceConfig.ListenPort, nil); err != nil {
 		return fmt.Errorf("failed to start server - error: %s", err.Error())
 	}
@@ -127,6 +127,6 @@ func executeStart(cmd *cobra.Command, args []string) error {
 func shutdown() {
 	executor.ThisInstance.ShutdownPending = true
 	executor.ThisInstance.WALWg.Wait()
-	Log(INFO, "exiting...")
+	log.Info("exiting...")
 	os.Exit(0)
 }

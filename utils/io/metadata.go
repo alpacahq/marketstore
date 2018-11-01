@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 const Headersize = 37024
@@ -155,7 +155,7 @@ func (f *TimeBucketInfo) initFromFile() {
 		return
 	}
 	if err := f.readHeader(f.Path); err != nil {
-		Log(FATAL, err.Error())
+		log.Fatal(err.Error())
 	}
 	f.IsRead = true
 }
@@ -248,7 +248,7 @@ func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 func (f *TimeBucketInfo) readHeader(path string) (err error) {
 	file, err := os.Open(path)
 	if err != nil {
-		Log(ERROR, "Failed to open file: %v - Error: %v", path, err)
+		log.Error("Failed to open file: %v - Error: %v", path, err)
 		return err
 	}
 	defer file.Close()
@@ -257,7 +257,7 @@ func (f *TimeBucketInfo) readHeader(path string) (err error) {
 	// Read the top part of the header, which is not dependent on the number of elements
 	n, err := file.Read(buffer[:312])
 	if err != nil || n != 312 {
-		Log(ERROR, "Failed to read header part1 from file: %v - Error: %v", path, err)
+		log.Error("Failed to read header part1 from file: %v - Error: %v", path, err)
 		return err
 	}
 
@@ -265,7 +265,7 @@ func (f *TimeBucketInfo) readHeader(path string) (err error) {
 	secondReadSize := header.NElements * 32
 	n, err = file.Read(buffer[312 : 312+secondReadSize])
 	if err != nil || n != int(secondReadSize) {
-		Log(ERROR, "Failed to read header part2 from file: %v - Error: %v", path, err)
+		log.Error("Failed to read header part2 from file: %v - Error: %v", path, err)
 		return err
 	}
 	// Read past empty element name space
@@ -275,7 +275,7 @@ func (f *TimeBucketInfo) readHeader(path string) (err error) {
 	start := 312 + 1024*32
 	n, err = file.Read(buffer[start : start+int(header.NElements)])
 	if err != nil || n != int(header.NElements) {
-		Log(ERROR, "Failed to read header part3 from file: %v - Error: %v", path, err)
+		log.Error("Failed to read header part3 from file: %v - Error: %v", path, err)
 		return err
 	}
 	if EnumRecordType(header.RecordType) == VARIABLE {
@@ -283,7 +283,7 @@ func (f *TimeBucketInfo) readHeader(path string) (err error) {
 		start += int(header.NElements)
 		n, err = file.Read(buffer[start:Headersize])
 		if err != nil || n != (Headersize-start) {
-			Log(ERROR, "Failed to read header part4 from file: %v - Error: %v", path, err)
+			log.Error("Failed to read header part4 from file: %v - Error: %v", path, err)
 			return err
 		}
 	}
@@ -346,7 +346,7 @@ func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 // Load loads the header information from a given TimeBucketInfo
 func (hp *Header) Load(f *TimeBucketInfo) {
 	if f.GetVersion() != FileinfoVersion {
-		Log(WARNING,
+		log.Warn(
 			"FileInfoVersion does not match this version of MarketStore %v != %v",
 			f.GetVersion(), FileinfoVersion)
 	}

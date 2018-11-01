@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -72,18 +72,18 @@ func (m *MktsConfig) Parse(data []byte) error {
 		return err
 	}
 	if aux.RootDirectory == "" {
-		Log(FATAL, "Invalid root directory.")
+		log.Fatal("Invalid root directory.")
 		return errors.New("Invalid root directory.")
 	}
 	if aux.ListenPort == "" {
-		Log(FATAL, "Invalid listen port.")
+		log.Fatal("Invalid listen port.")
 		return errors.New("Invalid listen port.")
 	}
 
 	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
 	m.Timezone, err = time.LoadLocation(aux.Timezone)
 	if err != nil {
-		Log(FATAL, "Invalid timezone.")
+		log.Fatal("Invalid timezone.")
 		return errors.New("Invalid timezone")
 	}
 
@@ -95,7 +95,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 	if aux.Queryable != "" {
 		queryable, err := strconv.ParseBool(aux.Queryable)
 		if err != nil {
-			Log(ERROR, "Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
+			log.Error("Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
 		} else {
 			m.Queryable = queryable
 		}
@@ -103,14 +103,14 @@ func (m *MktsConfig) Parse(data []byte) error {
 	if aux.LogLevel != "" {
 		switch aux.LogLevel {
 		case "error":
-			SetLogLevel(ERROR)
+			log.SetLevel(log.ERROR)
 		case "warning":
-			SetLogLevel(WARNING)
+			log.SetLevel(log.WARNING)
 		case "info":
-			SetLogLevel(INFO)
+			log.SetLevel(log.INFO)
 		}
 	} else {
-		SetLogLevel(INFO)
+		log.SetLevel(log.INFO)
 	}
 	if aux.StopGracePeriod > 0 {
 		m.StopGracePeriod = time.Duration(aux.StopGracePeriod) * time.Second
@@ -118,7 +118,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 	if aux.EnableAdd != "" {
 		enableAdd, err := strconv.ParseBool(aux.EnableAdd)
 		if err != nil {
-			Log(ERROR, "Invalid value: %v for enable_add. Disabling add...", aux.EnableAdd)
+			log.Error("Invalid value: %v for enable_add. Disabling add...", aux.EnableAdd)
 		} else {
 			m.EnableAdd = enableAdd
 		}
@@ -126,19 +126,19 @@ func (m *MktsConfig) Parse(data []byte) error {
 	if aux.EnableRemove != "" {
 		enableRemove, err := strconv.ParseBool(aux.EnableRemove)
 		if err != nil {
-			Log(ERROR, "Invalid value: %v for enable_add. Disabling remove...", aux.EnableRemove)
+			log.Error("Invalid value: %v for enable_add. Disabling remove...", aux.EnableRemove)
 		} else {
 			m.EnableRemove = enableRemove
 		}
 	}
 	m.EnableLastKnown = false
-	Log(INFO, "Disabling \"enable_last_known\" feature until it is fixed...")
+	log.Info("Disabling \"enable_last_known\" feature until it is fixed...")
 	/*
 		// Broken - disable for now
 		if aux.EnableLastKnown != "" {
 			enableLastKnown, err := strconv.ParseBool(aux.EnableLastKnown)
 			if err != nil {
-				Log(ERROR, "Invalid value: %v for enable_last_known.  Disabling lastKnown...", aux.EnableLastKnown)
+				log.Error("Invalid value: %v for enable_last_known.  Disabling lastKnown...", aux.EnableLastKnown)
 			} else {
 				m.EnableLastKnown = enableLastKnown
 			}
