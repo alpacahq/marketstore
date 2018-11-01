@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/eapache/channels"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/websocket"
@@ -158,7 +158,7 @@ func (s *Subscriber) consume() {
 
 		if err != nil {
 			if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-				Log(ERROR, "unexpected websocket closure (%v)", err)
+				log.Error("unexpected websocket closure (%v)", err)
 			}
 			return
 		}
@@ -170,14 +170,14 @@ func (s *Subscriber) consume() {
 			m := SubscribeMessage{}
 
 			if err = msgpack.Unmarshal(buf, &m); err != nil {
-				Log(ERROR, "failed to unmarshal inbound stream message (%v)", err)
+				log.Error("failed to unmarshal inbound stream message (%v)", err)
 				continue
 			}
 			if err := s.handleInbound(m); err != nil {
 				buf, _ = msgpack.Marshal(ErrorMessage{Error: err.Error()})
 			}
 			if err := s.handleOutbound(buf); err != nil {
-				Log(ERROR, "failed to send stream message (%v)", err)
+				log.Error("failed to send stream message (%v)", err)
 			}
 		case websocket.CloseMessage:
 			return
@@ -208,7 +208,7 @@ func stream() {
 
 		buf, err := msgpack.Marshal(payload)
 		if err != nil {
-			Log(ERROR, "failed to marshal outbound stream payload (%v)", err)
+			log.Error("failed to marshal outbound stream payload (%v)", err)
 			continue
 		}
 
@@ -217,7 +217,7 @@ func stream() {
 		for s := range catalog.subs {
 			if s.Subscribed(payload.Key) {
 				if err := s.handleOutbound(buf); err != nil {
-					Log(ERROR, "failed to stream outbound (%s)", err)
+					log.Error("failed to stream outbound (%s)", err)
 				}
 			}
 		}
@@ -253,7 +253,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// upgrade the socket
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		Log(ERROR, "failed to upgrade stream socket (%s)", err)
+		log.Error("failed to upgrade stream socket (%s)", err)
 		return
 	}
 
@@ -264,7 +264,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.c != nil {
-		Log(INFO, "new stream listener: %v", ws.RemoteAddr().String())
+		log.Info("new stream listener: %v", ws.RemoteAddr().String())
 	}
 
 	catalog.Add(s)

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/alpacahq/marketstore/cmd/connect/session"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
 )
 
@@ -94,6 +94,6 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	Log(INFO, "closed connection")
+	log.Info("closed connection")
 	return nil
 }

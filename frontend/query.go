@@ -268,21 +268,21 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 	if err != nil {
 		// No results from query
 		if err.Error() == "No files returned from query parse" {
-			log.Log(log.INFO, "No results returned from query: Target: %v, start, end: %v,%v LimitRecordCount: %v",
+			log.Info("No results returned from query: Target: %v, start, end: %v,%v LimitRecordCount: %v",
 				tbk.String(), start, end, LimitRecordCount)
 		} else {
-			log.Log(log.ERROR, "Parsing query: %s\n", err)
+			log.Error("Parsing query: %s\n", err)
 		}
 		return nil, nil, err
 	}
 	scanner, err := executor.NewReader(parseResult)
 	if err != nil {
-		log.Log(log.ERROR, "Unable to create scanner: %s\n", err)
+		log.Error("Unable to create scanner: %s\n", err)
 		return nil, nil, err
 	}
 	csm, tPrevMap, err := scanner.Read()
 	if err != nil {
-		log.Log(log.ERROR, "Error returned from query scanner: %s\n", err)
+		log.Error("Error returned from query scanner: %s\n", err)
 		return nil, nil, err
 	}
 	return csm, tPrevMap, err

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 var (
@@ -52,7 +52,7 @@ func NewNumpyDataset(cs *ColumnSeries) (nds *NumpyDataset, err error) {
 		colBytes := CastToByteSlice(cs.GetColumn(name))
 		nds.ColumnData = append(nds.ColumnData, colBytes)
 		if typeStr, ok := typeMap[nds.dataShapes[i].Type]; !ok {
-			Log(ERROR, "unsupported type %v", nds.dataShapes[i].String())
+			log.Error("unsupported type %v", nds.dataShapes[i].String())
 			return nil, fmt.Errorf("unsupported type")
 		} else {
 			nds.ColumnTypes = append(nds.ColumnTypes, typeStr)

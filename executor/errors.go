@@ -2,8 +2,9 @@ package executor
 
 import (
 	"fmt"
+
 	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 type RecordLengthNotConsistent string
@@ -69,6 +70,6 @@ func (msg ShortReadError) Error() string {
 
 func errReport(base string, msg string) string {
 	base = io.GetCallerFileContext(2) + ":" + base
-	Log(ERROR, base, msg)
+	log.Error(base, msg)
 	return fmt.Sprintf(base, msg)
 }
