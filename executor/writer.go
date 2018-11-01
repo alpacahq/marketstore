@@ -190,7 +190,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	}
 	/*
 		Sort the data by the timestamp to maintain on-disk sorted order
-	 */
+	*/
 	//insertionSort(dataToBeWritten, varRecLen)
 	arg1 := (*C.char)(unsafe.Pointer(&dataToBeWritten[0]))
 	C.quickSortKeyAtEndUINT32(arg1, C.int64_t(dataLen), C.int64_t(varRecLen))
@@ -216,15 +216,15 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 
 func insertionSort(data []byte, rLen int32) {
 	recLen := int(rLen)
-	var n = len(data)/recLen
+	var n = len(data) / recLen
 	for i := 1; i < n; i++ {
 		j := i
 		for j > 0 {
-			li := (j-1)*recLen
-			ld := data[li:li+recLen]
+			li := (j - 1) * recLen
+			ld := data[li : li+recLen]
 			lk := binary.BigEndian.Uint32(data[li+recLen-4:])
 			ri := li + recLen
-			rd := data[ri:ri+recLen]
+			rd := data[ri : ri+recLen]
 			rk := binary.BigEndian.Uint32(data[ri+recLen-4:])
 			if lk > rk {
 				lCopy := make([]byte, recLen)
@@ -316,10 +316,9 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	return nil
 }
 
-
 /*
 Legacy functions
- */
+*/
 func WriteBufferToFileIndirectOverwrite(fp *os.File, buffer offsetIndexBuffer) (err error) {
 	/*
 		Here we write the data payload of the buffer to the end of the data file

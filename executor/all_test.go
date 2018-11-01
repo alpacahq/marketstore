@@ -53,7 +53,7 @@ type DestructiveWALTest2 struct {
 	WALFile      *WALFileType
 }
 
-type CGOTests struct {}
+type CGOTests struct{}
 
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()

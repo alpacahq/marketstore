@@ -329,7 +329,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 		case io.FIXED:
 			err = WriteBufferToFile(fp, buffer)
 		case io.VARIABLE:
-		    // Find the record length - we need it to use the time column as a sort key later
+			// Find the record length - we need it to use the time column as a sort key later
 			var ti *io.TimeBucketInfo
 			if ti, err = ThisInstance.CatalogDir.PathToTimeBucketInfo(fullPath); err != nil {
 				return err
@@ -338,7 +338,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 				fp.(*os.File),
 				buffer,
 				ti.GetVariableRecordLength(),
-				)
+			)
 		}
 		if err != nil {
 			glog.Errorf("failed to write committed data: %v", err)
