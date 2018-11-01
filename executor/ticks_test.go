@@ -54,10 +54,10 @@ func (s *TickTests) TestTimeToIntervals(c *C) {
 	intervalTicks := uint32(fractionalInterval * math.MaxUint32)
 	fmt.Printf("Manual calculation of interval ticks = \t\t %d\t%f\t%f\n", int(intervalTicks), fractionalSeconds, fractionalInterval)
 	// Now let's build up a timestamp from the interval ticks
-	fSec1 := 60.*(float64(intervalTicks) / float64(math.MaxUint32))
-	fSec := 60.*(float64(ticks) / float64(math.MaxUint32))
+	fSec1 := 60. * (float64(intervalTicks) / float64(math.MaxUint32))
+	fSec := 60. * (float64(ticks) / float64(math.MaxUint32))
 	fmt.Printf("Fractional seconds from reconstruction: %f, from calc: %f\n", fSec1, fSec)
-	c.Assert(math.Abs(fSec - 20.383)<0.0000001, Equals, true)
+	c.Assert(math.Abs(fSec-20.383) < 0.0000001, Equals, true)
 
-	c.Assert(math.Abs(float64(intervalTicks) - float64(ticks)) < 2., Equals, true)
+	c.Assert(math.Abs(float64(intervalTicks)-float64(ticks)) < 2., Equals, true)
 }
