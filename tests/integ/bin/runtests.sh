@@ -31,7 +31,6 @@ if [ $? -ne 0 ]; then
 fi
 
 marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
-\create TEST/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
 \getinfo TEST/1Min/TICK
 \load TEST/1Min/TICK bin/ticks-example-2.csv bin/ticks-example-2.yaml
 \o test_ticks.csv
