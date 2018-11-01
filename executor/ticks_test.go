@@ -38,6 +38,12 @@ func (s *TickTests) TestTimeToIntervals(c *C) {
 	c.Assert(o_t1.Minute(), Equals, 59)
 	c.Assert(o_t1.Second(), Equals, 0)
 
+	o_t1 = io.IndexToTimeDepr(index, 1440, 2016)
+	fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
+	c.Assert(o_t1.Hour(), Equals, 21)
+	c.Assert(o_t1.Minute(), Equals, 59)
+	c.Assert(o_t1.Second(), Equals, 0)
+
 	ticks := io.GetIntervalTicks32Bit(t1, index, 1440)
 	fmt.Printf("Interval ticks = \t\t\t\t %d\n", int(ticks))
 
@@ -48,9 +54,10 @@ func (s *TickTests) TestTimeToIntervals(c *C) {
 	intervalTicks := uint32(fractionalInterval * math.MaxUint32)
 	fmt.Printf("Manual calculation of interval ticks = \t\t %d\t%f\t%f\n", int(intervalTicks), fractionalSeconds, fractionalInterval)
 	// Now let's build up a timestamp from the interval ticks
-	fSec := 60.*(float64(intervalTicks) / float64(math.MaxUint32))
-	fmt.Printf("Fractional seconds from reconstruction: %f\n", fSec)
+	fSec1 := 60.*(float64(intervalTicks) / float64(math.MaxUint32))
+	fSec := 60.*(float64(ticks) / float64(math.MaxUint32))
+	fmt.Printf("Fractional seconds from reconstruction: %f, from calc: %f\n", fSec1, fSec)
 	c.Assert(math.Abs(fSec - 20.383)<0.0000001, Equals, true)
 
-	c.Assert(intervalTicks, Equals, ticks)
+	c.Assert(math.Abs(float64(intervalTicks) - float64(ticks)) < 2., Equals, true)
 }
