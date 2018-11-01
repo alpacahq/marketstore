@@ -38,7 +38,6 @@ import (
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
 )
 
 // AggTriggerConfig is the configuration for OnDiskAggTrigger you can define in
@@ -73,15 +72,15 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 	config := recast(conf)
 
 	if len(config.Destinations) == 0 {
-		glog.Errorf("no destinations are configured")
+		fmt.Printf("no destinations are configured\n")
 		return nil, fmt.Errorf("plugin load error")
 	}
 
-	glog.Infof("%d destination(s) configured", len(config.Destinations))
+	fmt.Printf("%d destination(s) configured\n", len(config.Destinations))
 
 	filter := config.Filter
 	if filter != "" && filter != "nasdaq" {
-		glog.Warningf("filter value \"%s\" is not recognized", filter)
+		fmt.Printf("filter value \"%s\" is not recognized\n", filter)
 		filter = ""
 	}
 
@@ -90,7 +89,7 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 	for _, dest := range config.Destinations {
 		tf := utils.TimeframeFromString(dest)
 		if tf == nil {
-			glog.Fatalf("invalid destination: %s", dest)
+			panic(fmt.Errorf("invalid destination: %s", dest))
 		}
 		tfs = append(tfs, *tf)
 	}
@@ -148,7 +147,7 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 		c := v.(*cachedAgg)
 
 		if !c.Valid(tail, head) {
-			glog.Infof("invalidating cache for: %v", tbk.String())
+			fmt.Printf("invalidating cache for: %v\n", tbk.String())
 
 			s.aggCache.Delete(tbk.String())
 
@@ -170,7 +169,7 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 Query:
 	csm, err := s.query(tbk, window, head, tail)
 	if err != nil || csm == nil {
-		glog.Errorf("query error for %v (%v)", tbk.String(), err)
+		fmt.Printf("query error for %v (%v)\n", tbk.String(), err)
 		return
 	}
 
@@ -193,8 +192,8 @@ func (s *OnDiskAggTrigger) write(
 		aggTbk := io.NewTimeBucketKeyFromString(elements[0] + "/" + dest.String + "/" + elements[2])
 
 		if err := s.writeAggregates(aggTbk, tbk, *cs, dest, head, tail); err != nil {
-			glog.Errorf(
-				"failed to write %v aggregates (%v)",
+			fmt.Printf(
+				"failed to write %v aggregates (%v)\n",
 				tbk.String(),
 				err)
 			return
@@ -237,7 +236,7 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	if s.filter == "nasdaq" && window.Duration() >= utils.Day {
 		calendarTz := calendar.Nasdaq.Tz()
 		if utils.InstanceConfig.Timezone.String() != calendarTz.String() {
-			glog.Errorf("misconfiguration... system must be configure in %s", calendarTz)
+			fmt.Printf("misconfiguration... system must be configure in %s\n", calendarTz)
 		} else {
 			applyingFilter = true
 		}

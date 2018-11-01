@@ -1,7 +1,7 @@
 package aggtrigger
 
 import (
-	"github.com/golang/glog"
+	"fmt"
 
 	"github.com/alpacahq/marketstore/utils/io"
 )
@@ -139,7 +139,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = firstFloat64
 			iout = make([]float64, 0)
 		default:
-			glog.Errorf("no compatible function")
+			fmt.Printf("no compatible function\n")
 			return nil
 		}
 	case "max":
@@ -152,7 +152,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = maxFloat64
 			iout = make([]float64, 0)
 		default:
-			glog.Errorf("no compatible function")
+			fmt.Printf("no compatible function\n")
 			return nil
 		}
 	case "min":
@@ -165,7 +165,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = minFloat64
 			iout = make([]float64, 0)
 		default:
-			glog.Errorf("no compatible function")
+			fmt.Printf("no compatible function\n")
 			return nil
 		}
 	case "last":
@@ -178,7 +178,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = lastFloat64
 			iout = make([]float64, 0)
 		default:
-			glog.Errorf("no compatible function")
+			fmt.Printf("no compatible function\n")
 			return nil
 		}
 	case "sum":
@@ -194,7 +194,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = sumInt32
 			iout = make([]int32, 0)
 		default:
-			glog.Errorf("no compatible function")
+			fmt.Printf("no compatible function\n")
 			return nil
 		}
 	}

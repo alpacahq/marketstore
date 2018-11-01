@@ -10,7 +10,7 @@ import (
 	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
+	. "github.com/alpacahq/marketstore/utils/log"
 )
 
 type Writer struct {
@@ -28,7 +28,7 @@ func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog
 	// Check to ensure there is a valid WALFile for this instance before writing
 	if ThisInstance.WALFile == nil {
 		err := fmt.Errorf("there is not an active WALFile for this instance, so cannot write")
-		glog.Errorf("NewWriter: %v", err)
+		Log(ERROR, "NewWriter: %v", err)
 		return nil, err
 	}
 	return &Writer{

@@ -2,12 +2,12 @@ package shelf
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
 )
 
 // ShelfHandler gets executed by a shelf on its packages
@@ -106,7 +106,7 @@ func (p *Package) Start(tbk *io.TimeBucketKey, h ShelfHandler) {
 		case <-p.ctx.Done():
 			if !p.stopped.Load().(bool) {
 				if err := (*h)(*tbk, p.Data); err != nil {
-					glog.Errorf("failed to expire data package (%v)", err)
+					fmt.Printf("failed to expire data package (%v)\n", err)
 				}
 			}
 		}

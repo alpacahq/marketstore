@@ -1,30 +1,34 @@
 package log
 
 import (
-	"runtime/debug"
+	"fmt"
 
-	"github.com/golang/glog"
+	"go.uber.org/zap"
 )
 
+func init() {
+	logger, _ := zap.NewProduction()
+	zap.ReplaceGlobals(logger)
+}
+
 func Log(level Level, format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
 	switch level {
 	default:
 	case INFO:
 		if logLevel >= INFO {
-			glog.Infof(format, args...)
+			zap.S().Info(msg)
 		}
 	case WARNING:
 		if logLevel >= WARNING {
-			glog.Warningf(format, args...)
+			zap.S().Warn(msg)
 		}
 	case ERROR:
 		if logLevel >= ERROR {
-			glog.Errorf(format, args...)
-			debug.PrintStack()
+			zap.S().Error(msg)
 		}
 	case FATAL:
-		glog.Fatalf(format, args...)
-		debug.PrintStack()
+		zap.S().Fatal(msg)
 	}
 }
 

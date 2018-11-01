@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/SQLParser"
+	"github.com/alpacahq/marketstore/sqlparser"
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/utils/io"
 )
@@ -38,11 +38,11 @@ func (c *Client) sql(line string) {
 }
 
 func localSQL(line string) (cs *io.ColumnSeries, err error) {
-	ast, err := SQLParser.NewAstBuilder(line)
+	ast, err := sqlparser.NewAstBuilder(line)
 	if err != nil {
 		return nil, err
 	}
-	es, err := SQLParser.NewExecutableStatement(ast.Mtree)
+	es, err := sqlparser.NewExecutableStatement(ast.Mtree)
 	if err != nil {
 		return nil, err
 	}

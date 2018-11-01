@@ -3,6 +3,7 @@ package streamtrigger
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
 )
 
 type StreamTriggerConfig struct {
@@ -40,7 +40,7 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 
 	filter := config.Filter
 	if filter != "" && filter != "nasdaq" {
-		glog.Infof("filter value \"%s\" is not recognized", filter)
+		fmt.Printf("filter value \"%s\" is not recognized\n", filter)
 		filter = ""
 	}
 
@@ -93,19 +93,19 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 
 	parsed, err := q.Parse()
 	if err != nil {
-		glog.Errorf("%v", err)
+		fmt.Println(err)
 		return
 	}
 
 	scanner, err := executor.NewReader(parsed)
 	if err != nil {
-		glog.Errorf("%v", err)
+		fmt.Println(err)
 		return
 	}
 
 	csm, _, err := scanner.Read()
 	if err != nil {
-		glog.Errorf("%v", err)
+		fmt.Println(err)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 	} else {
 		// push minute bars immediately
 		if err := stream.Push(*tbk, ColumnSeriesForPayload(cs)); err != nil {
-			glog.Errorf("failed to stream %s (%v)", tbk.String(), err)
+			fmt.Printf("failed to stream %s (%v)\n", tbk.String(), err)
 		}
 	}
 }

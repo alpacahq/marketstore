@@ -12,8 +12,8 @@ import (
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/frontend/stream"
 	"github.com/alpacahq/marketstore/utils/io"
+	. "github.com/alpacahq/marketstore/utils/log"
 	"github.com/alpacahq/marketstore/utils/rpc/msgpack2"
-	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
 	"github.com/vmihailenco/msgpack"
 )
@@ -202,13 +202,13 @@ func streamConn(
 
 					// convert to payload
 					if err := msgpack.Unmarshal(buf, &pl); err != nil {
-						glog.Errorf("error unmarshaling stream message (%v)", err)
+						Log(ERROR, "error unmarshaling stream message (%v)", err)
 						continue
 					}
 
 					// handle payload
 					if err := handler(pl); err != nil {
-						glog.Errorf("error handling stream message (%v)", err)
+						Log(ERROR, "error handling stream message (%v)", err)
 						continue
 					}
 				} else {
@@ -236,7 +236,7 @@ func read(c *websocket.Conn, done chan struct{}, count int) chan []byte {
 
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-					glog.Errorf("unexpected websocket closure (%v)", err)
+					Log(ERROR, "unexpected websocket closure (%v)", err)
 				}
 				done <- struct{}{}
 				return
