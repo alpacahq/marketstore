@@ -191,9 +191,11 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	/*
 		Sort the data by the timestamp to maintain on-disk sorted order
 	*/
-	//insertionSort(dataToBeWritten, varRecLen)
-	arg1 := (*C.char)(unsafe.Pointer(&dataToBeWritten[0]))
-	C.quickSortKeyAtEndUINT32(arg1, C.int64_t(dataLen), C.int64_t(varRecLen))
+	TimSortBufferUINT32(
+		unsafe.Pointer(&dataToBeWritten[0]),
+		uint64(dataLen),
+		uint64(varRecLen),
+	)
 	/*
 		Write the data at the end of the file
 	*/
