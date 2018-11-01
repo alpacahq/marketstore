@@ -16,7 +16,7 @@ jobs:
     working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
-      - run: make vendor unittest
+      - run: make install unittest
   
   deploy:
     docker:
