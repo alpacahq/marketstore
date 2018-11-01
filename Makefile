@@ -27,7 +27,7 @@ plugins:
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/binancefeeder
 
-unittest: all
+unittest: install
 	go fmt ./...
 	go test ./...
 	$(MAKE) -C tests/integ test

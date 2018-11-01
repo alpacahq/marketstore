@@ -7,7 +7,7 @@ jobs:
     working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
-      - run: make vendor all plugins
+      - run: make all plugins
 
   test:
     docker:

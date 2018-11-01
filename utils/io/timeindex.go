@@ -71,14 +71,13 @@ func GetIntervalTicks32Bit(ts time.Time, index, intervalsPerDay int64) uint32 {
 		Returns the number of interval ticks between the timestamp and the base time
 		Each interval has up to 2^32 ticks
 	*/
-	baseTime := indexToTimeDepr(index, intervalsPerDay, int16(ts.Year()))
+	baseTime := IndexToTimeDepr(index, intervalsPerDay, int16(ts.Year()))
 	seconds := ts.Sub(baseTime).Seconds()
 	ticksPerSecond := float64(intervalsPerDay) * ticksPerIntervalDivSecsPerDay
 	return uint32(ticksPerSecond * seconds)
 }
 
-func indexToTimeDepr(index, intervalsPerDay int64, year int16) time.Time {
-	secondsPerDay := float64(24 * 60 * 60)
-	SecondOfYear := time.Duration((float64(index-1) / float64(intervalsPerDay)) * secondsPerDay)
+func IndexToTimeDepr(index, intervalsPerDay int64, year int16) time.Time {
+	SecondOfYear := time.Duration(float64(index-1) * float64(24*60*60) / float64(intervalsPerDay))
 	return time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC).Add(SecondOfYear * time.Second)
 }

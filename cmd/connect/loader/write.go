@@ -2,54 +2,9 @@ package loader
 
 import (
 	"fmt"
-	"strconv"
-	"time"
-
-	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
+	"strconv"
 )
-
-// WriteChunk writes data to the database.
-func WriteChunk(dbWriter *executor.Writer, dataShapes []io.DataShape, dbKey io.TimeBucketKey, columnIndex []int, csvDataChunk [][]string, conf *CSVConfig) (start, end time.Time) {
-
-	epochCol, nanosCol := readTimeColumns(csvDataChunk, columnIndex, conf)
-	if epochCol == nil {
-		fmt.Println("Error building time columns from csv data")
-		return
-	}
-
-	csmInit := io.NewColumnSeriesMap()
-	csmInit.AddColumn(dbKey, "Epoch", epochCol)
-	csm := columnSeriesMapFromCSVData(csmInit, dbKey, csvDataChunk, columnIndex[2:], dataShapes)
-	csmInit.AddColumn(dbKey, "Nanoseconds", nanosCol)
-
-	dsMap := make(map[io.TimeBucketKey][]io.DataShape)
-	dsMap[dbKey] = dataShapes
-	rsMap := csm.ToRowSeriesMap(dsMap)
-	rs := rsMap[dbKey]
-	if rs.GetNumRows() != len(csvDataChunk) {
-		fmt.Println("Error obtaining rows from CSV file - not enough rows converted")
-		fmt.Println("Expected: ", len(csvDataChunk), " Got: ", rs.GetNumRows())
-		for _, cs := range csm {
-			fmt.Println("ColNames: ", cs.GetColumnNames())
-		}
-		return
-	}
-	fmt.Printf("beginning to write %d records...", rs.GetNumRows())
-	indexTime := make([]time.Time, 0)
-	for i := 0; i < rs.GetNumRows(); i++ {
-		indexTime = append(indexTime, time.Unix(epochCol[i], int64(nanosCol[i])).UTC())
-	}
-	dbWriter.WriteRecords(indexTime, rs.GetData())
-
-	executor.ThisInstance.WALFile.RequestFlush()
-	fmt.Printf("Done.\n")
-
-	start = time.Unix(epochCol[0], 0).UTC()
-	end = time.Unix(epochCol[len(epochCol)-1], 0).UTC()
-
-	return start, end
-}
 
 func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey, csvRows [][]string, columnIndex []int,
 	dataShapes []io.DataShape) (csm io.ColumnSeriesMap) {
