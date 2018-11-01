@@ -27,6 +27,7 @@ func Test(t *testing.T) { TestingT(t) }
 var _ = Suite(&TestSuite{nil, "", nil, nil})
 var _ = Suite(&DestructiveWALTests{nil, "", nil, nil})
 var _ = Suite(&DestructiveWALTest2{nil, "", nil, nil})
+var _ = Suite(&CGOTests{})
 
 type TestSuite struct {
 	DataDirectory *Directory
@@ -51,6 +52,8 @@ type DestructiveWALTest2 struct {
 	ItemsWritten map[string]int
 	WALFile      *WALFileType
 }
+
+type CGOTests struct {}
 
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
