@@ -1,7 +1,10 @@
 package executor
 
 import (
+	"fmt"
 	. "gopkg.in/check.v1"
+	"math/rand"
+	"time"
 )
 
 func (s *CGOTests) SetUpSuite(c *C) {
@@ -34,3 +37,22 @@ func (s *CGOTests) TestQuickSort(c *C) {
 	c.Assert(testarr[1].key, Equals, uint32(1))
 	c.Assert(testarr[1].b, Equals, int64(10))
 }
+func (s *CGOTests) TestQuickSortSpeed(c *C) {
+	type Record struct {
+		a   int64
+		c, key uint32
+	}
+	array := make([]Record,1000)
+	for i:=0; i<1000; i++ {
+		array[i].key = uint32(rand.Int31n(999999999)	)
+	}
+	start := time.Now()
+	ops := 1000
+	for i:=0; i<ops; i++ {
+		QuickSortKeyAtEndUINT32(array)
+	}
+	elapsed := time.Now().Sub(start).Nanoseconds()/int64(ops)
+	fmt.Println("time to complete one pass over 1000 items", "ns/op", elapsed)
+}
+
+

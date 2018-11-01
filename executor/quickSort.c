@@ -29,14 +29,15 @@ int partition_uint32_end(char *a,int l,int u,int reclen,char * temp) {
 	i=l;
 	j=u+1;
 
+	uint32_t v_val = *(uint32_t *)(v+reclen-4);
 	do {
 		do
 			i++;
-		while( *(uint32_t *)(a+i*reclen+(reclen-4)) < *(uint32_t *)(v+reclen-4) && i <= u);
+		while( *(uint32_t *)(a+i*reclen+(reclen-4)) < v_val && i <= u);
 
 		do
 			j--;
-		while( *(uint32_t *)(v+reclen-4) < *(uint32_t *)(a+j*reclen+(reclen-4)) );
+		while( v_val < *(uint32_t *)(a+j*reclen+(reclen-4)) );
 
 		if( i < j )
 		{

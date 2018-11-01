@@ -6,6 +6,7 @@ import (
 )
 
 //#include "quickSort.h"
+//#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument
 import "C"
 
 func QuickSortKeyAtEndUINT32(ai interface{}) {
