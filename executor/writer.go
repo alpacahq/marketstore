@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"encoding/binary"
 	"fmt"
 	stdio "io"
 	"os"
@@ -16,6 +15,7 @@ import (
 )
 
 //#include "quickSort.h"
+//#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument
 import "C"
 
 type Writer struct {
@@ -212,29 +212,6 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	fp.Seek(primaryOffset, stdio.SeekStart)
 	_, err = fp.Write(obuf)
 	return err
-}
-
-func insertionSort(data []byte, rLen int32) {
-	recLen := int(rLen)
-	var n = len(data) / recLen
-	for i := 1; i < n; i++ {
-		j := i
-		for j > 0 {
-			li := (j - 1) * recLen
-			ld := data[li : li+recLen]
-			lk := binary.BigEndian.Uint32(data[li+recLen-4:])
-			ri := li + recLen
-			rd := data[ri : ri+recLen]
-			rk := binary.BigEndian.Uint32(data[ri+recLen-4:])
-			if lk > rk {
-				lCopy := make([]byte, recLen)
-				copy(lCopy, ld)
-				copy(ld, rd)
-				copy(rd, lCopy)
-			}
-			j = j - 1
-		}
-	}
 }
 
 // WriteCSM writs ColumnSeriesMap csm to each destination file, and flush it to the disk,
