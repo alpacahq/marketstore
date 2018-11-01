@@ -4,10 +4,12 @@ void _quick_sort_uint32_end(char *a,int l,int u,int reclen, char *temp);
 int partition_uint32_end(char *a,int l,int u,int reclen,char * temp);
 
 void quickSortKeyAtEndUINT32(char *a, int64_t len, int64_t reclen) {
+	struct testStr *tt;
 	// Allocate a double temp record
 	char *temp = (char *)malloc(sizeof(char)*2*reclen);
 	int nrecords = len / reclen;
 	_quick_sort_uint32_end(a,0,nrecords-1,reclen, temp);
+	free(temp);
 }
 
 void _quick_sort_uint32_end(char *a,int l,int u,int reclen, char *temp) {
@@ -40,7 +42,7 @@ int partition_uint32_end(char *a,int l,int u,int reclen,char * temp) {
 		{
 			memcpy(slot,a+i*reclen,reclen);
 			memcpy(a+i*reclen,a+j*reclen,reclen);
-			memcpy(a+j*reclen,temp,reclen);
+			memcpy(a+j*reclen,slot,reclen);
 		}
 	} while( i < j );
 
