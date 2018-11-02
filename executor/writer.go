@@ -188,6 +188,15 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 		dataToBeWritten = append(oldData, dataToBeWritten...)
 		dataLen = currentRecInfo.Len + dataLen
 	}
+
+	// Determine if this is a continuation write
+	endOfCurrentBucketData := currentRecInfo.Offset + currentRecInfo.Len
+	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
+	if endOfCurrentBucketData == endOfFileOffset {
+		endOfFileOffset = currentRecInfo.Offset
+		fp.Seek(endOfFileOffset, stdio.SeekStart)
+	}
+
 	/*
 		Sort the data by the timestamp to maintain on-disk sorted order
 	*/
@@ -199,10 +208,10 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	/*
 		Write the data at the end of the file
 	*/
-	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
 	if _, err = fp.Write(dataToBeWritten); err != nil {
 		return err
 	}
+	//log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
 
 	/*
 		Write the indirect record info at the primaryOffset

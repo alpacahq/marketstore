@@ -19,7 +19,6 @@ rm -f test_ticks.csv
 if [ $? -ne 0 ]; then exit 1; fi
 
 marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
-\getinfo TEST2/1Min/TICK
 \create TEST2/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
 \load TEST2/1Min/TICK bin/ticks-example-2.csv bin/ticks-example-2.yaml
 \o test_ticks.csv
@@ -34,8 +33,6 @@ rm -f test_ticks.csv
 if [ $? -ne 0 ]; then exit 1; fi
 
 marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
-\getinfo TEST2/1Min/TICK
-\create TEST2/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
 \load TEST2/1Min/TICK bin/ticks-example-1.csv bin/ticks-example-1.yaml
 \o test_ticks.csv
 \show TEST2/1Min/TICK 1970-01-01
