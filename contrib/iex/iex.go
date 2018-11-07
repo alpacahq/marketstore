@@ -37,7 +37,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	json.Unmarshal(data, &config)
 
 	// grab the symbol list if none are specified
-	if len(config.Symbols) > 0 {
+	if len(config.Symbols) < 0 {
 		resp, err := api.ListSymbols()
 		if err != nil {
 			return nil, err
