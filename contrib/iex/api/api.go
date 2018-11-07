@@ -46,8 +46,8 @@ type Chart struct {
 	Close                float32 `json:"close"`
 	MarketOpen           float64 `json:"marketOpen,omitempty"`
 	MarketClose          float64 `json:"marketClose,omitempty"`
-	ChangeOverTime       int     `json:"changeOverTime"`
-	MarketChangeOverTime int     `json:"marketChangeOverTime"`
+	ChangeOverTime       float64     `json:"changeOverTime"`
+	MarketChangeOverTime float64     `json:"marketChangeOverTime"`
 }
 
 func (c *Chart) GetTimestamp() (ts time.Time, err error) {
