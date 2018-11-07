@@ -25,7 +25,7 @@ func Warn(format string, args ...interface{}) {
 
 func Error(format string, args ...interface{}) {
 	if logLevel <= ERROR {
-		zap.S().Warn(fmt.Sprintf(format, args...))
+		zap.S().Error(fmt.Sprintf(format, args...))
 	}
 }
 
@@ -40,10 +40,10 @@ func SetLevel(level Level) {
 type Level int
 
 const (
-	FATAL Level = iota
-	ERROR
+	INFO Level = iota
 	WARNING
-	INFO
+	ERROR
+	FATAL
 )
 
 var logLevel Level
