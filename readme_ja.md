@@ -1,31 +1,32 @@
 # MarketStore
 ## Introduction
 MarketStoreはファイナンスにおける時系列データに特化したデータベースサーバです。
-スケーラビリティについて十分に考慮されており、あなたのシステムのあらゆるところからアクセス可能で、かつ拡張可能なDataFrameのような機能として使用することができます。
+スケーラビリティについて十分に考慮されており、あなたのシステムのあらゆるところからアクセス可能で、かつ拡張可能なDataFrameサービスとして使用することができます。
 
 
-膨大な金融市場データの扱いにおいて問題となるスケーラビリティを確保するために、MarketStoreはゼロベースから設計されています。アルゴリズム取引におけるバックテストやチャート作成, 何年間にもわたるデータからなる価格履歴をTick(株式、債権、為替などの金融商品における価格変化の最小単位)レベルの粒度で扱うことができます。対象としては全ての米国株式や爆発的に拡大している暗号通貨の分野も含まれます。
+膨大な金融市場データの扱いにおいて問題となるスケーラビリティを確保するために、MarketStoreはゼロベースから設計されています。アルゴリズム取引におけるバックテストやチャート作成, 何年間にもわたるデータからなる価格履歴をTick(株式、債権、為替などの金融商品における価格変化の最小単位)レベルの粒度で扱うことができます。
+米国株式や暗号通貨の分野を主な対象として扱っています。
 
-もしあなたが大量のHDF5ファイルの扱いに苦しんでいるのであれば、MarketStoreはあなたの問題にとって完璧な解決策となるでしょう。
+もしあなたが大量のHDF5ファイルの扱いに苦しんでいるのであれば、MarketStoreはその完璧な解決策となるでしょう。
 
-インストールしていただくことで入る機能を使って、暗号通貨の価格データをGDAXから引っ張ってきて、簡単なプラグイン設定を使ってDBに書き込みを行うことができます。
+インストールしていただくことで入る機能に加えて、GDAXから取得した暗号通貨の価格データを用いてDBに書き込みを行うなど、プラグイン設定も簡単に使うことができます。
 
-MarketStoreを使うことで、ネットワーク越しであってもローカルディスクにあるHDF5ファイルに対して行うのと同じくらい低いレイテンシでDataFrameに対してクエリをかけることができます。新規データの書き込みであれば、PandasのDataFrameの100倍以上の速度が見込めます。これはストレージの形式を特定のデータのタイプやユースケースに最適化しており、また最近のファイルシステム/ハードウェアの特性を考慮した上で設計されているためです。
+MarketStoreを使うことで、ネットワーク越しであってもローカルディスクにあるHDF5ファイルに対して行うのと同じくらい低いレイテンシでDataFrameに対してクエリをかけることができます。新規データの書き込みであれば、DataFrameの100倍以上の速度が見込めます。これはストレージの形式を特定のデータのタイプやユースケースに最適化しており、また最近のファイルシステム/ハードウェアの特性を考慮した上でMarketStoreが設計されているためです。
 
-MarketStoreは本番環境で使っていただけるレベルになっています。Alpacaでは重要なビジネス向けにもう何年も本番使用を重ねています。
-もしバグを発見したり、MarketStoreの開発に興味がある方はぜひContributionについてを読んで詳細をお伝えできればと思います。
+MarketStoreは本番環境で使っていただける品質になっています。すでにAlpacaでは重要なビジネス向けに何年も使用を重ねてきています。
+もしバグを発見したり、MarketStoreに興味がある方は開発にご協力いただければと思います。
 
 
 ## Install
 
 ### Docker
-すぐにMarketStoreを使ってみたい場合は、最新の [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/) を使ってDBインスタンスを生成する方法をおすすめします。 The image comes pre-loaded with the デフォルトの mkts.yml (設定ファイル)もあって `/data` をデータ保存先のルートディレクトリとして定義されています。 デフォルト設定でコンテナを立ち上げる場合は以下のコマンドを実行してください。
+すぐにMarketStoreを使ってみたい場合は、最新の [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/) を使ってDBインスタンスを生成する方法をおすすめします。 デフォルトの mkts.yml (設定ファイル)もあり、 `/data` をデータ保存先のルートディレクトリとして定義された状態でコンテナを起動できます。 デフォルト設定でコンテナを立ち上げる場合は以下のコマンドを実行してください。
 ``` sh
 docker run -i -p 5993:5993 alpacamarkets/marketstore:latest
 ```
 
 自分でカスタマイズした設定ファイル `mkts.yml` でインスタンスを起動したい場合は、 
-下記のような手順で自分で新しいコンテナを作って、中に設定ファイルを埋め込んでください。
+下記のような手順で自分で新しいコンテナを作って、その中に設定ファイルを埋め込んでください。
 ``` sh
 docker create --name mktsdb -p 5993:5993 alpacamarkets/marketstore:latest
 docker cp mkts.yml mktsdb:/etc/mkts.yml
@@ -50,26 +51,26 @@ make vendor
 ``` sh
 make install
 ```
-必須ではありませんが、本リポジトリに付属しているプラグインをインストールすることもできます。
+必須ではありませんが、本リポジトリに付属しているプラグインをインストールすることも簡単にできます。
 ``` sh
 make plugins
 ```
 
 ## Usage
-使用することができるコマンドは `marketstore` コマンドを実行すると得られます。
+`marketstore` コマンドで、使用することができるコマンド一覧が得られます。
 ```
 marketstore
 ```
-$GOPATHの設定によってはこちらを使っても構いません。
+$GOPATHの設定によってはこちら
 ```
 $GOPATH/bin/marketstore
 ```
 
-`mkts.yml` という名前で設定ファイルを定義することができますが、デフォルトの設定ファイルはコマンドで生成することもできます。 
+`mkts.yml` という名前で設定ファイルを独自に定義することができますが、デフォルトの設定ファイルであればコマンドで生成することもできます。 
 ```
 $GOPATH/bin/marketstore init
 ```
-MarketStoreを起動してみましょう。
+MarketStoreを起動します。
 ```
 $GOPATH/bin/marketstore start
 ```
@@ -95,15 +96,15 @@ I0619 16:29:30.340824    7835 plugins.go:42] InitializeBgWorkers
 ```
 
 ## Configuration
-繰り返しになりますが、MarketStoreを実行するにはYAMLで書かれた設定ファイル `mkts.yml` が必要になります。これは `marketstore init` コマンドで生成できます。設定ファイルのパスは `marketstore start --config [設定ファイルへのパス]` という形で `--config` オプションを指定してください。指定されなかった場合は、marketstoreが実行されたパス内から`mkts.yml`を探そうとします。
+MarketStoreを実行するにはYAMLで書かれた設定ファイル `mkts.yml` が必要になります。`marketstore init` コマンドでデフォルトを生成できます。設定ファイルのパスは `marketstore start --config [設定ファイルへのパス]` という形で `--config` オプションで指定してください。指定されなかった場合は、marketstoreが実行されたパス内から`mkts.yml`を探します。
 
-### Options (設定項目)
+### 設定項目
 Var | Type | Description
 --- | --- | ---
 root_directory | string |  MarketStore データベースが使用するディレクトリ
 listen_port | int | MarketStoreが使用するポート番号
 timezone | string |  タイムゾーン. `TZ` に定義されている値 (例 America/New_York)
-log_level | string  | 出力する最低ログレベル (info | warning | error)
+log_level | string  | 出力する最低ログレベル `(info | warning | error)`
 queryable | bool | polling-onlyモードで起動する場合はfalseにします。その場合はqueryに応答しなくなります。
 stop_grace_period | int | SIGINT シグナルを受信してから終了するまでに待つ時間
 wal_rotate_interval | int | ディスクにフラッシュしてWALファイルがトリムされる頻度[分]
@@ -128,11 +129,10 @@ enable_remove: false
 
 
 ## Clients
-After starting up a MarketStore instance on your machine, you're all set to be able to read and write tick data.
+MarketStoreインスタンスが起動したあとは、Tickデータを読み書きし始めることができます。
 
 ### Python
-[pymarketstore](https://github.com/alpacahq/pymarketstore) is the standard
-python client. Make sure that in another terminal, you have marketstore running
+[pymarketstore](https://github.com/alpacahq/pymarketstore) が標準のPythonクライアントになっています。すでにMarketStoreが起動していることを確認の上、ご使用ください。
 
 ```
 In [1]: import pymarketstore as pymkts
@@ -180,7 +180,7 @@ Epoch
 ```
 
 ### Command-line
-marketstoreインスタンスに接続するコマンド
+marketstoreインスタンスに接続するコマンドはこちらです。
 ```
 // For a local db-
 marketstore connect --dir <path>
@@ -206,12 +206,14 @@ data pollerを設定してGDAXからデータを取得しはじめましょう�
 詳細については [the package](./contrib/gdaxfeeder/) をご参照ください。
 
 ### On-Disk Aggregation
-このプラグインを使うと、 tick/分 レベルのデータだけを気にすればよくなります。時系列ベースでディスク上のデータのアグリゲーションをしてくれるプラグインでる。詳しくは
+このプラグインを使うと、 tick/分 レベルのデータだけを気にすればよくなります。時系列ベースでディスク上のデータのアグリゲーションをしてくれるプラグインです。詳しくは
 [the package](./contrib/ondiskagg/)をご参照ください。
 
 
 ## 開発に協力していただける方へ
-興味がある方はぜひMarketStoreの開発にご協力ください！GithubのIssue報告やPullRequestでも構いませんし、`oss@alpaca.markets` にご連絡いただいても構いません。 Pull Requestを作る際は、下記のコマンドを実行してテストが通る状態であることをご確認ください。
+興味がある方はぜひMarketStoreの開発にご協力ください！
+GithubのIssue報告やPullRequestでも構いませんし、`oss@alpaca.markets` に直接ご連絡いただいても構いません。 
+Pull Requestを作る際は、下記のコマンドを実行してテストが通る状態であることをご確認ください。
 
 ``` sh
 make unittest
