@@ -31,3 +31,22 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/yaml.v2 v2.2.1
 )
+
+replace (
+        golang.org/x/crypto v0.0.0-20180927165925-5295e8364332 => github.com/golang/crypto v0.0.0-20180927165925-5295e8364332
+        golang.org/x/crypto v0.0.0-20181106152344-bfa7d42eb568 => github.com/golang/crypto v0.0.0-20181106152344-bfa7d42eb568
+        golang.org/x/net v0.0.0-20180724234803-3673e40ba225 => github.com/golang/net v0.0.0-20180724234803-3673e40ba225
+        golang.org/x/net v0.0.0-20180906233101-161cd47e91fd => github.com/golang/net v0.0.0-20180906233101-161cd47e91fd
+        golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 => github.com/golang/net v0.0.0-20181023162649-9b4f9f5ad519
+        golang.org/x/net v0.0.0-20181102091132-c10e9556a7bc => github.com/golang/net v0.0.0-20181102091132-c10e9556a7bc
+        golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f => github.com/golang/sync v0.0.0-20180314180146-1d60e4601c6f
+        golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e => github.com/golang/sys v0.0.0-20180909124046-d0be0721c37e
+        golang.org/x/sys v0.0.0-20180928133829-e4b3c5e90611 => github.com/golang/sys v0.0.0-20180928133829-e4b3c5e90611
+        golang.org/x/sys v0.0.0-20181024145615-5cd93ef61a7c => github.com/golang/sys v0.0.0-20181024145615-5cd93ef61a7c
+        golang.org/x/text v0.3.0 => github.com/golang/text v0.3.0
+        google.golang.org/appengine v1.3.0 => github.com/golang/appengine v1.3.0
+)
+
+
+
+
