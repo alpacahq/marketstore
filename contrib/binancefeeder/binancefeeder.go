@@ -474,22 +474,22 @@ func (bn *BinanceFetcher) Run() {
 }
 
 func main() {
-	// symbol := "BTC"
-	// interval := "1m"
-	// baseCurrency := "USDT"
-	//
-	// client := binance.NewClient("", "")
-	// klines, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
-	// 	Interval(interval).Do(context.Background())
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// for _, k := range klines {
-	// 	fmt.Println(k)
-	// }
-	// symbols := getAllSymbols("USDT")
-	// for _, s := range symbols {
-	// 	fmt.Println(s)
-	// }
+	symbol := "BTC"
+	interval := "1m"
+	baseCurrency := "USDT"
+
+	client := binance.NewClient("", "")
+	klines, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
+		Interval(interval).Do(context.Background())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, k := range klines {
+		fmt.Println(k)
+	}
+	symbols := getAllSymbols("USDT")
+	for _, s := range symbols {
+		fmt.Println(s)
+	}
 }

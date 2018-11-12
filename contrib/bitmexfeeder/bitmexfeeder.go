@@ -196,6 +196,6 @@ func (gd *BitmexFetcher) Run() {
 func main() {
 
 	start := time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)
-	res, err := api.GetBuckets("XBT", start, "5m")
+	res, err := api.GetBuckets("XBT", start, "1Min")
 	fmt.Println(res, err)
 }
