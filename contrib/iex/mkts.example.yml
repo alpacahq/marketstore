@@ -1,0 +1,27 @@
+root_directory: data
+listen_port: 5993
+log_level: info
+queryable: true
+stop_grace_period: 0
+wal_rotate_interval: 5
+enable_add: true
+enable_remove: false
+enable_last_known: false
+timezone: "America/New_York"
+triggers:
+  - module: ondiskagg.so
+    on: "*/1Min/OHLCV"
+    config:
+      destinations:
+        - 5Min
+        - 15Min
+        - 1H
+  - module: stream.so
+    on: "*/*/*"
+    config:
+      filter: nasdaq
+bgworkers:
+  - module: iex.so
+    config:
+        daily: true
+        intraday: true
