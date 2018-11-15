@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gocarina/gocsv"
 )
 
 const (
@@ -46,8 +48,8 @@ type Chart struct {
 	Close                float32 `json:"close"`
 	MarketOpen           float64 `json:"marketOpen,omitempty"`
 	MarketClose          float64 `json:"marketClose,omitempty"`
-	ChangeOverTime       float64     `json:"changeOverTime"`
-	MarketChangeOverTime float64     `json:"marketChangeOverTime"`
+	ChangeOverTime       float64 `json:"changeOverTime"`
+	MarketChangeOverTime float64 `json:"marketChangeOverTime"`
 }
 
 func (c *Chart) GetTimestamp() (ts time.Time, err error) {
@@ -123,9 +125,11 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		return nil, fmt.Errorf("retry count exceeded")
 	}
 
-	var resp *GetBarsResponse
+	var resp GetBarsResponse
 
 	body, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+
 	if err != nil {
 		return nil, err
 	}
@@ -134,20 +138,20 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		return nil, err
 	}
 
-	return resp, nil
+	return &resp, nil
 }
 
 type ListSymbolsResponse []struct {
-	Symbol    string `json:"symbol"`
-	Name      string `json:"name"`
-	Date      string `json:"date"`
-	IsEnabled bool   `json:"isEnabled"`
-	Type      string `json:"type"`
-	IexID     string `json:"iexId"`
+	Symbol    string `csv:"symbol"`
+	Name      string `csv:"name"`
+	Date      string `csv:"date"`
+	IsEnabled bool   `csv:"isEnabled"`
+	Type      string `csv:"type"`
+	IexID     int64  `csv:"iexId"`
 }
 
 func ListSymbols() (*ListSymbolsResponse, error) {
-	url := fmt.Sprintf("%s/ref-data/symbols", base)
+	url := fmt.Sprintf("%s/ref-data/symbols?format=csv", base)
 
 	res, err := http.Get(url)
 
@@ -159,16 +163,13 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 		return nil, fmt.Errorf("status code %v", res.StatusCode)
 	}
 
-	var resp *ListSymbolsResponse
+	var resp ListSymbolsResponse
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
+	defer res.Body.Close()
+
+	if err = gocsv.Unmarshal(res.Body, &resp); err != nil {
 		return nil, err
 	}
 
-	if err = json.Unmarshal(body, resp); err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return &resp, nil
 }

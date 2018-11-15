@@ -12,6 +12,7 @@ require (
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/eapache/channels v1.1.0
 	github.com/gobwas/glob v0.2.3
+	github.com/gocarina/gocsv v0.0.0-20180809181117-b8c38cb1ba36
 	github.com/gorilla/rpc v1.1.0
 	github.com/gorilla/websocket v1.4.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
