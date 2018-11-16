@@ -1,9 +1,10 @@
 package loader
 
 import (
-	. "gopkg.in/check.v1"
 	"testing"
 	"time"
+
+	. "gopkg.in/check.v1"
 )
 
 // Hook up gocheck into the "go test" runner.
