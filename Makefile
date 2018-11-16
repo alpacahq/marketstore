@@ -26,6 +26,7 @@ plugins:
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/binancefeeder
+	$(MAKE) -C contrib/iex
 
 unittest: install
 	go fmt ./...
