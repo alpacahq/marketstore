@@ -13,32 +13,52 @@ func init() {
 	zap.ReplaceGlobals(logger)
 }
 
-func Debug(format string, args ...interface{}) {
+func Debug(msg string, args ...interface{}) {
 	if logLevel <= DEBUG {
-		zap.S().Debugf(format, args...)
+		if len(args) > 0 {
+			zap.S().Debugf(msg, args...)
+		} else {
+			zap.S().Debug(msg)
+		}
 	}
 }
 
-func Info(format string, args ...interface{}) {
+func Info(msg string, args ...interface{}) {
 	if logLevel <= INFO {
-		zap.S().Infof(format, args)
+		if len(args) > 0 {
+			zap.S().Infof(msg, args...)
+		} else {
+			zap.S().Info(msg)
+		}
 	}
 }
 
-func Warn(format string, args ...interface{}) {
+func Warn(msg string, args ...interface{}) {
 	if logLevel <= WARNING {
-		zap.S().Warnf(format, args...)
+		if len(args) > 0 {
+			zap.S().Warnf(msg, args...)
+		} else {
+			zap.S().Warn(msg)
+		}
 	}
 }
 
-func Error(format string, args ...interface{}) {
+func Error(msg string, args ...interface{}) {
 	if logLevel <= ERROR {
-		zap.S().Errorf(format, args...)
+		if len(args) > 0 {
+			zap.S().Errorf(msg, args...)
+		} else {
+			zap.S().Error(msg)
+		}
 	}
 }
 
-func Fatal(format string, args ...interface{}) {
-	zap.S().Fatalf(format, args...)
+func Fatal(msg string, args ...interface{}) {
+	if len(args) > 0 {
+		zap.S().Fatalf(msg, args...)
+	} else {
+		zap.S().Fatal(msg)
+	}
 }
 
 func SetLevel(level Level) {
