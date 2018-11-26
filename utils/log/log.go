@@ -1,14 +1,24 @@
 package log
 
 import (
+	"os"
+
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func init() {
-	logger, err := zap.NewProduction()
-	if err != nil {
-		panic(err)
-	}
+	atom := zap.NewAtomicLevel()
+
+	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.TimeKey = "timestamp"
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderCfg),
+		zapcore.Lock(os.Stdout),
+		atom,
+	))
 
 	zap.ReplaceGlobals(logger)
 }
