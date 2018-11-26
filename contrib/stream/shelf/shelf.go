@@ -37,7 +37,7 @@ func NewShelf(h ShelfHandler) *Shelf {
 // Store a new package to the shelf. This operation cancels, and replaces the existing
 // package with the same TimeBucketKey on the shelf, so make sure not to prematurely
 // store new packages before the previous have a chance to finish naturally.
-func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline time.Time) {
+func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline *time.Time) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -47,7 +47,7 @@ func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline time.Tim
 	if p, ok := s.m[tbk]; ok {
 		// If this is a replacement, make sure we stop the previous
 		// package from executing so we don't send duplicates
-		if p.deadline.Equal(deadline) {
+		if deadline.Equal(*p.deadline) {
 			p.Stop()
 		}
 		// If it is not a replacement, let's delete it from the map
@@ -56,7 +56,7 @@ func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline time.Tim
 		delete(s.m, tbk)
 	}
 
-	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	ctx, cancel := context.WithDeadline(context.Background(), *deadline)
 
 	p := &Package{
 		ctx:      ctx,
@@ -74,7 +74,7 @@ func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline time.Tim
 // Package is a data entry with a context to ensure async
 // execution or cancellation if necessary
 type Package struct {
-	deadline time.Time
+	deadline *time.Time
 	stopped  atomic.Value
 	ctx      context.Context
 	Cancel   context.CancelFunc

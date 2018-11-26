@@ -29,7 +29,8 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 
 		tbk := io.NewTimeBucketKey("AAPL/5Min/OHLCV")
 
-		shelf.Store(tbk, genColumns(), time.Now().Add(time.Millisecond))
+		deadline := time.Now().Add(time.Millisecond)
+		shelf.Store(tbk, genColumns(), &deadline)
 
 		<-expC
 
@@ -52,10 +53,10 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 		deadline := time.Now().Add(100 * time.Millisecond)
 
 		// store initial
-		shelf.Store(tbk, genColumns(), deadline)
+		shelf.Store(tbk, genColumns(), &deadline)
 
 		// replace
-		shelf.Store(tbk, genColumns(), deadline)
+		shelf.Store(tbk, genColumns(), &deadline)
 
 		<-expC
 
@@ -80,10 +81,11 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 		deadline := time.Now().Add(100 * time.Millisecond)
 
 		// store initial
-		shelf.Store(tbk, genColumns(), deadline)
+		shelf.Store(tbk, genColumns(), &deadline)
 
 		// replace
-		shelf.Store(tbk, genColumns(), deadline.Add(100*time.Millisecond))
+		replDeadline := deadline.Add(100 * time.Millisecond)
+		shelf.Store(tbk, genColumns(), &replDeadline)
 
 		<-expC
 
