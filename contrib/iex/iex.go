@@ -28,6 +28,7 @@ type IEXFetcher struct {
 	config    FetcherConfig
 	backfillM *sync.Map
 	queue     chan []string
+	lastM     *sync.Map
 }
 
 type FetcherConfig struct {
@@ -62,6 +63,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		backfillM: &sync.Map{},
 		config:    config,
 		queue:     make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
+		lastM:     &sync.Map{},
 	}, nil
 }
 
@@ -103,7 +105,7 @@ func (f *IEXFetcher) pollIntraday(symbols []string) {
 		log.Error("failed to query intraday bar batch (%v)", err)
 	}
 
-	if err = f.writeBars(resp, true); err != nil {
+	if err = f.writeBars(resp, true, false); err != nil {
 		log.Error("failed to write intraday bar batch (%v)", err)
 	}
 }
@@ -116,12 +118,12 @@ func (f *IEXFetcher) pollDaily(symbols []string) {
 		log.Error("failed to query intraday bar batch (%v)", err)
 	}
 
-	if err = f.writeBars(resp, false); err != nil {
+	if err = f.writeBars(resp, false, false); err != nil {
 		log.Error("failed to write intraday bar batch (%v)", err)
 	}
 }
 
-func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday bool) error {
+func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill bool) error {
 	if resp == nil {
 		return nil
 	}
@@ -176,13 +178,20 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday bool) error {
 			volume = append(volume, bar.Volume)
 		}
 
-		f.backfillM.LoadOrStore(strings.Replace(tbk.GetItemKey(), "/OHLCV", "", 1), &ts)
-
 		if len(epoch) == 0 {
 			continue
 		}
 
-		// log.Info("writing bars %v - %v - %v", tbk.GetItemKey(), time.Unix(epoch[0], 0), time.Unix(epoch[len(epoch)-1], 0))
+		// determine whether we skip the bar so we don't
+		// re-stream bars that have already been written
+		if !backfill {
+			v, ok := f.lastM.Load(*tbk)
+			if ok && v.(int64) >= epoch[len(epoch)-1] {
+				continue
+			}
+		}
+
+		f.backfillM.LoadOrStore(strings.Replace(tbk.GetItemKey(), "/OHLCV", "", 1), &ts)
 
 		cs := io.NewColumnSeries()
 		cs.AddColumn("Epoch", epoch)
@@ -194,7 +203,28 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday bool) error {
 		csm.AddColumnSeries(*tbk, cs)
 	}
 
-	return executor.WriteCSM(csm, false)
+	if err := executor.WriteCSM(csm, false); err != nil {
+		return err
+	}
+
+	f.updateLastWritten(&csm)
+
+	return nil
+}
+
+func (f *IEXFetcher) updateLastWritten(csm *io.ColumnSeriesMap) {
+	if csm == nil {
+		return
+	}
+
+	for tbk, cs := range *csm {
+		epoch := cs.GetEpoch()
+		if len(epoch) == 0 {
+			continue
+		}
+
+		f.lastM.Store(tbk, epoch[len(epoch)-1])
+	}
 }
 
 func (f *IEXFetcher) backfill(symbol, timeframe string, ts *time.Time) (err error) {
@@ -225,7 +255,7 @@ func (f *IEXFetcher) backfill(symbol, timeframe string, ts *time.Time) (err erro
 	// 		c[len(c)-1].Minute)
 	// }
 
-	if err = f.writeBars(resp, intraday); err != nil {
+	if err = f.writeBars(resp, intraday, true); err != nil {
 		log.Error("failed to write bars from backfill for %v/%v (%v)", symbol, timeframe, err)
 	}
 
