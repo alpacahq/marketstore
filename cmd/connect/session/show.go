@@ -28,8 +28,12 @@ func (c *Client) show(line string) {
 	}
 
 	timeStart := time.Now()
-	var csm io.ColumnSeriesMap
-	var err error
+
+	var (
+		csm io.ColumnSeriesMap
+		err error
+	)
+
 	if c.mode == local {
 		csm, err = processShowLocal(tbk, start, end)
 		if err != nil {
@@ -94,7 +98,7 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.Colu
 		log.Error("Error return from query scanner: %v", err)
 		return
 	}
-	csm, _, err = scanner.Read()
+	csm, err = scanner.Read()
 	if err != nil {
 		log.Error("Error return from query scanner: %v", err)
 		return

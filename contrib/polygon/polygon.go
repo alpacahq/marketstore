@@ -174,7 +174,7 @@ func (pf *PolygonFetcher) backfill(symbol string, endEpoch int64) {
 			return
 		}
 
-		csm, _, err := scanner.Read()
+		csm, err := scanner.Read()
 		if err != nil {
 			fmt.Printf("scanner read error (%v)\n", err)
 			return

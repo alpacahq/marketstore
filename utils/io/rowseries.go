@@ -16,7 +16,6 @@ type RowsInterface interface {
 
 type RowSeriesInterface interface {
 	GetMetadataKey() string // The filesystem metadata key for this data
-	GetTPrev() time.Time    // The first timestamp of data just prior to the first row
 }
 
 type Rows struct {
@@ -144,11 +143,15 @@ type RowSeries struct {
 	ColumnInterface
 	rows        *Rows
 	metadataKey TimeBucketKey
-	tPrev       time.Time
 }
 
-func NewRowSeries(key TimeBucketKey, tPrev int64, data []byte, dataShape []DataShape, rowLen int, cat *CandleAttributes,
-	rowType EnumRecordType) *RowSeries {
+func NewRowSeries(
+	key TimeBucketKey,
+	data []byte,
+	dataShape []DataShape,
+	rowLen int, cat *CandleAttributes,
+	rowType EnumRecordType,
+) *RowSeries {
 	/*
 		We have to add a column named _nanoseconds_ to the datashapes for a variable record type
 		This is true because the read() function for variable types inserts a 32-bit nanoseconds column
@@ -156,22 +159,17 @@ func NewRowSeries(key TimeBucketKey, tPrev int64, data []byte, dataShape []DataS
 	if rowType == VARIABLE {
 		dataShape = append(dataShape, DataShape{"Nanoseconds", INT32})
 	}
-	timePrev := time.Unix(tPrev, 0).UTC()
 	rows := NewRows(dataShape, data)
 	rows.SetCandleAttributes(cat)
 	rows.SetRowLen(rowLen)
 	return &RowSeries{
 		metadataKey: key,
-		tPrev:       timePrev,
 		rows:        rows,
 	}
 }
 
 func (rs *RowSeries) GetMetadataKey() TimeBucketKey {
 	return rs.metadataKey
-}
-func (rs *RowSeries) GetTPrev() time.Time {
-	return rs.tPrev
 }
 
 func (rs *RowSeries) SetCandleAttributes(ca *CandleAttributes) {
