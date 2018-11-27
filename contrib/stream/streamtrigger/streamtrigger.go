@@ -102,7 +102,7 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 		return
 	}
 
-	csm, _, err := scanner.Read()
+	csm, err := scanner.Read()
 	if err != nil {
 		log.Error("[streamtrigger] scanner read failure (%v)", err)
 		return

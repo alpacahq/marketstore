@@ -40,7 +40,6 @@ func (iofp *ioFilePlan) GetFileYear() int16 {
 
 type ioplan struct {
 	FilePlan          []*ioFilePlan
-	PrevFilePlan      []*ioFilePlan
 	RecordLen         int32
 	RecordType        EnumRecordType
 	VariableRecordLen int
@@ -49,10 +48,10 @@ type ioplan struct {
 }
 
 func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err error) {
-	iop = new(ioplan)
-	iop.FilePlan = make([]*ioFilePlan, 0)
-	iop.PrevFilePlan = make([]*ioFilePlan, 0)
-	iop.Limit = pr.Limit
+	iop = &ioplan{
+		FilePlan: make([]*ioFilePlan, 0),
+		Limit:    pr.Limit,
+	}
 	/*
 		At this point we have a date unconstrained group of sorted files
 		We will do two things here:
@@ -102,13 +101,17 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			*/
 			// Set the starting and ending indices based on the range
 			if file.File.Year == pr.Range.StartYear {
+				// log.Info("range start: %v", pr.Range.Start)
 				startOffset = EpochToOffset(
 					pr.Range.Start,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength(),
 				)
+				// log.Info("start offset: %v", startOffset)
 			}
 			if file.File.Year == pr.Range.EndYear {
+				// log.Info("range end: %v", pr.Range.End)
+
 				endOffset = EpochToOffset(
 					pr.Range.End,
 					file.File.GetTimeframe(),
@@ -155,11 +158,9 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			}
 		}
 	}
-	// Reverse the prevPath filelist order
-	for i := len(prevPaths) - 1; i >= 0; i-- {
-		iop.PrevFilePlan = append(iop.PrevFilePlan, prevPaths[i])
-	}
+
 	iop.TimeQuals = pr.TimeQuals
+
 	return iop, nil
 }
 
@@ -204,9 +205,8 @@ func NewReader(pr *planner.ParseResult) (r *reader, err error) {
 	return r, nil
 }
 
-func (r *reader) Read() (csm ColumnSeriesMap, tPrevMap map[TimeBucketKey]int64, err error) {
+func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 	csm = NewColumnSeriesMap()
-	tPrevMap = make(map[TimeBucketKey]int64)
 	catMap := r.pr.GetCandleAttributes()
 	rtMap := r.pr.GetRowType()
 	dsMap := r.pr.GetDataShapes()
@@ -215,16 +215,15 @@ func (r *reader) Read() (csm ColumnSeriesMap, tPrevMap map[TimeBucketKey]int64, 
 		cat := catMap[key]
 		rt := rtMap[key]
 		rlen := rlMap[key]
-		buffer, tPrev, err := r.read(iop)
+		buffer, err := r.read(iop)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		tPrevMap[key] = tPrev
-		rs := NewRowSeries(key, tPrev, buffer, dsMap[key], rlen, cat, rt)
+		rs := NewRowSeries(key, buffer, dsMap[key], rlen, cat, rt)
 		key, cs := rs.ToColumnSeries()
 		csm[key] = cs
 	}
-	return csm, tPrevMap, err
+	return csm, err
 }
 
 /*
@@ -239,8 +238,7 @@ type bufferMeta struct {
 
 // Reads the data from files, removing holes. The resulting buffer will be packed
 // Uses the index that prepends each row to identify filled rows versus holes
-func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error) {
-	const GatherTprev = true
+func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 	// Number of bytes to buffer, some multiple of record length
 	// This should be at least bigger than 4096 and be better multiple of 4KB,
 	// which is the common io size on most of the storage/filesystem.
@@ -256,7 +254,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 	} else {
 		limitBytes = math.MaxInt32
 		if direction == LAST {
-			return nil, 0, fmt.Errorf("Reverse scan only supported with a limited result set")
+			return nil, fmt.Errorf("Reverse scan only supported with a limited result set")
 		}
 	}
 
@@ -265,8 +263,6 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 	/*
 		if direction == FIRST
 			Read Forward to fill final buffer
-			Read Backward to get previous record (for Tprev overlap)
-				Strip Tprev from previous record
 		if direction == LAST
 			Read Backward to fill final buffer
 				Strip Tprev from first record
@@ -307,41 +303,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 				break
 			}
 		}
-		if GatherTprev {
-			// Set the default tPrev to the base time of the oldest file in the PrevPlan minus one minute
-			prevCount := len(iop.PrevFilePlan)
-			if prevCount > 0 {
-				tPrev = time.Unix(iop.PrevFilePlan[prevCount-1].BaseTime, 0).Add(-time.Duration(time.Minute)).UTC().Unix()
-			}
-			// Scan backward until we find the first previous time
-			// Scan the file at the beginning of the date range unless the range started at the file begin
-			finished = false
-			for _, fp := range iop.PrevFilePlan {
-				var tPrevBuff []byte
-				tPrevBuff, finished, bytesRead, err := ex.readBackward(
-					tPrevBuff,
-					fp,
-					iop.RecordLen,
-					iop.RecordLen,
-					readBuffer,
-					r.fileBuffer)
-				if finished {
-					if bytesRead != 0 {
-						// We found a record, let's grab the tPrev time from it
-						tPrev = int64(binary.LittleEndian.Uint64(tPrevBuff[0:]))
-					}
-					break
-				} else if err != nil {
-					// We did not finish the scan and have an error, return the error
-					return nil, 0, err
-				}
-			}
-		}
 	} else if direction == LAST {
-		if GatherTprev {
-			// Add one more record to the results in order to obtain the previous time
-			limitBytes += iop.RecordLen
-		}
 		// This is safe because we know limitBytes is a sane value for reverse scans
 		bytesLeftToFill := limitBytes
 		fp := iop.FilePlan
@@ -376,7 +338,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 				break
 			} else if err != nil {
 				// We did not finish the scan and have an error, return the error
-				return nil, 0, err
+				return nil, err
 			}
 		}
 
@@ -394,22 +356,6 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 				bufMeta[(lenOF-1)-i] = bufMeta[i]
 			}
 		}
-
-		if GatherTprev {
-			if len(resultBuffer) > 0 {
-				tPrev = int64(binary.LittleEndian.Uint64(resultBuffer[0:]))
-				// Chop off the first record
-				resultBuffer = resultBuffer[iop.RecordLen:]
-				if iop.RecordType == VARIABLE {
-					/*
-						Chop the first record off of the buffer map as well
-					*/
-					bufMeta[0].Data = bufMeta[0].Data[iop.RecordLen:]
-				}
-			} else {
-				tPrev = 0
-			}
-		}
 	}
 
 	/*
@@ -418,11 +364,11 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, tPrev int64, err error)
 	if iop.RecordType == VARIABLE {
 		resultBuffer, err = r.readSecondStage(bufMeta)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 	}
 
-	return resultBuffer, tPrev, err
+	return resultBuffer, err
 }
 
 type ioExec struct {
@@ -497,6 +443,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, recordLen, bytesToRead int32, readBuffer []byte) (
 	resultBuffer []byte, finished bool, err error) {
 
+	// log.Info("reading forward [recordLen: %v bytesToRead: %v]", recordLen, bytesToRead)
 	filePath := fp.FullPath
 
 	if finalBuffer == nil {
@@ -523,8 +470,7 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, recordLen, byt
 	//			fmt.Printf("Length of final buffer: %d\n",len(finalBuffer))
 	if int32(len(finalBuffer)) >= bytesToRead {
 		//				fmt.Printf("Clipping final buffer: %d\n",limitBytes)
-		finalBuffer = finalBuffer[:bytesToRead]
-		return finalBuffer, true, nil
+		return finalBuffer[:bytesToRead], true, nil
 	}
 	return finalBuffer, false, nil
 }
@@ -532,6 +478,8 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, recordLen, byt
 func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	recordLen, bytesToRead int32, readBuffer []byte, fileBuffer []byte) (
 	result []byte, finished bool, bytesRead int32, err error) {
+
+	// log.Info("reading backward [recordLen: %v bytesToRead: %v offset: %v]", recordLen, bytesToRead, fp.Offset)
 
 	filePath := fp.FullPath
 	beginPos := fp.Offset

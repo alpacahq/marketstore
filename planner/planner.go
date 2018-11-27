@@ -1,7 +1,6 @@
 package planner
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -236,7 +235,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	CatList := q.DataDir.GatherCategoriesFromCache()
 	for key := range q.Restriction.GetRestrictionMap() {
 		if _, ok := CatList[key]; !ok {
-			return nil, errors.New(fmt.Sprintf("Category: %s not in catalog\n", key))
+			return nil, fmt.Errorf("category: %s not in catalog", key)
 		}
 	}
 

@@ -36,7 +36,7 @@ func (c *Client) findGaps(line string) {
 		log.Error("Error return from query scanner: %v", err)
 		return
 	}
-	csm, _, err := scanner.Read()
+	csm, err := scanner.Read()
 	if err != nil {
 		log.Error("Error return from query scanner: %v", err)
 		return

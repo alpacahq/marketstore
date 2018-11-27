@@ -185,7 +185,7 @@ func (t *TestSuite) TestFire(c *C) {
 	c.Check(err, IsNil)
 	scanner, err := executor.NewReader(parsed)
 	c.Check(err, IsNil)
-	csm5, _, err := scanner.Read()
+	csm5, err := scanner.Read()
 	c.Check(err, IsNil)
 	cs5 := csm5[*tbk5]
 	c.Check(cs5, NotNil)
@@ -200,7 +200,7 @@ func (t *TestSuite) TestFire(c *C) {
 	c.Check(err, IsNil)
 	scanner, err = executor.NewReader(parsed)
 	c.Check(err, IsNil)
-	csm1D, _, err := scanner.Read()
+	csm1D, err := scanner.Read()
 	c.Check(err, IsNil)
 	cs1D := csm1D[*tbk1D]
 	c.Check(cs1D, NotNil)

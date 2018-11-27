@@ -68,7 +68,7 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	parsed, _ := q.Parse()
 	scanner, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, _ := scanner.Read()
+	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		c.Assert(time.Unix(epoch[0], 0).UTC(), Equals, startDate)
