@@ -292,7 +292,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	*/
 	getFileList(q.DataDir, &pr.QualifiedFiles, "", "")
 	if len(pr.QualifiedFiles) == 0 {
-		return pr, fmt.Errorf("No files returned from query parse")
+		return pr, fmt.Errorf("No files returned from query parse, DataDir: %v", q.DataDir)
 	}
 
 	/*

@@ -3,7 +3,7 @@
  * Created Date: Monday, November 12th 2018, 4:20:57 pm
  * Author: Robi Lin
  * -----
- * Last Modified: Mon Nov 12 2018
+ * Last Modified: Mon Nov 19 2018
  * Modified By: Robi Lin
  * -----
  * Copyright (c) 2018 QK Captial
@@ -30,7 +30,7 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "env": {
-                "HTTP_PROXY":"127.0.0.1:52730",
+                // "HTTP_PROXY":"127.0.0.1:52730",
             },
             "args": []
         }
