@@ -172,7 +172,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 		if err != nil {
 			return nil, err
 		}
-		csm, _, err := scanner.Read()
+		csm, err := scanner.Read()
 		if err != nil {
 			return nil, err
 		}

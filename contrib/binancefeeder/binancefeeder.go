@@ -96,6 +96,7 @@ func recast(config map[string]interface{}) *FetcherConfig {
 	data, _ := json.Marshal(config)
 	ret := FetcherConfig{}
 	json.Unmarshal(data, &ret)
+
 	return &ret
 }
 
@@ -207,7 +208,7 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 		return time.Time{}
 	}
 	reader, err := executor.NewReader(parsed)
-	csm, _, err := reader.Read()
+	csm, err := reader.Read()
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
