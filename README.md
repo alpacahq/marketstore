@@ -189,7 +189,7 @@ marketstore connect --url <address>
 and run commands through the sql session.
 
 ## Plugins
-Go plugin architecture works best with Go1.10+ on linux. For more on plugins, see the [plugins package](./contrib/plugins/) Some featured plugins are covered here -
+Go plugin architecture works best with Go1.10+ on linux. For more on plugins, see the [plugins package](./plugins/) Some featured plugins are covered here -
 
 ### Streaming
 You can receive realtime bars updates through the WebSocket streaming feature. The

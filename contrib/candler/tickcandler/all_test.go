@@ -77,7 +77,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	parsed, _ := q.Parse()
 	reader, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, err := reader.Read()
+	csm, err := reader.Read()
 	c.Assert(err == nil, Equals, true)
 	c.Assert(len(csm), Equals, 1)
 	for _, cs := range csm {

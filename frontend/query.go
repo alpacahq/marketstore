@@ -157,7 +157,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 
 			start := io.ToSystemTimezone(time.Unix(epochStart, 0))
 			stop := io.ToSystemTimezone(time.Unix(epochEnd, 0))
-			csm, tpm, err := executeQuery(
+			csm, err := executeQuery(
 				dest,
 				start, stop,
 				limitRecordCount, limitFromStart,
@@ -201,10 +201,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			/*
 				Append the NumpyMultiDataset to the MultiResponse
 			*/
-			tpmStr := make(map[string]int64)
-			for key, val := range tpm {
-				tpmStr[key.String()] = val
-			}
+
 			response.Responses = append(response.Responses,
 				QueryResponse{
 					nmds,
@@ -236,13 +233,14 @@ Utility functions
 */
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
-	LimitFromStart bool) (io.ColumnSeriesMap, map[io.TimeBucketKey]int64, error) {
+	LimitFromStart bool) (io.ColumnSeriesMap, error) {
 
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
 	/*
 		Alter timeframe inside key to ensure it matches a queryable TF
 	*/
+
 	tf := tbk.GetItemInCategory("Timeframe")
 	cd := utils.CandleDurationFromString(tf)
 	queryableTimeframe := cd.QueryableTimeframe()
@@ -273,19 +271,19 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		} else {
 			log.Error("Parsing query: %s\n", err)
 		}
-		return nil, nil, err
+		return nil, err
 	}
 	scanner, err := executor.NewReader(parseResult)
 	if err != nil {
 		log.Error("Unable to create scanner: %s\n", err)
-		return nil, nil, err
+		return nil, err
 	}
-	csm, tPrevMap, err := scanner.Read()
+	csm, err := scanner.Read()
 	if err != nil {
 		log.Error("Error returned from query scanner: %s\n", err)
-		return nil, nil, err
+		return nil, err
 	}
-	return csm, tPrevMap, err
+	return csm, err
 }
 
 func runAggFunctions(callChain []string, csInput *io.ColumnSeries) (cs *io.ColumnSeries, err error) {

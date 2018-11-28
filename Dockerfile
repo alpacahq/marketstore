@@ -8,7 +8,7 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.11-alpine AS builder
+FROM golang:alpine AS builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
 ENV GO111MODULE=on

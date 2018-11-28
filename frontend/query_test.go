@@ -156,6 +156,7 @@ func (s *ServerTestSuite) TestQueryRange(c *C) {
 		}
 		cs, _ := response.Responses[0].Result.ToColumnSeries()
 		index := cs.GetEpoch()
+		c.Logf("EPOCH: %v", index)
 		c.Assert(time.Unix(index[0], 0), Equals, time.Unix(*args.Requests[0].EpochStart, 0))
 	}
 

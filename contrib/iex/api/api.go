@@ -128,7 +128,6 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	var resp GetBarsResponse
 
 	body, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
 
 	if err != nil {
 		return nil, err
@@ -154,18 +153,17 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 	url := fmt.Sprintf("%s/ref-data/symbols?format=csv", base)
 
 	res, err := http.Get(url)
-
 	if err != nil {
 		return nil, err
 	}
+
+	defer res.Body.Close()
 
 	if res.StatusCode > http.StatusMultipleChoices {
 		return nil, fmt.Errorf("status code %v", res.StatusCode)
 	}
 
 	var resp ListSymbolsResponse
-
-	defer res.Body.Close()
 
 	if err = gocsv.Unmarshal(res.Body, &resp); err != nil {
 		return nil, err
