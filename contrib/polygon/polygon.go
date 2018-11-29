@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/buger/jsonparser"
-	"github.com/golang/glog"
 	nats "github.com/nats-io/go-nats"
 )
 
@@ -68,7 +68,7 @@ func (pf *PolygonFetcher) Run() {
 	go pf.workBackfill()
 
 	if err := api.Stream(pf.streamHandler, pf.config.Symbols); err != nil {
-		glog.Fatalf("nats streaming error (%v)", err)
+		panic(fmt.Errorf("nats streaming error (%v)", err))
 	}
 
 	select {}
@@ -77,6 +77,10 @@ func (pf *PolygonFetcher) Run() {
 func (pf *PolygonFetcher) streamHandler(msg *nats.Msg) {
 	// quickly parse the json
 	symbol, _ := jsonparser.GetString(msg.Data, "sym")
+
+	if strings.Contains(symbol, "/") {
+		return
+	}
 
 	open, _ := jsonparser.GetFloat(msg.Data, "o")
 	high, _ := jsonparser.GetFloat(msg.Data, "h")
@@ -102,7 +106,7 @@ func (pf *PolygonFetcher) streamHandler(msg *nats.Msg) {
 	csm.AddColumnSeries(*tbk, cs)
 
 	if err := executor.WriteCSM(csm, false); err != nil {
-		glog.Errorf("csm write failed (%v)", err)
+		fmt.Printf("csm write failed (%v)\n", err)
 		return
 	}
 }
@@ -160,19 +164,19 @@ func (pf *PolygonFetcher) backfill(symbol string, endEpoch int64) {
 
 		parsed, err := q.Parse()
 		if err != nil {
-			glog.Errorf("query parse error (%v)", err)
+			fmt.Printf("query parse error (%v)\n", err)
 			return
 		}
 
 		scanner, err := executor.NewReader(parsed)
 		if err != nil {
-			glog.Errorf("new scanner error (%v)", err)
+			fmt.Printf("new scanner error (%v)\n", err)
 			return
 		}
 
-		csm, _, err := scanner.Read()
+		csm, err := scanner.Read()
 		if err != nil {
-			glog.Errorf("scanner read error (%v)", err)
+			fmt.Printf("scanner read error (%v)\n", err)
 			return
 		}
 
@@ -205,7 +209,7 @@ func (pf *PolygonFetcher) backfill(symbol string, endEpoch int64) {
 		resp, err := api.GetAggregates(symbol, from)
 
 		if err != nil {
-			glog.Errorf("failed to backfill aggregates (%v)", err)
+			fmt.Printf("failed to backfill aggregates (%v)\n", err)
 			return
 		}
 
@@ -241,7 +245,7 @@ func (pf *PolygonFetcher) backfill(symbol string, endEpoch int64) {
 		csm.AddColumnSeries(*tbk, cs)
 
 		if err := executor.WriteCSM(csm, false); err != nil {
-			glog.Errorf("csm write failed (%v)", err)
+			fmt.Printf("csm write failed (%v)\n", err)
 			return
 		}
 	}

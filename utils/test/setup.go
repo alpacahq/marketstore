@@ -10,12 +10,12 @@ import (
 
 	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 func checkfail(err error, msg string) {
 	if err != nil {
-		Log(ERROR, "Message: %v - Error: %v", msg, err)
+		log.Error("Message: %v - Error: %v", msg, err)
 		os.Exit(1)
 	}
 }
@@ -189,7 +189,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 	var yr int
 	n, err := fmt.Sscanf(year, "%d", &yr)
 	if n != 1 || err != nil {
-		Log(FATAL, "Failed to convert string year to int - Error: %v", err)
+		log.Fatal("Failed to convert string year to int - Error: %v", err)
 	}
 	var candlesCurrency []ohlc
 	var candlesStock []ohlcv
@@ -296,6 +296,6 @@ func MakeDummyStockDir(root string, withdata bool, withGaps bool) map[string]int
 func CleanupDummyDataDir(root string) {
 	err := os.RemoveAll(root)
 	if err != nil {
-		Log(ERROR, "Failed to clean up dummy data directory - Error: %v", err)
+		log.Error("Failed to clean up dummy data directory - Error: %v", err)
 	}
 }

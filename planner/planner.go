@@ -1,7 +1,6 @@
 package planner
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -11,7 +10,7 @@ import (
 	. "github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/utils"
 	. "github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 type TimeQualFunc func(epoch int64) bool
@@ -175,7 +174,7 @@ type query struct {
 
 func NewQuery(d *Directory) *query {
 	if d == nil {
-		Log(ERROR, "Failed to query - catalog not initialized.")
+		log.Error("Failed to query - catalog not initialized.")
 		return nil
 	}
 	q := new(query)
@@ -236,7 +235,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	CatList := q.DataDir.GatherCategoriesFromCache()
 	for key := range q.Restriction.GetRestrictionMap() {
 		if _, ok := CatList[key]; !ok {
-			return nil, errors.New(fmt.Sprintf("Category: %s not in catalog\n", key))
+			return nil, fmt.Errorf("category: %s not in catalog", key)
 		}
 	}
 

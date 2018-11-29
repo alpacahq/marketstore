@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-
-	"github.com/golang/glog"
 )
 
 //TradeBucketedResponse json from bitMEX bucketed trade API
@@ -77,7 +75,7 @@ func GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedR
 		return nil, err
 	}
 	if len(resp) == 0 {
-		glog.Info("len(rates) == 0")
+		fmt.Printf("len(rates) == 0\n")
 	}
 
 	return resp, nil

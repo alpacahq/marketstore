@@ -24,9 +24,12 @@ import (
 // Hook up gocheck into the "go test" runner.
 func Test(t *testing.T) { TestingT(t) }
 
-var _ = Suite(&TestSuite{nil, "", nil, nil})
-var _ = Suite(&DestructiveWALTests{nil, "", nil, nil})
-var _ = Suite(&DestructiveWALTest2{nil, "", nil, nil})
+var (
+	_ = Suite(&TestSuite{nil, "", nil, nil})
+	_ = Suite(&DestructiveWALTests{nil, "", nil, nil})
+	_ = Suite(&DestructiveWALTest2{nil, "", nil, nil})
+	_ = Suite(&CGOTests{})
+)
 
 type TestSuite struct {
 	DataDirectory *Directory
@@ -51,6 +54,8 @@ type DestructiveWALTest2 struct {
 	ItemsWritten map[string]int
 	WALFile      *WALFileType
 }
+
+type CGOTests struct{}
 
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
@@ -127,7 +132,7 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	q.SetRowLimit(LAST, 5)
 	parsed, _ := q.Parse()
 	reader, _ := NewReader(parsed)
-	csm, _, _ := reader.Read()
+	csm, _ := reader.Read()
 	c.Assert(len(csm) >= 4, Equals, true)
 	for _, cs := range csm {
 		c.Assert(cs.Len() <= 5, Equals, true)
@@ -180,7 +185,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	*/
 	reader, err := NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, err := reader.Read()
+	csm, err := reader.Read()
 	c.Assert(err == nil, Equals, true)
 	c.Assert(len(csm), Equals, 1)
 	for _, cs := range csm {
@@ -212,7 +217,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	s.WALFile.flushToWAL(tgc)
 	s.WALFile.createCheckpoint()
 
-	csm, _, err = reader.Read()
+	csm, err = reader.Read()
 	c.Assert(err == nil, Equals, true)
 	c.Assert(len(csm), Equals, 1)
 	for _, cs := range csm {
@@ -263,7 +268,7 @@ func (s *TestSuite) TestFileRead(c *C) {
 			}
 		}
 		c.Assert(minYear, Equals, int16(2001))
-		csm, _, _ := scanner.Read()
+		csm, _ := scanner.Read()
 		/*
 			for _, cs := range csm {
 				epoch := cs.GetEpoch()
@@ -307,7 +312,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	c.Assert(sortedFiles[0].File.Year, Equals, int16(2000))
 	c.Assert(sortedFiles[1].File.Year, Equals, int16(2001))
 	c.Assert(sortedFiles[2].File.Year, Equals, int16(2002))
-	csm, _, err := scanner.Read()
+	csm, err := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		c.Assert(len(epoch), Equals, nitems)
@@ -327,7 +332,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	}
 	scanner, err = NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, err = scanner.Read()
+	csm, err = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 
@@ -352,7 +357,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	}
 	scanner, err = NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, err = scanner.Read()
+	csm, err = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		c.Assert(len(epoch) == 200, Equals, true)
@@ -370,7 +375,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	parsed, err = q.Parse()
 	scanner, err = NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, err = scanner.Read()
+	csm, err = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		//printoutCandles(cs, -1, -1)
@@ -390,7 +395,7 @@ func (s *TestSuite) TestCrossYear(c *C) {
 	parsed, _ := q.Parse()
 	scanner, err := NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, _ := scanner.Read()
+	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		//printoutCandles(cs, -1, 1)
@@ -415,7 +420,7 @@ func (s *TestSuite) TestLastN(c *C) {
 	parsed, _ := q.Parse()
 	scanner, err := NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, _ := scanner.Read()
+	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		//	printoutCandles(OHLCSlice, 0, -1)
@@ -455,10 +460,30 @@ func (s *TestSuite) TestLastN(c *C) {
 	parsed, _ = q.Parse()
 	scanner, err = NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, _ = scanner.Read()
+	csm, _ = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		//printoutCandles(cs, 0, -1)
+		c.Log(epoch)
+		c.Assert(len(epoch), Equals, 1)
+	}
+
+	// Query data with an end date of 12/31 asking for last 10 rows
+	q = NewQuery(s.DataDirectory)
+	q.AddRestriction("Symbol", "NZDUSD")
+	q.AddRestriction("AttributeGroup", "OHLC")
+	q.AddRestriction("Timeframe", "1Min")
+	q.SetRange(
+		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(1999, time.December, 23, 59, 0, 0, 0, time.UTC).Unix(),
+	)
+	q.SetRowLimit(LAST, 10)
+	parsed, _ = q.Parse()
+	scanner, err = NewReader(parsed)
+	c.Assert(err == nil, Equals, true)
+	csm, _ = scanner.Read()
+	for _, cs := range csm {
+		epoch := cs.GetEpoch()
+		c.Log(epoch)
 		c.Assert(len(epoch), Equals, 0)
 	}
 
@@ -475,13 +500,14 @@ func (s *TestSuite) TestLastN(c *C) {
 	parsed, _ = q.Parse()
 	scanner, err = NewReader(parsed)
 	c.Assert(err, IsNil)
-	csm, _, err = scanner.Read()
+	csm, err = scanner.Read()
 	c.Assert(err, IsNil)
 	c.Assert(csm.IsEmpty(), Equals, false)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
+		c.Log(epoch)
 		//printoutCandles(cs, 0, -1)
-		c.Assert(len(epoch), Equals, 1)
+		c.Assert(len(epoch), Equals, 2)
 	}
 }
 
@@ -519,10 +545,9 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	pr, _ = q.Parse()
 	rd, err := NewReader(pr)
 	c.Assert(err == nil, Equals, true)
-	columnSeries, tprevMap, err := rd.Read()
+	columnSeries, err := rd.Read()
 	c.Assert(err == nil, Equals, true)
 	c.Assert(len(columnSeries) != 0, Equals, true)
-	c.Assert(len(tprevMap) != 0, Equals, true)
 	for _, cs := range columnSeries {
 		open := cs.GetByName("Open").([]float32)
 		high := cs.GetByName("High").([]float32)
@@ -880,7 +905,7 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	parsed, _ := q.Parse()
 	scanner, err := NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, err := scanner.Read()
+	csm, err := scanner.Read()
 	for key, cs := range csm {
 		c.Assert(err == nil, Equals, true)
 		RefColumnSet[key] = cs
@@ -902,7 +927,7 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	parsed, _ = q.Parse()
 	scanner, err = NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
-	csm, _, err = scanner.Read()
+	csm, err = scanner.Read()
 	for key, cs := range csm {
 		c.Assert(err == nil, Equals, true)
 		epoch := cs.GetEpoch()
@@ -959,9 +984,9 @@ func addTGData(root *Directory, tgc *TransactionPipe, number int, mixup bool) (q
 			return nil, err
 		}
 
-		csmSym, tPrev, err := scanner.Read()
+		csmSym, err := scanner.Read()
 		if err != nil {
-			fmt.Printf("scanner.Read failed: tPrev: %v Err: %s", tPrev, err)
+			fmt.Printf("scanner.Read failed: Err: %s", err)
 			return nil, err
 		}
 

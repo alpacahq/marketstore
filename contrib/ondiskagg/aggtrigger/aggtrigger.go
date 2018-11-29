@@ -38,7 +38,7 @@ import (
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 // AggTriggerConfig is the configuration for OnDiskAggTrigger you can define in
@@ -57,9 +57,10 @@ type OnDiskAggTrigger struct {
 	aggCache *sync.Map
 }
 
-var _ trigger.Trigger = &OnDiskAggTrigger{}
-
-var loadError = errors.New("plugin load error")
+var (
+	_         trigger.Trigger = &OnDiskAggTrigger{}
+	loadError                 = errors.New("plugin load error")
+)
 
 func recast(config map[string]interface{}) *AggTriggerConfig {
 	data, _ := json.Marshal(config)
@@ -73,15 +74,15 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 	config := recast(conf)
 
 	if len(config.Destinations) == 0 {
-		glog.Errorf("no destinations are configured")
+		log.Warn("no destinations are configured\n")
 		return nil, fmt.Errorf("plugin load error")
 	}
 
-	glog.Infof("%d destination(s) configured", len(config.Destinations))
+	log.Info("%d destination(s) configured\n", len(config.Destinations))
 
 	filter := config.Filter
 	if filter != "" && filter != "nasdaq" {
-		glog.Warningf("filter value \"%s\" is not recognized", filter)
+		log.Error("filter value \"%s\" is not recognized\n", filter)
 		filter = ""
 	}
 
@@ -90,7 +91,7 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 	for _, dest := range config.Destinations {
 		tf := utils.TimeframeFromString(dest)
 		if tf == nil {
-			glog.Fatalf("invalid destination: %s", dest)
+			log.Fatal("invalid destination: %s", dest)
 		}
 		tfs = append(tfs, *tf)
 	}
@@ -148,8 +149,7 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 		c := v.(*cachedAgg)
 
 		if !c.Valid(tail, head) {
-			glog.Infof("invalidating cache for: %v", tbk.String())
-
+			log.Debug("invalidating cache for: %v\n", tbk.String())
 			s.aggCache.Delete(tbk.String())
 
 			goto Query
@@ -170,7 +170,7 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 Query:
 	csm, err := s.query(tbk, window, head, tail)
 	if err != nil || csm == nil {
-		glog.Errorf("query error for %v (%v)", tbk.String(), err)
+		log.Error("query error for %v (%v)\n", tbk.String(), err)
 		return
 	}
 
@@ -193,8 +193,8 @@ func (s *OnDiskAggTrigger) write(
 		aggTbk := io.NewTimeBucketKeyFromString(elements[0] + "/" + dest.String + "/" + elements[2])
 
 		if err := s.writeAggregates(aggTbk, tbk, *cs, dest, head, tail); err != nil {
-			glog.Errorf(
-				"failed to write %v aggregates (%v)",
+			log.Error(
+				"failed to write %v aggregates (%v)\n",
 				tbk.String(),
 				err)
 			return
@@ -237,7 +237,7 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	if s.filter == "nasdaq" && window.Duration() >= utils.Day {
 		calendarTz := calendar.Nasdaq.Tz()
 		if utils.InstanceConfig.Timezone.String() != calendarTz.String() {
-			glog.Errorf("misconfiguration... system must be configure in %s", calendarTz)
+			log.Warn("misconfiguration... system must be configure in %s\n", calendarTz)
 		} else {
 			applyingFilter = true
 		}
@@ -344,7 +344,7 @@ func (s *OnDiskAggTrigger) query(
 		return nil, err
 	}
 
-	csm, _, err := scanner.Read()
+	csm, err := scanner.Read()
 	if err != nil {
 		return nil, err
 	}

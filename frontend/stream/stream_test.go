@@ -10,7 +10,7 @@ import (
 
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/gorilla/websocket"
 	"github.com/vmihailenco/msgpack"
 	. "gopkg.in/check.v1"
@@ -89,7 +89,7 @@ func (s *StreamTestSuite) TestStream(c *C) {
 
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-					glog.Errorf("unexpected websocket closure (%v)", err)
+					log.Error("unexpected websocket closure (%v)", err)
 				}
 				close(bufC)
 				return

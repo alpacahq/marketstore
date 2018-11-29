@@ -1,4 +1,4 @@
-package SQLParser
+package sqlparser
 
 import (
 	"github.com/alpacahq/marketstore/contrib/candler/candlecandler"

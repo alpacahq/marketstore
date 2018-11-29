@@ -8,8 +8,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
-
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/io"
@@ -79,7 +77,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 func (ss *SlaitSubscriber) Run() {
 	for {
 		if err := ss.subscribe(); err != nil {
-			glog.Warningln(err)
+			fmt.Printf(err.Error())
 		}
 	}
 }
@@ -95,7 +93,7 @@ func (ss *SlaitSubscriber) subscribe() (err error) {
 	u := url.URL{Scheme: "ws", Host: ss.endpoint, Path: "/ws"}
 	ss.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		glog.Errorln("Failed to establish Slait connection.")
+		fmt.Printf("Failed to establish Slait connection.\n")
 		return ss.reconnect(5 * time.Second)
 	}
 
@@ -124,7 +122,7 @@ func (ss *SlaitSubscriber) subscribe() (err error) {
 }
 
 func (ss *SlaitSubscriber) reconnect(sleep time.Duration) error {
-	glog.Errorf("Reconnecting in %v...", sleep)
+	fmt.Printf("Reconnecting in %v..\n", sleep)
 	time.Sleep(sleep)
 	return ss.subscribe()
 }
@@ -141,7 +139,7 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 		p := cache.Publication{}
 		err = json.Unmarshal(msg, &p)
 		if err != nil {
-			glog.Errorf("Failed to unmarshal JSON from Slait - Msg: %v - Error: %v", string(msg), err)
+			fmt.Printf("Failed to unmarshal JSON from Slait - Msg: %v - Error: %v\n", string(msg), err)
 		} else {
 			if p.Entries.Len() > 0 {
 				csm, err := ss.publicationToCSM(p)
@@ -220,12 +218,12 @@ func (ss *SlaitSubscriber) read() (err error) {
 	for {
 		msgType, msg, err := ss.conn.ReadMessage()
 		if err != nil {
-			glog.Errorf("Failed to read message from Slait - Error: %v", err)
+			fmt.Printf("Failed to read message from Slait - Error: %v\n", err)
 			return err
 		}
 		err = ss.handleMessage(msg, msgType)
 		if err != nil {
-			glog.Errorf("Failed to handle websocket message - Error: %v", err)
+			fmt.Printf("Failed to handle websocket message - Error: %v\n", err)
 			return err
 		}
 	}

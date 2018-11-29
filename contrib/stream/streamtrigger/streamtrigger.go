@@ -2,7 +2,7 @@ package streamtrigger
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -16,16 +16,17 @@ import (
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 type StreamTriggerConfig struct {
 	Filter string `json:"filter"`
 }
 
-var _ trigger.Trigger = &StreamTrigger{}
-
-var loadError = errors.New("plugin load error")
+var (
+	_         trigger.Trigger = &StreamTrigger{}
+	loadError                 = fmt.Errorf("plugin load error")
+)
 
 func recast(config map[string]interface{}) *StreamTriggerConfig {
 	data, _ := json.Marshal(config)
@@ -40,7 +41,7 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 
 	filter := config.Filter
 	if filter != "" && filter != "nasdaq" {
-		glog.Infof("filter value \"%s\" is not recognized", filter)
+		log.Warn("[streamtrigger] filter value \"%s\" is not recognized", filter)
 		filter = ""
 	}
 
@@ -52,8 +53,6 @@ type StreamTrigger struct {
 	shelf  *shelf.Shelf
 	filter string
 }
-
-var _ trigger.Trigger = &StreamTrigger{}
 
 func maxInt64(values []int64) int64 {
 	max := values[0]
@@ -93,19 +92,19 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 
 	parsed, err := q.Parse()
 	if err != nil {
-		glog.Errorf("%v", err)
+		log.Error("[streamtrigger] query parse failure (%v)", err)
 		return
 	}
 
 	scanner, err := executor.NewReader(parsed)
 	if err != nil {
-		glog.Errorf("%v", err)
+		log.Error("[streamtrigger] new scanner failure (%v)", err)
 		return
 	}
 
-	csm, _, err := scanner.Read()
+	csm, err := scanner.Read()
 	if err != nil {
-		glog.Errorf("%v", err)
+		log.Error("[streamtrigger] scanner read failure (%v)", err)
 		return
 	}
 
@@ -114,6 +113,8 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 	if cs == nil || cs.Len() == 0 {
 		return
 	}
+
+	pl := ColumnSeriesForPayload(cs)
 
 	if tf.Duration > time.Minute {
 		// push aggregates to shelf and let them get handled
@@ -131,12 +132,12 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 		}
 
 		if deadline != nil && deadline.After(time.Now()) {
-			s.shelf.Store(tbk, ColumnSeriesForPayload(cs), *deadline)
+			s.shelf.Store(tbk, &pl, deadline)
 		}
 	} else {
 		// push minute bars immediately
-		if err := stream.Push(*tbk, ColumnSeriesForPayload(cs)); err != nil {
-			glog.Errorf("failed to stream %s (%v)", tbk.String(), err)
+		if err := stream.Push(*tbk, &pl); err != nil {
+			log.Error("[streamtrigger] failed to stream %s (%v)", tbk.String(), err)
 		}
 	}
 }

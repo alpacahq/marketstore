@@ -54,14 +54,14 @@ The timestamp for each data item must be obtainable, but we can avoid storing th
 
 However, if we consider situations where the file contents might have been corrupted by a partial write, we would be greatly helped by having a known value appear more frequently. Ultimately, we must maintain every candle's data, so the best case is to have a per-entry validation of both position and value integrity. A compromise solution uses a key for each data entry that is the position within the time interval for that entry.  If there is corruption in the file contents, we will likely see that value corrupted so it can act as a cheap form of validation that we have both(strong) position correctness and (weak) value integrity.
 
-We can store a 64-bit integer value describing the location of each data item within the year, starting at 0 for the first time interval of the first day. This will provide for resolutions up to (us) and will provide enough surface for data corruption to manifest in the key.
+We can store a 64-bit integer value describing the location of each data item within the year, starting at 1 for the first time interval of the first day. This will provide for resolutions up to (us) and will provide enough surface for data corruption to manifest in the key.
 
 The index for the N-th time interval within the M-th day of the year will be:
     intervals := (intervals/day)
-    index(N,M) = N + intervals*M
+    index(N,M) = 1 + N + intervals*M
 
 For example, if intervals is in minutes, we will have 1440 intervals per day (intervals := 1440). If we are accessing the 244th day at 12:00 Noon, the index will be:
-    index(1220,244) = 1220 + 1440*244 = 352580
+    index(720,244) = 1 + 720 + 1440*244 = 352081
 
 ===> We store a 64-bit integer key for each data value that is the number of intervals since the start of the year
 

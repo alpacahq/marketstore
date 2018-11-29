@@ -12,7 +12,6 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
 	gdax "github.com/preichenberger/go-gdax"
 )
 
@@ -101,7 +100,7 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 		return time.Time{}
 	}
 	reader, err := executor.NewReader(parsed)
-	csm, _, err := reader.Read()
+	csm, err := reader.Read()
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
@@ -120,7 +119,7 @@ func (gd *GdaxFetcher) Run() {
 	for _, symbol := range symbols {
 		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
 		lastTimestamp := findLastTimestamp(symbol, tbk)
-		glog.Infof("lastTimestamp for %s = %v", symbol, lastTimestamp)
+		fmt.Printf("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
 		}
@@ -141,16 +140,16 @@ func (gd *GdaxFetcher) Run() {
 				End:         timeEnd,
 				Granularity: int(gd.baseTimeframe.Duration.Seconds()),
 			}
-			glog.Infof("Requesting %s %v - %v", symbol, timeStart, timeEnd)
+			fmt.Printf("Requesting %s %v - %v\n", symbol, timeStart, timeEnd)
 			rates, err := client.GetHistoricRates(symbol+"-USD", params)
 			if err != nil {
-				glog.Errorf("Response error: %v", err)
+				fmt.Printf("Response error: %v\n", err)
 				// including rate limit case
 				time.Sleep(time.Minute)
 				continue
 			}
 			if len(rates) == 0 {
-				glog.Info("len(rates) == 0")
+				fmt.Printf("len(rates) == 0\n")
 				continue
 			}
 			epoch := make([]int64, 0)
@@ -178,7 +177,7 @@ func (gd *GdaxFetcher) Run() {
 			cs.AddColumn("Low", low)
 			cs.AddColumn("Close", close)
 			cs.AddColumn("Volume", volume)
-			glog.Infof("%s: %d rates between %v - %v", symbol, len(rates),
+			fmt.Printf("%s: %d rates between %v - %v\n", symbol, len(rates),
 				rates[0].Time, rates[(len(rates))-1].Time)
 			csm := io.NewColumnSeriesMap()
 			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
@@ -191,9 +190,9 @@ func (gd *GdaxFetcher) Run() {
 		nextExpected := timeStart.Add(gd.baseTimeframe.Duration)
 		now := time.Now()
 		toSleep := nextExpected.Sub(now)
-		glog.Infof("next expected(%v) - now(%v) = %v", nextExpected, now, toSleep)
+		fmt.Printf("next expected(%v) - now(%v) = %v\n", nextExpected, now, toSleep)
 		if toSleep > 0 {
-			glog.Infof("Sleep for %v", toSleep)
+			fmt.Printf("Sleep for %v\n", toSleep)
 			time.Sleep(toSleep)
 		} else if time.Now().Sub(lastTime) < time.Hour {
 			// let's not go too fast if the catch up is less than an hour

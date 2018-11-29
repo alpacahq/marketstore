@@ -9,7 +9,7 @@ OUTFILE=$1
 TMPFILE=/tmp/tmp$$
 
 generateHeader() {
-printf "package SQLParser\n\n"
+printf "package sqlparser\n\n"
 }
 
 generateAcceptMethods() {

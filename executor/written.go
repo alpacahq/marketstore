@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/alpacahq/marketstore/utils/log"
 
 	"github.com/alpacahq/marketstore/plugins/trigger"
 )
@@ -64,7 +64,7 @@ func fire(trig trigger.Trigger, key string, records []trigger.Record) {
 	defer func() {
 		triggerWg.Done()
 		if r := recover(); r != nil {
-			glog.Errorf("recovering from %v\n%s", r, string(debug.Stack()))
+			log.Error("recovering from %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	trig.Fire(key, records)

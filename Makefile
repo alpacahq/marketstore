@@ -9,7 +9,7 @@ all:
 install: all
 
 generate:
-	make -C SQLParser
+	make -C sqlparser
 	go generate $(shell find . -path ./vendor -prune -o -name \*.go -exec grep -q go:generate {} \; -print | while read file; do echo `dirname $$file`; done | xargs)
 
 vendor:
@@ -26,8 +26,9 @@ plugins:
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/binancefeeder
+	$(MAKE) -C contrib/iex
 
-unittest:
+unittest: install
 	go fmt ./...
 	go test ./...
 	$(MAKE) -C tests/integ test
@@ -35,7 +36,7 @@ unittest:
 image:
 	docker build -t alpacamarkets/marketstore.test .
 
-runimage: 
+runimage:
 	make -C tests/integ run IMAGE_NAME=alpacamarkets/marketstore.test
 
 stopimage:

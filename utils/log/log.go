@@ -1,44 +1,88 @@
 package log
 
 import (
-	"runtime/debug"
+	"os"
 
-	"github.com/golang/glog"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-func Log(level Level, format string, args ...interface{}) {
-	switch level {
-	default:
-	case INFO:
-		if logLevel >= INFO {
-			glog.Infof(format, args...)
+func init() {
+	atom := zap.NewAtomicLevel()
+
+	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.TimeKey = "timestamp"
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderCfg),
+		zapcore.Lock(os.Stdout),
+		atom,
+	))
+
+	zap.ReplaceGlobals(logger)
+}
+
+func Debug(msg string, args ...interface{}) {
+	if logLevel <= DEBUG {
+		if len(args) > 0 {
+			zap.S().Debugf(msg, args...)
+		} else {
+			zap.S().Debug(msg)
 		}
-	case WARNING:
-		if logLevel >= WARNING {
-			glog.Warningf(format, args...)
-		}
-	case ERROR:
-		if logLevel >= ERROR {
-			glog.Errorf(format, args...)
-			debug.PrintStack()
-		}
-	case FATAL:
-		glog.Fatalf(format, args...)
-		debug.PrintStack()
 	}
 }
 
-func SetLogLevel(level Level) {
+func Info(msg string, args ...interface{}) {
+	if logLevel <= INFO {
+		if len(args) > 0 {
+			zap.S().Infof(msg, args...)
+		} else {
+			zap.S().Info(msg)
+		}
+	}
+}
+
+func Warn(msg string, args ...interface{}) {
+	if logLevel <= WARNING {
+		if len(args) > 0 {
+			zap.S().Warnf(msg, args...)
+		} else {
+			zap.S().Warn(msg)
+		}
+	}
+}
+
+func Error(msg string, args ...interface{}) {
+	if logLevel <= ERROR {
+		if len(args) > 0 {
+			zap.S().Errorf(msg, args...)
+		} else {
+			zap.S().Error(msg)
+		}
+	}
+}
+
+func Fatal(msg string, args ...interface{}) {
+	if len(args) > 0 {
+		zap.S().Fatalf(msg, args...)
+	} else {
+		zap.S().Fatal(msg)
+	}
+}
+
+func SetLevel(level Level) {
 	logLevel = level
 }
 
 type Level int
 
 const (
-	FATAL Level = iota
-	ERROR
-	WARNING
+	DEBUG Level = iota
 	INFO
+	WARNING
+	ERROR
+	FATAL
 )
 
 var logLevel Level

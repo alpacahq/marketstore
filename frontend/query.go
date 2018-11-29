@@ -10,9 +10,9 @@ import (
 
 	"strings"
 
-	"github.com/alpacahq/marketstore/SQLParser"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
+	"github.com/alpacahq/marketstore/sqlparser"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
@@ -89,11 +89,11 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 	for _, req := range reqs.Requests {
 		switch req.IsSQLStatement {
 		case true:
-			ast, err := SQLParser.NewAstBuilder(req.SQLStatement)
+			ast, err := sqlparser.NewAstBuilder(req.SQLStatement)
 			if err != nil {
 				return err
 			}
-			es, err := SQLParser.NewExecutableStatement(ast.Mtree)
+			es, err := sqlparser.NewExecutableStatement(ast.Mtree)
 			if err != nil {
 				return err
 			}
@@ -157,7 +157,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 
 			start := io.ToSystemTimezone(time.Unix(epochStart, 0))
 			stop := io.ToSystemTimezone(time.Unix(epochEnd, 0))
-			csm, tpm, err := executeQuery(
+			csm, err := executeQuery(
 				dest,
 				start, stop,
 				limitRecordCount, limitFromStart,
@@ -201,10 +201,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			/*
 				Append the NumpyMultiDataset to the MultiResponse
 			*/
-			tpmStr := make(map[string]int64)
-			for key, val := range tpm {
-				tpmStr[key.String()] = val
-			}
+
 			response.Responses = append(response.Responses,
 				QueryResponse{
 					nmds,
@@ -236,13 +233,14 @@ Utility functions
 */
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
-	LimitFromStart bool) (io.ColumnSeriesMap, map[io.TimeBucketKey]int64, error) {
+	LimitFromStart bool) (io.ColumnSeriesMap, error) {
 
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
 	/*
 		Alter timeframe inside key to ensure it matches a queryable TF
 	*/
+
 	tf := tbk.GetItemInCategory("Timeframe")
 	cd := utils.CandleDurationFromString(tf)
 	queryableTimeframe := cd.QueryableTimeframe()
@@ -268,24 +266,24 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 	if err != nil {
 		// No results from query
 		if err.Error() == "No files returned from query parse" {
-			log.Log(log.INFO, "No results returned from query: Target: %v, start, end: %v,%v LimitRecordCount: %v",
+			log.Info("No results returned from query: Target: %v, start, end: %v,%v LimitRecordCount: %v",
 				tbk.String(), start, end, LimitRecordCount)
 		} else {
-			log.Log(log.ERROR, "Parsing query: %s\n", err)
+			log.Error("Parsing query: %s\n", err)
 		}
-		return nil, nil, err
+		return nil, err
 	}
 	scanner, err := executor.NewReader(parseResult)
 	if err != nil {
-		log.Log(log.ERROR, "Unable to create scanner: %s\n", err)
-		return nil, nil, err
+		log.Error("Unable to create scanner: %s\n", err)
+		return nil, err
 	}
-	csm, tPrevMap, err := scanner.Read()
+	csm, err := scanner.Read()
 	if err != nil {
-		log.Log(log.ERROR, "Error returned from query scanner: %s\n", err)
-		return nil, nil, err
+		log.Error("Error returned from query scanner: %s\n", err)
+		return nil, err
 	}
-	return csm, tPrevMap, err
+	return csm, err
 }
 
 func runAggFunctions(callChain []string, csInput *io.ColumnSeries) (cs *io.ColumnSeries, err error) {
@@ -299,7 +297,7 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries) (cs *io.Colum
 			return nil, err
 		}
 
-		agg := SQLParser.AggRegistry[strings.ToLower(aggName)]
+		agg := sqlparser.AggRegistry[strings.ToLower(aggName)]
 		if agg == nil {
 			return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 		}

@@ -1,5 +1,5 @@
 # MarketStore
-![Build Status](https://circleci.com/gh/alpacahq/marketstore/tree/master.png?7989cb00be70f055e0cb19184b212a8ed21b0cbb) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore) [![chatroom icon](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/joinchat/HKxN3BGm6mE5YBt79CMM3Q)
+[![CircleCI](https://circleci.com/gh/alpacahq/marketstore.svg?style=shield)](https://circleci.com/gh/alpacahq/marketstore) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore) [![chatroom icon](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/joinchat/HKxN3BGm6mE5YBt79CMM3Q)
 
 Read this in [日本語(Japanese)](README.ja.md)
 
@@ -191,7 +191,7 @@ marketstore connect --url <address>
 and run commands through the sql session.
 
 ## Plugins
-Go plugin architecture works best with Go1.10+ on linux. For more on plugins, see the [plugins package](./contrib/plugins/) Some featured plugins are covered here -
+Go plugin architecture works best with Go1.10+ on linux. For more on plugins, see the [plugins package](./plugins/) Some featured plugins are covered here -
 
 ### Streaming
 You can receive realtime bars updates through the WebSocket streaming feature. The

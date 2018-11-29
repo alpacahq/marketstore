@@ -8,7 +8,7 @@ import (
 	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/plugins/trigger"
 	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 var ThisInstance *InstanceMetadata
@@ -43,17 +43,17 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 	case len(options) == 1:
 		initCatalog = options[0]
 	}
-	Log(INFO, "WAL Setup: initCatalog %v, initWALCache %v, backgroundSync %v, WALBypass %v: \n",
+	log.Info("WAL Setup: initCatalog %v, initWALCache %v, backgroundSync %v, WALBypass %v: \n",
 		initCatalog, initWALCache, backgroundSync, WALBypass)
 
 	if ThisInstance == nil {
 		ThisInstance = new(InstanceMetadata)
 	}
 	var err error
-	Log(INFO, "Root Directory: %s", relRootDir)
+	log.Info("Root Directory: %s", relRootDir)
 	rootDir, err := filepath.Abs(filepath.Clean(relRootDir))
 	if err != nil {
-		Log(ERROR, "Cannot take absolute path of root directory %s", err.Error())
+		log.Error("Cannot take absolute path of root directory %s", err.Error())
 	}
 	ThisInstance.InstanceID = time.Now().UTC().UnixNano()
 	ThisInstance.RootDir = rootDir
@@ -70,7 +70,7 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 		} else {
 			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir)
 			if err != nil {
-				Log(FATAL, "Unable to startup Cache and WAL")
+				log.Fatal("Unable to startup Cache and WAL")
 			}
 		}
 		if backgroundSync {

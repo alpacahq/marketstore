@@ -1,4 +1,4 @@
-package SQLParser
+package sqlparser
 
 import (
 	"testing"

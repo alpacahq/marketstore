@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/alpacahq/marketstore/utils/rpc/msgpack2"
 	rpc "github.com/gorilla/rpc/v2"
 	"github.com/gorilla/rpc/v2/json2"
@@ -40,7 +40,7 @@ func NewServer() (*RpcServer, *DataService) {
 	service.Init()
 	err := s.RegisterService(service, "")
 	if err != nil {
-		Log(ERROR, "Failed to register service - Error: %v", err)
+		log.Error("Failed to register service - Error: %v", err)
 	}
 	return s, service
 }

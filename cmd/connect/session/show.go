@@ -10,7 +10,7 @@ import (
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 // show displays data in the date range.
@@ -28,8 +28,12 @@ func (c *Client) show(line string) {
 	}
 
 	timeStart := time.Now()
-	var csm io.ColumnSeriesMap
-	var err error
+
+	var (
+		csm io.ColumnSeriesMap
+		err error
+	)
+
 	if c.mode == local {
 		csm, err = processShowLocal(tbk, start, end)
 		if err != nil {
@@ -85,18 +89,18 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.Colu
 	pr, err := query.Parse()
 	if err != nil {
 		fmt.Println("No results")
-		Log(ERROR, "Parsing query: %v", err)
+		log.Error("Parsing query: %v", err)
 		return
 	}
 
 	scanner, err := executor.NewReader(pr)
 	if err != nil {
-		Log(ERROR, "Error return from query scanner: %v", err)
+		log.Error("Error return from query scanner: %v", err)
 		return
 	}
-	csm, _, err = scanner.Read()
+	csm, err = scanner.Read()
 	if err != nil {
-		Log(ERROR, "Error return from query scanner: %v", err)
+		log.Error("Error return from query scanner: %v", err)
 		return
 	}
 
@@ -145,7 +149,7 @@ func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, en
 		default:
 			t, err := parseTime(arg)
 			if err != nil {
-				Log(ERROR, "Invalid Symbol/Timeframe/recordFormat string %v", arg)
+				log.Error("Invalid Symbol/Timeframe/recordFormat string %v", arg)
 				fmt.Printf("Invalid time string %v\n", arg)
 				return nil, nil, nil
 			}

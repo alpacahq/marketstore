@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
-	. "github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -44,46 +45,50 @@ type MktsConfig struct {
 }
 
 func (m *MktsConfig) Parse(data []byte) error {
-	var err error
-	var aux struct {
-		RootDirectory     string `yaml:"root_directory"`
-		ListenPort        string `yaml:"listen_port"`
-		Timezone          string `yaml:"timezone"`
-		LogLevel          string `yaml:"log_level"`
-		Queryable         string `yaml:"queryable"`
-		StopGracePeriod   int    `yaml:"stop_grace_period"`
-		WALRotateInterval int    `yaml:"wal_rotate_interval"`
-		EnableAdd         string `yaml:"enable_add"`
-		EnableRemove      string `yaml:"enable_remove"`
-		EnableLastKnown   string `yaml:"enable_last_known"`
-		Triggers          []struct {
-			Module string                 `yaml:"module"`
-			On     string                 `yaml:"on"`
-			Config map[string]interface{} `yaml:"config"`
-		} `yaml:"triggers"`
-		BgWorkers []struct {
-			Module string                 `yaml:"module"`
-			Name   string                 `yaml:"name"`
-			Config map[string]interface{} `yaml:"config"`
-		} `yaml:"bgworkers"`
-	}
+	var (
+		err error
+		aux struct {
+			RootDirectory     string `yaml:"root_directory"`
+			ListenPort        string `yaml:"listen_port"`
+			Timezone          string `yaml:"timezone"`
+			LogLevel          string `yaml:"log_level"`
+			Queryable         string `yaml:"queryable"`
+			StopGracePeriod   int    `yaml:"stop_grace_period"`
+			WALRotateInterval int    `yaml:"wal_rotate_interval"`
+			EnableAdd         string `yaml:"enable_add"`
+			EnableRemove      string `yaml:"enable_remove"`
+			EnableLastKnown   string `yaml:"enable_last_known"`
+			Triggers          []struct {
+				Module string                 `yaml:"module"`
+				On     string                 `yaml:"on"`
+				Config map[string]interface{} `yaml:"config"`
+			} `yaml:"triggers"`
+			BgWorkers []struct {
+				Module string                 `yaml:"module"`
+				Name   string                 `yaml:"name"`
+				Config map[string]interface{} `yaml:"config"`
+			} `yaml:"bgworkers"`
+		}
+	)
 
 	if err := yaml.Unmarshal(data, &aux); err != nil {
 		return err
 	}
+
 	if aux.RootDirectory == "" {
-		Log(FATAL, "Invalid root directory.")
+		log.Fatal("Invalid root directory.")
 		return errors.New("Invalid root directory.")
 	}
+
 	if aux.ListenPort == "" {
-		Log(FATAL, "Invalid listen port.")
+		log.Fatal("Invalid listen port.")
 		return errors.New("Invalid listen port.")
 	}
 
 	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
 	m.Timezone, err = time.LoadLocation(aux.Timezone)
 	if err != nil {
-		Log(FATAL, "Invalid timezone.")
+		log.Fatal("Invalid timezone.")
 		return errors.New("Invalid timezone")
 	}
 
@@ -92,53 +97,63 @@ func (m *MktsConfig) Parse(data []byte) error {
 	} else {
 		m.WALRotateInterval = aux.WALRotateInterval
 	}
+
 	if aux.Queryable != "" {
 		queryable, err := strconv.ParseBool(aux.Queryable)
 		if err != nil {
-			Log(ERROR, "Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
+			log.Error("Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
 		} else {
 			m.Queryable = queryable
 		}
 	}
+
 	if aux.LogLevel != "" {
-		switch aux.LogLevel {
+		switch strings.ToLower(aux.LogLevel) {
+		case "fatal":
+			log.SetLevel(log.FATAL)
 		case "error":
-			SetLogLevel(ERROR)
+			log.SetLevel(log.ERROR)
 		case "warning":
-			SetLogLevel(WARNING)
+			log.SetLevel(log.WARNING)
+		case "debug":
+			log.SetLevel(log.DEBUG)
 		case "info":
-			SetLogLevel(INFO)
+			fallthrough
+		default:
+			log.SetLevel(log.INFO)
 		}
-	} else {
-		SetLogLevel(INFO)
 	}
+
 	if aux.StopGracePeriod > 0 {
 		m.StopGracePeriod = time.Duration(aux.StopGracePeriod) * time.Second
 	}
+
 	if aux.EnableAdd != "" {
 		enableAdd, err := strconv.ParseBool(aux.EnableAdd)
 		if err != nil {
-			Log(ERROR, "Invalid value: %v for enable_add. Disabling add...", aux.EnableAdd)
+			log.Error("Invalid value: %v for enable_add. Disabling add...", aux.EnableAdd)
 		} else {
 			m.EnableAdd = enableAdd
 		}
 	}
+
 	if aux.EnableRemove != "" {
 		enableRemove, err := strconv.ParseBool(aux.EnableRemove)
 		if err != nil {
-			Log(ERROR, "Invalid value: %v for enable_add. Disabling remove...", aux.EnableRemove)
+			log.Error("Invalid value: %v for enable_add. Disabling remove...", aux.EnableRemove)
 		} else {
 			m.EnableRemove = enableRemove
 		}
 	}
+
 	m.EnableLastKnown = false
-	Log(INFO, "Disabling \"enable_last_known\" feature until it is fixed...")
+	log.Info("Disabling \"enable_last_known\" feature until it is fixed...")
 	/*
 		// Broken - disable for now
 		if aux.EnableLastKnown != "" {
 			enableLastKnown, err := strconv.ParseBool(aux.EnableLastKnown)
 			if err != nil {
-				Log(ERROR, "Invalid value: %v for enable_last_known.  Disabling lastKnown...", aux.EnableLastKnown)
+				log.Error("Invalid value: %v for enable_last_known.  Disabling lastKnown...", aux.EnableLastKnown)
 			} else {
 				m.EnableLastKnown = enableLastKnown
 			}
@@ -155,6 +170,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 		}
 		m.Triggers = append(m.Triggers, triggerSetting)
 	}
+
 	for _, bg := range aux.BgWorkers {
 		bgWorkerSetting := &BgWorkerSetting{
 			Module: bg.Module,
@@ -163,5 +179,6 @@ func (m *MktsConfig) Parse(data []byte) error {
 		}
 		m.BgWorkers = append(m.BgWorkers, bgWorkerSetting)
 	}
+
 	return err
 }

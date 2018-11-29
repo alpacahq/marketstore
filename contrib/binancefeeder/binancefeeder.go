@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"net/http"
 	"regexp"
@@ -15,7 +16,6 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/golang/glog"
 )
 
 var suffixBinanceDefs = map[string]string{
@@ -96,6 +96,7 @@ func recast(config map[string]interface{}) *FetcherConfig {
 	data, _ := json.Marshal(config)
 	ret := FetcherConfig{}
 	json.Unmarshal(data, &ret)
+
 	return &ret
 }
 
@@ -104,7 +105,7 @@ func convertStringToFloat(str string) float64 {
 	convertedString, err := strconv.ParseFloat(str, 64)
 	//Store error in string array which will be checked in main fucntion later to see if there is a need to exit
 	if err != nil {
-		glog.Errorf("String to float error: %v", err)
+		fmt.Printf("String to float error: %v\n", err)
 		errorsConversion = append(errorsConversion, err)
 	}
 	return convertedString
@@ -159,7 +160,7 @@ func getAllSymbols(quoteAsset string) []string {
 	quote := ""
 
 	if err != nil {
-		glog.Errorf("Binance /exchangeInfo API error: %v", err)
+		fmt.Printf("Binance /exchangeInfo API error: %v\n", err)
 		tradingSymbols = []string{"BTC", "EOS", "ETH", "BNB", "TRX", "ONT", "XRP", "ADA",
 			"LTC", "BCC", "TUSD", "IOTA", "ETC", "ICX", "NEO", "XLM", "QTUM"}
 	} else {
@@ -207,7 +208,7 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 		return time.Time{}
 	}
 	reader, err := executor.NewReader(parsed)
-	csm, _, err := reader.Read()
+	csm, err := reader.Read()
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
@@ -269,7 +270,7 @@ func (bn *BinanceFetcher) Run() {
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
 	correctIntervalSymbol := suffixBinanceDefs[timeIntervalLettersOnly]
 	if len(correctIntervalSymbol) <= 0 {
-		glog.Errorf("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'")
+		fmt.Printf("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'\n")
 		correctIntervalSymbol = "1Min"
 	}
 	timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
@@ -278,7 +279,7 @@ func (bn *BinanceFetcher) Run() {
 	for _, symbol := range symbols {
 		tbk := io.NewTimeBucketKey(symbol + "/" + bn.baseTimeframe.String + "/OHLCV")
 		lastTimestamp := findLastTimestamp(symbol, tbk)
-		glog.Infof("lastTimestamp for %s = %v", symbol, lastTimestamp)
+		fmt.Printf("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
 		}
@@ -352,7 +353,7 @@ func (bn *BinanceFetcher) Run() {
 			case "1D":
 				timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 			default:
-				glog.Infof("Incorrect format: %v", originalInterval)
+				fmt.Printf("Incorrect format: %v\n", originalInterval)
 			}
 			waitTill = timeEnd.Add(bn.baseTimeframe.Duration)
 
@@ -366,7 +367,7 @@ func (bn *BinanceFetcher) Run() {
 			for !gotCandle {
 				rates, err := client.NewKlinesService().Symbol(symbols[0] + baseCurrency).Interval(timeInterval).StartTime(timeStartM).Do(context.Background())
 				if err != nil {
-					glog.Errorf("Response error: %v", err)
+					fmt.Printf("Response error: %v\n", err)
 					time.Sleep(time.Minute)
 				}
 
@@ -385,18 +386,18 @@ func (bn *BinanceFetcher) Run() {
 		timeEndM = timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 
 		for _, symbol := range symbols {
-			glog.Infof("Requesting %s %v - %v", symbol, timeStart, timeEnd)
+			fmt.Printf("Requesting %s %v - %v\n", symbol, timeStart, timeEnd)
 			rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).Interval(timeInterval).StartTime(timeStartM).EndTime(timeEndM).Do(context.Background())
 			if err != nil {
-				glog.Errorf("Response error: %v", err)
-				glog.Infof("Problematic symbol %s", symbol)
+				fmt.Printf("Response error: %v\n", err)
+				fmt.Printf("Problematic symbol %s\n", symbol)
 				time.Sleep(time.Minute)
 				// Go back to last time
 				timeStart = originalTimeStart
 				continue
 			}
 			// if len(rates) == 0 {
-			// 	glog.Info("len(rates) == 0")
+			// 	fmt.Printf("len(rates) == 0\n")
 			// 	continue
 			// }
 
@@ -425,7 +426,7 @@ func (bn *BinanceFetcher) Run() {
 						}
 					}
 				} else {
-					glog.Infof("No value in rate %v", rate)
+					fmt.Printf("No value in rate %v\n", rate)
 				}
 			}
 

@@ -1,9 +1,9 @@
-package SQLParser
+package sqlparser
 
 import (
 	"fmt"
 
-	. "github.com/alpacahq/marketstore/SQLParser/parser"
+	. "github.com/alpacahq/marketstore/sqlparser/parser"
 	. "github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
