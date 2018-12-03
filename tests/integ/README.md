@@ -13,7 +13,7 @@ This is a work in progress and tests will be modified or added according to the 
 ## Connection Test
 - Command
 ```
-make connect
+make -C tests/integ connect
 ```
 
 ## WIP
