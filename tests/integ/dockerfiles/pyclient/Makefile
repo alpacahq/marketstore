@@ -7,7 +7,6 @@ DOCKER_ADDOPTS=	-v $(CURDIR)/../../tests:/project/tests \
 
 
 
-
 test:
-	docker exec -i -t $(CONTAINER_NAME) bash -c \
+	docker exec $(CONTAINER_NAME) bash -c \
 		"pytest -v -v -v $(TEST_FILENAME)"

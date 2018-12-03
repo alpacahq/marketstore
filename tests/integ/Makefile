@@ -43,7 +43,6 @@ test:
 .PHONY: clean
 clean: stop
 	rm -rf data tests/__pycache__
-	rm -rf ${MARKETSTORE_DEV_DB_TMPFILE}
 
 
 # Utils
@@ -83,8 +82,10 @@ _start_pyclient_container:
 
 .PHONY: test_driver
 test_driver: clean run _start_pyclient_container
-	TEST_FILENAME='/project/tests/$@.py' make -C dockerfiles/pyclient test
+	TEST_FILENAME='/project/tests/$@.py'; \
+	make -C dockerfiles/pyclient test
 
 .PHONY: test_not_empty
 test_not_empty: clean run _start_pyclient_container
-	TEST_FILENAME='/project/tests/$@.py' make -C dockerfiles/pyclient test
+	TEST_FILENAME='/project/tests/$@.py'; \
+	make -C dockerfiles/pyclient test
