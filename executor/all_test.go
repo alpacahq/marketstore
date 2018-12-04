@@ -253,12 +253,34 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	q.AddRestriction("AttributeGroup", "TICK-BIDASK")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRowLimit(LAST, 10)
+
+	// Test last N query
 	parsed, _ = q.Parse()
 	reader, err = NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err = reader.Read()
 	for _, cs := range csm {
+		fmt.Println("Results: ", cs)
 		c.Assert(cs.Len() == 10, Equals, true)
+		c.Assert(cs.GetEpoch()[9] == row.Epoch, Equals, true)
+		nanos := cs.GetByName("Nanoseconds").([]int32)
+		c.Assert(math.Abs(float64(nanos[9]-600000000)) < 50., Equals, true)
+		break
+	}
+
+	// Test first N query
+	q.SetRowLimit(FIRST, 10)
+	parsed, _ = q.Parse()
+	reader, err = NewReader(parsed)
+	c.Assert(err == nil, Equals, true)
+	csm, err = reader.Read()
+	for _, cs := range csm {
+		fmt.Println("Results: ", cs)
+		c.Assert(cs.Len() == 10, Equals, true)
+		c.Assert(cs.GetEpoch()[9] == row.Epoch, Equals, true)
+		nanos := cs.GetByName("Nanoseconds").([]int32)
+		fmt.Println("Nanos: ", nanos)
+		c.Assert(math.Abs(float64(nanos[9]-505000000)) < 50., Equals, true)
 		break
 	}
 }

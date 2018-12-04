@@ -362,7 +362,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 		If this is a variable record type, we need a second stage of reading to get the data from the files
 	*/
 	if iop.RecordType == VARIABLE {
-		resultBuffer, err = r.readSecondStage(bufMeta, iop.Limit.Number)
+		resultBuffer, err = r.readSecondStage(bufMeta, iop.Limit.Number, iop.Limit.Direction)
 		if err != nil {
 			return nil, err
 		}
