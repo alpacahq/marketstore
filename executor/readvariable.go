@@ -13,12 +13,14 @@ import (
 */
 import "C"
 
-func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32) (rb []byte, err error) {
+func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, direction DirectionEnum) (rb []byte, err error) {
 	/*
 		Here we use the bufFileMap which has index data for each file, then we read
 		the target data into the resultBuffer up to the limitCount number of records
 	*/
+	var varRecLen int
 	for _, md := range bufMeta {
+		varRecLen = md.VarRecLen
 		file := md.FullPath
 		indexBuffer := md.Data
 
@@ -35,11 +37,13 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32) (rb []b
 		numberLeftToRead := int(limitCount)
 		for i := 0; i < numIndexRecords; i++ {
 			datalen := int(ToInt64(indexBuffer[i*24+16:]))
-			numVarRecords := datalen / md.VarRecLen
-			if numVarRecords >= numberLeftToRead {
-				numVarRecords = numberLeftToRead
+			numVarRecords := datalen / varRecLen
+			if direction == FIRST {
+				if numVarRecords >= numberLeftToRead {
+					numVarRecords = numberLeftToRead
+				}
 			}
-			totalDatalen += numVarRecords * (md.VarRecLen + 8)
+			totalDatalen += numVarRecords * (varRecLen + 8)
 			numberLeftToRead -= numVarRecords
 		}
 
@@ -59,15 +63,17 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32) (rb []b
 			}
 
 			// Loop over the variable records and prepend the index time to each
-			numVarRecords := len(buffer) / md.VarRecLen
-			if numVarRecords >= numberLeftToRead {
-				numVarRecords = numberLeftToRead
+			numVarRecords := len(buffer) / varRecLen
+			if direction == FIRST {
+				if numVarRecords >= numberLeftToRead {
+					numVarRecords = numberLeftToRead
+				}
 			}
-			rbTemp := make([]byte, numVarRecords*(md.VarRecLen+8)) // Add the extra space for epoch
+			rbTemp := make([]byte, numVarRecords*(varRecLen+8)) // Add the extra space for epoch
 
 			arg1 := (*C.char)(unsafe.Pointer(&buffer[0]))
 			arg4 := (*C.char)(unsafe.Pointer(&rbTemp[0]))
-			C.rewriteBuffer(arg1, C.int(md.VarRecLen), C.int(numVarRecords), arg4,
+			C.rewriteBuffer(arg1, C.int(varRecLen), C.int(numVarRecords), arg4,
 				C.int64_t(md.Intervals), C.int64_t(intervalStartEpoch))
 
 			//rb = append(rb, rbTemp...)
@@ -75,11 +81,21 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32) (rb []b
 			rbCursor += len(rbTemp)
 
 			numberLeftToRead -= numVarRecords
-			if numberLeftToRead == 0 {
-				break
+			if direction == FIRST {
+				if numberLeftToRead == 0 {
+					break
+				}
 			}
 		}
 		fp.Close()
+	}
+	if direction == LAST {
+		// Chop the last N records out of the results
+		numVarRecords := len(rb) / (varRecLen + 8)
+		if int(limitCount) < numVarRecords {
+			offset := (varRecLen + 8) * (numVarRecords - int(limitCount))
+			rb = rb[offset:]
+		}
 	}
 	return rb, nil
 }
