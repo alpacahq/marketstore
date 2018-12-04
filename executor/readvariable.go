@@ -13,10 +13,10 @@ import (
 */
 import "C"
 
-func (r *reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
+func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32) (rb []byte, err error) {
 	/*
 		Here we use the bufFileMap which has index data for each file, then we read
-		the target data into the resultBuffer
+		the target data into the resultBuffer up to the limitCount number of records
 	*/
 	for _, md := range bufMeta {
 		file := md.FullPath
@@ -32,11 +32,18 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 		*/
 		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
 		var totalDatalen int
+		numberLeftToRead := int(limitCount)
 		for i := 0; i < numIndexRecords; i++ {
 			datalen := int(ToInt64(indexBuffer[i*24+16:]))
 			numVarRecords := datalen / md.VarRecLen
+			if numVarRecords >= numberLeftToRead {
+				numVarRecords = numberLeftToRead
+			}
 			totalDatalen += numVarRecords * (md.VarRecLen + 8)
+			numberLeftToRead -= numVarRecords
 		}
+
+		numberLeftToRead = int(limitCount)
 		rb = make([]byte, totalDatalen)
 		var rbCursor int
 		for i := 0; i < numIndexRecords; i++ {
@@ -53,6 +60,9 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 
 			// Loop over the variable records and prepend the index time to each
 			numVarRecords := len(buffer) / md.VarRecLen
+			if numVarRecords >= numberLeftToRead {
+				numVarRecords = numberLeftToRead
+			}
 			rbTemp := make([]byte, numVarRecords*(md.VarRecLen+8)) // Add the extra space for epoch
 
 			arg1 := (*C.char)(unsafe.Pointer(&buffer[0]))
@@ -63,6 +73,11 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 			//rb = append(rb, rbTemp...)
 			copy(rb[rbCursor:], rbTemp)
 			rbCursor += len(rbTemp)
+
+			numberLeftToRead -= numVarRecords
+			if numberLeftToRead == 0 {
+				break
+			}
 		}
 		fp.Close()
 	}
