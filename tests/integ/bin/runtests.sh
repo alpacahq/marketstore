@@ -83,3 +83,4 @@ exit_if_failed $?
 
 # remove the temporary files
 rm -rf testdata test_ticks.csv tmp.csv
+
