@@ -103,6 +103,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			cc = &WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
+				VarRecLen: w.tbi.GetVariableRecordLength(),
 				Offset:     offset,
 				Index:      index,
 				Data:       nil}
@@ -125,6 +126,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			cc = &WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
+				VarRecLen: w.tbi.GetVariableRecordLength(),
 				Offset:     offset,
 				Index:      index,
 				Data:       outBuf}
