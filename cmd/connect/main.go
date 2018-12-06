@@ -27,6 +27,8 @@ const (
 	dirFlag    = "dir"
 	defaultDir = ""
 	dirDesc    = "filesystem path of the directory containing database files when used in local mode"
+	defaultVarCompOff = false
+	varCompOffDesc = "disables the compression of variable data (on by default, uses snappy)"
 )
 
 var (
@@ -52,7 +54,7 @@ var (
 func init() {
 	Cmd.Flags().StringVarP(&url, urlFlag, "u", defaultURL, urlDesc)
 	Cmd.Flags().StringVarP(&dir, dirFlag, "d", defaultDir, dirDesc)
-	Cmd.Flags().BoolVarP(&varCompOff, "disable variable compression", "c", false, "c")
+	Cmd.Flags().BoolVarP(&varCompOff, "disable_variable_compression", "c", defaultVarCompOff, varCompOffDesc)
 	if varCompOff {
 		utils.InstanceConfig.DisableVariableCompression = true
 	}
