@@ -66,11 +66,6 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
 
-	if utils.InstanceConfig.DisableVariableCompression {
-		executor.Compressed = false
-	}
-
-
 	// Spawn a goroutine and listen for a signal.
 	signalChan := make(chan os.Signal)
 	go func() {

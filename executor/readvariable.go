@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"github.com/alpacahq/marketstore/utils"
 	"github.com/klauspost/compress/snappy"
 	"os"
 	"unsafe"
@@ -34,20 +35,20 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 			Calculate how much space is needed in the results buffer
 		*/
 		/*
-		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
-		var totalDatalen int
-		numberLeftToRead := int(limitCount)
-		for i := 0; i < numIndexRecords; i++ {
-			datalen := int(ToInt64(indexBuffer[i*24+16:]))
-			numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
-			if direction == FIRST {
-				if numVarRecords >= numberLeftToRead {
-					numVarRecords = numberLeftToRead
+			numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
+			var totalDatalen int
+			numberLeftToRead := int(limitCount)
+			for i := 0; i < numIndexRecords; i++ {
+				datalen := int(ToInt64(indexBuffer[i*24+16:]))
+				numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
+				if direction == FIRST {
+					if numVarRecords >= numberLeftToRead {
+						numVarRecords = numberLeftToRead
+					}
 				}
+				totalDatalen += numVarRecords * (varRecLen + 8)
+				numberLeftToRead -= numVarRecords
 			}
-			totalDatalen += numVarRecords * (varRecLen + 8)
-			numberLeftToRead -= numVarRecords
-		}
 		*/
 		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
 		numberLeftToRead := int(limitCount)
@@ -66,7 +67,7 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 				return nil, err
 			}
 
-			if Compressed {
+			if !utils.InstanceConfig.DisableVariableCompression {
 				buffer, err = snappy.Decode(nil, buffer)
 				if err != nil {
 					return nil, err

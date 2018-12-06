@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/utils"
 	"github.com/klauspost/compress/snappy"
 	stdio "io"
 	"os"
@@ -18,8 +19,6 @@ import (
 //#include "quickSort.h"
 //#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument
 import "C"
-
-var Compressed = true
 
 type Writer struct {
 	root *catalog.Directory
@@ -188,7 +187,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 		if _, err := fp.Read(oldData); err != nil {
 			return err
 		}
-		if Compressed {
+		if !utils.InstanceConfig.DisableVariableCompression {
 			oldData, err = snappy.Decode(nil, oldData)
 			if err != nil {
 				return err
@@ -217,7 +216,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	/*
 		Write the data at the end of the file
 	*/
-	if Compressed {
+	if !utils.InstanceConfig.DisableVariableCompression {
 		comp := snappy.Encode(nil, dataToBeWritten)
 		if _, err = fp.Write(comp); err != nil {
 			return err

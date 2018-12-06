@@ -30,37 +30,37 @@ type BgWorkerSetting struct {
 }
 
 type MktsConfig struct {
-	RootDirectory     string
-	ListenPort        string
-	Timezone          *time.Location
-	Queryable         bool
-	StopGracePeriod   time.Duration
-	WALRotateInterval int
-	EnableAdd         bool
-	EnableRemove      bool
-	EnableLastKnown   bool
-	DisableVariableCompression   bool
-	StartTime         time.Time
-	Triggers          []*TriggerSetting
-	BgWorkers         []*BgWorkerSetting
+	RootDirectory              string
+	ListenPort                 string
+	Timezone                   *time.Location
+	Queryable                  bool
+	StopGracePeriod            time.Duration
+	WALRotateInterval          int
+	EnableAdd                  bool
+	EnableRemove               bool
+	EnableLastKnown            bool
+	DisableVariableCompression bool
+	StartTime                  time.Time
+	Triggers                   []*TriggerSetting
+	BgWorkers                  []*BgWorkerSetting
 }
 
 func (m *MktsConfig) Parse(data []byte) error {
 	var (
 		err error
 		aux struct {
-			RootDirectory     string `yaml:"root_directory"`
-			ListenPort        string `yaml:"listen_port"`
-			Timezone          string `yaml:"timezone"`
-			LogLevel          string `yaml:"log_level"`
-			Queryable         string `yaml:"queryable"`
-			StopGracePeriod   int    `yaml:"stop_grace_period"`
-			WALRotateInterval int    `yaml:"wal_rotate_interval"`
-			EnableAdd         string `yaml:"enable_add"`
-			EnableRemove      string `yaml:"enable_remove"`
-			EnableLastKnown   string `yaml:"enable_last_known"`
-			DisableVariableCompression   string `yaml:"disable_variable_compression"`
-			Triggers          []struct {
+			RootDirectory              string `yaml:"root_directory"`
+			ListenPort                 string `yaml:"listen_port"`
+			Timezone                   string `yaml:"timezone"`
+			LogLevel                   string `yaml:"log_level"`
+			Queryable                  string `yaml:"queryable"`
+			StopGracePeriod            int    `yaml:"stop_grace_period"`
+			WALRotateInterval          int    `yaml:"wal_rotate_interval"`
+			EnableAdd                  string `yaml:"enable_add"`
+			EnableRemove               string `yaml:"enable_remove"`
+			EnableLastKnown            string `yaml:"enable_last_known"`
+			DisableVariableCompression string `yaml:"disable_variable_compression"`
+			Triggers                   []struct {
 				Module string                 `yaml:"module"`
 				On     string                 `yaml:"on"`
 				Config map[string]interface{} `yaml:"config"`

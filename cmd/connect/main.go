@@ -2,6 +2,7 @@ package connect
 
 import (
 	"errors"
+	"github.com/alpacahq/marketstore/utils"
 
 	"github.com/alpacahq/marketstore/cmd/connect/session"
 	"github.com/alpacahq/marketstore/utils/log"
@@ -44,11 +45,17 @@ var (
 	url string
 	// dir set via flag for local directory location.
 	dir string
+	// turns compression of variable data off
+	varCompOff bool
 )
 
 func init() {
 	Cmd.Flags().StringVarP(&url, urlFlag, "u", defaultURL, urlDesc)
 	Cmd.Flags().StringVarP(&dir, dirFlag, "d", defaultDir, dirDesc)
+	Cmd.Flags().BoolVarP(&varCompOff, "disable variable compression", "c", false, "c")
+	if varCompOff {
+		utils.InstanceConfig.DisableVariableCompression = true
+	}
 }
 
 // validateArgs returns an error that prevents cmd execution if
