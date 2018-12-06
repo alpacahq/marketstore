@@ -18,7 +18,7 @@ type WriteCommand struct {
 	RecordType    io.EnumRecordType
 	WALKeyPath    string
 	Offset, Index int64
-	VarRecLen int32
+	VarRecLen     int32
 	Data          []byte
 }
 

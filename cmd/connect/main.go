@@ -23,11 +23,11 @@ const (
 	defaultURL = ""
 	urlDesc    = "network address to database instance at \"hostname:port\" when used in remote mode"
 	// Local directory.
-	dirFlag    = "dir"
-	defaultDir = ""
-	dirDesc    = "filesystem path of the directory containing database files when used in local mode"
+	dirFlag           = "dir"
+	defaultDir        = ""
+	dirDesc           = "filesystem path of the directory containing database files when used in local mode"
 	defaultVarCompOff = false
-	varCompOffDesc = "disables the compression of variable data (on by default, uses snappy)"
+	varCompOffDesc    = "disables the compression of variable data (on by default, uses snappy)"
 )
 
 var (
