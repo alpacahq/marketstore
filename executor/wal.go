@@ -330,7 +330,6 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 		case io.VARIABLE:
 			// Find the record length - we need it to use the time column as a sort key later
 			var ti *io.TimeBucketInfo
-			fmt.Println("full path: ", fullPath)
 			if ti, err = ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromFullFilePath(fullPath); err != nil {
 				return err
 			}
