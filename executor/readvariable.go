@@ -34,27 +34,31 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 		/*
 			Calculate how much space is needed in the results buffer
 		*/
-		/*
-			numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
-			var totalDatalen int
-			numberLeftToRead := int(limitCount)
-			for i := 0; i < numIndexRecords; i++ {
-				datalen := int(ToInt64(indexBuffer[i*24+16:]))
-				numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
-				if direction == FIRST {
-					if numVarRecords >= numberLeftToRead {
-						numVarRecords = numberLeftToRead
-					}
-				}
-				totalDatalen += numVarRecords * (varRecLen + 8)
-				numberLeftToRead -= numVarRecords
-			}
-		*/
+		var totalDatalen int
+		// Without compression we have the exact size of the output buffer
 		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
 		numberLeftToRead := int(limitCount)
-		rb = make([]byte, 0)
-		//rb = make([]byte, totalDatalen)
-		//var rbCursor int
+		for i := 0; i < numIndexRecords; i++ {
+			datalen := int(ToInt64(indexBuffer[i*24+16:]))
+			numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
+			if direction == FIRST {
+				if numVarRecords >= numberLeftToRead {
+					numVarRecords = numberLeftToRead
+				}
+			}
+			totalDatalen += numVarRecords * (varRecLen + 8)
+			numberLeftToRead -= numVarRecords
+		}
+		if !utils.InstanceConfig.DisableVariableCompression {
+			// With compression, the size is approximate, multiply by estimated ratio to get close
+			totalDatalen *= 4
+		}
+
+		numIndexRecords = len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
+		numberLeftToRead = int(limitCount)
+		//rb = make([]byte, 0)
+		rb = make([]byte, totalDatalen)
+		var rbCursor int
 		for i := 0; i < numIndexRecords; i++ {
 			intervalStartEpoch := ToInt64(indexBuffer[i*24:])
 			offset := ToInt64(indexBuffer[i*24+8:])
@@ -88,9 +92,15 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 			C.rewriteBuffer(arg1, C.int(varRecLen), C.int(numVarRecords), arg4,
 				C.int64_t(md.Intervals), C.int64_t(intervalStartEpoch))
 
-			rb = append(rb, rbTemp...)
-			//copy(rb[rbCursor:], rbTemp)
-			//rbCursor += len(rbTemp)
+			//rb = append(rb, rbTemp...)
+			if (len(rb) + len(rbTemp)) > totalDatalen {
+				totalDatalen += totalDatalen
+				rb2 := make([]byte, totalDatalen)
+				copy(rb2, rb)
+				rb = rb2
+			}
+			copy(rb[rbCursor:], rbTemp)
+			rbCursor += len(rbTemp)
 
 			numberLeftToRead -= numVarRecords
 			if direction == FIRST {
@@ -99,6 +109,7 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 				}
 			}
 		}
+		rb = rb[:rbCursor]
 		fp.Close()
 	}
 	if direction == LAST {
