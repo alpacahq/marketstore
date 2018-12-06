@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"github.com/klauspost/compress/snappy"
 	stdio "io"
 	"os"
 	"strings"
@@ -17,6 +18,8 @@ import (
 //#include "quickSort.h"
 //#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument
 import "C"
+
+var Compressed = true
 
 type Writer struct {
 	root *catalog.Directory
@@ -185,8 +188,14 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 		if _, err := fp.Read(oldData); err != nil {
 			return err
 		}
+		if Compressed {
+			oldData, err = snappy.Decode(nil, oldData)
+			if err != nil {
+				return err
+			}
+		}
 		dataToBeWritten = append(oldData, dataToBeWritten...)
-		dataLen = currentRecInfo.Len + dataLen
+		dataLen = int64(len(dataToBeWritten))
 	}
 
 	// Determine if this is a continuation write
@@ -208,9 +217,18 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	/*
 		Write the data at the end of the file
 	*/
-	if _, err = fp.Write(dataToBeWritten); err != nil {
-		return err
+	if Compressed {
+		comp := snappy.Encode(nil, dataToBeWritten)
+		if _, err = fp.Write(comp); err != nil {
+			return err
+		}
+		dataLen = int64(len(comp))
+	} else {
+		if _, err = fp.Write(dataToBeWritten); err != nil {
+			return err
+		}
 	}
+
 	//log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
 
 	/*
@@ -301,70 +319,5 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	}
 	wal := ThisInstance.WALFile
 	wal.RequestFlush()
-	return nil
-}
-
-/*
-Legacy functions
-*/
-func WriteBufferToFileIndirectOverwrite(fp *os.File, buffer offsetIndexBuffer) (err error) {
-	/*
-		Here we write the data payload of the buffer to the end of the data file
-	*/
-	primaryOffset := buffer.Offset() // Offset to storage of indirect record info
-	index := buffer.Index()
-	dataToBeWritten := buffer.Payload()
-	dataLen := int64(len(dataToBeWritten))
-
-	/*
-		Write the data at the end of the file
-	*/
-	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
-	_, err = fp.Write(dataToBeWritten)
-	if err != nil {
-		return err
-	}
-
-	/*
-		Now we write or update the index record
-		First we read the file at the index location to see if this is an incremental write
-	*/
-	fp.Seek(primaryOffset, stdio.SeekStart)
-	idBuf := make([]byte, 24) // {Index, Offset, Len}
-	_, err = fp.Read(idBuf)
-	if err != nil {
-		return err
-	}
-
-	currentRecInfo := SwapSliceByte(idBuf, IndirectRecordInfo{}).([]IndirectRecordInfo)[0]
-	/*
-		The default is a new write at the end of the file
-	*/
-	targetRecInfo := IndirectRecordInfo{Index: index, Offset: endOfFileOffset, Len: dataLen}
-
-	/*
-		If this is a continuation write, we adjust the targetRecInfo accordingly
-	*/
-	if currentRecInfo.Index != 0 { // If the index from the file is 0, this is a new write
-		cursor := currentRecInfo.Offset + currentRecInfo.Len
-		if endOfFileOffset == cursor {
-			// Incremental write
-			targetRecInfo.Len += currentRecInfo.Len
-			targetRecInfo.Offset = currentRecInfo.Offset
-		}
-	}
-
-	/*
-		Write the indirect record info at the primaryOffset
-	*/
-	odata := []int64{targetRecInfo.Index, targetRecInfo.Offset, targetRecInfo.Len}
-	obuf := SwapSliceData(odata, byte(0)).([]byte)
-
-	fp.Seek(-24, stdio.SeekCurrent)
-	_, err = fp.Write(obuf)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

@@ -39,6 +39,7 @@ type MktsConfig struct {
 	EnableAdd         bool
 	EnableRemove      bool
 	EnableLastKnown   bool
+	DisableVariableCompression   bool
 	StartTime         time.Time
 	Triggers          []*TriggerSetting
 	BgWorkers         []*BgWorkerSetting
@@ -58,6 +59,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 			EnableAdd         string `yaml:"enable_add"`
 			EnableRemove      string `yaml:"enable_remove"`
 			EnableLastKnown   string `yaml:"enable_last_known"`
+			DisableVariableCompression   string `yaml:"disable_variable_compression"`
 			Triggers          []struct {
 				Module string                 `yaml:"module"`
 				On     string                 `yaml:"on"`
@@ -148,6 +150,13 @@ func (m *MktsConfig) Parse(data []byte) error {
 
 	m.EnableLastKnown = false
 	log.Info("Disabling \"enable_last_known\" feature until it is fixed...")
+
+	if aux.DisableVariableCompression != "" {
+		m.DisableVariableCompression, err = strconv.ParseBool(aux.DisableVariableCompression)
+		if err != nil {
+			log.Error("Invalid value for DisableVariableCompression")
+		}
+	}
 	/*
 		// Broken - disable for now
 		if aux.EnableLastKnown != "" {
