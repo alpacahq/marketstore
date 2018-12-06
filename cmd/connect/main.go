@@ -2,9 +2,8 @@ package connect
 
 import (
 	"errors"
-	"github.com/alpacahq/marketstore/utils"
-
 	"github.com/alpacahq/marketstore/cmd/connect/session"
+	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
 )
@@ -55,9 +54,6 @@ func init() {
 	Cmd.Flags().StringVarP(&url, urlFlag, "u", defaultURL, urlDesc)
 	Cmd.Flags().StringVarP(&dir, dirFlag, "d", defaultDir, dirDesc)
 	Cmd.Flags().BoolVarP(&varCompOff, "disable_variable_compression", "c", defaultVarCompOff, varCompOffDesc)
-	if varCompOff {
-		utils.InstanceConfig.DisableVariableCompression = true
-	}
 }
 
 // validateArgs returns an error that prevents cmd execution if
@@ -65,6 +61,9 @@ func init() {
 func validateArgs(cmd *cobra.Command, args []string) error {
 	if len(dir) == 0 && len(url) == 0 {
 		return errors.New("cannot connect to database, use a flag to set location")
+	}
+	if varCompOff {
+		utils.InstanceConfig.DisableVariableCompression = true
 	}
 	return nil
 }

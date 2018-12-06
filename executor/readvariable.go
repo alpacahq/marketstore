@@ -93,10 +93,10 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 				C.int64_t(md.Intervals), C.int64_t(intervalStartEpoch))
 
 			//rb = append(rb, rbTemp...)
-			if (len(rb) + len(rbTemp)) > totalDatalen {
+			if (rbCursor + len(rbTemp)) > totalDatalen {
 				totalDatalen += totalDatalen
 				rb2 := make([]byte, totalDatalen)
-				copy(rb2, rb)
+				copy(rb2[:rbCursor], rb[:rbCursor])
 				rb = rb2
 			}
 			copy(rb[rbCursor:], rbTemp)
