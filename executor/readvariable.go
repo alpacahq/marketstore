@@ -38,19 +38,23 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 		// Without compression we have the exact size of the output buffer
 		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
 		numberLeftToRead := int(limitCount)
-		for i := 0; i < numIndexRecords; i++ {
-			datalen := int(ToInt64(indexBuffer[i*24+16:]))
-			numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
-			if direction == FIRST {
-				if numVarRecords >= numberLeftToRead {
-					numVarRecords = numberLeftToRead
+		if utils.InstanceConfig.DisableVariableCompression {
+			for i := 0; i < numIndexRecords; i++ {
+				datalen := int(ToInt64(indexBuffer[i*24+16:]))
+				numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
+				if direction == FIRST {
+					if numVarRecords >= numberLeftToRead {
+						numVarRecords = numberLeftToRead
+					}
 				}
+				totalDatalen += numVarRecords * (varRecLen + 8)
+				numberLeftToRead -= numVarRecords
 			}
-			totalDatalen += numVarRecords * (varRecLen + 8)
-			numberLeftToRead -= numVarRecords
-		}
-		if !utils.InstanceConfig.DisableVariableCompression {
+		} else {
 			// With compression, the size is approximate, multiply by estimated ratio to get close
+			for i := 0; i < numIndexRecords; i++ {
+				totalDatalen += int(ToInt64(indexBuffer[i*24+16:]))
+			}
 			totalDatalen *= 4
 		}
 
