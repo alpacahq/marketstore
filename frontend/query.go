@@ -1,14 +1,12 @@
 package frontend
 
 import (
+	"fmt"
 	"math"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
-
-	"fmt"
-
-	"strings"
 
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
