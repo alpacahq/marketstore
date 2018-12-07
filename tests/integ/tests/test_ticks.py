@@ -13,6 +13,11 @@ ATTRGROUP = 'TICK'
 
 def convert(data, with_nanoseconds=False):
     """
+    convert pandas DataFrame to Numpy Records
+    :param data: DataFrame object to convert
+    :param with_nanoseconds: if true, add a Nanosecond field to data before convert
+    :return: converted Numpy Records
+
     NOTE: Normal write interface removes any time information after the second
           so no test including data with time info more precise than second
           can succeed for now...
@@ -97,16 +102,19 @@ def db():
 
 @pytest.mark.parametrize('symbol, with_nanoseconds', [
     ('TEST_SIMPLE_TICK', False),
-    ('TEST_DUPLICATES_TICK', False),
+    ('TEST_DUPLICATED_INDEX', False),
     ('TEST_MULTIPLE_TICK_IN_TIMEFRAME', False),
     ('TEST_MILLISECOND_EPOCH', True),
     ('TEST_MILLISECOND_EPOCH_SAME_TIMEFRAME', True)
 ])
 def test_integrity_ticks(db, symbol, with_nanoseconds):
+    # ---- given ----
     data = db[symbol]
 
     records = convert(data, with_nanoseconds=with_nanoseconds)
     tbk = get_tbk(symbol, TIMEFRAME, ATTRGROUP)
+
+    # ---- when ----
     ret = client.write(records, tbk)
     print("Msg ret: {}".format(ret))
 
@@ -118,4 +126,6 @@ def test_integrity_ticks(db, symbol, with_nanoseconds):
                           )
 
     ret_df = client.query(param).first().df()
+
+    # ---- then ----
     assert (db[symbol] == ret_df).all().all()
