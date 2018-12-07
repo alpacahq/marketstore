@@ -1,6 +1,8 @@
 # MarketStore
 [![CircleCI](https://circleci.com/gh/alpacahq/marketstore.svg?style=shield)](https://circleci.com/gh/alpacahq/marketstore) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore) [![chatroom icon](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/joinchat/HKxN3BGm6mE5YBt79CMM3Q)
 
+Read this in [日本語(Japanese)](README.ja.md)
+
 ## Introduction
 MarketStore is a database server optimized for financial time-series data.
 You can think of it as an extensible DataFrame service that is accessible from anywhere in your system, at higher scalability.

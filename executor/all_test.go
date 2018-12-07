@@ -233,6 +233,56 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 			c.Assert(math.Abs(float64(int32(checkNanos)-nanos[i])) < 100, Equals, true)
 		}
 	}
+	/*
+		Write 100 records at a new timestamp
+	*/
+	ts = ts.Add(time.Minute)
+	for ii := 0; ii < 100; ii++ {
+		ts = ts.Add(time.Millisecond)
+		row.Epoch = ts.Unix()
+		inputTime = append(inputTime, ts)
+		buffer, _ := Serialize([]byte{}, row)
+		writer.WriteRecords([]time.Time{ts}, buffer)
+	}
+	c.Assert(err == nil, Equals, true)
+	s.WALFile.flushToWAL(tgc)
+	s.WALFile.createCheckpoint()
+
+	q = NewQuery(s.DataDirectory)
+	q.AddRestriction("Symbol", "TEST-WV")
+	q.AddRestriction("AttributeGroup", "TICK-BIDASK")
+	q.AddRestriction("Timeframe", "1Min")
+	q.SetRowLimit(LAST, 10)
+
+	// Test last N query
+	parsed, _ = q.Parse()
+	reader, err = NewReader(parsed)
+	c.Assert(err == nil, Equals, true)
+	csm, err = reader.Read()
+	for _, cs := range csm {
+		fmt.Println("Results: ", cs)
+		c.Assert(cs.Len() == 10, Equals, true)
+		c.Assert(cs.GetEpoch()[9] == row.Epoch, Equals, true)
+		nanos := cs.GetByName("Nanoseconds").([]int32)
+		c.Assert(math.Abs(float64(nanos[9]-600000000)) < 50., Equals, true)
+		break
+	}
+
+	// Test first N query
+	q.SetRowLimit(FIRST, 10)
+	parsed, _ = q.Parse()
+	reader, err = NewReader(parsed)
+	c.Assert(err == nil, Equals, true)
+	csm, err = reader.Read()
+	for _, cs := range csm {
+		fmt.Println("Results: ", cs)
+		c.Assert(cs.Len() == 10, Equals, true)
+		c.Assert(cs.GetEpoch()[9] == row.Epoch, Equals, true)
+		nanos := cs.GetByName("Nanoseconds").([]int32)
+		fmt.Println("Nanos: ", nanos)
+		c.Assert(math.Abs(float64(nanos[9]-505000000)) < 50., Equals, true)
+		break
+	}
 }
 func (s *TestSuite) TestFileRead(c *C) {
 	q := NewQuery(s.DataDirectory)

@@ -280,7 +280,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 		bufMeta = make([]bufferMeta, 0)
 	}
 	var finished bool
-	if direction == FIRST || direction == 0 {
+	if direction == FIRST {
 		for _, fp := range iop.FilePlan {
 			dataLen := len(resultBuffer)
 			resultBuffer, finished, err = ex.readForward(resultBuffer,
@@ -362,7 +362,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 		If this is a variable record type, we need a second stage of reading to get the data from the files
 	*/
 	if iop.RecordType == VARIABLE {
-		resultBuffer, err = r.readSecondStage(bufMeta)
+		resultBuffer, err = r.readSecondStage(bufMeta, iop.Limit.Number, iop.Limit.Direction)
 		if err != nil {
 			return nil, err
 		}
