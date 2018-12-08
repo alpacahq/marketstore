@@ -38,7 +38,7 @@ func (s *HeartbeatTestSuite) TestHandler(c *C) {
 		switch key {
 		case "Success":
 			atomic.StoreUint32(&Queryable, uint32(1))
-			heartbeatHandler(val.Recorder, nil)
+			heartbeat(val.Recorder, nil)
 			hm := HeartbeatMessage{}
 			err := json.NewDecoder(val.Recorder.Body).Decode(&hm)
 			if err != nil {
@@ -51,7 +51,7 @@ func (s *HeartbeatTestSuite) TestHandler(c *C) {
 			c.Assert(val.Recorder.Code, Equals, http.StatusOK)
 		case "Failure":
 			atomic.StoreUint32(&Queryable, uint32(0))
-			heartbeatHandler(val.Recorder, nil)
+			heartbeat(val.Recorder, nil)
 			hm := HeartbeatMessage{}
 			err := json.NewDecoder(val.Recorder.Body).Decode(&hm)
 			if err != nil {

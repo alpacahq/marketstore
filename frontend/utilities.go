@@ -26,7 +26,7 @@ func init() {
 
 func Utilities(address string) {
 	// heartbeat
-	http.HandleFunc("/heartbeat", heartbeatHandler)
+	http.HandleFunc("/heartbeat", heartbeat)
 
 	// profiling
 	http.HandleFunc("/pprof/", pprof.Index)
@@ -42,7 +42,7 @@ func Utilities(address string) {
 	http.ListenAndServe(address, nil)
 }
 
-func heartbeatHandler(rw http.ResponseWriter, r *http.Request) {
+func heartbeat(rw http.ResponseWriter, r *http.Request) {
 	uptime := time.Since(utils.InstanceConfig.StartTime).String()
 	queryable := atomic.LoadUint32(&Queryable)
 	if queryable > 0 {
