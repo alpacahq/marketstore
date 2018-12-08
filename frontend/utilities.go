@@ -3,6 +3,7 @@ package frontend
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/pprof"
 	"sync/atomic"
 	"time"
 
@@ -23,12 +24,25 @@ func init() {
 	Queryable = uint32(0)
 }
 
-func Heartbeat(address string) {
-	http.HandleFunc("/heartbeat", handler)
+func Utilities(address string) {
+	// heartbeat
+	http.HandleFunc("/heartbeat", heartbeatHandler)
+
+	// profiling
+	http.HandleFunc("/pprof/", pprof.Index)
+	http.HandleFunc("/pprof/cmdline", pprof.Cmdline)
+	http.HandleFunc("/pprof/profile", pprof.Profile)
+	http.HandleFunc("/pprof/symbol", pprof.Symbol)
+	http.HandleFunc("/pprof/trace", pprof.Trace)
+	http.Handle("/pprof/heap", pprof.Handler("heap"))
+	http.Handle("/pprof/goroutine", pprof.Handler("goroutine"))
+	http.Handle("/pprof/threadcreate", pprof.Handler("threadcreate"))
+	http.Handle("/pprof/block", pprof.Handler("block"))
+
 	http.ListenAndServe(address, nil)
 }
 
-func handler(rw http.ResponseWriter, r *http.Request) {
+func heartbeatHandler(rw http.ResponseWriter, r *http.Request) {
 	uptime := time.Since(utils.InstanceConfig.StartTime).String()
 	queryable := atomic.LoadUint32(&Queryable)
 	if queryable > 0 {
