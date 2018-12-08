@@ -111,6 +111,7 @@ wal_rotate_interval | int | Frequency (in mintues) at which the WAL file will be
 stale_threshold | int | Threshold (in days) by which MarketStore will declare a symbol stale
 enable_add | bool | Allows new symbols to be added to DB via /write API
 enable_remove | bool | Allows symbols to be removed from DB via /write API  
+disable_variable_compression | bool | disables the default compression of variable data
 triggers | slice | List of trigger plugins
 bgworkers | slice | List of background worker plugins
 

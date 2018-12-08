@@ -240,6 +240,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
 	writesPerFile := map[string][]offsetIndexBuffer{}
 	fileRecordTypes := map[string]io.EnumRecordType{}
+	varRecLens := map[string]int32{}
 	/*
 		This loop serializes write transactions from the channel for writing to disk
 	*/
@@ -260,6 +261,9 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 			offsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
 		if _, ok := fileRecordTypes[keyPath]; !ok {
 			fileRecordTypes[keyPath] = command.RecordType
+		}
+		if _, ok := varRecLens[keyPath]; !ok {
+			varRecLens[keyPath] = command.VarRecLen
 		}
 	}
 	if !WALBypass {
@@ -291,7 +295,8 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	*/
 	for keyPath, writes := range writesPerFile {
 		recordType := fileRecordTypes[keyPath]
-		if err := wf.writePrimary(keyPath, writes, recordType); err != nil {
+		varRecLen := varRecLens[keyPath]
+		if err := wf.writePrimary(keyPath, writes, recordType, varRecLen); err != nil {
 			return err
 		}
 		for i, buffer := range writes {
@@ -303,7 +308,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	return nil
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType) (err error) {
+func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType, varRecLen int32) (err error) {
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
@@ -328,15 +333,10 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 		case io.FIXED:
 			err = WriteBufferToFile(fp, buffer)
 		case io.VARIABLE:
-			// Find the record length - we need it to use the time column as a sort key later
-			var ti *io.TimeBucketInfo
-			if ti, err = ThisInstance.CatalogDir.PathToTimeBucketInfo(fullPath); err != nil {
-				return err
-			}
 			err = WriteBufferToFileIndirect(
 				fp.(*os.File),
 				buffer,
-				ti.GetVariableRecordLength(),
+				varRecLen,
 			)
 		}
 		if err != nil {
