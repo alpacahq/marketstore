@@ -2,8 +2,8 @@ package connect
 
 import (
 	"errors"
-
 	"github.com/alpacahq/marketstore/cmd/connect/session"
+	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
 )
@@ -23,9 +23,11 @@ const (
 	defaultURL = ""
 	urlDesc    = "network address to database instance at \"hostname:port\" when used in remote mode"
 	// Local directory.
-	dirFlag    = "dir"
-	defaultDir = ""
-	dirDesc    = "filesystem path of the directory containing database files when used in local mode"
+	dirFlag           = "dir"
+	defaultDir        = ""
+	dirDesc           = "filesystem path of the directory containing database files when used in local mode"
+	defaultVarCompOff = false
+	varCompOffDesc    = "disables the compression of variable data (on by default, uses snappy)"
 )
 
 var (
@@ -44,11 +46,14 @@ var (
 	url string
 	// dir set via flag for local directory location.
 	dir string
+	// turns compression of variable data off
+	varCompOff bool
 )
 
 func init() {
 	Cmd.Flags().StringVarP(&url, urlFlag, "u", defaultURL, urlDesc)
 	Cmd.Flags().StringVarP(&dir, dirFlag, "d", defaultDir, dirDesc)
+	Cmd.Flags().BoolVarP(&varCompOff, "disable_variable_compression", "c", defaultVarCompOff, varCompOffDesc)
 }
 
 // validateArgs returns an error that prevents cmd execution if
@@ -56,6 +61,9 @@ func init() {
 func validateArgs(cmd *cobra.Command, args []string) error {
 	if len(dir) == 0 && len(url) == 0 {
 		return errors.New("cannot connect to database, use a flag to set location")
+	}
+	if varCompOff {
+		utils.InstanceConfig.DisableVariableCompression = true
 	}
 	return nil
 }
