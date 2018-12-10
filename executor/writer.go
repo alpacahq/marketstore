@@ -2,8 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/klauspost/compress/snappy"
 	stdio "io"
 	"os"
 	"strings"
@@ -11,9 +9,11 @@ import (
 	"unsafe"
 
 	"github.com/alpacahq/marketstore/catalog"
+	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/klauspost/compress/snappy"
 )
 
 //#include "quickSort.h"
@@ -64,10 +64,16 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
 	numRows := len(ts)
-	rowLen := len(data) / numRows
-	var prevIndex int64
-	var cc *WriteCommand
-	var outBuf []byte
+	if numRows == 0 {
+		return
+	}
+
+	var (
+		prevIndex int64
+		cc        *WriteCommand
+		outBuf    []byte
+		rowLen    = len(data) / numRows
+	)
 
 	formatRecord := func(buf, record []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
 		/*
