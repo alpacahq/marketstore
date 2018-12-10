@@ -34,6 +34,9 @@ require (
 )
 
 replace (
+	go.uber.org/atomic v1.3.2 => github.com/uber-go/atomic v1.3.2
+	go.uber.org/multierr v1.1.0 => github.com/uber-go/multierr v1.1.0
+	go.uber.org/zap v1.9.1 => github.com/uber-go/zap v1.9.1
 	golang.org/x/crypto v0.0.0-20180927165925-5295e8364332 => github.com/golang/crypto v0.0.0-20180927165925-5295e8364332
 	golang.org/x/crypto v0.0.0-20181106152344-bfa7d42eb568 => github.com/golang/crypto v0.0.0-20181106152344-bfa7d42eb568
 	golang.org/x/net v0.0.0-20180724234803-3673e40ba225 => github.com/golang/net v0.0.0-20180724234803-3673e40ba225

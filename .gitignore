@@ -10,3 +10,4 @@
 mktsdb/
 marketstore
 *.exe
+go.sum
