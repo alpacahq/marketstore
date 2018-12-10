@@ -158,12 +158,28 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 			}
 		}
 
-		/*
-			 We can not push down the limit - it has to occur at the very end
-				if sr.Limit != 0 {
-					q.SetRowLimit(io.FIRST, sr.Limit)
+		// TODO: push down range predicates on Epoch column
+		checkForPredicatesAndFunctions := func() bool {
+			// First check for predicates - we don't push these down (even though we can for Epoch predicates)
+			if len(sr.StaticPredicates) != 0 {
+				return true
+			}
+			// Check for functions on the relation
+			if !sr.IsSelectAll {
+				for _, sl := range sr.SelectList {
+					if sl.IsFunctionCall {
+						return true
+					}
 				}
-		*/
+			}
+			return false
+		}
+		if !checkForPredicatesAndFunctions() {
+			if sr.Limit != 0 {
+				q.SetRowLimit(io.FIRST, sr.Limit)
+			}
+		}
+
 		parsed, err := q.Parse()
 		if err != nil {
 			return nil, err
