@@ -108,9 +108,9 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	InitializeTriggers()
 	RunBgWorkers()
 
-	// Start heartbeat.
-	log.Info("launching heartbeat service...")
-	go frontend.Heartbeat(utils.InstanceConfig.ListenPort)
+	// Start utility endpoints.
+	log.Info("launching utility service...")
+	go frontend.Utilities(utils.InstanceConfig.ListenPort)
 
 	log.Info("enabling query access...")
 	atomic.StoreUint32(&frontend.Queryable, 1)

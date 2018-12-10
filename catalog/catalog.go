@@ -215,6 +215,14 @@ func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *i
 	return subDir.getLatestYearFile()
 }
 
+func (d *Directory) GetLatestTimeBucketInfoFromFullFilePath(fullFilePath string) (fi *io.TimeBucketInfo, err error) {
+	subDir, err := d.GetOwningSubDirectory(fullFilePath)
+	if err != nil {
+		return nil, err
+	}
+	return subDir.getLatestYearFile()
+}
+
 func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error) {
 	/*
 		Finds the TimeBucketInfo file in this directory based on a full file path argument
