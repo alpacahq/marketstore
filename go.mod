@@ -3,7 +3,7 @@ module github.com/alpacahq/marketstore
 require (
 	github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398 // indirect
 	github.com/adshao/go-binance v0.0.0-20181012004556-e9a4ac01ca48
-	github.com/alpacahq/rpc v1.2.0
+	github.com/alpacahq/rpc v1.3.0
 	github.com/alpacahq/slait v1.1.7
 	github.com/antlr/antlr4 v0.0.0-20181031000400-73836edf1f84
 	github.com/bitly/go-simplejson v0.5.0 // indirect

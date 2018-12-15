@@ -15,8 +15,8 @@ github.com/adshao/go-binance v0.0.0-20181012004556-e9a4ac01ca48 h1:WMCW8nXwWVSBN
 github.com/adshao/go-binance v0.0.0-20181012004556-e9a4ac01ca48/go.mod h1:Z5RNUOdmzhcVEymtZCuuzSGYMFO2YL8x/X8vGUyz2bc=
 github.com/ajg/form v0.0.0-20160822230020-523a5da1a92f h1:zvClvFQwU++UpIUBGC8YmDlfhUrweEy1R1Fj1gu5iIM=
 github.com/ajg/form v0.0.0-20160822230020-523a5da1a92f/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
-github.com/alpacahq/rpc v1.2.0 h1:FToJ6nkv10DNqFScrpfQootkBpMfG1xaQKsvuqxDyrQ=
-github.com/alpacahq/rpc v1.2.0/go.mod h1:UfzqdExg1VFMZA6aiQTyBhgBxHBpWzCi5OknSby/wmQ=
+github.com/alpacahq/rpc v1.3.0 h1:lB7T3oTSq0b4pFsntmAq4Be0ngJDrJcbD1KtGIc9P1s=
+github.com/alpacahq/rpc v1.3.0/go.mod h1:UfzqdExg1VFMZA6aiQTyBhgBxHBpWzCi5OknSby/wmQ=
 github.com/alpacahq/slait v1.1.7 h1:i4vJ3Q2KkXDtSo+/Yp8IZGDDSujMrda1n5SVu2TQzkQ=
 github.com/alpacahq/slait v1.1.7/go.mod h1:hzfK/sir1XD47Wky4gM//wn9zJ0RpAAfW55LYE9eckU=
 github.com/antlr/antlr4 v0.0.0-20181031000400-73836edf1f84 h1:c4ZppOrw9VXa9s4i6cnxC7YQUEZ5RbmVKfEY5g4yAow=
