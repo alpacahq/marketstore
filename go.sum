@@ -15,6 +15,8 @@ github.com/adshao/go-binance v0.0.0-20181012004556-e9a4ac01ca48 h1:WMCW8nXwWVSBN
 github.com/adshao/go-binance v0.0.0-20181012004556-e9a4ac01ca48/go.mod h1:Z5RNUOdmzhcVEymtZCuuzSGYMFO2YL8x/X8vGUyz2bc=
 github.com/ajg/form v0.0.0-20160822230020-523a5da1a92f h1:zvClvFQwU++UpIUBGC8YmDlfhUrweEy1R1Fj1gu5iIM=
 github.com/ajg/form v0.0.0-20160822230020-523a5da1a92f/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
+github.com/alpacahq/rpc v1.2.0 h1:FToJ6nkv10DNqFScrpfQootkBpMfG1xaQKsvuqxDyrQ=
+github.com/alpacahq/rpc v1.2.0/go.mod h1:UfzqdExg1VFMZA6aiQTyBhgBxHBpWzCi5OknSby/wmQ=
 github.com/alpacahq/slait v1.1.7 h1:i4vJ3Q2KkXDtSo+/Yp8IZGDDSujMrda1n5SVu2TQzkQ=
 github.com/alpacahq/slait v1.1.7/go.mod h1:hzfK/sir1XD47Wky4gM//wn9zJ0RpAAfW55LYE9eckU=
 github.com/antlr/antlr4 v0.0.0-20181031000400-73836edf1f84 h1:c4ZppOrw9VXa9s4i6cnxC7YQUEZ5RbmVKfEY5g4yAow=
@@ -75,8 +77,6 @@ github.com/google/gopacket v1.1.16-0.20181023151400-a35e09f9f224/go.mod h1:UCLx9
 github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e h1:JKmoR8x90Iww1ks85zJ1lfDGgIiMDuIptTOhJq+zKyg=
 github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
-github.com/gorilla/rpc v1.1.0 h1:marKfvVP0Gpd/jHlVBKCQ8RAoUPdX7K1Nuh6l1BNh7A=
-github.com/gorilla/rpc v1.1.0/go.mod h1:V4h9r+4sF5HnzqbwIez0fKSpANP0zlYd3qR7p36jkTQ=
 github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
