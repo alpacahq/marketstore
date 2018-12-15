@@ -240,6 +240,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
 	writesPerFile := map[string][]offsetIndexBuffer{}
 	fileRecordTypes := map[string]io.EnumRecordType{}
+	varRecLens := map[string]int32{}
 	/*
 		This loop serializes write transactions from the channel for writing to disk
 	*/
@@ -249,6 +250,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		TG_Serialized, _ = io.Serialize(TG_Serialized, int16(len(command.WALKeyPath)))
 		TG_Serialized, _ = io.Serialize(TG_Serialized, command.WALKeyPath)
 		TG_Serialized, _ = io.Serialize(TG_Serialized, int32(len(command.Data)))
+		TG_Serialized, _ = io.Serialize(TG_Serialized, int32(command.VarRecLen))
 		oStart := len(TG_Serialized)
 		bufferSize := 8 + 8 + len(command.Data)
 		TG_Serialized, _ = io.Serialize(TG_Serialized, command.Offset)
@@ -260,6 +262,9 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 			offsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
 		if _, ok := fileRecordTypes[keyPath]; !ok {
 			fileRecordTypes[keyPath] = command.RecordType
+		}
+		if _, ok := varRecLens[keyPath]; !ok {
+			varRecLens[keyPath] = command.VarRecLen
 		}
 	}
 	if !WALBypass {
@@ -291,7 +296,8 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	*/
 	for keyPath, writes := range writesPerFile {
 		recordType := fileRecordTypes[keyPath]
-		if err := wf.writePrimary(keyPath, writes, recordType); err != nil {
+		varRecLen := varRecLens[keyPath]
+		if err := wf.writePrimary(keyPath, writes, recordType, varRecLen); err != nil {
 			return err
 		}
 		for i, buffer := range writes {
@@ -303,7 +309,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	return nil
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType) (err error) {
+func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType, varRecLen int32) (err error) {
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
@@ -328,15 +334,10 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 		case io.FIXED:
 			err = WriteBufferToFile(fp, buffer)
 		case io.VARIABLE:
-			// Find the record length - we need it to use the time column as a sort key later
-			var ti *io.TimeBucketInfo
-			if ti, err = ThisInstance.CatalogDir.PathToTimeBucketInfo(fullPath); err != nil {
-				return err
-			}
 			err = WriteBufferToFileIndirect(
 				fp.(*os.File),
 				buffer,
-				ti.GetVariableRecordLength(),
+				varRecLen,
 			)
 		}
 		if err != nil {
@@ -428,7 +429,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	// Create a map to store the TG Data prior to replay
 	TGData := make(map[int64][]byte)
 
-	wf.FilePtr.Seek(0, os.SEEK_SET)
+	wf.FilePtr.Seek(0, goio.SeekStart)
 	continueRead := true
 	for continueRead {
 		MID, err := wf.readMessageID()
@@ -438,7 +439,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 		switch MID {
 		case TGDATA:
 			// Read a TGData
-			offset, _ := wf.FilePtr.Seek(0, os.SEEK_CUR)
+			offset, _ := wf.FilePtr.Seek(0, goio.SeekCurrent)
 			TGID, TG_Serialized, err := wf.readTGData()
 			TGData[TGID] = TG_Serialized
 			if continueRead = fullRead(err); !continueRead {
@@ -641,6 +642,8 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 			cursor += FPLen
 			dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
 			cursor += 4
+			varRecLen := io.ToInt32(TG_Serialized[cursor : cursor+4])
+			cursor += 4
 			fullPath := wf.WALKeyToFullPath(WALKeyPath)
 			fp, err := cfp.GetFP(fullPath)
 			if err != nil {
@@ -653,13 +656,9 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 				}
 			case io.VARIABLE:
 				// Find the record length - we need it to use the time column as a sort key later
-				var ti *io.TimeBucketInfo
-				if ti, err = ThisInstance.CatalogDir.PathToTimeBucketInfo(fullPath); err != nil {
-					return err
-				}
 				if err = WriteBufferToFileIndirect(fp,
 					TG_Serialized[cursor:cursor+8+8+dataLen],
-					ti.GetVariableRecordLength(),
+					varRecLen,
 				); err != nil {
 					return err
 				}
