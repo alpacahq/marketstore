@@ -7,8 +7,8 @@ import (
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/alpacahq/marketstore/utils/rpc/msgpack2"
-	rpc "github.com/gorilla/rpc/v2"
-	"github.com/gorilla/rpc/v2/json2"
+	rpc "github.com/alpacahq/rpc/rpc2"
+	"github.com/alpacahq/rpc/rpc2/json2"
 )
 
 var (
