@@ -1,3 +1,4 @@
 {
-    "go.inferGopath": false
+    "go.inferGopath": false,
+    "python.linting.pylintEnabled": true
 }
