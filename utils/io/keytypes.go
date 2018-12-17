@@ -20,14 +20,14 @@ const DefaultTimeBucketSchema = "Symbol/Timeframe/AttributeGroup"
 
 func NewTimeBucketKey(itemKey string, categoryKey_opt ...string) (mk *TimeBucketKey) {
 	var categoryKey string
+
 	if len(categoryKey_opt) != 0 && categoryKey_opt[0] != "" {
 		categoryKey = categoryKey_opt[0]
 	} else {
 		categoryKey = DefaultTimeBucketSchema
 	}
-	mk = new(TimeBucketKey)
-	mk.Key = itemKey + ":" + categoryKey
-	return mk
+
+	return &TimeBucketKey{fmt.Sprintf("%s:%s", itemKey, categoryKey)}
 }
 
 func NewTimeBucketKeyFromString(itemCategoryString string) (mk *TimeBucketKey) {

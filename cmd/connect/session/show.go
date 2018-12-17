@@ -61,12 +61,17 @@ func (c *Client) show(line string) {
 		return
 	}
 
-	err = printResult(line, csm[key], c.target)
-	if err != nil {
+	// print at the beginning if outputting to a file
+	if c.timing && c.target != "" {
+		fmt.Printf("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
+	}
+
+	if err = printResult(line, csm[key], c.target); err != nil {
 		fmt.Println(err.Error())
 	}
 
-	if c.timing {
+	// print at the end if outputting to terminal
+	if c.timing && c.target == "" {
 		fmt.Printf("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
 }
