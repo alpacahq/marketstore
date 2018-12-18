@@ -10,6 +10,7 @@ import (
 
 	"github.com/alpacahq/marketstore/contrib/calendar"
 	"github.com/alpacahq/marketstore/contrib/iex/api"
+	"github.com/alpacahq/marketstore/contrib/iex/filter"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/io"
@@ -38,6 +39,9 @@ type FetcherConfig struct {
 	Intraday bool
 	// list of symbols to poll - queries all if empty
 	Symbols []string
+	// Filter filters symbols based on predefined set of symbols. Currently
+	// only SPY filter is supported
+	Filter string
 }
 
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
@@ -56,6 +60,21 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 		for i, s := range *resp {
 			config.Symbols[i] = s.Symbol
+		}
+	}
+
+	// filter symbols if we have configured filter
+	if config.Filter != "" {
+		f, found := filter.Filters[config.Filter]
+		if found {
+			var filtered []string
+			for _, symbol := range config.Symbols {
+				if f(symbol) {
+					filtered = append(filtered, symbol)
+				}
+			}
+
+			config.Symbols = filtered
 		}
 	}
 
