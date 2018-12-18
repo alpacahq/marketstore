@@ -86,9 +86,11 @@ func (f *IEXFetcher) Run() {
 
 	// loop forever over the batches
 	for batch := range f.queue {
-		f.pollIntraday(batch)
+		if f.config.Intraday {
+			f.pollIntraday(batch)
+		}
 
-		if !calendar.Nasdaq.IsMarketOpen(time.Now()) {
+		if f.config.Daily && !calendar.Nasdaq.IsMarketOpen(time.Now()) {
 			f.pollDaily(batch)
 		}
 
