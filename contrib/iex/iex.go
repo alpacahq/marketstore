@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/calendar"
 	"github.com/alpacahq/marketstore/contrib/iex/api"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
@@ -87,10 +86,7 @@ func (f *IEXFetcher) Run() {
 	// loop forever over the batches
 	for batch := range f.queue {
 		f.pollIntraday(batch)
-
-		if !calendar.Nasdaq.IsMarketOpen(time.Now()) {
-			f.pollDaily(batch)
-		}
+		f.pollDaily(batch)
 
 		<-time.After(limiter())
 		f.queue <- batch
@@ -306,10 +302,6 @@ func (f *IEXFetcher) workBackfill() {
 }
 
 func limiter() time.Duration {
-	if calendar.Nasdaq.IsMarketOpen(time.Now()) {
-		return time.Second / 100
-	}
-
 	return time.Second / 50
 }
 
