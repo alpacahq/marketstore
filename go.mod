@@ -1,6 +1,7 @@
 module github.com/alpacahq/marketstore
 
 require (
+	code.cloudfoundry.org/bytefmt v0.0.0-20180906201452-2aa6f33b730c
 	github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398 // indirect
 	github.com/adshao/go-binance v0.0.0-20181012004556-e9a4ac01ca48
 	github.com/alpacahq/rpc v1.3.0
@@ -20,7 +21,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
 	github.com/kataras/iris v11.1.0+incompatible // indirect
-	github.com/klauspost/compress v1.4.1
+	github.com/klauspost/compress v1.4.1 // indirect
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
 	github.com/moul/http2curl v1.0.0 // indirect
