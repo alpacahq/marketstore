@@ -43,7 +43,7 @@ func init() {
 }
 
 func main() {
-	// free memory in the backound every 1 minute for long running
+	// free memory in the background every 1 minute for long running
 	// backfills with very high parallelism
 	go func() {
 		for {
