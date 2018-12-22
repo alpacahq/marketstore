@@ -142,9 +142,24 @@ func Quotes(symbol string, from, to time.Time) error {
 		to = time.Now()
 	}
 
+	var (
+		csm io.ColumnSeriesMap
+		cs  *io.ColumnSeries
+		tbk *io.TimeBucketKey
+
+		epoch    []int64
+		nanos    []int32
+		bidPrice []float32
+		bidSize  []int32
+		askPrice []float32
+		askSize  []int32
+
+		err  error
+		resp *api.HistoricQuotes
+	)
+
 	for {
-		resp, err := api.GetHistoricQuotes(symbol, from.Format("2006-01-02"))
-		if err != nil {
+		if resp, err = api.GetHistoricQuotes(symbol, from.Format("2006-01-02")); err != nil {
 			if strings.Contains(err.Error(), "GOAWAY") {
 				<-time.After(5 * time.Second)
 				return Bars(symbol, from, to)
@@ -154,23 +169,16 @@ func Quotes(symbol string, from, to time.Time) error {
 		}
 
 		if len(resp.Ticks) > 0 {
-			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/QUOTE")
-			cs := io.NewColumnSeries()
+			csm = io.NewColumnSeriesMap()
+			tbk = io.NewTimeBucketKeyFromString(symbol + "/1Min/QUOTE")
+			cs = io.NewColumnSeries()
 
-			epoch := make([]int64, len(resp.Ticks))
-			nanos := make([]int32, len(resp.Ticks))
-			bidPrice := make([]float32, len(resp.Ticks))
-			bidSize := make([]int32, len(resp.Ticks))
-			askPrice := make([]float32, len(resp.Ticks))
-			askSize := make([]int32, len(resp.Ticks))
-
-			// epoch := make([]int64, 2)
-			// nanos := make([]int32, 2)
-			// bidPrice := make([]float32, 2)
-			// bidSize := make([]int32, 2)
-			// askPrice := make([]float32, 2)
-			// askSize := make([]int32, 2)
+			epoch = make([]int64, len(resp.Ticks))
+			nanos = make([]int32, len(resp.Ticks))
+			bidPrice = make([]float32, len(resp.Ticks))
+			bidSize = make([]int32, len(resp.Ticks))
+			askPrice = make([]float32, len(resp.Ticks))
+			askSize = make([]int32, len(resp.Ticks))
 
 			for i, tick := range resp.Ticks {
 				timestamp := time.Unix(0, 1000*1000*tick.Timestamp)
@@ -181,10 +189,6 @@ func Quotes(symbol string, from, to time.Time) error {
 				bidSize[i] = int32(tick.BidSize)
 				askPrice[i] = float32(tick.BidPrice)
 				askSize[i] = int32(tick.AskSize)
-
-				// if i == 1 {
-				// 	break
-				// }
 			}
 
 			cs.AddColumn("Epoch", epoch)
@@ -198,9 +202,8 @@ func Quotes(symbol string, from, to time.Time) error {
 			if err = executor.WriteCSM(csm, true); err != nil {
 				return err
 			}
-
-			// log.Fatal("END NOW!!")
 		}
+
 		from = from.AddDate(0, 0, 1)
 
 		if from.After(to) {
