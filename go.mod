@@ -18,12 +18,14 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gocarina/gocsv v0.0.0-20180809181117-b8c38cb1ba36
 	github.com/gorilla/websocket v1.4.0
+	github.com/hashicorp/go-version v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
 	github.com/kataras/iris v11.1.0+incompatible // indirect
-	github.com/klauspost/compress v1.4.1 // indirect
+	github.com/klauspost/compress v1.4.1
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
 	github.com/moul/http2curl v1.0.0 // indirect
 	github.com/nats-io/gnatsd v1.3.0 // indirect
 	github.com/nats-io/go-nats v1.6.0
@@ -31,6 +33,8 @@ require (
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/preichenberger/go-gdax v0.0.0-20181027225743-eb74ba719d9a
+	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46
+	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
