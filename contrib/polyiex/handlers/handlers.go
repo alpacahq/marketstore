@@ -1,20 +1,18 @@
 package handlers
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/contrib/polyiex/orderbook"
-	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/buger/jsonparser"
 	"github.com/eapache/channels"
 )
 
-func Trade(raw []byte) {
-	log.Info("IT: %v", string(raw))
-
+func TradeEach(raw []byte) {
 	symbol, err := jsonparser.GetString(raw, "S")
 	if err != nil {
 		log.Error("[polyiex] unexpected message: %v", string(raw))
@@ -44,9 +42,13 @@ func Trade(raw []byte) {
 	Write(pkt)
 }
 
-func Book(raw []byte) {
-	log.Info("ID: %v", string(raw))
+func Trade(raw []byte) {
+	jsonparser.ArrayEach(raw, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		TradeEach(value)
+	})
+}
 
+func BookEach(raw []byte) {
 	symbol, err := jsonparser.GetString(raw, "S")
 	if err != nil {
 		log.Error("[polyiex] unexpected message: %v", string(raw))
@@ -55,11 +57,7 @@ func Book(raw []byte) {
 	millisec, _ := jsonparser.GetInt(raw, "t")
 	nanosec, _ := jsonparser.GetInt(raw, "T")
 
-	book, ok := orderBooks[symbol]
-	if !ok {
-		book = orderbook.NewOrderBook()
-		orderBooks[symbol] = book
-	}
+	book := getOrderBook(symbol)
 	jsonparser.ArrayEach(raw, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		px, _ := jsonparser.GetFloat(value, "[0]")
 		sz, _ := jsonparser.GetInt(value, "[1]")
@@ -72,6 +70,11 @@ func Book(raw []byte) {
 	}, "a")
 
 	b, a := book.BBO()
+
+	//if symbol == "SPY" {
+	print(string(raw))
+	fmt.Printf("[polyiex] BBO[%s]=(%v)/(%v)\n", symbol, b, a)
+	//}
 
 	// maybe we should skip to write if BBO isn't changed
 	timestamp := time.Unix(0, 1000*1000*millisec+nanosec)
@@ -89,8 +92,28 @@ func Book(raw []byte) {
 	Write(pkt)
 }
 
+func Book(raw []byte) {
+	// log.Info("ID: %v", string(raw))
+
+	jsonparser.ArrayEach(raw, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		BookEach(value)
+	})
+}
+
 // orderBooks is a map of OrderBook with symbol key
 var orderBooks = map[string]*orderbook.OrderBook{}
+var obMutex sync.Mutex
+
+func getOrderBook(symbol string) *orderbook.OrderBook {
+	obMutex.Lock()
+	defer obMutex.Unlock()
+	book, ok := orderBooks[symbol]
+	if !ok {
+		book = orderbook.NewOrderBook()
+		orderBooks[symbol] = book
+	}
+	return book
+}
 
 type trade struct {
 	epoch int64
@@ -231,9 +254,9 @@ func (w *writer) write() {
 
 			w.Unlock()
 
-			if err := executor.WriteCSM(csm, true); err != nil {
-				log.Error("[polygon] failed to write csm (%v)", err)
-			}
+			// if err := executor.WriteCSM(csm, true); err != nil {
+			// 	log.Error("[polygon] failed to write csm (%v)", err)
+			// }
 		}
 	}
 }

@@ -16,10 +16,10 @@ type OrderBook struct {
 func NewOrderBook() *OrderBook {
 	return &OrderBook{
 		skiplist.NewCustomMap(func(l, r interface{}) bool {
-			return l.(float32) < r.(float32)
+			return l.(float32) > r.(float32)
 		}),
 		skiplist.NewCustomMap(func(l, r interface{}) bool {
-			return r.(float32) < l.(float32)
+			return l.(float32) < r.(float32)
 		}),
 	}
 }

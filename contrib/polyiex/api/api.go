@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"runtime"
 	"time"
 
 	"github.com/alpacahq/marketstore/utils/log"
@@ -73,7 +72,6 @@ func getStatus(raw []byte) string {
 
 // Stream from the polygon websocket server
 func Stream(handler func(m []byte), prefix string, symbols []string) (err error) {
-	sem := make(chan struct{}, runtime.NumCPU())
 	c := channels.NewInfiniteChannel()
 
 	url := baseURL
@@ -95,13 +93,15 @@ func Stream(handler func(m []byte), prefix string, symbols []string) (err error)
 		}
 	}()
 
+	//sem := make(chan struct{}, runtime.NumCPU())
 	go func() {
 		for msg := range c.Out() {
-			sem <- struct{}{}
-			go func(m interface{}) {
-				defer func() { <-sem }()
-				handler(m.([]byte))
-			}(msg)
+			handler(msg.([]byte))
+			// sem <- struct{}{}
+			// go func(m interface{}) {
+			// 	defer func() { <-sem }()
+			// 	handler(m.([]byte))
+			// }(msg)
 		}
 	}()
 
