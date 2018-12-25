@@ -143,7 +143,7 @@ func pullDate(t time.Time) {
 				closeTime = openTime.Add(time.Minute)
 			}
 
-			if msg.Timestamp.After(closeTime) && len(trades) > 0 {
+			if (msg.Timestamp.Equal(closeTime) || msg.Timestamp.After(closeTime)) && len(trades) > 0 {
 				symBars := makeSymBars(trades, openTime, closeTime)
 
 				if err := writeSymBars(symBars); err != nil {
