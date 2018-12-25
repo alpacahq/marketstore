@@ -25,21 +25,31 @@ import (
 )
 
 var (
-	dir  string
-	from string
-	to   string
+	dir       string
+	from      string
+	to        string
+	csSymbols string
 
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
+
+	symbolMask = map[string]struct{}{}
 )
 
 func init() {
 	flag.StringVar(&dir, "dir", "/project/data", "mktsdb directory to backfill to")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD)")
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill from date (YYYY-MM-DD)")
+	flag.StringVar(&csSymbols, "symbols", "", "comma-separated symbols to backfill")
 
 	flag.Parse()
+
+	if csSymbols != "" {
+		for _, symbol := range strings.Split(csSymbols, ",") {
+			symbolMask[symbol] = struct{}{}
+		}
+	}
 }
 
 func main() {
@@ -67,7 +77,7 @@ func main() {
 				log.Info("backfilling %v...", t.Format("2006-01-02"))
 				s := time.Now()
 				pullDate(t)
-				log.Info("Done (in %s)", time.Now().Sub(s).String())
+				log.Info("Done %v (in %s)", t.Format("2006-01-02"), time.Now().Sub(s).String())
 			}(end)
 		}
 
@@ -126,6 +136,11 @@ func pullDate(t time.Time) {
 		}
 
 		if msg, ok := msg.(*tops.TradeReportMessage); ok {
+			if len(symbolMask) > 0 {
+				if _, ok := symbolMask[msg.Symbol]; !ok {
+					continue
+				}
+			}
 			if openTime.IsZero() {
 				openTime = msg.Timestamp.Truncate(time.Minute)
 				closeTime = openTime.Add(time.Minute)
@@ -137,6 +152,9 @@ func pullDate(t time.Time) {
 				if err := writeBars(bars); err != nil {
 					log.Fatal(err.Error())
 				}
+				if err := writeTrades(trades); err != nil {
+					log.Fatal(err.Error())
+				}
 
 				trades = trades[:0]
 				openTime = msg.Timestamp.Truncate(time.Minute)
@@ -144,6 +162,17 @@ func pullDate(t time.Time) {
 			}
 
 			trades = append(trades, msg)
+		}
+	}
+
+	if len(trades) > 0 {
+		bars := makeBars(trades, openTime, closeTime)
+
+		if err := writeBars(bars); err != nil {
+			log.Fatal(err.Error())
+		}
+		if err := writeTrades(trades); err != nil {
+			log.Fatal(err.Error())
 		}
 	}
 }
@@ -217,6 +246,44 @@ func writeBars(bars []*consolidator.Bar) error {
 	}
 
 	return executor.WriteCSM(csm, false)
+}
+
+func writeTrades(trades []*tops.TradeReportMessage) error {
+	csm := NewColumnSeriesMap()
+
+	type schema struct {
+		epoch []int64
+		nanos []int32
+		px    []float32
+		sz    []int32
+	}
+
+	mapSchema := map[string]*schema{}
+
+	for _, trade := range trades {
+		symbol := trade.Symbol
+
+		if _, ok := mapSchema[symbol]; !ok {
+			mapSchema[symbol] = &schema{}
+		}
+		cols := mapSchema[symbol]
+
+		cols.epoch = append(cols.epoch, trade.Timestamp.Unix())
+		cols.nanos = append(cols.nanos, int32(trade.Timestamp.Nanosecond()))
+		cols.px = append(cols.px, float32(trade.Price))
+		cols.sz = append(cols.sz, int32(trade.Size))
+	}
+
+	for symbol, cols := range mapSchema {
+		tbk := NewTimeBucketKey(symbol + "/1Min/TRADE")
+
+		csm.AddColumn(*tbk, "Epoch", cols.epoch)
+		csm.AddColumn(*tbk, "Nanoseconds", cols.nanos)
+		csm.AddColumn(*tbk, "Price", cols.px)
+		csm.AddColumn(*tbk, "Size", cols.sz)
+	}
+
+	return executor.WriteCSM(csm, true)
 }
 
 func nextBatch(bars []*consolidator.Bar, index int) ([]*consolidator.Bar, int) {
