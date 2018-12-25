@@ -1,14 +1,11 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"runtime"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -147,9 +144,9 @@ func pullDate(t time.Time) {
 			}
 
 			if msg.Timestamp.After(closeTime) && len(trades) > 0 {
-				bars := makeBars(trades, openTime, closeTime)
+				symBars := makeSymBars(trades, openTime, closeTime)
 
-				if err := writeBars(bars); err != nil {
+				if err := writeSymBars(symBars); err != nil {
 					log.Fatal(err.Error())
 				}
 				if err := writeTrades(trades); err != nil {
@@ -166,9 +163,9 @@ func pullDate(t time.Time) {
 	}
 
 	if len(trades) > 0 {
-		bars := makeBars(trades, openTime, closeTime)
+		symBars := makeSymBars(trades, openTime, closeTime)
 
-		if err := writeBars(bars); err != nil {
+		if err := writeSymBars(symBars); err != nil {
 			log.Fatal(err.Error())
 		}
 		if err := writeTrades(trades); err != nil {
@@ -177,32 +174,54 @@ func pullDate(t time.Time) {
 	}
 }
 
-func makeBars(trades []*tops.TradeReportMessage, openTime, closeTime time.Time) []*consolidator.Bar {
-	bars := consolidator.MakeBars(trades)
-	for _, bar := range bars {
-		bar.OpenTime = openTime
-		bar.CloseTime = closeTime
+func makeSymBars(trades []*tops.TradeReportMessage, openTime, closeTime time.Time) map[string]*consolidator.Bar {
+	symBars := map[string]*consolidator.Bar{}
+
+	for _, trade := range trades {
+		symbol := trade.Symbol
+		price := trade.Price
+		if _, ok := symBars[symbol]; !ok {
+			symBars[symbol] = &consolidator.Bar{
+				Symbol:    symbol,
+				Open:      price,
+				High:      price,
+				Low:       price,
+				Close:     price,
+				Volume:    int64(trade.Size),
+				OpenTime:  openTime,
+				CloseTime: closeTime,
+			}
+		} else {
+			bar := symBars[symbol]
+			if bar.High < price {
+				bar.High = price
+			}
+			if bar.Low > price {
+				bar.Low = price
+			}
+			bar.Close = price
+			bar.Volume += int64(trade.Size)
+		}
 	}
-
-	sort.Slice(bars, func(i, j int) bool {
-		return bars[i].Symbol < bars[j].Symbol
-	})
-
-	return bars
+	return symBars
 }
 
-func writeBar(bar *consolidator.Bar, w *csv.Writer) error {
-	row := []string{
-		bar.Symbol,
-		bar.OpenTime.Format(time.RFC3339),
-		strconv.FormatFloat(bar.Open, 'f', 4, 64),
-		strconv.FormatFloat(bar.High, 'f', 4, 64),
-		strconv.FormatFloat(bar.Low, 'f', 4, 64),
-		strconv.FormatFloat(bar.Close, 'f', 4, 64),
-		strconv.FormatInt(bar.Volume, 10),
+func writeSymBars(symBars map[string]*consolidator.Bar) error {
+	csm := NewColumnSeriesMap()
+	for symbol, bar := range symBars {
+		tbk := NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", symbol))
+
+		cs := NewColumnSeries()
+		cs.AddColumn("Epoch", []int64{bar.OpenTime.Unix()})
+		cs.AddColumn("Open", []float32{float32(bar.Open)})
+		cs.AddColumn("High", []float32{float32(bar.High)})
+		cs.AddColumn("Low", []float32{float32(bar.Low)})
+		cs.AddColumn("Close", []float32{float32(bar.Close)})
+		cs.AddColumn("Volume", []int32{int32(bar.Volume)})
+		csm.AddColumnSeries(*tbk, cs)
 	}
 
-	return w.Write(row)
+	return executor.WriteCSM(csm, false)
 }
 
 func writeBars(bars []*consolidator.Bar) error {
