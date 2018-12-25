@@ -39,6 +39,29 @@ func handleTrade(raw []byte) {
 	Write(pkt)
 }
 
+/*
+Sample Data:
+	{
+		"ev": "ID",
+		"S": "AAPL",
+		"b": [
+		  [ 154.19, 100 ],
+		  [ 154.09, 100 ],
+		  [ 154.05, 100 ],
+		  [ 154.04, 100 ]
+		],
+		"a": [
+		  [ 153.51, 200 ],
+		  [ 153.66, 100 ],
+		  [ 153.67, 100 ],
+		  [ 153.71, 100 ],
+		  [ 153.72, 100 ]
+		],
+		"x": 15,
+		"t": 1541077118809,
+		"T": 809950610
+	}
+*/
 func handleBook(raw []byte) {
 	symbol, _ := jsonparser.GetString(raw, "S")
 	millisec, _ := jsonparser.GetInt(raw, "t")
@@ -58,7 +81,7 @@ func handleBook(raw []byte) {
 
 	b, a := book.BBO()
 
-	log.Info("[polyiex] %v BBO[%s]=(%v)/(%v)\n", string(raw), symbol, b, a)
+	log.Debug("[polyiex] %v BBO[%s]=(%v)/(%v)\n", string(raw), symbol, b, a)
 
 	// maybe we should skip to write if BBO isn't changed
 	timestamp := time.Unix(0, 1000*1000*millisec+nanosec)
@@ -88,11 +111,14 @@ func handleUnknown(raw []byte) {
 	if len(raw) < 100 {
 		msg = string(raw)
 	} else {
-		msg = string(raw[:100])
+		msg = string(raw[:100]) + "..."
 	}
 	log.Error("[polyiex] unknown message: %s", msg)
 }
 
+// Tick is a callback handler to receive upstream data. It expects a JSON
+// array with "ev" key in each object in it, and write trades and quotes
+// on disk.
 func Tick(raw []byte) {
 	jsonparser.ArrayEach(raw, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		ev, _ := jsonparser.GetString(value, "ev")

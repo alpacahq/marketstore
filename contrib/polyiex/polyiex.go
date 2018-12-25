@@ -7,6 +7,9 @@ import (
 	"os"
 	"path"
 
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
 	"github.com/alpacahq/marketstore/contrib/polyiex/api"
 	"github.com/alpacahq/marketstore/contrib/polyiex/handlers"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
@@ -51,21 +54,34 @@ func (pf *PolyIEXFetcher) Run() {
 	api.SetAPIKey(pf.config.APIKey)
 	api.SetBaseURL(pf.config.BaseURL)
 
-	// api.Stream(handlers.Tick, api.TradePrefix, nil)
+	api.Stream(handlers.Tick, api.TradePrefix, nil)
 	api.Stream(handlers.Tick, api.BookPrefix, nil)
 
 	select {}
 }
 
-func (pf *PolyIEXFetcher) handleMessage(rawMsg []byte) error {
-	log.Info("recv: %v", string(rawMsg))
+func configLog() {
+	atom := zap.NewAtomicLevel()
 
-	return nil
+	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.TimeKey = "timestamp"
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderCfg),
+		zapcore.Lock(os.Stdout),
+		atom,
+	))
+	atom.SetLevel(zapcore.DebugLevel)
+
+	zap.ReplaceGlobals(logger)
+	log.SetLevel(log.DEBUG)
 }
 
 func main() {
+	configLog()
+
 	handlers.SkipWrite(true)
-	log.SetLevel(log.DEBUG)
 	conf := map[string]interface{}{}
 	conf["api_key"] = os.Getenv("POLYIEX_API_KEY")
 	if len(os.Args) < 2 {
