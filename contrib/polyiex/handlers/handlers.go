@@ -1,23 +1,20 @@
 package handlers
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/contrib/polyiex/orderbook"
+	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/buger/jsonparser"
 	"github.com/eapache/channels"
 )
 
-func TradeEach(raw []byte) {
-	symbol, err := jsonparser.GetString(raw, "S")
-	if err != nil {
-		log.Error("[polyiex] unexpected message: %v", string(raw))
-		return
-	}
+func handleTrade(raw []byte) {
+
+	symbol, _ := jsonparser.GetString(raw, "S")
 
 	price, _ := jsonparser.GetFloat(raw, "p")
 	size, _ := jsonparser.GetInt(raw, "s")
@@ -42,18 +39,8 @@ func TradeEach(raw []byte) {
 	Write(pkt)
 }
 
-func Trade(raw []byte) {
-	jsonparser.ArrayEach(raw, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		TradeEach(value)
-	})
-}
-
-func BookEach(raw []byte) {
-	symbol, err := jsonparser.GetString(raw, "S")
-	if err != nil {
-		log.Error("[polyiex] unexpected message: %v", string(raw))
-		return
-	}
+func handleBook(raw []byte) {
+	symbol, _ := jsonparser.GetString(raw, "S")
 	millisec, _ := jsonparser.GetInt(raw, "t")
 	nanosec, _ := jsonparser.GetInt(raw, "T")
 
@@ -71,10 +58,7 @@ func BookEach(raw []byte) {
 
 	b, a := book.BBO()
 
-	//if symbol == "SPY" {
-	print(string(raw))
-	fmt.Printf("[polyiex] BBO[%s]=(%v)/(%v)\n", symbol, b, a)
-	//}
+	log.Info("[polyiex] %v BBO[%s]=(%v)/(%v)\n", string(raw), symbol, b, a)
 
 	// maybe we should skip to write if BBO isn't changed
 	timestamp := time.Unix(0, 1000*1000*millisec+nanosec)
@@ -92,11 +76,36 @@ func BookEach(raw []byte) {
 	Write(pkt)
 }
 
-func Book(raw []byte) {
-	// log.Info("ID: %v", string(raw))
+func handleStatus(raw []byte) {
+	status, _ := jsonparser.GetString(raw, "status")
+	message, _ := jsonparser.GetString(raw, "message")
+	log.Info("[polyiex] status = '%s', message = '%s'", status, message)
+	return
+}
 
+func handleUnknown(raw []byte) {
+	var msg string
+	if len(raw) < 100 {
+		msg = string(raw)
+	} else {
+		msg = string(raw[:100])
+	}
+	log.Error("[polyiex] unknown message: %s", msg)
+}
+
+func Tick(raw []byte) {
 	jsonparser.ArrayEach(raw, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		BookEach(value)
+		ev, _ := jsonparser.GetString(value, "ev")
+		switch ev {
+		case "IT":
+			handleTrade(value)
+		case "ID":
+			handleBook(value)
+		case "status":
+			handleStatus(value)
+		default:
+			handleUnknown(value)
+		}
 	})
 }
 
@@ -150,6 +159,11 @@ type writer struct {
 	dataBuckets map[io.TimeBucketKey]interface{}
 	interval    time.Duration
 	c           *channels.InfiniteChannel
+	skipWrite   bool
+}
+
+func SkipWrite(value bool) {
+	w.skipWrite = value
 }
 
 func (w *writer) write() {
@@ -254,9 +268,11 @@ func (w *writer) write() {
 
 			w.Unlock()
 
-			// if err := executor.WriteCSM(csm, true); err != nil {
-			// 	log.Error("[polygon] failed to write csm (%v)", err)
-			// }
+			if !w.skipWrite {
+				if err := executor.WriteCSM(csm, true); err != nil {
+					log.Error("[polygon] failed to write csm (%v)", err)
+				}
+			}
 		}
 	}
 }

@@ -2,9 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/buger/jsonparser"
 	"github.com/eapache/channels"
 	"github.com/gorilla/websocket"
 )
@@ -70,6 +72,20 @@ func getStatus(raw []byte) string {
 	return "unrecognized message:" + string(raw)
 }
 
+func expectStatusEvent(conn *websocket.Conn, expected, name string) error {
+	_, reply, err := conn.ReadMessage()
+	if err != nil {
+		return err
+	}
+	ev, _ := jsonparser.GetString(reply, "[0]", "ev")
+	status, _ := jsonparser.GetString(reply, "[0]", "status")
+	if ev != "status" || status != expected {
+		err := fmt.Errorf("[polyiex] unexpected %s reply: %v", name, string(reply))
+		return err
+	}
+	return nil
+}
+
 // Stream from the polygon websocket server
 func Stream(handler func(m []byte), prefix string, symbols []string) (err error) {
 	c := channels.NewInfiniteChannel()
@@ -77,7 +93,23 @@ func Stream(handler func(m []byte), prefix string, symbols []string) (err error)
 	url := baseURL
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Error("[polyiex]: failed to connect %s: %v", url, err)
+		log.Error("[polyiex] failed to connect %s: %v", url, err)
+		return
+	}
+	log.Info("connected %v", prefix)
+
+	if err = expectStatusEvent(conn, "connected", "connection"); err != nil {
+		log.Error("%v", err)
+		return
+	}
+	log.Info("authenticated %v", prefix)
+
+	// initial auth handshake
+	authMsg := makeAction("auth", apiKey)
+	conn.WriteMessage(websocket.TextMessage, authMsg)
+
+	if err = expectStatusEvent(conn, "success", "authentication"); err != nil {
+		log.Error("%v", err)
 		return
 	}
 
@@ -93,15 +125,13 @@ func Stream(handler func(m []byte), prefix string, symbols []string) (err error)
 		}
 	}()
 
-	//sem := make(chan struct{}, runtime.NumCPU())
 	go func() {
 		for msg := range c.Out() {
+			// orderbook is not concurrent at the moment, so
+			// do not parallelize this until it is protected.
+			// the actual write is in a separate goroutine,
+			// and I'm not sure if we ever need to parallelize here.
 			handler(msg.([]byte))
-			// sem <- struct{}{}
-			// go func(m interface{}) {
-			// 	defer func() { <-sem }()
-			// 	handler(m.([]byte))
-			// }(msg)
 		}
 	}()
 
@@ -118,10 +148,6 @@ func Stream(handler func(m []byte), prefix string, symbols []string) (err error)
 			}
 		}
 	}()
-
-	// initial auth handshake
-	authMsg := makeAction("auth", apiKey)
-	conn.WriteMessage(websocket.TextMessage, authMsg)
 
 	// subscribe
 	subscribe := func(target string) error {

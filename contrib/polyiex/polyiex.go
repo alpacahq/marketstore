@@ -51,8 +51,8 @@ func (pf *PolyIEXFetcher) Run() {
 	api.SetAPIKey(pf.config.APIKey)
 	api.SetBaseURL(pf.config.BaseURL)
 
-	// api.Stream(handlers.Trade, api.TradePrefix, nil)
-	api.Stream(handlers.Book, api.BookPrefix, nil)
+	// api.Stream(handlers.Tick, api.TradePrefix, nil)
+	api.Stream(handlers.Tick, api.BookPrefix, nil)
 
 	select {}
 }
@@ -64,6 +64,7 @@ func (pf *PolyIEXFetcher) handleMessage(rawMsg []byte) error {
 }
 
 func main() {
+	handlers.SkipWrite(true)
 	log.SetLevel(log.DEBUG)
 	conf := map[string]interface{}{}
 	conf["api_key"] = os.Getenv("POLYIEX_API_KEY")
