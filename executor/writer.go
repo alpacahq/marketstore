@@ -266,11 +266,13 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Prepare data for writing
 		*/
+		var alignData bool
 		times := cs.GetTime()
 		if isVariableLength {
 			cs.Remove("Nanoseconds")
+			alignData = false
 		}
-		rs := cs.ToRowSeries(tbk)
+		rs := cs.ToRowSeries(tbk, alignData)
 		rowdata := rs.GetData()
 
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
