@@ -102,8 +102,16 @@ func pullDate(t time.Time) {
 		panic(fmt.Errorf("Found %v available data feeds", len(histData)))
 	}
 
+	var topsLink string
+	for _, hist := range histData {
+		if hist.Feed == "TOPS" {
+			topsLink = hist.Link
+			break
+		}
+	}
+
 	// Fetch the pcap dump for that date and iterate through its messages.
-	resp, err := http.Get(histData[0].Link)
+	resp, err := http.Get(topsLink)
 	if err != nil {
 		panic(err)
 	}
@@ -120,7 +128,12 @@ func pullDate(t time.Time) {
 		trades    []*tops.TradeReportMessage
 		openTime  time.Time
 		closeTime time.Time
+
+		quotes []*tops.QuoteUpdateMessage
 	)
+
+	const QuoteBufferSize = 1024 * 512
+	quotes = make([]*tops.QuoteUpdateMessage, 0, QuoteBufferSize)
 
 	for {
 		msg, err := scanner.NextMessage()
@@ -132,18 +145,20 @@ func pullDate(t time.Time) {
 			log.Fatal(err.Error())
 		}
 
-		if msg, ok := msg.(*tops.TradeReportMessage); ok {
+		switch tick := msg.(type) {
+		case *tops.TradeReportMessage:
+			trade := tick
 			if len(symbolMask) > 0 {
-				if _, ok := symbolMask[msg.Symbol]; !ok {
+				if _, ok := symbolMask[trade.Symbol]; !ok {
 					continue
 				}
 			}
 			if openTime.IsZero() {
-				openTime = msg.Timestamp.Truncate(time.Minute)
+				openTime = trade.Timestamp.Truncate(time.Minute)
 				closeTime = openTime.Add(time.Minute)
 			}
 
-			if (msg.Timestamp.Equal(closeTime) || msg.Timestamp.After(closeTime)) && len(trades) > 0 {
+			if (trade.Timestamp.Equal(closeTime) || trade.Timestamp.After(closeTime)) && len(trades) > 0 {
 				symBars := makeSymBars(trades, openTime, closeTime)
 
 				if err := writeSymBars(symBars); err != nil {
@@ -154,11 +169,22 @@ func pullDate(t time.Time) {
 				}
 
 				trades = trades[:0]
-				openTime = msg.Timestamp.Truncate(time.Minute)
+				openTime = trade.Timestamp.Truncate(time.Minute)
 				closeTime = openTime.Add(time.Minute)
 			}
 
-			trades = append(trades, msg)
+			trades = append(trades, trade)
+		case *tops.QuoteUpdateMessage:
+			quote := tick
+			if len(quotes) == cap(quotes)-1 {
+				if err := writeQuotes(quotes); err != nil {
+					log.Fatal(err.Error())
+				}
+				quotes = quotes[:0]
+
+			}
+			quotes = append(quotes, quote)
+		default:
 		}
 	}
 
@@ -169,6 +195,9 @@ func pullDate(t time.Time) {
 			log.Fatal(err.Error())
 		}
 		if err := writeTrades(trades); err != nil {
+			log.Fatal(err.Error())
+		}
+		if err := writeQuotes(quotes); err != nil {
 			log.Fatal(err.Error())
 		}
 	}
@@ -275,6 +304,7 @@ func writeTrades(trades []*tops.TradeReportMessage) error {
 		nanos []int32
 		px    []float32
 		sz    []int32
+		cond  []int32
 	}
 
 	mapSchema := map[string]*schema{}
@@ -291,6 +321,7 @@ func writeTrades(trades []*tops.TradeReportMessage) error {
 		cols.nanos = append(cols.nanos, int32(trade.Timestamp.Nanosecond()))
 		cols.px = append(cols.px, float32(trade.Price))
 		cols.sz = append(cols.sz, int32(trade.Size))
+		cols.cond = append(cols.cond, int32(trade.SaleConditionFlags))
 	}
 
 	for symbol, cols := range mapSchema {
@@ -300,6 +331,52 @@ func writeTrades(trades []*tops.TradeReportMessage) error {
 		csm.AddColumn(*tbk, "Nanoseconds", cols.nanos)
 		csm.AddColumn(*tbk, "Price", cols.px)
 		csm.AddColumn(*tbk, "Size", cols.sz)
+		//csm.AddColumn(*tbk, "Condition", cols.cond)
+	}
+
+	return executor.WriteCSM(csm, true)
+}
+
+func writeQuotes(quotes []*tops.QuoteUpdateMessage) error {
+	csm := NewColumnSeriesMap()
+
+	type schema struct {
+		epoch        []int64
+		nanos        []int32
+		bidPx, askPx []float32
+		bidSz, askSz []int32
+		flags        []int32
+	}
+
+	mapSchema := map[string]*schema{}
+
+	for _, quote := range quotes {
+		symbol := quote.Symbol
+
+		if _, ok := mapSchema[symbol]; !ok {
+			mapSchema[symbol] = &schema{}
+		}
+		cols := mapSchema[symbol]
+
+		cols.epoch = append(cols.epoch, quote.Timestamp.Unix())
+		cols.nanos = append(cols.nanos, int32(quote.Timestamp.Nanosecond()))
+		cols.bidPx = append(cols.bidPx, float32(quote.BidPrice))
+		cols.askPx = append(cols.askPx, float32(quote.AskPrice))
+		cols.bidSz = append(cols.bidSz, int32(quote.BidSize))
+		cols.askSz = append(cols.askSz, int32(quote.AskSize))
+		cols.flags = append(cols.flags, int32(quote.Flags))
+	}
+
+	for symbol, cols := range mapSchema {
+		tbk := NewTimeBucketKey(symbol + "/1Min/QUOTE")
+
+		csm.AddColumn(*tbk, "Epoch", cols.epoch)
+		csm.AddColumn(*tbk, "Nanoseconds", cols.nanos)
+		csm.AddColumn(*tbk, "BidPrice", cols.bidPx)
+		csm.AddColumn(*tbk, "AskPrice", cols.askPx)
+		csm.AddColumn(*tbk, "BidSize", cols.bidSz)
+		csm.AddColumn(*tbk, "AskSize", cols.askSz)
+		//csm.AddColumn(*tbk, "Flags", cols.flags)
 	}
 
 	return executor.WriteCSM(csm, true)
