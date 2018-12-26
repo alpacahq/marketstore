@@ -227,9 +227,9 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 	}
 }
 
-func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey) (rs *RowSeries) {
+func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries) {
 	dsv := cs.GetDataShapes()
-	data, recordLen := SerializeColumnsToRows(cs, dsv, true)
+	data, recordLen := SerializeColumnsToRows(cs, dsv, alignData)
 	rs = NewRowSeries(itemKey, data, dsv, recordLen, cs.GetCandleAttributes(), NOTYPE)
 	return rs
 }
