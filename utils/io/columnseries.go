@@ -414,12 +414,10 @@ func (csm ColumnSeriesMap) AddColumn(key TimeBucketKey, name string, columnData 
 	csm[key].AddColumn(name, columnData)
 }
 
-func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]DataShape) (rsMap map[TimeBucketKey]*RowSeries) {
+func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]DataShape, alignData bool) (rsMap map[TimeBucketKey]*RowSeries) {
 	rsMap = make(map[TimeBucketKey]*RowSeries)
 	for key, columns := range csm {
-		dataShapes := dataShapesMap[key]
-		data, recordLen := SerializeColumnsToRows(columns, dataShapes, true)
-		rsMap[key] = NewRowSeries(key, data, dataShapes, recordLen, columns.GetCandleAttributes(), NOTYPE)
+		rsMap[key] = columns.ToRowSeries(key, alignData)
 	}
 	return rsMap
 }
