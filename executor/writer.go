@@ -91,6 +91,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		return record
 	}
 
+	wkp := ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path)
+	vrl := w.tbi.GetVariableRecordLength()
+	rt := w.tbi.GetRecordType()
 	for i := 0; i < numRows; i++ {
 		pos := i * rowLen
 		record := data[pos : pos+rowLen]
@@ -100,6 +103,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			if err := w.AddNewYearFile(year); err != nil {
 				panic(err)
 			}
+			wkp = ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path)
 		}
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
@@ -107,9 +111,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		if i == 0 {
 			prevIndex = index
 			cc = &WriteCommand{
-				RecordType: w.tbi.GetRecordType(),
-				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
-				VarRecLen:  w.tbi.GetVariableRecordLength(),
+				RecordType: rt,
+				WALKeyPath: wkp,
+				VarRecLen:  vrl,
 				Offset:     offset,
 				Index:      index,
 				Data:       nil}
