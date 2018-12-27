@@ -22,14 +22,14 @@ func NewShelfHandler(f func(tbk io.TimeBucketKey, data interface{}) error) Shelf
 // meant to have the shelf's handler executed after some deadline
 type Shelf struct {
 	sync.Mutex
-	m       map[*io.TimeBucketKey]*Package
+	m       map[string]*Package
 	handler ShelfHandler
 }
 
 // NewShelf initializes a new shelf with the provided handler function
 func NewShelf(h ShelfHandler) *Shelf {
 	return &Shelf{
-		m:       map[*io.TimeBucketKey]*Package{},
+		m:       map[string]*Package{},
 		handler: h,
 	}
 }
@@ -41,10 +41,16 @@ func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline *time.Ti
 	s.Lock()
 	defer s.Unlock()
 
+	if tbk == nil {
+		return
+	}
+
+	key := tbk.String()
+
 	// if a package already exists for this key,
 	// let's cancel it, then remove it to replace
 	// it with a new one.
-	if p, ok := s.m[tbk]; ok {
+	if p, ok := s.m[key]; ok {
 		// If this is a replacement, make sure we stop the previous
 		// package from executing so we don't send duplicates
 		if deadline.Equal(*p.deadline) {
@@ -53,7 +59,7 @@ func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline *time.Ti
 		// If it is not a replacement, let's delete it from the map
 		// but the async goroutine will still execute the previous
 		// package in the background
-		delete(s.m, tbk)
+		delete(s.m, key)
 	}
 
 	ctx, cancel := context.WithDeadline(context.Background(), *deadline)
@@ -68,7 +74,7 @@ func (s *Shelf) Store(tbk *io.TimeBucketKey, data interface{}, deadline *time.Ti
 
 	p.Start(tbk, s.handler)
 
-	s.m[tbk] = p
+	s.m[key] = p
 }
 
 // Package is a data entry with a context to ensure async

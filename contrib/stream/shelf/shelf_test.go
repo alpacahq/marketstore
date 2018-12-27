@@ -95,6 +95,27 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 
 		c.Assert(expireCount, Equals, 2)
 	}
+	// attempted replacement w/ same deadline - make sure
+	// things get properly cleaned up
+	{
+		h := NewShelfHandler(func(tbk io.TimeBucketKey, data interface{}) error {
+			return nil
+		})
+
+		shelf := NewShelf(h)
+
+		tbk := io.NewTimeBucketKey("AAPL/1D/OHLCV")
+
+		deadline := time.Now().Add(24 * time.Hour).Truncate(24 * time.Hour)
+
+		// store initial
+		shelf.Store(tbk, genColumns(), &deadline)
+
+		// attempt replace
+		shelf.Store(tbk, genColumns(), &deadline)
+
+		c.Assert(len(shelf.m), Equals, 1)
+	}
 }
 
 func genColumns() map[string]interface{} {
