@@ -330,6 +330,84 @@ func (s *TestSuite) TestFileRead(c *C) {
 	}
 }
 
+func (s *TestSuite) TestDelete(c *C) {
+	NY, _ := time.LoadLocation("America/New_York")
+	// First write some data we can delete
+	d := ThisInstance.CatalogDir
+	tgc := ThisInstance.TXNPipe
+	dataItemKey := "TEST-DELETE/OHLCV/1Min"
+	dataItemPath := filepath.Join(d.GetPath(), dataItemKey)
+	dsv := NewDataShapeVector(
+		[]string{"Open", "High", "Low", "Close"},
+		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32},
+	)
+	tbi := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"), dataItemPath, "Test item", 2018,
+		dsv, FIXED)
+	tbk := NewTimeBucketKey(dataItemKey)
+	err := d.AddTimeBucket(tbk, tbi)
+	c.Assert(err, Equals, nil)
+
+	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
+	c.Assert(err == nil, Equals, true)
+
+
+	row := OHLCtest{0, 100., 200., 300., 400.}
+	buffer, _ := Serialize([]byte{}, row)
+	startTime := time.Date(2018, 12, 26, 9, 45, 0, 0, NY)
+	ts := startTime
+	var tsA []time.Time
+	for i := 0; i < 1000; i++ {
+		minsToAdd := time.Duration(i)
+		ts := ts.Add(minsToAdd * time.Minute)
+		tsA = append(tsA, ts)
+		buffer, _ = Serialize(buffer, row)
+	}
+	writer.WriteRecords(tsA, buffer)
+	c.Assert(err == nil, Equals, true)
+	s.WALFile.flushToWAL(tgc)
+	s.WALFile.createCheckpoint()
+
+	endTime := tsA[len(tsA)-1]
+	fmt.Println("LAL start, end:", startTime, endTime)
+
+	/*
+	q := NewQuery(s.DataDirectory)
+	q.AddTargetKey(tbk)
+	q.SetRange(
+		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC).Unix(),
+	)
+	parsed, err := q.Parse()
+	if err != nil {
+		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
+	}
+	scanner, err := NewReader(parsed)
+	c.Assert(err == nil, Equals, true)
+	// Sum up the total number of items in the query set for validation
+	var nitems, recordlen int
+	var minYear int16
+	for _, iop := range scanner.IOPMap {
+		c.Assert(len(iop.FilePlan), Equals, 1)
+		for _, fp := range iop.FilePlan {
+			year := int16(time.Unix(fp.BaseTime, 0).UTC().Year())
+			if minYear == 0 {
+				minYear = year
+			} else if year < minYear {
+				minYear = year
+			}
+			if year == 2001 {
+				//fmt.Printf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
+				nitems += s.ItemsWritten[fp.FullPath]
+				recordlen = int(iop.RecordLen)
+			}
+		}
+		c.Assert(minYear, Equals, int16(2001))
+		csm, _ := scanner.Read()
+		_, _ = csm, recordlen
+	}
+	*/
+}
+
 func (s *TestSuite) TestSortedFiles(c *C) {
 	q := NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "NZDUSD")
