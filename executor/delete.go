@@ -52,12 +52,11 @@ func (de *deleter) Delete() (err error) {
 	return err
 }
 
-// Reads the data from files, removing holes. The resulting buffer will be packed
-// Uses the index that prepends each row to identify filled rows versus holes
+// Deletes the selected time range, preserving the file holes
 func (de *deleter) delete(iop *ioplan) (err error) {
 	for _, fp := range iop.FilePlan {
 		filePath := fp.FullPath
-		f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
+		f, err := os.OpenFile(filePath, os.O_RDWR, 0666)
 		if err != nil {
 			log.Error("Read: opening %s\n%s", filePath, err)
 			return err
@@ -103,7 +102,7 @@ func (de *deleter) delete(iop *ioplan) (err error) {
 			case index != 0 && isContiguous:
 				n, err := f.Write(zeroRecord)
 				if err != nil || n != int(iop.RecordLen) {
-					return fmt.Errorf("delete(): Short write %d bytes", n)
+					return fmt.Errorf("delete(): Short write %d bytes, error: %s", n, err.Error())
 				}
 			case index == 0:
 				isContiguous = false

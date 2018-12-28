@@ -371,19 +371,24 @@ func (s *TestSuite) TestDelete(c *C) {
 
 	q := NewQuery(s.DataDirectory)
 	q.AddTargetKey(tbk)
-	q.SetRange(
-		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC).Unix(),
-	)
+	q.SetRange(startTime.UTC().Unix(), endTime.UTC().Unix())
 	parsed, err := q.Parse()
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
 	}
 
 	de, err := NewDeleter(parsed)
-	c.Assert(err == nil, Equals, true)
 	err = de.Delete()
-	c.Assert(err == nil, Equals, true)
+	asserter(c, err, true)
+	err = de.Delete()
+	asserter(c, err, true)
+}
+
+func asserter(c *C, err error, shouldBeNil bool) {
+	if err != nil {
+		fmt.Println("error: ", err.Error())
+	}
+	c.Assert(err == nil, Equals, shouldBeNil)
 }
 
 func (s *TestSuite) TestSortedFiles(c *C) {
