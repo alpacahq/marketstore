@@ -367,7 +367,6 @@ func (s *TestSuite) TestDelete(c *C) {
 	s.WALFile.createCheckpoint()
 
 	endTime := tsA[len(tsA)-1]
-	fmt.Println("LAL start, end:", startTime, endTime)
 
 	q := NewQuery(s.DataDirectory)
 	q.AddTargetKey(tbk)
@@ -377,11 +376,34 @@ func (s *TestSuite) TestDelete(c *C) {
 		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
 	}
 
+	// Read the data before delete
+	r, err := NewReader(parsed)
+	csm, err := r.Read()
+	for _, cs := range csm {
+		if cs.Len() != 1000 {
+			fmt.Println("error: number of rows read back from write is incorrect")
+			fmt.Printf("should be: %d, was %d", 1000, cs.Len())
+			c.Fail()
+		}
+		break
+	}
+
 	de, err := NewDeleter(parsed)
 	err = de.Delete()
 	asserter(c, err, true)
 	err = de.Delete()
 	asserter(c, err, true)
+
+	// Read back the data, should have zero records
+	csm, err = r.Read()
+	for _, cs := range csm {
+		if cs.Len() != 0 {
+			fmt.Println("error: number of rows read back after delete is incorrect")
+			fmt.Printf("should be: %d, was %d", 0, cs.Len())
+			c.Fail()
+		}
+		break
+	}
 }
 
 func asserter(c *C, err error, shouldBeNil bool) {
