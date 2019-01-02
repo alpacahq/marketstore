@@ -227,9 +227,9 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 	}
 }
 
-func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey) (rs *RowSeries) {
+func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries) {
 	dsv := cs.GetDataShapes()
-	data, recordLen := SerializeColumnsToRows(cs, dsv, true)
+	data, recordLen := SerializeColumnsToRows(cs, dsv, alignData)
 	rs = NewRowSeries(itemKey, data, dsv, recordLen, cs.GetCandleAttributes(), NOTYPE)
 	return rs
 }
@@ -414,12 +414,10 @@ func (csm ColumnSeriesMap) AddColumn(key TimeBucketKey, name string, columnData 
 	csm[key].AddColumn(name, columnData)
 }
 
-func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]DataShape) (rsMap map[TimeBucketKey]*RowSeries) {
+func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]DataShape, alignData bool) (rsMap map[TimeBucketKey]*RowSeries) {
 	rsMap = make(map[TimeBucketKey]*RowSeries)
 	for key, columns := range csm {
-		dataShapes := dataShapesMap[key]
-		data, recordLen := SerializeColumnsToRows(columns, dataShapes, true)
-		rsMap[key] = NewRowSeries(key, data, dataShapes, recordLen, columns.GetCandleAttributes(), NOTYPE)
+		rsMap[key] = columns.ToRowSeries(key, alignData)
 	}
 	return rsMap
 }

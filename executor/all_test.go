@@ -330,6 +330,89 @@ func (s *TestSuite) TestFileRead(c *C) {
 	}
 }
 
+func (s *TestSuite) TestDelete(c *C) {
+	NY, _ := time.LoadLocation("America/New_York")
+	// First write some data we can delete
+	d := ThisInstance.CatalogDir
+	tgc := ThisInstance.TXNPipe
+	dataItemKey := "TEST-DELETE/OHLCV/1Min"
+	dataItemPath := filepath.Join(d.GetPath(), dataItemKey)
+	dsv := NewDataShapeVector(
+		[]string{"Open", "High", "Low", "Close"},
+		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32},
+	)
+	tbi := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"), dataItemPath, "Test item", 2018,
+		dsv, FIXED)
+	tbk := NewTimeBucketKey(dataItemKey)
+	err := d.AddTimeBucket(tbk, tbi)
+	c.Assert(err, Equals, nil)
+
+	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
+	c.Assert(err == nil, Equals, true)
+
+	row := OHLCtest{0, 100., 200., 300., 400.}
+	buffer, _ := Serialize([]byte{}, row)
+	startTime := time.Date(2018, 12, 26, 9, 45, 0, 0, NY)
+	ts := startTime
+	var tsA []time.Time
+	for i := 0; i < 1000; i++ {
+		minsToAdd := time.Duration(i)
+		ts := ts.Add(minsToAdd * time.Minute)
+		tsA = append(tsA, ts)
+		buffer, _ = Serialize(buffer, row)
+	}
+	writer.WriteRecords(tsA, buffer)
+	c.Assert(err == nil, Equals, true)
+	s.WALFile.flushToWAL(tgc)
+	s.WALFile.createCheckpoint()
+
+	endTime := tsA[len(tsA)-1]
+
+	q := NewQuery(s.DataDirectory)
+	q.AddTargetKey(tbk)
+	q.SetRange(startTime.UTC().Unix(), endTime.UTC().Unix())
+	parsed, err := q.Parse()
+	if err != nil {
+		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
+	}
+
+	// Read the data before delete
+	r, err := NewReader(parsed)
+	csm, err := r.Read()
+	for _, cs := range csm {
+		if cs.Len() != 1000 {
+			fmt.Println("error: number of rows read back from write is incorrect")
+			fmt.Printf("should be: %d, was %d", 1000, cs.Len())
+			c.Fail()
+		}
+		break
+	}
+
+	de, err := NewDeleter(parsed)
+	err = de.Delete()
+	asserter(c, err, true)
+	err = de.Delete()
+	asserter(c, err, true)
+
+	// Read back the data, should have zero records
+	csm, err = r.Read()
+	for _, cs := range csm {
+		if cs.Len() != 0 {
+			fmt.Println("error: number of rows read back after delete is incorrect")
+			fmt.Printf("should be: %d, was %d", 0, cs.Len())
+			c.Fail()
+		}
+		break
+	}
+}
+
+func asserter(c *C, err error, shouldBeNil bool) {
+	if err != nil {
+		fmt.Println("error: ", err.Error())
+	}
+	c.Assert(err == nil, Equals, shouldBeNil)
+}
+
 func (s *TestSuite) TestSortedFiles(c *C) {
 	q := NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "NZDUSD")

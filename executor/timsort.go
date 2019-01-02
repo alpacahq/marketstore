@@ -38,6 +38,8 @@ import (
 //		memcpy(buf+i*rec_nel, &words[i*rec_nel+4], rec_nel-4);
 //		memcpy(buf+((i+1)*rec_nel)-4, &words[i*rec_nel], 4);
 //  }
+//
+//  free(words);
 //}
 import "C"
 
