@@ -36,10 +36,6 @@ stop:
 		docker stop ${CONTAINER_NAME}; fi
 	-docker rm -f ${CONTAINER_NAME}
 
-.PHONY: test
-test:
-	@bin/runtests.sh
-
 .PHONY: clean
 clean: stop
 	rm -rf data tests/__pycache__
@@ -80,12 +76,13 @@ _startup: stop
 _start_pyclient_container:
 	make -C dockerfiles/pyclient rm build run
 
-.PHONY: test_driver
-test_driver: clean run _start_pyclient_container
+.PHONY: test_import_csv
+test_import_csv:
+	@bin/runtests.sh
+
+# run all tests including CSV Import
+.PHONY: test
+test: connect test_import_csv clean run _start_pyclient_container
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test
 
-.PHONY: test_not_empty
-test_not_empty: clean run _start_pyclient_container
-	TEST_FILENAME='/project/tests/$@.py'; \
-	make -C dockerfiles/pyclient test
