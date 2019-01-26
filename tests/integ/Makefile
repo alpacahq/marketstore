@@ -84,7 +84,7 @@ test_import_csv:
 
 # run all tests including CSV Import
 .PHONY: test
-test: connect test_import_csv clean run _start_pyclient_container
+test: test_import_csv clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test
 
