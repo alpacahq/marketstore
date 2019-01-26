@@ -32,8 +32,10 @@ run: _init
 
 .PHONY: stop
 stop:
-	-if [ `bin/check_running ${CONTAINER_NAME}` -eq 1 ]; then \
-		docker stop ${CONTAINER_NAME}; fi
+	@if [ `bin/check_running ${CONTAINER_NAME}` = "1" ]; \
+	then \
+		docker stop ${CONTAINER_NAME}; \
+	fi
 	-docker rm -f ${CONTAINER_NAME}
 
 .PHONY: clean
@@ -82,7 +84,7 @@ test_import_csv:
 
 # run all tests including CSV Import
 .PHONY: test
-test: clean connect test_import_csv _start_pyclient_container
+test: connect test_import_csv clean run _start_pyclient_container
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test
 
