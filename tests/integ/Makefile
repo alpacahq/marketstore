@@ -65,7 +65,7 @@ _startup: stop
 	@echo "Starting a marketstore instance..."
 	docker run --name ${CONTAINER_NAME} -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
 		start --config /project/bin/mkts.yml
-	@sleep 2
+	@sleep 4
 	@if [ `bin/check_running ${CONTAINER_NAME}` -eq 0 ]; then \
 		echo "Failed to start a marketstore instance"; \
 		false; \
