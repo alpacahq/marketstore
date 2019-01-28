@@ -91,5 +91,5 @@ test_import_csv:
 #test: test_import_csv clean run _start_pyclient_container connect
 test: clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
-	make -C dockerfiles/pyclient test
+#	make -C dockerfiles/pyclient test
 
