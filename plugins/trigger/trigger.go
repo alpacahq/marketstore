@@ -79,31 +79,6 @@ func (r *Record) Payload() []byte {
 	return (*r)[8:]
 }
 
-// ColumnSeriesToRecords takes a TimeBucketKey and a ColumnSeries and converts
-// them to a slice of trigger.Record
-func ColumnSeriesToRecords(tbk io.TimeBucketKey, cs io.ColumnSeries) ([]Record, error) {
-	rs := cs.ToRowSeries(tbk)
-	epochs := rs.GetEpoch()
-
-	tf, err := tbk.GetTimeFrame()
-	if err != nil {
-		return nil, err
-	}
-
-	records := make([]Record, len(epochs))
-
-	for i, epoch := range epochs {
-		buf, err := io.Serialize(nil, io.EpochToIndex(epoch, tf.Duration))
-		if err != nil {
-			return nil, err
-		}
-
-		records[i] = Record(append(buf, rs.GetRow(i)[len(buf):]...))
-	}
-
-	return records, nil
-}
-
 // RecordsToColumnSeries takes a slice of Record, along with the required
 // information for constructing a ColumnSeries, and builds it from the
 // slice of Record.

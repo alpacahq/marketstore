@@ -31,7 +31,7 @@ type BgWorkerSetting struct {
 
 type MktsConfig struct {
 	RootDirectory              string
-	ListenPort                 string
+	ListenAddress              string
 	Timezone                   *time.Location
 	Queryable                  bool
 	StopGracePeriod            time.Duration
@@ -50,6 +50,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 		err error
 		aux struct {
 			RootDirectory              string `yaml:"root_directory"`
+			ListenHost                 string `yaml:"listen_host"`
 			ListenPort                 string `yaml:"listen_port"`
 			Timezone                   string `yaml:"timezone"`
 			LogLevel                   string `yaml:"log_level"`
@@ -169,7 +170,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 		}
 	*/
 	m.RootDirectory = aux.RootDirectory
-	m.ListenPort = fmt.Sprintf(":%v", aux.ListenPort)
+	m.ListenAddress = fmt.Sprintf("%v:%v", aux.ListenHost, aux.ListenPort)
 
 	for _, trig := range aux.Triggers {
 		triggerSetting := &TriggerSetting{

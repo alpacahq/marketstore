@@ -327,10 +327,6 @@ func (f *IEXFetcher) workBackfill() {
 }
 
 func limiter() time.Duration {
-	if calendar.Nasdaq.IsMarketOpen(time.Now()) {
-		return time.Second / 100
-	}
-
 	return time.Second / 50
 }
 

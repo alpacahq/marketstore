@@ -434,14 +434,21 @@ func GetHistoricAggregates(
 // GetHistoricTrades requests polygon's REST API for historic trades
 // on the provided date .
 func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err error) {
-	offset := int64(0)
+	var (
+		offset = int64(0)
+		resp   *http.Response
+		u      *url.URL
+		q      url.Values
+		trades = &HistoricTrades{}
+	)
+
 	for {
-		u, err := url.Parse(fmt.Sprintf(tradesURL, baseURL, symbol, date))
+		u, err = url.Parse(fmt.Sprintf(tradesURL, baseURL, symbol, date))
 		if err != nil {
 			return nil, err
 		}
 
-		q := u.Query()
+		q = u.Query()
 		q.Set("apiKey", apiKey)
 		q.Set("limit", strconv.FormatInt(10000, 10))
 
@@ -450,8 +457,6 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 		}
 
 		u.RawQuery = q.Encode()
-
-		var resp *http.Response
 
 		if err = try.Do(func(attempt int) (bool, error) {
 			resp, err = http.Get(u.String())
@@ -463,8 +468,6 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 		if resp.StatusCode >= http.StatusMultipleChoices {
 			return nil, fmt.Errorf("status code %v", resp.StatusCode)
 		}
-
-		trades := &HistoricTrades{}
 
 		if err = unmarshal(resp, trades); err != nil {
 			return nil, err
@@ -489,14 +492,21 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 // GetHistoricQuotes requests polygon's REST API for historic quotes
 // on the provided date.
 func GetHistoricQuotes(symbol, date string) (totalQuotes *HistoricQuotes, err error) {
-	offset := int64(0)
+	var (
+		offset = int64(0)
+		resp   *http.Response
+		u      *url.URL
+		q      url.Values
+		quotes = &HistoricQuotes{}
+	)
+
 	for {
-		u, err := url.Parse(fmt.Sprintf(quotesURL, baseURL, symbol, date))
+		u, err = url.Parse(fmt.Sprintf(quotesURL, baseURL, symbol, date))
 		if err != nil {
 			return nil, err
 		}
 
-		q := u.Query()
+		q = u.Query()
 		q.Set("apiKey", apiKey)
 		q.Set("limit", strconv.FormatInt(10000, 10))
 
@@ -505,8 +515,6 @@ func GetHistoricQuotes(symbol, date string) (totalQuotes *HistoricQuotes, err er
 		}
 
 		u.RawQuery = q.Encode()
-
-		var resp *http.Response
 
 		if err = try.Do(func(attempt int) (bool, error) {
 			resp, err = http.Get(u.String())
@@ -518,8 +526,6 @@ func GetHistoricQuotes(symbol, date string) (totalQuotes *HistoricQuotes, err er
 		if resp.StatusCode >= http.StatusMultipleChoices {
 			return nil, fmt.Errorf("status code %v", resp.StatusCode)
 		}
-
-		quotes := &HistoricQuotes{}
 
 		if err = unmarshal(resp, quotes); err != nil {
 			return nil, err
@@ -537,18 +543,6 @@ func GetHistoricQuotes(symbol, date string) (totalQuotes *HistoricQuotes, err er
 			break
 		}
 	}
-
-	// ts := time.Unix(0, totalQuotes.Ticks[0].Timestamp*1000*100)
-	// for _, tick := range totalQuotes.Ticks[1:] {
-	// 	newTS := time.Unix(0, tick.Timestamp*1000*100)
-	// 	if newTS.Before(ts) {
-	// 		log.Fatal("NOT STRICTLY INCREASING [%v < %v]", newTS.UnixNano(), ts.UnixNano())
-	// 	} else {
-	// 		ts = newTS
-	// 	}
-	// }
-
-	// log.Fatal("STRICTLY INCREASING")
 
 	return totalQuotes, nil
 }

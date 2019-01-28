@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"time"
 
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/alpacahq/marketstore/contrib/calendar"
 	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger"
 	"github.com/alpacahq/marketstore/contrib/polygon/api"
@@ -41,6 +43,27 @@ func init() {
 }
 
 func main() {
+	// free memory in the background every 1 minute for long running
+	// backfills with very high parallelism
+	go func() {
+		for {
+			<-time.After(time.Minute)
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+			memStart := m.Alloc
+			log.Info("freeing memory...")
+			debug.FreeOSMemory()
+			runtime.ReadMemStats(&m)
+			memEnd := m.Alloc
+			log.Info(
+				"mem stats: [start: %v end: %v freed: %v]",
+				bytefmt.ByteSize(memStart),
+				bytefmt.ByteSize(memEnd),
+				bytefmt.ByteSize(memStart-memEnd),
+			)
+		}
+	}()
+
 	initWriter()
 
 	if apiKey == "" {

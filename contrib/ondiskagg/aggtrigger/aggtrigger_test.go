@@ -154,7 +154,7 @@ func (t *TestSuite) TestFire(c *C) {
 	err = executor.WriteCSM(csm, false)
 	c.Assert(err, IsNil)
 
-	rs := cs.ToRowSeries(*tbk)
+	rs := cs.ToRowSeries(*tbk, true)
 	rowData := rs.GetData()
 	times := rs.GetTime()
 	numRows := len(times)
