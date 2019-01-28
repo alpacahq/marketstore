@@ -63,7 +63,7 @@ _get_data:
 .PHONY: _startup
 _startup: stop
 	@echo "Starting a marketstore instance..."
-	docker run --name ${CONTAINER_NAME} -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
+	docker run --name ${CONTAINER_NAME} -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
 		start --config /project/bin/mkts.yml
 	$(info Wait until the docker container gets to be up and running...)
 	sleep 4
