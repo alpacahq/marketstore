@@ -19,8 +19,14 @@ enable_add: true
 enable_remove: false
 #
 enable_last_known: false
-# 
+#
 # timezone: "America/New_York"
+#
+# Optional listen host for database server
+# listen_host: "localhost"
+#
+# Enable debugging pprof and heartbeat endpoints
+# utilities_url: "localhost:5994"
 
 # ----------------------------------------
 # Example trigger modules
