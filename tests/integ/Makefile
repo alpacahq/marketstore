@@ -66,12 +66,12 @@ _startup: stop
 	docker run --name ${CONTAINER_NAME} -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
 		start --config /project/bin/mkts.yml
 	$(info Wait until the docker container gets to be up and running...)
-	sleep 2
-	@until [ `bin/check_running ${CONTAINER_NAME}` -eq 1 ]; \
-	do \
-		echo "Waiting for the docker container to be up and running..."; \
-		sleep 1; \
-	done
+	sleep 4
+#	@until [ `bin/check_running ${CONTAINER_NAME}` -eq 1 ]; \
+#	do \
+#		echo "Waiting for the docker container to be up and running..."; \
+#		sleep 1; \
+#	done
 	$(info Confirmed the docker container is up and running...)
 	@if [ `bin/check_running ${CONTAINER_NAME}` -eq 0 ]; then \
 		echo "Failed to start a marketstore instance"; \
