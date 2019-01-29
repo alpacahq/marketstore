@@ -69,11 +69,7 @@ _startup: stop
 	docker start ${CONTAINER_NAME}
 #	docker run --name ${CONTAINER_NAME} -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
 #		start --config /project/bin/mkts.yml
-	$(info Wait until the docker container gets to be up and running...)
-	$(info "$(shell ls -al bin/)" )
-	$(info "$(shell ls -al /home/circleci/github.com/alpacahq/marketstore/tests/integ/)" )
-	$(info "$(shell ls -al /project/bin/mkts.yml)" )
-	sleep 4
+	sleep 2
 #	@until [ `bin/check_running ${CONTAINER_NAME}` -eq 1 ]; \
 #	do \
 #		echo "Waiting for the docker container to be up and running..."; \
@@ -98,8 +94,7 @@ test_import_csv:
 
 # run all tests including CSV Import
 .PHONY: test
-#test: test_import_csv clean run _start_pyclient_container connect
-test: clean run _start_pyclient_container connect
+test: test_import_csv clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
-#	make -C dockerfiles/pyclient test
+	make -C dockerfiles/pyclient test
 
