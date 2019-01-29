@@ -64,8 +64,8 @@ _get_data:
 _startup: stop
 	@echo "Starting a marketstore instance..."
 	docker create --name ${CONTAINER_NAME} -p 5993:5993 -w /project  $(IMAGE_NAME) start --config /project/bin/mkts.yml
-	docker cp ./tests/integ/bin ${CONTAINER_NAME}:/project/
-	docker cp ./tests/integ/data ${CONTAINER_NAME}:/project/
+	docker cp $(CURDIR)/bin ${CONTAINER_NAME}:/project/
+	docker cp $(CURDIR)/data ${CONTAINER_NAME}:/project/
 	docker start ${CONTAINER_NAME}
 #	docker run --name ${CONTAINER_NAME} -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
 #		start --config /project/bin/mkts.yml
