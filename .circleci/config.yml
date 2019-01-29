@@ -10,11 +10,8 @@ jobs:
       - run: make all plugins
 
   test:
-    machine:
-       enabled: true
-       #image: circleci/classic:2017-01
-    #docker:
-    #  - image: circleci/golang
+    docker:
+      - image: circleci/golang
 
     working_directory: ~/github.com/alpacahq/marketstore
     steps:

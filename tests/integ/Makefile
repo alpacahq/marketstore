@@ -63,8 +63,12 @@ _get_data:
 .PHONY: _startup
 _startup: stop
 	@echo "Starting a marketstore instance..."
-	docker run --name ${CONTAINER_NAME} -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
-		start --config /project/bin/mkts.yml
+	docker create --name ${CONTAINER_NAME} -p 5993:5993 -w /project  $(IMAGE_NAME) start --config /project/bin/mkts.yml
+	docker cp ./tests/integ/bin hogehoge:/project/
+	docker cp ./tests/integ/data hogehoge:/project/
+	docker start hogehoge
+#	docker run --name ${CONTAINER_NAME} -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
+#		start --config /project/bin/mkts.yml
 	$(info Wait until the docker container gets to be up and running...)
 	$(info "$(shell ls -al bin/)" )
 	$(info "$(shell ls -al /home/circleci/github.com/alpacahq/marketstore/tests/integ/)" )
