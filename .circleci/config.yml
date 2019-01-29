@@ -11,7 +11,8 @@ jobs:
 
   test:
     machine:
-      image: circleci/classic:2017-01
+       enabled: true
+       #image: circleci/classic:2017-01
     #docker:
     #  - image: circleci/golang
 
