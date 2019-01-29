@@ -18,7 +18,6 @@ jobs:
     working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
-      - setup_remote_docker
       - run: make install unittest
   
   deploy:
