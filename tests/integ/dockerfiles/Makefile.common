@@ -16,7 +16,10 @@ build:
 	docker build -t $(IMAGE_NAME) .
 
 run:
-	docker run $(DOCKER_OPTS) -d --name $(CONTAINER_NAME) $(IMAGE_NAME) $(DOCKER_CMD)
+	docker create --name $(CONTAINER_NAME) --net=host $(IMAGE_NAME) $(DOCKER_CMD)
+	docker cp $(CURDIR)/../../tests $(CONTAINER_NAME):/project/tests
+	docker start $(CONTAINER_NAME)
+#	docker run $(DOCKER_OPTS) -d --name $(CONTAINER_NAME) $(IMAGE_NAME) $(DOCKER_CMD)
 
 rm:
 	docker rm -f $(CONTAINER_NAME) || echo
