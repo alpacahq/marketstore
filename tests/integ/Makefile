@@ -32,10 +32,8 @@ run: _init
 
 .PHONY: stop
 stop:
-	@if [ `bin/check_running ${CONTAINER_NAME}` = "1" ]; \
-	then \
-		docker stop ${CONTAINER_NAME}; \
-	fi
+	@if [ `bin/check_running ${CONTAINER_NAME}` = "1" ]; then \
+		docker stop ${CONTAINER_NAME}; fi
 	-docker rm -f ${CONTAINER_NAME}
 
 .PHONY: clean
@@ -63,19 +61,16 @@ _get_data:
 .PHONY: _startup
 _startup: stop
 	@echo "Starting a marketstore instance..."
+
+	# copy the test config and data to the container and start it after the container is created
+	# because mounting folders from docker executor is not supported in Circle CI2.0.
+	# https://discuss.circleci.com/t/why-circleci-2-0-does-not-support-mounting-folders/11605
 	docker create --name ${CONTAINER_NAME} -p 5993:5993 -w /project  $(IMAGE_NAME) start --config /project/bin/mkts.yml
 	docker cp $(CURDIR)/bin ${CONTAINER_NAME}:/project/
 	docker cp $(CURDIR)/data ${CONTAINER_NAME}:/project/
 	docker start ${CONTAINER_NAME}
-#	docker run --name ${CONTAINER_NAME} -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
-#		start --config /project/bin/mkts.yml
-	sleep 2
-#	@until [ `bin/check_running ${CONTAINER_NAME}` -eq 1 ]; \
-#	do \
-#		echo "Waiting for the docker container to be up and running..."; \
-#		sleep 1; \
-#	done
-	$(info Confirmed the docker container is up and running...)
+
+	@sleep 2
 	@if [ `bin/check_running ${CONTAINER_NAME}` -eq 0 ]; then \
 		echo "Failed to start a marketstore instance"; \
 		false; \
@@ -97,4 +92,3 @@ test_import_csv:
 test: test_import_csv clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test
-
