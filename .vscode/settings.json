@@ -1,4 +1,4 @@
 {
     "go.inferGopath": false,
-    "http.proxy": "https://127.0.0.1:52730",    
+    "python.linting.pylintEnabled": true
 }

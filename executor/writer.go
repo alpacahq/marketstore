@@ -2,8 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/klauspost/compress/snappy"
 	stdio "io"
 	"os"
 	"strings"
@@ -11,9 +9,11 @@ import (
 	"unsafe"
 
 	"github.com/alpacahq/marketstore/catalog"
+	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/klauspost/compress/snappy"
 )
 
 //#include "quickSort.h"
@@ -64,10 +64,16 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
 	numRows := len(ts)
-	rowLen := len(data) / numRows
-	var prevIndex int64
-	var cc *WriteCommand
-	var outBuf []byte
+	if numRows == 0 {
+		return
+	}
+
+	var (
+		prevIndex int64
+		cc        *WriteCommand
+		outBuf    []byte
+		rowLen    = len(data) / numRows
+	)
 
 	formatRecord := func(buf, record []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
 		/*
@@ -85,6 +91,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		return record
 	}
 
+	wkp := ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path)
+	vrl := w.tbi.GetVariableRecordLength()
+	rt := w.tbi.GetRecordType()
 	for i := 0; i < numRows; i++ {
 		pos := i * rowLen
 		record := data[pos : pos+rowLen]
@@ -94,6 +103,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			if err := w.AddNewYearFile(year); err != nil {
 				panic(err)
 			}
+			wkp = ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path)
 		}
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
@@ -101,9 +111,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		if i == 0 {
 			prevIndex = index
 			cc = &WriteCommand{
-				RecordType: w.tbi.GetRecordType(),
-				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
-				VarRecLen:  w.tbi.GetVariableRecordLength(),
+				RecordType: rt,
+				WALKeyPath: wkp,
+				VarRecLen:  vrl,
 				Offset:     offset,
 				Index:      index,
 				Data:       nil}
@@ -260,11 +270,13 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Prepare data for writing
 		*/
+		var alignData bool
 		times := cs.GetTime()
 		if isVariableLength {
 			cs.Remove("Nanoseconds")
+			alignData = false
 		}
-		rs := cs.ToRowSeries(tbk)
+		rs := cs.ToRowSeries(tbk, alignData)
 		rowdata := rs.GetData()
 
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)

@@ -219,11 +219,46 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 		if err != nil {
 			return nil, err
 		}
+		if rt == VARIABLE {
+			buffer = trimResultsToRange(r.pr.Range.Start, r.pr.Range.End, rlen, buffer)
+		}
 		rs := NewRowSeries(key, buffer, dsMap[key], rlen, cat, rt)
 		key, cs := rs.ToColumnSeries()
 		csm[key] = cs
 	}
 	return csm, err
+}
+
+func trimResultsToRange(start, end int64, rowlen int, src []byte) (dest []byte) {
+	// find the beginning of the range (sorted order)
+	rowLength := rowlen + 8
+	nrecords := len(src) / rowLength
+	if nrecords == 0 {
+		return nil
+	}
+	cursor := 0
+	for i := 0; i < nrecords; i++ {
+		epoch := ToInt64(src[cursor : cursor+8])
+		if epoch >= start {
+			dest = src[cursor:]
+			break
+		}
+		cursor += rowLength
+	}
+
+	nrecords = len(dest) / rowLength
+	if nrecords == 1 {
+		return dest
+	}
+	for i := nrecords; i > 0; i-- {
+		cursor = (i - 1) * rowLength
+		epoch := ToInt64(dest[cursor : cursor+8])
+		if epoch <= end {
+			dest = dest[:cursor+rowLength]
+			break
+		}
+	}
+	return dest
 }
 
 /*

@@ -95,7 +95,6 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 		result := &frontend.MultiQueryResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
 		if err != nil {
-			fmt.Printf("Error decoding: %s\n", err)
 			return nil, err
 		}
 

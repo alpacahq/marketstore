@@ -114,8 +114,6 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 		return
 	}
 
-	pl := ColumnSeriesForPayload(cs)
-
 	if tf.Duration > time.Minute {
 		// push aggregates to shelf and let them get handled
 		// asynchronously when they are completed or expire
@@ -132,11 +130,11 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 		}
 
 		if deadline != nil && deadline.After(time.Now()) {
-			s.shelf.Store(tbk, &pl, deadline)
+			s.shelf.Store(tbk, ColumnSeriesForPayload(cs), deadline)
 		}
 	} else {
 		// push minute bars immediately
-		if err := stream.Push(*tbk, &pl); err != nil {
+		if err := stream.Push(*tbk, ColumnSeriesForPayload(cs)); err != nil {
 			log.Error("[streamtrigger] failed to stream %s (%v)", tbk.String(), err)
 		}
 	}
@@ -145,7 +143,7 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 // ColumnSeriesForPayload extracts the single row from the column
 // series that is queried by the trigger, to prepare it for a
 // streaming payload.
-func ColumnSeriesForPayload(cs *io.ColumnSeries) map[string]interface{} {
+func ColumnSeriesForPayload(cs *io.ColumnSeries) *map[string]interface{} {
 	m := map[string]interface{}{}
 
 	if cs == nil {
@@ -160,5 +158,5 @@ func ColumnSeriesForPayload(cs *io.ColumnSeries) map[string]interface{} {
 		}
 	}
 
-	return m
+	return &m
 }

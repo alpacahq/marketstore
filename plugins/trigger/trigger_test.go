@@ -64,7 +64,7 @@ func (s *TestSuite) TestRecordsToColumnSeries(c *C) {
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 
-	rs := cs.ToRowSeries(*tbk)
+	rs := cs.ToRowSeries(*tbk, true)
 	rowData := rs.GetData()
 	times := rs.GetTime()
 	numRows := len(times)

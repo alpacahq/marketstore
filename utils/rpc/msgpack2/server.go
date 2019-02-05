@@ -10,7 +10,7 @@ package msgpack2
 import (
 	"net/http"
 
-	rpc "github.com/gorilla/rpc/v2"
+	rpc "github.com/alpacahq/rpc/rpc2"
 	msgpack "github.com/vmihailenco/msgpack"
 )
 
