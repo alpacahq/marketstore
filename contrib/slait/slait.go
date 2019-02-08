@@ -307,6 +307,11 @@ func (ss *SlaitSubscriber) ping() {
 	for {
 		select {
 		case <-ticker.C:
+
+			if ss.conn == nil {
+				return
+			}
+
 			if err := ss.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				if !strings.Contains(err.Error(), "websocket: close sent") {
 					fmt.Printf("Failed to write ping message to WS - Error: %v", err)
