@@ -1,17 +1,18 @@
 package executor
 
 import (
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/klauspost/compress/snappy"
 	"os"
 	"unsafe"
+
+	"github.com/alpacahq/marketstore/utils"
+	"github.com/klauspost/compress/snappy"
 
 	. "github.com/alpacahq/marketstore/utils/io"
 )
 
 /*
 #include "rewriteBuffer.h"
-#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument
+#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument -std=c99
 */
 import "C"
 

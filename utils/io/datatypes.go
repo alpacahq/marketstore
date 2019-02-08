@@ -11,7 +11,7 @@ import (
 
 /*
 #include "utilityfuncs.h"
-#cgo CFLAGS: -O3
+#cgo CFLAGS: -O3 -std=c99
 */
 import "C"
 

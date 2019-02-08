@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/alpacahq/marketstore/executor"
@@ -18,21 +20,27 @@ import (
 )
 
 type SlaitSubscriberConfig struct {
-	Endpoint       string     `json:"endpoint"`
-	Topic          string     `json:"topic"`
-	AttributeGroup string     `json:"attribute_group"`
-	Shape          [][]string `json:"shape"`
+	Endpoint         string     `json:"endpoint"`
+	Topic            string     `json:"topic"`
+	PartitionsFilter [][]string `json:"partitions"`
+	AttributeGroup   string     `json:"attribute_group"`
+	Shape            [][]string `json:"shape"`
+	Debug            string     `json:"debug"`
+	PingInterval     string     `json:"ping_interval"`
 }
 
 type SlaitSubscriber struct {
 	config         map[string]interface{}
 	endpoint       string
 	topic          string
+	partitions     map[string]string
 	attributeGroup string
 	shape          []io.DataShape
 	cli            client.SlaitClient
 	conn           *websocket.Conn
 	done           chan struct{}
+	debug          bool
+	ping_interval  time.Duration
 }
 
 func recast(config map[string]interface{}) *SlaitSubscriberConfig {
@@ -44,18 +52,40 @@ func recast(config map[string]interface{}) *SlaitSubscriberConfig {
 
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
+
 	if config.Endpoint == "" {
 		return nil, fmt.Errorf("endpoint is empty")
 	}
+
 	if config.Topic == "" {
 		return nil, fmt.Errorf("topic is empty")
 	}
+
 	if config.AttributeGroup == "" {
 		return nil, fmt.Errorf("attribute group is empty")
 	}
+
 	if config.Shape == nil {
 		return nil, fmt.Errorf("shape is empty")
 	}
+
+	if config.PartitionsFilter == nil {
+		return nil, fmt.Errorf("partitions is empty")
+	}
+
+	if config.Debug == "" {
+		config.Debug = "false"
+	}
+
+	if config.PingInterval == "" {
+		config.PingInterval = "5"
+	}
+
+	interval, err := strconv.Atoi(config.PingInterval)
+	if err != nil {
+		return nil, fmt.Errorf("ping_interval must be a integer")
+	}
+
 	names := make([]string, len(config.Shape))
 	types := make([]io.EnumElementType, len(config.Shape))
 	for i, shape := range config.Shape {
@@ -65,12 +95,29 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		names[i] = shape[0]
 		types[i] = io.EnumElementTypeFromName(shape[1])
 	}
+
+	partitions := make(map[string]string, len(config.PartitionsFilter))
+	for _, p := range config.PartitionsFilter {
+		if len(p) != 2 {
+			return nil, fmt.Errorf("partition is invalid: %v", p)
+		}
+		partitions[p[0]] = p[1]
+	}
+
+	debug, err := strconv.ParseBool(config.Debug)
+	if err != nil {
+		debug = false
+	}
+
 	return &SlaitSubscriber{
 		config:         conf,
 		endpoint:       config.Endpoint,
 		topic:          config.Topic,
+		partitions:     partitions,
 		attributeGroup: config.AttributeGroup,
 		shape:          io.NewDataShapeVector(names, types),
+		debug:          debug,
+		ping_interval:  time.Duration(interval),
 	}, nil
 }
 
@@ -94,22 +141,31 @@ func (ss *SlaitSubscriber) subscribe() (err error) {
 	ss.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		fmt.Printf("Failed to establish Slait connection.\n")
-		return ss.reconnect(5 * time.Second)
+		return ss.reconnect(ss.ping_interval * time.Second)
 	}
 
 	ss.done = make(chan struct{})
 
 	// websocket read routine
 	go ss.read()
+	go ss.ping()
 
 	// subscribe to all symbols on the partition
+	var ps []string
+	for p := range ss.partitions {
+		if len(p) > 0 {
+			ps = append(ps, p)
+		}
+	}
+
 	subMsg := socket.SocketMessage{
-		Action: "subscribe",
-		Topic:  ss.topic,
+		Action:     "subscribe",
+		Topic:      ss.topic,
+		Partitions: ps,
 	}
 	err = ss.conn.WriteJSON(subMsg)
 	if err != nil {
-		return ss.reconnect(5 * time.Second)
+		return ss.reconnect(ss.ping_interval * time.Second)
 	}
 
 	for {
@@ -141,13 +197,28 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 		if err != nil {
 			fmt.Printf("Failed to unmarshal JSON from Slait - Msg: %v - Error: %v\n", string(msg), err)
 		} else {
-			if p.Entries.Len() > 0 {
-				csm, err := ss.publicationToCSM(p)
-				if err != nil {
-					return err
-				}
-				if err := executor.WriteCSM(csm, false); err != nil {
-					return fmt.Errorf("Failed to write CSM for %v - Error: %v", p.Partition, err)
+			if val, ok := ss.partitions[p.Partition]; ok {
+				if p.Entries.Len() > 0 {
+					isVariableLength := val == "*"
+
+					gap := "1Min"
+					if !isVariableLength {
+						gap = val
+					}
+
+					csm, err := ss.publicationToCSM(p, gap)
+					if err != nil {
+						return err
+					}
+
+					if ss.debug {
+						fmt.Printf("Got CSM:\n%v\n", csm)
+						return err
+					}
+
+					if err := executor.WriteCSM(csm, isVariableLength); err != nil {
+						return fmt.Errorf("Failed to write CSM for %v - Error: %v", p.Partition, err)
+					}
 				}
 			}
 		}
@@ -155,7 +226,7 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 	return err
 }
 
-func (ss *SlaitSubscriber) publicationToCSM(p cache.Publication) (io.ColumnSeriesMap, error) {
+func (ss *SlaitSubscriber) publicationToCSM(p cache.Publication, gap string) (io.ColumnSeriesMap, error) {
 	columns := make([]interface{}, len(ss.shape))
 	names := make([]string, len(ss.shape))
 	length := p.Entries.Len()
@@ -205,7 +276,7 @@ func (ss *SlaitSubscriber) publicationToCSM(p cache.Publication) (io.ColumnSerie
 		cs.AddColumn(names[i], col)
 	}
 	csm := io.NewColumnSeriesMap()
-	tbk := io.NewTimeBucketKey(fmt.Sprintf("%v/1Min/%v", p.Partition, ss.attributeGroup))
+	tbk := io.NewTimeBucketKey(fmt.Sprintf("%v/%v/%v", p.Partition, gap, ss.attributeGroup))
 	csm.AddColumnSeries(*tbk, cs)
 	return csm, nil
 }
@@ -221,14 +292,64 @@ func (ss *SlaitSubscriber) read() (err error) {
 			fmt.Printf("Failed to read message from Slait - Error: %v\n", err)
 			return err
 		}
+
 		err = ss.handleMessage(msg, msgType)
 		if err != nil {
 			fmt.Printf("Failed to handle websocket message - Error: %v\n", err)
 			return err
 		}
+
 	}
+}
+
+func (ss *SlaitSubscriber) ping() {
+	ticker := time.NewTicker(time.Second * ss.ping_interval)
+	for {
+		select {
+		case <-ticker.C:
+			if err := ss.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				if !strings.Contains(err.Error(), "websocket: close sent") {
+					fmt.Printf("Failed to write ping message to WS - Error: %v", err)
+				}
+				return
+			}
+		}
+	}
+}
+
+func getConfig(data string) (ret map[string]interface{}) {
+	json.Unmarshal([]byte(data), &ret)
+	return
+}
+
+func integrateTest() {
+	testConfig := getConfig(`{
+		"endpoint": "192.168.22.1:5994",
+		"topic": "lobs",
+		"partitions": [
+			["BTC", "*"]
+		],
+		"attribute_group": "LOB2",
+		"shape": [
+			["Epoch", "int64"],
+			["AP0", "float32"],
+			["AV0", "float32"],
+			["AP1", "float32"],
+			["AV1", "float32"],
+			["BP0", "float32"],
+			["BV0", "float32"],
+			["BP1", "float32"],
+			["BV1", "float32"]
+		],
+		"debug": "true"
+	}`)
+
+	w, _ := NewBgWorker(testConfig)
+	worker := w.(*SlaitSubscriber)
+	worker.Run()
 }
 
 func main() {
 	fmt.Println("MarketStore <-> Slait plugin")
+	integrateTest()
 }
