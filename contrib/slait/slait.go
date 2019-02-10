@@ -13,6 +13,7 @@ import (
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/alpacahq/slait/cache"
 	"github.com/alpacahq/slait/rest/client"
 	"github.com/alpacahq/slait/socket"
@@ -25,7 +26,7 @@ type SlaitSubscriberConfig struct {
 	PartitionsFilter [][]string `json:"partitions"`
 	AttributeGroup   string     `json:"attribute_group"`
 	Shape            [][]string `json:"shape"`
-	Debug            string     `json:"debug"`
+	Debug            bool     	`json:"debug"`
 	PingInterval     string     `json:"ping_interval"`
 }
 
@@ -73,9 +74,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		return nil, fmt.Errorf("partitions is empty")
 	}
 
-	if config.Debug == "" {
-		config.Debug = "false"
-	}
+	// if config.Debug == "" {
+	// 	config.Debug = "false"
+	// }
 
 	if config.PingInterval == "" {
 		config.PingInterval = "5"
@@ -104,10 +105,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		partitions[p[0]] = p[1]
 	}
 
-	debug, err := strconv.ParseBool(config.Debug)
-	if err != nil {
-		debug = false
-	}
+	log.Info("Slait for debuging: %v", config.Debug)
 
 	return &SlaitSubscriber{
 		config:         conf,
@@ -116,7 +114,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		partitions:     partitions,
 		attributeGroup: config.AttributeGroup,
 		shape:          io.NewDataShapeVector(names, types),
-		debug:          debug,
+		debug:          config.Debug,
 		ping_interval:  time.Duration(interval),
 	}, nil
 }
@@ -124,7 +122,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 func (ss *SlaitSubscriber) Run() {
 	for {
 		if err := ss.subscribe(); err != nil {
-			fmt.Printf(err.Error())
+			log.Error(err.Error())
 		}
 	}
 }
@@ -140,7 +138,7 @@ func (ss *SlaitSubscriber) subscribe() (err error) {
 	u := url.URL{Scheme: "ws", Host: ss.endpoint, Path: "/ws"}
 	ss.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		fmt.Printf("Failed to establish Slait connection.\n")
+		log.Error("Failed to establish Slait connection.\n")
 		return ss.reconnect(ss.ping_interval * time.Second)
 	}
 
@@ -178,7 +176,7 @@ func (ss *SlaitSubscriber) subscribe() (err error) {
 }
 
 func (ss *SlaitSubscriber) reconnect(sleep time.Duration) error {
-	fmt.Printf("Reconnecting in %v..\n", sleep)
+	log.Info("Reconnecting in %v..\n", sleep)
 	time.Sleep(sleep)
 	return ss.subscribe()
 }
@@ -195,11 +193,11 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 		p := cache.Publication{}
 		err = json.Unmarshal(msg, &p)
 		if err != nil {
-			fmt.Printf("Failed to unmarshal JSON from Slait - Msg: %v - Error: %v\n", string(msg), err)
+			log.Error("Failed to unmarshal JSON from Slait - Msg: %v - Error: %v\n", string(msg), err)
 		} else {
 			if val, ok := ss.partitions[p.Partition]; ok {
 				if p.Entries.Len() > 0 {
-					isVariableLength := val == "*"
+					isVariableLength := val == "D"
 
 					gap := "1Min"
 					if !isVariableLength {
@@ -212,7 +210,7 @@ func (ss *SlaitSubscriber) handleMessage(msg []byte, msgType int) (err error) {
 					}
 
 					if ss.debug {
-						fmt.Printf("Got CSM:\n%v\n", csm)
+						log.Info("Got CSM:\n%v\n", csm)
 						return err
 					}
 
@@ -289,13 +287,13 @@ func (ss *SlaitSubscriber) read() (err error) {
 	for {
 		msgType, msg, err := ss.conn.ReadMessage()
 		if err != nil {
-			fmt.Printf("Failed to read message from Slait - Error: %v\n", err)
+			log.Error("Failed to read message from Slait - Error: %v\n", err)
 			return err
 		}
 
 		err = ss.handleMessage(msg, msgType)
 		if err != nil {
-			fmt.Printf("Failed to handle websocket message - Error: %v\n", err)
+			log.Error("Failed to handle websocket message - Error: %v\n", err)
 			return err
 		}
 
@@ -314,7 +312,7 @@ func (ss *SlaitSubscriber) ping() {
 
 			if err := ss.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				if !strings.Contains(err.Error(), "websocket: close sent") {
-					fmt.Printf("Failed to write ping message to WS - Error: %v", err)
+					log.Error("Failed to write ping message to WS - Error: %v", err)
 				}
 				return
 			}
@@ -346,7 +344,7 @@ func integrateTest() {
 			["BP1", "float32"],
 			["BV1", "float32"]
 		],
-		"debug": "true"
+		"debug": true
 	}`)
 
 	w, _ := NewBgWorker(testConfig)

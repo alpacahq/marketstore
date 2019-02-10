@@ -32,7 +32,7 @@ bgworkers:
         topic: bars
         partitions:
         - - gdax
-          - *  <- means variable length
+          - D  <- means variable length
         - - binance
           - 10Sec
         - - nasdq
