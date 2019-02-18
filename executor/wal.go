@@ -49,6 +49,13 @@ func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err e
 		if err = wf.takeOverFile(rootDir, existingFilePath); err != nil {
 			log.Fatal("%v: Can not take over existing WALFile - Error: %v", io.GetCallerFileContext(0), err)
 		}
+
+		// Temporary solution for multiple instance use WALFile in same dir
+		wf.syncStatusRead()
+		if wf.IsOpen() {
+			return nil, nil
+		}
+
 		// We call this to take over the file by writing our PID to it
 		fileStatus, replayState, _ := wf.readStatus()
 		wf.WriteStatus(fileStatus, replayState)
@@ -772,6 +779,10 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 						os.Remove(filePath)
 					} else {
 						w, err := NewWALFile(rootDir, filePath)
+						if w == nil {
+							log.Info("WALFILE: %s is probably opened by other instances, jump over it...", filename)
+							continue
+						}
 						if err != nil {
 							log.Fatal("Opening %s\n%s", filename, err)
 						}
@@ -848,6 +859,7 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 			log.Info("Flushing to disk...")
 			wf.createCheckpoint()
 			ThisInstance.WALWg.Done()
+			wf.WriteStatus(CLOSED, NOTREPLAYED)
 			return
 		}
 	}
