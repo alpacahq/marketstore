@@ -295,6 +295,12 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 				case reflect.Float64:
 					val := col.([]float64)[i]
 					element = strconv.FormatFloat(val, 'f', -1, 32)
+				case reflect.Int8:
+					val := col.([]int8)[i]
+					element = strconv.FormatInt(int64(val), 10)
+				case reflect.Int16:
+					val := col.([]int16)[i]
+					element = strconv.FormatInt(int64(val), 10)
 				case reflect.Int32:
 					val := col.([]int32)[i]
 					element = strconv.FormatInt(int64(val), 10)
@@ -302,8 +308,25 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 					val := col.([]int64)[i]
 					element = strconv.FormatInt(val, 10)
 				case reflect.Uint8:
-					val := col.([]byte)[i]
-					element = strconv.FormatInt(int64(val), 10)
+					val := col.([]uint8)[i]
+					element = strconv.FormatUint(uint64(val), 10)
+				case reflect.Uint16:
+					val := col.([]uint16)[i]
+					element = strconv.FormatUint(uint64(val), 10)
+				case reflect.Uint32:
+					val := col.([]uint32)[i]
+					element = strconv.FormatUint(uint64(val), 10)
+				case reflect.Uint64:
+					val := col.([]uint64)[i]
+					element = strconv.FormatUint(val, 10)
+				case reflect.Bool:
+					val := col.([]bool)[i]
+					if val {
+						element = "TRUE"
+					} else {
+						element = "FALSE"
+					}
+
 				}
 				element = fmt.Sprintf("%-10s", element)
 			}
@@ -349,11 +372,25 @@ func formatHeader(cs *dbio.ColumnSeries, printChar string) string {
 			appendChars(10)
 		case reflect.Float64:
 			appendChars(10)
+		case reflect.Int8:
+			appendChars(10)
+		case reflect.Int16:
+			appendChars(10)
 		case reflect.Int32:
 			appendChars(10)
 		case reflect.Int64:
 			appendChars(10)
 		case reflect.Uint8:
+			appendChars(10)
+		case reflect.Uint16:
+			appendChars(10)
+		case reflect.Uint32:
+			appendChars(10)
+		case reflect.Uint64:
+			appendChars(10)
+		case reflect.String:
+			appendChars(10)
+		case reflect.Bool:
 			appendChars(10)
 		}
 	}
