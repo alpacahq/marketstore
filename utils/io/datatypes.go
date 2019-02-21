@@ -171,7 +171,7 @@ func GetElementType(datum interface{}) EnumElementType {
 		/*
 			We need to iterate over this map in order of the Enum
 		*/
-		for i := 0; i < int(UINT64); i++ {
+		for i := 0; i <= int(UINT64); i++ {
 			e := EnumElementType(i)
 			el := attributeMap[e]
 			if el.typ == kind {

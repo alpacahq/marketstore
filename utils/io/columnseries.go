@@ -50,6 +50,7 @@ func (cs *ColumnSeries) GetColumn(name string) interface{} {
 func (cs *ColumnSeries) GetDataShapes() (ds []DataShape) {
 	var et []EnumElementType
 	for _, name := range cs.orderedNames {
+		// fmt.Printf("name %v, type %v\n", name, GetElementType(cs.columns[name]))
 		et = append(et, GetElementType(cs.columns[name]))
 	}
 	return NewDataShapeVector(cs.orderedNames, et)
