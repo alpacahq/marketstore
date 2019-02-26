@@ -240,9 +240,9 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	}
 
 	// RootDir
-	rootDir := q.DataDir
-	fmt.Printf("Catlist %v, Root %v\n", CatList, rootDir)
-	fmt.Printf("Range %v\n", q.Range)
+	// rootDir := q.DataDir
+	// fmt.Printf("Catlist %v, Root %v\n", CatList, rootDir)
+	// fmt.Printf("Range %v\n", q.Range)
 
 	// This method conditionally recurses the directory looking for restricted matches
 	// We can not use the simple Directory.Recurse() because of the conditional descent...
