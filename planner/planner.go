@@ -239,6 +239,11 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 		}
 	}
 
+	// RootDir
+	rootDir := q.DataDir
+	fmt.Printf("Catlist %v, Root %v\n", CatList, rootDir)
+	fmt.Printf("Range %v\n", q.Range)
+
 	// This method conditionally recurses the directory looking for restricted matches
 	// We can not use the simple Directory.Recurse() because of the conditional descent...
 	var getFileList func(*Directory, *[]QualifiedFile, string, string)
@@ -247,8 +252,9 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 		if d.DirHasSubDirs() {
 			//			if p_list, ok := (*q.Restriction)[d.Category]; ok {
 			categoryKey += d.GetCategory() + "/"
-
 			list := q.Restriction.getItemList(d.GetCategory())
+			// fmt.Printf("-----CategoryKey %v, list %v\n", categoryKey, list)
+
 			if list != nil {
 				// Load subdirs matching restriction
 				for _, itemName := range list {
@@ -269,14 +275,15 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 			*/
 			itemKey = itemKey[:len(itemKey)-1]
 			categoryKey = categoryKey[:len(categoryKey)-1]
-			//fmt.Println("Item/Cat key:", itemKey, categoryKey)
 			latestKey = NewTimeBucketKey(itemKey, categoryKey)
+			// fmt.Println("+++++latestKey:", latestKey)
 		}
 		// Add all data files - do not limit based on date range here
 		if d.DirHasDataFiles() {
 			if f == nil {
 				f = &([]QualifiedFile{})
 			}
+			// d.TmpRoot = rootDir
 			for _, file := range d.GetTimeBucketInfoSlice() {
 				*f = append(*f, QualifiedFile{*latestKey, file})
 			}

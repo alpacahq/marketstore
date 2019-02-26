@@ -17,6 +17,9 @@ import (
 import "C"
 
 func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, direction DirectionEnum) (rb []byte, err error) {
+	// fmt.Printf(">>>>DEBUG::meta %v, limitCount %d, direction %v\n", bufMeta, limitCount, direction)
+
+	result := []byte{}
 	/*
 		Here we use the bufFileMap which has index data for each file, then we read
 		the target data into the resultBuffer up to the limitCount number of records
@@ -61,6 +64,8 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 
 		numIndexRecords = len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
 		numberLeftToRead = int(limitCount)
+		// fmt.Printf("file %v, totalDatalen %d recs %d\n", file, totalDatalen, numIndexRecords)
+
 		//rb = make([]byte, 0)
 		rb = make([]byte, totalDatalen)
 		var rbCursor int
@@ -114,16 +119,17 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 				}
 			}
 		}
-		rb = rb[:rbCursor]
+		// fmt.Printf("cursor %d, rb size %d, cut size %d\n", rbCursor, len(rb), len(rb[:rbCursor]))
+		result = append(result, rb[:rbCursor]...)
 		fp.Close()
 	}
 	if direction == LAST {
 		// Chop the last N records out of the results
-		numVarRecords := len(rb) / (varRecLen + 8)
+		numVarRecords := len(result) / (varRecLen + 8)
 		if int(limitCount) < numVarRecords {
 			offset := (varRecLen + 8) * (numVarRecords - int(limitCount))
-			rb = rb[offset:]
+			result = result[offset:]
 		}
 	}
-	return rb, nil
+	return result, nil
 }

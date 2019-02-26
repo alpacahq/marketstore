@@ -44,6 +44,7 @@ type MktsConfig struct {
 	InitWALCache               bool
 	BackgroundSync             bool
 	WALBypass                  bool
+	ClusterMode                bool
 	StartTime                  time.Time
 	Triggers                   []*TriggerSetting
 	BgWorkers                  []*BgWorkerSetting
@@ -68,6 +69,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 			InitWALCache               string `yaml:"init_wal_cache"`
 			BackgroundSync             string `yaml:"background_sync"`
 			WALBypass                  string `yaml:"wal_bypass"`
+			ClusterMode                string `yaml:"cluster_mode"`
 			Triggers                   []struct {
 				Module string                 `yaml:"module"`
 				On     string                 `yaml:"on"`
@@ -205,6 +207,14 @@ func (m *MktsConfig) Parse(data []byte) error {
 		m.WALBypass, err = strconv.ParseBool(aux.WALBypass)
 		if err != nil {
 			log.Error("Invalid value for WALBypass")
+		}
+	}
+
+	m.ClusterMode = true
+	if aux.ClusterMode != "" {
+		m.ClusterMode, err = strconv.ParseBool(aux.ClusterMode)
+		if err != nil {
+			log.Error("Invalid value for ClusterMode")
 		}
 	}
 
