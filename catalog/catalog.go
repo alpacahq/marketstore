@@ -190,16 +190,8 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 		fullBinPaths := d.gatherBins(nil)
 
 		if len(fullBinPaths) > 0 {
-			// fmt.Println("----------------")
-			// for _, finfo_p := range d.datafile {
-			// 	fmt.Println(finfo_p.Path)
-			// }
-			// fmt.Printf("1datafile %v\n", d.datafile)
-
 			// Refresh anyway
 			d.Lock()
-			// d.datafile = nil
-			// fmt.Println("+++++++++++++++++")
 
 			for _, bp := range fullBinPaths {
 				if d.datafile[bp] == nil {
@@ -216,7 +208,6 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 					d.datafile[bp].Year = int16(yearInt)
 				}
 			}
-			// fmt.Printf("2datafile %v\n", d.datafile)
 			d.Unlock()
 		} else {
 			// no files on harddrive
