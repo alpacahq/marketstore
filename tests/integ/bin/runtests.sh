@@ -70,11 +70,11 @@ exit_if_failed $?
 # import ticks-example-not-sorted-by-time.csv/yaml to TEST/1Min/TICK
 # and check if the output of show commands match ticks-example-not-sorted-by-time-output.csv
 marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
-\create TEST/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
-\getinfo TEST/1Min/TICK
-\load TEST/1Min/TICK bin/ticks-example-not-sorted-by-time.csv bin/ticks-example-not-sorted-by-time.yaml
+\create TEST3/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
+\getinfo TEST3/1Min/TICK
+\load TEST3/1Min/TICK bin/ticks-example-not-sorted-by-time.csv bin/ticks-example-not-sorted-by-time.yaml
 \o test_ticks.csv
-\show TEST/1Min/TICK 1970-01-01
+\show TEST3/1Min/TICK 1970-01-01
 EOF
 exit_if_failed $?
 
