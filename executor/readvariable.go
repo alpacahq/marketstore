@@ -21,6 +21,8 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 		the target data into the resultBuffer up to the limitCount number of records
 	*/
 	var varRecLen int
+	// resultBuffers for all bufMetas
+	totalBuf := make([]byte, 0)
 	for _, md := range bufMeta {
 		varRecLen = md.VarRecLen
 		file := md.FullPath
@@ -115,14 +117,16 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 		}
 		rb = rb[:rbCursor]
 		fp.Close()
+
+		totalBuf = append(totalBuf, rb...)
 	}
 	if direction == LAST {
 		// Chop the last N records out of the results
-		numVarRecords := len(rb) / (varRecLen + 8)
+		numVarRecords := len(totalBuf) / (varRecLen + 8)
 		if int(limitCount) < numVarRecords {
 			offset := (varRecLen + 8) * (numVarRecords - int(limitCount))
-			rb = rb[offset:]
+			totalBuf = totalBuf[offset:]
 		}
 	}
-	return rb, nil
+	return totalBuf, nil
 }
