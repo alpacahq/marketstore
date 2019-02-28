@@ -151,8 +151,6 @@ EVAL:
 			c.show(line)
 		case strings.HasPrefix(line, "\\trim"):
 			c.trim(line)
-		case strings.HasPrefix(line, "\\gaps"):
-			c.findGaps(line)
 		case strings.HasPrefix(line, "\\load"):
 			c.load(line)
 		case strings.HasPrefix(line, "\\create"):
