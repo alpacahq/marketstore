@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jessevdk/go-flags"
+
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/planner"
@@ -21,7 +23,10 @@ func (c *Client) show(line string) {
 		fmt.Println("Not enough arguments, see \"\\help show\" ")
 		return
 	}
-	tbk, start, end := c.parseQueryArgs(args)
+
+	tbk, start, end, count, countFromStart, funcs := c.parseCommand(args)
+
+	// tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
 		fmt.Println("Could not parse arguments, see \"\\help show\" ")
 		return
@@ -35,13 +40,13 @@ func (c *Client) show(line string) {
 	)
 
 	if c.mode == local {
-		csm, err = processShowLocal(tbk, start, end)
+		csm, err = c.processShowLocal(tbk, start, end)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	} else {
-		csm, err = c.processShowRemote(tbk, start, end)
+		csm, err = c.processShowRemote(tbk, start, end, count, countFromStart, funcs)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -76,7 +81,7 @@ func (c *Client) show(line string) {
 	}
 }
 
-func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
+func (c *Client) processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 	query.AddTargetKey(tbk)
 
@@ -112,7 +117,7 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.Colu
 	return csm, nil
 }
 
-func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
+func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time, count int, countFromStart bool, funcs []string) (csm io.ColumnSeriesMap, err error) {
 	if end == nil {
 		t := time.Unix(planner.MaxEpoch, 0)
 		end = &t
@@ -126,6 +131,19 @@ func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time)
 		EpochStart:     &epochStart,
 		EpochEnd:       &epochEnd,
 	}
+
+	if count > 0 {
+		req.LimitRecordCount = &count
+	}
+
+	if countFromStart {
+		req.LimitFromStart = &countFromStart
+	}
+
+	if len(funcs) > 0 {
+		req.Functions = funcs
+	}
+
 	args := &frontend.MultiQueryRequest{
 		Requests: []frontend.QueryRequest{req},
 	}
@@ -136,6 +154,56 @@ func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time)
 	}
 
 	return *resp.(*io.ColumnSeriesMap), nil
+}
+
+func (c *Client) parseCommand(args []string) (tbk *io.TimeBucketKey, start, end *time.Time, count int, countFromStart bool, funcs []string) {
+	var opts struct {
+		// Destination is <symbol>/<timeframe>/<attributegroup>
+		Tbk string `short:"k" long:"key" description:"TimeBucketKey, e.g. BTC/1Min/OKEX" required:"true"`
+		// Lower time predicate
+		EpochStart string `short:"s" long:"start" description:"Query start from datetime, e.g. 2006-01-02 or 2006-01-02T15:04 or 20060102 150405999" required:"true"`
+		// Upper time predicate
+		EpochEnd string `short:"e" long:"end" description:"Query end at datetime, e.g. 2006-01-02 or 2006-01-02T15:04 or 20060102 150405999"`
+		// Number of max returned rows from lower/upper bound
+		LimitRecordCount int `short:"n" description:"Number of max returned rows from lower/upper bound" default:"0"`
+		// Set to true if LimitRecordCount should be from the lower
+		LimitFromStart bool `short:"x" description:"Set to true if LimitRecordCount should be from the lower"`
+
+		// Support for functions
+		Functions []string `short:"f" description:"Functions Chain"`
+	}
+
+	args, err := flags.ParseArgs(&opts, args)
+
+	if err != nil {
+		fmt.Println("Parse command line failed. err:", err)
+		return nil, nil, nil, 0, false, []string{}
+	}
+
+	tbk = io.NewTimeBucketKey(opts.Tbk)
+
+	epochStart, err := parseTime(opts.EpochStart)
+	if err != nil {
+		fmt.Println("Parse query start time failed. err:", err)
+		return nil, nil, nil, 0, false, []string{}
+	}
+
+	hasEnd := false
+	epochEnd, err := parseTime(opts.EpochEnd)
+	if err == nil {
+		hasEnd = true
+	}
+
+	// options has default values
+	count = opts.LimitRecordCount
+	countFromStart = opts.LimitFromStart
+	funcs = opts.Functions
+
+	if hasEnd {
+		return tbk, &epochStart, &epochEnd, count, countFromStart, funcs
+	} else {
+		return tbk, &epochStart, nil, count, countFromStart, funcs
+	}
 }
 
 func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, end *time.Time) {
