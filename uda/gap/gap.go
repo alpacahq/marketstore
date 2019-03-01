@@ -15,6 +15,7 @@ package gap
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/alpacahq/marketstore/utils"
@@ -75,21 +76,32 @@ func (g *Gap) Accum(cols io.ColumnInterface) error {
 	// Time gap of two contiguous epochs
 	gaps := make([]float64, size-1)
 	floats.SubTo(gaps, epochs[1:], epochs[:size-1])
-	m := stat.Mean(gaps, nil)
-	s := stat.StdDev(gaps, nil)
-	if s == 0 {
-		s = 1
-	}
 
 	// Big gap which exceed the avg time gap interval,
 	// val of BigGapIdxs is the index of Epochs from data ColumnSeries
-	// z := make([]float64, len(gaps))
-	thresholdZ := stat.StdScore(float64(g.avgGapIntervalSeconds), m, s)
-
-	for i, x := range gaps {
-		if thresholdZ < stat.StdScore(x, m, s) {
-			g.BigGapIdxs = append(g.BigGapIdxs, i)
+	if g.avgGapIntervalSeconds < 0 {
+		// Z-Score
+		m := stat.Mean(gaps, nil)
+		s := stat.StdDev(gaps, nil)
+		if s == 0 {
+			s = 1
 		}
+
+		for i, x := range gaps {
+			if math.Abs(stat.StdScore(x, m, s)) > 3 {
+				g.BigGapIdxs = append(g.BigGapIdxs, i)
+			}
+		}
+	} else {
+		// Use specific threshold
+		thresholdZ := float64(g.avgGapIntervalSeconds)
+
+		for i, x := range gaps {
+			if x > thresholdZ {
+				g.BigGapIdxs = append(g.BigGapIdxs, i)
+			}
+		}
+
 	}
 
 	return nil
@@ -155,11 +167,18 @@ func (g *Gap) Output() *io.ColumnSeries {
 		epochs := cols.GetColumn("Epoch").([]int64)
 
 		retLen := len(g.BigGapIdxs) * 2
-		retEpoch := make([]int64, retLen)
-		retType := make([]int8, retLen)
-		retCount := make([]uint32, retLen)
+		retEpoch := make([]int64, retLen+3)
+		retType := make([]int8, retLen+3)
+		retCount := make([]uint32, retLen+3)
+
+		// query start
+		retEpoch[0] = epochs[0]
+		retType[0] = 0
+		retCount[0] = 0
+
+		// static
 		for i, idx := range g.BigGapIdxs {
-			j := i * 2
+			j := i*2 + 1
 			retEpoch[j] = epochs[idx]
 			retEpoch[j+1] = epochs[idx+1]
 			retType[j] = 1   // last end
@@ -172,13 +191,22 @@ func (g *Gap) Output() *io.ColumnSeries {
 			retCount[j+1] = 0
 		}
 
+		// query end
+		retEpoch[retLen+1] = epochs[len(epochs)-1]
+		retType[retLen+1] = 1
+		retCount[retLen+1] = uint32(len(epochs[g.BigGapIdxs[retLen/2-1]:]))
+		// total
+		retEpoch[retLen+2] = 0
+		retType[retLen+2] = 127
+		retCount[retLen+2] = uint32(len(epochs))
+
 		cs.AddColumn("Epoch", retEpoch)
-		cs.AddColumn("End(1)", retType)
+		cs.AddColumn("End(1)Start(0)", retType)
 		cs.AddColumn("Count", retCount)
 
 	} else {
 		cs.AddColumn("Epoch", []int64{})
-		cs.AddColumn("End(1)", []int8{})
+		cs.AddColumn("End(1)Start(0)", []int8{})
 		cs.AddColumn("Count", []uint32{})
 
 	}
@@ -192,5 +220,5 @@ func (g *Gap) Output() *io.ColumnSeries {
 func (g *Gap) Reset() {
 	g.BigGapIdxs = []int{}
 	g.Input = nil
-	g.avgGapIntervalSeconds = 86400 // 1 day
+	g.avgGapIntervalSeconds = -1
 }
