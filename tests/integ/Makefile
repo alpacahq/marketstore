@@ -32,13 +32,9 @@ run: _init
 
 .PHONY: stop
 stop:
-	-if [ `bin/check_running ${CONTAINER_NAME}` -eq 1 ]; then \
+	@if [ `bin/check_running ${CONTAINER_NAME}` = "1" ]; then \
 		docker stop ${CONTAINER_NAME}; fi
 	-docker rm -f ${CONTAINER_NAME}
-
-.PHONY: test
-test:
-	@bin/runtests.sh
 
 .PHONY: clean
 clean: stop
@@ -65,8 +61,15 @@ _get_data:
 .PHONY: _startup
 _startup: stop
 	@echo "Starting a marketstore instance..."
-	docker run --name ${CONTAINER_NAME} -d -p 5993:5993 -v $(CURDIR):/project -w /project $(IMAGE_NAME) \
-		start --config /project/bin/mkts.yml
+
+	# copy the test config and data to the container and start it after the container is created
+	# because mounting folders from docker executor is not supported in Circle CI2.0.
+	# https://discuss.circleci.com/t/why-circleci-2-0-does-not-support-mounting-folders/11605
+	docker create --name ${CONTAINER_NAME} -p 5993:5993 -w /project  $(IMAGE_NAME) start --config /project/bin/mkts.yml
+	docker cp $(CURDIR)/bin ${CONTAINER_NAME}:/project/
+	docker cp $(CURDIR)/data ${CONTAINER_NAME}:/project/
+	docker start ${CONTAINER_NAME}
+
 	@sleep 2
 	@if [ `bin/check_running ${CONTAINER_NAME}` -eq 0 ]; then \
 		echo "Failed to start a marketstore instance"; \
@@ -80,12 +83,12 @@ _startup: stop
 _start_pyclient_container:
 	make -C dockerfiles/pyclient rm build run
 
-.PHONY: test_driver
-test_driver: clean run _start_pyclient_container
-	TEST_FILENAME='/project/tests/$@.py'; \
-	make -C dockerfiles/pyclient test
+.PHONY: test_import_csv
+test_import_csv:
+	@bin/runtests.sh
 
-.PHONY: test_not_empty
-test_not_empty: clean run _start_pyclient_container
+# run all tests including CSV Import
+.PHONY: test
+test: test_import_csv clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test
