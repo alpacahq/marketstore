@@ -2,14 +2,17 @@
 # Commands to automate integration tests
 ################################################################################
 
-LATEST_TAG ?= $(shell bin/dockertags alpacamarkets/marketstore | tail -1)
-IMAGE_NAME ?= alpacamarkets/marketstore:${LATEST_TAG}
+IMAGE_NAME ?= alpacahq/integrationtests.marketstore
 CONTAINER_NAME = integration_tests_mstore
 MARKETSTORE_DEV_DB_URL = https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz
 MARKETSTORE_DEV_DB_TMPFILE = /tmp/mktsdb.tgz
 
 # User targets
 ################################################################################
+
+# build marketstore docker container for integration test
+build_mstore:
+	docker build -t ${IMAGE_NAME} ../..
 
 # start a marketstore docker container and check if ListSymbols API can be consumed
 .PHONY: connect
@@ -44,7 +47,7 @@ clean: stop
 # Utils
 ################################################################################
 .PHONY: _init
-_init:
+_init: build_mstore
 	@if [ ! -d data/mktsdb ]; then \
 		rm -rf data; \
 		$(MAKE) _get_data; \

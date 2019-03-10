@@ -12,6 +12,7 @@ DOCKER_OPTS_STANDALONE=\
 DOCKER_OPTS=\
 	$(DOCKER_OPTS_STANDALONE)
 
+# build pymarketstore docker container for integration test
 build:
 	docker build -t $(IMAGE_NAME) .
 
