@@ -43,19 +43,19 @@ def test_1sec_tf_tick(symbol, data):
     assert (reply.first().df().values == data_without_epochs).all()
 
 
-# @pytest.mark.parametrize('symbol, data', [
-#     ('TEST_SIMPLE_OHLCV',                [(timestamp('2019-01-01 00:00:00'), 1.0, 2.0, 3.0, 4.0, 5.0 ),  # epoch, Open, High, Low, Close, Volume
-#                                          (timestamp('2019-01-01 00:00:01'), 1.0, 2.0, 3.0, 4.0, 5.0 ),
-#                                          (timestamp('2019-12-31 23:59:59'), 6.0, 7.0, 8.0, 9.0, 10.0)]),
-# ])
-# def test_1sec_tf_candle(symbol, data):
-#     # ---- given ----
-#     print("aaaa")
-#     print(client.write(np.array(data, dtype=DATA_TYPE_CANDLE), "{}/1Sec/OHLCV".format(symbol), isvariablelength=False))
-#
-#     # ---- when ----
-#     reply = client.query(pymkts.Params(symbol, '1Sec', 'OHLCV', limit=10))
-#
-#     # ---- then ----
-#     data_without_epochs = [record[1:] for record in data]
-#     assert (reply.first().df().values == data_without_epochs).all()
+@pytest.mark.parametrize('symbol, data', [
+    ('TEST_SIMPLE_OHLCV',                [(timestamp('2019-01-01 00:00:00'), 1.0, 2.0, 3.0, 4.0, 5.0 ),  # epoch, Open, High, Low, Close, Volume
+                                         (timestamp('2019-01-01 00:00:01'), 1.0, 2.0, 3.0, 4.0, 5.0 ),
+                                         (timestamp('2019-12-31 23:59:59'), 6.0, 7.0, 8.0, 9.0, 10.0)]),
+])
+def test_1sec_tf_candle(symbol, data):
+    # ---- given ----
+    print("aaaa")
+    print(client.write(np.array(data, dtype=DATA_TYPE_CANDLE), "{}/1Sec/OHLCV".format(symbol), isvariablelength=False))
+
+    # ---- when ----
+    reply = client.query(pymkts.Params(symbol, '1Sec', 'OHLCV', limit=10))
+
+    # ---- then ----
+    data_without_epochs = [record[1:] for record in data]
+    assert (reply.first().df().values == data_without_epochs).all()
