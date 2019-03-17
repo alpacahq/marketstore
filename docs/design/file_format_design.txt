@@ -115,11 +115,11 @@ For fixed width fields we can use the simplest possible storage scheme - binary 
 
 Example 1) OHLC data, element size: 64-bit, number of elements 4:
     64-bit key, 4 x 64-bit float values, no padding
-    record_size = 40 bytes
+    record_size = 40 bytes (8 bytes key, 32 bytes data)
 
 Example 2) OHLCV data, Element size: 32-bit
     64-bit key, 4 x 32-bit float values, 1 x 32-bit value, 32-bit padding
-    record_size = 32 bytes (28 bytes of data, 4 bytes of pad)
+    record_size = 32 bytes (8 bytes key, 20 bytes of data, 4 bytes padding)
 
 *** Note: when mapping structs in C/C++ or Go to the file contents (such as a read buffer), the struct should contain the padding as data items to allow for proper iteration through an array of the struct, for example:
 
@@ -216,7 +216,7 @@ In the implementation of the catalog for this structure, we can generalize this 
 
 --- Metadata management
 
-A program that uses this format can obtain the metadata it needs by using the filesystem organization directly. The names of the attribute group(e.g. "OHLC" is the group of open, high, low and close prices) as used in the filesystem can be used directly within the program to refer to known, mapped fields of interest. In addition, if there are fields that are unknown to that program present in the filesystem, the program can interrogate the file to determine what is inside and provide access to thos fields if needed.
+A program that uses this format can obtain the metadata it needs by using the filesystem organization directly. The names of the attribute group(e.g. "OHLC" is the group of open, high, low and close prices) as used in the filesystem can be used directly within the program to refer to known, mapped fields of interest. In addition, if there are fields that are unknown to that program present in the filesystem, the program can interrogate the file to determine what is inside and provide access to those fields if needed.
 
 For example: if a charting program inquires about symbol BRK - A in a filesystem metadata query, it may determine that BRK - A has data from 2005 to 2016. In 2016, there are OHLC and V data available and the chart defaults to presenting that data. Since the program's filesystem query also reveals additional data including PUTS-2-24-16 for BRK-A, it can query the file header to get the full text and data type description and the user can choose to present some or all of that data on the chart.
 
@@ -245,15 +245,16 @@ However - if we subtract the weekends and non-trading hours(09:30-16:00), we wil
 
     Resolution      Raw Size(GB)   Net Size(GB)
    -----------------------------------
-    1Min            0.021           0.0041
+    1Min            0.021           0.0041/year/symbol
     1Sec            1.261           0.2442
     1ms             1,261           244
     1us             1,261,000       244,000
 
-The overall filesystem size is the number of files times the data file size:
-                    Net
-    Resolution      Filesystem Size(TB)
-   ------------------------------
+The overall filesystem size is the number of files (800K) times the data file size:
+
+    Resolution      Net Filesystem Size(TB)
+   -----------------------------------
+    1Day            0.008 (8GB)
     1Min            3.280
     1Sec            195.4
     1ms             195,400 (195.4PB)
