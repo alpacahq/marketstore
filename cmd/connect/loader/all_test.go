@@ -29,3 +29,20 @@ func (s *LoaderTests) TestParseTime(c *C) {
 	tTest, err = parseTime(timeFormat, dateTime, tzLoc, formatAdj)
 	c.Assert(tt == tTest, Equals, true)
 }
+
+func (s *LoaderTests) TestParseTimestamp(c *C) {
+	tt := time.Date(2017, 11, 07, 07, 8, 23, 383000000, time.UTC)
+	var fAdj int
+	timeFormat := "timestamp"
+	dateTime := "1510038503.383"
+	tzLoc := time.UTC
+	tTest, err := parseTime(timeFormat, dateTime, tzLoc, fAdj)
+	c.Assert(err == nil, Equals, true)
+	c.Assert(tt == tTest, Equals, true)
+
+	tt1 := time.Date(2017, 11, 07, 07, 8, 23, 0, time.UTC)
+	dateTime = "1510038503"
+	tTest, err = parseTime(timeFormat, dateTime, tzLoc, fAdj)
+	c.Assert(err == nil, Equals, true)
+	c.Assert(tt1 == tTest, Equals, true)
+}
