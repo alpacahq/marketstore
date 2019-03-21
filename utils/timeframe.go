@@ -138,7 +138,7 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 			return false
 		}
 	case "Y":
-		if (ts.Year() - start.Year()) <= cd.multiplier {
+		if (ts.Year() - start.Year()) < cd.multiplier {
 			return true
 		}
 	default:
@@ -165,6 +165,8 @@ func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
 		return day
 	case "M":
 		return time.Date(ts.Year(), ts.Month(), 1, 0, 0, 0, 0, ts.Location())
+	case "Y":
+		return time.Date(ts.Year(), time.January, 1, 0, 0, 0, 0, ts.Location())
 	default:
 		return ts.Truncate(cd.duration)
 	}
