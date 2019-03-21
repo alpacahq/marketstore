@@ -255,7 +255,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 
 	/*
 		search for the lowest-frequency timeframe with data able to satisfy the request
-	 */
+	*/
 	for i, timeframe := range queryableTimeframes {
 		queriedTbk.SetItemInCategory("Timeframe", timeframe)
 
@@ -299,7 +299,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 
 	/*
 		read in the query parse data
-	 */
+	*/
 	scanner, err := executor.NewReader(parseResult)
 	if err != nil {
 		log.Error("Unable to create scanner: %s\n", err)
@@ -313,11 +313,16 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 
 	/*
 		check if we need to aggregate the queried data to the requested timeframe
-	 */
+	*/
 	if tf != queriedTbk.GetItemInCategory("Timeframe") {
-		cs := aggtrigger.Aggregate(csm[*queriedTbk], tbk)
-		csm = io.NewColumnSeriesMap()
-		csm[*tbk] = cs
+		aggCsm := io.NewColumnSeriesMap()
+		for _, symbol := range tbk.GetMultiItemInCategory("Symbol") {
+			queriedTbk.SetItemInCategory("Symbol", symbol)
+			tbk.SetItemInCategory("Symbol", symbol)
+			cs := aggtrigger.Aggregate(csm[*queriedTbk], tbk)
+			aggCsm[*tbk] = cs
+		}
+		return aggCsm, err
 	}
 
 	return csm, err
