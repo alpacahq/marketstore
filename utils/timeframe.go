@@ -152,10 +152,17 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 // Truncate returns the lower boundary time of this candle window that
 // ts belongs to.
 func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
+	yy, mm, dd := ts.Date()
+	day := time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
+
 	switch cd.suffix {
 	case "D":
-		yy, mm, dd := ts.Date()
-		return time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
+		return day
+	case "W":
+		for day.Weekday() != time.Monday {
+			day = day.AddDate(0, 0, -1)
+		}
+		return day
 	case "M":
 		return time.Date(ts.Year(), ts.Month(), 1, 0, 0, 0, 0, ts.Location())
 	default:
