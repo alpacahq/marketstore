@@ -23,11 +23,13 @@ var timeframeDefs = []Timeframe{
 	{"Y", Year},
 }
 
+// supported persistent aggregated timeframes
 var Timeframes = []*Timeframe{
 	{"1Sec", time.Second},
 	{"1Min", time.Minute},
 	{"5Min", 5 * time.Minute},
 	{"15Min", 15 * time.Minute},
+	{"30Min", 30 * time.Minute},
 	{"1H", time.Hour},
 	{"4H", 4 * time.Hour},
 	{"1D", Day},
@@ -183,15 +185,21 @@ func (cd *CandleDuration) Ceil(ts time.Time) time.Time {
 	return (ts.Add(cd.duration)).Truncate(cd.duration)
 }
 
-func (cd *CandleDuration) QueryableTimeframe() string {
+func (cd *CandleDuration) QueryableTimeframes() []string {
+	timeframes := make([]string, 0)
 	if cd.suffix != "M" {
 		for i := len(Timeframes) - 1; i >= 0; i-- {
 			if cd.duration%Timeframes[i].Duration == time.Duration(0) {
-				return Timeframes[i].String
+				timeframes = append(timeframes, Timeframes[i].String)
 			}
 		}
 	}
-	return "1D"
+
+	if len(timeframes) > 0 {
+		return timeframes
+	}
+
+	return []string{"1D"}
 }
 
 func (cd *CandleDuration) QueryableNrecords(tf string, nrecords int) int {
