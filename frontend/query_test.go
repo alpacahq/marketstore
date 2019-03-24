@@ -290,12 +290,36 @@ func (s *ServerTestSuite) TestFunctions(c *C) {
 	service := &DataService{}
 	service.Init()
 
-	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
+	call := "candlecandler(\"1Min\", Open, High, Low, Close, Sum::Volume)"
 	fname, l_list, p_list, err := parseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
 		c.FailNow()
 	}
+	c.Assert(fname, Equals, "candlecandler")
+	c.Assert(len(l_list), Equals, 1)
+	c.Assert(l_list[0], Equals, "1Min")
+	c.Assert(p_list[0], Equals, "Open")
+	c.Assert(p_list[1], Equals, "High")
+	c.Assert(p_list[2], Equals, "Low")
+	c.Assert(p_list[3], Equals, "Close")
+	c.Assert(p_list[4], Equals, "Sum::Volume")
+	//	printFuncParams(fname, l_list, p_list)
+
+	call = "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
+	fname, l_list, p_list, err = parseFunctionCall(call)
+	if err != nil {
+		fmt.Println(err)
+		c.FailNow()
+	}
+	c.Assert(fname, Equals, "candlecandler")
+	c.Assert(len(l_list), Equals, 1)
+	c.Assert(l_list[0], Equals, "1Min")
+	c.Assert(p_list[0], Equals, "Open")
+	c.Assert(p_list[1], Equals, "High")
+	c.Assert(p_list[2], Equals, "Low")
+	c.Assert(p_list[3], Equals, "Close")
+	c.Assert(p_list[4], Equals, "Sum::Volume")
 	//	printFuncParams(fname, l_list, p_list)
 
 	call = "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"

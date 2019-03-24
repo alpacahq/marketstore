@@ -364,15 +364,25 @@ func parseFunctionCall(call string) (funcName string, literalList, parameterList
 	*/
 	var newCall string
 	for {
-		left = strings.Index(call, "'")
-		if left == -1 {
+		leftSingle := strings.Index(call, "'")
+		leftDouble := strings.Index(call, "\"")
+		var delimeter string
+		if leftSingle == -1 && leftDouble == -1 {
 			newCall = newCall + call
 			break
-		} else if left != 0 {
+		} else if leftSingle != -1 {
+			left = leftSingle
+			delimeter = "'"
+		} else {
+			left = leftDouble
+			delimeter = "\""
+		}
+
+		if left != 0 {
 			newCall = newCall + call[:left]
 		}
 		call = call[left+1:]
-		right = strings.Index(call, "'")
+		right = strings.Index(call, delimeter)
 		if right == -1 {
 			return "", nil, nil, fmt.Errorf("unclosed literal %s", call)
 		}
