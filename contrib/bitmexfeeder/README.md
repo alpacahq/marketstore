@@ -11,22 +11,21 @@ in MarketStore configuration file.
 
 ### Options
 
-| Name           | Type             | Default                | Description                                               |
-| -------------- | ---------------- | ---------------------- | --------------------------------------------------------- |
-| query_start    | string           | 2017-01-01 00:00       | The point in time from which to start fetching price data |
-| base_timeframe | string           | [1Min, 5Min, 1H, 1D]   | The bar aggregation duration                              |
-| symbols        | slice of strings | [.XBT, XBTM18, XBTU18] | The symbols to retrieve data for                          |
+| Name           | Type             | Default              | Description                                               |
+| -------------- | ---------------- | -------------------- | --------------------------------------------------------- |
+| query_start    | string           | 2017-01-01 00:00     | The point in time from which to start fetching price data |
+| base_timeframe | string           | [1Min, 5Min, 1H, 1D] | The bar aggregation duration                              |
+| symbols        | slice of strings | [XBTUSD]             | The symbols to retrieve data for                          |
 
-Symbols available:
+[Active Bitmex symbols](https://www.bitmex.com/api/v1/instrument/active)
 
 ```text
-.ADAXBT, .BCHXBT, .BXBT, .BXBTJPY,
-.DASHXBT, .EOSXBT, .ETCXBT, .ETHBON,
-.ETHXBT, .LTCXBT, .NEOXBT, .USDBON,
-.XBT, .XBTBON, .XBTJPY, .XBTUSDPI,
-.XLMXBT, .XMRXBT, .XRPXBT, .ZECXBT,
-EOSM18, ETHM18, LTCM18, XBT7D_D95,
-XBT7D_U105, XBTM18, XBTU18, XRPM18
+Perpetual contracts:
+XBTUSD, ETHUSD
+Quarterly contracts:
+XBTM19, ETHM19
+Upside Profit contracts:
+XBT7D_U105, XBT7D_D95
 ```
 
 #### Query Start
@@ -47,14 +46,14 @@ The daily bars are written at the boundary of system timezone configured in the 
 
 Add the following to your config file:
 
-```text
+```yml
 bgworkers:
   - module: bitmexfeeder.so
     config:
-      query_start: "2018-01-01 00:00"
+      query_start: '2018-01-01 00:00'
       symbols:
-        - .XBT
-      base_timeframe: "1D"
+        - XBTUSD
+      base_timeframe: '1D'
 ```
 
 ## Build
@@ -66,7 +65,7 @@ $ make configure
 $ make all
 ```
 
-It installs the new .so file to the first $GOPATH/bin directory.
+It installs the new .so file to the first \$GOPATH/bin directory.
 
 ## Caveat
 

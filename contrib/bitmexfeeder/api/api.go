@@ -25,32 +25,66 @@ type TradeBucketedResponse struct {
 	ForeignNotional float64 `json:"foreignNotional"`
 }
 
-var (
-	client = &http.Client{
-		Timeout: time.Second * 10,
+// BitmexClient with direct API methods
+type BitmexClient struct {
+	Client        *http.Client
+	baseURL       string
+	apiURL        string
+	bitmexBinSize map[string]string
+}
+
+// Init the BitmexClient
+func Init() BitmexClient {
+	return BitmexClient{
+		Client: &http.Client{
+			Timeout: time.Second * 10,
+		},
+		baseURL: "https://www.bitmex.com",
+		apiURL:  "/api/v1/",
+		bitmexBinSize: map[string]string{
+			"1Min": "1m",
+			"5Min": "5m",
+			"1H":   "1h",
+			"1D":   "1d",
+		},
 	}
-	baseURL       = "https://www.bitmex.com"
-	bitmexBinSize = map[string]string{
-		"1Min": "1m",
-		"5Min": "5m",
-		"1H":   "1h",
-		"1D":   "1d",
+}
+
+// GetInstruments from bitmex API
+func (c *BitmexClient) GetInstruments() ([]string, error) {
+	reqURL := c.baseURL + c.apiURL + "/instrument/active"
+	res, err := c.Client.Get(reqURL)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get active instruments: %v", err)
 	}
-)
+	defer res.Body.Close()
+	instruments := []struct {
+		Symbol string `json:"symbol"`
+	}{}
+	err = json.NewDecoder(res.Body).Decode(&instruments)
+	if err != nil {
+		return nil, err
+	}
+	symbols := make([]string, len(instruments))
+	for i, instrument := range instruments {
+		symbols[i] = instrument.Symbol
+	}
+	return symbols, nil
+}
 
 // GetBuckets from bitmex Trade API
-func GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedResponse, error) {
+func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedResponse, error) {
 	resp := []TradeBucketedResponse{}
 
 	values := url.Values{
 		"symbol":    []string{symbol},
-		"binSize":   []string{bitmexBinSize[binSize]},
+		"binSize":   []string{c.bitmexBinSize[binSize]},
 		"partial":   []string{"false"},
 		"count":     []string{"500"},
 		"reverse":   []string{"false"},
 		"startTime": []string{from.String()},
 	}
-	uri, err := url.Parse(baseURL + "/api/v1/trade/bucketed")
+	uri, err := url.Parse(c.baseURL + c.apiURL + "/trade/bucketed")
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +96,7 @@ func GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedR
 	}
 	req.Header.Set("Accept", "application/json")
 
-	res, err := client.Do(req)
+	res, err := c.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}

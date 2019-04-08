@@ -7,7 +7,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
+	bitmex "github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
@@ -30,6 +30,7 @@ type FetcherConfig struct {
 
 // BitmexFetcher is the main worker instance.  It implements bgworker.Run().
 type BitmexFetcher struct {
+	client        *bitmex.BitmexClient
 	config        map[string]interface{}
 	symbols       []string
 	queryStart    time.Time
@@ -46,7 +47,11 @@ func recast(config map[string]interface{}) *FetcherConfig {
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	symbols := []string{".ADAXBT", ".BCHXBT", ".BXBT", ".BXBTJPY", ".DASHXBT", ".EOSXBT", ".ETCXBT", ".ETHBON", ".ETHXBT", ".LTCXBT", ".NEOXBT", ".USDBON", ".XBT", ".XBTBON", ".XBTJPY", ".XBTUSDPI", ".XLMXBT", ".XMRXBT", ".XRPXBT", ".ZECXBT", "EOSM18", "ETHM18", "LTCM18", "XBT7D_D95", "XBT7D_U105", "XBTM18", "XBTU18", "XRPM18"}
+	client := bitmex.Init()
+	symbols, err := client.GetInstruments()
+	if err != nil {
+		return nil, err
+	}
 
 	config := recast(conf)
 	if len(config.Symbols) > 0 {
@@ -76,6 +81,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timeframeStr = config.BaseTimeframe
 	}
 	return &BitmexFetcher{
+		client:        &client,
 		config:        conf,
 		symbols:       symbols,
 		queryStart:    queryStart,
@@ -83,7 +89,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}, nil
 }
 
-func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
+func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	cDir := executor.ThisInstance.CatalogDir
 	query := planner.NewQuery(cDir)
 	query.AddTargetKey(tbk)
@@ -112,8 +118,9 @@ func (gd *BitmexFetcher) Run() {
 	symbols := gd.symbols
 	timeStart := time.Time{}
 	for _, symbol := range symbols {
-		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
-		lastTimestamp := findLastTimestamp(symbol, tbk)
+		symbolDir := fmt.Sprintf("bitmex_%s", symbol)
+		tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
+		lastTimestamp := findLastTimestamp(tbk)
 		fmt.Printf("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
@@ -130,7 +137,7 @@ func (gd *BitmexFetcher) Run() {
 		lastTime := timeStart
 		for _, symbol := range symbols {
 			fmt.Printf("Requesting %s %v with 500 time periods\n", symbol, timeStart)
-			rates, err := api.GetBuckets(symbol, timeStart, gd.baseTimeframe.String)
+			rates, err := gd.client.GetBuckets(symbol, timeStart, gd.baseTimeframe.String)
 			if err != nil {
 				fmt.Printf("Response error: %v\n", err)
 				// including rate limit case
@@ -172,7 +179,8 @@ func (gd *BitmexFetcher) Run() {
 			fmt.Printf("%s: %d rates between %s - %s\n", symbol, len(rates),
 				rates[0].Timestamp, rates[(len(rates))-1].Timestamp)
 			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+			symbolDir := fmt.Sprintf("bitmex_%s", symbol)
+			tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
 			executor.WriteCSM(csm, false)
 		}
@@ -194,8 +202,8 @@ func (gd *BitmexFetcher) Run() {
 }
 
 func main() {
-
+	client := bitmex.Init()
 	start := time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)
-	res, err := api.GetBuckets("XBT", start, "5m")
+	res, err := client.GetBuckets("XBTUSD", start, "5m")
 	fmt.Println(res, err)
 }

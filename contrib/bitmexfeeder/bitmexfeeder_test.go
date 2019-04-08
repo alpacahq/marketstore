@@ -22,7 +22,7 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func (t *TestSuite) TestNew(c *C) {
 	var config = getConfig(`{
-        "symbols": [".XBT"]
+        "symbols": ["XBTUSD"]
         }`)
 	var worker *BitmexFetcher
 	var ret bgworker.BgWorker
@@ -30,7 +30,7 @@ func (t *TestSuite) TestNew(c *C) {
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
 	c.Assert(len(worker.symbols), Equals, 1)
-	c.Assert(worker.symbols[0], Equals, ".XBT")
+	c.Assert(worker.symbols[0], Equals, "XBTUSD")
 	c.Assert(err, IsNil)
 
 	config = getConfig(``)
