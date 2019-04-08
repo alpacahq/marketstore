@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"sort"
 	"time"
 
@@ -49,10 +50,35 @@ func recast(config map[string]interface{}) *FetcherConfig {
 	return &ret
 }
 
+type gdaxProduct struct {
+	ID string `json:"id"`
+}
+
+func getSymbols() ([]string, error) {
+	resp, err := http.Get("https://api.pro.coinbase.com/products")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	products := []gdaxProduct{}
+	err = json.NewDecoder(resp.Body).Decode(&products)
+	if err != nil {
+		return nil, err
+	}
+	symbols := make([]string, len(products))
+	for i, symbol := range products {
+		symbols[i] = symbol.ID
+	}
+	return symbols, nil
+}
+
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	symbols := []string{"BTC", "ETH", "LTC", "BCH"}
+	symbols, err := getSymbols()
+	if err != nil {
+		return nil, err
+	}
 
 	config := recast(conf)
 	if len(config.Symbols) > 0 {
@@ -109,7 +135,7 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-// Run() runs forever to get public historical rate for each configured symbol,
+// Run () runs forever to get public historical rate for each configured symbol,
 // and writes in marketstore data format.  In case any error including rate limit
 // is returned from GDAX, it waits for a minute.
 func (gd *GdaxFetcher) Run() {
@@ -141,7 +167,7 @@ func (gd *GdaxFetcher) Run() {
 				Granularity: int(gd.baseTimeframe.Duration.Seconds()),
 			}
 			fmt.Printf("Requesting %s %v - %v\n", symbol, timeStart, timeEnd)
-			rates, err := client.GetHistoricRates(symbol+"-USD", params)
+			rates, err := client.GetHistoricRates(symbol, params)
 			if err != nil {
 				fmt.Printf("Response error: %v\n", err)
 				// including rate limit case

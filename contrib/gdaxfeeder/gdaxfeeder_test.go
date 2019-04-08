@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/alpacahq/marketstore/plugins/bgworker"
@@ -21,7 +22,7 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func (t *TestSuite) TestNew(c *C) {
 	var config = getConfig(`{
-        "symbols": ["BTC"]
+        "symbols": ["BTC-USD"]
         }`)
 	var worker *GdaxFetcher
 	var ret bgworker.BgWorker
@@ -29,14 +30,24 @@ func (t *TestSuite) TestNew(c *C) {
 	ret, err = NewBgWorker(config)
 	worker = ret.(*GdaxFetcher)
 	c.Assert(len(worker.symbols), Equals, 1)
-	c.Assert(worker.symbols[0], Equals, "BTC")
+	c.Assert(worker.symbols[0], Equals, "BTC-USD")
 	c.Assert(err, IsNil)
 
 	config = getConfig(``)
 	ret, err = NewBgWorker(config)
 	worker = ret.(*GdaxFetcher)
+	resp, err := http.Get("https://api.pro.coinbase.com/products")
+	if err != nil {
+		c.Fatalf("Unable to connect to GDAX API: %v", err)
+	}
+	defer resp.Body.Close()
+	var products []interface{}
+	err = json.NewDecoder(resp.Body).Decode(&products)
+	if err != nil {
+		c.Fatalf("Unable to decode json form GDAX /products API: %v", err)
+	}
 	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, 4)
+	c.Assert(len(worker.symbols), Equals, len(products))
 
 	config = getConfig(`{
         "query_start": "2017-01-02 00:00"
