@@ -11,11 +11,11 @@ in MarketStore configuration file.
 
 ### Options
 
-| Name           | Type             | Default              | Description                                               |
-| -------------- | ---------------- | -------------------- | --------------------------------------------------------- |
-| query_start    | string           | 2017-01-01 00:00     | The point in time from which to start fetching price data |
-| base_timeframe | string           | [1Min, 5Min, 1H, 1D] | The bar aggregation duration                              |
-| symbols        | slice of strings | [XBTUSD]             | The symbols to retrieve data for                          |
+| Name           | Type             | Default                         | Description                                               |
+| -------------- | ---------------- | ------------------------------- | --------------------------------------------------------- |
+| query_start    | string           | 2017-01-01 00:00                | The point in time from which to start fetching price data |
+| base_timeframe | string           | [1Min, 5Min, 1H, 1D]            | The bar aggregation duration                              |
+| symbols        | slice of strings | [XBTUSD, ...all active symbols] | The symbols to retrieve data for                          |
 
 [Active Bitmex symbols](https://www.bitmex.com/api/v1/instrument/active)
 
