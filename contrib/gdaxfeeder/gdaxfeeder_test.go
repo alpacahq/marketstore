@@ -35,19 +35,18 @@ func (t *TestSuite) TestNew(c *C) {
 
 	config = getConfig(``)
 	ret, err = NewBgWorker(config)
-	worker = ret.(*GdaxFetcher)
-	resp, err := http.Get("https://api.pro.coinbase.com/products")
-	if err != nil {
-		c.Fatalf("Unable to connect to GDAX API: %v", err)
-	}
-	defer resp.Body.Close()
-	var products []interface{}
-	err = json.NewDecoder(resp.Body).Decode(&products)
-	if err != nil {
-		c.Fatalf("Unable to decode json form GDAX /products API: %v", err)
-	}
 	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, len(products))
+	worker = ret.(*GdaxFetcher)
+	if resp, err := http.Get("https://api.pro.coinbase.com/products"); err != nil {
+		c.Fatalf("Unable to connect to GDAX API: %v", err)
+	} else {
+		defer resp.Body.Close()
+		var products []interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&products); err != nil {
+			c.Fatalf("Unable to decode json form GDAX /products API: %v", err)
+		}
+		c.Assert(len(worker.symbols), Equals, len(products))
+	}
 
 	config = getConfig(`{
         "query_start": "2017-01-02 00:00"

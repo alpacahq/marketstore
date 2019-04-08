@@ -143,9 +143,10 @@ func (gd *GdaxFetcher) Run() {
 	client := gdax.NewClient("", "", "")
 	timeStart := time.Time{}
 	for _, symbol := range symbols {
-		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
-		lastTimestamp := findLastTimestamp(symbol, tbk)
-		fmt.Printf("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
+		symbolDir := fmt.Sprintf("gdax_%s", symbol)
+		tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
+		lastTimestamp := findLastTimestamp(symbolDir, tbk)
+		fmt.Printf("lastTimestamp for %s = %v\n", symbolDir, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
 		}
@@ -205,8 +206,9 @@ func (gd *GdaxFetcher) Run() {
 			cs.AddColumn("Volume", volume)
 			fmt.Printf("%s: %d rates between %v - %v\n", symbol, len(rates),
 				rates[0].Time, rates[(len(rates))-1].Time)
+			symbolDir := fmt.Sprintf("gdax_%s", symbol)
 			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+			tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
 			executor.WriteCSM(csm, false)
 		}
