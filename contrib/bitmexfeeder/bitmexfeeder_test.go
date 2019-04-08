@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	bitmex "github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	. "gopkg.in/check.v1"
 )
@@ -37,7 +38,10 @@ func (t *TestSuite) TestNew(c *C) {
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
 	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, 28)
+	client := bitmex.Init()
+	symbols, err := client.GetInstruments()
+	c.Assert(err, IsNil)
+	c.Assert(len(worker.symbols), Equals, len(symbols))
 
 	config = getConfig(`{
 	    "query_start": "2017-01-02 00:00"
