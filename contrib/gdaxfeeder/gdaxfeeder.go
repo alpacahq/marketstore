@@ -113,7 +113,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}, nil
 }
 
-func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
+func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 	cDir := executor.ThisInstance.CatalogDir
 	query := planner.NewQuery(cDir)
 	query.AddTargetKey(tbk)
@@ -145,7 +145,7 @@ func (gd *GdaxFetcher) Run() {
 	for _, symbol := range symbols {
 		symbolDir := fmt.Sprintf("gdax_%s", symbol)
 		tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
-		lastTimestamp := findLastTimestamp(tbk)
+		lastTimestamp := findLastTimestamp(symbolDir, tbk)
 		fmt.Printf("lastTimestamp for %s = %v\n", symbolDir, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
