@@ -5,6 +5,7 @@ import (
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/configs"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/feed"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/symbols"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/pkg/errors"
@@ -22,16 +23,19 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	log.Debug("loaded Xignite Feeder config...")
 
 	apiClient := api.NewDefaultAPIClient(config.APIToken, config.Timeout)
-	timeChecker := feed.NewDefaultMarketTimeChecker([]time.Time{}, true)
+	// TODO : debug setting in mkts.yml
+	timeChecker := feed.NewDefaultMarketTimeChecker(config.ClosedDaysOfTheWeek, configs.ToTimes(config.ClosedDays), time.Time(config.OpenTime), time.Time(config.CloseTime))
+	sm := symbols.NewManager(apiClient, config.Exchanges)
+	sm.UpdateEveryDayAt(config.UpdatingHour)
 
 	return &feed.Worker{
 		APIClient:          apiClient,
 		MarketTimeChecker:  timeChecker,
 		CSMWriter:          feed.MarketStoreWriter{},
 		Timeframe:          config.Timeframe,
-		Identifiers:        config.Identifiers,
 		Interval:           config.Interval,
 		LastExecutionTimes: map[string]time.Time{},
+		SymbolManager:      sm,
 	}, nil
 }
 

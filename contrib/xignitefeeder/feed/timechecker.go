@@ -1,51 +1,65 @@
 package feed
 
-import "time"
+import (
+	"time"
+)
 
 type MarketTimeChecker interface {
 	isOpen(t time.Time) bool
 }
 
 type DefaultMarketTimeChecker struct {
-	CloseDates []time.Time
-	IsDebug    bool
+	ClosedDaysOfTheWeek []string
+	ClosedDays          []time.Time
+	OpenTime            time.Time
+	CloseTime           time.Time
 }
 
-func NewDefaultMarketTimeChecker(closeDates []time.Time, isDebug bool) *DefaultMarketTimeChecker {
+func NewDefaultMarketTimeChecker(closedDaysOfTheWeek []string, closedDays []time.Time, openTime time.Time, closeTime time.Time) *DefaultMarketTimeChecker {
 	return &DefaultMarketTimeChecker{
-		CloseDates: closeDates,
-		IsDebug: isDebug,
+		ClosedDaysOfTheWeek: closedDaysOfTheWeek,
+		ClosedDays:          closedDays,
+		OpenTime:            openTime,
+		CloseTime:           closeTime,
 	}
 }
 
 // isOpen returns true on weekdays from 08:55 to 15:10.
 // if closedDates are defined, return false on those days
 func (m *DefaultMarketTimeChecker) isOpen(t time.Time) bool {
-	if m.IsDebug {
-		return true
+	return m.isOpenTime(t) && m.isOpenDay(t) && m.isOpenDate(t)
+}
+
+// isOpenTime returns true if the specified time is between the OpenTime and the CloseTime
+func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
+	minFrom12am := t.Hour()*60 + t.Minute()
+
+	openMinFrom12am := m.OpenTime.Hour()*60 + m.OpenTime.Minute()
+	closeMinFrom12am := m.CloseTime.Hour()*60 + m.CloseTime.Minute()
+
+	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {
+		return false
 	}
+	return true
+}
+
+// isOpenDay returns true when the specified time is in the closedDaysOfTheWeek
+func (m *DefaultMarketTimeChecker) isOpenDay(t time.Time) bool {
 	w := t.Weekday()
-	if w == time.Saturday || w == time.Sunday {
-		return false
+	for _, closedDay := range m.ClosedDaysOfTheWeek {
+		if w.String() == closedDay {
+			return false
+		}
 	}
-
-	// true during 8:55 ~ 15:10
-	minutesFrom12am := t.Hour()*60 + t.Minute()
-
-	// 8 hour 55 min = 535 min,  15 hour 10 min = 910 min
-	if minutesFrom12am < 535 || minutesFrom12am > 910 {
-		return false
-	}
-
 	return true
 }
 
 // isClosedDate returns true if the specified time is on closedDates
-func (m *DefaultMarketTimeChecker) isCloseDate(t time.Time) bool {
-	for _, c := range m.CloseDates {
+func (m *DefaultMarketTimeChecker) isOpenDate(t time.Time) bool {
+	for _, c := range m.ClosedDays {
 		if c.Year() == t.Year() && c.Month() == t.Month() && c.Day() == t.Day() {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }

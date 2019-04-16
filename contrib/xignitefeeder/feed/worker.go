@@ -3,6 +3,7 @@ package feed
 import (
 	"fmt"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/symbols"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/pkg/errors"
 	"time"
@@ -19,24 +20,27 @@ type Worker struct {
 	MarketTimeChecker MarketTimeChecker
 	CSMWriter         CSMWriter
 	Timeframe         string
-	Identifiers       []string
 	Interval          int
 	// Key: symbol, Value: last execution time
 	LastExecutionTimes map[string]time.Time
+	SymbolManager      *symbols.Manager
 }
 
 // Run() runs forever to get TICK for each configured symbol every second from Xignite API,
 // and writes in marketstore data format.  Even in case any error is returned from Xignite,
 // it calls the API after a second.
 func (w *Worker) Run() {
-
 	for {
 		// try to get stock data and write them every second
-		err := w.try()
-		if err != nil {
-			fmt.Println(err)
-		}
+		go w.tryPrintErr()
 		time.Sleep(time.Duration(w.Interval) * time.Second)
+	}
+}
+
+func (w *Worker) tryPrintErr() {
+	err := w.try()
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
@@ -48,9 +52,10 @@ func (w *Worker) try() error {
 	}
 
 	// call Xignite API
-	response, err := w.APIClient.GetRealTimeQuotes(w.Identifiers)
+	identifiers := w.SymbolManager.GetAllIdentifiers()
+	response, err := w.APIClient.GetRealTimeQuotes(identifiers)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get data from Xignite API. %v", w.Identifiers))
+		return errors.Wrap(err, fmt.Sprintf("failed to get data from Xignite API. %v", identifiers))
 	}
 
 	// convert API response to CSM (ColumnSeriesMap)
@@ -77,7 +82,9 @@ func (w *Worker) convertToColumnSeriesMap(response api.GetQuotesResponse) (io.Co
 	csm := io.NewColumnSeriesMap()
 
 	for _, eq := range response.ArrayOfEquityQuote {
-		if eq.Outcome != "Success" {
+		// skip the symbol which execution time is empty string and cannot be parsed,
+		// which means hey had never been executed
+		if eq.Outcome != "Success" || eq.Quote.DateTime == "" {
 			continue
 		}
 
