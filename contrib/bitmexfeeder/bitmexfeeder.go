@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 // FetcherConfig is the configuration for BitmexFetcher you can define in
@@ -121,7 +121,7 @@ func (gd *BitmexFetcher) Run() {
 		symbolDir := fmt.Sprintf("bitmex_%s", symbol)
 		tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
 		lastTimestamp := findLastTimestamp(tbk)
-		fmt.Printf("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
+		log.Info("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
 		}
@@ -136,16 +136,16 @@ func (gd *BitmexFetcher) Run() {
 	for {
 		lastTime := timeStart
 		for _, symbol := range symbols {
-			fmt.Printf("Requesting %s %v with 500 time periods\n", symbol, timeStart)
+			log.Info("Requesting %s %v with 500 time periods", symbol, timeStart)
 			rates, err := gd.client.GetBuckets(symbol, timeStart, gd.baseTimeframe.String)
 			if err != nil {
-				fmt.Printf("Response error: %v\n", err)
+				log.Info("Response error: %v", err)
 				// including rate limit case
 				time.Sleep(time.Minute)
 				continue
 			}
 			if len(rates) == 0 {
-				fmt.Printf("len(rates) == 0\n")
+				log.Info("len(rates) == 0")
 				continue
 			}
 			epoch := make([]int64, 0)
@@ -157,7 +157,7 @@ func (gd *BitmexFetcher) Run() {
 			for _, rate := range rates {
 				parsedTime, err := time.Parse(time.RFC3339, rate.Timestamp)
 				if err != nil {
-					log.Panic(err)
+					panic(err)
 				}
 				if parsedTime.After(lastTime) {
 					lastTime = parsedTime
@@ -176,7 +176,7 @@ func (gd *BitmexFetcher) Run() {
 			cs.AddColumn("Low", low)
 			cs.AddColumn("Close", close)
 			cs.AddColumn("Volume", volume)
-			fmt.Printf("%s: %d rates between %s - %s\n", symbol, len(rates),
+			log.Debug("%s: %d rates between %s - %s", symbol, len(rates),
 				rates[0].Timestamp, rates[(len(rates))-1].Timestamp)
 			csm := io.NewColumnSeriesMap()
 			symbolDir := fmt.Sprintf("bitmex_%s", symbol)
@@ -190,9 +190,10 @@ func (gd *BitmexFetcher) Run() {
 		nextExpected := timeStart.Add(gd.baseTimeframe.Duration)
 		now := time.Now()
 		toSleep := nextExpected.Sub(now)
-		fmt.Printf("next expected(%v) - now(%v) = %v\n", nextExpected, now, toSleep)
+		log.Info("next expected(%v) - now(%v) = %v", nextExpected, now, toSleep)
+
 		if toSleep > 0 {
-			fmt.Printf("sleep for %v\n", toSleep)
+			log.Info("sleep for %v", toSleep)
 			time.Sleep(toSleep)
 		} else if time.Now().Sub(lastTime) < time.Hour {
 			// let's not go too fast if the catch up is less than an hour

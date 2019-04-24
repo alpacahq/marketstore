@@ -108,9 +108,6 @@ func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string)
 	if err != nil {
 		return nil, err
 	}
-	if len(resp) == 0 {
-		fmt.Printf("len(rates) == 0\n")
-	}
 
 	return resp, nil
 }
