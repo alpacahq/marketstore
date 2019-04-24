@@ -16,6 +16,7 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 var suffixBinanceDefs = map[string]string{
@@ -81,7 +82,7 @@ func convertStringToFloat(str string) float64 {
 	convertedString, err := strconv.ParseFloat(str, 64)
 	//Store error in string array which will be checked in main fucntion later to see if there is a need to exit
 	if err != nil {
-		fmt.Printf("String to float error: %v\n", err)
+		log.Error("String to float error: %v", err)
 		errorsConversion = append(errorsConversion, err)
 	}
 	return convertedString
@@ -135,7 +136,7 @@ func getAllSymbols(quoteAssets []string) []string {
 	m := ExchangeInfo{}
 	err := getJSON("https://api.binance.com/api/v1/exchangeInfo", &m)
 	if err != nil {
-		fmt.Printf("Binance /exchangeInfo API error: %v\n", err)
+		log.Error("Binance /exchangeInfo API error: %v", err)
 		tradingSymbols = []string{"BTC", "ETH", "LTC", "BNB"}
 	} else {
 		for _, info := range m.Symbols {
@@ -247,7 +248,7 @@ func (bn *BinanceFetcher) Run() {
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
 	correctIntervalSymbol := suffixBinanceDefs[timeIntervalLettersOnly]
 	if len(correctIntervalSymbol) <= 0 {
-		fmt.Printf("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'\n")
+		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'")
 		correctIntervalSymbol = "1Min"
 	}
 	timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
@@ -258,7 +259,7 @@ func (bn *BinanceFetcher) Run() {
 			symbolDir := fmt.Sprintf("binance_%s-%s", symbol, baseCurrency)
 			tbk := io.NewTimeBucketKey(symbolDir + "/" + bn.baseTimeframe.String + "/OHLCV")
 			lastTimestamp := findLastTimestamp(tbk)
-			fmt.Printf("lastTimestamp for %s = %v\n", symbolDir, lastTimestamp)
+			log.Info("lastTimestamp for %s = %v", symbolDir, lastTimestamp)
 			if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 				timeStart = lastTimestamp
 			}
@@ -333,7 +334,7 @@ func (bn *BinanceFetcher) Run() {
 			case "1D":
 				timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 			default:
-				fmt.Printf("Incorrect format: %v\n", originalInterval)
+				log.Warn("Incorrect format: %v", originalInterval)
 			}
 			waitTill = timeEnd.Add(bn.baseTimeframe.Duration)
 
@@ -347,7 +348,7 @@ func (bn *BinanceFetcher) Run() {
 			for !gotCandle {
 				rates, err := client.NewKlinesService().Symbol(symbols[0] + baseCurrencies[0]).Interval(timeInterval).StartTime(timeStartM).Do(context.Background())
 				if err != nil {
-					fmt.Printf("Response error: %v\n", err)
+					log.Info("Response error: %v", err)
 					time.Sleep(time.Minute)
 				}
 
@@ -367,11 +368,11 @@ func (bn *BinanceFetcher) Run() {
 
 		for _, symbol := range symbols {
 			for _, baseCurrency := range baseCurrencies {
-				fmt.Printf("Requesting %s %v - %v\n", symbol, timeStart, timeEnd)
+				log.Info("Requesting %s %v - %v", symbol, timeStart, timeEnd)
 				rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).Interval(timeInterval).StartTime(timeStartM).EndTime(timeEndM).Do(context.Background())
 				if err != nil {
-					fmt.Printf("Response error: %v\n", err)
-					fmt.Printf("Problematic symbol %s\n", symbol)
+					log.Info("Response error: %v", err)
+					log.Info("Problematic symbol %s", symbol)
 					time.Sleep(time.Minute)
 					// Go back to last time
 					timeStart = originalTimeStart
@@ -407,7 +408,7 @@ func (bn *BinanceFetcher) Run() {
 							}
 						}
 					} else {
-						fmt.Printf("No value in rate %v\n", rate)
+						log.Info("No value in rate %v", rate)
 					}
 				}
 
