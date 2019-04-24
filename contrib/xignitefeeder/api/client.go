@@ -13,44 +13,18 @@ import (
 )
 
 const (
-	GetQuotesURL = "https://api.marketdata-cloud.quick-co.jp/QUICKEquityRealTime.json/GetQuotes"
+	XigniteBaseURL = "https://api.marketdata-cloud.quick-co.jp"
+	GetQuotesURL   = XigniteBaseURL + "/QUICKEquityRealTime.json/GetQuotes"
 	// ?IdentifierType=Symbol&Identifiers=6501.XTKS,7751.XTKS&_Language=English"
-	ListSymbolsURL = "https://api.marketdata-cloud.quick-co.jp/QUICKEquityRealTime.json/ListSymbols"
-	// ?Exchange=XJAS&_Language=Japanese
+	ListSymbolsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/ListSymbols"
+	// ?Exchange=XJAS&_Language=English
+	GetQuotesRangeURL = XigniteBaseURL + "/QUICKEquityHistorical.json/GetQuotesRange"
 )
 
+// Client calls an endpoint and returns the parsed response
 type Client interface {
 	GetRealTimeQuotes(identifiers []string) (GetQuotesResponse, error)
 	ListSymbols(exchange string) (ListSymbolsResponse, error)
-}
-
-type GetQuotesResponse struct {
-	ArrayOfEquityQuote []EquityQuote `json:"ArrayOfEquityQuote"`
-}
-
-type EquityQuote struct {
-	Outcome  string   `json:"Outcome"`
-	Security Security `json:"Security"`
-	Quote    Quote    `json:"Quote"`
-}
-
-type Security struct {
-	Symbol string `json:"Symbol"`
-}
-
-type Quote struct {
-	DateTime string
-	Ask      float32
-	Bid      float32
-}
-
-type ListSymbolsResponse struct {
-	Outcome                    string                `json:"Outcome"`
-	ArrayOfSecurityDescription []SecurityDescription `json:"ArrayOfSecurityDescription"`
-}
-
-type SecurityDescription struct {
-	Symbol string `json:"Symbol"`
 }
 
 func NewDefaultAPIClient(token string, timeoutSec int) *DefaultClient {
@@ -65,42 +39,28 @@ type DefaultClient struct {
 	token      string
 }
 
-func (c *DefaultClient) createFormData(identifiers []string) url.Values {
-	return url.Values{
-		"_Language":      {"English"},
+// GetRealTimeQuotes calls GetQuotes endpoint of Xignite API with specified identifiers
+//// and returns the parsed API response
+// https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes
+func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuotesResponse, err error) {
+
+	form := url.Values{
 		"IdentifierType": {"Symbol"},
 		"_token":         {c.token},
 		"Identifiers":    {strings.Join(identifiers, ",")},
 	}
-}
-
-// GetRealTimeQuotes calls GetQuotes endpoint of Xignite API with specified identifiers
-//// and returns the parsed API response
-// https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes
-func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (GetQuotesResponse, error) {
-	var response GetQuotesResponse
-
-	formData := c.createFormData(identifiers)
-	resp, err := http.PostForm(GetQuotesURL, formData)
+	req, err := http.NewRequest("POST", GetQuotesURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to execute GetQuotes request. url=%v, formdata=", GetQuotesURL, formData))
+		return response, errors.Wrap(err, fmt.Sprintf("failed to create an http request."))
 	}
-	defer func() {
-		if cerr := resp.Body.Close(); err == nil {
-			err = errors.Wrap(cerr, fmt.Sprintf("failed to close GetQuotes response. resp=%v", resp))
-		}
-	}()
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	b, err := ioutil.ReadAll(resp.Body)
+	err = c.execute(req, &response)
 	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to read GetQuotes response body. resp=%v", resp))
+		return response, err
 	}
-	log.Debug("response from Xignite = " + string(b))
 
-	err = json.Unmarshal(b, &response)
-	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to json_parse GetQuotes response body. resp.Body=%v", string(b)))
-	}
+	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in GetQuotes response= %f",response.DelaySec))
 
 	return response, nil
 }
@@ -109,30 +69,73 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (GetQuotesRespon
 // and returns the parsed API response
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols
 // exchange: XTKS, XNGO, XSAP, XFKA, XJAS, XTAM
-func (c *DefaultClient) ListSymbols(exchange string) (ListSymbolsResponse, error) {
-	var response ListSymbolsResponse
-
+func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsResponse, err error) {
 	apiUrl := ListSymbolsURL + fmt.Sprintf("?_token=%s&Exchange=%s", c.token, exchange)
-	resp, err := http.Get(apiUrl)
+	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to execute ListSymbols request. url=%v, ", apiUrl))
+		return response, errors.Wrap(err, fmt.Sprintf("failed to create an http request."))
 	}
-	defer func() {
-		if cerr := resp.Body.Close(); err == nil {
-			err = errors.Wrap(cerr, fmt.Sprintf("failed to close ListSymbols response. resp=%v", resp))
-		}
-	}()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	err = c.execute(req, &response)
 	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to read ListSymbols response body. resp=%v", resp))
-	}
-	log.Debug("response from Xignite = " + string(b))
-
-	err = json.Unmarshal(b, &response)
-	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to json_parse ListSymbols response body. resp.Body=%v", string(b)))
+		return response, err
 	}
 
 	return response, nil
+}
+
+// GetQuotesRange calls GetQuotes endpoint of Xignite API with specified identifiers
+//// and returns the parsed API response
+// https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes
+func (c *DefaultClient) GetQuotesRange(identifier string) (response GetQuotesRangeResponse, err error) {
+	form := url.Values{
+		"IdentifierType": {"Symbol"},
+		"_token":         {c.token},
+		"Identifier":     {identifier},
+	}
+	req, err := http.NewRequest("POST", GetQuotesRangeURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return response, errors.Wrap(err, fmt.Sprintf("failed to create an http request."))
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	err = c.execute(req, &response)
+	if err != nil {
+		return response, err
+	}
+
+	if response.Outcome != "Success" {
+		return response, errors.New(fmt.Sprintf("error response is returned from Xignite. %v", response))
+	}
+
+	return response, nil
+}
+
+// execute performs an HTTP request and parse the response body
+func (c *DefaultClient) execute(req *http.Request, responsePtr interface{}) error {
+	log.Debug(fmt.Sprintf("[Xignite API] start a request. url=%v", req.URL))
+
+	// execute the HTTP request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to execute HTTP request. request=%v", req))
+	}
+	defer func() {
+		if cerr := resp.Body.Close(); err == nil {
+			err = errors.Wrap(cerr, fmt.Sprintf("failed to close HTTP response. resp=%v", resp))
+		}
+	}()
+
+	// read the response body and parse to a json
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to read the response body. resp=%v", resp))
+	}
+	log.Debug(fmt.Sprintf("[Xignite API response] url=%v, response= %v", req.URL, string(b)))
+
+	if err := json.Unmarshal(b, responsePtr); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to json_parse the response body. resp.Body=%v", string(b)))
+	}
+
+	return nil
 }

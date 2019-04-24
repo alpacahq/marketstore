@@ -65,7 +65,7 @@ func TestWorker_try(t *testing.T) {
 		APIClient   api.Client
 		CSMWriter   CSMWriter
 		Timeframe   string
-		Identifiers []string
+		Intervals int
 	}
 	tests := []struct {
 		name    string
@@ -110,7 +110,7 @@ func TestWorker_try(t *testing.T) {
 				APIClient:   tt.fields.APIClient,
 				CSMWriter:   tt.fields.CSMWriter,
 				Timeframe:   tt.fields.Timeframe,
-				Identifiers: tt.fields.Identifiers,
+				Interval: tt.fields.Identifiers,
 			}
 			if err := w.try(); (err != nil) != tt.wantErr {
 				t.Errorf("Worker.try() error = %v, wantErr %v", err, tt.wantErr)
