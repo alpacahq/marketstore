@@ -173,7 +173,7 @@ func (gd *GdaxFetcher) Run() {
 			if err != nil {
 				log.Info("Response error: %v", err)
 				// including rate limit case
-				time.Sleep(time.Minute)
+				time.Sleep(time.Second)
 				continue
 			}
 			if len(rates) == 0 {
