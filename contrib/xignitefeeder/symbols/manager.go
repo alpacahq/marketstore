@@ -22,11 +22,10 @@ func NewManager(apiClient api.Client, targetExchanges []string) *Manager {
 
 // GetIdentifiers returns identifiers for the target symbols for all the target exchanges
 // identifier = {exchange}.{symbol} (ex. "XTKS.1301")
-func (m *Manager) GetAllIdentifiers() (identifiers []string) {
-	identifiers = make([]string, 1)
+func (m *Manager) GetAllIdentifiers() []string {
+	var identifiers []string
 	for _, exchange := range m.TargetExchanges {
 		identifiers = append(identifiers, m.identifiers[exchange]...)
-
 	}
 	return identifiers
 }
@@ -41,7 +40,7 @@ func (m *Manager) UpdateSymbols() {
 			return
 		}
 
-		identifiers := make([]string, 1)
+		var identifiers []string
 		for _, securityDescription := range resp.ArrayOfSecurityDescription {
 			if securityDescription.Symbol != "" {
 				identifier := fmt.Sprintf("%s.%s", securityDescription.Symbol, exchange)
@@ -51,5 +50,6 @@ func (m *Manager) UpdateSymbols() {
 
 		// update target symbols for the stock exchange
 		m.identifiers[exchange] = identifiers
+		log.Debug(fmt.Sprintf("Updated symbols. The number of symbols in %s is %d", exchange, len(m.identifiers[exchange])))
 	}
 }

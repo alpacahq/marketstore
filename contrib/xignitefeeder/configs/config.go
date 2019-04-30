@@ -1,11 +1,23 @@
 package configs
 
 import (
-	"encoding/json"
+	"github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
 )
+
+// json iter supports marshal/unmarshal of map[interface{}]interface{] type.
+// when the config file contains (a) nested structure(s) like follows:
+//
+// backfill:
+//   enabled: true
+//
+// the standard "encoding/json" library cannot marshal the structure
+// because the config is parsed from a yaml file (mkts.yaml) to map[string]interface{} and passed to this file,
+// and config["backfill"] object has map[interface{}]interface{} type.
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
 
 // FetchConfig is the configuration for TickFeeder you can define in
 // marketstore's config file through bgworker extension.
@@ -20,17 +32,18 @@ type DefaultConfig struct {
 	ClosedDaysOfTheWeek []string    `json:"closedDaysOfTheWeek"`
 	ClosedDays          []CustomDay `json:"closedDays"`
 	Interval            int         `json:"interval"`
-	Backfill			struct {
-		Enable	bool `json:"enable"`
-		Since CustomDay	`json:"since"`
+	Backfill            struct {
+		Enabled   bool      `json:"enabled"`
+		Since     CustomDay `json:"since"`
+		Timeframe string    `json:"timeframe"`
 	} `json:"backfill"`
 }
 
-// NewConfig casts a map object to Config struct and returns it
+// NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal
 func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	data, err := json.Marshal(config)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse the config file through json marshal->unmarshal")
 	}
 
 	ret := DefaultConfig{}

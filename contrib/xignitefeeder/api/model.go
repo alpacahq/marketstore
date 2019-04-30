@@ -8,12 +8,13 @@ import (
 
 // ---- Get Quotes endpoint ----
 type GetQuotesResponse struct {
-	DelaySec float32 `json:"Delay"`
+	DelaySec           float32       `json:"Delay"`
 	ArrayOfEquityQuote []EquityQuote `json:"ArrayOfEquityQuote"`
 }
 
 type EquityQuote struct {
 	Outcome  string   `json:"Outcome"`
+	Message  string   `json:"Message"`
 	Security Security `json:"Security"`
 	Quote    Quote    `json:"Quote"`
 }
@@ -23,9 +24,11 @@ type Security struct {
 }
 
 type Quote struct {
-	DateTime XigniteDateTime
-	Ask      float32
-	Bid      float32
+	DateTime    XigniteDateTime `json:"DateTime"`
+	Ask         float32         `json:"Ask"`
+	AskDateTime XigniteDateTime `json:"AskDateTime"`
+	Bid         float32         `json:"Bid"`
+	BidDateTime XigniteDateTime `json:"BidDateTime"`
 }
 
 type XigniteDateTime time.Time
@@ -52,6 +55,7 @@ func (cd *XigniteDateTime) UnmarshalJSON(input []byte) error {
 // ---- List Symbols endpoint ----
 type ListSymbolsResponse struct {
 	Outcome                    string                `json:"Outcome"`
+	Message                    string                `json:"Message"`
 	ArrayOfSecurityDescription []SecurityDescription `json:"ArrayOfSecurityDescription"`
 }
 
@@ -62,6 +66,8 @@ type SecurityDescription struct {
 // ---- Get Quotes Range endpoint ----
 type GetQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
+	Message              string          `json:"Message"`
+	Security             Security        `json:"Security"`
 	ArrayOfEndOfDayQuote []EndOfDayQuote `json:"ArrayOfEndOfDayQuote"`
 }
 

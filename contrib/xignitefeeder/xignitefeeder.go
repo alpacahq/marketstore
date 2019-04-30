@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/feed"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/symbols"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/timer"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/pkg/errors"
@@ -35,11 +36,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	sm := symbols.NewManager(apiClient, config.Exchanges)
 	timer.RunEveryDayAt(config.UpdatingHour, sm.UpdateSymbols)
 
-	// update daily chart data since 2008
-	// timer.RunEveryDayAt(config.UpdatingHour, HistoricalDataBackFill)
+	// backfill daily chart data
+	if config.Backfill.Enabled {
+		var msqrw writer.QuotesRangeWriter = writer.MarketStoreQuotesRangeWriter{Timeframe: config.Backfill.Timeframe}
 
-	var msqw feed.QuotesWriter
-	msqw = feed.MarketStoreQuotesWriter{LastExecutionTimes: sync.Map{}, Timeframe: config.Timeframe}
+		bf := feed.NewBackfill(sm, apiClient, msqrw, time.Time(config.Backfill.Since))
+		timer.RunEveryDayAt(config.UpdatingHour, bf.Update)
+	}
+
+	var msqw writer.QuotesWriter = writer.MarketStoreQuotesWriter{LatestAskOrBidTime: sync.Map{}, Timeframe: config.Timeframe}
 
 	return &feed.Worker{
 		MarketTimeChecker: timeChecker,
@@ -49,6 +54,5 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		Interval:          config.Interval,
 	}, nil
 }
-
 
 func main() {}

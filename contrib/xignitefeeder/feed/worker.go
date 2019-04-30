@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/symbols"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/pkg/errors"
 	"time"
@@ -14,7 +15,7 @@ type Worker struct {
 	MarketTimeChecker MarketTimeChecker
 	APIClient         api.Client
 	SymbolManager     *symbols.Manager
-	QuotesWriter      QuotesWriter
+	QuotesWriter      writer.QuotesWriter
 	Interval          int
 }
 
@@ -40,7 +41,7 @@ func (w *Worker) try() error {
 	if !w.MarketTimeChecker.isOpen(time.Now().UTC()) {
 		return nil
 	}
-	// call Xignite API
+	// call Xignite API to get Quotes data
 	identifiers := w.SymbolManager.GetAllIdentifiers()
 	response, err := w.APIClient.GetRealTimeQuotes(identifiers)
 	if err != nil {

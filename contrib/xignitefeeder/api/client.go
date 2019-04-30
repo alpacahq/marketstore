@@ -25,6 +25,7 @@ const (
 type Client interface {
 	GetRealTimeQuotes(identifiers []string) (GetQuotesResponse, error)
 	ListSymbols(exchange string) (ListSymbolsResponse, error)
+	GetQuotesRange(identifier string, startDate, endDate time.Time) (response GetQuotesRangeResponse, err error)
 }
 
 func NewDefaultAPIClient(token string, timeoutSec int) *DefaultClient {
@@ -60,7 +61,7 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 		return response, err
 	}
 
-	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in GetQuotes response= %f",response.DelaySec))
+	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in GetQuotes response= %f", response.DelaySec))
 
 	return response, nil
 }
@@ -81,17 +82,25 @@ func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsRespon
 		return response, err
 	}
 
+	if response.Outcome != "Success" {
+		return response, errors.New(fmt.Sprintf("error response is returned from Xignite. %v", response))
+	}
+
 	return response, nil
 }
 
 // GetQuotesRange calls GetQuotes endpoint of Xignite API with specified identifiers
 //// and returns the parsed API response
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes
-func (c *DefaultClient) GetQuotesRange(identifier string) (response GetQuotesRangeResponse, err error) {
+func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate time.Time) (response GetQuotesRangeResponse, err error) {
 	form := url.Values{
-		"IdentifierType": {"Symbol"},
-		"_token":         {c.token},
-		"Identifier":     {identifier},
+		"IdentifierType":   {"Symbol"},
+		"_token":           {c.token},
+		"Identifier":       {identifier},
+		"AdjustmentMethod": {"All"},
+		// "yyyy/mm/dd" format
+		"StartOfDate": {fmt.Sprintf("%d/%02d/%02d", startDate.Year(), startDate.Month(), startDate.Day())},
+		"EndOfDate":   {fmt.Sprintf("%d/%02d/%02d", endDate.Year(), endDate.Month(), endDate.Day())},
 	}
 	req, err := http.NewRequest("POST", GetQuotesRangeURL, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -105,7 +114,8 @@ func (c *DefaultClient) GetQuotesRange(identifier string) (response GetQuotesRan
 	}
 
 	if response.Outcome != "Success" {
-		return response, errors.New(fmt.Sprintf("error response is returned from Xignite. %v", response))
+		return response, errors.New(fmt.Sprintf("error response is returned from Xignite. response=%v"+
+			", identifier=%s", response, identifier))
 	}
 
 	return response, nil
@@ -113,7 +123,7 @@ func (c *DefaultClient) GetQuotesRange(identifier string) (response GetQuotesRan
 
 // execute performs an HTTP request and parse the response body
 func (c *DefaultClient) execute(req *http.Request, responsePtr interface{}) error {
-	log.Debug(fmt.Sprintf("[Xignite API] start a request. url=%v", req.URL))
+	log.Debug(fmt.Sprintf("[Xignite API] request url=%v", req.URL))
 
 	// execute the HTTP request
 	resp, err := c.httpClient.Do(req)
@@ -131,7 +141,8 @@ func (c *DefaultClient) execute(req *http.Request, responsePtr interface{}) erro
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to read the response body. resp=%v", resp))
 	}
-	log.Debug(fmt.Sprintf("[Xignite API response] url=%v, response= %v", req.URL, string(b)))
+	// API response body is too big to output...
+	// log.Debug(fmt.Sprintf("[Xignite API response] url=%v, response= %v", req.URL, string(b)))
 
 	if err := json.Unmarshal(b, responsePtr); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to json_parse the response body. resp.Body=%v", string(b)))
