@@ -11,12 +11,12 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/pkg/errors"
-	"sync"
 	"time"
 )
 
 // NewBgWorker returns the new instance of XigniteFeeder.  See feeder.Config
 // for the details of available configurations.
+// nolint
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config, err := configs.NewConfig(conf)
 
@@ -25,6 +25,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 	log.Debug("loaded Xignite Feeder config...")
 
+	// Xignite API client
 	apiClient := api.NewDefaultAPIClient(config.APIToken, config.Timeout)
 	timeChecker := feed.NewDefaultMarketTimeChecker(
 		config.ClosedDaysOfTheWeek,
@@ -36,7 +37,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	sm := symbols.NewManager(apiClient, config.Exchanges)
 	timer.RunEveryDayAt(config.UpdatingHour, sm.UpdateSymbols)
 
-	// backfill daily chart data
+	// backfill daily chart data every day
 	if config.Backfill.Enabled {
 		var msqrw writer.QuotesRangeWriter = writer.MarketStoreQuotesRangeWriter{Timeframe: config.Backfill.Timeframe}
 
@@ -44,7 +45,8 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timer.RunEveryDayAt(config.UpdatingHour, bf.Update)
 	}
 
-	var msqw writer.QuotesWriter = writer.MarketStoreQuotesWriter{LatestAskOrBidTime: sync.Map{}, Timeframe: config.Timeframe}
+	//var msqw writer.QuotesWriter = writer.MarketStoreQuotesWriter{LatestAskOrBidTime: sync.Map{}, Timeframe: config.Timeframe}
+	var msqw writer.QuotesWriter = writer.MarketStoreQuotesWriter{Timeframe: config.Timeframe}
 
 	return &feed.Worker{
 		MarketTimeChecker: timeChecker,

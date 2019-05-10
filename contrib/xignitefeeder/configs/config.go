@@ -18,8 +18,7 @@ import (
 // and config["backfill"] object has map[interface{}]interface{} type.
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-
-// FetchConfig is the configuration for TickFeeder you can define in
+// DefaultConfig is the configuration for XigniteFeeder you can define in
 // marketstore's config file through bgworker extension.
 type DefaultConfig struct {
 	Exchanges           []string    `json:"exchanges"`
@@ -58,11 +57,13 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	return &ret, nil
 }
 
+// CustomTime is a date time object in the ctLayout format
+type CustomTime time.Time
+
 // Custom Time. hh:mm:ss only
 const ctLayout = "15:04:05"
 
-type CustomTime time.Time
-
+// UnmarshalJSON parses a string in the ctLayout
 func (ct *CustomTime) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "null" {
@@ -77,11 +78,13 @@ func (ct *CustomTime) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
+// CustomDay is a date time object in the cdLayout format
+type CustomDay time.Time
+
 // Custom Date. yyyy/mm/dd only
 const cdLayout = "2006/01/02"
 
-type CustomDay time.Time
-
+// UnmarshalJSON parses a string in the cdLayout
 func (cd *CustomDay) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "null" {

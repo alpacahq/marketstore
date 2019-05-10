@@ -9,14 +9,17 @@ import (
 	"time"
 )
 
+// QuotesRangeWriter is an interface to write the historical daily chart data to the marketstore
 type QuotesRangeWriter interface {
 	Write(quotesRange api.GetQuotesRangeResponse) error
 }
 
+// MarketStoreQuotesRangeWriter is an implementation of the QuotesRangeWriter interface
 type MarketStoreQuotesRangeWriter struct {
-	Timeframe          string
+	Timeframe string
 }
 
+// Write converts the Response of the GetQuotesRange API to a ColumnSeriesMap and write it to the local marketstore server.
 func (msw MarketStoreQuotesRangeWriter) Write(quotesRange api.GetQuotesRangeResponse) error {
 	// convert Quotes Data to CSM (ColumnSeriesMap)
 	csm, err := msw.convertToCSM(quotesRange)
@@ -25,8 +28,8 @@ func (msw MarketStoreQuotesRangeWriter) Write(quotesRange api.GetQuotesRangeResp
 	}
 
 	// write CSM to marketstore
-	if err := msw.WriteToMarketStore(csm); err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to write TICK data to marketstore. %v", csm))
+	if err := msw.writeToMarketStore(csm); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to write the data to marketstore. %v", csm))
 	}
 
 	return nil
@@ -74,7 +77,7 @@ func (msw MarketStoreQuotesRangeWriter) newColumnSeries(epochs []int64, opens, c
 	return cs
 }
 
-func (msw MarketStoreQuotesRangeWriter) WriteToMarketStore(csm io.ColumnSeriesMap) error {
+func (msw MarketStoreQuotesRangeWriter) writeToMarketStore(csm io.ColumnSeriesMap) error {
 	// no new data to write
 	if len(csm) == 0 {
 		return nil

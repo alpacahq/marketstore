@@ -17,6 +17,7 @@ type Backfill struct {
 	since         time.Time
 }
 
+// NewBackfill initializes the module to backfill the historical daily chart data to marketstore
 func NewBackfill(symbolManager *symbols.Manager, apiClient api.Client, writer writer.QuotesRangeWriter, Since time.Time) *Backfill {
 	return &Backfill{symbolManager: symbolManager, apiClient: apiClient, writer: writer, since: Since}
 }
@@ -32,17 +33,17 @@ func (b *Backfill) Update() {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
 			if resp.Outcome == "RequestError" {
-				log.Info(fmt.Sprintf("failed to get quotes data for identifier=%s. Err=%v", identifier, err))
+				log.Warn(fmt.Sprintf("failed to get the daily chart data for identifier=%s. Err=%v", identifier, err))
 				continue
 			}
-			log.Error("err=%v, API response=%v", err, resp)
+			log.Error("Xignite API call error. Err=%v, API response=%v", err, resp)
 			return
 		}
 
 		// write the data to marketstore
 		err = b.writer.Write(resp)
 		if err != nil {
-			log.Error(fmt.Sprintf("failed to write QuotesRange data to marketstore. identifier=%v", identifier))
+			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore. identifier=%v", identifier))
 		}
 
 		log.Debug("backfilling the historical daily chart data... identifier=%s", identifier)

@@ -16,11 +16,12 @@ type Manager struct {
 	identifiers map[string][]string
 }
 
+// NewManager initializes the SymbolManager object with the specified parameters.
 func NewManager(apiClient api.Client, targetExchanges []string) *Manager {
 	return &Manager{APIClient: apiClient, TargetExchanges: targetExchanges, identifiers: map[string][]string{}}
 }
 
-// GetIdentifiers returns identifiers for the target symbols for all the target exchanges
+// GetAllIdentifiers returns identifiers for the target symbols for all the target exchanges
 // identifier = {exchange}.{symbol} (ex. "XTKS.1301")
 func (m *Manager) GetAllIdentifiers() []string {
 	var identifiers []string
@@ -30,6 +31,7 @@ func (m *Manager) GetAllIdentifiers() []string {
 	return identifiers
 }
 
+// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the identifiers and store them to the identifiers map
 func (m *Manager) UpdateSymbols() {
 	for _, exchange := range m.TargetExchanges {
 		resp, err := m.APIClient.ListSymbols(exchange)
@@ -40,6 +42,7 @@ func (m *Manager) UpdateSymbols() {
 			return
 		}
 
+		// convert the symbol strings (i.e. "1234") to the identifier strings (i.e. "1234.XTKS") and store them to the map
 		var identifiers []string
 		for _, securityDescription := range resp.ArrayOfSecurityDescription {
 			if securityDescription.Symbol != "" {

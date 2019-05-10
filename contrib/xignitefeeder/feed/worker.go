@@ -19,23 +19,31 @@ type Worker struct {
 	Interval          int
 }
 
-// Run() runs forever to get TICK for each symbol in the target exchanges by Xignite API periodically,
-// and writes to local marketstore.  It ignores errors returned from Xignite.
+// Run runs forever to get quotes data for each symbol in the target exchanges using Xignite API periodically,
+// and writes the data to the local marketstore server.
 func (w *Worker) Run() {
 	for {
-		// try to get stock data and write them every second
+		// try to get the data and write them every second
 		go w.tryPrintErr()
 		time.Sleep(time.Duration(w.Interval) * time.Second)
 	}
 }
 
+// tryPrintErr tries and write the error log
 func (w *Worker) tryPrintErr() {
 	if err := w.try(); err != nil {
 		log.Error(err.Error())
 	}
+
+	defer func() {
+		err := recover()
+		if err != nil {
+			log.Error("Panic occurred:", err)
+		}
+	}()
 }
 
-// try calls GetQuotes endpoint of Xignite API, convert the API response to a ColumnSeriesMap and write it to marketstore
+// try calls GetQuotes endpoint of Xignite API, convert the API response to a ColumnSeriesMap and write it to the marketstore
 func (w *Worker) try() error {
 	// check if it needs to work now
 	if !w.MarketTimeChecker.isOpen(time.Now().UTC()) {

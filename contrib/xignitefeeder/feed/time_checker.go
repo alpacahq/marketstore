@@ -6,10 +6,17 @@ import (
 	"time"
 )
 
+// MarketTimeChecker is an interface to check if the market is open at the specified time or not
 type MarketTimeChecker interface {
 	isOpen(t time.Time) bool
 }
 
+// DefaultMarketTimeChecker is an implementation for MarketTimeChecker object.
+// this checker checks the followings:
+// - the market is open at this days of the week
+// - the market is open at this time
+// - the market is open today (= check if today is a holiday or not)
+// all those settings should be defined in this object
 type DefaultMarketTimeChecker struct {
 	ClosedDaysOfTheWeek []string
 	ClosedDays          []time.Time
@@ -17,6 +24,7 @@ type DefaultMarketTimeChecker struct {
 	CloseTime           time.Time
 }
 
+// NewDefaultMarketTimeChecker initializes the DefaultMarketTimeChecker object with the specifier parameters.s
 func NewDefaultMarketTimeChecker(closedDaysOfTheWeek []string, closedDays []time.Time, openTime time.Time, closeTime time.Time) *DefaultMarketTimeChecker {
 	return &DefaultMarketTimeChecker{
 		ClosedDaysOfTheWeek: closedDaysOfTheWeek,
@@ -46,7 +54,7 @@ func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
 	}
 
 	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {
-		log.Debug(fmt.Sprintf("[Xignite Feeder] won't run because the market is not open." +
+		log.Debug(fmt.Sprintf("[Xignite Feeder] won't run because the market is not open."+
 			"openTime=%v, closeTime=%v, now=%v", m.OpenTime, m.CloseTime, t))
 		return false
 	}

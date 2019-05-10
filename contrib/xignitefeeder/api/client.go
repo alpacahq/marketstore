@@ -13,11 +13,17 @@ import (
 )
 
 const (
+	// XigniteBaseURL is a Base URL for Quick Xignite API
+	// (https://www.marketdata-cloud.quick-co.jp/Products/)
 	XigniteBaseURL = "https://api.marketdata-cloud.quick-co.jp"
-	GetQuotesURL   = XigniteBaseURL + "/QUICKEquityRealTime.json/GetQuotes"
-	// ?IdentifierType=Symbol&Identifiers=6501.XTKS,7751.XTKS&_Language=English"
+	// GetQuotesURL is the URL of Get Quotes endpoint
+	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes)
+	GetQuotesURL = XigniteBaseURL + "/QUICKEquityRealTime.json/GetQuotes"
+	// ListSymbolsURL is the URL of List Symbols endpoint
+	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols)
 	ListSymbolsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/ListSymbols"
-	// ?Exchange=XJAS&_Language=English
+	// GetQuotesRangeURL is the URL of Get Quotes Range endpoint
+	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityHistorical/Overview/GetQuotesRange)
 	GetQuotesRangeURL = XigniteBaseURL + "/QUICKEquityHistorical.json/GetQuotesRange"
 )
 
@@ -28,6 +34,7 @@ type Client interface {
 	GetQuotesRange(identifier string, startDate, endDate time.Time) (response GetQuotesRangeResponse, err error)
 }
 
+// NewDefaultAPIClient initializes Xignite API client with the specified API token and HTTP timeout[sec].
 func NewDefaultAPIClient(token string, timeoutSec int) *DefaultClient {
 	return &DefaultClient{
 		httpClient: &http.Client{Timeout: time.Duration(timeoutSec) * time.Second},
@@ -35,6 +42,7 @@ func NewDefaultAPIClient(token string, timeoutSec int) *DefaultClient {
 	}
 }
 
+// DefaultClient is the Xignite API client object.
 type DefaultClient struct {
 	httpClient *http.Client
 	token      string
@@ -71,8 +79,8 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols
 // exchange: XTKS, XNGO, XSAP, XFKA, XJAS, XTAM
 func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsResponse, err error) {
-	apiUrl := ListSymbolsURL + fmt.Sprintf("?_token=%s&Exchange=%s", c.token, exchange)
-	req, err := http.NewRequest("GET", apiUrl, nil)
+	apiURL := ListSymbolsURL + fmt.Sprintf("?_token=%s&Exchange=%s", c.token, exchange)
+	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return response, errors.Wrap(err, fmt.Sprintf("failed to create an http request."))
 	}
@@ -83,7 +91,7 @@ func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsRespon
 	}
 
 	if response.Outcome != "Success" {
-		return response, errors.New(fmt.Sprintf("error response is returned from Xignite. %v", response))
+		return response, fmt.Errorf("error response is returned from Xignite. %v", response)
 	}
 
 	return response, nil
@@ -114,8 +122,8 @@ func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate tim
 	}
 
 	if response.Outcome != "Success" {
-		return response, errors.New(fmt.Sprintf("error response is returned from Xignite. response=%v"+
-			", identifier=%s", response, identifier))
+		return response, fmt.Errorf("error response is returned from Xignite. response=%v"+
+			", identifier=%s", response, identifier)
 	}
 
 	return response, nil

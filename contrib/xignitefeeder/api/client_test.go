@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"testing"
 )
 
 const (
-	XigniteToken = "DUMMY"
+	DummyXigniteToken = "DUMMY"
 )
 
 type RoundTripFunc func(req *http.Request) *http.Response
@@ -19,22 +18,25 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req), nil
 }
 
-func NewTestClient(t *testing.T) *http.Client {
+func NewTestResponseBody(t *testing.T, responseBodyModel interface{}) []byte {
 	t.Helper()
 
-	body := GetQuotesResponse{
-		ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}},
-	}
-
-	b, err := json.Marshal(body)
+	b, err := json.Marshal(responseBodyModel)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	return b
+}
+
+func NewMockClient(t *testing.T, expectedResponse interface{}) *http.Client {
+	t.Helper()
+
+	// return
 	returnNormal := func(req *http.Request) *http.Response {
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       ioutil.NopCloser(bytes.NewBuffer(b)),
+			Body:       ioutil.NopCloser(bytes.NewBuffer(NewTestResponseBody(t, expectedResponse))),
 			Header:     make(http.Header),
 		}
 	}
@@ -44,40 +46,44 @@ func NewTestClient(t *testing.T) *http.Client {
 	}
 }
 
-func TestDefaultAPIClient_GetRealTimeQuotes(t *testing.T) {
-	tests := []struct {
-		name        string
-		client      Client
-		identifiers []string
-		want        GetQuotesResponse
-		wantErr     bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "normal",
-			client: &DefaultClient{
-				httpClient: NewTestClient(t),
-				token:      XigniteToken,
-			},
-			//NewDefaultAPIClient(XigniteToken, 30),
-			identifiers: []string{"6501.XTKS"},
-			want: GetQuotesResponse{ArrayOfEquityQuote:
-			[]EquityQuote{{Outcome: "Success"}},
-			},
-			wantErr: false,
-		},
+func TestDefaultAPIClient_GetRealTimeQuotes_Success(t *testing.T) {
+	// --- given ---
+	SUT := &DefaultClient{
+		httpClient: NewMockClient(t,
+			// return "Outcome: Success" response body
+			GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}},},
+		),
+		token: DummyXigniteToken,}
+
+	// --- when ---
+	got, err := SUT.GetRealTimeQuotes([]string{"hoge"})
+
+	// --- then ---
+	if err != nil {
+		t.Fatalf("Error should be nil. Err = %v", err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := tt.client
-			got, err := c.GetRealTimeQuotes(tt.identifiers)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DefaultClient.GetRealTimeQuotes() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DefaultClient.GetRealTimeQuotes() = %v, want %v", got, tt.want)
-			}
-		})
+	if got.ArrayOfEquityQuote[0].Outcome != "Success" {
+		t.Errorf("Outcome = %v, want %v", got.ArrayOfEquityQuote[0].Outcome, "Success")
+	}
+}
+
+func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
+	// --- given ---
+	SUT := &DefaultClient{
+		httpClient: NewMockClient(t,
+			// return "Outcome: Success" response body
+			ListSymbolsResponse{Outcome: "Success"},
+		),
+		token: DummyXigniteToken,}
+
+	// --- when ---
+	got, err := SUT.ListSymbols("foobar")
+
+	// --- then ---
+	if err != nil {
+		t.Errorf("Error should be nil. Err = %v", err)
+	}
+	if got.Outcome != "Success" {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
 	}
 }

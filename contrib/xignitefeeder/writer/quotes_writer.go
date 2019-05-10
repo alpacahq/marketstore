@@ -6,20 +6,20 @@ import (
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/pkg/errors"
-	"sync"
 	"time"
 )
 
+// QuotesWriter is an interface to write the realtime stock data to the marketstore
 type QuotesWriter interface {
 	Write(resp api.GetQuotesResponse) error
 }
 
+// MarketStoreQuotesWriter is an implementation of the QuotesWriter interface
 type MarketStoreQuotesWriter struct {
-	// Key: symbol (string), Value: latest Ask/Bid time (time.Time).
-	//LatestAskOrBidTime sync
-	Timeframe          string
+	Timeframe string
 }
 
+// Write converts the Response of the GetQuotes API to a ColumnSeriesMap and write it to the local marketstore server.
 func (msw MarketStoreQuotesWriter) Write(quotes api.GetQuotesResponse) error {
 	// convert Quotes Data to CSM (ColumnSeriesMap)
 	csm, err := msw.convertToCSM(quotes)
@@ -28,8 +28,8 @@ func (msw MarketStoreQuotesWriter) Write(quotes api.GetQuotesResponse) error {
 	}
 
 	// write CSM to marketstore
-	if err := msw.WriteToMarketStore(csm); err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to write TICK data to marketstore. %v", csm))
+	if err := msw.writeToMarketStore(csm); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to write the data to marketstore. %v", csm))
 	}
 
 	return nil
@@ -39,20 +39,19 @@ func (msw *MarketStoreQuotesWriter) convertToCSM(response api.GetQuotesResponse)
 	csm := io.NewColumnSeriesMap()
 
 	for _, eq := range response.ArrayOfEquityQuote {
-		// skip the symbol which execution time is empty string and cannot be parsed,
+		// skip the symbol which Ask/Bid time is empty string and cannot be parsed,
 		// which means the symbols have never been executed
-		if eq.Outcome != "Success" || time.Time(eq.Quote.DateTime) == (time.Time{}) {
+		if eq.Outcome != "Success" || time.Time(eq.Quote.AskDateTime) == (time.Time{}) || time.Time(eq.Quote.BidDateTime) == (time.Time{}) {
 			continue
 		}
 
-		// check if this data has already been written to Marketstore
+		// choose a latest ask or bid datetime.
 		var dateTime time.Time
 		askDateTime := time.Time(eq.Quote.AskDateTime)
 		bidDateTime := time.Time(eq.Quote.BidDateTime)
-		// choose a latest ask or bid datetime.
-		if askDateTime.After( bidDateTime ){
+		if askDateTime.After(bidDateTime) {
 			dateTime = askDateTime
-		}else {
+		} else {
 			dateTime = bidDateTime
 		}
 
@@ -69,14 +68,14 @@ func (msw *MarketStoreQuotesWriter) convertToCSM(response api.GetQuotesResponse)
 }
 
 // if the tick data for the last execution has already been written before, skip it
-func (msw *MarketStoreQuotesWriter) needToWrite(symbol string, executionTime time.Time) bool {
-	if latestAskOrBidTime, ok := msw.LatestAskOrBidTime.Load(symbol); ok && latestAskOrBidTime.(time.Time).Equal(executionTime) {
-		return false
-	}
-
-	msw.LatestAskOrBidTime.Store(symbol, executionTime)
-	return true
-}
+//func (msw *MarketStoreQuotesWriter) needToWrite(symbol string, executionTime time.Time) bool {
+//	if latestAskOrBidTime, ok := msw.LatestAskOrBidTime.Load(symbol); ok && latestAskOrBidTime.(time.Time).Equal(executionTime) {
+//		return false
+//	}
+//
+//	msw.LatestAskOrBidTime.Store(symbol, executionTime)
+//	return true
+//}
 
 func (msw MarketStoreQuotesWriter) newColumnSeries(epoch int64, ask float32, bid float32) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
@@ -87,7 +86,7 @@ func (msw MarketStoreQuotesWriter) newColumnSeries(epoch int64, ask float32, bid
 	return cs
 }
 
-func (msw MarketStoreQuotesWriter) WriteToMarketStore(csm io.ColumnSeriesMap) error {
+func (msw MarketStoreQuotesWriter) writeToMarketStore(csm io.ColumnSeriesMap) error {
 	// no new data to write
 	if len(csm) == 0 {
 		return nil
