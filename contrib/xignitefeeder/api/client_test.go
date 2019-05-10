@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 )
 
 const (
@@ -49,11 +50,9 @@ func NewMockClient(t *testing.T, expectedResponse interface{}) *http.Client {
 func TestDefaultAPIClient_GetRealTimeQuotes_Success(t *testing.T) {
 	// --- given ---
 	SUT := &DefaultClient{
-		httpClient: NewMockClient(t,
-			// return "Outcome: Success" response body
-			GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}},},
-		),
-		token: DummyXigniteToken,}
+		// return "Outcome: Success" response body
+		httpClient: NewMockClient(t, GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}}}),
+		token:      DummyXigniteToken,}
 
 	// --- when ---
 	got, err := SUT.GetRealTimeQuotes([]string{"hoge"})
@@ -70,11 +69,9 @@ func TestDefaultAPIClient_GetRealTimeQuotes_Success(t *testing.T) {
 func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
 	// --- given ---
 	SUT := &DefaultClient{
-		httpClient: NewMockClient(t,
-			// return "Outcome: Success" response body
-			ListSymbolsResponse{Outcome: "Success"},
-		),
-		token: DummyXigniteToken,}
+		// return "Outcome: Success" response body
+		httpClient: NewMockClient(t, ListSymbolsResponse{Outcome: "Success"}),
+		token:      DummyXigniteToken,}
 
 	// --- when ---
 	got, err := SUT.ListSymbols("foobar")
@@ -85,5 +82,58 @@ func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
 	}
 	if got.Outcome != "Success" {
 		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	}
+}
+
+func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
+	// --- given ---
+	SUT := &DefaultClient{
+		// return "Outcome: Success" response body
+		httpClient: NewMockClient(t, GetQuotesRangeResponse{Outcome: "Success"}),
+		token:      DummyXigniteToken,}
+
+	// --- when ---
+	got, err := SUT.GetQuotesRange("foobar", time.Time{}, time.Time{})
+
+	// --- then ---
+	if err != nil {
+		t.Errorf("Error should be nil. Err = %v", err)
+	}
+	if got.Outcome != "Success" {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	}
+}
+
+// When Xignite returns Outcome:"SystemError", throw an error
+func TestDefaultAPIClient_ListSymbols_Error(t *testing.T) {
+	// --- given ---
+	SUT := &DefaultClient{
+		// return "Outcome: SystemError" response body
+		httpClient: NewMockClient(t, ListSymbolsResponse{Outcome: "SystemError"}),
+		token:      DummyXigniteToken,}
+
+	// --- when ---
+	_, err := SUT.ListSymbols("foobar")
+
+	// --- then ---
+	if err == nil {
+		t.Errorf("An error should be returned when the Outcome is not 'Success' s")
+	}
+}
+
+// When Xignite returns Outcome:"SystemError", throw an error
+func TestDefaultAPIClient_GetQuotesRange_Error(t *testing.T) {
+	// --- given ---
+	SUT := &DefaultClient{
+		// return "Outcome: SystemError" response body
+		httpClient: NewMockClient(t, GetQuotesRangeResponse{Outcome: "SystemError"}),
+		token:      DummyXigniteToken,}
+
+	// --- when ---
+	_, err := SUT.GetQuotesRange("foobar", time.Time{}, time.Time{})
+
+	// --- then ---
+	if err == nil {
+		t.Errorf("An error should be returned when the Outcome is not 'Success'.")
 	}
 }
