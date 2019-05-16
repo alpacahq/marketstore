@@ -52,7 +52,7 @@ func TestDefaultMarketTimeChecker_isOpen(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// --- when ---
-			got := SUT.isOpen(tt.arg)
+			got := SUT.IsOpen(tt.arg)
 
 			// --- then ---
 			if got != tt.isOpen {
