@@ -6,9 +6,11 @@ import (
 	"time"
 )
 
+var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+
 // MarketTimeChecker is an interface to check if the market is open at the specified time or not
 type MarketTimeChecker interface {
-	isOpen(t time.Time) bool
+	IsOpen(t time.Time) bool
 }
 
 // DefaultMarketTimeChecker is an implementation for MarketTimeChecker object.
@@ -18,6 +20,7 @@ type MarketTimeChecker interface {
 // - the market is open today (= check if today is a holiday or not)
 // all those settings should be defined in this object
 type DefaultMarketTimeChecker struct {
+	// i.e. []string{"Saturday", "Sunday"}
 	ClosedDaysOfTheWeek []string
 	ClosedDays          []time.Time
 	OpenTime            time.Time
@@ -34,10 +37,11 @@ func NewDefaultMarketTimeChecker(closedDaysOfTheWeek []string, closedDays []time
 	}
 }
 
-// isOpen returns true on weekdays from 08:55 to 15:10.
+// IsOpen returns true on weekdays from 08:55 to 15:10.
 // if closedDates are defined, return false on those days
-func (m *DefaultMarketTimeChecker) isOpen(t time.Time) bool {
-	return m.isOpenTime(t) && m.isOpenDay(t) && m.isOpenDate(t)
+func (m *DefaultMarketTimeChecker) IsOpen(t time.Time) bool {
+	timeInJst := t.In(jst)
+	return m.isOpenTime(t) && m.isOpenWeekDay(timeInJst) && m.isOpenDate(timeInJst)
 }
 
 // isOpenTime returns true if the specified time is between the OpenTime and the CloseTime
@@ -47,22 +51,25 @@ func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
 	openMinFrom12am := m.OpenTime.Hour()*60 + m.OpenTime.Minute()
 	closeMinFrom12am := m.CloseTime.Hour()*60 + m.CloseTime.Minute()
 
-	// if the open hour is later than the close hour (i.e. open=23h, close=6h ), +1day
+	// if the open hour is later than the close hour (i.e. open=23h, close=6h), +1day
 	if closeMinFrom12am < openMinFrom12am {
-		minFrom12am += 24 * 60 * 60
-		closeMinFrom12am += 24 * 60 * 60
+		closeMinFrom12am += 24 * 60
+	}
+	if minFrom12am < openMinFrom12am {
+		minFrom12am += 24 * 60
 	}
 
 	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {
 		log.Debug(fmt.Sprintf("[Xignite Feeder] won't run because the market is not open."+
-			"openTime=%v, closeTime=%v, now=%v", m.OpenTime, m.CloseTime, t))
+			"openTime=%v:%v, closeTime=%v:%v, now=%v",
+			m.OpenTime.Hour(), m.OpenTime.Minute(), m.CloseTime.Hour(), m.CloseTime.Minute(), t))
 		return false
 	}
 	return true
 }
 
-// isOpenDay returns true when the specified time is in the closedDaysOfTheWeek
-func (m *DefaultMarketTimeChecker) isOpenDay(t time.Time) bool {
+// isOpenWeekDay returns true when the specified time is in the closedDaysOfTheWeek
+func (m *DefaultMarketTimeChecker) isOpenWeekDay(t time.Time) bool {
 	w := t.Weekday()
 	for _, closedDay := range m.ClosedDaysOfTheWeek {
 		if w.String() == closedDay {
@@ -77,7 +84,8 @@ func (m *DefaultMarketTimeChecker) isOpenDay(t time.Time) bool {
 func (m *DefaultMarketTimeChecker) isOpenDate(t time.Time) bool {
 	for _, c := range m.ClosedDays {
 		if c.Year() == t.Year() && c.Month() == t.Month() && c.Day() == t.Day() {
-			log.Debug(fmt.Sprintf("[Xignite Feeder] won't run because the market is not open today. %v", t))
+			log.Debug(
+				fmt.Sprintf("[Xignite Feeder] not running because the market is not open today in JST. %v", t))
 			return false
 		}
 	}

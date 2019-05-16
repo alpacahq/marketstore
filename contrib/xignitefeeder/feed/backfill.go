@@ -11,14 +11,14 @@ import (
 
 //Backfill aggregates daily chart data using Xignite API and store it to
 type Backfill struct {
-	symbolManager *symbols.Manager
+	symbolManager symbols.Manager
 	apiClient     api.Client
 	writer        writer.QuotesRangeWriter
 	since         time.Time
 }
 
 // NewBackfill initializes the module to backfill the historical daily chart data to marketstore
-func NewBackfill(symbolManager *symbols.Manager, apiClient api.Client, writer writer.QuotesRangeWriter, Since time.Time) *Backfill {
+func NewBackfill(symbolManager symbols.Manager, apiClient api.Client, writer writer.QuotesRangeWriter, Since time.Time) *Backfill {
 	return &Backfill{symbolManager: symbolManager, apiClient: apiClient, writer: writer, since: Since}
 }
 
@@ -46,8 +46,8 @@ func (b *Backfill) Update() {
 			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore. identifier=%v", identifier))
 		}
 
-		log.Debug("backfilling the historical daily chart data... identifier=%s", identifier)
+		log.Info("backfilling the historical daily chart data... identifier=%s", identifier)
 	}
 
-	log.Debug("Data backfill is successfully done.")
+	log.Info("Data backfill is successfully done.")
 }

@@ -9,30 +9,35 @@ import (
 // Manager manages symbols in the target stock exchanges.
 // symbol(s) can be newly registered / removed from the exchange,
 // so target symbols should be update periodically
-type Manager struct {
+type Manager interface {
+	GetAllIdentifiers() []string
+}
+
+// ManagerImpl is an implementation of the Manager.
+type ManagerImpl struct {
 	APIClient       api.Client
 	TargetExchanges []string
 	// identifier = {symbol}.{exchange} (i.e. "7203.XTKS").
-	identifiers map[string][]string
+	Identifiers map[string][]string
 }
 
 // NewManager initializes the SymbolManager object with the specified parameters.
-func NewManager(apiClient api.Client, targetExchanges []string) *Manager {
-	return &Manager{APIClient: apiClient, TargetExchanges: targetExchanges, identifiers: map[string][]string{}}
+func NewManager(apiClient api.Client, targetExchanges []string) *ManagerImpl {
+	return &ManagerImpl{APIClient: apiClient, TargetExchanges: targetExchanges, Identifiers: map[string][]string{}}
 }
 
-// GetAllIdentifiers returns identifiers for the target symbols for all the target exchanges
+// GetAllIdentifiers returns Identifiers for the target symbols for all the target exchanges
 // identifier = {exchange}.{symbol} (ex. "XTKS.1301")
-func (m *Manager) GetAllIdentifiers() []string {
+func (m ManagerImpl) GetAllIdentifiers() []string {
 	var identifiers []string
 	for _, exchange := range m.TargetExchanges {
-		identifiers = append(identifiers, m.identifiers[exchange]...)
+		identifiers = append(identifiers, m.Identifiers[exchange]...)
 	}
 	return identifiers
 }
 
-// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the identifiers and store them to the identifiers map
-func (m *Manager) UpdateSymbols() {
+// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers and store them to the Identifiers map
+func (m ManagerImpl) UpdateSymbols() {
 	for _, exchange := range m.TargetExchanges {
 		resp, err := m.APIClient.ListSymbols(exchange)
 
@@ -52,7 +57,7 @@ func (m *Manager) UpdateSymbols() {
 		}
 
 		// update target symbols for the stock exchange
-		m.identifiers[exchange] = identifiers
-		log.Debug(fmt.Sprintf("Updated symbols. The number of symbols in %s is %d", exchange, len(m.identifiers[exchange])))
+		m.Identifiers[exchange] = identifiers
+		log.Debug(fmt.Sprintf("Updated symbols. The number of symbols in %s is %d", exchange, len(m.Identifiers[exchange])))
 	}
 }

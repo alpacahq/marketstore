@@ -39,14 +39,19 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 	// backfill daily chart data every day
 	if config.Backfill.Enabled {
-		var msqrw writer.QuotesRangeWriter = writer.MarketStoreQuotesRangeWriter{Timeframe: config.Backfill.Timeframe}
+		msqrw := &writer.QuotesRangeWriterImpl{
+			MarketStoreWriter: &writer.MarketStoreWriterImpl{},
+			Timeframe:         config.Backfill.Timeframe,
+		}
 
 		bf := feed.NewBackfill(sm, apiClient, msqrw, time.Time(config.Backfill.Since))
 		timer.RunEveryDayAt(config.UpdatingHour, bf.Update)
 	}
 
-	//var msqw writer.QuotesWriter = writer.MarketStoreQuotesWriter{LatestAskOrBidTime: sync.Map{}, Timeframe: config.Timeframe}
-	var msqw writer.QuotesWriter = writer.MarketStoreQuotesWriter{Timeframe: config.Timeframe}
+	var msqw writer.QuotesWriter = writer.QuotesWriterImpl{
+		MarketStoreWriter: &writer.MarketStoreWriterImpl{},
+		Timeframe:         config.Timeframe,
+	}
 
 	return &feed.Worker{
 		MarketTimeChecker: timeChecker,
