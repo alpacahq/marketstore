@@ -21,14 +21,14 @@ type MarketTimeChecker interface {
 // all those settings should be defined in this object
 type DefaultMarketTimeChecker struct {
 	// i.e. []string{"Saturday", "Sunday"}
-	ClosedDaysOfTheWeek []string
+	ClosedDaysOfTheWeek []time.Weekday
 	ClosedDays          []time.Time
 	OpenTime            time.Time
 	CloseTime           time.Time
 }
 
 // NewDefaultMarketTimeChecker initializes the DefaultMarketTimeChecker object with the specifier parameters.s
-func NewDefaultMarketTimeChecker(closedDaysOfTheWeek []string, closedDays []time.Time, openTime time.Time, closeTime time.Time) *DefaultMarketTimeChecker {
+func NewDefaultMarketTimeChecker(closedDaysOfTheWeek []time.Weekday, closedDays []time.Time, openTime time.Time, closeTime time.Time) *DefaultMarketTimeChecker {
 	return &DefaultMarketTimeChecker{
 		ClosedDaysOfTheWeek: closedDaysOfTheWeek,
 		ClosedDays:          closedDays,
@@ -60,7 +60,7 @@ func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
 	}
 
 	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {
-		log.Debug(fmt.Sprintf("[Xignite Feeder] won't run because the market is not open."+
+		log.Debug(fmt.Sprintf("[Xignite Feeder] not running because the market is not open."+
 			"openTime=%v:%v, closeTime=%v:%v, now=%v",
 			m.OpenTime.Hour(), m.OpenTime.Minute(), m.CloseTime.Hour(), m.CloseTime.Minute(), t))
 		return false
@@ -72,15 +72,15 @@ func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
 func (m *DefaultMarketTimeChecker) isOpenWeekDay(t time.Time) bool {
 	w := t.Weekday()
 	for _, closedDay := range m.ClosedDaysOfTheWeek {
-		if w.String() == closedDay {
-			log.Debug(fmt.Sprintf("[Xignite Feeder] won't run because today is %v", w.String()))
+		if w == closedDay {
+			log.Debug(fmt.Sprintf("[Xignite Feeder] not running because it's %v today.", w.String()))
 			return false
 		}
 	}
 	return true
 }
 
-// isClosedDate returns true if the specified time is on closedDates
+// isOpenDate returns true if the specified time is on closedDates
 func (m *DefaultMarketTimeChecker) isOpenDate(t time.Time) bool {
 	for _, c := range m.ClosedDays {
 		if c.Year() == t.Year() && c.Month() == t.Month() && c.Day() == t.Day() {

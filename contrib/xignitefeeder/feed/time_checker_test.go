@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var ClosedDaysOfTheWeek = []string{"Saturday", "Sunday"}
+var ClosedDaysOfTheWeek = []time.Weekday{time.Saturday, time.Sunday}
 var ClosedDays = []time.Time{
 	// i.e. Marine day in Japan
 	time.Date(2019, 7, 15, 0, 0, 0, 0, time.UTC),

@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// NewBgWorker returns the new instance of XigniteFeeder.  See feeder.Config
-// for the details of available configurations.
+// NewBgWorker returns the new instance of XigniteFeeder.
+// See configs.Config for the details of available configurations.
 // nolint
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config, err := configs.NewConfig(conf)
@@ -25,19 +25,21 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 	log.Debug("loaded Xignite Feeder config...")
 
-	// Xignite API client
+	// init Xignite API client
 	apiClient := api.NewDefaultAPIClient(config.APIToken, config.Timeout)
+
+	// init Market Time Checker
 	timeChecker := feed.NewDefaultMarketTimeChecker(
 		config.ClosedDaysOfTheWeek,
-		configs.ToTimes(config.ClosedDays),
-		time.Time(config.OpenTime),
-		time.Time(config.CloseTime))
+		config.ClosedDays,
+		config.OpenTime,
+		config.CloseTime)
 
-	// update symbols in the target exchanges every day
+	// init Symbols Manager to update symbols in the target exchanges every day
 	sm := symbols.NewManager(apiClient, config.Exchanges)
 	timer.RunEveryDayAt(config.UpdatingHour, sm.UpdateSymbols)
 
-	// backfill daily chart data every day
+	// init QuotesRangeWriter to backfill daily chart data every day
 	if config.Backfill.Enabled {
 		msqrw := &writer.QuotesRangeWriterImpl{
 			MarketStoreWriter: &writer.MarketStoreWriterImpl{},
@@ -48,6 +50,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timer.RunEveryDayAt(config.UpdatingHour, bf.Update)
 	}
 
+	// init Quotes Writer
 	var msqw writer.QuotesWriter = writer.QuotesWriterImpl{
 		MarketStoreWriter: &writer.MarketStoreWriterImpl{},
 		Timeframe:         config.Timeframe,

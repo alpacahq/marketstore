@@ -3,14 +3,14 @@ package writer
 import (
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/configs"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/tests"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/utils/io"
 	"testing"
 )
 
 func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 	// --- given ---
-	m := &tests.MockMarketStoreWriter{}
+	m := &internal.MockMarketStoreWriter{}
 	SUT := QuotesRangeWriterImpl{
 		MarketStoreWriter: m,
 		Timeframe:         "1D",

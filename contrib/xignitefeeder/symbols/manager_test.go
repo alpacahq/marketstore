@@ -2,13 +2,13 @@ package symbols
 
 import (
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/tests"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"reflect"
 	"testing"
 )
 
 type MockListSymbolsAPIClient struct {
-	tests.MockAPIClient
+	internal.MockAPIClient
 }
 
 func (mac *MockListSymbolsAPIClient) ListSymbols(exchange string) (api.ListSymbolsResponse, error) {

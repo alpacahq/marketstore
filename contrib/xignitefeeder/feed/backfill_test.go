@@ -1,7 +1,7 @@
 package feed
 
 import (
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/tests"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
 	"github.com/pkg/errors"
 	"testing"
@@ -13,7 +13,7 @@ import (
 var TestIdentifiers = []string{"XTKS.1301", "XTKS.1305", "XJAS.1376"}
 
 type MockErrorAPIClient struct {
-	tests.MockAPIClient
+	internal.MockAPIClient
 }
 
 // GetQuotesRange returns "Request Error" to certain identifier, but returns "Success" to other identifiers
@@ -42,8 +42,8 @@ func TestBackfill_Update(t *testing.T) {
 	var w writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
 
 	SUT := &Backfill{
-		symbolManager: tests.MockSymbolsManager{Identifiers: TestIdentifiers},
-		apiClient:     &tests.MockAPIClient{},
+		symbolManager: internal.MockSymbolsManager{Identifiers: TestIdentifiers},
+		apiClient:     &internal.MockAPIClient{},
 		writer:        w,
 		since:         time.Now().UTC(),
 	}
@@ -67,7 +67,7 @@ func TestBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 	var w writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
 
 	SUT := &Backfill{
-		symbolManager: tests.MockSymbolsManager{Identifiers: []string{"XTKS.1301", "XTKS.1305", "XJAS.1376"}},
+		symbolManager: internal.MockSymbolsManager{Identifiers: []string{"XTKS.1301", "XTKS.1305", "XJAS.1376"}},
 		apiClient:     &MockErrorAPIClient{},
 		writer:        w,
 		since:         time.Now().UTC(),

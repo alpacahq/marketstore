@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//Backfill aggregates daily chart data using Xignite API and store it to
+// Backfill aggregates daily chart data using Xignite API and store it to
 type Backfill struct {
 	symbolManager symbols.Manager
 	apiClient     api.Client

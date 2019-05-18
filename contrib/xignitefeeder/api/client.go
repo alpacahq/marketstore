@@ -60,7 +60,7 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 	}
 	req, err := http.NewRequest("POST", GetQuotesURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to create an http request."))
+		return response, errors.Wrap(err, "failed to create an http request.")
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
@@ -82,7 +82,7 @@ func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsRespon
 	apiURL := ListSymbolsURL + fmt.Sprintf("?_token=%s&Exchange=%s", c.token, exchange)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to create an http request."))
+		return response, errors.Wrap(err, "failed to create an http request.")
 	}
 
 	err = c.execute(req, &response)
@@ -91,7 +91,7 @@ func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsRespon
 	}
 
 	if response.Outcome != "Success" {
-		return response, fmt.Errorf("error response is returned from Xignite. %v", response)
+		return response, errors.Errorf("error response is returned from Xignite. %v", response)
 	}
 
 	return response, nil
@@ -112,7 +112,7 @@ func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate tim
 	}
 	req, err := http.NewRequest("POST", GetQuotesRangeURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return response, errors.Wrap(err, fmt.Sprintf("failed to create an http request."))
+		return response, errors.Wrap(err, "failed to create an http request.")
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
@@ -122,7 +122,7 @@ func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate tim
 	}
 
 	if response.Outcome != "Success" {
-		return response, fmt.Errorf("error response is returned from Xignite. response=%v"+
+		return response, errors.Errorf("error response is returned from Xignite. response=%v"+
 			", identifier=%s", response, identifier)
 	}
 

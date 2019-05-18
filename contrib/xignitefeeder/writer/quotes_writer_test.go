@@ -1,7 +1,7 @@
 package writer
 
 import (
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/tests"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/utils/io"
 	"testing"
 	"time"
@@ -16,7 +16,7 @@ var (
 
 func TestQuotesWriterImpl_Write(t *testing.T) {
 	// --- given ---
-	m := &tests.MockMarketStoreWriter{}
+	m := &internal.MockMarketStoreWriter{}
 	SUT := QuotesWriterImpl{
 		MarketStoreWriter: m,
 		Timeframe:         "1Sec",

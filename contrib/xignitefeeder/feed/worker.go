@@ -59,7 +59,7 @@ func (w *Worker) try() error {
 	// write Quotes data
 	err = w.QuotesWriter.Write(response)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to write quotes data."))
+		return errors.Wrap(err, "failed to write quotes data.")
 	}
 
 	return nil

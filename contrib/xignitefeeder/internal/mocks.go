@@ -1,4 +1,4 @@
-package tests
+package internal
 
 import (
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
