@@ -41,7 +41,7 @@ func NewDefaultMarketTimeChecker(closedDaysOfTheWeek []time.Weekday, closedDays 
 // if closedDates are defined, return false on those days
 func (m *DefaultMarketTimeChecker) IsOpen(t time.Time) bool {
 	timeInJst := t.In(jst)
-	return m.isOpenTime(t) && m.isOpenWeekDay(timeInJst) && m.isOpenDate(timeInJst)
+	return m.isOpenDate(timeInJst) && m.isOpenWeekDay(timeInJst) && m.isOpenTime(t)
 }
 
 // isOpenTime returns true if the specified time is between the OpenTime and the CloseTime
