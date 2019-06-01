@@ -32,6 +32,8 @@ type Quote struct {
 	AskDateTime XigniteDateTime `json:"AskDateTime,omitempty"`
 	Bid         float32         `json:"Bid"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
+	// price of the most recent deal
+	Last		float32			`json:"Last"`
 }
 
 // XigniteDateTime is a date time in XigniteDateTimeLayout format

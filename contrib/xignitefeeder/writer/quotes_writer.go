@@ -17,7 +17,7 @@ type QuotesWriter interface {
 // QuotesWriterImpl is an implementation of the QuotesWriter interface
 type QuotesWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
-	Timeframe string
+	Timeframe         string
 }
 
 // Write converts the Response of the GetQuotes API to a ColumnSeriesMap and write it to the local marketstore server.
@@ -47,21 +47,18 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 			continue
 		}
 
-		// choose a latest ask or bid datetime.
-		var dateTime time.Time
-		askDateTime := time.Time(eq.Quote.AskDateTime)
-		bidDateTime := time.Time(eq.Quote.BidDateTime)
-		if askDateTime.After(bidDateTime) {
-			dateTime = askDateTime
-		} else {
-			dateTime = bidDateTime
-		}
+		// choose a latest time among askDateTime, BidDatetime and DateTime
+		var latestDateTime = getLatestTime(
+			time.Time(eq.Quote.DateTime),
+			time.Time(eq.Quote.AskDateTime),
+			time.Time(eq.Quote.BidDateTime),
+		)
 
 		//if !q.needToWrite(eq.Security.Symbol, dateTime) {
 		//	continue
 		//}
 
-		cs := q.newColumnSeries(dateTime.Unix(), eq.Quote.Ask, eq.Quote.Bid)
+		cs := q.newColumnSeries(latestDateTime.Unix(), eq.Quote.Ask, eq.Quote.Bid, eq.Quote.Last)
 		tbk := io.NewTimeBucketKey(eq.Security.Symbol + "/" + q.Timeframe + "/TICK")
 		csm.AddColumnSeries(*tbk, cs)
 	}
@@ -69,11 +66,27 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 	return csm, nil
 }
 
-func (q QuotesWriterImpl) newColumnSeries(epoch int64, ask float32, bid float32) *io.ColumnSeries {
+func (q QuotesWriterImpl) newColumnSeries(epoch int64, ask, bid, last float32) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{epoch})
 	cs.AddColumn("Ask", []float32{ask})
 	cs.AddColumn("Bid", []float32{bid})
-
+	cs.AddColumn("Last", []float32{last})
 	return cs
+}
+
+// getLatestTime return the latest time among 3 datetimes
+func getLatestTime(dt1, dt2, dt3 time.Time) time.Time {
+	u1, u2, u3 := dt1.Unix(), dt2.Unix(), dt3.Unix()
+	if u1 > u2 {
+		if u1 > u3 {
+			return dt1
+		} else {
+			return dt3
+		}
+	} else if u2 > u3 {
+		return dt2
+	} else {
+		return dt3
+	}
 }

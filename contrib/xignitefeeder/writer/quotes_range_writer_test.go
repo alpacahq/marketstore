@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/utils/io"
 	"testing"
+	"time"
 )
 
 func TestQuotesRangeWriterImpl_Write(t *testing.T) {
@@ -57,5 +58,23 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 	if (timeBucketKeyStr != "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema) {
 		t.Errorf("TimeBucketKey name is invalid. got=%v, want = %v",
 			timeBucketKeyStr, "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema)
+	}
+}
+
+func TestQuotesRangeWriterImpl_getLatestTime(t *testing.T) {
+	// --- given ---
+	t1 := time.Date(2019, 05, 01, 12, 34, 56, 0, time.UTC)
+	t2 := time.Date(2018, 05, 01, 12, 34, 56, 0, time.UTC)
+	t3 := time.Date(2017, 05, 01, 12, 34, 56, 0, time.UTC)
+
+	// --- when ---
+	lt := getLatestTime(t1, t2, t3)
+	lt2 := getLatestTime(t2, t3, t1)
+	lt3 := getLatestTime(t3, t1, t2)
+
+	// --- then ---
+	// the latest time should be always t1
+	if (lt != t1) || (lt2 != t1) || (lt3 != t1) {
+		t.Fatal("latest time should be retrieved")
 	}
 }
