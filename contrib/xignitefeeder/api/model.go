@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/configs"
 	"strings"
 	"time"
 )
@@ -14,8 +13,8 @@ type GetQuotesResponse struct {
 
 // EquityQuote object in GetQuotesResponse
 type EquityQuote struct {
-	Outcome  string   `json:"Outcome"`
-	Message  string   `json:"Message"`
+	Outcome  string    `json:"Outcome"`
+	Message  string    `json:"Message"`
 	Security *Security `json:"Security"`
 	Quote    *Quote    `json:"Quote"`
 }
@@ -33,7 +32,7 @@ type Quote struct {
 	Bid         float32         `json:"Bid"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
 	// price of the most recent deal
-	Last		float32			`json:"Last"`
+	Last float32 `json:"Last"`
 }
 
 // XigniteDateTime is a date time in XigniteDateTimeLayout format
@@ -61,6 +60,31 @@ func (cd *XigniteDateTime) UnmarshalJSON(input []byte) error {
 
 // --------------------------
 
+// XigniteDay is a date (yyyy/mm/dd) in XigniteDateTimeLayout format
+type XigniteDay time.Time
+
+// XigniteDay is a layout of Datetime string returned from Xignite GetQuotesRange API
+const XigniteDayLayout = "2006/01/02"
+
+// UnmarshalJSON parses a string in the XigniteDay Layout
+func (cd *XigniteDay) UnmarshalJSON(input []byte) error {
+	s := strings.Trim(string(input), "\"")
+	if s == "" {
+		*cd = XigniteDay{}
+		return nil
+	}
+
+	t, err := time.Parse(XigniteDayLayout, s)
+	if err != nil {
+		return err
+	}
+	*cd = XigniteDay(t)
+
+	return nil
+}
+
+// --------------------------
+
 // ListSymbolsResponse is a response model for the List Symbols endpoint
 type ListSymbolsResponse struct {
 	Outcome                    string                `json:"Outcome"`
@@ -79,17 +103,17 @@ type SecurityDescription struct {
 type GetQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
 	Message              string          `json:"Message"`
-	Security             *Security        `json:"Security"`
+	Security             *Security       `json:"Security"`
 	ArrayOfEndOfDayQuote []EndOfDayQuote `json:"ArrayOfEndOfDayQuote"`
 }
 
 // EndOfDayQuote object in GetQuotesRangeResponse 
 type EndOfDayQuote struct {
-	Date                  configs.CustomDay `json:"Date"`
-	Open                  float32           `json:"Open"`
-	High                  float32           `json:"High"`
-	Low                   float32           `json:"Low"`
-	Close                 float32           `json:"Close"`
-	ExchangeOfficialClose float32           `json:"ExchangeOfficialClose"`
-	Volume                float32           `json:"Volume"`
+	Date                  XigniteDay `json:"Date"`
+	Open                  float32    `json:"Open"`
+	High                  float32    `json:"High"`
+	Low                   float32    `json:"Low"`
+	Close                 float32    `json:"Close"`
+	ExchangeOfficialClose float32    `json:"ExchangeOfficialClose"`
+	Volume                float32    `json:"Volume"`
 }
