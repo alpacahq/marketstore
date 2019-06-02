@@ -134,4 +134,8 @@ Type `\help` to see command options
 2019-05-15 09:49:57 +0000 UTC    6496        6495        
 2019-05-15 09:49:58 +0000 UTC    6496        6495 
 (...)
+
+# to get the backfill data...
+» \show 7203/1D/OHLCV 1970-01-01
+(...)
 ```
