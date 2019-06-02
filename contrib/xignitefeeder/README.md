@@ -22,8 +22,8 @@ bgworkers:
         #- XFKA # Fukuoka Stock Exchange
         #- XTAM # Tokyo PRO Market
       # time when target symbols in the exchanges are updated everyday.
-      # this time is also used for the historical data backfill (
-      updatingHour: 18 #:00:00
+      # this time is also used for the historical data backfill (UTC)
+      updatingHour: 21 #:00:00
       # XigniteFeeder writes data to "{identifier}/{timeframe}/TICK" TimeBucketKey
       timeframe: "1Sec"
       # Auth token for Xignite API
