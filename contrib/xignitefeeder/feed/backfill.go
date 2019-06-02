@@ -33,7 +33,7 @@ func (b *Backfill) Update() {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
 			if resp.Outcome == "RequestError" {
-				log.Warn(fmt.Sprintf("failed to get the daily chart data for identifier=%s. Err=%v", identifier, err))
+				log.Info(fmt.Sprintf("failed to get the daily chart data for identifier=%s. Err=%v", identifier, err))
 				continue
 			}
 			log.Error("Xignite API call error. Err=%v, API response=%v", err, resp)
