@@ -2,7 +2,6 @@ package writer
 
 import (
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/configs"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/utils/io"
 	"testing"
@@ -22,7 +21,7 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 		Security: &api.Security{Symbol: "1234"},
 		ArrayOfEndOfDayQuote: []api.EndOfDayQuote{
 			{
-				Date:   configs.CustomDay(May1st),
+				Date:   api.XigniteDay(May1st),
 				Open:   12.3,
 				Close:  45.6,
 				High:   78.9,
@@ -30,12 +29,22 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 				Volume: 100,
 			},
 			{
-				Date:   configs.CustomDay(May2nd),
+				Date:   api.XigniteDay(May2nd),
 				Open:   1.2,
 				Close:  3.4,
 				High:   5.6,
 				Low:    7.8,
 				Volume: 100,
+			},
+			// When Volume is 0, xignite getQuotesRange API returns data with {open:0, close:0, high:0, low:0}.
+			// we don't write the zero data to marketstore.
+			{
+				Date:   api.XigniteDay(May3rd),
+				Open:   0.0,
+				Close:  0.0,
+				High:   0.0,
+				Low:    0.0,
+				Volume: 0,
 			},
 		},
 	}
@@ -49,13 +58,14 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 	}
 
 	// 2 quotes data is stored to the marketstore by 1 CSM.
+	// 1 quotes data out of 3 is ignored because it's zero data (= {open:0, close:0, high:0, low:0} )
 	if len(m.WrittenCSM) != 1 {
 		t.Errorf("quotes should be written. len(m.WrittenCSM)=%v", len(m.WrittenCSM))
 	}
 
 	// Time Bucket Key Name check
 	timeBucketKeyStr := string(m.WrittenCSM.GetMetadataKeys()[0].Key)
-	if (timeBucketKeyStr != "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema) {
+	if timeBucketKeyStr != "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema {
 		t.Errorf("TimeBucketKey name is invalid. got=%v, want = %v",
 			timeBucketKeyStr, "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema)
 	}

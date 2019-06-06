@@ -51,6 +51,11 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 			continue
 		}
 
+		// When Volume is 0, xignite getQuotesRange API returns data with open:0, close:0, high:0, low:0.
+		// we don't write the zero data to marketstore.
+		if eq.Volume == 0 {
+			continue
+		}
 		epochs = append(epochs, time.Time(eq.Date).Unix())
 		opens = append(opens, eq.Open)
 		closes = append(closes, eq.Close)

@@ -12,6 +12,7 @@ import (
 var (
 	May1st = time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC)
 	May2nd = time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)
+	May3rd = time.Date(2019, 5, 3, 0, 0, 0, 0, time.UTC)
 )
 
 func TestQuotesWriterImpl_Write(t *testing.T) {
@@ -54,7 +55,7 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 					AskDateTime: api.XigniteDateTime(time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC)),
 					BidDateTime: api.XigniteDateTime(time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)),
 				},
-			},},
+			}},
 	}
 
 	// --- when ---
@@ -72,7 +73,7 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 
 	// Time Bucket Key Name check
 	timeBucketKeyStr := string(m.WrittenCSM.GetMetadataKeys()[0].Key)
-	if (timeBucketKeyStr != "1234/1Sec/TICK:"+io.DefaultTimeBucketSchema) {
+	if timeBucketKeyStr != "1234/1Sec/TICK:"+io.DefaultTimeBucketSchema {
 		t.Errorf("TimeBucketKey for the first data is invalid. got=%v, want = %v",
 			timeBucketKeyStr, "1234/1Sec/TICK:"+io.DefaultTimeBucketSchema)
 	}
