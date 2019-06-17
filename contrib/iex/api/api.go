@@ -162,7 +162,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		}
 	}
 
-	if resp[symbols[0]].Chart == nil {
+	if resp[symbols[0]] != nil && resp[symbols[0]].Chart == nil {
 		if retries > 0 {
 			// log.Info("retrying due to null response")
 			<-time.After(time.Second)
