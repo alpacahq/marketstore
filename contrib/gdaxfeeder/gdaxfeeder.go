@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"sort"
 	"time"
 
@@ -15,13 +16,13 @@ import (
 	gdax "github.com/preichenberger/go-gdax"
 )
 
-type ByTime []gdax.HistoricRate
+type byTime []gdax.HistoricRate
 
-func (a ByTime) Len() int           { return len(a) }
-func (a ByTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByTime) Less(i, j int) bool { return a[i].Time.Before(a[j].Time) }
+func (a byTime) Len() int           { return len(a) }
+func (a byTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byTime) Less(i, j int) bool { return a[i].Time.Before(a[j].Time) }
 
-// FetchConfig is the configuration for GdaxFetcher you can define in
+// FetcherConfig is the configuration for GdaxFetcher you can define in
 // marketstore's config file through bgworker extension.
 type FetcherConfig struct {
 	// list of currency symbols, defults to ["BTC", "ETH", "LTC", "BCH"]
@@ -49,10 +50,35 @@ func recast(config map[string]interface{}) *FetcherConfig {
 	return &ret
 }
 
+type gdaxProduct struct {
+	ID string `json:"id"`
+}
+
+func getSymbols() ([]string, error) {
+	resp, err := http.Get("https://api.pro.coinbase.com/products")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	products := []gdaxProduct{}
+	err = json.NewDecoder(resp.Body).Decode(&products)
+	if err != nil {
+		return nil, err
+	}
+	symbols := make([]string, len(products))
+	for i, symbol := range products {
+		symbols[i] = symbol.ID
+	}
+	return symbols, nil
+}
+
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	symbols := []string{"BTC", "ETH", "LTC", "BCH"}
+	symbols, err := getSymbols()
+	if err != nil {
+		return nil, err
+	}
 
 	config := recast(conf)
 	if len(config.Symbols) > 0 {
@@ -109,7 +135,7 @@ func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-// Run() runs forever to get public historical rate for each configured symbol,
+// Run () runs forever to get public historical rate for each configured symbol,
 // and writes in marketstore data format.  In case any error including rate limit
 // is returned from GDAX, it waits for a minute.
 func (gd *GdaxFetcher) Run() {
@@ -117,9 +143,10 @@ func (gd *GdaxFetcher) Run() {
 	client := gdax.NewClient("", "", "")
 	timeStart := time.Time{}
 	for _, symbol := range symbols {
-		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
-		lastTimestamp := findLastTimestamp(symbol, tbk)
-		fmt.Printf("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
+		symbolDir := fmt.Sprintf("gdax_%s", symbol)
+		tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
+		lastTimestamp := findLastTimestamp(symbolDir, tbk)
+		fmt.Printf("lastTimestamp for %s = %v\n", symbolDir, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
 		}
@@ -141,7 +168,7 @@ func (gd *GdaxFetcher) Run() {
 				Granularity: int(gd.baseTimeframe.Duration.Seconds()),
 			}
 			fmt.Printf("Requesting %s %v - %v\n", symbol, timeStart, timeEnd)
-			rates, err := client.GetHistoricRates(symbol+"-USD", params)
+			rates, err := client.GetHistoricRates(symbol, params)
 			if err != nil {
 				fmt.Printf("Response error: %v\n", err)
 				// including rate limit case
@@ -158,7 +185,7 @@ func (gd *GdaxFetcher) Run() {
 			low := make([]float64, 0)
 			close := make([]float64, 0)
 			volume := make([]float64, 0)
-			sort.Sort(ByTime(rates))
+			sort.Sort(byTime(rates))
 			for _, rate := range rates {
 				if rate.Time.After(lastTime) {
 					lastTime = rate.Time
@@ -179,8 +206,9 @@ func (gd *GdaxFetcher) Run() {
 			cs.AddColumn("Volume", volume)
 			fmt.Printf("%s: %d rates between %v - %v\n", symbol, len(rates),
 				rates[0].Time, rates[(len(rates))-1].Time)
+			symbolDir := fmt.Sprintf("gdax_%s", symbol)
 			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+			tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
 			executor.WriteCSM(csm, false)
 		}
