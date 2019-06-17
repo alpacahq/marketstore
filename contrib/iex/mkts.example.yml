@@ -23,5 +23,10 @@ triggers:
 bgworkers:
   - module: iex.so
     config:
+        token: ""
+        sandbox: false
         daily: true
         intraday: true
+        # symbols:
+        #   - AAPL
+        #   - SPY
