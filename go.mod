@@ -21,7 +21,10 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
+	github.com/iris-contrib/formBinder v0.0.0-20190104093907-fbd5963f41e1 // indirect
+	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/kataras/iris v11.1.0+incompatible // indirect
+	github.com/kataras/pio v0.0.0-20190103105442-ea782b38602d // indirect
 	github.com/klauspost/compress v1.4.1
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
