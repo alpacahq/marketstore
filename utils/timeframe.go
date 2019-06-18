@@ -23,13 +23,11 @@ var timeframeDefs = []Timeframe{
 	{"Y", Year},
 }
 
-// supported persistent aggregated timeframes
 var Timeframes = []*Timeframe{
 	{"1Sec", time.Second},
 	{"1Min", time.Minute},
 	{"5Min", 5 * time.Minute},
 	{"15Min", 15 * time.Minute},
-	{"30Min", 30 * time.Minute},
 	{"1H", time.Hour},
 	{"4H", 4 * time.Hour},
 	{"1D", Day},
@@ -138,7 +136,7 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 			return false
 		}
 	case "Y":
-		if (ts.Year() - start.Year()) < cd.multiplier {
+		if (ts.Year() - start.Year()) <= cd.multiplier {
 			return true
 		}
 	default:
@@ -152,21 +150,12 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 // Truncate returns the lower boundary time of this candle window that
 // ts belongs to.
 func (cd *CandleDuration) Truncate(ts time.Time) time.Time {
-	yy, mm, dd := ts.Date()
-	day := time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
-
 	switch cd.suffix {
 	case "D":
-		return day
-	case "W":
-		for day.Weekday() != time.Monday {
-			day = day.AddDate(0, 0, -1)
-		}
-		return day
+		yy, mm, dd := ts.Date()
+		return time.Date(yy, mm, dd, 0, 0, 0, 0, ts.Location())
 	case "M":
 		return time.Date(ts.Year(), ts.Month(), 1, 0, 0, 0, 0, ts.Location())
-	case "Y":
-		return time.Date(ts.Year(), time.January, 1, 0, 0, 0, 0, ts.Location())
 	default:
 		return ts.Truncate(cd.duration)
 	}
@@ -194,21 +183,15 @@ func (cd *CandleDuration) Ceil(ts time.Time) time.Time {
 	return (ts.Add(cd.duration)).Truncate(cd.duration)
 }
 
-func (cd *CandleDuration) QueryableTimeframes() []string {
-	timeframes := make([]string, 0)
+func (cd *CandleDuration) QueryableTimeframe() string {
 	if cd.suffix != "M" {
 		for i := len(Timeframes) - 1; i >= 0; i-- {
 			if cd.duration%Timeframes[i].Duration == time.Duration(0) {
-				timeframes = append(timeframes, Timeframes[i].String)
+				return Timeframes[i].String
 			}
 		}
 	}
-
-	if len(timeframes) > 0 {
-		return timeframes
-	}
-
-	return []string{"1D"}
+	return "1D"
 }
 
 func (cd *CandleDuration) QueryableNrecords(tf string, nrecords int) int {

@@ -185,12 +185,6 @@ func NewQuery(d *Directory) *query {
 	return q
 }
 
-func (q *query) Reset() {
-	q.Restriction = NewRestrictionList()
-	q.Range = NewDateRange()
-	q.Limit = NewRowLimit()
-}
-
 func (q *query) SetRowLimit(direction DirectionEnum, rowLimit int) {
 	q.Limit = NewRowLimit()
 	q.Limit.Number = int32(rowLimit)
@@ -302,7 +296,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 
 	/*
 		Obtain the Timeframe from the qualified files and validate that the files all share the same timeframe
-		This is necessary because the IO plan will use timeframe / interval information to target the data
+		This is necessary because the IO plan will use timeeframe / interval information to target the data
 		location directly
 	*/
 	for i, qf := range pr.QualifiedFiles {
