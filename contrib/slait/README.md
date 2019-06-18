@@ -29,7 +29,14 @@ bgworkers:
   - module: slait.so
     config:
         endpoint: localhost:5000
-        topic: bars_gdax
+        topic: bars
+        partitions:
+        - - gdax
+          - D  <- means variable length
+        - - binance
+          - 10Sec
+        - - nasdq
+          - 1Min
         attribute_group: OHLCV
         shape:
         - - Epoch

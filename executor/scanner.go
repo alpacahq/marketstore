@@ -206,6 +206,12 @@ func NewReader(pr *planner.ParseResult) (r *reader, err error) {
 }
 
 func (r *reader) Read() (csm ColumnSeriesMap, err error) {
+	// TODO: Need to consider the huge buffer which use loooong time gap to query.
+	// Which probably cause out of memory issue and need new mechanism to handle
+	// those data and not just simply return one ColumnSeriesMap.
+	// Solution: Hack ColumnSeries add subsection fields to break the one big query
+	// down to several parts of small query and each one's Range.Start follow the last's
+	// Range.End with same other conditions.
 	csm = NewColumnSeriesMap()
 	catMap := r.pr.GetCandleAttributes()
 	rtMap := r.pr.GetRowType()

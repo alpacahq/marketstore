@@ -46,7 +46,7 @@ unittest: install
 	$(MAKE) -C tests/integ test
 
 image:
-	docker build -t alpacamarkets/marketstore.test .
+	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)
 
 runimage:
 	make -C tests/integ run IMAGE_NAME=alpacamarkets/marketstore.test

@@ -11,7 +11,7 @@ import (
 
 /*
 #include "utilityfuncs.h"
-#cgo CFLAGS: -O3
+#cgo CFLAGS: -O3 -std=c99
 */
 import "C"
 
@@ -171,7 +171,7 @@ func GetElementType(datum interface{}) EnumElementType {
 		/*
 			We need to iterate over this map in order of the Enum
 		*/
-		for i := 0; i < int(UINT64); i++ {
+		for i := 0; i <= int(UINT64); i++ {
 			e := EnumElementType(i)
 			el := attributeMap[e]
 			if el.typ == kind {
@@ -261,6 +261,28 @@ func getFloat64Column(offset, reclen, nrecs int, data []byte) (col []float64) {
 	C.wordCopyFloat64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
 	return col
 }
+func getInt8Column(offset, reclen, nrecs int, data []byte) (col []int8) {
+	col = make([]int8, nrecs)
+	if nrecs == 0 {
+		return col
+	}
+	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
+	arg6 := (*C.int8_t)(unsafe.Pointer(&col[0]))
+	C.wordCopyInt8(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+	return col
+}
+
+func getInt16Column(offset, reclen, nrecs int, data []byte) (col []int16) {
+	col = make([]int16, nrecs)
+	if nrecs == 0 {
+		return col
+	}
+	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
+	arg6 := (*C.int16_t)(unsafe.Pointer(&col[0]))
+	C.wordCopyInt16(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+	return col
+}
+
 func getInt32Column(offset, reclen, nrecs int, data []byte) (col []int32) {
 	col = make([]int32, nrecs)
 	if nrecs == 0 {
@@ -281,6 +303,49 @@ func getInt64Column(offset, reclen, nrecs int, data []byte) (col []int64) {
 	C.wordCopyInt64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
 	return col
 }
+func getUInt8Column(offset, reclen, nrecs int, data []byte) (col []uint8) {
+	col = make([]uint8, nrecs)
+	if nrecs == 0 {
+		return col
+	}
+	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
+	arg6 := (*C.uint8_t)(unsafe.Pointer(&col[0]))
+	C.wordCopyUInt8(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+	return col
+}
+
+func getUInt16Column(offset, reclen, nrecs int, data []byte) (col []uint16) {
+	col = make([]uint16, nrecs)
+	if nrecs == 0 {
+		return col
+	}
+	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
+	arg6 := (*C.uint16_t)(unsafe.Pointer(&col[0]))
+	C.wordCopyUInt16(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+	return col
+}
+
+func getUInt32Column(offset, reclen, nrecs int, data []byte) (col []uint32) {
+	col = make([]uint32, nrecs)
+	if nrecs == 0 {
+		return col
+	}
+	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
+	arg6 := (*C.uint32_t)(unsafe.Pointer(&col[0]))
+	C.wordCopyUInt32(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+	return col
+}
+func getUInt64Column(offset, reclen, nrecs int, data []byte) (col []uint64) {
+	col = make([]uint64, nrecs)
+	if nrecs == 0 {
+		return col
+	}
+	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
+	arg6 := (*C.uint64_t)(unsafe.Pointer(&col[0]))
+	C.wordCopyUInt64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+	return col
+}
+
 func getByteColumn(offset, reclen, nrecs int, data []byte) (col []byte) {
 	col = make([]byte, nrecs)
 	if nrecs == 0 {

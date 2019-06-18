@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jessevdk/go-flags"
+
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/planner"
@@ -13,17 +15,36 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
 )
 
+// \show [Options]
+type Opts struct {
+	flags.Usage
+
+	// Destination is <symbol>/<timeframe>/<attributegroup>
+	Tbk string `short:"k" long:"key" description:"TimeBucketKey, e.g. BTC/1Min/OKEX" required:"true"`
+	// Lower time predicate
+	EpochStart string `short:"s" long:"start" description:"Query start from datetime, e.g. 2006-01-02 or 2006-01-02T15:04 or 20060102 150405999" required:"true"`
+	// Upper time predicate
+	EpochEnd string `short:"e" long:"end" description:"Query end at datetime, e.g. 2006-01-02 or 2006-01-02T15:04 or 20060102 150405999"`
+	// Number of max returned rows from lower/upper bound
+	LimitRecordCount int `short:"n" description:"Number of max returned rows from lower/upper bound" default:"0"`
+	// Set to true if LimitRecordCount should be from the lower
+	LimitFromStart bool `short:"x" description:"Set to true if LimitRecordCount should be from the lower"`
+	// Result export to file
+	ExportToFile string `long:"export" description:"Export the result to file" value-name:"FILE"`
+	// Support for functions
+	Functions []string `short:"f" description:"Functions Chain"`
+}
+
 // show displays data in the date range.
 func (c *Client) show(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:]
-	if !(len(args) >= 2) {
-		fmt.Println("Not enough arguments, see \"\\help show\" ")
-		return
-	}
-	tbk, start, end := c.parseQueryArgs(args)
+
+	tbk, start, end, count, countFromStart, funcs := c.parseCommand(args)
+
+	// tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
-		fmt.Println("Could not parse arguments, see \"\\help show\" ")
+		fmt.Println("Could not parse arguments, see \"\\show --help\" ")
 		return
 	}
 
@@ -35,13 +56,13 @@ func (c *Client) show(line string) {
 	)
 
 	if c.mode == local {
-		csm, err = processShowLocal(tbk, start, end)
+		csm, err = c.processShowLocal(tbk, start, end)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	} else {
-		csm, err = c.processShowRemote(tbk, start, end)
+		csm, err = c.processShowRemote(tbk, start, end, count, countFromStart, funcs)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -76,7 +97,7 @@ func (c *Client) show(line string) {
 	}
 }
 
-func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
+func (c *Client) processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 	query.AddTargetKey(tbk)
 
@@ -112,7 +133,7 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.Colu
 	return csm, nil
 }
 
-func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
+func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time, count int, countFromStart bool, funcs []string) (csm io.ColumnSeriesMap, err error) {
 	if end == nil {
 		t := time.Unix(planner.MaxEpoch, 0)
 		end = &t
@@ -126,6 +147,19 @@ func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time)
 		EpochStart:     &epochStart,
 		EpochEnd:       &epochEnd,
 	}
+
+	if count > 0 {
+		req.LimitRecordCount = &count
+	}
+
+	if countFromStart {
+		req.LimitFromStart = &countFromStart
+	}
+
+	if len(funcs) > 0 {
+		req.Functions = funcs
+	}
+
 	args := &frontend.MultiQueryRequest{
 		Requests: []frontend.QueryRequest{req},
 	}
@@ -138,41 +172,54 @@ func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time)
 	return *resp.(*io.ColumnSeriesMap), nil
 }
 
-func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, end *time.Time) {
-	tbk = io.NewTimeBucketKey(args[0])
-	if tbk == nil {
-		fmt.Println("Key is not in proper format, see \"\\help show\" ")
-		return
-	}
-	parsedTime := false
-	for _, arg := range args[1:] {
-		switch strings.ToLower(arg) {
-		case "between":
-		case "and":
-		case "csv":
-			c.target = "mstore-csv-output.csv"
-		default:
-			t, err := parseTime(arg)
-			if err != nil {
-				log.Error("Invalid Symbol/Timeframe/recordFormat string %v", arg)
-				fmt.Printf("Invalid time string %v\n", arg)
-				return nil, nil, nil
-			}
-			if parsedTime {
-				end = &t
-			} else {
-				start = &t
-				parsedTime = true
-			}
+func (c *Client) parseCommand(args []string) (tbk *io.TimeBucketKey, start, end *time.Time, count int, countFromStart bool, funcs []string) {
+	opts := Opts{}
 
-		}
+	p := flags.NewParser(&opts, 22)
+	p.Usage = ">> \\show [Options]"
+	p.LongDescription = `Examples:
+
+	Data in range: 
+		>>\show -k BTC/1Min/OKEX -s 2017-03-27T12:00 -e 2017-03-27T13:00
+	Export to file:
+		>>\show -k BTC/1Min/OKEX -s 2017-03-27T12:00 --export=/path/to/export.csv
+	Agg functions: 
+		>>\show -k BTC/1Min/OKEX -s 2017-03-27T12:00 -f=Gap()`
+
+	args, err := p.ParseArgs(args)
+
+	if err != nil {
+		return nil, nil, nil, 0, false, []string{}
 	}
 
-	if parsedTime {
-		return tbk, start, end
+	tbk = io.NewTimeBucketKey(opts.Tbk)
+
+	epochStart, err := parseTime(opts.EpochStart)
+	if err != nil {
+		fmt.Println("Parse query start time failed. err:", err)
+		return nil, nil, nil, 0, false, []string{}
 	}
 
-	return nil, nil, nil
+	hasEnd := false
+	epochEnd, err := parseTime(opts.EpochEnd)
+	if err == nil {
+		hasEnd = true
+	}
+
+	// options has default values
+	count = opts.LimitRecordCount
+	countFromStart = opts.LimitFromStart
+	funcs = opts.Functions
+
+	if len(opts.ExportToFile) > 0 {
+		c.target = opts.ExportToFile
+	}
+
+	if hasEnd {
+		return tbk, &epochStart, &epochEnd, count, countFromStart, funcs
+	} else {
+		return tbk, &epochStart, nil, count, countFromStart, funcs
+	}
 }
 
 func parseTime(t string) (out time.Time, err error) {

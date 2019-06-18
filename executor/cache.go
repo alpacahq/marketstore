@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -20,6 +21,11 @@ type WriteCommand struct {
 	VarRecLen     int32
 	Offset, Index int64
 	Data          []byte
+}
+
+// Convert WriteCommand to string for debuging/presentation
+func (wc *WriteCommand) toString() string {
+	return fmt.Sprintf("WC[%v] WALKeyPath:%s (len:%d, off:%d, idx:%d, dsize:%d)", wc.RecordType, wc.WALKeyPath, wc.VarRecLen, wc.Offset, wc.Index, len(wc.Data))
 }
 
 // TransactionPipe stores the contents of the current pending Transaction Group

@@ -6,11 +6,15 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/alpacahq/marketstore/utils"
+
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 type DMap map[string]*Directory              // General purpose map for storing directories
@@ -33,6 +37,9 @@ type Directory struct {
 	/*
 		datafile[Key]: Key is the fully specified path to the datafile, including rootPath and filename
 	*/
+
+	// dirty hack...
+	TmpRoot *Directory
 }
 
 func NewDirectory(rootpath string) *Directory {
@@ -123,9 +130,7 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 		Add this child directory tree to the parent top node's tree
 	*/
 	childNodeName := datakeySplit[0]
-	childNodePath := filepath.Join(dRoot.GetPath(), childNodeName)
-	childDirectory := NewDirectory(childNodePath)
-	dRoot.addSubdir(childDirectory, childNodeName)
+	dRoot.sync(childNodeName)
 	return nil
 }
 
@@ -177,11 +182,49 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 
 func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 	// Returns a list of fileinfo for all datafiles in this directory or nil if there are none
+
+	// Dynamic Loading
+	if utils.InstanceConfig.ClusterMode {
+		// if false {
+		// refresh current bins on harddrive
+		fullBinPaths := d.gatherBins(nil)
+
+		if len(fullBinPaths) > 0 {
+			// Refresh anyway
+			d.Lock()
+
+			for _, bp := range fullBinPaths {
+				if d.datafile[bp] == nil {
+					yearFileBase := filepath.Base(bp)
+					yearString := yearFileBase[:len(yearFileBase)-4]
+					yearInt, err := strconv.Atoi(yearString)
+					if err != nil {
+						continue
+					}
+
+					d.datafile[bp] = new(io.TimeBucketInfo)
+					d.datafile[bp].IsRead = false
+					d.datafile[bp].Path = bp
+					d.datafile[bp].Year = int16(yearInt)
+				}
+			}
+			d.Unlock()
+		} else {
+			// no files on harddrive
+			fmt.Println("len(fullBinPaths) <= 0")
+
+			return nil
+		}
+
+	}
+
 	d.RLock()
 	defer d.RUnlock()
+
 	if d.datafile == nil {
 		return nil
 	}
+
 	tbinfolist = make([]*io.TimeBucketInfo, 0)
 	for _, finfo_p := range d.datafile {
 		tbinfolist = append(tbinfolist, finfo_p)
@@ -206,13 +249,17 @@ func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
 }
 
 func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *io.TimeBucketInfo, err error) {
-	path := key.GetPathToYearFiles(d.pathToItemName)
-	fullFilePath := path + "/1970.bin" // Put a dummy file at the end of the path
-	subDir, err := d.GetOwningSubDirectory(fullFilePath)
-	if err != nil {
-		return nil, err
+	fullFilePaths := d.gatherBins(key)
+
+	if len(fullFilePaths) > 0 {
+		subDir, err := d.GetOwningSubDirectory(fullFilePaths[len(fullFilePaths)-1])
+		if err != nil {
+			return nil, err
+		}
+		return subDir.getLatestYearFile()
 	}
-	return subDir.getLatestYearFile()
+
+	return nil, fmt.Errorf("No bin data under %v", key)
 }
 
 func (d *Directory) GetLatestTimeBucketInfoFromFullFilePath(fullFilePath string) (fi *io.TimeBucketInfo, err error) {
@@ -332,16 +379,37 @@ func (d *Directory) GetSubDirectoryAndAddFile(fullFilePath string, year int16) (
 
 func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Directory, err error) {
 	// Must be thread-safe for READ access
+	retry := utils.InstanceConfig.ClusterMode
 	dirPath := path.Dir(fullFilePath)
 	d.RLock()
-	defer d.RUnlock()
-	if dir, ok := d.directMap[dirPath]; ok {
+	dir, ok := d.directMap[dirPath]
+	d.RUnlock()
+
+	if ok {
 		return dir, nil
+	} else if retry {
+
+		d.Lock()
+		err := d.loadfullFilePath(fullFilePath)
+		d.Unlock()
+
+		if err == nil {
+			log.Info("Success reload file %s and try again", fullFilePath)
+
+			d.RLock()
+			defer d.RUnlock()
+			if dir, ok := d.directMap[dirPath]; ok {
+				return dir, nil
+			}
+		} else {
+			log.Info("Failed to reload file %s, with err %v", fullFilePath, err)
+		}
 	}
+
 	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
 }
 
-func (d *Directory) GetListOfSubDirs() (subDirList []*Directory) {
+func (d *Directory) getListOfSubDirs() (subDirList []*Directory) {
 	// For a single directory, return a list of subdirectories it contains
 	d.RLock()
 	defer d.RUnlock()
@@ -355,7 +423,25 @@ func (d *Directory) GetListOfSubDirs() (subDirList []*Directory) {
 	return subDirList
 }
 
-func (d *Directory) GetSubDirWithItemName(itemName string) (subDir *Directory) {
+func (d *Directory) GetListOfSubDirs() (subDirList []*Directory) {
+	subDirList = d.getListOfSubDirs()
+
+	// Dynamic Loading
+	// In cluster mode others writer probablly wrote the disk
+	// but current instance doesn't know that change, which
+	// cause subDir out of sync and return nil.
+	if subDirList == nil && utils.InstanceConfig.ClusterMode {
+		d.Lock()
+		d.sync("")
+		d.Unlock()
+		return d.getListOfSubDirs()
+	}
+
+	return subDirList
+
+}
+
+func (d *Directory) getSubDirWithItemName(itemName string) (subDir *Directory) {
 	// For a single directory, return a subdirectory that matches the name "itemName"
 	d.RLock()
 	defer d.RUnlock()
@@ -368,17 +454,52 @@ func (d *Directory) GetSubDirWithItemName(itemName string) (subDir *Directory) {
 	return nil
 }
 
-func (d *Directory) DirHasSubDirs() bool {
+func (d *Directory) GetSubDirWithItemName(itemName string) (subDir *Directory) {
+	subDir = d.getSubDirWithItemName(itemName)
+
+	// Dynamic Loading
+	// In cluster mode others writer probablly wrote the disk
+	// but current instance doesn't know that change, which
+	// cause subDir out of sync and return nil.
+	if subDir == nil && utils.InstanceConfig.ClusterMode {
+		d.Lock()
+		d.sync(itemName)
+		d.Unlock()
+		return d.getSubDirWithItemName(itemName)
+	}
+
+	return subDir
+}
+
+func (d *Directory) dirHasSubDirs() bool {
 	// Returns true if this directory has subdirectories
+	ret := true
 	d.RLock()
-	defer d.RUnlock()
 	if d.subDirs == nil {
-		return false
+		ret = false
+	} else if len(d.subDirs) == 0 {
+		ret = false
 	}
-	if len(d.subDirs) == 0 {
-		return false
+	d.RUnlock()
+
+	return ret
+}
+
+func (d *Directory) DirHasSubDirs() bool {
+	ret := d.dirHasSubDirs()
+
+	// Dynamic Loading
+	// In cluster mode others writer probablly wrote the disk
+	// but current instance doesn't know that change, which
+	// cause subDir out of sync and return nil.
+	if ret == false && utils.InstanceConfig.ClusterMode {
+		d.Lock()
+		d.sync("")
+		d.Unlock()
+		return d.dirHasSubDirs()
 	}
-	return true
+
+	return ret
 }
 
 func (d *Directory) GetCategory() string {
@@ -436,6 +557,48 @@ func (d *Directory) String() string {
 	}
 	d.RUnlock()
 	return printstring[:len(printstring)-1]
+}
+
+// Gather all .bin file in Directory.
+// Empty []string{} will return if no bin files found,
+// otherwise []string{} with fullpath name sorted
+// by year (asc) will be returned
+func (d *Directory) gatherBins(key *io.TimeBucketKey) []string {
+	path := d.pathToItemName
+	if key != nil {
+		path = key.GetPathToYearFiles(d.pathToItemName)
+	}
+	rets := []string{}
+
+	// Get all .bin file
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Warn("Gather bins file under %v failed.", key)
+		return rets
+	}
+
+	// Only .bin file which name is number accepted
+	ys := []int{}
+	for _, b := range files {
+		n := b.Name()
+		if filepath.Ext(n) == ".bin" {
+			n = strings.TrimSuffix(n, ".bin")
+			y, err := strconv.Atoi(n)
+			if err == nil {
+				ys = append(ys, y)
+			}
+		}
+	}
+
+	// Sort(asc)
+	sort.Ints(ys)
+
+	// Pack
+	for _, y := range ys {
+		rets = append(rets, filepath.Join(path, strconv.Itoa(y)+".bin"))
+	}
+
+	return rets
 }
 
 func (d *Directory) gatherDirectories() []string {
@@ -561,14 +724,31 @@ func (d *Directory) recurse(elem interface{}, levelFunc LevelFunc) {
 	}
 }
 
-func (d *Directory) load(rootPath string) error {
+// Single path depth search, copy from `func (d *Directory) load(rootPath string)`
+// but only load nodes straight forward. NO sliblings included!
+func (d *Directory) loadfullFilePath(fullFilePath string) error {
 	// Load is single thread compatible - no concurrent access is anticipated
+	_, err := os.Stat(fullFilePath)
+	if err != nil {
+		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+	}
+
+	rel2Root, err := filepath.Rel(d.pathToItemName, fullFilePath)
+	if err != nil {
+		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+	}
+
+	subItems := strings.Split(filepath.Clean(rel2Root), "/")
 	rootDmap := d.directMap
+	if d.directMap == nil && d.TmpRoot != nil {
+		rootDmap = d.TmpRoot.directMap
+	}
+	// fmt.Printf("DEBUG:: d %v, rootDmap %v\n", d, rootDmap)
+
 	var loader func(d *Directory, subPath, rootPath string) error
 	loader = func(d *Directory, subPath, rootPath string) error {
 		relPath, _ := filepath.Rel(rootPath, subPath)
-		d.itemName = filepath.Base(relPath)
-		d.pathToItemName = filepath.Clean(subPath)
+		// fmt.Printf("fp sub %v, root %v, rel %v\n", subPath, rootPath, relPath)
 		// Read the category name for the child directory items
 		catFilePath := subPath + "/" + "category_name"
 		catname, err := ioutil.ReadFile(catFilePath)
@@ -576,6 +756,81 @@ func (d *Directory) load(rootPath string) error {
 			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 		}
 		d.category = string(catname)
+		d.itemName = filepath.Base(relPath)
+		d.pathToItemName = filepath.Clean(subPath)
+		// Load up the child directories
+		d.subDirs = make(DMap)
+
+		// Debug
+		// fmt.Printf("sub %v, root %v, rel %v, d %v \n", subPath, rootPath, relPath, d)
+
+		leafPath := path.Clean(subPath + "/" + subItems[0])
+		fi, err := os.Stat(leafPath)
+		if err != nil {
+			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		} else if fi.IsDir() && fi.Name() != "metadata.db" {
+
+			itemName := fi.Name()
+			d.subDirs[itemName] = new(Directory)
+			d.subDirs[itemName].itemName = itemName
+			d.subDirs[itemName].pathToItemName = subPath
+			d.datafile = nil
+
+			if len(subItems) < 2 {
+				log.Debug("Meet final leaf but is dir...")
+				return nil
+			}
+
+			// Pop up the first one
+			subItems = subItems[1:]
+
+			if err := loader(d.subDirs[itemName], leafPath, rootPath); err != nil {
+				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+			}
+
+		} else if filepath.Ext(leafPath) == ".bin" {
+			rootDmap[d.pathToItemName] = d
+			if d.datafile == nil {
+				d.datafile = make(map[string]*io.TimeBucketInfo)
+			}
+			// Mark this as a pending Fileinfo reference
+			d.datafile[leafPath] = new(io.TimeBucketInfo)
+			d.datafile[leafPath].IsRead = false
+			d.datafile[leafPath].Path = leafPath
+			yearFileBase := filepath.Base(leafPath)
+			yearString := yearFileBase[:len(yearFileBase)-4]
+			yearInt, err := strconv.Atoi(yearString)
+			if err != nil {
+				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+			}
+			d.datafile[leafPath].Year = int16(yearInt)
+		}
+
+		return nil
+	}
+	return loader(d, d.pathToItemName, d.pathToItemName)
+
+}
+
+func (d *Directory) load(rootPath string) error {
+	// Load is single thread compatible - no concurrent access is anticipated
+	rootDmap := d.directMap
+	if d.directMap == nil && d.TmpRoot != nil {
+		rootDmap = d.TmpRoot.directMap
+	}
+	var loader func(d *Directory, subPath, rootPath string) error
+	loader = func(d *Directory, subPath, rootPath string) error {
+		relPath, _ := filepath.Rel(rootPath, subPath)
+		// fmt.Printf("sub %v, root %v, rel %v\n", subPath, rootPath, relPath)
+		// Read the category name for the child directory items
+		catFilePath := subPath + "/" + "category_name"
+		catname, err := ioutil.ReadFile(catFilePath)
+		if err != nil {
+			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		}
+		d.category = string(catname)
+		d.itemName = filepath.Base(relPath)
+		d.pathToItemName = filepath.Clean(subPath)
 
 		// Load up the child directories
 		d.subDirs = make(DMap)
@@ -593,6 +848,7 @@ func (d *Directory) load(rootPath string) error {
 				}
 			} else if filepath.Ext(leafPath) == ".bin" {
 				rootDmap[d.pathToItemName] = d
+				// fmt.Printf("root %v, rootDmap %v, current d %v\n", root, rootDmap, d)
 				if d.datafile == nil {
 					d.datafile = make(map[string]*io.TimeBucketInfo)
 				}
@@ -617,6 +873,28 @@ func (d *Directory) load(rootPath string) error {
 		return nil
 	}
 	return loader(d, rootPath, rootPath)
+}
+
+// Synchronous whole tree nodes named subNodeName under current Directory.
+// If subNodeName is empty, sync current Directory deep down directly.
+func (d *Directory) sync(subNodeName string) {
+	//
+	specifiedSub := len(subNodeName) > 0
+	subPath := d.GetPath()
+	if specifiedSub {
+		subPath = filepath.Join(d.GetPath(), subNodeName)
+	}
+	subDirectory := NewDirectory(subPath)
+
+	if len(subDirectory.directMap) > 0 {
+		if specifiedSub {
+			d.addSubdir(subDirectory, subNodeName)
+		} else {
+			for _, sd := range subDirectory.subDirs {
+				d.addSubdir(sd, sd.GetName())
+			}
+		}
+	}
 }
 
 func removeDirFiles(td *Directory) {
