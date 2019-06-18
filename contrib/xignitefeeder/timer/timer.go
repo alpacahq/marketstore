@@ -8,7 +8,6 @@ func RunEveryDayAt(hour int, f func()) {
 	time.AfterFunc(timeToNext(time.Now(), hour), f)
 }
 
-
 // timeToNext returns the time duration from now to next {hour}:00:00
 // For example, when the current time is 8pm, timeToNext(16) = 20 * time.Hour
 func timeToNext(now time.Time, hour int) time.Duration {

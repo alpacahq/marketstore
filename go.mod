@@ -23,7 +23,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
 	github.com/iris-contrib/formBinder v0.0.0-20190104093907-fbd5963f41e1 // indirect
-	github.com/json-iterator/go v1.1.6 // indirect
+	github.com/json-iterator/go v1.1.6
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/kataras/iris v11.1.0+incompatible // indirect
 	github.com/kataras/pio v0.0.0-20190103105442-ea782b38602d // indirect
@@ -38,6 +38,7 @@ require (
 	github.com/nats-io/nuid v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
+	github.com/pkg/errors v0.8.0
 	github.com/preichenberger/go-gdax v0.0.0-20181027225743-eb74ba719d9a
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/smartystreets/assertions v1.0.0 // indirect

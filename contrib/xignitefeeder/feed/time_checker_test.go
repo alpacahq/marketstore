@@ -10,8 +10,10 @@ var ClosedDays = []time.Time{
 	// i.e. Marine day in Japan
 	time.Date(2019, 7, 15, 0, 0, 0, 0, time.UTC),
 }
+
 // 5 minutes before the market opens in Japan (UTC)
 var OpenTime = time.Date(0, 0, 0, 23, 55, 0, 0, time.UTC)
+
 // 10 minutes after the market closes in Japan (UTC)
 var CloseTime = time.Date(0, 0, 0, 6, 10, 0, 0, time.UTC)
 

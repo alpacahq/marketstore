@@ -107,7 +107,7 @@ type GetQuotesRangeResponse struct {
 	ArrayOfEndOfDayQuote []EndOfDayQuote `json:"ArrayOfEndOfDayQuote"`
 }
 
-// EndOfDayQuote object in GetQuotesRangeResponse 
+// EndOfDayQuote object in GetQuotesRangeResponse
 type EndOfDayQuote struct {
 	Date                  XigniteDay `json:"Date"`
 	Open                  float32    `json:"Open"`

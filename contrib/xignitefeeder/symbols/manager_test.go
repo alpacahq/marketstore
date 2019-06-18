@@ -52,7 +52,7 @@ func TestManagerImpl_UpdateSymbols(t *testing.T) {
 		"XJAS": {"9012.XJAS"},
 	}
 
-	if ! reflect.DeepEqual(
+	if !reflect.DeepEqual(
 		SUT.Identifiers,
 		expectedIdentifiers,
 	) {
