@@ -3,16 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
+	bitmex "github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 // FetcherConfig is the configuration for BitmexFetcher you can define in
@@ -30,6 +30,7 @@ type FetcherConfig struct {
 
 // BitmexFetcher is the main worker instance.  It implements bgworker.Run().
 type BitmexFetcher struct {
+	client        *bitmex.BitmexClient
 	config        map[string]interface{}
 	symbols       []string
 	queryStart    time.Time
@@ -46,7 +47,11 @@ func recast(config map[string]interface{}) *FetcherConfig {
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	symbols := []string{".ADAXBT", ".BCHXBT", ".BXBT", ".BXBTJPY", ".DASHXBT", ".EOSXBT", ".ETCXBT", ".ETHBON", ".ETHXBT", ".LTCXBT", ".NEOXBT", ".USDBON", ".XBT", ".XBTBON", ".XBTJPY", ".XBTUSDPI", ".XLMXBT", ".XMRXBT", ".XRPXBT", ".ZECXBT", "EOSM18", "ETHM18", "LTCM18", "XBT7D_D95", "XBT7D_U105", "XBTM18", "XBTU18", "XRPM18"}
+	client := bitmex.Init()
+	symbols, err := client.GetInstruments()
+	if err != nil {
+		return nil, err
+	}
 
 	config := recast(conf)
 	if len(config.Symbols) > 0 {
@@ -76,6 +81,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timeframeStr = config.BaseTimeframe
 	}
 	return &BitmexFetcher{
+		client:        &client,
 		config:        conf,
 		symbols:       symbols,
 		queryStart:    queryStart,
@@ -83,7 +89,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}, nil
 }
 
-func findLastTimestamp(symbol string, tbk *io.TimeBucketKey) time.Time {
+func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	cDir := executor.ThisInstance.CatalogDir
 	query := planner.NewQuery(cDir)
 	query.AddTargetKey(tbk)
@@ -112,9 +118,10 @@ func (gd *BitmexFetcher) Run() {
 	symbols := gd.symbols
 	timeStart := time.Time{}
 	for _, symbol := range symbols {
-		tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
-		lastTimestamp := findLastTimestamp(symbol, tbk)
-		fmt.Printf("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
+		symbolDir := fmt.Sprintf("bitmex_%s", symbol)
+		tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
+		lastTimestamp := findLastTimestamp(tbk)
+		log.Info("lastTimestamp for %s = %v\n", symbol, lastTimestamp)
 		if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
 			timeStart = lastTimestamp
 		}
@@ -129,16 +136,16 @@ func (gd *BitmexFetcher) Run() {
 	for {
 		lastTime := timeStart
 		for _, symbol := range symbols {
-			fmt.Printf("Requesting %s %v with 500 time periods\n", symbol, timeStart)
-			rates, err := api.GetBuckets(symbol, timeStart, gd.baseTimeframe.String)
+			log.Info("Requesting %s %v with 500 time periods", symbol, timeStart)
+			rates, err := gd.client.GetBuckets(symbol, timeStart, gd.baseTimeframe.String)
 			if err != nil {
-				fmt.Printf("Response error: %v\n", err)
+				log.Info("Response error: %v", err)
 				// including rate limit case
 				time.Sleep(time.Minute)
 				continue
 			}
 			if len(rates) == 0 {
-				fmt.Printf("len(rates) == 0\n")
+				log.Info("len(rates) == 0")
 				continue
 			}
 			epoch := make([]int64, 0)
@@ -150,7 +157,7 @@ func (gd *BitmexFetcher) Run() {
 			for _, rate := range rates {
 				parsedTime, err := time.Parse(time.RFC3339, rate.Timestamp)
 				if err != nil {
-					log.Panic(err)
+					panic(err)
 				}
 				if parsedTime.After(lastTime) {
 					lastTime = parsedTime
@@ -169,10 +176,11 @@ func (gd *BitmexFetcher) Run() {
 			cs.AddColumn("Low", low)
 			cs.AddColumn("Close", close)
 			cs.AddColumn("Volume", volume)
-			fmt.Printf("%s: %d rates between %s - %s\n", symbol, len(rates),
+			log.Debug("%s: %d rates between %s - %s", symbol, len(rates),
 				rates[0].Timestamp, rates[(len(rates))-1].Timestamp)
 			csm := io.NewColumnSeriesMap()
-			tbk := io.NewTimeBucketKey(symbol + "/" + gd.baseTimeframe.String + "/OHLCV")
+			symbolDir := fmt.Sprintf("bitmex_%s", symbol)
+			tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
 			executor.WriteCSM(csm, false)
 		}
@@ -182,9 +190,10 @@ func (gd *BitmexFetcher) Run() {
 		nextExpected := timeStart.Add(gd.baseTimeframe.Duration)
 		now := time.Now()
 		toSleep := nextExpected.Sub(now)
-		fmt.Printf("next expected(%v) - now(%v) = %v\n", nextExpected, now, toSleep)
+		log.Info("next expected(%v) - now(%v) = %v", nextExpected, now, toSleep)
+
 		if toSleep > 0 {
-			fmt.Printf("sleep for %v\n", toSleep)
+			log.Info("sleep for %v", toSleep)
 			time.Sleep(toSleep)
 		} else if time.Now().Sub(lastTime) < time.Hour {
 			// let's not go too fast if the catch up is less than an hour
@@ -194,8 +203,8 @@ func (gd *BitmexFetcher) Run() {
 }
 
 func main() {
-
+	client := bitmex.Init()
 	start := time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)
-	res, err := api.GetBuckets("XBT", start, "5m")
+	res, err := client.GetBuckets("XBTUSD", start, "5m")
 	fmt.Println(res, err)
 }

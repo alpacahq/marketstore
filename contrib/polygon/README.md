@@ -13,6 +13,7 @@ in the MarketStore configuration file.
 ### Options
 Name | Type | Default | Description
 --- | --- | --- | ---
+data_types | slice of strings | none | List of data types (bars, quotes, trades)
 api_key | string | none | Your polygon api key
 base_url | string | none | The URL to use in the HTTP client
 nats_servers | string | Comma separated list of nats servers to connect to

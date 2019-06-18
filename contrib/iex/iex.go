@@ -37,12 +37,29 @@ type FetcherConfig struct {
 	Intraday bool
 	// list of symbols to poll - queries all if empty
 	Symbols []string
+	// API Token
+	Token string
+	// True for sandbox
+	Sandbox bool
 }
 
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}
 	json.Unmarshal(data, &config)
+
+	if config.Token == "" {
+		return nil, fmt.Errorf("IEXCloud Token is not set")
+	}
+
+	api.SetToken(config.Token)
+	api.SetSandbox(config.Sandbox)
+
+	if config.Sandbox {
+		log.Info("starting for IEX sandbox")
+	} else {
+		log.Info("starting for IEX production")
+	}
 
 	// grab the symbol list if none are specified
 	if len(config.Symbols) == 0 {
@@ -54,7 +71,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		config.Symbols = make([]string, len(*resp))
 
 		for i, s := range *resp {
-			config.Symbols[i] = s.Symbol
+			if s.IsEnabled {
+				config.Symbols[i] = s.Symbol
+			}
 		}
 	}
 
@@ -94,6 +113,9 @@ func (f *IEXFetcher) Run() {
 }
 
 func (f *IEXFetcher) pollIntraday(symbols []string) {
+	if !f.config.Intraday {
+		return
+	}
 	limit := 1
 
 	resp, err := api.GetBars(symbols, oneDay, &limit, 5)
@@ -107,6 +129,9 @@ func (f *IEXFetcher) pollIntraday(symbols []string) {
 }
 
 func (f *IEXFetcher) pollDaily(symbols []string) {
+	if !f.config.Daily {
+		return
+	}
 	limit := 1
 
 	resp, err := api.GetBars(symbols, monthly, &limit, 5)

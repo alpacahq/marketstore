@@ -263,7 +263,12 @@ func (subDir *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err
 	// Must be thread-safe for WRITE access
 	/*
 	 Adds a new primary storage file for the provided year to this directory
-	 Returns an error if this directory does not already contain a primary storage file
+	 Returns:
+	  - error if the directory does not contain a single year file (time bucket not initialized)
+	  - *TimeBucketInfo whether the year file already existed or if a new one is made
+	 Creates:
+	  - a new year file if one is not there already
+
 	 !!! NOTE !!! This should be called from the subdirectory that "owns" the file
 	*/
 	subDir.RLock()

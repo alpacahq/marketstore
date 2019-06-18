@@ -6,6 +6,17 @@ UTIL_PATH := github.com/alpacahq/marketstore/utils
 all:
 	go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
+debug:
+	$(MAKE) debug -C contrib/ondiskagg
+	$(MAKE) debug -C contrib/gdaxfeeder
+	$(MAKE) debug -C contrib/slait
+	$(MAKE) debug -C contrib/stream
+	$(MAKE) debug -C contrib/polygon
+	$(MAKE) debug -C contrib/bitmexfeeder
+	$(MAKE) debug -C contrib/binancefeeder
+	$(MAKE) debug -C contrib/iex
+	go install -gcflags="all=-N -l" -ldflags "-X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
+
 install: all
 
 generate:
@@ -27,6 +38,7 @@ plugins:
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/binancefeeder
 	$(MAKE) -C contrib/iex
+	$(MAKE) -C contrib/xignitefeeder
 
 unittest: install
 	go fmt ./...

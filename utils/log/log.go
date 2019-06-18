@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	atom := zap.NewAtomicLevel()
+	atom := zap.NewAtomicLevelAt(zapcore.DebugLevel)
 
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.TimeKey = "timestamp"

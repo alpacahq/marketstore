@@ -134,6 +134,16 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			if len(Timeframe) == 0 || len(RecordFormat) == 0 || len(Symbols) == 0 {
 				return fmt.Errorf("destinations must have a Symbol, Timeframe and AttributeGroup, have: %s",
 					dest.String())
+			} else if len(Symbols) == 1 && Symbols[0] == "*" {
+				// replace the * "symbol" with a list all known actual symbols
+				allSymbols := executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"]
+				symbols := make([]string, 0, len(allSymbols))
+				for symbol := range allSymbols {
+					symbols = append(symbols, symbol)
+				}
+				keyParts := []string{strings.Join(symbols, ","), Timeframe, RecordFormat}
+				itemKey := strings.Join(keyParts, "/")
+				dest = io.NewTimeBucketKey(itemKey, req.KeyCategory)
 			}
 
 			epochStart := int64(0)

@@ -3,51 +3,38 @@
 
 These tests are initially implemented test tick support in the published Marketstore docker image.
 
-Initial tests:
-- download and run latest marketstore docker image
-- import of tick data using csv files import
-- writing and querying ticks with pymarketstore client
+## Tests
+### All Tests
+- Command
+```
+make -C tests/integ test
+```
+including Connection Test, CSV Import Test, TICK Test and others
 
-This is a work in progress and tests will be modified or added according to the set of features we wish to monitor.
-
-## Connection Test
+### Connection Test
 - Command
 ```
 make -C tests/integ connect
 ```
 
-## WIP
-
-### test_import_csv
+### CSV Import Test
 - Command
 ```
-make -C tests/integ test_import_csv_1
-make -C tests/integ test_import_csv_2
+make -C tests/integ test_import_csv
+```
+import of tick data using csv files import
+
+
+### TICK read/write test
+
+- Command (all tests including TICK read/write )
+```
+make -C tests/integ test
 ```
 
-- Status: **FAILING**
+- download and run latest marketstore docker image
+- writing and querying ticks with pymarketstore client
 
-The latest versions of Marketstore have a broken client interface for loading files
 
-### test pymarketstore client
-
-- Command
-```
-make -C tests/integ test_client
-```
-
-- Status: 100% **FAILING** (since precision is not enough)
-
-```
-tests/test_ticks.py::test_integrity[TEST_SIMPLE_TICK] PASSED             [ 20%]
-tests/test_ticks.py::test_integrity[TEST_DUPLICATES_TICK] FAILED         [ 40%]
-tests/test_ticks.py::test_integrity[TEST_MULTIPLE_TICK_IN_TIMEFRAME] FAILED [ 60%]
-tests/test_ticks.py::test_integrity[TEST_MILLISECOND_EPOCH] FAILED       [ 80%]
-tests/test_ticks.py::test_integrity[TEST_MILLISECOND_EPOCH_SAME_TIMEFRAME] FAILED [100%]
-```
-
-The python write interface does not accept Epochs with precision more than a second. To get around this limitation, we have to change the client:
-
-For **write**, we should implement a logic similar to the csv reader.
-
-For **read** operations, we could read the protected field `Nanoseconds` and add it to the index when found in the queried data.
+- Status (01/19/2019): 
+not checking Nanoseconds column values since precision is not enough
