@@ -115,10 +115,10 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 }
 
 type KeyRequest struct {
-	Key string
+	Key string `msgpack:"key"`
 }
 type MultiKeyRequest struct {
-	Requests []KeyRequest
+	Requests []KeyRequest `msgpack:"requests"`
 }
 
 type GetInfoResponse struct {

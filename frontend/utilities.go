@@ -24,7 +24,7 @@ func init() {
 	Queryable = uint32(0)
 }
 
-func Utilities(address string) {
+func Utilities(url string) {
 	// heartbeat
 	http.HandleFunc("/heartbeat", heartbeat)
 
@@ -39,7 +39,7 @@ func Utilities(address string) {
 	http.Handle("/pprof/threadcreate", pprof.Handler("threadcreate"))
 	http.Handle("/pprof/block", pprof.Handler("block"))
 
-	http.ListenAndServe(address, nil)
+	http.ListenAndServe(url, nil)
 }
 
 func heartbeat(rw http.ResponseWriter, r *http.Request) {
