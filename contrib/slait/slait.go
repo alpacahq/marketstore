@@ -26,7 +26,7 @@ type SlaitSubscriberConfig struct {
 	PartitionsFilter [][]string `json:"partitions"`
 	AttributeGroup   string     `json:"attribute_group"`
 	Shape            [][]string `json:"shape"`
-	Debug            bool     	`json:"debug"`
+	Debug            bool       `json:"debug"`
 	PingInterval     string     `json:"ping_interval"`
 }
 

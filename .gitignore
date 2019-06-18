@@ -11,3 +11,4 @@ mktsdb/
 marketstore
 *.exe
 *.test
+.vscode

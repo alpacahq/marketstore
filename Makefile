@@ -42,8 +42,11 @@ plugins:
 
 unittest: install
 	go fmt ./...
-	go test ./...
+	$(MAKE) test
 	$(MAKE) -C tests/integ test
+
+test:
+	go test ./...
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)

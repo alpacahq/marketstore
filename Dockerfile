@@ -12,8 +12,6 @@ FROM golang:alpine AS builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
 ENV GO111MODULE=on
-# Fuck GFW, need to proxy all traffic to make it done
-ENV https_proxy=http://192.168.0.101:61118
 
 RUN apk --no-cache add git make gcc g++
 WORKDIR /go/src/github.com/alpacahq/marketstore/
