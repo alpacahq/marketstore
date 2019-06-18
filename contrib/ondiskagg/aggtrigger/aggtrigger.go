@@ -267,16 +267,16 @@ func (s *OnDiskAggTrigger) writeAggregates(
 		// normally this will always be true, but when there are random bars
 		// on the weekend, it won't be, so checking to avoid panic
 		if len(tqSlc.GetEpoch()) > 0 {
-			csm.AddColumnSeries(*aggTbk, Aggregate(tqSlc, aggTbk))
+			csm.AddColumnSeries(*aggTbk, aggregate(tqSlc, aggTbk))
 		}
 	} else {
-		csm.AddColumnSeries(*aggTbk, Aggregate(&slc, aggTbk))
+		csm.AddColumnSeries(*aggTbk, aggregate(&slc, aggTbk))
 	}
 
 	return executor.WriteCSM(csm, false)
 }
 
-func Aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
+func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	timeWindow := utils.CandleDurationFromString(tbk.GetItemInCategory("Timeframe"))
 
 	params := []accumParam{

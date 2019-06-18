@@ -2,7 +2,6 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger"
 	"math"
 	"net/http"
 	"strings"
@@ -245,61 +244,43 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 	LimitFromStart bool) (io.ColumnSeriesMap, error) {
 
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
-	queriedTbk := io.NewTimeBucketKeyFromString(tbk.Key)
+
+	/*
+		Alter timeframe inside key to ensure it matches a queryable TF
+	*/
 
 	tf := tbk.GetItemInCategory("Timeframe")
 	cd := utils.CandleDurationFromString(tf)
-	queryableTimeframes := cd.QueryableTimeframes()
+	queryableTimeframe := cd.QueryableTimeframe()
+	tbk.SetItemInCategory("Timeframe", queryableTimeframe)
+	query.AddTargetKey(tbk)
 
-	var parseResult *planner.ParseResult
-
-	/*
-		search for the lowest-frequency timeframe with data able to satisfy the request
-	*/
-	for i, timeframe := range queryableTimeframes {
-		queriedTbk.SetItemInCategory("Timeframe", timeframe)
-
-		query.Reset()
-		query.AddTargetKey(queriedTbk)
-		query.SetRange(start.Unix(), end.Unix())
-
-		if LimitRecordCount != 0 {
-			direction := io.LAST
-			if LimitFromStart {
-				direction = io.FIRST
-			}
-			query.SetRowLimit(
-				direction,
-				cd.QueryableNrecords(timeframe, LimitRecordCount),
-			)
+	if LimitRecordCount != 0 {
+		direction := io.LAST
+		if LimitFromStart {
+			direction = io.FIRST
 		}
+		query.SetRowLimit(
+			direction,
+			cd.QueryableNrecords(
+				queryableTimeframe,
+				LimitRecordCount,
+			),
+		)
+	}
 
-		result, err := query.Parse()
-		if err == nil {
-			parseResult = result
-			break
-		}
-
+	query.SetRange(start.Unix(), end.Unix())
+	parseResult, err := query.Parse()
+	if err != nil {
 		// No results from query
 		if err.Error() == "No files returned from query parse" {
-			// continue checking higher-frequency timeframes if there are any left in the list
-			if i+1 < len(queryableTimeframes) {
-				continue
-			}
-			// otherwise add contextual details to the error and return early
-			err = fmt.Errorf(
-				"No results returned from query: Target: %v, start, end: %v,%v LimitRecordCount: %v",
+			log.Info("No results returned from query: Target: %v, start, end: %v,%v LimitRecordCount: %v",
 				tbk.String(), start, end, LimitRecordCount)
-			log.Error("Error: %s\n", err)
 		} else {
 			log.Error("Parsing query: %s\n", err)
 		}
 		return nil, err
 	}
-
-	/*
-		read in the query parse data
-	*/
 	scanner, err := executor.NewReader(parseResult)
 	if err != nil {
 		log.Error("Unable to create scanner: %s\n", err)
@@ -310,21 +291,6 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		log.Error("Error returned from query scanner: %s\n", err)
 		return nil, err
 	}
-
-	/*
-		check if we need to aggregate the queried data to the requested timeframe
-	*/
-	if tf != queriedTbk.GetItemInCategory("Timeframe") {
-		aggCsm := io.NewColumnSeriesMap()
-		for _, symbol := range tbk.GetMultiItemInCategory("Symbol") {
-			queriedTbk.SetItemInCategory("Symbol", symbol)
-			tbk.SetItemInCategory("Symbol", symbol)
-			cs := aggtrigger.Aggregate(csm[*queriedTbk], tbk)
-			aggCsm[*tbk] = cs
-		}
-		return aggCsm, err
-	}
-
 	return csm, err
 }
 
