@@ -2,12 +2,13 @@ package frontend
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger"
 	"math"
 	"net/http"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger"
 
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -314,13 +315,19 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 	/*
 		check if we need to aggregate the queried data to the requested timeframe
 	*/
+	tTBK := io.NewTimeBucketKeyFromString(tbk.Key)
 	if tf != queriedTbk.GetItemInCategory("Timeframe") {
 		aggCsm := io.NewColumnSeriesMap()
 		for _, symbol := range tbk.GetMultiItemInCategory("Symbol") {
 			queriedTbk.SetItemInCategory("Symbol", symbol)
-			tbk.SetItemInCategory("Symbol", symbol)
-			cs := aggtrigger.Aggregate(csm[*queriedTbk], tbk)
-			aggCsm[*tbk] = cs
+			tTBK.SetItemInCategory("Symbol", symbol)
+			var cs *io.ColumnSeries
+			if fromCS, ok := csm[*queriedTbk]; ok {
+				cs = aggtrigger.Aggregate(fromCS, tTBK)
+				aggCsm[*tTBK] = cs
+			} else {
+				return nil, fmt.Errorf("unable to process aggregation")
+			}
 		}
 		return aggCsm, err
 	}
