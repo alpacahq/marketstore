@@ -15,6 +15,7 @@ debug:
 	$(MAKE) debug -C contrib/bitmexfeeder
 	$(MAKE) debug -C contrib/binancefeeder
 	$(MAKE) debug -C contrib/iex
+	$(MAKE) debug -C contrib/xignitefeeder
 	go install -gcflags="all=-N -l" -ldflags "-X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
 install: all
@@ -43,6 +44,9 @@ plugins:
 unittest: install
 	go fmt ./...
 	$(MAKE) test
+	$(MAKE) integration-test
+
+integration-test:
 	$(MAKE) -C tests/integ test
 
 test:

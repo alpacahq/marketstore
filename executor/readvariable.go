@@ -99,7 +99,7 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 			C.rewriteBuffer(arg1, C.int(varRecLen), C.int(numVarRecords), arg4,
 				C.int64_t(md.Intervals), C.int64_t(intervalStartEpoch))
 
-                        //rb = append(rb, rbTemp...)
+			//rb = append(rb, rbTemp...)
 			if (rbCursor + len(rbTemp)) > totalDatalen {
 				totalDatalen += totalDatalen
 				rb2 := make([]byte, totalDatalen)

@@ -27,7 +27,7 @@ marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
 EOF
 exit_if_failed $?
 
-diff -q bin/ticks-example-1-output.csv test_ticks.csv && echo "Passed"
+diff -q bin/ticks-example-1-output-24H.csv test_ticks.csv && echo "Passed"
 exit_if_failed $?
 
 rm -f test_ticks.csv
