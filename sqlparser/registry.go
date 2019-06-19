@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/marketstore/uda"
 	"github.com/alpacahq/marketstore/uda/avg"
 	"github.com/alpacahq/marketstore/uda/count"
+	"github.com/alpacahq/marketstore/uda/gap"
 	"github.com/alpacahq/marketstore/uda/max"
 	"github.com/alpacahq/marketstore/uda/min"
 )
@@ -23,4 +24,6 @@ var AggRegistry = map[string]uda.AggInterface{
 	"max":           &max.Max{},
 	"Avg":           &avg.Avg{},
 	"avg":           &avg.Avg{},
+	"Gap":           &gap.Gap{},
+	"gap":           &gap.Gap{},
 }

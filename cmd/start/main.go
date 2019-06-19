@@ -91,7 +91,13 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	log.Info("initializing marketstore...")
 
 	//
-	executor.NewInstanceSetup(utils.InstanceConfig.RootDirectory, true, true, true)
+	executor.NewInstanceSetup(
+		utils.InstanceConfig.RootDirectory,
+		utils.InstanceConfig.InitCatalog,
+		utils.InstanceConfig.InitWALCache,
+		utils.InstanceConfig.BackgroundSync,
+		utils.InstanceConfig.WALBypass)
+
 	// New server.
 	server, _ := frontend.NewServer()
 

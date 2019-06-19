@@ -20,10 +20,10 @@ require (
 	github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/gorilla/websocket v1.4.0
-	github.com/hashicorp/go-version v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
 	github.com/iris-contrib/formBinder v0.0.0-20190104093907-fbd5963f41e1 // indirect
+	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.6
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/kataras/iris v11.1.0+incompatible // indirect
@@ -41,6 +41,7 @@ require (
 	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/preichenberger/go-gdax v0.0.0-20181027225743-eb74ba719d9a
+	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
@@ -54,6 +55,7 @@ require (
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1
+	gonum.org/v1/gonum v0.0.0-20190618015908-5dc218f86579
 	google.golang.org/appengine v1.3.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/matryer/try.v1 v1.0.0-20150601225556-312d2599e12e

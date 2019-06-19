@@ -41,10 +41,20 @@ func (rows *Rows) GetColumn(colname string) (col interface{}) {
 				return getFloat32Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case FLOAT64:
 				return getFloat64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+			case INT16:
+				return getInt16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case INT32:
 				return getInt32Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case EPOCH, INT64:
 				return getInt64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+			case UINT8:
+				return getUInt8Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+			case UINT16:
+				return getUInt16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+			case UINT32:
+				return getUInt32Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+			case UINT64:
+				return getUInt64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case BOOL:
 				fallthrough
 			case BYTE:

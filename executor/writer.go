@@ -147,6 +147,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			*/
 			w.tgc.writeChannel <- cc
 		}
+		// if cc != nil {
+		// 	log.Info(cc.toString())
+		// }
 	}
 }
 
