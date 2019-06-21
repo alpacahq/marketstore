@@ -16,6 +16,7 @@ ENV GO111MODULE=on
 RUN apk --no-cache add git make gcc g++
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
+RUN make vendor
 RUN make install plugins
 
 #
