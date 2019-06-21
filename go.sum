@@ -128,6 +128,8 @@ github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 h1:uC1QfSlInpQ
 github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88/go.mod h1:3w7q1U84EfirKl04SVQ/s7nPm1ZPhiXd34z40TNz36k=
 github.com/kataras/golog v0.0.0-20180321173939-03be10146386 h1:VT6AeCHO/mc+VedKBMhoqb5eAK8B1i9F6nZl7EGlHvA=
 github.com/kataras/golog v0.0.0-20180321173939-03be10146386/go.mod h1:PcaEvfvhGsqwXZ6S3CgCbmjcp+4UDUh2MIfF2ZEul8M=
+github.com/kataras/golog v0.0.0-20190620222301-4851375e24d4 h1:ZB58CeszFQ8AeNEOsa/sV5Vd5Cs9EVExSCJEJz2/y/0=
+github.com/kataras/golog v0.0.0-20190620222301-4851375e24d4/go.mod h1:PcaEvfvhGsqwXZ6S3CgCbmjcp+4UDUh2MIfF2ZEul8M=
 github.com/kataras/iris v0.0.0-20181106020650-c20bc3bceef1 h1:X1yjoGt3Aa3aNc9Q9ovQdmWyidGq6sD8Jw2EHPFrv6s=
 github.com/kataras/iris v0.0.0-20181106020650-c20bc3bceef1/go.mod h1:4cangdWZW4brINuhSqxUwRwwObNAwvqkQm3EcRDL5pA=
 github.com/kataras/iris v11.1.0+incompatible h1:hRCQxJTg2+sOmgK7+TUJKy27qL1L+UYWqMbbfjVCKnA=

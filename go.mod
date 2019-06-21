@@ -26,6 +26,7 @@ require (
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.6
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
+	github.com/kataras/golog v0.0.0-20190620222301-4851375e24d4 // indirect
 	github.com/kataras/iris v11.1.0+incompatible // indirect
 	github.com/kataras/pio v0.0.0-20190103105442-ea782b38602d // indirect
 	github.com/klauspost/compress v1.4.1

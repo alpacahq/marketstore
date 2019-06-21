@@ -1,10 +1,12 @@
 package writer
 
 import (
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
-	"github.com/alpacahq/marketstore/utils/io"
+	"sort"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
+	"github.com/alpacahq/marketstore/utils/io"
 
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 )
@@ -72,7 +74,13 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 	}
 
 	// Time Bucket Key Name check
-	timeBucketKeyStr := string(m.WrittenCSM.GetMetadataKeys()[0].Key)
+	keys := m.WrittenCSM.GetMetadataKeys()
+	keyStrings := make([]string, len(keys))
+	for i, key := range keys {
+		keyStrings[i] = string(key.Key)
+	}
+	sort.Strings(keyStrings)
+	timeBucketKeyStr := keyStrings[0]
 	if timeBucketKeyStr != "1234/1Sec/TICK:"+io.DefaultTimeBucketSchema {
 		t.Errorf("TimeBucketKey for the first data is invalid. got=%v, want = %v",
 			timeBucketKeyStr, "1234/1Sec/TICK:"+io.DefaultTimeBucketSchema)
