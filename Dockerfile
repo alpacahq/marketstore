@@ -29,6 +29,7 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /
 COPY --from=builder /go/bin/marketstore /bin/
 COPY --from=builder /go/bin/*.so /bin/
+ENV GOPATH=/
 
 RUN ["marketstore", "init"]
 RUN mv mkts.yml /etc/

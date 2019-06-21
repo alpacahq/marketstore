@@ -21,6 +21,7 @@ func InitializeTriggers() {
 				theInstance.TriggerMatchers, tmatcher)
 		}
 	}
+	log.Info("InitializeTriggers - Done")
 }
 
 func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
@@ -51,6 +52,7 @@ func RunBgWorkers() {
 			go bgWorker.Run()
 		}
 	}
+	log.Info("InitializeBgWorkers Done")
 }
 
 func NewBgWorker(s *utils.BgWorkerSetting) bgworker.BgWorker {
