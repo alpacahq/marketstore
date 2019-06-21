@@ -1,0 +1,15 @@
+language: go
+go:
+- 1.11
+install:
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/mattn/goveralls
+- go get github.com/modocache/gover
+- go get -t ./...
+script:
+- go test -v -coverprofile=iex.coverprofile
+- go test -v -coverprofile=iextp.coverprofile ./iextp
+- go test -v -coverprofile=tops.coverprofile ./iextp/tops
+- go test -v -coverprofile=deep.coverprofile ./iextp/deep
+- gover
+- goveralls -coverprofile=gover.coverprofile -service=travis-ci
