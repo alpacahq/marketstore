@@ -33,10 +33,11 @@ func SetSandbox(b bool) {
 	}
 }
 
-type GetBarsResponse map[string]ChartResponse
+type GetBarsResponse map[string]*ChartResponse
 
 type ChartResponse struct {
-	Chart []Chart `json:"chart"`
+	Chart          []Chart `json:"chart"`
+	IntradayPrices []Chart `json:"intraday-prices"`
 }
 
 type Chart struct {
@@ -107,7 +108,11 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 
 	q.Set("symbols", strings.Join(symbols, ","))
 	q.Set("token", token)
-	q.Set("types", "chart")
+	if barRange == "1d" {
+		q.Set("types", "intraday-prices")
+	} else {
+		q.Set("types", "chart")
+	}
 	q.Set("chartIEXOnly", "true")
 
 	if SupportedRange(barRange) {
@@ -151,7 +156,13 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		return nil, err
 	}
 
-	if resp[symbols[0]].Chart == nil {
+	if q.Get("types") == "intraday-prices" {
+		for key, val := range resp {
+			resp[key].Chart = val.IntradayPrices
+		}
+	}
+
+	if resp[symbols[0]] != nil && resp[symbols[0]].Chart == nil {
 		if retries > 0 {
 			// log.Info("retrying due to null response")
 			<-time.After(time.Second)
