@@ -1,19 +1,17 @@
-# -*- mode: dockerfile -*-
-#
-# A multi-stage Dockerfile that builds a Linux target then creates a small
-# final image for deployment.
-
 #
 # STAGE 1
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:alpine AS builder
+FROM ubuntu:18.04 as builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
 ENV GO111MODULE=on
+ENV GOPATH=/go
 
-RUN apk --no-cache add git make gcc g++
+#RUN apk --no-cache add git make gcc g++
+RUN apt update
+RUN apt install -y golang gcc g++ make wget git
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
 RUN make vendor
@@ -25,8 +23,9 @@ RUN make install plugins
 # Use a tiny base image (alpine) and copy in the release target. This produces
 # a very small output image for deployment.
 #
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata
+FROM ubuntu:18.04
+RUN apt update
+RUN apt install -y ca-certificates tzdata
 WORKDIR /
 COPY --from=builder /go/bin/marketstore /bin/
 COPY --from=builder /go/bin/*.so /bin/
