@@ -22,7 +22,7 @@ import (
 type PolygonFetcher struct {
 	config    FetcherConfig
 	backfillM *sync.Map
-	types     map[string]struct{}
+	types     map[string]struct{} // Bars, Quotes, Trades
 }
 
 type FetcherConfig struct {
@@ -34,6 +34,8 @@ type FetcherConfig struct {
 	// list of nats servers to connect to
 	// (defaults to "nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403")
 	NatsServers string `json:"nats_servers"`
+	// websocket servers for Polygon, default is: "ws://socket.polygon.io:30328"
+	WSServers string `json:"ws_servers"`
 	// list of data types to subscribe to (one of bars, quotes, trades)
 	DataTypes []string `json:"data_types"`
 	// list of symbols that are important
@@ -44,27 +46,25 @@ type FetcherConfig struct {
 	QueryStart string `json:"query_start"`
 }
 
-const (
-	Bars   = "bars"
-	Quotes = "quotes"
-	Trades = "trades"
-)
-
 var (
 	minute = utils.NewTimeframe("1Min")
 )
 
+
 // NewBgWorker returns a new instances of PolygonFetcher. See FetcherConfig
 // for more details about configuring PolygonFetcher.
-func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
+func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}
-	json.Unmarshal(data, &config)
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		return
+	}
 
 	t := map[string]struct{}{}
 
 	for _, dt := range config.DataTypes {
-		if dt == Bars || dt == Quotes || dt == Trades {
+		if dt == "bars"|| dt == "quotes"|| dt == "trades"{
 			t[dt] = struct{}{}
 		}
 	}
@@ -106,15 +106,15 @@ func (pf *PolygonFetcher) stream(t string) {
 	log.Info("[polygon] streaming %v", t)
 
 	switch t {
-	case Bars:
+	case "bars":
 		go pf.workBackfillBars()
 		err = api.Stream(func(msg *nats.Msg) {
 			handlers.Bar(msg, pf.backfillM)
-		}, api.AggPrefix, pf.config.Symbols)
-	case Quotes:
-		err = api.Stream(handlers.Quote, api.QuotePrefix, pf.config.Symbols)
-	case Trades:
-		err = api.Stream(handlers.Trade, api.TradePrefix, pf.config.Symbols)
+		}, api.Agg, pf.config.Symbols)
+	case "quotes":
+		err = api.Stream(handlers.Quote, api.Quote, pf.config.Symbols)
+	case "trades":
+		err = api.Stream(handlers.Trade, api.Trade, pf.config.Symbols)
 	}
 
 	if err != nil {
