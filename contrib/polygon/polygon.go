@@ -50,7 +50,6 @@ var (
 	minute = utils.NewTimeframe("1Min")
 )
 
-
 // NewBgWorker returns a new instances of PolygonFetcher. See FetcherConfig
 // for more details about configuring PolygonFetcher.
 func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
@@ -64,7 +63,7 @@ func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	t := map[string]struct{}{}
 
 	for _, dt := range config.DataTypes {
-		if dt == "bars"|| dt == "quotes"|| dt == "trades"{
+		if dt == "bars" || dt == "quotes" || dt == "trades" {
 			t[dt] = struct{}{}
 		}
 	}

@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"github.com/alpacahq/polycache/utils"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -12,14 +11,14 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/alpacahq/gopaca/log"
-	"github.com/alpacahq/gopaca/pool"
+	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/utils/pool"
 )
 
 var (
-	AllTrades = NewSubscriptionScope(string(Trade))
-	AllQuotes = NewSubscriptionScope(string(Quote))
-	AllBars = NewSubscriptionScope(string(Agg))
+	AllTrades = NewSubscriptionScope(Trade, nil)
+	AllQuotes = NewSubscriptionScope(Quote, nil)
+	AllBars   = NewSubscriptionScope(Agg, nil)
 )
 
 type Subscription struct {
@@ -28,7 +27,7 @@ type Subscription struct {
 	conn     *websocket.Conn
 	doneChan chan struct{} // send to this to stop listener
 	running  bool
-	scope *SubscriptionScope
+	scope    *SubscriptionScope
 	sync.Mutex
 }
 
@@ -127,8 +126,7 @@ func (s *Subscription) subscribe() (connected bool) {
 		ws.send('{"action":"auth","params":"YOUR_API_KEY"}')
 		ws.send('{"action":"subscribe","params":"C.AUD/USD,C.USD/EUR,C.USD/JPY"}')
 	*/
-	authMsg := fmt.Sprintf("{\"action\":\"auth\",\"params\":\"%s\"}",
-		utils.Settings["POLYGON_TOKEN"])
+	authMsg := fmt.Sprintf("{\"action\":\"auth\",\"params\":\"%s\"}", apiKey)
 	subMsg := fmt.Sprintf("{\"action\":\"subscribe\", \"params\":\"%s\"}", s.scope.getSubScope())
 
 	// send the subscription message to the upstream
@@ -272,8 +270,7 @@ func (s *Subscription) setURLs(servers string) (err error) {
 	}
 
 	parameters := url.Values{}
-	token := utils.Settings["POLYGON_TOKEN"]
-	parameters.Add("apiKey", token)
+	parameters.Add("apiKey", apiKey)
 
 	u := make([]*url.URL, len(urls))
 	for i := range urls {

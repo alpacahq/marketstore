@@ -60,7 +60,6 @@ func SetNatsServers(serverList string) {
 	servers = serverList
 }
 
-
 type ListSymbolsResponse struct {
 	Symbols []struct {
 		Symbol          string `json:"symbol"`
@@ -136,7 +135,6 @@ type StreamAggregate struct {
 	T float64 `json:"-"`
 	E int64   `json:"-"`
 }
-
 
 // PolyTrade is the reference structure sent
 // by polygon for quote data
