@@ -2,10 +2,11 @@ package writer
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // QuotesRangeWriter is an interface to write the historical daily chart data to the marketstore

@@ -1,10 +1,11 @@
 package feed
 
 import (
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 )
 
 // MockTimeChecker always returns Open

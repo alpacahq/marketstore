@@ -2,8 +2,9 @@ package estimate
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"math"
+
+	"github.com/spf13/cobra"
 )
 
 const (

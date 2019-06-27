@@ -1,11 +1,12 @@
 package feed
 
 import (
+	"testing"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
 	"github.com/pkg/errors"
-	"testing"
-	"time"
 
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 )

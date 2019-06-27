@@ -2,11 +2,12 @@ package executor
 
 import (
 	"fmt"
+	"math"
+	"time"
+
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "gopkg.in/check.v1"
-	"math"
-	"time"
 )
 
 var _ = Suite(&TickTests{})

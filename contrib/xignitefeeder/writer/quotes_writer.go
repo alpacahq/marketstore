@@ -2,11 +2,12 @@ package writer
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // QuotesWriter is an interface to write the realtime stock data to the marketstore

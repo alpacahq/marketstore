@@ -3,8 +3,9 @@ package functions
 import (
 	"bytes"
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/io"
 	"strings"
+
+	"github.com/alpacahq/marketstore/utils/io"
 )
 
 type ArgumentMap struct {

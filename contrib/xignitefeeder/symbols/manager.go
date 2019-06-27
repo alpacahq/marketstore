@@ -2,6 +2,7 @@ package symbols
 
 import (
 	"fmt"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/utils/log"
 )

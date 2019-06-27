@@ -1,10 +1,11 @@
 package configs
 
 import (
-	"github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"strings"
 	"time"
+
+	"github.com/json-iterator/go"
+	"github.com/pkg/errors"
 )
 
 // json iter supports marshal/unmarshal of map[interface{}]interface{] type.

@@ -1,11 +1,12 @@
 package writer
 
 import (
+	"testing"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/utils/io"
-	"testing"
-	"time"
 )
 
 func TestQuotesRangeWriterImpl_Write(t *testing.T) {

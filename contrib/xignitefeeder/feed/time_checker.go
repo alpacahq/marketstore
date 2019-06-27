@@ -2,8 +2,9 @@ package feed
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/log"
 	"time"
+
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 var jst = time.FixedZone("Asia/Tokyo", 9*60*60)

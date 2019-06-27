@@ -3,12 +3,13 @@ package executor
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/alpacahq/marketstore/planner"
-	. "github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
 	"io"
 	"os"
 	"sort"
+
+	"github.com/alpacahq/marketstore/planner"
+	. "github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 type deleter struct {

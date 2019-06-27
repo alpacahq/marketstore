@@ -2,6 +2,7 @@ package connect
 
 import (
 	"errors"
+
 	"github.com/alpacahq/marketstore/cmd/connect/session"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/log"

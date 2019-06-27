@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/configs"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/feed"
@@ -11,7 +13,6 @@ import (
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // NewBgWorker returns the new instance of XigniteFeeder.

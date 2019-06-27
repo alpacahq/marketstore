@@ -3,13 +3,14 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/pkg/errors"
 )
 
 const (

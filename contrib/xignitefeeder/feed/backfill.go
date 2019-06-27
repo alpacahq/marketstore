@@ -2,11 +2,12 @@ package feed
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/symbols"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
 	"github.com/alpacahq/marketstore/utils/log"
-	"time"
 )
 
 // Backfill aggregates daily chart data using Xignite API and store it to

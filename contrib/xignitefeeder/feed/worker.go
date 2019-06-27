@@ -2,12 +2,13 @@ package feed
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/symbols"
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // Worker is the main worker instance.  It implements bgworker.Run().

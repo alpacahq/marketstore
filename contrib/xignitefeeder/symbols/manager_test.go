@@ -1,10 +1,11 @@
 package symbols
 
 import (
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 	"reflect"
 	"testing"
+
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
 )
 
 type MockListSymbolsAPIClient struct {
