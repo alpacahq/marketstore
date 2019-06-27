@@ -6,15 +6,25 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"runtime"
 	"strconv"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/eapache/channels"
-	nats "github.com/nats-io/go-nats"
 	"github.com/valyala/fasthttp"
-	try "gopkg.in/matryer/try.v1"
+	"gopkg.in/matryer/try.v1"
+)
+
+const (
+	aggURL     = "%v/v1/historic/agg/%v/%v"
+	tradesURL  = "%v/v1/historic/trades/%v/%v"
+	quotesURL  = "%v/v1/historic/quotes/%v/%v"
+	symbolsURL = "%v/v1/meta/symbols"
+)
+
+var (
+	baseURL = "https://api.polygon.io"
+	servers = "nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403"
+	apiKey  string
+	NY, _   = time.LoadLocation("America/New_York")
 )
 
 type GetAggregatesResponse struct {
@@ -38,20 +48,6 @@ type GetAggregatesResponse struct {
 	} `json:"ticks"`
 }
 
-const (
-	aggURL     = "%v/v1/historic/agg/%v/%v"
-	tradesURL  = "%v/v1/historic/trades/%v/%v"
-	quotesURL  = "%v/v1/historic/quotes/%v/%v"
-	symbolsURL = "%v/v1/meta/symbols"
-)
-
-var (
-	baseURL = "https://api.polygon.io"
-	servers = "nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403"
-	apiKey  string
-	NY, _   = time.LoadLocation("America/New_York")
-)
-
 func SetAPIKey(key string) {
 	apiKey = key
 }
@@ -63,71 +59,6 @@ func SetBaseURL(url string) {
 func SetNatsServers(serverList string) {
 	servers = serverList
 }
-
-// func GetAggregates(symbol string, from, to time.Time) (*GetAggregatesResponse, error) {
-// 	resp := GetAggregatesResponse{}
-
-// 	from = from.In(NY)
-// 	if to.IsZero() {
-// 		to = from.Add(7 * 24 * time.Hour)
-// 	}
-
-// 	retry := 0
-
-// 	for {
-// 		url := fmt.Sprintf("%s/v1/historic/agg/%s/%s?apiKey=%s&from=%s&to=%s",
-// 			baseURL, "minute", symbol,
-// 			apiKey,
-// 			from.Format("2006-01-02"),
-// 			to.Format("2006-01-02"))
-
-// 		res, err := http.Get(url)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		if res.StatusCode >= http.StatusMultipleChoices {
-// 			return nil, fmt.Errorf("status code %v", res.StatusCode)
-// 		}
-
-// 		r := &GetAggregatesResponse{}
-
-// 		body, err := ioutil.ReadAll(res.Body)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		err = json.Unmarshal(body, r)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		// Sometimes polygon returns empty data set even though the data
-// 		// is there. Here we retry up to 5 times to ensure the data
-// 		// is really empty. This does add overhead, but since it is only
-// 		// called for the beginning backfill, it is worth it to not miss
-// 		// any data. Usually the data is returned within 3 retries.
-// 		if len(r.Ticks) == 0 {
-// 			if retry <= 5 && from.Before(time.Now()) {
-// 				retry++
-// 				continue
-// 			} else {
-// 				retry = 0
-// 				break
-// 			}
-// 		}
-
-// 		resp.Ticks = append(resp.Ticks, r.Ticks...)
-
-// 		from = to.Add(24 * time.Hour)
-// 		to = from.Add(24 * 7 * time.Hour)
-// 	}
-
-// 	return &resp, nil
-// }
 
 type ListSymbolsResponse struct {
 	Symbols []struct {
@@ -203,64 +134,6 @@ type StreamAggregate struct {
 	A float64 `json:"-"`
 	T float64 `json:"-"`
 	E int64   `json:"-"`
-}
-
-const (
-	AggPrefix   = "AM."
-	QuotePrefix = "Q."
-	TradePrefix = "T."
-)
-
-// Stream from the polygon nats server
-func Stream(handler func(m *nats.Msg), prefix string, symbols []string) (err error) {
-	nc, _ := nats.Connect(
-		servers,
-		nats.Token(apiKey))
-
-	sem := make(chan struct{}, runtime.NumCPU())
-	c := channels.NewInfiniteChannel()
-
-	go func() {
-		for msg := range c.Out() {
-			sem <- struct{}{}
-			go func(m interface{}) {
-				defer func() { <-sem }()
-				handler(m.(*nats.Msg))
-			}(msg)
-		}
-	}()
-
-	go func() {
-		for {
-			<-time.After(10 * time.Second)
-			if c.Len() > 0 {
-				switch prefix {
-				case AggPrefix:
-					log.Info("[polygon] aggregate stream channel depth: %v", c.Len())
-				case QuotePrefix:
-					log.Info("[polygon] quote stream channel depth: %v", c.Len())
-				case TradePrefix:
-					log.Info("[polygon] trade stream channel depth: %v", c.Len())
-				}
-			}
-		}
-	}()
-
-	if symbols != nil && len(symbols) > 0 {
-		for _, symbol := range symbols {
-			if _, err = nc.Subscribe(
-				prefix+symbol,
-				handler); err != nil {
-				return
-			}
-		}
-	} else {
-		_, err = nc.Subscribe(prefix+"*", func(m *nats.Msg) {
-			c.In() <- m
-		})
-	}
-
-	return
 }
 
 // PolyTrade is the reference structure sent

@@ -1,269 +1,163 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/buger/jsonparser"
-	"github.com/eapache/channels"
-	nats "github.com/nats-io/go-nats"
+	"github.com/alpacahq/gopaca/log"
+	"github.com/alpacahq/polycache/enum"
+
+	"github.com/alpacahq/polycache/utils"
+
+	"github.com/alpacahq/polycache/raft"
+	"github.com/alpacahq/polycache/structures"
 )
 
-const ConditionExchangeSummary = 51
+const (
+	ConditionExchangeSummary = 51
+	OfficialConditionClosing = 15
+	OfficialConditionOpening = 16
+	ConditionClosing         = 17
+	ConditionReOpening       = 18
+	ConditionOpening         = 19
+)
 
-func Bar(msg *nats.Msg, backfillM *sync.Map) {
-	// quickly parse the json
-	symbol, _ := jsonparser.GetString(msg.Data, "sym")
-
-	if strings.Contains(symbol, "/") {
+// TradeHandler handles a Polygon WS trade
+// message and stores it to the cache
+func TradeHandler(msg []byte) {
+	if msg == nil {
+		return
+	}
+	tt := make([]structures.PolyTrade, 0)
+	err := json.Unmarshal(msg, &tt)
+	if err != nil {
+		log.Warn("error processing upstream message",
+			"message", string(msg),
+			"error", err.Error())
 		return
 	}
 
-	open, _ := jsonparser.GetFloat(msg.Data, "o")
-	high, _ := jsonparser.GetFloat(msg.Data, "h")
-	low, _ := jsonparser.GetFloat(msg.Data, "l")
-	close, _ := jsonparser.GetFloat(msg.Data, "c")
-	volume, _ := jsonparser.GetInt(msg.Data, "v")
-	epochMillis, _ := jsonparser.GetInt(msg.Data, "s")
+	for _, rt := range tt {
+		t := structures.Trade{}
+		timestamp := rt.T
+		// parse timestamp - do this first to get the best lag measure
+		t.Timestamp = time.Unix(0, int64(1000000*float64(timestamp)))
+		lagOnReceipt := time.Now().Sub(t.Timestamp).Seconds()
+		var (
+			isOpen, isReOpen, isClose bool
+			isOffOpen, isOffClose     bool
+		)
+		for _, c := range rt.C {
+			switch c {
+			case ConditionExchangeSummary:
+				return
+			case ConditionReOpening:
+				isReOpen = true
+			case ConditionOpening:
+				isOpen = true
+			case ConditionClosing:
+				isClose = true
+			case OfficialConditionOpening:
+				isOffOpen = true
+			case OfficialConditionClosing:
+				isOffClose = true
+			}
+		}
 
-	epoch := epochMillis / 1000
+		t.Size = int64(rt.S)
+		t.Price = rt.P
+		// skip empty trades
+		if t.Size <= 0 || t.Price <= 0 {
+			return
+		}
 
-	backfillM.LoadOrStore(symbol, &epoch)
+		symbol := rt.Sym
+		var format string
+		switch {
+		case isOpen:
+			format = string(enum.OpeningPrice) + "%s"
+		case isReOpen:
+			format = string(enum.ReOpeningPrice) + "%s"
+		case isClose:
+			format = string(enum.ClosingPrice) + "%s"
+		case isOffOpen:
+			format = string(enum.OfficialOpeningPrice) + "%s"
+		case isOffClose:
+			format = string(enum.OfficialClosingPrice) + "%s"
+		default:
+			format = string(enum.Trade) + "%s"
+		}
+		symbol = fmt.Sprintf(format, strings.Replace(symbol, "/", ".", 1))
 
-	tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", symbol))
-	csm := io.NewColumnSeriesMap()
+		if !isMoreRecent(symbol, t.Timestamp) {
+			return
+		}
 
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", []int64{epoch})
-	cs.AddColumn("Open", []float32{float32(open)})
-	cs.AddColumn("High", []float32{float32(high)})
-	cs.AddColumn("Low", []float32{float32(low)})
-	cs.AddColumn("Close", []float32{float32(close)})
-	cs.AddColumn("Volume", []int32{int32(volume)})
-	csm.AddColumnSeries(*tbk, cs)
+		utils.TradeLagStats.Update(lagOnReceipt, symbol)
 
-	if err := executor.WriteCSM(csm, false); err != nil {
-		log.Error("[polygon] csm write failure for key: [%v] (%v)", tbk.String(), err)
+		// throw the trade on the queue
+		raft.GetCache().Queue(symbol, t)
 	}
 }
 
-func Trade(msg *nats.Msg) {
-	var skip = false
-
-	// get the condition in case we should ignore this quote
-	jsonparser.ArrayEach(msg.Data, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		if c, _ := strconv.Atoi(string(value)); c == ConditionExchangeSummary {
-			skip = true
-		}
-	}, "c")
-
-	if skip {
+// QuoteHandler handles a Polygon WS quote
+// message and stores it to the cache
+func QuoteHandler(msg []byte) {
+	if msg == nil {
 		return
 	}
-
-	// parse symbol and swap / for .
-	symbol, _ := jsonparser.GetString(msg.Data, "sym")
-	symbol = strings.Replace(symbol, "/", ".", 1)
-	size, _ := jsonparser.GetInt(msg.Data, "s")
-	px, _ := jsonparser.GetFloat(msg.Data, "p")
-	epochMillis, _ := jsonparser.GetInt(msg.Data, "t")
-
-	timestamp := time.Unix(0, 1000*1000*epochMillis)
-
-	pkt := &writePacket{
-		io.NewTimeBucketKey(symbol + "/1Min/TRADE"),
-		&trade{
-			epoch: timestamp.Unix(),
-			nanos: int32(timestamp.Nanosecond()),
-			px:    float32(px),
-			sz:    int32(size),
-		}}
-
-	Write(pkt)
-}
-
-type trade struct {
-	epoch int64
-	nanos int32
-	px    float32
-	sz    int32
-}
-
-func Quote(msg *nats.Msg) {
-	// parse symbol and swap / for .
-	symbol, _ := jsonparser.GetString(msg.Data, "sym")
-	symbol = strings.Replace(symbol, "/", ".", 1)
-	bidPx, _ := jsonparser.GetFloat(msg.Data, "bp")
-	askPx, _ := jsonparser.GetFloat(msg.Data, "ap")
-	bidSize, _ := jsonparser.GetInt(msg.Data, "bs")
-	askSize, _ := jsonparser.GetInt(msg.Data, "as")
-	epochMillis, _ := jsonparser.GetInt(msg.Data, "t")
-
-	timestamp := time.Unix(0, 1000*1000*epochMillis)
-
-	pkt := &writePacket{
-		io.NewTimeBucketKey(symbol + "/1Min/QUOTE"),
-		&quote{
-			epoch: timestamp.Unix(),
-			nanos: int32(timestamp.Nanosecond()),
-			bidPx: float32(bidPx),
-			askPx: float32(askPx),
-			bidSz: int32(bidSize),
-			askSz: int32(askSize),
-		}}
-
-	Write(pkt)
-}
-
-type quote struct {
-	epoch int64   // 8
-	nanos int32   // 4
-	bidPx float32 // 4
-	askPx float32 // 4
-	bidSz int32   // 4
-	askSz int32   // 4
-}
-
-var (
-	w = &writer{
-		dataBuckets: map[io.TimeBucketKey]interface{}{},
-		interval:    100 * time.Millisecond,
-		c:           channels.NewInfiniteChannel(),
+	qq := make([]structures.PolyQuote, 0)
+	err := json.Unmarshal(msg, &qq)
+	if err != nil {
+		log.Warn("error processing upstream message",
+			"message", string(msg),
+			"error", err.Error())
+		return
 	}
-	once sync.Once
-)
+	for _, rq := range qq {
+		q := structures.Quote{}
+		timestamp := rq.T
+		q.Timestamp = time.Unix(0, int64(1000000*float64(timestamp)))
+		lagOnReceipt := time.Now().Sub(q.Timestamp).Seconds()
+		symbol := rq.Sym
+		format := string(enum.Quote) + "%s"
+		symbol = fmt.Sprintf(format, strings.Replace(symbol, "/", ".", 1))
 
-type writePacket struct {
-	tbk  *io.TimeBucketKey
-	data interface{}
+		if !isMoreRecent(symbol, q.Timestamp) {
+			return
+		}
+
+		// parse the quote fields
+		q.BidPrice = rq.Bp
+		q.AskPrice = rq.Ap
+		q.BidSize = int64(rq.Bs)
+		q.AskSize = int64(rq.As)
+
+		utils.QuoteLagStats.Update(lagOnReceipt, symbol)
+
+		// throw the quote on the queue
+		raft.GetCache().Queue(symbol, q)
+	}
 }
 
-type writer struct {
-	sync.Mutex
-	dataBuckets map[io.TimeBucketKey]interface{}
-	interval    time.Duration
-	c           *channels.InfiniteChannel
-}
-
-func (w *writer) write() {
-	// preallocate the data structures for re-use
-	var (
-		csm io.ColumnSeriesMap
-
-		epoch []int64
-		nanos []int32
-		bidPx []float32
-		askPx []float32
-		px    []float32
-		bidSz []int32
-		askSz []int32
-		sz    []int32
-	)
-
-	for {
-		select {
-		case m := <-w.c.Out():
-			w.Lock()
-			packet := m.(*writePacket)
-
-			if bucket, ok := w.dataBuckets[*packet.tbk]; ok {
-				switch packet.data.(type) {
-				case *quote:
-					w.dataBuckets[*packet.tbk] = append(bucket.([]*quote), packet.data.(*quote))
-				case *trade:
-					w.dataBuckets[*packet.tbk] = append(bucket.([]*trade), packet.data.(*trade))
-				}
-			} else {
-				switch packet.data.(type) {
-				case *quote:
-					w.dataBuckets[*packet.tbk] = []*quote{packet.data.(*quote)}
-				case *trade:
-					w.dataBuckets[*packet.tbk] = []*trade{packet.data.(*trade)}
-				}
-			}
-
-			w.Unlock()
-
-		case <-time.After(w.interval):
-			w.Lock()
-			csm = io.NewColumnSeriesMap()
-
-			for tbk, bucket := range w.dataBuckets {
-				switch bucket.(type) {
-				case []*quote:
-					b := bucket.([]*quote)
-
-					for _, q := range b {
-						epoch = append(epoch, q.epoch)
-						nanos = append(nanos, q.nanos)
-						bidPx = append(bidPx, q.bidPx)
-						askPx = append(askPx, q.askPx)
-						bidSz = append(bidSz, q.bidSz)
-						askSz = append(askSz, q.askSz)
-					}
-
-					if len(epoch) > 0 {
-						csm.AddColumn(tbk, "Epoch", epoch)
-						csm.AddColumn(tbk, "Nanoseconds", nanos)
-						csm.AddColumn(tbk, "BidPrice", bidPx)
-						csm.AddColumn(tbk, "AskPrice", askPx)
-						csm.AddColumn(tbk, "BidSize", bidSz)
-						csm.AddColumn(tbk, "AskSize", askSz)
-
-						// trim the slices
-						epoch = epoch[:0]
-						nanos = nanos[:0]
-						bidPx = bidPx[:0]
-						bidSz = bidSz[:0]
-						askPx = bidPx[:0]
-						askSz = askSz[:0]
-						w.dataBuckets[tbk] = b[:0]
-					}
-				case []*trade:
-					b := bucket.([]*trade)
-
-					for _, t := range b {
-						epoch = append(epoch, t.epoch)
-						nanos = append(nanos, t.nanos)
-						px = append(px, t.px)
-						sz = append(sz, t.sz)
-					}
-
-					if len(epoch) > 0 {
-						csm.AddColumn(tbk, "Epoch", epoch)
-						csm.AddColumn(tbk, "Nanoseconds", nanos)
-						csm.AddColumn(tbk, "Price", px)
-						csm.AddColumn(tbk, "Size", sz)
-
-						// trim the slices
-						epoch = epoch[:0]
-						nanos = nanos[:0]
-						px = px[:0]
-						sz = sz[:0]
-						w.dataBuckets[tbk] = b[:0]
-					}
-				}
-			}
-
-			w.Unlock()
-
-			if err := executor.WriteCSM(csm, true); err != nil {
-				log.Error("[polygon] failed to write csm (%v)", err)
-			}
+func isMoreRecent(symbol string, t time.Time) bool {
+	// if we have existing trade for this symbol, compare the incoming timestamp to see if this is newer
+	ttI := raft.GetCache().GetFromQueue(symbol)
+	var ts time.Time
+	switch val := ttI.(type) {
+	case structures.Quote:
+		ts = val.Timestamp
+	case structures.Trade:
+		ts = val.Timestamp
+	}
+	if ts.IsZero() {
+		return true
+	} else {
+		if ts.After(t) {
+			return false
 		}
 	}
-}
-
-func Write(pkt *writePacket) {
-	once.Do(func() {
-		go w.write()
-	})
-
-	w.c.In() <- pkt
+	return true
 }
