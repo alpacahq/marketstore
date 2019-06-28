@@ -131,8 +131,8 @@ func (s *Subscription) subscribe() (connected bool) {
 	_ = s.conn.WriteMessage(websocket.TextMessage, []byte(authMsg))
 	resp = s.readMsg()
 	if strings.Contains(resp, "authenticated") {
-		log.Info("authenticated successfully",
-			"feed", s.scope)
+		log.Info("authenticated successfully {%s:%v}",
+			"feed", s.scope.getSubScope())
 	} else {
 		log.Info("unable to authenticate")
 		return false
@@ -140,9 +140,9 @@ func (s *Subscription) subscribe() (connected bool) {
 	err = s.conn.WriteMessage(websocket.TextMessage, []byte(subMsg))
 	resp = s.readMsg()
 	if strings.Contains(resp, "success") {
-		log.Info("subscribed", "feed", s.scope)
+		log.Info("subscribed {%s:%v}", "feed", s.scope.getSubScope())
 	} else {
-		log.Warn("upstream subscription failure",
+		log.Warn("upstream subscription failure {%s:%v,%s:%v,%s:%v}",
 			"data_type", s.scope.getSubScope(),
 			"response", resp,
 			"error", err)
@@ -170,7 +170,7 @@ func (s *Subscription) listen() {
 		// start the upstream websocket connection
 		err := s.connect()
 		if err != nil {
-			log.Warn("error connecting to upstream",
+			log.Warn("error connecting to upstream {%s:%v,%s:%v,%s:%v}",
 				"server", s.Servers[0].String(),
 				"subscription", s.scope.getSubScope(),
 				"error", err.Error())
@@ -191,7 +191,7 @@ func (s *Subscription) listen() {
 		s.conn.SetReadLimit(maxMessageSize)
 		err = s.conn.SetReadDeadline(time.Time{})
 		if err != nil {
-			log.Warn("error initializing read loop for upstream, restarting...",
+			log.Warn("error initializing read loop for upstream, restarting... {%s:%v,%s:%v}",
 				"subscription", s.scope.getSubScope(),
 				"error", err.Error())
 			goto restartConnection
@@ -199,7 +199,7 @@ func (s *Subscription) listen() {
 		s.conn.SetPongHandler(func(string) (err error) {
 			err = s.conn.SetReadDeadline(time.Now().Add(pongWait))
 			if err != nil {
-				log.Warn("error in pong handler",
+				log.Warn("error in pong handler {%s:%v,%s:%v}",
 					"subscription", s.scope.getSubScope(),
 					"error", err.Error())
 			}
@@ -212,7 +212,7 @@ func (s *Subscription) listen() {
 			case <-pingTicker.C:
 				if err := s.conn.WriteControl(websocket.PingMessage, []byte{},
 					time.Now().Add(writeWait)); err != nil {
-					log.Warn("upstream websocket connection failure",
+					log.Warn("upstream websocket connection failure {%s:%v,%s:%v}",
 						"subscription", s.scope.getSubScope(),
 						"error", err.Error())
 					goto restartConnection
@@ -222,29 +222,29 @@ func (s *Subscription) listen() {
 				tt, p, err := s.conn.ReadMessage()
 				switch tt {
 				case -1: // "NoFrame" error from the websocket library
-					log.Warn("failed websocket connection, restarting...",
-						"subscription", s.scope)
+					log.Warn("failed websocket connection, restarting... {%s:%v}",
+						"subscription", s.scope.getSubScope())
 					goto restartConnection
 				case websocket.BinaryMessage, websocket.PingMessage, websocket.PongMessage:
-					log.Warn("ignoring non text msg from upstream",
+					log.Warn("ignoring non text msg from upstream {%s:%v,%s:%v}",
 						"message len", len(p),
 						"message type", tt)
 					continue // ignore
 				case websocket.CloseMessage:
-					log.Warn("received websocket close message, restarting...",
-						"subscription", s.scope)
+					log.Warn("received websocket close message, restarting... {%s:%v,%s:%v}",
+						"subscription", s.scope.getSubScope())
 					goto restartConnection
 				}
 				if err != nil {
 					time.Sleep(time.Second)
 					if strings.Contains(err.Error(), "timeout") {
-						log.Info("timeout handling incoming message, restarting connection...",
+						log.Info("timeout handling incoming message, restarting connection... {%s:%v,%s:%v}",
 							"subscription", s.scope.getSubScope(),
 							"error", err)
 						time.Sleep(time.Second)
 						goto restartConnection
 					}
-					log.Warn("error handling incoming message",
+					log.Warn("error handling incoming message {%s:%v,%s:%v}",
 						"subscription", s.scope.getSubScope(),
 						"error", err)
 					continue
@@ -290,7 +290,7 @@ func (s *Subscription) Subscribe(handler func(msg []byte)) {
 	s.setRunning(true)
 
 	log.Info("subscribing to upstream Polygon")
-	log.Info("enabling ...", "scope", s.scope.getSubScope())
+	log.Info("enabling ... {%s:%v}", "scope", s.scope.getSubScope())
 
 	s.Incoming = make(chan interface{}, 100) //sized to 10x the worker pool
 
@@ -306,7 +306,7 @@ func (s *Subscription) Subscribe(handler func(msg []byte)) {
 		tick := time.NewTicker(time.Second)
 		for range tick.C {
 			log.Debug(
-				"channel status",
+				"channel status {%s:%v,%s:%v,%s:%v}",
 				"channel", s.scope.getSubScope(),
 				"goroutines", runtime.NumGoroutine(),
 				"depth", len(s.Incoming))

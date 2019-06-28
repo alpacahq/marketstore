@@ -1,6 +1,8 @@
 package api
 
-import "bytes"
+import (
+	"bytes"
+)
 
 type Prefix string
 
