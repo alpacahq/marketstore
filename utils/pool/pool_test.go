@@ -4,19 +4,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	. "gopkg.in/check.v1"
 )
 
-type PoolTestSuite struct {
-	suite.Suite
-}
+func Test(t *testing.T) { TestingT(t) }
 
-func TestPoolTestSuite(t *testing.T) {
-	suite.Run(t, new(PoolTestSuite))
-}
+var _ = Suite(&PoolTestSuite{})
 
-func (s *PoolTestSuite) TestPool() {
+type PoolTestSuite struct{}
+
+func (s *PoolTestSuite) TestPool(c *C) {
 	jobCount := 0
 
 	job := func(input interface{}) {
@@ -24,15 +21,15 @@ func (s *PoolTestSuite) TestPool() {
 	}
 	p := NewPool(10, job)
 
-	c := make(chan interface{})
-	go p.Work(c)
+	cc := make(chan interface{})
+	go p.Work(cc)
 
 	for i := 0; i < 10; i++ {
-		c <- struct{}{}
+		cc <- struct{}{}
 	}
 
-	close(c)
+	close(cc)
 	<-time.After(time.Second)
 
-	assert.Equal(s.T(), jobCount, 10)
+	c.Assert(jobCount, Equals, 10)
 }
