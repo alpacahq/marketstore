@@ -3,15 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/alpacahq/marketstore/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/buger/jsonparser"
-	"github.com/nats-io/go-nats"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -24,14 +23,14 @@ const (
 )
 
 func conditionsPresent(conditions []int) (skip bool) {
-		for _, c := range conditions {
-			switch c {
-			case ConditionExchangeSummary, ConditionReOpening, ConditionOpening, ConditionClosing,
+	for _, c := range conditions {
+		switch c {
+		case ConditionExchangeSummary, ConditionReOpening, ConditionOpening, ConditionClosing,
 			OfficialConditionOpening, OfficialConditionClosing:
-				return true
-			}
+			return true
 		}
-		return
+	}
+	return
 }
 
 // TradeHandler handles a Polygon WS trade
@@ -60,8 +59,8 @@ func TradeHandler(msg []byte) {
 		t := trade{
 			epoch: timestamp.Unix(),
 			nanos: int32(timestamp.Nanosecond()),
-			sz: int32(rt.Size),
-			px: float32(rt.Price),
+			sz:    int32(rt.Size),
+			px:    float32(rt.Price),
 		}
 		// skip empty trades
 		if t.sz <= 0 || t.px <= 0 {
@@ -71,7 +70,7 @@ func TradeHandler(msg []byte) {
 		pkt := &writePacket{
 			io.NewTimeBucketKey(symbol + "/1Min/TRADE"),
 			&t,
-			}
+		}
 		Write(pkt)
 		_ = lagOnReceipt
 	}
@@ -97,14 +96,14 @@ func QuoteHandler(msg []byte) {
 		q := quote{
 			epoch: timestamp.Unix(),
 			nanos: int32(timestamp.Nanosecond()),
-			bidPx:    float32(rq.BidPrice),
-			bidSz:    int32(rq.BidSize),
-			askPx:    float32(rq.AskPrice),
-			askSz:    int32(rq.AskSize),
+			bidPx: float32(rq.BidPrice),
+			bidSz: int32(rq.BidSize),
+			askPx: float32(rq.AskPrice),
+			askSz: int32(rq.AskSize),
 		}
 		symbol := fmt.Sprintf("%s", strings.Replace(rq.Symbol, "/", ".", 1))
 		pkt := &writePacket{
-			io.NewTimeBucketKey(symbol+"/1Min/QUOTE"),
+			io.NewTimeBucketKey(symbol + "/1Min/QUOTE"),
 			&q,
 		}
 		Write(pkt)
@@ -114,39 +113,42 @@ func QuoteHandler(msg []byte) {
 
 }
 
-func Bar(msg *nats.Msg, backfillM *sync.Map) {
-	// quickly parse the json
-	symbol, _ := jsonparser.GetString(msg.Data, "sym")
-
-	if strings.Contains(symbol, "/") {
+func Bar(msg []byte, backfillM *sync.Map) {
+	if msg == nil {
 		return
 	}
+	am := make([]api.PolyAggregate, 0)
+	err := json.Unmarshal(msg, &am)
+	if err != nil {
+		log.Warn("error processing upstream message",
+			"message", string(msg),
+			"error", err.Error())
+		return
+	}
+	for _, bar := range am {
+		timestamp := time.Unix(0, int64(1000*1000*float64(bar.EpochMillis)))
+		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
 
-	open, _ := jsonparser.GetFloat(msg.Data, "o")
-	high, _ := jsonparser.GetFloat(msg.Data, "h")
-	low, _ := jsonparser.GetFloat(msg.Data, "l")
-	close, _ := jsonparser.GetFloat(msg.Data, "c")
-	volume, _ := jsonparser.GetInt(msg.Data, "v")
-	epochMillis, _ := jsonparser.GetInt(msg.Data, "s")
+		epoch := bar.EpochMillis / 1000
 
-	epoch := epochMillis / 1000
+		backfillM.LoadOrStore(bar.Symbol, &epoch)
 
-	backfillM.LoadOrStore(symbol, &epoch)
+		tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", bar.Symbol))
+		csm := io.NewColumnSeriesMap()
 
-	tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", symbol))
-	csm := io.NewColumnSeriesMap()
+		cs := io.NewColumnSeries()
+		cs.AddColumn("Epoch", []int64{epoch})
+		cs.AddColumn("Open", []float32{float32(bar.Open)})
+		cs.AddColumn("High", []float32{float32(bar.High)})
+		cs.AddColumn("Low", []float32{float32(bar.Low)})
+		cs.AddColumn("Close", []float32{float32(bar.Close)})
+		cs.AddColumn("Volume", []int32{int32(bar.Volume)})
+		csm.AddColumnSeries(*tbk, cs)
 
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", []int64{epoch})
-	cs.AddColumn("Open", []float32{float32(open)})
-	cs.AddColumn("High", []float32{float32(high)})
-	cs.AddColumn("Low", []float32{float32(low)})
-	cs.AddColumn("Close", []float32{float32(close)})
-	cs.AddColumn("Volume", []int32{int32(volume)})
-	csm.AddColumnSeries(*tbk, cs)
+		if err := executor.WriteCSM(csm, false); err != nil {
+			log.Error("[polygon] csm write failure for key: [%v] (%v)", tbk.String(), err)
+		}
 
-	if err := executor.WriteCSM(csm, false); err != nil {
-		log.Error("[polygon] csm write failure for key: [%v] (%v)", tbk.String(), err)
+		_ = lagOnReceipt
 	}
 }
-

@@ -16,7 +16,6 @@ import (
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
-	nats "github.com/nats-io/go-nats"
 )
 
 type PolygonFetcher struct {
@@ -31,9 +30,6 @@ type FetcherConfig struct {
 	// polygon API base URL in case it is being proxied
 	// (defaults to https://api.polygon.io/)
 	BaseURL string `json:"base_url"`
-	// list of nats servers to connect to
-	// (defaults to "nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403")
-	NatsServers string `json:"nats_servers"`
 	// websocket servers for Polygon, default is: "ws://socket.polygon.io:30328"
 	WSServers string `json:"ws_servers"`
 	// list of data types to subscribe to (one of bars, quotes, trades)
@@ -114,28 +110,6 @@ func (pf *PolygonFetcher) Run() {
 	}
 
 	select {}
-}
-
-func (pf *PolygonFetcher) stream(t string) {
-	var err error
-
-	log.Info("[polygon] streaming %v", t)
-
-	switch t {
-	case "bars":
-		go pf.workBackfillBars()
-		err = api.Stream(func(msg *nats.Msg) {
-			handlers.Bar(msg, pf.backfillM)
-		}, api.Agg, pf.config.Symbols)
-	case "quotes":
-		err = api.Stream(handlers.Quote, api.Quote, pf.config.Symbols)
-	case "trades":
-		err = api.Stream(handlers.Trade, api.Trade, pf.config.Symbols)
-	}
-
-	if err != nil {
-		panic(fmt.Errorf("nats streaming error (%v)", err))
-	}
 }
 
 func (pf *PolygonFetcher) workBackfillBars() {
