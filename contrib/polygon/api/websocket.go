@@ -32,9 +32,9 @@ type Subscription struct {
 }
 
 // servers := utils.Settings["WS_SERVERS"]
-func NewSubscription(servers string, t Prefix, symbols ...string) (s *Subscription, err error) {
+func NewSubscription(t Prefix, symbols []string) (s *Subscription, err error) {
 	s = &Subscription{}
-	if err = s.setURLs(servers); err != nil {
+	if err = s.setURLs(); err != nil {
 		return
 	}
 	s.scope = NewSubscriptionScope(t, symbols)
@@ -262,7 +262,7 @@ cleanup:
 	return
 }
 
-func (s *Subscription) setURLs(servers string) (err error) {
+func (s *Subscription) setURLs() (err error) {
 	//"nats://nats1.polygon.io:31111, nats://nats2.polygon.io:31112, nats://nats3.polygon.io:31113"
 	urls := strings.Split(servers, ",")
 	if len(urls) < 1 {
@@ -285,7 +285,7 @@ func (s *Subscription) setURLs(servers string) (err error) {
 // Subscribe to a websocket connection for a given data type
 // by providing a channel that the messages will be
 // written to
-func (s *Subscription) Subscribe(handler func(msg []byte), servers string) {
+func (s *Subscription) Subscribe(handler func(msg []byte)) {
 	if s.getRunning() {
 		return
 	}

@@ -88,12 +88,29 @@ func (pf *PolygonFetcher) Run() {
 		api.SetBaseURL(pf.config.BaseURL)
 	}
 
-	if pf.config.NatsServers != "" {
-		api.SetNatsServers(pf.config.NatsServers)
+	if pf.config.WSServers != "" {
+		api.SetWSServers(pf.config.WSServers)
 	}
 
 	for t := range pf.types {
-		go pf.stream(t)
+		var prefix api.Prefix
+		var handler func([]byte)
+		switch t {
+		case "bars":
+			prefix = api.Agg
+		case "quotes":
+			prefix = api.Quote
+			handler = handlers.QuoteHandler
+		case "trades":
+			prefix = api.Trade
+			handler = handlers.TradeHandler
+		}
+		s, err := api.NewSubscription(prefix, pf.config.Symbols)
+		if err != nil {
+			log.Error("unable to subscribe to %s topic", t)
+			continue
+		}
+		s.Subscribe(handler)
 	}
 
 	select {}

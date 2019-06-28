@@ -22,7 +22,7 @@ const (
 
 var (
 	baseURL = "https://api.polygon.io"
-	servers = "nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403"
+	servers = "ws://socket.polygon.io:30328" // default
 	apiKey  string
 	NY, _   = time.LoadLocation("America/New_York")
 )
@@ -56,7 +56,7 @@ func SetBaseURL(url string) {
 	baseURL = url
 }
 
-func SetNatsServers(serverList string) {
+func SetWSServers(serverList string) {
 	servers = serverList
 }
 
