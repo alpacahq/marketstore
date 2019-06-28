@@ -3,6 +3,7 @@ package backfill
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/contrib/polygon/api"
@@ -12,9 +13,10 @@ import (
 
 var (
 	// NY timezone
-	NY, _    = time.LoadLocation("America/New_York")
-	format   = "2006-01-02"
-	ErrRetry = fmt.Errorf("retry error")
+	NY, _     = time.LoadLocation("America/New_York")
+	format    = "2006-01-02"
+	ErrRetry  = fmt.Errorf("retry error")
+	BackfillM *sync.Map
 )
 
 func Bars(symbol string, from, to time.Time) (err error) {

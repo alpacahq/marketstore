@@ -19,9 +19,8 @@ import (
 )
 
 type PolygonFetcher struct {
-	config    FetcherConfig
-	backfillM *sync.Map
-	types     map[string]struct{} // Bars, Quotes, Trades
+	config FetcherConfig
+	types  map[string]struct{} // Bars, Quotes, Trades
 }
 
 type FetcherConfig struct {
@@ -68,10 +67,11 @@ func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 		return nil, fmt.Errorf("at least one valid data_type is required")
 	}
 
+	backfill.BackfillM = &sync.Map{}
+
 	return &PolygonFetcher{
-		backfillM: &sync.Map{},
-		config:    config,
-		types:     t,
+		config: config,
+		types:  t,
 	}, nil
 }
 
@@ -94,6 +94,7 @@ func (pf *PolygonFetcher) Run() {
 		switch t {
 		case "bars":
 			prefix = api.Agg
+			handler = handlers.BarsHandler
 		case "quotes":
 			prefix = api.Quote
 			handler = handlers.QuoteHandler
@@ -121,7 +122,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 
 		// range over symbols that need backfilling, and
 		// backfill them from the last written record
-		pf.backfillM.Range(func(key, value interface{}) bool {
+		backfill.BackfillM.Range(func(key, value interface{}) bool {
 			symbol := key.(string)
 			// make sure epoch value isn't nil (i.e. hasn't
 			// been backfilled already)
@@ -132,7 +133,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 
 					// backfill the symbol in parallel
 					pf.backfillBars(symbol, *value.(*int64))
-					pf.backfillM.Store(key, nil)
+					backfill.BackfillM.Store(key, nil)
 				}()
 			}
 

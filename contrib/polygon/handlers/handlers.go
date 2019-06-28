@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/contrib/polygon/backfill"
 
 	"github.com/alpacahq/marketstore/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/executor"
@@ -113,7 +114,7 @@ func QuoteHandler(msg []byte) {
 
 }
 
-func Bar(msg []byte, backfillM *sync.Map) {
+func BarsHandler(msg []byte) {
 	if msg == nil {
 		return
 	}
@@ -131,7 +132,7 @@ func Bar(msg []byte, backfillM *sync.Map) {
 
 		epoch := bar.EpochMillis / 1000
 
-		backfillM.LoadOrStore(bar.Symbol, &epoch)
+		backfill.BackfillM.LoadOrStore(bar.Symbol, &epoch)
 
 		tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", bar.Symbol))
 		csm := io.NewColumnSeriesMap()
