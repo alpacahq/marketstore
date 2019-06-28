@@ -101,10 +101,8 @@ func (s *Subscription) disconnect() {
 	err := s.conn.Close()
 	if err != nil {
 		log.Warn("error closing connection")
-		goto FINALIZE
 	}
 
-FINALIZE:
 	s.conn = nil
 	return
 }
