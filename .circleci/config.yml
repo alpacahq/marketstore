@@ -29,6 +29,16 @@ jobs:
       - setup_remote_docker
       - run: DOCKER_TAG=$CIRCLE_TAG make push
 
+  reviewdog:
+    docker:
+      - image: circleci/golang:1.12.6
+
+    steps:
+      - run:
+          name: Run reviewdog
+          command: |
+            REVIEWDOG_ARGS="-reporter=github-pr-review" make reviewdog
+
 workflows:
   version: 2
   build_test_deploy:
@@ -38,6 +48,13 @@ workflows:
             tags:
               only: /.*/
       - test:
+          filters:
+            tags:
+              only: /.*/
+      - reviewdog:
+          requires:
+            - build
+            - test
           filters:
             tags:
               only: /.*/

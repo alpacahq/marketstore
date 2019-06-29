@@ -3,9 +3,12 @@
 GOFLAGS="-mod=vendor"
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
 UTIL_PATH := github.com/alpacahq/marketstore/utils
+# see utils/tools.go
+CITOOLS_TAG := citools
+REVIEWDOG_ARGS ?= -diff="git diff master"
 
 all:
-	GOFLAGS=$(GOFLAGS) go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
+	GOFLAGS=$(GOFLAGS) go install -tags $(CITOOLS_TAG) -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
 debug:
 	$(MAKE) debug -C contrib/ondiskagg
@@ -30,6 +33,12 @@ vendor:
 
 update:
 	GOFLAGS=$(GOFLAGS) go mod tidy
+
+lint:
+	golangci-lint run ./...
+
+reviewdog:
+	reviewdog -conf=.reviewdog.yml $(REVIEWDOG_ARGS)
 
 plugins:
 	$(MAKE) -C contrib/ondiskagg
