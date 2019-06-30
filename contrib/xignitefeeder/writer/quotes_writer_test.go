@@ -23,6 +23,7 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 	SUT := QuotesWriterImpl{
 		MarketStoreWriter: m,
 		Timeframe:         "1Sec",
+		Timezone:          time.UTC,
 	}
 
 	// 2 "Success" and 1 "RequestError" quotes data
