@@ -57,7 +57,7 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 		if eq.Volume == 0 {
 			continue
 		}
-		epochs = append(epochs, time.Time(eq.Date).Unix())
+		epochs = append(epochs, time.Time(eq.Date).In(time.UTC).Unix())
 		opens = append(opens, eq.Open)
 		closes = append(closes, eq.Close)
 		highs = append(highs, eq.High)

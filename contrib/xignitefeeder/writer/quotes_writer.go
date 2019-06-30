@@ -57,8 +57,7 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 			time.Time(eq.Quote.BidDateTime),
 		)
 
-		// adjust the time to UTC,
-		// and set the timezone the same way as the marketstore config
+		// adjust the time to UTC and set the timezone the same way as the marketstore config
 		UTCOffset := time.Duration(-1*eq.Quote.UTCOffSet) * time.Hour
 		latestDateTime = latestDateTime.Add(UTCOffset).In(q.Timezone)
 

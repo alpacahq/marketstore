@@ -94,3 +94,49 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 		t.Errorf("The newer of Ask and Bid Datetimes should be used for the Epoch column.")
 	}
 }
+
+//  UTCOffset response parameter is used to convert the time in API response to UTC.
+func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
+	// --- given ---
+	m := &internal.MockMarketStoreWriter{}
+	SUT := QuotesWriterImpl{
+		MarketStoreWriter: m,
+		Timeframe:         "1Sec",
+		Timezone:          time.UTC,
+	}
+
+	// data with UTCOffset
+	apiResponse := api.GetQuotesResponse{
+		ArrayOfEquityQuote: []api.EquityQuote{
+			{
+				Outcome:  "Success",
+				Security: &api.Security{Symbol: "1234"},
+				Quote: &api.Quote{
+					Ask:         123.4,
+					Bid:         567.8,
+					AskDateTime: api.XigniteDateTime(May1st),
+					BidDateTime: api.XigniteDateTime(May1st),
+					UTCOffSet:   3, // which means the datetime is UTC+3:00
+				},
+			},
+		},
+	}
+
+	// --- when ---
+	err := SUT.Write(apiResponse)
+
+	// --- then ---
+	if err != nil {
+		t.Fatalf("error should be nil. got=%v", err)
+	}
+
+	// Time Bucket Key
+	key := m.WrittenCSM.GetMetadataKeys()[0].Key
+
+	// epoch time check
+	epochTime := m.WrittenCSM[io.TimeBucketKey{Key: key}].GetColumn("Epoch").([]int64)[0]
+	epoch := time.Unix(epochTime, 0)
+	if !epoch.Equal(May1st.Add(-3 * time.Hour)) { // = AskDateTime - UTCOffset
+		t.Errorf("Epoch value should be considered the UTCOffset.")
+	}
+}
