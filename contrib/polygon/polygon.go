@@ -102,11 +102,7 @@ func (pf *PolygonFetcher) Run() {
 			prefix = api.Trade
 			handler = handlers.TradeHandler
 		}
-		s, err := api.NewSubscription(prefix, pf.config.Symbols)
-		if err != nil {
-			log.Error("unable to subscribe to %s topic", t)
-			continue
-		}
+		s := api.NewSubscription(prefix, pf.config.Symbols)
 		s.Subscribe(handler)
 	}
 
