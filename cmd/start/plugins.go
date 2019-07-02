@@ -42,7 +42,8 @@ func RunBgWorkers() {
 	log.Info("InitializeBgWorkers")
 	config := utils.InstanceConfig
 	for _, bgWorkerSetting := range config.BgWorkers {
-		log.Info("bgWorkerSetting = %v", bgWorkerSetting)
+		// bgWorkerSetting may contain sensitive data such as a password or token.
+		log.Debug("bgWorkerSetting = %v", bgWorkerSetting)
 		bgWorker := NewBgWorker(bgWorkerSetting)
 		if bgWorker != nil {
 			// we should probably keep track of this process status
