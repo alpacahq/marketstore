@@ -16,6 +16,7 @@ type PolygonWebSocket struct {
 	pingPeriod     time.Duration
 	doneChan       chan struct{}
 	Servers        []*url.URL
+	apiKey         string
 	scope          *SubscriptionScope
 	conn           *websocket.Conn
 	outputChan     chan interface{}
@@ -30,6 +31,7 @@ func NewPolygonWebSocket(servers, apiKey string, pref Prefix, symbols []string, 
 		pingPeriod:     10 * time.Second,
 		doneChan:       make(chan struct{}),
 		Servers:        setURLs(servers, apiKey),
+		apiKey:         apiKey,
 		scope:          NewSubscriptionScope(pref, symbols),
 		conn:           nil,
 		outputChan:     oChan,
@@ -44,6 +46,7 @@ func (p *PolygonWebSocket) pongHandler(s string) (err error) {
 	_ = p.conn.SetReadDeadline(time.Now().Add(6 * p.pingPeriod / 5))
 	pong := func() {
 		time.Sleep(p.pingPeriod)
+		log.Debug("ponging...")
 		_ = p.conn.SetReadDeadline(time.Now().Add(p.pingPeriod))
 		_ = p.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
 	}
@@ -57,7 +60,7 @@ restartConnection:
 	err := p.connect()
 	if err != nil {
 		log.Warn("error connecting to upstream {%s:%v,%s:%v,%s:%v}",
-			"server", servers,
+			"server", p.Servers[0].String(),
 			"subscription", p.scope.GetSubScope(),
 			"error", err.Error())
 		time.Sleep(time.Second)
@@ -187,7 +190,7 @@ func (p *PolygonWebSocket) subscribe() (connected bool) {
 		ws.send('{"action":"auth","params":"YOUR_API_KEY"}')
 		ws.send('{"action":"subscribe","params":"C.AUD/USD,C.USD/EUR,C.USD/JPY"}')
 	*/
-	authMsg := fmt.Sprintf("{\"action\":\"auth\",\"params\":\"%s\"}", apiKey)
+	authMsg := fmt.Sprintf("{\"action\":\"auth\",\"params\":\"%s\"}", p.apiKey)
 	subMsg := fmt.Sprintf("{\"action\":\"subscribe\", \"params\":\"%s\"}", p.scope.GetSubScope())
 
 	// send the subscription message to the upstream
