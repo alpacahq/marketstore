@@ -142,7 +142,9 @@ ErrorOut:
 func (p *PolygonWebSocket) connect() (err error) {
 	p.disconnect()
 	var hresp *http.Response
-	p.conn, hresp, err = websocket.DefaultDialer.Dial(p.Servers[0].String(), nil)
+	dialer := websocket.DefaultDialer
+	dialer.HandshakeTimeout = 2 * time.Second
+	p.conn, hresp, err = dialer.Dial(p.Servers[0].String(), nil)
 	if err != nil {
 		return
 	}
