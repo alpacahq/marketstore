@@ -95,7 +95,6 @@ restartConnection:
 			case nil:
 				goto restartConnection
 			default:
-				//fmt.Printf("incoming packet: %v\n", string(msg))
 				p.outputChan <- msg
 			}
 		}
@@ -239,14 +238,3 @@ func setURLs(servers, apiKey string) (Servers []*url.URL) {
 	Servers = u
 	return
 }
-
-/*
-func main() {
-	pws := NewPolygonWebSocket(servers, apiKey, Quote, []string{"*"})
-	go pws.listen()
-	time.Sleep(50 * time.Second)
-	fmt.Println("stopping...")
-	pws.doneChan <- struct{}{}
-	fmt.Println("done.")
-}
-*/
