@@ -32,7 +32,7 @@ func NewSubscriptionScope(scope Prefix, symbols []string) *SubscriptionScope {
 	}
 }
 
-func (s SubscriptionScope) getSubScope() string {
+func (s SubscriptionScope) GetSubScope() string {
 	var buf bytes.Buffer
 	for i, sym := range s.symbols {
 		buf.WriteString(s.scope + sym)

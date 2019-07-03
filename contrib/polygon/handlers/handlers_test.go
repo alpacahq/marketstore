@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/catalog"
+
+	"github.com/alpacahq/marketstore/executor"
+
 	"github.com/alpacahq/marketstore/contrib/polygon/api"
 	. "gopkg.in/check.v1"
 )
@@ -13,7 +17,20 @@ func Test(t *testing.T) { TestingT(t) }
 
 var _ = Suite(&HandlersTestSuite{})
 
-type HandlersTestSuite struct{}
+type HandlersTestSuite struct {
+	DataDirectory *catalog.Directory
+	Rootdir       string
+	WALFile       *executor.WALFileType
+}
+
+func (s *HandlersTestSuite) SetUpSuite(c *C) {
+	s.Rootdir = c.MkDir()
+	executor.NewInstanceSetup(s.Rootdir, true, true, false, true) // WAL Bypass
+	s.DataDirectory = executor.ThisInstance.CatalogDir
+	s.WALFile = executor.ThisInstance.WALFile
+}
+
+func (s *HandlersTestSuite) TearDownSuite(c *C) {}
 
 func getTestTradeArray() []api.PolyTrade {
 	return []api.PolyTrade{
