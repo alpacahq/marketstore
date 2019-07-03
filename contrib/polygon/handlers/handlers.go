@@ -48,12 +48,11 @@ func TradeHandler(msg []byte) {
 			"error", err.Error())
 		return
 	}
-
 	for _, rt := range tt {
-		if conditionsPresent(rt.Conditions) {
+		switch {
+		case conditionsPresent(rt.Conditions), rt.Size <= 0, rt.Price <= 0:
 			continue
 		}
-
 		// Polygon time is in milliseconds since the Unix epoch
 		timestamp := time.Unix(0, int64(1000*1000*float64(rt.Timestamp)))
 		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
@@ -62,10 +61,6 @@ func TradeHandler(msg []byte) {
 			nanos: int32(timestamp.Nanosecond()),
 			sz:    int32(rt.Size),
 			px:    float32(rt.Price),
-		}
-		// skip empty trades
-		if t.sz <= 0 || t.px <= 0 {
-			return
 		}
 		symbol := fmt.Sprintf("%s", strings.Replace(rt.Symbol, "/", ".", 1))
 		pkt := &writePacket{
@@ -108,7 +103,6 @@ func QuoteHandler(msg []byte) {
 			&q,
 		}
 		Write(pkt)
-
 		_ = lagOnReceipt
 	}
 
