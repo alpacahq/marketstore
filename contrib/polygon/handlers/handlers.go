@@ -48,6 +48,7 @@ func TradeHandler(msg []byte) {
 			"error", err.Error())
 		return
 	}
+	writeMap := make(map[io.TimeBucketKey]interface{})
 	for _, rt := range tt {
 		switch {
 		case conditionsPresent(rt.Conditions), rt.Size <= 0, rt.Price <= 0:
@@ -62,14 +63,11 @@ func TradeHandler(msg []byte) {
 			sz:    int32(rt.Size),
 			px:    float32(rt.Price),
 		}
-		symbol := fmt.Sprintf("%s", strings.Replace(rt.Symbol, "/", ".", 1))
-		pkt := &writePacket{
-			io.NewTimeBucketKey(symbol + "/1Min/TRADE"),
-			&t,
-		}
-		Write(pkt)
+		key := fmt.Sprintf("%s/1Min/TRADE", strings.Replace(rt.Symbol, "/", ".", 1))
+		appendItem(writeMap, io.NewTimeBucketKey(key), &t)
 		_ = lagOnReceipt
 	}
+	Write(writeMap)
 }
 
 // QuoteHandler handles a Polygon WS quote
@@ -86,6 +84,7 @@ func QuoteHandler(msg []byte) {
 			"error", err.Error())
 		return
 	}
+	writeMap := make(map[io.TimeBucketKey]interface{})
 	for _, rq := range qq {
 		timestamp := time.Unix(0, int64(1000*1000*float64(rq.Timestamp)))
 		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
@@ -97,15 +96,11 @@ func QuoteHandler(msg []byte) {
 			askPx: float32(rq.AskPrice),
 			askSz: int32(rq.AskSize),
 		}
-		symbol := fmt.Sprintf("%s", strings.Replace(rq.Symbol, "/", ".", 1))
-		pkt := &writePacket{
-			io.NewTimeBucketKey(symbol + "/1Min/QUOTE"),
-			&q,
-		}
-		Write(pkt)
+		key := fmt.Sprintf("%s/1Min/QUOTE", strings.Replace(rq.Symbol, "/", ".", 1))
+		appendItem(writeMap, io.NewTimeBucketKey(key), &q)
 		_ = lagOnReceipt
 	}
-
+	Write(writeMap)
 }
 
 func BarsHandler(msg []byte) {
@@ -145,5 +140,26 @@ func BarsHandler(msg []byte) {
 		}
 
 		_ = lagOnReceipt
+	}
+}
+
+func appendItem(writeMap map[io.TimeBucketKey]interface{}, tbkp *io.TimeBucketKey, item interface{}) {
+	tbk := *tbkp
+	if bucketI, ok := writeMap[tbk]; ok {
+		switch bucket := bucketI.(type) {
+		case []*trade:
+			bucket = append(bucket, item.(*trade))
+			writeMap[tbk] = bucket
+		case []*quote:
+			bucket = append(bucket, item.(*quote))
+			writeMap[tbk] = bucket
+		}
+	} else {
+		switch val := item.(type) {
+		case *trade:
+			writeMap[tbk] = []*trade{val}
+		case *quote:
+			writeMap[tbk] = []*quote{val}
+		}
 	}
 }
