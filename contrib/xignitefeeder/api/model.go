@@ -32,7 +32,8 @@ type Quote struct {
 	Bid         float32         `json:"Bid"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
 	// price of the most recent deal
-	Last float32 `json:"Last"`
+	Last      float32 `json:"Last"`
+	UTCOffSet int     `json:"UTCOffSet"`
 }
 
 // XigniteDateTime is a date time in XigniteDateTimeLayout format

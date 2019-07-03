@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/utils"
 	"time"
 
 	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
@@ -55,6 +56,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var msqw writer.QuotesWriter = writer.QuotesWriterImpl{
 		MarketStoreWriter: &writer.MarketStoreWriterImpl{},
 		Timeframe:         config.Timeframe,
+		Timezone:          utils.InstanceConfig.Timezone,
 	}
 
 	return &feed.Worker{
