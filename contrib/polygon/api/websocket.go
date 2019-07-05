@@ -91,7 +91,7 @@ func (s *Subscription) Subscribe(handler func(msg []byte)) {
 		tickDebug := time.NewTicker(time.Second)
 		for range tickDebug.C {
 			log.Debug(
-				"{%s:%v,%s:%v,%s:%v}",
+				"{%s:%v,%s:%v,%s:%v,%s:%v}",
 				"subscription", s.pConn.scope.GetSubScope(),
 				"goroutines", runtime.NumGoroutine(),
 				"channel_depth", len(s.Incoming),
