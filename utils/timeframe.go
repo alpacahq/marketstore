@@ -34,8 +34,8 @@ var Timeframes = []*Timeframe{
 	{"1H", time.Hour},
 	{"4H", 4 * time.Hour},
 	{"2H", 2 * time.Hour},
-	{"24H", 24 * time.Hour},
-	// {"1D", Day},
+	{"1D", Day},
+	//{"24H", 24 * time.Hour},
 }
 
 type Timeframe struct {
