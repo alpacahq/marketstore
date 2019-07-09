@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -153,7 +154,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	}
 
 	if err = json.Unmarshal(body, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(res.Status + ": " + string(body))
 	}
 
 	if q.Get("types") == "intraday-prices" {
