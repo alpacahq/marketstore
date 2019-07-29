@@ -2,6 +2,7 @@ package sqlparser
 
 import (
 	"encoding/json"
+
 	"github.com/alpacahq/marketstore/utils/io"
 )
 

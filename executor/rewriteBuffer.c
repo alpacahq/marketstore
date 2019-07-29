@@ -47,5 +47,7 @@ inline void getTimeFromTicks(uint32_t intervalStart, int64_t intervalsPerDay,
 		fractionalSeconds += 1;
 	}
 	ept->epoch = intStart + fractionalSeconds;
-	ept->nanos = subseconds;
+	// round the subseconds after the decimal point to minimize the cancellation error of subseconds
+	// round( subseconds ) = (int32_t)(subseconds + 0.5)
+	ept->nanos = subseconds + 0.5;
 }

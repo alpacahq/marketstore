@@ -21,7 +21,7 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func (t *TestSuite) TestNew(c *C) {
 	var config = getConfig(`{
-        "symbols": ["BTC"]
+        "symbols": ["BTC-USD"]
         }`)
 	var worker *GdaxFetcher
 	var ret bgworker.BgWorker
@@ -29,14 +29,16 @@ func (t *TestSuite) TestNew(c *C) {
 	ret, err = NewBgWorker(config)
 	worker = ret.(*GdaxFetcher)
 	c.Assert(len(worker.symbols), Equals, 1)
-	c.Assert(worker.symbols[0], Equals, "BTC")
+	c.Assert(worker.symbols[0], Equals, "BTC-USD")
 	c.Assert(err, IsNil)
 
-	config = getConfig(``)
+	config = getConfig(`{
+        "symbols": ["BTC-USD", "ETH-USD", "LTC-BTC"]
+        }`)
 	ret, err = NewBgWorker(config)
-	worker = ret.(*GdaxFetcher)
 	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, 4)
+	worker = ret.(*GdaxFetcher)
+	c.Assert(len(worker.symbols), Equals, 3)
 
 	config = getConfig(`{
         "query_start": "2017-01-02 00:00"

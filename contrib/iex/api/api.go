@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,23 +10,35 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/gocarina/gocsv"
 )
 
 const (
-	base      = "https://api.iextrading.com/1.0"
 	BatchSize = 100
 )
 
 var (
 	NY, _ = time.LoadLocation("America/New_York")
+	token string
+	base  = "https://cloud.iexapis.com/stable"
 )
 
-type GetBarsResponse map[string]ChartResponse
+func SetToken(t string) {
+	token = t
+}
+
+func SetSandbox(b bool) {
+	if b {
+		base = "https://sandbox.iexapis.com/stable"
+	} else {
+		base = "https://cloud.iexapis.com/stable"
+	}
+}
+
+type GetBarsResponse map[string]*ChartResponse
 
 type ChartResponse struct {
-	Chart []Chart `json:"chart"`
+	Chart          []Chart `json:"chart"`
+	IntradayPrices []Chart `json:"intraday-prices"`
 }
 
 type Chart struct {
@@ -59,7 +72,7 @@ func (c *Chart) GetTimestamp() (ts time.Time, err error) {
 	} else {
 		// intraday bar
 		tStr := fmt.Sprintf("%v %v", c.Date, c.Minute)
-		ts, err = time.ParseInLocation("20060102 15:04", tStr, NY)
+		ts, err = time.ParseInLocation("2006-01-02 15:04", tStr, NY)
 	}
 	return
 }
@@ -95,7 +108,13 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	q := u.Query()
 
 	q.Set("symbols", strings.Join(symbols, ","))
-	q.Set("types", "chart")
+	q.Set("token", token)
+	if barRange == "1d" {
+		q.Set("types", "intraday-prices")
+	} else {
+		q.Set("types", "chart")
+	}
+	q.Set("chartIEXOnly", "true")
 
 	if SupportedRange(barRange) {
 		q.Set("range", barRange)
@@ -109,6 +128,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 
 	u.RawQuery = q.Encode()
 
+	// fmt.Println(u.String())
 	res, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
@@ -134,23 +154,35 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	}
 
 	if err = json.Unmarshal(body, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(res.Status + ": " + string(body))
+	}
+
+	if q.Get("types") == "intraday-prices" {
+		for key, val := range resp {
+			resp[key].Chart = val.IntradayPrices
+		}
+	}
+
+	if resp[symbols[0]] != nil && resp[symbols[0]].Chart == nil {
+		if retries > 0 {
+			// log.Info("retrying due to null response")
+			<-time.After(time.Second)
+			return GetBars(symbols, barRange, limit, retries-1)
+		}
+		return nil, fmt.Errorf("retry count exceeded")
 	}
 
 	return &resp, nil
 }
 
 type ListSymbolsResponse []struct {
-	Symbol    string `csv:"symbol"`
-	Name      string `csv:"name"`
-	Date      string `csv:"date"`
-	IsEnabled bool   `csv:"isEnabled"`
-	Type      string `csv:"type"`
-	IexID     int64  `csv:"iexId"`
+	Symbol    string `json:"symbol"`
+	Date      string `json:"date"`
+	IsEnabled bool   `json:"isEnabled"`
 }
 
 func ListSymbols() (*ListSymbolsResponse, error) {
-	url := fmt.Sprintf("%s/ref-data/symbols?format=csv", base)
+	url := fmt.Sprintf("%s/ref-data/iex/symbols?token=%s", base, token)
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -165,7 +197,11 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 
 	var resp ListSymbolsResponse
 
-	if err = gocsv.Unmarshal(res.Body, &resp); err != nil {
+	body, err := ioutil.ReadAll((res.Body))
+	if err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(body, &resp); err != nil {
 		return nil, err
 	}
 

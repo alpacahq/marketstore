@@ -2,9 +2,10 @@ package functions
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/alpacahq/marketstore/utils/io"
 	. "gopkg.in/check.v1"
-	"testing"
 )
 
 // Hook up gocheck into the "go test" runner.

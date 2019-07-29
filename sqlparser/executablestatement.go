@@ -3,9 +3,10 @@ package sqlparser
 import (
 	"bytes"
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/io"
 	"reflect"
 	"time"
+
+	"github.com/alpacahq/marketstore/utils/io"
 )
 
 type ExecutableStatement struct {

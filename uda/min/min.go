@@ -2,10 +2,11 @@ package min
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/alpacahq/marketstore/uda"
 	"github.com/alpacahq/marketstore/utils/functions"
 	"github.com/alpacahq/marketstore/utils/io"
-	"time"
 )
 
 var (

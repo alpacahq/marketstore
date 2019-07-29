@@ -258,7 +258,7 @@ func initWriter() {
 
 	config := map[string]interface{}{
 		"filter":       "nasdaq",
-		"destinations": []string{"5Min", "15Min", "1H", "4H"},
+		"destinations": []string{"5Min", "15Min", "1H"},
 	}
 
 	trig, err := aggtrigger.NewTrigger(config)

@@ -16,13 +16,11 @@ import (
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
-	nats "github.com/nats-io/go-nats"
 )
 
 type PolygonFetcher struct {
-	config    FetcherConfig
-	backfillM *sync.Map
-	types     map[string]struct{}
+	config FetcherConfig
+	types  map[string]struct{} // Bars, Quotes, Trades
 }
 
 type FetcherConfig struct {
@@ -31,9 +29,8 @@ type FetcherConfig struct {
 	// polygon API base URL in case it is being proxied
 	// (defaults to https://api.polygon.io/)
 	BaseURL string `json:"base_url"`
-	// list of nats servers to connect to
-	// (defaults to "nats://nats1.polygon.io:30401, nats://nats2.polygon.io:30402, nats://nats3.polygon.io:30403")
-	NatsServers string `json:"nats_servers"`
+	// websocket servers for Polygon, default is: "ws://socket.polygon.io:30328"
+	WSServers string `json:"ws_servers"`
 	// list of data types to subscribe to (one of bars, quotes, trades)
 	DataTypes []string `json:"data_types"`
 	// list of symbols that are important
@@ -44,27 +41,24 @@ type FetcherConfig struct {
 	QueryStart string `json:"query_start"`
 }
 
-const (
-	Bars   = "bars"
-	Quotes = "quotes"
-	Trades = "trades"
-)
-
 var (
 	minute = utils.NewTimeframe("1Min")
 )
 
 // NewBgWorker returns a new instances of PolygonFetcher. See FetcherConfig
 // for more details about configuring PolygonFetcher.
-func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
+func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}
-	json.Unmarshal(data, &config)
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		return
+	}
 
 	t := map[string]struct{}{}
 
 	for _, dt := range config.DataTypes {
-		if dt == Bars || dt == Quotes || dt == Trades {
+		if dt == "bars" || dt == "quotes" || dt == "trades" {
 			t[dt] = struct{}{}
 		}
 	}
@@ -73,10 +67,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		return nil, fmt.Errorf("at least one valid data_type is required")
 	}
 
+	backfill.BackfillM = &sync.Map{}
+
 	return &PolygonFetcher{
-		backfillM: &sync.Map{},
-		config:    config,
-		types:     t,
+		config: config,
+		types:  t,
 	}, nil
 }
 
@@ -89,37 +84,29 @@ func (pf *PolygonFetcher) Run() {
 		api.SetBaseURL(pf.config.BaseURL)
 	}
 
-	if pf.config.NatsServers != "" {
-		api.SetNatsServers(pf.config.NatsServers)
+	if pf.config.WSServers != "" {
+		api.SetWSServers(pf.config.WSServers)
 	}
 
 	for t := range pf.types {
-		go pf.stream(t)
+		var prefix api.Prefix
+		var handler func([]byte)
+		switch t {
+		case "bars":
+			prefix = api.Agg
+			handler = handlers.BarsHandler
+		case "quotes":
+			prefix = api.Quote
+			handler = handlers.QuoteHandler
+		case "trades":
+			prefix = api.Trade
+			handler = handlers.TradeHandler
+		}
+		s := api.NewSubscription(prefix, pf.config.Symbols)
+		s.Subscribe(handler)
 	}
 
 	select {}
-}
-
-func (pf *PolygonFetcher) stream(t string) {
-	var err error
-
-	log.Info("[polygon] streaming %v", t)
-
-	switch t {
-	case Bars:
-		go pf.workBackfillBars()
-		err = api.Stream(func(msg *nats.Msg) {
-			handlers.Bar(msg, pf.backfillM)
-		}, api.AggPrefix, pf.config.Symbols)
-	case Quotes:
-		err = api.Stream(handlers.Quote, api.QuotePrefix, pf.config.Symbols)
-	case Trades:
-		err = api.Stream(handlers.Trade, api.TradePrefix, pf.config.Symbols)
-	}
-
-	if err != nil {
-		panic(fmt.Errorf("nats streaming error (%v)", err))
-	}
 }
 
 func (pf *PolygonFetcher) workBackfillBars() {
@@ -131,7 +118,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 
 		// range over symbols that need backfilling, and
 		// backfill them from the last written record
-		pf.backfillM.Range(func(key, value interface{}) bool {
+		backfill.BackfillM.Range(func(key, value interface{}) bool {
 			symbol := key.(string)
 			// make sure epoch value isn't nil (i.e. hasn't
 			// been backfilled already)
@@ -142,7 +129,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 
 					// backfill the symbol in parallel
 					pf.backfillBars(symbol, *value.(*int64))
-					pf.backfillM.Store(key, nil)
+					backfill.BackfillM.Store(key, nil)
 				}()
 			}
 

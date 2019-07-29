@@ -24,12 +24,18 @@ var timeframeDefs = []Timeframe{
 }
 
 var Timeframes = []*Timeframe{
+	{"1Sec", time.Second},
+	{"10Sec", 10 * time.Second},
+	{"30Sec", 30 * time.Second},
 	{"1Min", time.Minute},
 	{"5Min", 5 * time.Minute},
 	{"15Min", 15 * time.Minute},
+	{"30Min", 30 * time.Minute},
 	{"1H", time.Hour},
 	{"4H", 4 * time.Hour},
+	{"2H", 2 * time.Hour},
 	{"1D", Day},
+	//{"24H", 24 * time.Hour},
 }
 
 type Timeframe struct {

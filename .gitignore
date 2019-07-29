@@ -1,7 +1,7 @@
 .envrc
 /bin/
 /pkg/
-/vendor/
+#/vendor/
 **/*.swp
 .idea/
 /data/
@@ -10,12 +10,5 @@
 mktsdb/
 marketstore
 *.exe
-
-# Python Virtual Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+*.test
+.vscode

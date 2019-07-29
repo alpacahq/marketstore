@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12.6
 
     working_directory: ~/github.com/alpacahq/marketstore
     steps:
@@ -11,16 +11,17 @@ jobs:
 
   test:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12.6
 
     working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
+      - setup_remote_docker
       - run: make install unittest
   
   deploy:
     docker:
-      - image: circleci/golang
+      - image: circleci/golang:1.12.6
 
     working_directory: ~/github.com/alpacahq/marketstore
     steps:

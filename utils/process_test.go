@@ -2,8 +2,9 @@ package utils
 
 import (
 	"fmt"
-	. "gopkg.in/check.v1"
 	"time"
+
+	. "gopkg.in/check.v1"
 )
 
 /*

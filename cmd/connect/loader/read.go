@@ -58,6 +58,7 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 		}
 		if err != nil {
 			fmt.Printf("Error parsing Epoch column(s) from input data file: %s\n", err.Error())
+			fmt.Printf("rowTime %v, mustComposeEpoch %v, dateTime %v, format %v, loc %v, fromAdj %v", rowTime, mustComposeEpoch, dateTime, conf.TimeFormat, tzLoc, formatAdj)
 			return nil, nil
 		}
 		epochCol[i] = rowTime.UTC().Unix()

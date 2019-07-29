@@ -18,14 +18,13 @@ var _ = Suite(&TestSuite{})
 
 type TestSuite struct{}
 
-func getConfig(data string) (ret map[string]interface{}) {
-	json.Unmarshal([]byte(data), &ret)
-	return
-}
-
 var cryptoConfig = getConfig(`{
 	"endpoint": "localhost:5000",
 	"topic": "bars_gdax",
+	"partitions": [
+		["gdax","5Min"],
+		["gdd","*"]
+	],
 	"attribute_group": "OHLCV",
 	"shape": [
 		["Epoch", "int64"],
@@ -40,6 +39,10 @@ var cryptoConfig = getConfig(`{
 var stockConfig = getConfig(`{
 	"endpoint": "localhost:5000",
 	"topic": "bars_gdax",
+	"partitions": [
+		["gdax","5Min"],
+		["gdd","*"]
+	],
 	"attribute_group": "OHLCV",
 	"shape": [
 		["Epoch", "int64"],
@@ -128,7 +131,7 @@ func (t *TestSuite) TestPublicationToCSM(c *C) {
 		},
 	}
 	ss := ret.(*SlaitSubscriber)
-	csm, err := ss.publicationToCSM(p)
+	csm, err := ss.publicationToCSM(p, "1Min")
 	c.Assert(err, IsNil)
 	c.Assert(csm, NotNil)
 	c.Assert(csm.IsEmpty(), Equals, false)
@@ -170,7 +173,7 @@ func (t *TestSuite) TestPublicationToCSM(c *C) {
 		},
 	}
 	ss = ret.(*SlaitSubscriber)
-	csm, err = ss.publicationToCSM(p)
+	csm, err = ss.publicationToCSM(p, "1Min")
 	c.Assert(err, IsNil)
 	c.Assert(csm, NotNil)
 	c.Assert(csm.IsEmpty(), Equals, false)

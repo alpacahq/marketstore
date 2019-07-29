@@ -21,6 +21,7 @@ func InitializeTriggers() {
 				theInstance.TriggerMatchers, tmatcher)
 		}
 	}
+	log.Info("InitializeTriggers - Done")
 }
 
 func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
@@ -41,7 +42,8 @@ func RunBgWorkers() {
 	log.Info("InitializeBgWorkers")
 	config := utils.InstanceConfig
 	for _, bgWorkerSetting := range config.BgWorkers {
-		log.Info("bgWorkerSetting = %v", bgWorkerSetting)
+		// bgWorkerSetting may contain sensitive data such as a password or token.
+		log.Debug("bgWorkerSetting = %v", bgWorkerSetting)
 		bgWorker := NewBgWorker(bgWorkerSetting)
 		if bgWorker != nil {
 			// we should probably keep track of this process status
@@ -51,6 +53,7 @@ func RunBgWorkers() {
 			go bgWorker.Run()
 		}
 	}
+	log.Info("InitializeBgWorkers Done")
 }
 
 func NewBgWorker(s *utils.BgWorkerSetting) bgworker.BgWorker {

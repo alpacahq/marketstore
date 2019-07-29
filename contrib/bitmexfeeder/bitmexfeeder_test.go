@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	bitmex "github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	. "gopkg.in/check.v1"
 )
@@ -22,7 +23,7 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func (t *TestSuite) TestNew(c *C) {
 	var config = getConfig(`{
-        "symbols": [".XBT"]
+        "symbols": ["XBTUSD"]
         }`)
 	var worker *BitmexFetcher
 	var ret bgworker.BgWorker
@@ -30,14 +31,17 @@ func (t *TestSuite) TestNew(c *C) {
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
 	c.Assert(len(worker.symbols), Equals, 1)
-	c.Assert(worker.symbols[0], Equals, ".XBT")
+	c.Assert(worker.symbols[0], Equals, "XBTUSD")
 	c.Assert(err, IsNil)
 
 	config = getConfig(``)
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
 	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, 28)
+	client := bitmex.Init()
+	symbols, err := client.GetInstruments()
+	c.Assert(err, IsNil)
+	c.Assert(len(worker.symbols), Equals, len(symbols))
 
 	config = getConfig(`{
 	    "query_start": "2017-01-02 00:00"

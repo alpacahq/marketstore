@@ -2,8 +2,9 @@ package loader
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/io"
 	"strconv"
+
+	"github.com/alpacahq/marketstore/utils/io"
 )
 
 func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey, csvRows [][]string, columnIndex []int,
@@ -21,6 +22,12 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 				We skip the first column, as it's the Epoch and we parse that independently
 			*/
 			switch shape.Type {
+			case io.STRING:
+				col, err := getStringColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
 			case io.FLOAT32:
 				col, err := getFloat32ColumnFromCSVRows(csvRows, index)
 				if columnError(err, shape.Name) {
@@ -29,6 +36,18 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 				csm.AddColumn(key, shape.Name, col)
 			case io.FLOAT64:
 				col, err := getFloat64ColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
+			case io.BYTE:
+				col, err := getInt8ColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
+			case io.INT16:
+				col, err := getInt16ColumnFromCSVRows(csvRows, index)
 				if columnError(err, shape.Name) {
 					return nil
 				}
@@ -45,7 +64,39 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 					return nil
 				}
 				csm.AddColumn(key, shape.Name, col)
+			case io.UINT8:
+				col, err := getUInt8ColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
+			case io.UINT16:
+				col, err := getUInt16ColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
+			case io.UINT32:
+				col, err := getUInt32ColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
+			case io.UINT64:
+				col, err := getUInt64ColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
+			case io.BOOL:
+				col, err := getBoolColumnFromCSVRows(csvRows, index)
+				if columnError(err, shape.Name) {
+					return nil
+				}
+				csm.AddColumn(key, shape.Name, col)
+
 			}
+
 		}
 	}
 	return csm
@@ -57,6 +108,26 @@ func columnError(err error, name string) bool {
 		return true
 	}
 	return false
+}
+
+func getBoolColumnFromCSVRows(csvRows [][]string, index int) (col []bool, err error) {
+	col = make([]bool, len(csvRows))
+	for i, row := range csvRows {
+		val, err := strconv.ParseBool(row[index])
+		if err != nil {
+			return nil, err
+		}
+		col[i] = bool(val)
+	}
+	return col, nil
+}
+
+func getStringColumnFromCSVRows(csvRows [][]string, index int) (col []string, err error) {
+	col = make([]string, len(csvRows))
+	for i, row := range csvRows {
+		col[i] = row[index]
+	}
+	return col, nil
 }
 
 func getFloat32ColumnFromCSVRows(csvRows [][]string, index int) (col []float32, err error) {
@@ -82,6 +153,30 @@ func getFloat64ColumnFromCSVRows(csvRows [][]string, index int) (col []float64, 
 	return col, nil
 }
 
+func getInt8ColumnFromCSVRows(csvRows [][]string, index int) (col []int8, err error) {
+	col = make([]int8, len(csvRows))
+	for i, row := range csvRows {
+		val, err := strconv.ParseInt(row[index], 10, 8)
+		if err != nil {
+			return nil, err
+		}
+		col[i] = int8(val)
+	}
+	return col, nil
+}
+
+func getInt16ColumnFromCSVRows(csvRows [][]string, index int) (col []int16, err error) {
+	col = make([]int16, len(csvRows))
+	for i, row := range csvRows {
+		val, err := strconv.ParseInt(row[index], 10, 16)
+		if err != nil {
+			return nil, err
+		}
+		col[i] = int16(val)
+	}
+	return col, nil
+}
+
 func getInt32ColumnFromCSVRows(csvRows [][]string, index int) (col []int32, err error) {
 	col = make([]int32, len(csvRows))
 	for i, row := range csvRows {
@@ -98,6 +193,53 @@ func getInt64ColumnFromCSVRows(csvRows [][]string, index int) (col []int64, err 
 	col = make([]int64, len(csvRows))
 	for i, row := range csvRows {
 		col[i], err = strconv.ParseInt(row[index], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return col, nil
+}
+
+func getUInt8ColumnFromCSVRows(csvRows [][]string, index int) (col []uint8, err error) {
+	col = make([]uint8, len(csvRows))
+	for i, row := range csvRows {
+		val, err := strconv.ParseUint(row[index], 10, 8)
+		if err != nil {
+			return nil, err
+		}
+		col[i] = uint8(val)
+	}
+	return col, nil
+}
+
+func getUInt16ColumnFromCSVRows(csvRows [][]string, index int) (col []uint16, err error) {
+	col = make([]uint16, len(csvRows))
+	for i, row := range csvRows {
+		val, err := strconv.ParseUint(row[index], 10, 16)
+		if err != nil {
+			return nil, err
+		}
+		col[i] = uint16(val)
+	}
+	return col, nil
+}
+
+func getUInt32ColumnFromCSVRows(csvRows [][]string, index int) (col []uint32, err error) {
+	col = make([]uint32, len(csvRows))
+	for i, row := range csvRows {
+		val, err := strconv.ParseUint(row[index], 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		col[i] = uint32(val)
+	}
+	return col, nil
+}
+
+func getUInt64ColumnFromCSVRows(csvRows [][]string, index int) (col []uint64, err error) {
+	col = make([]uint64, len(csvRows))
+	for i, row := range csvRows {
+		col[i], err = strconv.ParseUint(row[index], 10, 64)
 		if err != nil {
 			return nil, err
 		}
