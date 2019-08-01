@@ -8,7 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alpacahq/marketstore/contrib/calendar"
 	"github.com/alpacahq/marketstore/contrib/iex/api"
+	"github.com/alpacahq/marketstore/contrib/iex/filter"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/plugins/bgworker"
 	"github.com/alpacahq/marketstore/utils/io"
@@ -37,6 +39,9 @@ type FetcherConfig struct {
 	Intraday bool
 	// list of symbols to poll - queries all if empty
 	Symbols []string
+	// Filter filters symbols based on predefined set of symbols. Currently
+	// only SPY filter is supported
+	Filter string
 	// API Token
 	Token string
 	// True for sandbox
@@ -77,6 +82,21 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		}
 	}
 
+	// filter symbols if we have configured filter
+	if config.Filter != "" {
+		f, found := filter.Filters[config.Filter]
+		if found {
+			var filtered []string
+			for _, symbol := range config.Symbols {
+				if f(symbol) {
+					filtered = append(filtered, symbol)
+				}
+			}
+
+			config.Symbols = filtered
+		}
+	}
+
 	return &IEXFetcher{
 		backfillM: &sync.Map{},
 		config:    config,
@@ -104,8 +124,13 @@ func (f *IEXFetcher) Run() {
 
 	// loop forever over the batches
 	for batch := range f.queue {
-		f.pollIntraday(batch)
-		f.pollDaily(batch)
+		if f.config.Intraday {
+			f.pollIntraday(batch)
+		}
+
+		if f.config.Daily && !calendar.Nasdaq.IsMarketOpen(time.Now()) {
+			f.pollDaily(batch)
+		}
 
 		<-time.After(limiter())
 		f.queue <- batch

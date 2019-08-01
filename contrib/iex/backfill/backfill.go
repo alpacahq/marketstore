@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/contrib/calendar"
+	"github.com/alpacahq/marketstore/contrib/iex/filter"
 	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/plugins/trigger"
@@ -25,9 +26,11 @@ import (
 )
 
 var (
-	dir  string
-	from string
-	to   string
+	dir          string
+	from         string
+	to           string
+	filterName   string
+	symbolFilter filter.SymbolFilter
 
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
@@ -38,6 +41,7 @@ func init() {
 	flag.StringVar(&dir, "dir", "/project/data", "mktsdb directory to backfill to")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD)")
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill from date (YYYY-MM-DD)")
+	flag.StringVar(&filterName, "filter", "", "symbols filter (SPY)")
 
 	flag.Parse()
 }
@@ -53,6 +57,11 @@ func main() {
 	end, err := time.Parse(format, to)
 	if err != nil {
 		log.Fatal(err.Error())
+	}
+
+	sf, found := filter.Filters[filterName]
+	if found {
+		symbolFilter = sf
 	}
 
 	log.Info("backfilling from %v to %v", start.Format(format), end.Format(format))
@@ -182,7 +191,7 @@ func writeBars(bars []*consolidator.Bar) error {
 	for i := range bars {
 		batch, index := nextBatch(bars, i)
 
-		if len(batch) > 0 {
+		if len(batch) > 0 && symbolFilter(batch[0].Symbol) {
 			tbk := NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", batch[0].Symbol))
 
 			epoch := make([]int64, len(batch))
