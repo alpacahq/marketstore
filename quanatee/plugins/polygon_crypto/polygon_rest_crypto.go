@@ -344,7 +344,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
 		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'")
 		correctIntervalSymbol = "1Min"
 	}
-	timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
+	// timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
     
 	// Get last timestamp collected
 	for _, symbol := range symbols {
@@ -420,10 +420,6 @@ func (pgc *PolygonCryptoFetcher) Run() {
         default:
             log.Warn("PolygonCrypto: Incorrect format: %v", originalInterval)
         }
-    
-        // Time format for PolygonCrypto (in Milliseconds)
-        timeStartM := timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
-        timeEndM := timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
         
         // Shuffle symbol sequence so no symbol has priority
         rand.Shuffle(len(symbols), func(i, j int) {
