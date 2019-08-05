@@ -469,11 +469,11 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				} else {
                     // process downloaded rates
                     rates_err := false
-                    if len(rates["Ticks"]) == 0 {
+                    if len(rates.Ticks) == 0 {
                         log.Info("PolygonCrypto: Exchange has no data from: %s-%s %v-%v", symbol, baseCurrency, timeStart, timeEnd)
                         rates_err = true
                     } else {
-                        for _, rate := range rates["Ticks"] {
+                        for _, rate := range rates.Ticks {
                             log.Info(rate)
                             if rate.EpochMilliseconds != 0 && rate.Open != 0 &&
                                 rate.High != 0 && rate.Low != 0 &&
