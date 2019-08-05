@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
     "math/rand"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -82,9 +83,8 @@ type HistoricAggregatesV2 struct {
 func GetHistoricAggregates(
     api_key string,
 	symbol string,
-	from time.Time,
-    to time.Time,
-	limit int) (*HistoricAggregates, error) {
+	from, to *time.Time,
+	limit *int) (*HistoricAggregates, error) {
 
 	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, Minute, symbol))
 	if err != nil {
@@ -131,10 +131,9 @@ func GetHistoricAggregates(
 func GetHistoricAggregatesV2(
     api_key string,
 	symbol string,
-	multiplier int64,
-	from time.Time,
-    to time.Time,
-	unadjusted bool) (*HistoricAggregatesV2, error) {
+	multiplier int,
+	from, to *time.Time,
+	unadjusted *bool) (*HistoricAggregatesV2, error) {
 
 	u, err := url.Parse(fmt.Sprintf(aggv2URL, baseURL, symbol, multiplier, Minute, from.Unix()*1000, to.Unix()*1000))
 	if err != nil {
@@ -445,7 +444,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				volume := make([]float64, 0)
 
                 log.Info("PolygonCrypto: Requesting %s-%s %v - %v", symbol, baseCurrency, timeStart, timeEnd)                
-                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, strconv.ParseInt(timeIntervalNumsOnly, 10, 64), timeStart, timeEnd, false)
+                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, strconv.Atoi(timeIntervalNumsOnly), *timeStart, *timeEnd, *false)
                 
                 if err != nil {
 					log.Info("PolygonCrypto: %s-%s Response error: %v", symbol, baseCurrency, err)
