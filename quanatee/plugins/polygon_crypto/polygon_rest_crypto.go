@@ -30,6 +30,32 @@ const (
 	exchangeURL = "%v/v1/meta/exchanges"
 )
 
+// HistoricAggregates is the structure that defines
+// aggregate data served through Polygon's v1 REST API.
+type HistoricAggregates struct {
+	Symbol        string  `json:"symbol"`
+	AggregateType AggType `json:"aggType"`
+	Map           struct {
+		O string `json:"o"`
+		C string `json:"c"`
+		H string `json:"h"`
+		L string `json:"l"`
+		V string `json:"v"`
+		D string `json:"d"`
+	} `json:"map"`
+	Ticks []AggTick `json:"ticks"`
+}
+
+// HistoricAggregatesV2 is the structure that defines
+// aggregate data served through Polygon's v2 REST API.
+type HistoricAggregatesV2 struct {
+	Symbol       string    `json:"ticker"`
+	Adjusted     bool      `json:"adjusted"`
+	QueryCount   int       `json:"queryCount"`
+	ResultsCount int       `json:"resultsCount"`
+	Ticks        []AggTick `json:"results"`
+}
+
 // GetHistoricAggregates requests Polygon's v1 REST API for historic aggregates
 // for the provided resolution based on the provided query parameters.
 func GetHistoricAggregates(
