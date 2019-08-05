@@ -82,7 +82,7 @@ type HistoricAggregatesV2 struct {
 func GetHistoricAggregates(
     api_key string,
 	symbol string,
-	from, time.Time,
+	from time.Time,
     to time.Time,
 	limit int) (HistoricAggregates, error) {
 
@@ -132,7 +132,7 @@ func GetHistoricAggregatesV2(
     api_key string,
 	symbol string,
 	multiplier int64,
-	from, time.Time,
+	from time.Time,
     to time.Time,
 	unadjusted bool) (HistoricAggregatesV2, error) {
 
