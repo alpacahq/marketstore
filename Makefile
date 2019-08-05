@@ -42,6 +42,7 @@ plugins:
 	#$(MAKE) -C contrib/iex
 	#$(MAKE) -C contrib/xignitefeeder
 	$(MAKE) -C quanatee/plugins/polygon_rest_crypto
+	$(MAKE) -C quanatee/plugins/ondiskagg_without_underscore
 
 unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...
