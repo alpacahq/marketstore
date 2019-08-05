@@ -10,9 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"time"
-
-    polygon "github.com/alpacahq/alpaca-trade-api-go/polygon"
-	"github.com/alpacahq/alpaca-trade-api-go/common"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -22,6 +19,107 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
     
 )
+
+
+const (
+    baseURL     = "https://api.polygon.io"
+	aggURL      = "%v/v1/historic/agg/%v/%v"
+	aggv2URL    = "%v/v2/aggs/ticker/%v/range/%v/%v/%v/%v"
+	tradesURL   = "%v/v1/historic/trades/%v/%v"
+	quotesURL   = "%v/v1/historic/quotes/%v/%v"
+	exchangeURL = "%v/v1/meta/exchanges"
+)
+
+// GetHistoricAggregates requests Polygon's v1 REST API for historic aggregates
+// for the provided resolution based on the provided query parameters.
+func GetHistoricAggregates(
+    api_key string,
+	symbol string,
+	resolution string,
+	from, to *time.Time,
+	limit *int) (*HistoricAggregates, error) {
+
+	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, resolution, symbol))
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	q.Set("apiKey", api_key)
+
+	if from != nil {
+		q.Set("from", from.Format(time.RFC3339))
+	}
+
+	if to != nil {
+		q.Set("to", to.Format(time.RFC3339))
+	}
+
+	if limit != nil {
+		q.Set("limit", strconv.FormatInt(int64(*limit), 10))
+	}
+
+	u.RawQuery = q.Encode()
+
+	resp, err := get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("status code %v", resp.StatusCode)
+	}
+
+	agg := &HistoricAggregates{}
+
+	if err = unmarshal(resp, agg); err != nil {
+		return nil, err
+	}
+
+	return agg, nil
+}
+
+// GetHistoricAggregates requests Polygon's v2 REST API for historic aggregates
+// for the provided resolution based on the provided query parameters.
+func GetHistoricAggregatesV2(
+    api_key string,
+	symbol string,
+	multiplier int64,
+	resolution string,
+	from, to *time.Time,
+	unadjusted *bool) (*HistoricAggregatesV2, error) {
+
+	u, err := url.Parse(fmt.Sprintf(aggv2URL, baseURL, symbol, multiplier, resolution, from.Unix()*1000, to.Unix()*1000))
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	q.Set("apiKey", api_key)
+
+	if unadjusted != nil {
+		q.Set("unadjusted", strconv.FormatBool(*unadjusted))
+	}
+
+	u.RawQuery = q.Encode()
+
+	resp, err := get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("status code %v", resp.StatusCode)
+	}
+
+	agg := &HistoricAggregatesV2{}
+
+	if err = unmarshal(resp, agg); err != nil {
+		return nil, err
+	}
+
+	return agg, nil
+}
 
 var suffixPolygonCryptoDefs = map[string]string{
 	"Min": "minute",
@@ -174,8 +272,6 @@ func (pgc *PolygonCryptoFetcher) Run() {
 
 	symbols := pgc.symbols
     
-    client := polygon.NewClient(pgc.apiKey)
-    
 	timeStart := time.Time{}
 	baseCurrencies := pgc.baseCurrencies
 	slowDown := false
@@ -292,7 +388,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				volume := make([]float64, 0)
 
                 log.Info("PolygonCrypto: Requesting %s-%s %v - %v", symbol, baseCurrency, timeStart, timeEnd)                
-                rates, err := client.GetHistoricAggregatesV2(symbol + "-" + baseCurrency, timeIntervalNumsOnly, timeIntervalLettersOnly, timeStart, timeEnd, false)
+                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, int64(timeIntervalNumsOnly), timeIntervalLettersOnly, timeStart, timeEnd, false)
                 
                 if err != nil {
 					log.Info("PolygonCrypto: %s-%s Response error: %v", symbol, baseCurrency, err)
