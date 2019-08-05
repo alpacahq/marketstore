@@ -36,7 +36,7 @@ ENV GOPATH=/
 
 # RUN ["marketstore", "init"]
 # RUN mv mkts.yml /etc/
-COPY mkts.yml .
+COPY /quanatee/mkts.yml .
 VOLUME /data
 EXPOSE 5993
 
