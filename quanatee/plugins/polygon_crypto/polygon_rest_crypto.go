@@ -82,8 +82,9 @@ type HistoricAggregatesV2 struct {
 func GetHistoricAggregates(
     api_key string,
 	symbol string,
-	from, to *time.Time,
-	limit *int) (*HistoricAggregates, error) {
+	from, time.Time,
+    to time.Time,
+	limit int) (HistoricAggregates, error) {
 
 	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, Minute, symbol))
 	if err != nil {
@@ -131,8 +132,9 @@ func GetHistoricAggregatesV2(
     api_key string,
 	symbol string,
 	multiplier int64,
-	from, to *time.Time,
-	unadjusted *bool) (*HistoricAggregatesV2, error) {
+	from, time.Time,
+    to time.Time,
+	unadjusted bool) (HistoricAggregatesV2, error) {
 
 	u, err := url.Parse(fmt.Sprintf(aggv2URL, baseURL, symbol, multiplier, Minute, from.Unix()*1000, to.Unix()*1000))
 	if err != nil {
