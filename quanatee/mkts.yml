@@ -1,0 +1,47 @@
+root_directory: data
+listen_port: 5993
+log_level: info
+queryable: true
+stop_grace_period: 0
+wal_rotate_interval: 5
+enable_add: true
+enable_remove: true
+enable_last_known: false
+timezone: "America/New_York"
+triggers:
+  - module: quanatee_ondiskagg_without_underscore.so
+    on: "*/1Min/*"
+    config:
+      filter: "nasdaq"
+      destinations:
+        - 7Min
+        - 11Min
+  - module: stream.so
+    on: "*/*/*"
+bgworkers:
+  - module: polygon_rest_crypto.so
+    config:
+      api_key: ""
+      symbols:
+        - ETH-BTC
+        - ETC-BTC
+        - EOS-BTC
+        - LTC-BTC
+        - XLM-BTC
+        - XRP-BTC
+        - BTC-USD
+        - ETH-USD
+        - ETC-USD
+        - EOS-USD
+        - LTC-USD
+        - XLM-USD
+        - XRP-USD        
+        - BTC-EUR
+        - ETH-EUR
+        - ETC-EUR
+        - EOS-EUR
+        - LTC-EUR
+        - XLM-EUR
+        - XRP-EUR
+      query_start: "2018-01-01 00:00"
+      base_timeframe: "1Min"
