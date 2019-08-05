@@ -82,7 +82,6 @@ type HistoricAggregatesV2 struct {
 func GetHistoricAggregates(
     api_key string,
 	symbol string,
-	resolution AggType,
 	from, to *time.Time,
 	limit *int) (*HistoricAggregates, error) {
 
@@ -108,7 +107,7 @@ func GetHistoricAggregates(
 
 	u.RawQuery = q.Encode()
 
-	resp, err := get(u)
+	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +131,6 @@ func GetHistoricAggregatesV2(
     api_key string,
 	symbol string,
 	multiplier int64,
-	resolution AggType,
 	from, to *time.Time,
 	unadjusted *bool) (*HistoricAggregatesV2, error) {
 
@@ -150,7 +148,7 @@ func GetHistoricAggregatesV2(
 
 	u.RawQuery = q.Encode()
 
-	resp, err := get(u)
+	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -168,6 +166,16 @@ func GetHistoricAggregatesV2(
 	return agg, nil
 }
 
+func unmarshal(resp *http.Response, data interface{}) error {
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(body, data)
+}
 var suffixPolygonCryptoDefs = map[string]string{
 	"Min": "minute",
 	"H":   "hour",
@@ -435,7 +443,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				volume := make([]float64, 0)
 
                 log.Info("PolygonCrypto: Requesting %s-%s %v - %v", symbol, baseCurrency, timeStart, timeEnd)                
-                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, int64(timeIntervalNumsOnly), timeIntervalLettersOnly, timeStart, timeEnd, false)
+                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, strconv.ParseInt(timeIntervalNumsOnly, 10, 64), timeStart, timeEnd, false)
                 
                 if err != nil {
 					log.Info("PolygonCrypto: %s-%s Response error: %v", symbol, baseCurrency, err)
