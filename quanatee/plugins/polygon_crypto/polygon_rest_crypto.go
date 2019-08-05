@@ -338,7 +338,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
 	re2 := regexp.MustCompile("[a-zA-Z]+")
 	timeIntervalLettersOnly := re.ReplaceAllString(originalInterval, "")
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
-    timeIntervalNumsOnlyInt, err = strconv.Atoi(timeIntervalNumsOnly)
+    timeIntervalNumsOnlyInt, err := strconv.Atoi(timeIntervalNumsOnly)
 	correctIntervalSymbol := suffixPolygonCryptoDefs[timeIntervalLettersOnly]
 	if len(correctIntervalSymbol) <= 0 {
 		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'")
@@ -445,7 +445,8 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				volume := make([]float64, 0)
 
                 log.Info("PolygonCrypto: Requesting %s-%s %v - %v", symbol, baseCurrency, timeStart, timeEnd)                
-                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, timeIntervalNumsOnlyInt, &timeStart, &timeEnd, &false)
+                unadjusted := false
+                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, timeIntervalNumsOnlyInt, &timeStart, &timeEnd, &unadjusted)
                 
                 if err != nil {
 					log.Info("PolygonCrypto: %s-%s Response error: %v", symbol, baseCurrency, err)
@@ -468,11 +469,11 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				} else {
                     // process downloaded rates
                     rates_err := false
-                    if len(rates['Ticks']) == 0 {
+                    if len(rates["Ticks"]) == 0 {
                         log.Info("PolygonCrypto: Exchange has no data from: %s-%s %v-%v", symbol, baseCurrency, timeStart, timeEnd)
                         rates_err = true
                     } else {
-                        for _, rate := range rates['Ticks'] {
+                        for _, rate := range rates["Ticks"] {
                             log.Info(rate)
                             if rate.EpochMilliseconds != 0 && rate.Open != 0 &&
                                 rate.High != 0 && rate.Low != 0 &&
