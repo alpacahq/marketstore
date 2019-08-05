@@ -43,5 +43,6 @@ RUN sed -i "s|<polygon_api_key>|polygon_api_key: $POLYGON_API_KEY|g" mkts.yml
 VOLUME /data
 EXPOSE 5993
 
+RUN ls
 ENTRYPOINT ["marketstore"]
 CMD ["start", "--config", "./mkts.yml"]
