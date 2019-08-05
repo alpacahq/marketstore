@@ -474,7 +474,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
                         rates_err = true
                     } else {
                         for _, rate := range rates.Ticks {
-                            log.Info(rate)
+                            log.Info("%v %v %v %v %v %v", rate.EpochMilliseconds, rate.Open, rate.High, rate.Low, rate.Close, rate.Volume)
                             if rate.EpochMilliseconds != 0 && rate.Open != 0 &&
                                 rate.High != 0 && rate.Low != 0 &&
                                 rate.Close != 0 && rate.Volume != 0 {
