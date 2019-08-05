@@ -33,15 +33,26 @@ update:
 
 plugins:
 	$(MAKE) -C contrib/ondiskagg
-	#$(MAKE) -C contrib/gdaxfeeder
-	#$(MAKE) -C contrib/slait
+	# $(MAKE) -C contrib/gdaxfeeder
+	# $(MAKE) -C contrib/slait
 	$(MAKE) -C contrib/stream
-	#$(MAKE) -C contrib/polygon
-	#$(MAKE) -C contrib/bitmexfeeder
-	#$(MAKE) -C contrib/binancefeeder
-	#$(MAKE) -C contrib/iex
-	#$(MAKE) -C contrib/xignitefeeder
-	$(MAKE) -C quanatee/plugins/polygon_rest_crypto
+	$(MAKE) -C contrib/polygon
+	# $(MAKE) -C contrib/bitmexfeeder
+	# $(MAKE) -C contrib/binancefeeder
+	# $(MAKE) -C contrib/iex
+	# $(MAKE) -C contrib/xignitefeeder
+    # Quanatee Supported Plugins
+	#$(MAKE) -C contrib/quanatee_aggregateholder
+	#$(MAKE) -C contrib/quanatee_aggregateholder2
+	#$(MAKE) -C contrib/quanatee_signalholder
+	$(MAKE) -C contrib/quanatee_ondiskagg_without_underscore
+	#$(MAKE) -C contrib/quanatee_binancefeeder_btc
+	#$(MAKE) -C contrib/quanatee_binancefeeder_usd
+	#$(MAKE) -C contrib/quanatee_coinbaseprofeeder_btc
+	#$(MAKE) -C contrib/quanatee_coinbaseprofeeder_eur
+	#$(MAKE) -C contrib/quanatee_coinbaseprofeeder_usd
+	$(MAKE) -C contrib/quanatee_cc_polygon_without_prefix
+	$(MAKE) -C contrib/quanatee_fx_polygon_without_prefix
 
 unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...
