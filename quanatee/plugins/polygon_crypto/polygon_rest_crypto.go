@@ -338,6 +338,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
 	re2 := regexp.MustCompile("[a-zA-Z]+")
 	timeIntervalLettersOnly := re.ReplaceAllString(originalInterval, "")
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
+    timeIntervalNumsOnlyInt, err = strconv.Atoi(timeIntervalNumsOnly)
 	correctIntervalSymbol := suffixPolygonCryptoDefs[timeIntervalLettersOnly]
 	if len(correctIntervalSymbol) <= 0 {
 		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'")
@@ -444,7 +445,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				volume := make([]float64, 0)
 
                 log.Info("PolygonCrypto: Requesting %s-%s %v - %v", symbol, baseCurrency, timeStart, timeEnd)                
-                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, strconv.Atoi(timeIntervalNumsOnly), *timeStart, *timeEnd, *false)
+                rates, err := GetHistoricAggregatesV2(pgc.apiKey, symbol + "-" + baseCurrency, timeIntervalNumsOnlyInt, &timeStart, &timeEnd, &false)
                 
                 if err != nil {
 					log.Info("PolygonCrypto: %s-%s Response error: %v", symbol, baseCurrency, err)
@@ -467,21 +468,21 @@ func (pgc *PolygonCryptoFetcher) Run() {
 				} else {
                     // process downloaded rates
                     rates_err := false
-                    if len(rates) == 0 {
+                    if len(rates['Ticks']) == 0 {
                         log.Info("PolygonCrypto: Exchange has no data from: %s-%s %v-%v", symbol, baseCurrency, timeStart, timeEnd)
                         rates_err = true
                     } else {
-                        for _, rate := range rates {
+                        for _, rate := range rates['Ticks'] {
                             log.Info(rate)
-                            if rate.t != 0 && rate.o != 0 &&
-                                rate.h != 0 && rate.l != 0 &&
-                                rate.c != 0 && rate.v != 0 {
-                                epoch = append(epoch, rate.t.Unix())
-                                open = append(open, rate.o)
-                                high = append(high, rate.h)
-                                low = append(low, rate.l)
-                                close = append(close, rate.c)
-                                volume = append(volume, rate.v)                                
+                            if rate.EpochMilliseconds != 0 && rate.Open != 0 &&
+                                rate.High != 0 && rate.Low != 0 &&
+                                rate.Close != 0 && rate.Volume != 0 {
+                                epoch = append(epoch, rate.EpochMilliseconds/1000)
+                                open = append(open, rate.Open)
+                                high = append(high, rate.High)
+                                low = append(low, rate.Low)
+                                close = append(close, rate.Close)
+                                volume = append(volume, rate.Volume)                                
                             } else {
                                 log.Info("PolygonCrypto: Downloaded OHLCV contained 0 from: %s-%s %v-%v", symbol, baseCurrency, timeStart, timeEnd)
                                 rates_err = true
