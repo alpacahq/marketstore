@@ -41,6 +41,16 @@ type AggTick struct {
 	EpochMilliseconds int64   `json:"t"`
 	Items             int64   `json:"n"` // v2 response only
 }
+// AggType used in the HistoricAggregates response
+type AggType string
+
+const (
+	// Minute timeframe aggregates
+	Minute AggType = "minute"
+	// Day timeframe aggregates
+	Day AggType = "day"
+)
+
 // HistoricAggregates is the structure that defines
 // aggregate data served through Polygon's v1 REST API.
 type HistoricAggregates struct {
@@ -72,11 +82,11 @@ type HistoricAggregatesV2 struct {
 func GetHistoricAggregates(
     api_key string,
 	symbol string,
-	resolution string,
+	resolution AggType,
 	from, to *time.Time,
 	limit *int) (*HistoricAggregates, error) {
 
-	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, resolution, symbol))
+	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, Minute, symbol))
 	if err != nil {
 		return nil, err
 	}
@@ -122,11 +132,11 @@ func GetHistoricAggregatesV2(
     api_key string,
 	symbol string,
 	multiplier int64,
-	resolution string,
+	resolution AggType,
 	from, to *time.Time,
 	unadjusted *bool) (*HistoricAggregatesV2, error) {
 
-	u, err := url.Parse(fmt.Sprintf(aggv2URL, baseURL, symbol, multiplier, resolution, from.Unix()*1000, to.Unix()*1000))
+	u, err := url.Parse(fmt.Sprintf(aggv2URL, baseURL, symbol, multiplier, Minute, from.Unix()*1000, to.Unix()*1000))
 	if err != nil {
 		return nil, err
 	}
