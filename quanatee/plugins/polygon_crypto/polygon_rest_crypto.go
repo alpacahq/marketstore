@@ -30,6 +30,17 @@ const (
 	exchangeURL = "%v/v1/meta/exchanges"
 )
 
+// AggTick is the structure that contains the actual
+// tick data included in a HistoricAggregates response
+type AggTick struct {
+	Open              float64 `json:"o"`
+	High              float64 `json:"h"`
+	Low               float64 `json:"l"`
+	Close             float64 `json:"c"`
+	Volume            float64 `json:"v"`
+	EpochMilliseconds int64   `json:"t"`
+	Items             int64   `json:"n"` // v2 response only
+}
 // HistoricAggregates is the structure that defines
 // aggregate data served through Polygon's v1 REST API.
 type HistoricAggregates struct {
