@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-    polygon "quanatee/alpaca-trade-api-go/polygon"
-	"quanatee/alpaca-trade-api-go/common"
+    polygon "github.com/alpacahq/alpaca-trade-api-go/polygon"
+	"github.com/alpacahq/alpaca-trade-api-go/common"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
