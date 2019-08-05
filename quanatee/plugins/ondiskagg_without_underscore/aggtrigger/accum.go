@@ -3,8 +3,8 @@ package aggtrigger
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/contrib/quanatee_ondiskagg_without_underscore/aggtrigger/functions"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/rymdluo/marketstore/quanatee/plugins/ondiskagg_without_underscore/aggtrigger/functions"
+	"github.com/rymdluo/marketstore/utils/io"
 )
 
 type accumParam struct {

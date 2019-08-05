@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/quanatee_trigger_without_underscore"
+	"github.com/rymdluo/marketstore/quanatee/plugins/trigger_without_underscore"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/rymdluo/marketstore/executor"
+	"github.com/rymdluo/marketstore/planner"
+	"github.com/rymdluo/marketstore/utils"
+	"github.com/rymdluo/marketstore/utils/io"
 	. "gopkg.in/check.v1"
 )
 
