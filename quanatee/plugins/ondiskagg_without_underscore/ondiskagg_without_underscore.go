@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_ondiskagg_without_underscore/aggtrigger"
-	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_trigger_without_underscore"
+	"github.com/rymdluo/marketstore/quanatee/plugins/quanatee_ondiskagg_without_underscore/aggtrigger"
+	"github.com/rymdluo/marketstore/quanatee/plugins/quanatee_trigger_without_underscore"
 )
 
 // NewTrigger returns a new on-disk aggregate trigger based on the configuration.
