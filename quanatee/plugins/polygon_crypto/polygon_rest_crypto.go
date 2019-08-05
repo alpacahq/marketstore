@@ -338,7 +338,10 @@ func (pgc *PolygonCryptoFetcher) Run() {
 	re2 := regexp.MustCompile("[a-zA-Z]+")
 	timeIntervalLettersOnly := re.ReplaceAllString(originalInterval, "")
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
-    timeIntervalNumsOnlyInt := strconv.Atoi(timeIntervalNumsOnly)
+    timeIntervalNumsOnlyInt, err := strconv.Atoi(timeIntervalNumsOnly)
+    if err != nil {
+        log.Info("PolygonCrypto strconv.Atoi(timeIntervalNumsOnly): %s", err)
+    }
 	correctIntervalSymbol := suffixPolygonCryptoDefs[timeIntervalLettersOnly]
 	if len(correctIntervalSymbol) <= 0 {
 		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'")
