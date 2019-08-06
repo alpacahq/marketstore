@@ -80,12 +80,12 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
 
 	type priceData struct {
-		Ticker         string  `json:"ticker"`
-		Close          float64 `json:"close"`
-		Low            float64 `json:"low"`
-		Open           float64 `json:"open"`
 		Date           string  `json:"date"` // "2017-12-19T00:00:00Z"
+		Ticker         string  `json:"ticker"`
+		Open           float64 `json:"open"`
+		Low            float64 `json:"low"`
 		High           float64 `json:"high"`
+		Close          float64 `json:"close"`
 		//Volume         float64 `json:"volume"`
 	}
     
@@ -116,9 +116,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		return NewQuote("", 0), err
 	}
     
-    
 	if len(forexData) < 1 {
-		log.Info("TiingoForex symbol '%s' No data returned %v", symbol, forexData)
+		log.Info("TiingoForex url '%s' ", url)
+		log.Info("TiingoForex symbol '%s' No data returned %v %v", symbol, forexData, contents)        
 		return NewQuote("", 0), err
 	}
     
