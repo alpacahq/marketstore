@@ -41,7 +41,7 @@ plugins:
 	#$(MAKE) -C contrib/binancefeeder
 	#$(MAKE) -C contrib/iex
 	#$(MAKE) -C contrib/xignitefeeder
-	$(MAKE) -C quanatee/plugins/polygon_rest_crypto
+	$(MAKE) -C quanatee/plugins/tiingo_crypto_prices
 
 unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...

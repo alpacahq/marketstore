@@ -9,8 +9,8 @@ enable_remove: true
 enable_last_known: false
 timezone: "America/New_York"
 triggers:
-  - module: quanatee_ondiskagg_without_underscore.so
-    on: "*/1Min/*"
+  - module: ondiskagg.so
+    on: "*/1Min/OHLCV"
     config:
       filter: "nasdaq"
       destinations:
@@ -19,40 +19,39 @@ triggers:
   - module: stream.so
     on: "*/*/*"
 bgworkers:
-  - module: quanatee_cc_polygon_without_prefix.so
+  - module: tiingo_crypto_prices.so
     config:
-      api_key: ""
-      base_url: "https://api.polygon.io"
-      ws_servers: "wss://socket.polygon.io/crypto"
-      data_types: ["bars", "quotes"]
+      api_key: "<tiingo_api_key>"
       symbols:
-        - ETH-BTC
-        - ETC-BTC
-        - EOS-BTC
-        - LTC-BTC
-        - XLM-BTC
-        - XRP-BTC
-        - BTC-USD
-        - ETH-USD
-        - ETC-USD
-        - EOS-USD
-        - LTC-USD
-        - XLM-USD
-        - XRP-USD        
-        - BTC-EUR
-        - ETH-EUR
-        - ETC-EUR
-        - EOS-EUR
-        - LTC-EUR
-        - XLM-EUR
-        - XRP-EUR
-      query_start: "2018-01-01 00:00"
-  - module: quanatee_fx_polygon_without_prefix.so
-    config:
-      api_key: ""
-      base_url: "https://api.polygon.io"
-      ws_servers: "wss://socket.polygon.io/forex"
-      data_types: ["bars", "quotes"]
+        - ETHBTC
+        - ETCBTC
+        - EOSBTC
+        - LTCBTC
+        - XLMBTC
+        - XRPBTC
+        - BTCUSD
+        - ETHUSD
+        - ETCUSD
+        - EOSUSD
+        - LTCUSD
+        - XLMUSD
+        - XRPUSD
+        - BTCEUR
+        - ETHEUR
+        - ETCEUR
+        - EOSEUR
+        - LTCEUR
+        - XLMEUR
+        - XRPEUR
+        - BTCJPY
+        - ETHJPY
+        - ETCJPY
+        - EOSJPY
+        - LTCJPY
+        - XLMJPY
+        - XRPJPY
+      query_start: "2017-01-01 00:00"
+      base_timeframe: "1Min"
       symbols:
         - EUR/USD
         - GBP/USD
