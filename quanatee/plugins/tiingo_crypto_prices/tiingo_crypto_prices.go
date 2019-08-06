@@ -113,7 +113,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
 		resampleFreq)
-
+    
+    log.Info("TiingoCrypto symbol url '%s'", url)
+        
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
