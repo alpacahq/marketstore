@@ -9,8 +9,8 @@ enable_remove: true
 enable_last_known: false
 timezone: "America/New_York"
 triggers:
-  - module: quanatee_ondiskagg_without_underscore.so
-    on: "*/1Min/*"
+  - module: ondiskagg.so
+    on: "*/1Min/OHLCV"
     config:
       filter: "nasdaq"
       destinations:
