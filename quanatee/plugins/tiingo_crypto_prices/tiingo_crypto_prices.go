@@ -285,12 +285,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 // If query_end is not set, it will run forever.
 func (tiicc *TiingoCryptoFetcher) Run() {
     
-	symbols := tiicc.symbols
 	realTime := false    
 	timeStart := time.Time{}
 	
     // Get last timestamp collected
-	for _, symbol := range symbols {
+	for _, symbol := range tiicc.symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
         lastTimestamp := findLastTimestamp(tbk)
         log.Info("TiingoCrypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
@@ -377,7 +376,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                 cs.AddColumn("Close", quote.Close)
                 cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
             }
