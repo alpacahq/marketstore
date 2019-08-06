@@ -35,10 +35,9 @@ COPY --from=builder /go/bin/*.so /bin/
 ENV GOPATH=/
 
 COPY /quanatee/mkts.yml .
-COPY /quanatee/api_start.sh .
 
 VOLUME /data
 EXPOSE 5993
 
-RUN ["chmod", "+x", "api_start.sh"]
-ENTRYPOINT ["api_start.sh"]
+ENTRYPOINT ["/bin/bash"]
+CMD sed -i "s|<polygon_api_key>|$POLYGON_API_KEY |g" mkts.yml && marketstore start --config mkts.yml
