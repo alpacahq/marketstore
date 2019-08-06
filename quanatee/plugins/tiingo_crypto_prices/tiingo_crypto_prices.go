@@ -357,7 +357,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             log.Warn("TiingoCrypto: Incorrect format: %v", tiicc.baseTimeframe.String)
         }
         
-        quotes, err := GetTiingoPricesFromSymbols(symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
+        quotes, err := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
         
         if err != nil {
             log.Info("TiingoCrypto: Response error: %v", err)
