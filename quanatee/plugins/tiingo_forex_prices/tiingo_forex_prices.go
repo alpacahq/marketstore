@@ -80,27 +80,18 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
 
 	type priceData struct {
-		TradesDone     float64 `json:"tradesDone"`
 		Close          float64 `json:"close"`
-		VolumeNotional float64 `json:"volumeNotional"`
 		Low            float64 `json:"low"`
 		Open           float64 `json:"open"`
 		Date           string  `json:"date"` // "2017-12-19T00:00:00Z"
 		High           float64 `json:"high"`
 		Volume         float64 `json:"volume"`
 	}
-
-	type cryptoData struct {
-		Ticker        string      `json:"ticker"`
-		BaseCurrency  string      `json:"baseCurrency"`
-		QuoteCurrency string      `json:"quoteCurrency"`
-		PriceData     []priceData `json:"priceData"`
-	}
-
-	var crypto []cryptoData
+    
+	var forexData []priceData
 
 	url := fmt.Sprintf(
-		"https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&startDate=%s&endDate=%s&resampleFreq=%s",
+		"https://api.tiingo.com/tiingo/fx/%s/prices?&startDate=%s&endDate=%s&resampleFreq=%s",
 		symbol,
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
@@ -112,33 +103,33 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("TiingoCrypto symbol '%s' not found\n", symbol)
+		log.Info("TiingoForex symbol '%s' not found\n", symbol)
 		return NewQuote("", 0), err
 	}
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(contents, &crypto)
+	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info("TiingoCrypto symbol '%s' error: %v\n", symbol, err)
+		log.Info("TiingoForex symbol '%s' error: %v\n", symbol, err)
 		return NewQuote("", 0), err
 	}
-	if len(crypto) < 1 {
-		log.Info("TiingoCrypto symbol '%s' No data returned", symbol)
+	if len(forexData) < 1 {
+		log.Info("TiingoForex symbol '%s' No data returned", symbol)
 		return NewQuote("", 0), err
 	}
     
-	numrows := len(crypto[0].PriceData)
+	numrows := len(forexData)
 	quote := NewQuote(symbol, numrows)
 
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, crypto[0].PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         quote.Epoch[bar] = dt.Unix()
-        quote.Open[bar] = crypto[0].PriceData[bar].Open
-        quote.High[bar] = crypto[0].PriceData[bar].High
-        quote.Low[bar] = crypto[0].PriceData[bar].Low
-        quote.Close[bar] = crypto[0].PriceData[bar].Close
-        quote.Volume[bar] = float64(crypto[0].PriceData[bar].Volume)
+        quote.Open[bar] = forexData[bar].Open
+        quote.High[bar] = forexData[bar].High
+        quote.Low[bar] = forexData[bar].Low
+        quote.Close[bar] = forexData[bar].Close
+        quote.Volume[bar] = float64(forexData[bar].Volume)
 	}
 
 	return quote, nil
@@ -153,7 +144,7 @@ func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period str
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
-			log.Info("TiingoCrypto error downloading " + symbol)
+			log.Info("TiingoForex error downloading " + symbol)
 		}
 	}
 	return quotes, nil
@@ -179,8 +170,8 @@ type FetcherConfig struct {
 	BaseTimeframe  string   `json:"base_timeframe"`
 }
 
-// TiingoCryptoFetcher is the main worker for TiingoCrypto
-type TiingoCryptoFetcher struct {
+// TiingoForexFetcher is the main worker for TiingoForex
+type TiingoForexFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
     apiKey         string
@@ -264,7 +255,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	return &TiingoCryptoFetcher{
+	return &TiingoForexFetcher{
 		config:         conf,
 		symbols:        symbols,
         apiKey:         config.ApiKey,
@@ -275,26 +266,26 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 // Run grabs data in intervals from starting time to ending time.
 // If query_end is not set, it will run forever.
-func (tiicc *TiingoCryptoFetcher) Run() {
+func (tiifx *TiingoForexFetcher) Run() {
     
 	realTime := false    
 	timeStart := time.Time{}
 	
     // Get last timestamp collected
-	for _, symbol := range tiicc.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+	for _, symbol := range tiifx.symbols {
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
         lastTimestamp := findLastTimestamp(tbk)
-        log.Info("TiingoCrypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
+        log.Info("TiingoForex: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
             timeStart = lastTimestamp.UTC()
         }
 	}
     
 	// Set start time if not given.
-	if !tiicc.queryStart.IsZero() {
-		timeStart = tiicc.queryStart.UTC()
+	if !tiifx.queryStart.IsZero() {
+		timeStart = tiifx.queryStart.UTC()
 	} else {
-		timeStart = time.Now().UTC().Add(-tiicc.baseTimeframe.Duration)
+		timeStart = time.Now().UTC().Add(-tiifx.baseTimeframe.Duration)
 	}
 
 	// For loop for collecting candlestick data forever
@@ -307,14 +298,14 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         if !firstLoop {
             if !realTime {
                 // If next batch of backfill goes into the future, switch to realTime
-                if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
+                if timeEnd.Add(tiifx.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
                     realTime = true
                     timeStart = timeEnd
                     timeEnd = time.Now().UTC()
                 // If still backfilling
                 } else {
                     timeStart = timeEnd
-                    timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
+                    timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration * 1440 * 30)
                 }
             // if realTime
             } else {
@@ -325,7 +316,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         } else {
             firstLoop = false
             // Keep timeStart as original value
-            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 1440 * 30)
         }
         
         year := timeEnd.Year()
@@ -338,7 +329,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         // But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
         // If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
         // Main goal is to ensure it runs every 1 <time duration> at :00
-        switch tiicc.baseTimeframe.String {
+        switch tiifx.baseTimeframe.String {
         case "1Min":
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         case "1H":
@@ -346,13 +337,13 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         case "1D":
             timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
         default:
-            log.Warn("TiingoCrypto: Incorrect format: %v", tiicc.baseTimeframe.String)
+            log.Warn("TiingoForex: Incorrect format: %v", tiifx.baseTimeframe.String)
         }
         
-        quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
+        quotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, tiifx.baseTimeframe.String, tiifx.apiKey)
         
         for _, quote := range quotes {
-            log.Info("TiingoCrypto: Writing to '%s'/1Min/OHLCV from %v to %v", quote.Symbol, timeStart, timeEnd)
+            log.Info("TiingoForex: Writing to '%s'/1Min/OHLCV from %v to %v", quote.Symbol, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
@@ -362,7 +353,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             cs.AddColumn("Close", quote.Close)
             cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
         }
@@ -370,9 +361,9 @@ func (tiicc *TiingoCryptoFetcher) Run() {
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
-			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
+			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
-            log.Info("TiingoCrypto: Next request at %v", waitTill)
+            log.Info("TiingoForex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
 			time.Sleep(time.Second*60)
