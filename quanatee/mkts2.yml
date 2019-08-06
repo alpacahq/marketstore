@@ -43,32 +43,30 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
-        - BTCJPY
-        - ETHJPY
-        - ETCJPY
-        - EOSJPY
-        - LTCJPY
-        - XLMJPY
-        - XRPJPY
-      query_start: "2017-01-01 00:00"
-      base_timeframe: "1Min"
-      symbols:
-        - EUR/USD
-        - GBP/USD
-        - AUD/USD
-        - USD/CHF
-        - NZD/USD
-        - USD/CAD
-        - EUR/GBP
-        - EUR/AUD
-        - EUR/CHF
-        - EUR/NZD
-        - EUR/CAD
-        - EUR/JPY
-        - USD/JPY
-        - GBP/JPY
-        - AUD/JPY
-        - CHF/JPY
-        - NZD/JPY
-        - CAD/JPY
       query_start: "2018-01-01 00:00"
+      base_timeframe: "1Min"
+  - module: tiingo_forex_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      symbols:
+        - EURUSD
+        - GBPUSD
+        - AUDUSD
+        - USDCHF
+        - NZDUSD
+        - USDCAD
+        - EURGBP
+        - EURAUD
+        - EURCHF
+        - EURNZD
+        - EURCAD
+        - EURJPY
+        - USDJPY
+        - GBPJPY
+        - AUDJPY
+        - CHFJPY
+        - NZDJPY
+        - CADJPY
+      query_start: "2018-01-01 00:00"
+      base_timeframe: "1Min"
+      
