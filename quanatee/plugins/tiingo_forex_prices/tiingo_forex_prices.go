@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+    "strings"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -358,6 +359,41 @@ func (tiifx *TiingoForexFetcher) Run() {
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
+            
+            revSymbol := ""
+            if strings.HasPrefix(quote.Symbol, "USD") {
+                revSymbol = strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
+            } else if strings.HasPrefix(quote.Symbol, "EUR") {
+                revSymbol = strings.Replace(quote.Symbol, "EUR", "", -1) + "EUR"
+            } else if strings.HasPrefix(quote.Symbol, "JPY") {
+                revSymbol = strings.Replace(quote.Symbol, "JPY", "", -1) + "JPY"
+            }
+            if revSymbol != "" {                
+                log.Info("TiingoForex: Writing to '%s'/1Min/OHLC from %v to %v", revSymbol, timeStart, timeEnd)
+                
+                numrows := len(quote.Epoch)
+                revQuote := NewQuote(revSymbol, numrows)
+                for bar := 0; bar < numrows; bar++ {
+                    revQuote.Epoch[bar] = quote.Epoch[bar]
+                    revQuote.Open[bar] = quote.Open[bar]
+                    revQuote.High[bar] = quote.High[bar]
+                    revQuote.Low[bar] = quote.Low[bar]
+                    revQuote.Close[bar] = quote.Close[bar]
+                    //revQuote.Volume[bar] = quote.Volume[bar]
+                }
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", revQuote.Epoch)
+                cs.AddColumn("Open", revQuote.Open)
+                cs.AddColumn("High", revQuote.High)
+                cs.AddColumn("Low", revQuote.Low)
+                cs.AddColumn("Close", revQuote.Close)
+                //cs.AddColumn("Volume", revQuote.Volume)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+            }
         }
         
 		if realTime {
