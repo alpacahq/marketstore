@@ -360,9 +360,9 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             cs.AddColumn("High", quote.High)
             cs.AddColumn("Low", quote.Low)
             cs.AddColumn("Close", quote.Close)
-            cs.AddColumn("Volume", quote.Volume)
+            // cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
         }

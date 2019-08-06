@@ -27,7 +27,7 @@ type Quote struct {
 	High      []float64   `json:"high"`
 	Low       []float64   `json:"low"`
 	Close     []float64   `json:"close"`
-	Volume    []float64   `json:"volume"`
+	//Volume    []float64   `json:"volume"`
 }
 
 // Quotes - an array of historical price data
@@ -45,7 +45,7 @@ func NewQuote(symbol string, bars int) Quote {
 		High:   make([]float64, bars),
 		Low:    make([]float64, bars),
 		Close:  make([]float64, bars),
-		Volume: make([]float64, bars),
+		//Volume: make([]float64, bars),
 	}
 }
 
@@ -86,7 +86,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		Open           float64 `json:"open"`
 		Date           string  `json:"date"` // "2017-12-19T00:00:00Z"
 		High           float64 `json:"high"`
-		Volume         float64 `json:"volume"`
+		//Volume         float64 `json:"volume"`
 	}
     
 	var forexData []priceData
@@ -130,7 +130,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
         quote.High[bar] = forexData[bar].High
         quote.Low[bar] = forexData[bar].Low
         quote.Close[bar] = forexData[bar].Close
-        quote.Volume[bar] = float64(forexData[bar].Volume)
+        //quote.Volume[bar] = float64(forexData[bar].Volume)
 	}
 
 	return quote, nil
@@ -352,9 +352,9 @@ func (tiifx *TiingoForexFetcher) Run() {
             cs.AddColumn("High", quote.High)
             cs.AddColumn("Low", quote.Low)
             cs.AddColumn("Close", quote.Close)
-            cs.AddColumn("Volume", quote.Volume)
+            //cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
         }
