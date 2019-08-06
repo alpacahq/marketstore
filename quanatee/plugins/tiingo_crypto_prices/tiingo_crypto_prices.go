@@ -140,16 +140,13 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	quote := NewQuote(symbol, numrows)
 
 	for bar := 0; bar < numrows; bar++ {
-        // Ensure that we only fill full bars by checking for TradesDone property
-        if crypto[0].PriceData[bar].TradesDone != "" {
-            dt, _ := time.Parse(time.RFC3339, crypto[0].PriceData[bar].Date)
-            quote.Epoch[bar] = dt.Unix()
-            quote.Open[bar] = crypto[0].PriceData[bar].Open
-            quote.High[bar] = crypto[0].PriceData[bar].High
-            quote.Low[bar] = crypto[0].PriceData[bar].Low
-            quote.Close[bar] = crypto[0].PriceData[bar].Close
-            quote.Volume[bar] = float64(crypto[0].PriceData[bar].Volume)
-        }
+        dt, _ := time.Parse(time.RFC3339, crypto[0].PriceData[bar].Date)
+        quote.Epoch[bar] = dt.Unix()
+        quote.Open[bar] = crypto[0].PriceData[bar].Open
+        quote.High[bar] = crypto[0].PriceData[bar].High
+        quote.Low[bar] = crypto[0].PriceData[bar].Low
+        quote.Close[bar] = crypto[0].PriceData[bar].Close
+        quote.Volume[bar] = float64(crypto[0].PriceData[bar].VolumeNotional) // We use the Quote Currency Volume as the Volume
 	}
 
 	return quote, nil
@@ -318,14 +315,14 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         if !firstLoop {
             if !realTime {
                 // If next batch of backfill goes into the future, switch to realTime
-                if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 7).After(time.Now().UTC()) {
+                if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
                     realTime = true
                     timeStart = timeEnd
                     timeEnd = time.Now().UTC()
                 // If still backfilling
                 } else {
                     timeStart = timeEnd
-                    timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 7)
+                    timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
                 }
             // if realTime
             } else {
@@ -336,7 +333,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         } else {
             firstLoop = false
             // Keep timeStart as original value
-            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 7)
+            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
         }
         
         year := timeEnd.Year()

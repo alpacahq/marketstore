@@ -36,5 +36,39 @@ bgworkers:
         - LTCUSD
         - XLMUSD
         - XRPUSD
+        - BTCEUR
+        - ETHEUR
+        - ETCEUR
+        - EOSEUR
+        - LTCEUR
+        - XLMEUR
+        - XRPEUR
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
+  - module: tiingo_crypto_quotes.so
+    config:
+      api_key: "<tiingo_api_key>"
+      symbols:
+        - ETHBTC
+        - ETCBTC
+        - EOSBTC
+        - LTCBTC
+        - XLMBTC
+        - XRPBTC
+        - BTCUSD
+        - ETHUSD
+        - ETCUSD
+        - EOSUSD
+        - LTCUSD
+        - XLMUSD
+        - XRPUSD
+        - BTCEUR
+        - ETHEUR
+        - ETCEUR
+        - EOSEUR
+        - LTCEUR
+        - XLMEUR
+        - XRPEUR
+      query_start: "2018-01-01 00:00"
+      base_timeframe: "1Min"
+      
