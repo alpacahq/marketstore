@@ -36,19 +36,5 @@ bgworkers:
         - LTCUSD
         - XLMUSD
         - XRPUSD
-        - BTCEUR
-        - ETHEUR
-        - ETCEUR
-        - EOSEUR
-        - LTCEUR
-        - XLMEUR
-        - XRPEUR
-        - BTCJPY
-        - ETHJPY
-        - ETCJPY
-        - EOSJPY
-        - LTCJPY
-        - XLMJPY
-        - XRPJPY
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
