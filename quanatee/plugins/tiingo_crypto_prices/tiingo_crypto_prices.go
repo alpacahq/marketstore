@@ -140,7 +140,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	quote := NewQuote(symbol, numrows)
 
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ = time.Parse(time.RFC3339, crypto[0].PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, crypto[0].PriceData[bar].Date)
 		quote.Epoch[bar] = dt.Unix()
 		quote.Open[bar] = crypto[0].PriceData[bar].Open
 		quote.High[bar] = crypto[0].PriceData[bar].High
@@ -161,7 +161,7 @@ func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period str
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
-			Log.Println("error downloading " + symbol)
+			log.Info("TiingoCrypto error downloading " + symbol)
 		}
 	}
 	return quotes, nil
@@ -347,7 +347,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         // But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
         // If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
         // Main goal is to ensure it runs every 1 <time duration> at :00
-        switch originalInterval {
+        switch tiicc.baseTimeframe.String {
         case "1Min":
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         case "1H":
@@ -355,24 +355,16 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         case "1D":
             timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
         default:
-            log.Warn("TiingoCrypto: Incorrect format: %v", originalInterval)
+            log.Warn("TiingoCrypto: Incorrect format: %v", tiicc.baseTimeframe.String)
         }
         
         quotes, err := GetTiingoPricesFromSymbols(symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
         
         if err != nil {
-            log.Info("TiingoCrypto: %s Response error: %v", symbol, err)
+            log.Info("TiingoCrypto: Response error: %v", err)
             if realTime {
-                epoch = append(epoch, timeEnd.Unix())
-                open = append(open, 0)
-                high = append(high, 0)
-                low = append(low, 0)
-                close = append(close, 0)
-                volume = append(volume, 0)
-            } else {
                 // retries downloading the same time period again by resetting firstLoop bool
                 firstLoop = true
-                continue
             }
         } else {
             for _, quote := range quotes {
