@@ -43,6 +43,7 @@ plugins:
 	#$(MAKE) -C contrib/xignitefeeder
 	$(MAKE) -C quanatee/plugins/tiingo_crypto_prices
 	$(MAKE) -C quanatee/plugins/tiingo_forex_prices
+	$(MAKE) -C quanatee/plugins/tiingo_iex_prices
 
 unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...

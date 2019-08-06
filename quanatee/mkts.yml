@@ -10,7 +10,7 @@ enable_last_known: false
 timezone: "America/New_York"
 triggers:
   - module: ondiskagg.so
-    on: "*/1Min/OHLCV"
+    on: "*/1Min/*"
     config:
       filter: "nasdaq"
       destinations:
@@ -19,11 +19,11 @@ triggers:
   - module: stream.so
     on: "*/*/*"
 bgworkers:
-  - module: tiingo_forex_prices.so
+  - module: tiingo_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
-        - EURUSD
+        - SPY
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
       
