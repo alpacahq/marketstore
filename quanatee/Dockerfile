@@ -38,7 +38,7 @@ ENV GOPATH=/
 # RUN mv mkts.yml /etc/
 COPY /quanatee/mkts.yml .
 
-ARG $polygon_api_key
+ARG POLYGON_API_KEY
 RUN sed -i "s|<polygon_api_key>|$polygon_api_key|g" mkts.yml
 VOLUME /data
 EXPOSE 5993
