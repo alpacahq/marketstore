@@ -113,8 +113,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
 		resampleFreq)
-    
-    log.Info("TiingoCrypto symbol url '%s'", url)
         
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", url, nil)
@@ -137,18 +135,21 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		log.Info("TiingoCrypto symbol '%s' No data returned", symbol)
 		return NewQuote("", 0), err
 	}
-
+    
 	numrows := len(crypto[0].PriceData)
 	quote := NewQuote(symbol, numrows)
 
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, crypto[0].PriceData[bar].Date)
-		quote.Epoch[bar] = dt.Unix()
-		quote.Open[bar] = crypto[0].PriceData[bar].Open
-		quote.High[bar] = crypto[0].PriceData[bar].High
-		quote.Low[bar] = crypto[0].PriceData[bar].Low
-		quote.Close[bar] = crypto[0].PriceData[bar].Close
-		quote.Volume[bar] = float64(crypto[0].PriceData[bar].Volume)
+        // Ensure that we only fill full bars by checking for TradesDone property
+        if crypto[0].PriceData[bar].TradesDone != "" {
+            dt, _ := time.Parse(time.RFC3339, crypto[0].PriceData[bar].Date)
+            quote.Epoch[bar] = dt.Unix()
+            quote.Open[bar] = crypto[0].PriceData[bar].Open
+            quote.High[bar] = crypto[0].PriceData[bar].High
+            quote.Low[bar] = crypto[0].PriceData[bar].Low
+            quote.Close[bar] = crypto[0].PriceData[bar].Close
+            quote.Volume[bar] = float64(crypto[0].PriceData[bar].Volume)
+        }
 	}
 
 	return quote, nil
@@ -359,29 +360,22 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             log.Warn("TiingoCrypto: Incorrect format: %v", tiicc.baseTimeframe.String)
         }
         
-        quotes, err := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
+        quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
         
-        if err != nil {
-            log.Info("TiingoCrypto: Response error: %v", err)
-            if realTime {
-                // retries downloading the same time period again by resetting firstLoop bool
-                firstLoop = true
-            }
-        } else {
-            for _, quote := range quotes {
-                // write to csm
-                cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", quote.Epoch)
-                cs.AddColumn("Open", quote.Open)
-                cs.AddColumn("High", quote.High)
-                cs.AddColumn("Low", quote.Low)
-                cs.AddColumn("Close", quote.Close)
-                cs.AddColumn("Volume", quote.Volume)
-                csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
-                csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)
-            }
+        for _, quote := range quotes {
+            log.Info("TiingoCrypto: Writing to '%s'/1Min/OHLCV from %v to %v", quote.Symbol, timeStart, timeEnd)
+            // write to csm
+            cs := io.NewColumnSeries()
+            cs.AddColumn("Epoch", quote.Epoch)
+            cs.AddColumn("Open", quote.Open)
+            cs.AddColumn("High", quote.High)
+            cs.AddColumn("Low", quote.Low)
+            cs.AddColumn("Close", quote.Close)
+            cs.AddColumn("Volume", quote.Volume)
+            csm := io.NewColumnSeriesMap()
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+            csm.AddColumnSeries(*tbk, cs)
+            executor.WriteCSM(csm, false)
         }
         
 		if realTime {
