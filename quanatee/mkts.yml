@@ -24,22 +24,6 @@ bgworkers:
       api_key: "<tiingo_api_key>"
       symbols:
         - EURUSD
-        - GBPUSD
-        - AUDUSD
-        - USDCHF
-        - NZDUSD
-        - USDCAD
-        - EURGBP
-        - EURCHF
-        - EURNZD
-        - EURCAD
-        - EURJPY
-        - USDJPY
-        - GBPJPY
-        - AUDJPY
-        - CHFJPY
-        - NZDJPY
-        - CADJPY
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
       
