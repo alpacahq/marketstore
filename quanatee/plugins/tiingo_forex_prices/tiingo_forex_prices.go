@@ -346,7 +346,7 @@ func (tiifx *TiingoForexFetcher) Run() {
         quotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, tiifx.baseTimeframe.String, tiifx.apiKey)
         
         for _, quote := range quotes {
-            log.Info("TiingoForex: Writing to '%s'/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
+            log.Info("TiingoForex: Writing to %s/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
@@ -369,7 +369,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                 revSymbol = strings.Replace(quote.Symbol, "JPY", "", -1) + "JPY"
             }
             if revSymbol != "" {                
-                log.Info("TiingoForex: Writing to '%s'/1Min/OHLC from %v to %v", revSymbol, timeStart, timeEnd)
+                log.Info("TiingoForex: Writing to %s/1Min/OHLC from %v to %v", revSymbol, timeStart, timeEnd)
                 
                 numrows := len(quote.Epoch)
                 revQuote := NewQuote(revSymbol, numrows)

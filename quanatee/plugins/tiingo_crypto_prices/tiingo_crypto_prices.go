@@ -352,7 +352,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
         
         for _, quote := range quotes {
-            log.Info("TiingoCrypto: Writing to '%s'/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
+            log.Info("TiingoCrypto: Writing to %s/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
