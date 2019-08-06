@@ -92,7 +92,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	var forexData []priceData
 
 	url := fmt.Sprintf(
-		"https://api.tiingo.com/tiingo/fx/%s/prices?&startDate=%s&endDate=%s&resampleFreq=%s",
+		"https://api.tiingo.com/tiingo/fx/%s/prices?startDate=%s&endDate=%s&resampleFreq=%s",
 		symbol,
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
@@ -117,8 +117,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
     
 	if len(forexData) < 1 {
-		log.Info("TiingoForex url '%s' ", url)
-		log.Info("TiingoForex symbol '%s' No data returned %v %v", symbol, forexData, contents)        
+		log.Info("TiingoForex symbol '%s' No data returned %v", symbol)        
 		return NewQuote("", 0), err
 	}
     
