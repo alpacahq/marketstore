@@ -92,7 +92,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	var iexData []priceData
 
 	url := fmt.Sprintf(
-		"https://api.tiingo.com/iex/%s/prices?startDate=%s&endDate=%s&resampleFreq=%s&afterHours=false&forceFill=false",
+		"https://api.tiingo.com/iex/%s/prices?startDate=%s&endDate=%s&resampleFreq=%s&afterHours=false&forceFill=true",
 		symbol,
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
@@ -275,7 +275,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
 	
     // Get last timestamp collected
 	for _, symbol := range tiiex.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
         lastTimestamp := findLastTimestamp(tbk)
         log.Info("TiingoIEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -345,7 +345,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
         quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, tiiex.baseTimeframe.String, tiiex.apiKey)
         
         for _, quote := range quotes {
-            log.Info("TiingoIEX: Writing to '%s'/1Min/OHLCV from %v to %v", quote.Symbol, timeStart, timeEnd)
+            log.Info("TiingoIEX: Writing to '%s'/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
