@@ -80,6 +80,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
 
 	type priceData struct {
+		Ticker         string  `json:"ticker"`
 		Close          float64 `json:"close"`
 		Low            float64 `json:"low"`
 		Open           float64 `json:"open"`
