@@ -21,27 +21,31 @@ triggers:
 bgworkers:
   - module: polygon_rest_crypto.so
     config:
-      api_key: ""
+      api_key: "<polygon_api_key>"
       symbols:
-        - ETH-BTC
-        - ETC-BTC
-        - EOS-BTC
-        - LTC-BTC
-        - XLM-BTC
-        - XRP-BTC
-        - BTC-USD
-        - ETH-USD
-        - ETC-USD
-        - EOS-USD
-        - LTC-USD
-        - XLM-USD
-        - XRP-USD        
-        - BTC-EUR
-        - ETH-EUR
-        - ETC-EUR
-        - EOS-EUR
-        - LTC-EUR
-        - XLM-EUR
-        - XRP-EUR
+        - ETH
+        - ETC
+        - EOS
+        - LTC
+        - XLM
+        - XRP
+        - BTC
+        - ETH
+        - ETC
+        - EOS
+        - LTC
+        - XLM
+        - XRP        
+        - BTC
+        - ETH
+        - ETC
+        - EOS
+        - LTC
+        - XLM
+        - XRP
+      base_currencies:
+        - BTC
+        - USD
+        - EUR
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
