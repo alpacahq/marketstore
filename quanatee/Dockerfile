@@ -39,5 +39,4 @@ COPY /quanatee/mkts.yml .
 VOLUME /data
 EXPOSE 5993
 
-ENTRYPOINT ["/bin/bash"]
-CMD sed -i "s|<polygon_api_key>|$POLYGON_API_KEY |g" mkts.yml && marketstore start --config mkts.yml
+ENTRYPOINT sed -i "s|<polygon_api_key>|$POLYGON_API_KEY |g" mkts.yml && marketstore start --config mkts.yml && /bin/bash
