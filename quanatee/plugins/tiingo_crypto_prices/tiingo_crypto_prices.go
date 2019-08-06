@@ -378,7 +378,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                 continue
             }
         } else {
-            for _, quote := range quotes:                    
+            for _, quote := range quotes {
                 // write to csm
                 cs := io.NewColumnSeries()
                 cs.AddColumn("Epoch", quote.Epoch)
@@ -390,7 +390,8 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                 csm := io.NewColumnSeriesMap()
                 tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)                
+                executor.WriteCSM(csm, false)
+            }
         }
         
 		if realTime {
@@ -400,7 +401,6 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             log.Info("TiingoCrypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
-            rateCount = 0
 		} else {
 			time.Sleep(time.Second*60)
 		}
