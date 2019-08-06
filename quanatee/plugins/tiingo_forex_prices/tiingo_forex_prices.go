@@ -115,8 +115,10 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		log.Info("TiingoForex symbol '%s' error: %v\n", symbol, err)
 		return NewQuote("", 0), err
 	}
+    
+    
 	if len(forexData) < 1 {
-		log.Info("TiingoForex symbol '%s' No data returned", symbol)
+		log.Info("TiingoForex symbol '%s' No data returned %v", symbol, forexData)
 		return NewQuote("", 0), err
 	}
     
