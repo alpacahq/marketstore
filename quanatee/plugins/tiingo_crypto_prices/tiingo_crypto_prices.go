@@ -4,12 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-    "math/rand"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
-	"strconv"
 	"time"
     
 	"github.com/alpacahq/marketstore/executor"
@@ -60,7 +57,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to time.Time, period Period, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
 
 	resampleFreq := "1day"
 	switch period {
@@ -111,7 +108,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period Period, token str
 	var crypto []cryptoData
 
 	url := fmt.Sprintf(
-		"https://api.tiingo.com/tiiccngo/crypto/prices?tickers=%s&startDate=%s&endDate=%s&resampleFreq=%s",
+		"https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&startDate=%s&endDate=%s&resampleFreq=%s",
 		symbol,
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
@@ -123,7 +120,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period Period, token str
 	resp, err := client.Do(req)
 
 	if err != nil {
-		Log.Printf("symbol '%s' not found\n", symbol)
+		log.Info("TiingoCrypto symbol '%s' not found\n", symbol)
 		return NewQuote("", 0), err
 	}
 	defer resp.Body.Close()
@@ -131,11 +128,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, period Period, token str
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &crypto)
 	if err != nil {
-		Log.Printf("tiiccngo crypto symbol '%s' error: %v\n", symbol, err)
+		log.Info("TiingoCrypto symbol '%s' error: %v\n", symbol, err)
 		return NewQuote("", 0), err
 	}
 	if len(crypto) < 1 {
-		Log.Printf("tiiccngo crypto symbol '%s' No data returned", symbol)
+		log.Info("TiingoCrypto symbol '%s' No data returned", symbol)
 		return NewQuote("", 0), err
 	}
 
