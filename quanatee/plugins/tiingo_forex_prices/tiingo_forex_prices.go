@@ -129,7 +129,8 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	}
     
 	if len(forexData.PriceData) < 1 {
-		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)  
+		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
+        log.Info("%v", forexData.PriceData)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -572,7 +573,7 @@ func (tiifx *TiingoForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*60)
+			time.Sleep(time.Second*99)
 		}
 	}
 }

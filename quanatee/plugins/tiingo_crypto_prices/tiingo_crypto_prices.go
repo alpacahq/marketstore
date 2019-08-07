@@ -388,7 +388,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*60)
+			time.Sleep(time.Second*99)
 		}
 	}
 }
