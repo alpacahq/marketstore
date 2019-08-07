@@ -134,9 +134,12 @@ func GetHistoricAggregatesV2(
 	multiplier int,
 	from, to *time.Time,
 	unadjusted *bool) (*HistoricAggregatesV2, error) {
-
+    
 	u, err := url.Parse(fmt.Sprintf(aggv2URL, baseURL, symbol, multiplier, Minute, from.Unix()*1000, to.Unix()*1000))
-	if err != nil {
+    
+    log.Info("GetHistoricAggregatesV2 %s", u)
+	
+    if err != nil {
 		return nil, err
 	}
 

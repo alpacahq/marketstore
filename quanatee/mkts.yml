@@ -10,7 +10,7 @@ enable_last_known: false
 timezone: "America/New_York"
 triggers:
   - module: ondiskagg.so
-    on: "*/1Min/OHLCV"
+    on: "*/1Min/*"
     config:
       filter: "nasdaq"
       destinations:
@@ -19,33 +19,25 @@ triggers:
   - module: stream.so
     on: "*/*/*"
 bgworkers:
-  - module: polygon_rest_crypto.so
+  - module: tiingo_crypto_prices.so
     config:
-      api_key: "<polygon_api_key>"
+      api_key: "<tiingo_api_key>"
       symbols:
-        - ETH
-        - ETC
-        - EOS
-        - LTC
-        - XLM
-        - XRP
-        - BTC
-        - ETH
-        - ETC
-        - EOS
-        - LTC
-        - XLM
-        - XRP        
-        - BTC
-        - ETH
-        - ETC
-        - EOS
-        - LTC
-        - XLM
-        - XRP
-      base_currencies:
-        - BTC
-        - USD
-        - EUR
-      query_start: "2018-01-01 00:00"
+        - ETHBTC
+      query_start: "2019-01-01 00:00"
+      base_timeframe: "1Min"
+  - module: tiingo_forex_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      api_key2: "<intrinio_api_key>"
+      symbols:
+        - EURUSD
+      query_start: "2019-01-01 00:00"
+      base_timeframe: "1Min"
+  - module: tiingo_iex_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      symbols:
+        - SPY
+      query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"

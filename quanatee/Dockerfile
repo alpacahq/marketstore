@@ -34,15 +34,9 @@ COPY --from=builder /go/bin/marketstore /bin/
 COPY --from=builder /go/bin/*.so /bin/
 ENV GOPATH=/
 
-# RUN ["marketstore", "init"]
-# RUN mv mkts.yml /etc/
 COPY /quanatee/mkts.yml .
 
-# ENV POLYGON_API_KEY $POLYGON_API_KEY
-RUN sed -i "s|<polygon_api_key>|polygon_api_key: $POLYGON_API_KEY|g" mkts.yml
 VOLUME /data
 EXPOSE 5993
 
-RUN ls
-ENTRYPOINT ["marketstore"]
-CMD ["start", "--config", "./mkts.yml"]
+ENTRYPOINT sed -i "s|<tiingo_api_key>|${TIINGO_API_KEY}|g" mkts.yml && sed -i "s|<intrinio_api_key>|${INTRINIO_API_KEY}|g" mkts.yml && marketstore start --config mkts.yml && /bin/bash
