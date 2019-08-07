@@ -104,7 +104,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &iexData)
 	if err != nil {
-		log.Info("IEX: symbol '%s' error: %v\n", symbol, err)
+		log.Info("IEX: symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     

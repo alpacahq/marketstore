@@ -53,13 +53,13 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	resampleFreq := "H1"
 	switch period {
 	case "1Min":
-		resampleFreq = "M1"
+		resampleFreq = "m1"
 	case "5Min":
-		resampleFreq = "M5"
+		resampleFreq = "m5"
 	case "15Min":
-		resampleFreq = "M15"
+		resampleFreq = "m15"
 	case "30Min":
-		resampleFreq = "M30"
+		resampleFreq = "m30"
 	case "1H":
 		resampleFreq = "H1"
 	case "2H":
@@ -121,10 +121,9 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
-    log.Info("%s", contents)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info(": Intrinio symbol '%s' error: %v\n", symbol, err)
+		log.Info(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -202,7 +201,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 
 	url := fmt.Sprintf(
 		"https://api.tiingo.com/tiingo/fx/%s/prices?startDate=%s&endDate=%s&resampleFreq=%s&afterHours=false&forceFill=true",
-		symbol,
+		strings.ToUpper(symbol),
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
 		resampleFreq)
@@ -221,7 +220,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info("Forex: Tiingo symbol '%s' error: %v\n", symbol, err)
+		log.Info("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     

@@ -115,7 +115,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		log.Info("Crypto: symbol '%s' error: %v\n", symbol, err)
+		log.Info("Crypto: symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
