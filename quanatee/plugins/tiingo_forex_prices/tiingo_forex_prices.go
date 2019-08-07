@@ -108,7 +108,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 		url.QueryEscape(to.Format("2006-1-2")), // to date
 		url.QueryEscape(to.Format("21:01:21")), // to time
 		)
-        
+    log.Info("%s", url)
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
