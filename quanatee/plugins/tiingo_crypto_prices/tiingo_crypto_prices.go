@@ -357,6 +357,9 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             if realTime {
                 log.Info("TiingoCrypto: Entry '%v'", quote)
             }
+            if len(quote.Epoch) < 1 {
+                continue
+            }
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
