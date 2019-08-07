@@ -253,7 +253,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if config.QueryStart != "" {
 		queryStart = queryTime(config.QueryStart)
 	}
-
+    
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	}
