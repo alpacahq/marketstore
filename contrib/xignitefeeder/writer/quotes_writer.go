@@ -65,7 +65,8 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 		//	continue
 		//}
 
-		cs := q.newColumnSeries(latestDateTime.Unix(), eq.Quote.Ask, eq.Quote.Bid, eq.Quote.Last)
+		cs := q.newColumnSeries(latestDateTime.Unix(), eq.Quote.Ask, eq.Quote.Bid, eq.Quote.Last,
+			eq.Quote.Open, eq.Quote.High, eq.Quote.Low, eq.Quote.Close, eq.Quote.Volume, eq.Quote.PreviousClose)
 		tbk := io.NewTimeBucketKey(eq.Security.Symbol + "/" + q.Timeframe + "/TICK")
 		csm.AddColumnSeries(*tbk, cs)
 	}
@@ -73,12 +74,21 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 	return csm, nil
 }
 
-func (q QuotesWriterImpl) newColumnSeries(epoch int64, ask, bid, last float32) *io.ColumnSeries {
+func (q QuotesWriterImpl) newColumnSeries(
+	epoch int64, ask, bid, last, open, high, low, close float32,
+	volume int, previousClose float32,
+) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{epoch})
 	cs.AddColumn("Ask", []float32{ask})
 	cs.AddColumn("Bid", []float32{bid})
 	cs.AddColumn("Last", []float32{last})
+	cs.AddColumn("Open", []float32{open})
+	cs.AddColumn("High", []float32{high})
+	cs.AddColumn("Low", []float32{low})
+	cs.AddColumn("Close", []float32{close})
+	cs.AddColumn("Volume", []int{volume})
+	cs.AddColumn("PreviousClose", []float32{previousClose})
 	return cs
 }
 
