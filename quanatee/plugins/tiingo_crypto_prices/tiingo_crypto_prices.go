@@ -349,6 +349,9 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         
         for _, quote := range quotes {
             log.Info("TiingoCrypto: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+            if realTime {
+                log.Info("TiingoCrypto: Entry '%v'", quote)
+            }
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
