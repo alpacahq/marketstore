@@ -347,10 +347,10 @@ func (tiifx *TiingoForexFetcher) Run() {
         quotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, tiifx.baseTimeframe.String, tiifx.apiKey)
         
         for _, quote := range quotes {
-            log.Info("TiingoForex: Writing to %s/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
             if len(quote.Epoch) < 1 {
                 continue
             }
+            log.Info("TiingoForex: Writing to %s/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)

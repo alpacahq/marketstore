@@ -346,11 +346,11 @@ func (tiiex *TiingoIEXFetcher) Run() {
         
         quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, tiiex.baseTimeframe.String, tiiex.apiKey)
         
-        for _, quote := range quotes {
-            log.Info("TiingoIEX: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+        for _, quote := range quotes {            
             if len(quote.Epoch) < 1 {
                 continue
             }
+            log.Info("TiingoIEX: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)

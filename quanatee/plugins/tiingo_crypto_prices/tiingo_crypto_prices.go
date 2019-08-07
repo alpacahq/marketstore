@@ -303,32 +303,20 @@ func (tiicc *TiingoCryptoFetcher) Run() {
     
 	for {
         
-        if !firstLoop {
-            if !realTime {
-                // If next batch of backfill goes into the future, switch to realTime
-                if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now()) {
-                    realTime = true
-                    timeStart = timeEnd
-                    timeEnd = time.Now().UTC()
-                // If still backfilling
-                } else {
-                    timeStart = timeEnd
-                    timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
-                }
-            // if realTime
+        if realTime {
+            timeStart = timeEnd
+            timeEnd = time.Now().UTC()
+        } else {
+            if firstLoop {
+                firstLoop = false
             } else {
                 timeStart = timeEnd
-                timeEnd = time.Now().UTC()
             }
-        // firstLoop, we use this if we get timed out as well
-        } else {
-            firstLoop = false
-            if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now()) {
+            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
+            if timeEnd.After(time.Now().UTC()) {
                 log.Info("Switching to realTime")
                 realTime = true
                 timeEnd = time.Now().UTC()
-            } else {
-                timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
             }
         }
         
@@ -352,13 +340,13 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         
         quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
         
-        for _, quote := range quotes {
+        for _, quote := range quotes {            
+            if len(quote.Epoch) < 1 {
+                continue
+            }
             log.Info("TiingoCrypto: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             if realTime {
                 log.Info("TiingoCrypto: Entries '%v'", len(quote.Epoch))
-            }
-            if len(quote.Epoch) < 1 {
-                continue
             }
             // write to csm
             cs := io.NewColumnSeries()
