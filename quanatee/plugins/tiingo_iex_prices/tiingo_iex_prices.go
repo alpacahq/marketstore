@@ -298,31 +298,19 @@ func (tiiex *TiingoIEXFetcher) Run() {
     
 	for {
         
-        if !firstLoop {
-            if !realTime {
-                // If next batch of backfill goes into the future, switch to realTime
-                if timeEnd.Add(tiiex.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
-                    realTime = true
-                    timeStart = timeEnd
-                    timeEnd = time.Now().UTC()
-                // If still backfilling
-                } else {
-                    timeStart = timeEnd
-                    timeEnd = timeEnd.Add(tiiex.baseTimeframe.Duration * 1440 * 30)
-                }
-            // if realTime
+        if realTime {
+            timeStart = timeEnd
+            timeEnd = time.Now().UTC()
+        } else {
+            if firstLoop {
+                firstLoop = false
             } else {
                 timeStart = timeEnd
-                timeEnd = time.Now().UTC()
             }
-        // firstLoop, we use this if we get timed out as well
-        } else {
-            firstLoop = false
-            if timeEnd.Add(tiiex.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
+            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration * 1440 * 30)
+            if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
-            } else {
-                timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration * 1440 * 30)
             }
         }
         
@@ -350,7 +338,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
             if len(quote.Epoch) < 1 {
                 continue
             }
-            log.Info("TiingoIEX: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+            log.Info("TiingoIEX: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)

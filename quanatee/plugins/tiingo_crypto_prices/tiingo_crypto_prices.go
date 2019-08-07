@@ -314,7 +314,6 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             }
             timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
             if timeEnd.After(time.Now().UTC()) {
-                log.Info("Switching to realTime")
                 realTime = true
                 timeEnd = time.Now().UTC()
             }
@@ -344,10 +343,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             if len(quote.Epoch) < 1 {
                 continue
             }
-            log.Info("TiingoCrypto: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
-            if realTime {
-                log.Info("TiingoCrypto: Entries '%v'", len(quote.Epoch))
-            }
+            log.Info("TiingoCrypto: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
