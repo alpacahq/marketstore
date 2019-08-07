@@ -94,7 +94,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	type intrinioData struct {
 		PriceData     []priceData `json:"prices"`
 		PairData      pairData    `json:"pair"`
-		// Page          string      `json:"next_page"`
+		Page          string      `json:"next_page"`
 	}
     
 	var forexData []intrinioData
