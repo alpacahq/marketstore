@@ -88,7 +88,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 		HighAsk          float64 `json:"high_ask"`
 		LowAsk           float64 `json:"low_ask"`
 		CloseAsk         float64 `json:"close_ask"`
-		TotalTicks       float64 `json:"total_ticks"`
+		TotalTicks       int64   `json:"total_ticks"`
 	}
     
 	type intrinioData struct {
