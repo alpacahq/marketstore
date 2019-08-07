@@ -100,7 +100,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	var forexData []intrinioData
 
 	url := fmt.Sprintf(
-        "https://api-v2.intrinio.com/forex/prices/%s/%s&start_date=%s&start_time=%s&end_date=%s&end_time=%s",
+        "https://api-v2.intrinio.com/forex/prices/%s/%s?start_date=%s&start_time=%s&end_date=%s&end_time=%s",
         symbol,
         resampleFreq,
 		url.QueryEscape(from.Format("2006-1-2")), // from date
