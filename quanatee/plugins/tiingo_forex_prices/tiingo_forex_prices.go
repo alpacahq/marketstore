@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
     "strings"
+    "strconv"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -122,7 +123,7 @@ func getGooglePrices(symbol string, from, to time.Time, period string) (Quote, e
 		}
         
 		seconds, _ := strconv.ParseInt(string(period), 10, 64)
-		quote.Epoch[row] = time.Unix(day+(seconds*offset), 0)
+		quote.Epoch[row] = time.Unix(day+(seconds*offset), 0).Unix()
         quote.Open[row], _ = strconv.ParseFloat(csvdata[4], 64)
 		quote.High[row], _ = strconv.ParseFloat(csvdata[2], 64)
 		quote.Low[row], _ = strconv.ParseFloat(csvdata[3], 64)
