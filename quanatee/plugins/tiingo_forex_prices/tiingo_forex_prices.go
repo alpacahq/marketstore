@@ -28,7 +28,6 @@ type Quote struct {
 	High      []float64   `json:"high"`
 	Low       []float64   `json:"low"`
 	Close     []float64   `json:"close"`
-	//Volume    []float64   `json:"volume"`
 }
 
 // Quotes - an array of historical price data
@@ -46,7 +45,6 @@ func NewQuote(symbol string, bars int) Quote {
 		High:   make([]float64, bars),
 		Low:    make([]float64, bars),
 		Close:  make([]float64, bars),
-		//Volume: make([]float64, bars),
 	}
 }
 
@@ -76,7 +74,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 
 	type pairData struct {
 		Symbol         string  `json:"code"`
-		BasseCurrency  string  `json:"base_currency"`
+		BaseCurrency  string  `json:"base_currency"`
 		QuoteCurrency  float64 `json:"quote_currency"`
 	}
     
@@ -138,14 +136,14 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	quote := NewQuote(symbol, numrows)
     
 	for bar := 0; bar < numrows; bar++ {
+        dt, _ := time.Parse(time.RFC3339, forexData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
             quote.Epoch[bar] = dt.Unix()
-            quote.Open[bar] = forexData[bar].Open
-            quote.High[bar] = forexData[bar].High
-            quote.Low[bar] = forexData[bar].Low
-            quote.Close[bar] = forexData[bar].Close
-            //quote.Volume[bar] = float64(forexData[bar].Volume)
+            quote.Open[bar] = (forexData[0].PriceData[bar].OpenBid + forexData[0].PriceData[bar].OpenAsk) / 2
+            quote.High[bar] = (forexData[0].PriceData[bar].HighBid + forexData[0].PriceData[bar].HigheAsk) / 2
+            quote.Low[bar] = (forexData[0].PriceData[bar].LowBid + forexData[0].PriceData[bar].LowAsk) / 2
+            quote.Close[bar] = (forexData[0].PriceData[bar].CloseBid + forexData[0].PriceData[bar].CloseAsk) / 2
         }
 	}
 
@@ -197,7 +195,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		Low            float64 `json:"low"`
 		High           float64 `json:"high"`
 		Close          float64 `json:"close"`
-		//Volume         float64 `json:"volume"`
 	}
     
 	var forexData []priceData
@@ -244,7 +241,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
             quote.High[bar] = forexData[bar].High
             quote.Low[bar] = forexData[bar].Low
             quote.Close[bar] = forexData[bar].Close
-            //quote.Volume[bar] = float64(forexData[bar].Volume)
         }
 	}
     
@@ -475,7 +471,6 @@ func (tiifx *TiingoForexFetcher) Run() {
                                         quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
                                         quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
                                         quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
-                                        //quote.Volume[bar] = tiingoQuote.Volume[bar] + intrinioQuote.Volume[bar]
                                     }
                                 }
                                 quotes = append(quotes, quote)   
@@ -503,7 +498,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
-                    log.Info("Forex: Row dated %v already exists in %s/%s/OHLC", timeEnd, quote.Symbol, tiiex.baseTimeframe.String)
+                    log.Info("Forex: Row dated %v already exists in %s/%s/OHLC", timeEnd, quote.Symbol, tiifx.baseTimeframe.String)
                     continue
                 } else {
                     // Write only the latest
@@ -513,7 +508,6 @@ func (tiifx *TiingoForexFetcher) Run() {
                     rtQuote.High[0] = quote.High[len(quote.High)-1]
                     rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
-                    //rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
                     quote = rtQuote
                     log.Info("Forex: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiifx.baseTimeframe.String)
                 }
@@ -527,7 +521,6 @@ func (tiifx *TiingoForexFetcher) Run() {
             cs.AddColumn("High", quote.High)
             cs.AddColumn("Low", quote.Low)
             cs.AddColumn("Close", quote.Close)
-            //cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)
@@ -551,7 +544,6 @@ func (tiifx *TiingoForexFetcher) Run() {
                     revQuote.High[bar] = 1/quote.High[bar]
                     revQuote.Low[bar] = 1/quote.Low[bar]
                     revQuote.Close[bar] = 1/quote.Close[bar]
-                    //revQuote.Volume[bar] = quote.Volume[bar]
                 }
                 if numrows > 1 {
                     log.Info("Forex: Writing %v rows to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
@@ -565,7 +557,6 @@ func (tiifx *TiingoForexFetcher) Run() {
                 cs.AddColumn("High", revQuote.High)
                 cs.AddColumn("Low", revQuote.Low)
                 cs.AddColumn("Close", revQuote.Close)
-                //cs.AddColumn("Volume", revQuote.Volume)
                 csm := io.NewColumnSeriesMap()
                 tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
                 csm.AddColumnSeries(*tbk, cs)

@@ -28,7 +28,6 @@ type Quote struct {
 	High      []float64   `json:"high"`
 	Low       []float64   `json:"low"`
 	Close     []float64   `json:"close"`
-	//Volume    []float64   `json:"volume"`
 }
 
 // Quotes - an array of historical price data
@@ -46,7 +45,6 @@ func NewQuote(symbol string, bars int) Quote {
 		High:   make([]float64, bars),
 		Low:    make([]float64, bars),
 		Close:  make([]float64, bars),
-		//Volume: make([]float64, bars),
 	}
 }
 
@@ -81,7 +79,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		Low            float64 `json:"low"`
 		High           float64 `json:"high"`
 		Close          float64 `json:"close"`
-		//Volume         float64 `json:"volume"`
 	}
     
 	var iexData []priceData
@@ -128,7 +125,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
             quote.High[bar] = iexData[bar].High
             quote.Low[bar] = iexData[bar].Low
             quote.Close[bar] = iexData[bar].Close
-            //quote.Volume[bar] = float64(iexData[bar].Volume)
         }
 	}
 
@@ -352,7 +348,6 @@ func (tiiex *TiingoIEXFetcher) Run() {
                     rtQuote.High[0] = quote.High[len(quote.High)-1]
                     rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
-                    //rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
                     quote = rtQuote
                     log.Info("IEX: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiiex.baseTimeframe.String)
                 }
@@ -366,7 +361,6 @@ func (tiiex *TiingoIEXFetcher) Run() {
             cs.AddColumn("High", quote.High)
             cs.AddColumn("Low", quote.Low)
             cs.AddColumn("Close", quote.Close)
-            //cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)

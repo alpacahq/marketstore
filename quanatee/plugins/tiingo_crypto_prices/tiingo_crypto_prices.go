@@ -85,14 +85,14 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		Volume         float64 `json:"volume"`
 	}
 
-	type cryptoData struct {
+	type tiingoData struct {
 		Ticker        string      `json:"ticker"`
 		BaseCurrency  string      `json:"baseCurrency"`
 		QuoteCurrency string      `json:"quoteCurrency"`
 		PriceData     []priceData `json:"priceData"`
 	}
 
-	var crypto []cryptoData
+	var cryptoData []tiingoData
 
 	url := fmt.Sprintf(
 		"https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&startDate=%s&endDate=%s&resampleFreq=%s",
@@ -113,29 +113,29 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(contents, &crypto)
+	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
 		log.Info("Crypto: symbol '%s' error: %v\n", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
-	if len(crypto) < 1 {
+	if len(cryptoData) < 1 {
 		log.Info("Crypto: symbol '%s' No data returned from %v-%v", symbol, from, to)
 		return NewQuote(symbol, 0), err
 	}
     
-	numrows := len(crypto[0].PriceData)
+	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
 
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, cryptoData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
             quote.Epoch[bar] = dt.Unix()
-            quote.Open[bar] = cryptoData[bar].Open
-            quote.High[bar] = cryptoData[bar].High
-            quote.Low[bar] = cryptoData[bar].Low
-            quote.Close[bar] = cryptoData[bar].Close
-            //quote.Volume[bar] = float64(cryptoData[bar].Volume)
+            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
+            quote.High[bar] = cryptoData[0].PriceData[bar].High
+            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
+            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+            //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
 
@@ -349,7 +349,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
-                    log.Info("Crypto: Row dated %v already exists in %s/%s/OHLC", timeEnd, quote.Symbol, tiiex.baseTimeframe.String)
+                    log.Info("Crypto: Row dated %v already exists in %s/%s/OHLC", timeEnd, quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 } else {
                     // Write only the latest
