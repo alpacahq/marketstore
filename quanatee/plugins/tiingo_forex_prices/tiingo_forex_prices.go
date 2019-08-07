@@ -74,7 +74,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 
 	type pairData struct {
 		Symbol         string  `json:"code"`
-		BaseCurrency  string  `json:"base_currency"`
+		BaseCurrency   string  `json:"base_currency"`
 		QuoteCurrency  float64 `json:"quote_currency"`
 	}
     
@@ -94,7 +94,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	type intrinioData struct {
 		PriceData     []priceData `json:"prices"`
 		PairData      pairData    `json:"pair"`
-		Page          string      `json:"next_page"`
+		// Page          string      `json:"next_page"`
 	}
     
 	var forexData []intrinioData
@@ -115,7 +115,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("IntrinioForex symbol '%s' not found\n", symbol)
+		log.Info("Forex: Intrinio symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -123,12 +123,12 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info("IntrinioForex symbol '%s' error: %v\n", symbol, err)
+		log.Info(": Intrinio symbol '%s' error: %v\n", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
     
 	if len(forexData) < 1 {
-		log.Info("IntrinioForex symbol '%s' No data returned from %v-%v", symbol, from, to)  
+		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)  
 		return NewQuote(symbol, 0), err
 	}
     
@@ -212,7 +212,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("TiingoForex symbol '%s' not found\n", symbol)
+		log.Info("Forex: symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -220,12 +220,12 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info("TiingoForex symbol '%s' error: %v\n", symbol, err)
+		log.Info("Forex: symbol '%s' error: %v\n", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
     
 	if len(forexData) < 1 {
-		log.Info("TiingoForex symbol '%s' No data returned from %v-%v", symbol, from, to)  
+		log.Info("Forex: symbol '%s' No data returned from %v-%v", symbol, from, to)  
 		return NewQuote(symbol, 0), err
 	}
     
@@ -256,7 +256,7 @@ func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period str
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
-			log.Info("TiingoForex error downloading " + symbol)
+			log.Info("Forex: error downloading " + symbol)
 		}
 	}
 	return quotes, nil
