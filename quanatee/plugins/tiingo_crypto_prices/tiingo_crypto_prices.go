@@ -306,7 +306,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         if !firstLoop {
             if !realTime {
                 // If next batch of backfill goes into the future, switch to realTime
-                if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
+                if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now()) {
                     realTime = true
                     timeStart = timeEnd
                     timeEnd = time.Now().UTC()
@@ -323,7 +323,8 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         // firstLoop, we use this if we get timed out as well
         } else {
             firstLoop = false
-            if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
+            if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now()) {
+                log.Info("Switching to realTime")
                 realTime = true
                 timeEnd = time.Now().UTC()
             } else {
