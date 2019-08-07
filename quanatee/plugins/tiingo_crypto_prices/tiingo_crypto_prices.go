@@ -345,7 +345,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                 continue
             }
             if realTime {
-                tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
                 lastTimestamp := findLastTimestamp(tbk)
                 existingEpoch := lastTimestamp.UTC().Unix()
                 if existingEpoch == quote.Epoch[len(quote.Epoch)-1] {
