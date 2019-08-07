@@ -53,7 +53,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	resampleFreq := "H1"
 	switch period {
 	case "1Min":
-		resampleFreq = "m1"
+		resampleFreq = "H1"
 	case "5Min":
 		resampleFreq = "m5"
 	case "15Min":
