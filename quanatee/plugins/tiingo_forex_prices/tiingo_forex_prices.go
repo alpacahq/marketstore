@@ -450,7 +450,6 @@ func (tiifx *TiingoForexFetcher) Run() {
         
         // Aggregate Tiingo and Intrinio quotes
         for _, symbol := range tiifx.symbols {
-            symbolsMatched := false
             for _, tiingoQuote := range tiingoQuotes {
                 if tiingoQuote.Symbol == symbol {
                     for _, intrinioQuote := range intrinioQuotes {
