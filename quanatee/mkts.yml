@@ -25,11 +25,11 @@ bgworkers:
       symbols:
         - ETHBTC
       query_start: "2019-05-01 00:00"
-      base_timeframe: "5Min"
+      base_timeframe: "1Min"
   - module: tiingo_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
         - SPY
       query_start: "2019-05-01 00:00"
-      base_timeframe: "5Min"
+      base_timeframe: "1Min"
