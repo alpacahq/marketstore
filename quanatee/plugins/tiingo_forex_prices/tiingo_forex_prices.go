@@ -130,7 +130,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
     
 	if len(forexData.PriceData) < 1 {
 		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
-        log.Info("%v", forexData.PriceData)
+        log.Info("%v", forexData)
 		return NewQuote(symbol, 0), err
 	}
     
