@@ -141,7 +141,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
         if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
             quote.Epoch[bar] = dt.Unix()
             quote.Open[bar] = (forexData[0].PriceData[bar].OpenBid + forexData[0].PriceData[bar].OpenAsk) / 2
-            quote.High[bar] = (forexData[0].PriceData[bar].HighBid + forexData[0].PriceData[bar].HigheAsk) / 2
+            quote.High[bar] = (forexData[0].PriceData[bar].HighBid + forexData[0].PriceData[bar].HighAsk) / 2
             quote.Low[bar] = (forexData[0].PriceData[bar].LowBid + forexData[0].PriceData[bar].LowAsk) / 2
             quote.Close[bar] = (forexData[0].PriceData[bar].CloseBid + forexData[0].PriceData[bar].CloseAsk) / 2
         }
