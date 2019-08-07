@@ -281,7 +281,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
 	
     // Get last timestamp collected
 	for _, symbol := range tiicc.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
         lastTimestamp := findLastTimestamp(tbk)
         log.Info("TiingoCrypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -339,11 +339,33 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         
         quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
         
-        for _, quote := range quotes {            
+        for _, quote := range quotes {
+            // Check if there are entries to write
             if len(quote.Epoch) < 1 {
                 continue
             }
-            log.Info("TiingoCrypto: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+            if realTime {
+                tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
+                lastTimestamp := findLastTimestamp(tbk)
+                existingEpoch := lastTimestamp.UTC().Unix()
+                if existingEpoch == quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime entry already exists to prevent overwriting and retriggering stream
+                    continue
+                } else {
+                    // Write only the latest
+                    rtQuote := NewQuote(quote.Symbol, 1)
+                    rtQuote.Epoch[0] = quote.Epoch[len(quote.Epoch)-1]
+                    rtQuote.Open[0] = quote.Open[len(quote.Open)-1]
+                    rtQuote.High[0] = quote.High[len(quote.High)-1]
+                    rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
+                    rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
+                    rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
+                    quote = rtQuote
+                    log.Info("TiingoCrypto: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiicc.baseTimeframe.String)
+                }
+            } else {
+                log.Info("TiingoCrypto: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+            }
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)

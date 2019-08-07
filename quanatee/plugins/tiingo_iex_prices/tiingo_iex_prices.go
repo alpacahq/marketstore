@@ -334,11 +334,33 @@ func (tiiex *TiingoIEXFetcher) Run() {
         
         quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, tiiex.baseTimeframe.String, tiiex.apiKey)
         
-        for _, quote := range quotes {            
+        for _, quote := range quotes {
+            // Check if there are entries to write
             if len(quote.Epoch) < 1 {
                 continue
             }
-            log.Info("TiingoIEX: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+            if realTime {
+                tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
+                lastTimestamp := findLastTimestamp(tbk)
+                existingEpoch := lastTimestamp.UTC().Unix()
+                if existingEpoch == quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime entry already exists to prevent overwriting and retriggering stream
+                    continue
+                } else {
+                    // Write only the latest
+                    rtQuote := NewQuote(quote.Symbol, 1)
+                    rtQuote.Epoch[0] = quote.Epoch[len(quote.Epoch)-1]
+                    rtQuote.Open[0] = quote.Open[len(quote.Open)-1]
+                    rtQuote.High[0] = quote.High[len(quote.High)-1]
+                    rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
+                    rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
+                    rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
+                    quote = rtQuote
+                    log.Info("TiingoCrypto: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiiex.baseTimeframe.String)
+                }
+            } else {
+                log.Info("TiingoCrypto: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+            }
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
