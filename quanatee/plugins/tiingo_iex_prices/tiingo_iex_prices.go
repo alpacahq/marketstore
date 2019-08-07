@@ -356,10 +356,10 @@ func (tiiex *TiingoIEXFetcher) Run() {
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
                     rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
                     quote = rtQuote
-                    log.Info("TiingoCrypto: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiiex.baseTimeframe.String)
+                    log.Info("TiingoIEX: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiiex.baseTimeframe.String)
                 }
             } else {
-                log.Info("TiingoCrypto: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+                log.Info("TiingoIEX: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
             }
             // write to csm
             cs := io.NewColumnSeries()
