@@ -51,88 +51,6 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-// Contingency - Google daily/intraday historical prices for a symbol
-func getGooglePrices(symbol string, from, to time.Time, period string) (Quote, error) {
-
-    // Delay by 15 Seconds to prevent getting blocked
-    time.Sleep(time.Second*15)
-    
-	resampleFreq := "3600"
-	switch period {
-	case "1Min":
-		resampleFreq = "60"
-	case "3Min":
-		resampleFreq = "3m"
-	case "5Min":
-		resampleFreq = "300"
-	case "15Min":
-		resampleFreq = "900"
-	case "30Min":
-		resampleFreq = "1800"
-	case "1H":
-		resampleFreq = "3600"
-	case "2H":
-		resampleFreq = "2h"
-	case "4H":
-		resampleFreq = "4h"
-	case "6H":
-		resampleFreq = "6h"
-	case "8H":
-		resampleFreq = "8h"
-	case "12H":
-		resampleFreq = "12h"
-	}
-    
-	args := fmt.Sprintf(
-		"http://finance.google.com/finance/getprices?q=%s&i=%s&p=60d&f=d,o,h,l,c,v",
-		strings.ToUpper(symbol),
-		resampleFreq)
-    
-	resp, err := http.Get(args)
-	if err != nil {
-		log.Info("TiingoForex Google Symbol '%s' not found\n", symbol)
-		return NewQuote("", 0), err
-	}
-	defer resp.Body.Close()
-
-	contents, err := ioutil.ReadAll(resp.Body)
-
-	// ignore timezone row
-	tmp := strings.Split(string(contents), "\n")[7:]
-	var lines []string
-	for _, line := range tmp {
-		if !strings.HasPrefix(line, "TIMEZONE") {
-			lines = append(lines, line)
-		}
-	}
-	numrows := len(lines) - 1
-	quote := NewQuote(symbol, numrows)
-    
-	var day int64
-	for row := 0; row < numrows; row++ {
-
-		csvdata := strings.Split(lines[row], ",")
-		var offset int64
-		z := csvdata[0]
-
-		if z[0] == 'a' {
-			day, _ = strconv.ParseInt(z[1:], 10, 64)
-			offset = 0
-		} else {
-			offset, _ = strconv.ParseInt(z, 10, 64)
-		}
-        
-		seconds, _ := strconv.ParseInt(string(period), 10, 64)
-		quote.Epoch[row] = time.Unix(day+(seconds*offset), 0).Unix()
-        quote.Open[row], _ = strconv.ParseFloat(csvdata[4], 64)
-		quote.High[row], _ = strconv.ParseFloat(csvdata[2], 64)
-		quote.Low[row], _ = strconv.ParseFloat(csvdata[3], 64)
-		quote.Close[row], _ = strconv.ParseFloat(csvdata[1], 64)
-		//quote.Volume[row], _ = strconv.ParseFloat(csvdata[5], 64)
-	}
-	return quote, nil
-}
-
 func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
     
 	resampleFreq := "1day"
@@ -201,14 +119,8 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
     
 	if len(forexData) < 1 {
-		log.Info("TiingoForex symbol '%s' No data returned, trying Google Finance...", symbol)     
-        // TiingoForex is still in beta, we use Google Finance to fill the gaps
-        googQuote, googErr := getGooglePrices(symbol, from, to, period)
-        if googErr != nil {
-            return NewQuote("", 0), err
-        } else {
-            return googQuote, nil
-        }
+		log.Info("TiingoForex symbol '%s' No data returned %v", symbol)        
+		return NewQuote("", 0), err
 	}
     
 	numrows := len(forexData)
