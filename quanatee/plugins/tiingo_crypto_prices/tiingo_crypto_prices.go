@@ -123,7 +123,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		return NewQuote("", 0), err
 	}
 	if len(crypto) < 1 {
-		log.Info("TiingoCrypto symbol '%s' No data returned", symbol)
+		log.Info("TiingoCrypto symbol '%s' No data returned from %v-%v", symbol, from, to)
 		return NewQuote("", 0), err
 	}
     

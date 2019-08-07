@@ -118,7 +118,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
     
 	if len(iexData) < 1 {
-		log.Info("TiingoIEX symbol '%s' No data returned %v", symbol)        
+		log.Info("TiingoIEX symbol '%s' No data returned from %v-%v", symbol, from, to)  
 		return NewQuote("", 0), err
 	}
     
