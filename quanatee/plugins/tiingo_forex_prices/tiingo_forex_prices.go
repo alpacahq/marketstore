@@ -128,23 +128,23 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 		return NewQuote(symbol, 0), err
 	}
     
-	if len(forexData) < 1 {
+	if len(forexData.PriceData) < 1 {
 		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)  
 		return NewQuote(symbol, 0), err
 	}
     
-	numrows := len(forexData)
+	numrows := len(forexData.PriceData)
 	quote := NewQuote(symbol, numrows)
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, forexData[0].PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
             quote.Epoch[bar] = dt.Unix()
-            quote.Open[bar] = (forexData[0].PriceData[bar].OpenBid + forexData[0].PriceData[bar].OpenAsk) / 2
-            quote.High[bar] = (forexData[0].PriceData[bar].HighBid + forexData[0].PriceData[bar].HighAsk) / 2
-            quote.Low[bar] = (forexData[0].PriceData[bar].LowBid + forexData[0].PriceData[bar].LowAsk) / 2
-            quote.Close[bar] = (forexData[0].PriceData[bar].CloseBid + forexData[0].PriceData[bar].CloseAsk) / 2
+            quote.Open[bar] = (forexData.PriceData[bar].OpenBid + forexData.PriceData[bar].OpenAsk) / 2
+            quote.High[bar] = (forexData.PriceData[bar].HighBid + forexData.PriceData[bar].HighAsk) / 2
+            quote.Low[bar] = (forexData.PriceData[bar].LowBid + forexData.PriceData[bar].LowAsk) / 2
+            quote.Close[bar] = (forexData.PriceData[bar].CloseBid + forexData.PriceData[bar].CloseAsk) / 2
         }
 	}
 
