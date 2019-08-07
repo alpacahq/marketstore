@@ -374,6 +374,7 @@ func (tiifx *TiingoForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
+            // Add flipped pairs
             revSymbol := ""
             if strings.HasPrefix(quote.Symbol, "USD") {
                 revSymbol = strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
@@ -382,8 +383,7 @@ func (tiifx *TiingoForexFetcher) Run() {
             } else if strings.HasPrefix(quote.Symbol, "JPY") {
                 revSymbol = strings.Replace(quote.Symbol, "JPY", "", -1) + "JPY"
             }
-            if revSymbol != "" {                
-                log.Info("TiingoIEX: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+            if revSymbol != "" {
                 numrows := len(quote.Epoch)
                 revQuote := NewQuote(revSymbol, numrows)
                 for bar := 0; bar < numrows; bar++ {
@@ -393,6 +393,11 @@ func (tiifx *TiingoForexFetcher) Run() {
                     revQuote.Low[bar] = 1/quote.Low[bar]
                     revQuote.Close[bar] = 1/quote.Close[bar]
                     //revQuote.Volume[bar] = quote.Volume[bar]
+                }
+                if numrows > 1 {
+                    log.Info("TiingoForex: Writing %v rows to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                } else {
+                    log.Info("TiingoForex: Writing to %s/%s/OHLC from %v to %v", revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
                 }
                 // write to csm
                 cs := io.NewColumnSeries()
