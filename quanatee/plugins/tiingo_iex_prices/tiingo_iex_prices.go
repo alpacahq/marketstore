@@ -307,7 +307,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(time.Hour * 24 * 90)
+            timeEnd = timeStart.Add(time.Hour * 24 * 3)
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
