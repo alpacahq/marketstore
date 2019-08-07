@@ -354,7 +354,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                     rtQuote.High[0] = quote.High[len(quote.High)-1]
                     rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
-                    rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
+                    //rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
                     quote = rtQuote
                     log.Info("TiingoForex: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiifx.baseTimeframe.String)
                 }
