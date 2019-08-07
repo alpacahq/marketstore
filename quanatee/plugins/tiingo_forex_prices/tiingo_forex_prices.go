@@ -75,7 +75,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	type pairData struct {
 		Symbol         string  `json:"code"`
 		BaseCurrency   string  `json:"base_currency"`
-		QuoteCurrency  float64 `json:"quote_currency"`
+		QuoteCurrency  string  `json:"quote_currency"`
 	}
     
 	type priceData struct {
