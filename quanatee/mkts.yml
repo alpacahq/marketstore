@@ -24,12 +24,12 @@ bgworkers:
       api_key: "<tiingo_api_key>"
       symbols:
         - ETHBTC
-      query_start: "2019-05-01 00:00"
+      query_start: "2016-01-01 00:00"
       base_timeframe: "1Min"
   - module: tiingo_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
         - SPY
-      query_start: "2019-05-01 00:00"
+      query_start: "2016-01-01 00:00"
       base_timeframe: "1Min"
