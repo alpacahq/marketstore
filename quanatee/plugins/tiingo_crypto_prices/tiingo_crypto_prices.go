@@ -323,12 +323,11 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         // firstLoop, we use this if we get timed out as well
         } else {
             firstLoop = false
-            // Keep timeStart as original value
-            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
             if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
                 realTime = true
-                timeStart = timeEnd
                 timeEnd = time.Now().UTC()
+            } else {
+                timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
             }
         }
         
@@ -355,7 +354,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         for _, quote := range quotes {
             log.Info("TiingoCrypto: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             if realTime {
-                log.Info("TiingoCrypto: Entry '%v'", quote)
+                log.Info("TiingoCrypto: Entries '%v'", len(quote.Epoch))
             }
             if len(quote.Epoch) < 1 {
                 continue

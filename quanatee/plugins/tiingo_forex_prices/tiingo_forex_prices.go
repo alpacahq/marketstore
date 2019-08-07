@@ -318,8 +318,12 @@ func (tiifx *TiingoForexFetcher) Run() {
         // firstLoop, we use this if we get timed out as well
         } else {
             firstLoop = false
-            // Keep timeStart as original value
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 1440 * 30)
+            if timeEnd.Add(tiifx.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
+                realTime = true
+                timeEnd = time.Now().UTC()
+            } else {
+                timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 1440 * 30)
+            }
         }
         
         year := timeEnd.Year()
