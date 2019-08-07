@@ -307,7 +307,7 @@ func (tiifx *TiingoForexFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(time.Hour * 24 * 30)
+            timeEnd = timeStart.Add(time.Hour * 24 * 90)
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
