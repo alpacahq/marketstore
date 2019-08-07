@@ -24,19 +24,19 @@ bgworkers:
       api_key: "<tiingo_api_key>"
       symbols:
         - ETHBTC
-      query_start: "2019-02-01 00:00"
-      base_timeframe: "1Min"
+      query_start: "2018-02-01 00:00"
+      base_timeframe: "5Min"
   - module: tiingo_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
         - EURUSD
-      query_start: "2019-02-01 00:00"
-      base_timeframe: "1Min"
+      query_start: "2018-02-01 00:00"
+      base_timeframe: "5Min"
   - module: tiingo_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
         - SPY
-      query_start: "2019-02-01 00:00"
-      base_timeframe: "1Min"
+      query_start: "2018-02-01 00:00"
+      base_timeframe: "5Min"
