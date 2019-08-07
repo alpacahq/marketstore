@@ -51,7 +51,7 @@ func NewQuote(symbol string, bars int) Quote {
 
 func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
 
-	resampleFreq := "1day"
+	resampleFreq := "1hour"
 	switch period {
 	case "1Min":
 		resampleFreq = "1min"
@@ -75,8 +75,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		resampleFreq = "8hour"
 	case "12H":
 		resampleFreq = "12hour"
-	case "1D":
-		resampleFreq = "1day"
 	}
 
 	type priceData struct {
