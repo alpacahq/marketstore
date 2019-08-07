@@ -121,6 +121,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
+    log.info("%s", contents)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
 		log.Info(": Intrinio symbol '%s' error: %v\n", symbol, err)
@@ -159,7 +160,7 @@ func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, period s
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
-			log.Info("IntrinioForex error downloading " + symbol)
+			log.Info("Forex: Intrinio error downloading " + symbol)
 		}
 	}
 	return quotes, nil
@@ -212,7 +213,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("Forex: symbol '%s' not found\n", symbol)
+		log.Info("Forex: Tiingo symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -220,12 +221,12 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info("Forex: symbol '%s' error: %v\n", symbol, err)
+		log.Info("Forex: Tiingo symbol '%s' error: %v\n", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
     
 	if len(forexData) < 1 {
-		log.Info("Forex: symbol '%s' No data returned from %v-%v", symbol, from, to)  
+		log.Info("Forex: Tiingo symbol '%s' No data returned from %v-%v", symbol, from, to)  
 		return NewQuote(symbol, 0), err
 	}
     
@@ -256,7 +257,7 @@ func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period str
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
-			log.Info("Forex: error downloading " + symbol)
+			log.Info("Forex: Tiingo error downloading " + symbol)
 		}
 	}
 	return quotes, nil
