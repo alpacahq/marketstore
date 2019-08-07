@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+    "strings"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -336,21 +337,18 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         // But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
         // If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
         // Main goal is to ensure it runs every 1 <time duration> at :00
-        switch tiicc.baseTimeframe.String {
-        case "1Min":
+        if strings.HasSuffix(ticc.baseTimeframe.String, "Min") {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        case "1H":
+        } else if strings.HasSuffix(ticc.baseTimeframe.String, "H") {
             timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
-        case "1D":
+        } else if strings.HasSuffix(ticc.baseTimeframe.String, "D") {
             timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        default:
-            log.Warn("TiingoCrypto: Incorrect format: %v", tiicc.baseTimeframe.String)
         }
         
         quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
         
         for _, quote := range quotes {
-            log.Info("TiingoCrypto: Writing to %s/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
+            log.Info("TiingoCrypto: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)

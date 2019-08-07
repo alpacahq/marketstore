@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+    "strings"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -331,21 +332,18 @@ func (tiiex *TiingoIEXFetcher) Run() {
         // But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
         // If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
         // Main goal is to ensure it runs every 1 <time duration> at :00
-        switch tiiex.baseTimeframe.String {
-        case "1Min":
+        if strings.HasSuffix(tiiex.baseTimeframe.String, "Min") {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        case "1H":
+        } else if strings.HasSuffix(tiiex.baseTimeframe.String, "H") {
             timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
-        case "1D":
+        } else if strings.HasSuffix(tiiex.baseTimeframe.String, "D") {
             timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        default:
-            log.Warn("TiingoIEX: Incorrect format: %v", tiiex.baseTimeframe.String)
         }
         
         quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, tiiex.baseTimeframe.String, tiiex.apiKey)
         
         for _, quote := range quotes {
-            log.Info("TiingoIEX: Writing to %s/1Min/OHLC from %v to %v", quote.Symbol, timeStart, timeEnd)
+            log.Info("TiingoIEX: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)

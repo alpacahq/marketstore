@@ -421,15 +421,12 @@ func (tiifx *TiingoForexFetcher) Run() {
         // But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
         // If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
         // Main goal is to ensure it runs every 1 <time duration> at :00
-        switch tiifx.baseTimeframe.String {
-        case "1Min":
+        if strings.HasSuffix(tiifx.baseTimeframe.String, "Min") {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        case "1H":
+        } else if strings.HasSuffix(tiifx.baseTimeframe.String, "H") {
             timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
-        case "1D":
+        } else if strings.HasSuffix(tiifx.baseTimeframe.String, "D") {
             timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        default:
-            log.Warn("TiingoForex: Incorrect format: %v", tiifx.baseTimeframe.String)
         }
         
         quotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, tiifx.baseTimeframe.String, tiifx.apiKey)
@@ -458,7 +455,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                 revSymbol = strings.Replace(quote.Symbol, "JPY", "", -1) + "JPY"
             }
             if revSymbol != "" {                
-                log.Info("TiingoForex: Writing to %s/1Min/OHLC from %v to %v", revSymbol, timeStart, timeEnd)
+                log.Info("TiingoIEX: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
                 
                 numrows := len(quote.Epoch)
                 revQuote := NewQuote(revSymbol, numrows)
