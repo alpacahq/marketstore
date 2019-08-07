@@ -312,7 +312,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
+            timeEnd = timeStart.Add(time.Day * 30)
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
