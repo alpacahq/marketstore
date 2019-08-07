@@ -300,7 +300,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration * 4999) // Under Tiingo's limit of 5000 records per request
+            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration * 4900) // Under Tiingo's limit of 5000 records per request
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
