@@ -52,12 +52,10 @@ func NewQuote(symbol string, bars int) Quote {
 
 func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
 
-	resampleFreq := "1day"
+	resampleFreq := "1hour"
 	switch period {
 	case "1Min":
 		resampleFreq = "1min"
-	case "3Min":
-		resampleFreq = "3min"
 	case "5Min":
 		resampleFreq = "5min"
 	case "15Min":
@@ -74,10 +72,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		resampleFreq = "6hour"
 	case "8H":
 		resampleFreq = "8hour"
-	case "12H":
-		resampleFreq = "12hour"
-	case "1D":
-		resampleFreq = "1day"
 	}
 
 	type priceData struct {
@@ -105,21 +99,21 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("TiingoIEX symbol '%s' not found\n", symbol)
-		return NewQuote("", 0), err
+		log.Info("IEX: symbol '%s' not found\n", symbol)
+		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &iexData)
 	if err != nil {
-		log.Info("TiingoIEX symbol '%s' error: %v\n", symbol, err)
-		return NewQuote("", 0), err
+		log.Info("IEX: symbol '%s' error: %v\n", symbol, err)
+		return NewQuote(symbol, 0), err
 	}
     
 	if len(iexData) < 1 {
-		log.Info("TiingoIEX symbol '%s' No data returned from %v-%v", symbol, from, to)  
-		return NewQuote("", 0), err
+		log.Info("IEX: symbol '%s' No data returned from %v-%v", symbol, from, to)  
+		return NewQuote(symbol, 0), err
 	}
     
 	numrows := len(iexData)
@@ -127,12 +121,15 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, iexData[bar].Date)
-        quote.Epoch[bar] = dt.Unix()
-        quote.Open[bar] = iexData[bar].Open
-        quote.High[bar] = iexData[bar].High
-        quote.Low[bar] = iexData[bar].Low
-        quote.Close[bar] = iexData[bar].Close
-        //quote.Volume[bar] = float64(iexData[bar].Volume)
+        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+        if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
+            quote.Epoch[bar] = dt.Unix()
+            quote.Open[bar] = iexData[bar].Open
+            quote.High[bar] = iexData[bar].High
+            quote.Low[bar] = iexData[bar].Low
+            quote.Close[bar] = iexData[bar].Close
+            //quote.Volume[bar] = float64(iexData[bar].Volume)
+        }
 	}
 
 	return quote, nil
@@ -147,7 +144,7 @@ func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period str
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
-			log.Info("TiingoIEX error downloading " + symbol)
+			log.Info("IEX: error downloading " + symbol)
 		}
 	}
 	return quotes, nil
@@ -278,7 +275,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
 	for _, symbol := range tiiex.symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
         lastTimestamp := findLastTimestamp(tbk)
-        log.Info("TiingoIEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
+        log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
             timeStart = lastTimestamp.UTC()
         }
@@ -307,7 +304,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(time.Hour * 24 * 3)
+            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration * 4999) // Under Tiingo's limit of 5000 records per request
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
@@ -340,11 +337,12 @@ func (tiiex *TiingoIEXFetcher) Run() {
                 continue
             }
             if realTime {
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
-                lastTimestamp := findLastTimestamp(tbk)
-                existingEpoch := lastTimestamp.UTC().Unix()
-                if existingEpoch == quote.Epoch[0] || existingEpoch == quote.Epoch[len(quote.Epoch)-1] {
-                    // Check if realTime entry already exists to prevent overwriting and retriggering stream
+                // Check if realTime entry already exists to prevent overwriting and retriggering stream
+                if timeEnd.Unix() == quote.Epoch[0] || timeEnd.Unix() == quote.Epoch[len(quote.Epoch)-1] {
+                    // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
+                    // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
+                    // if this is insufficient, we can always query the lastTimestamp from tbk
+                    log.Info("IEX: Row dated %v already exists in %s/%s/OHLC", timeEnd, quote.Symbol, tiiex.baseTimeframe.String)
                     continue
                 } else {
                     // Write only the latest
@@ -356,10 +354,10 @@ func (tiiex *TiingoIEXFetcher) Run() {
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
                     //rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
                     quote = rtQuote
-                    log.Info("TiingoIEX: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiiex.baseTimeframe.String)
+                    log.Info("IEX: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiiex.baseTimeframe.String)
                 }
             } else {
-                log.Info("TiingoIEX: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+                log.Info("IEX: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
             }
             // write to csm
             cs := io.NewColumnSeries()
@@ -380,7 +378,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
-            log.Info("TiingoIEX: Next request at %v", waitTill)
+            log.Info("IEX: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
 			time.Sleep(time.Second*60)
