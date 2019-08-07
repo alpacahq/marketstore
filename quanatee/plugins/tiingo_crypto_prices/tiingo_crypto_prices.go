@@ -325,6 +325,11 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             firstLoop = false
             // Keep timeStart as original value
             timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 1440 * 30)
+            if timeEnd.Add(tiicc.baseTimeframe.Duration * 1440 * 30).After(time.Now().UTC()) {
+                realTime = true
+                timeStart = timeEnd
+                timeEnd = time.Now().UTC()
+            }
         }
         
         year := timeEnd.Year()
