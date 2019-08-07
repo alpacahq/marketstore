@@ -50,14 +50,114 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
+func GetIntrinioPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
+    
+	resampleFreq := "D1"
+	switch period {
+	case "1Min":
+		resampleFreq = "M1"
+	case "5Min":
+		resampleFreq = "M5"
+	case "15Min":
+		resampleFreq = "M15"
+	case "30Min":
+		resampleFreq = "M30"
+	case "1H":
+		resampleFreq = "H1"
+	case "2H":
+		resampleFreq = "H2"
+	case "4H":
+		resampleFreq = "H4"
+	case "6H":
+		resampleFreq = "H6"
+	case "8H":
+		resampleFreq = "H8"
+	case "1D":
+		resampleFreq = "D1"
+	}
+
+	type pairData struct {
+		Symbol         string  `json:"code"`
+		BasseCurrency  string  `json:"base_currency"`
+		QuoteCurrency  float64 `json:"quote_currency"`
+	}
+    
+	type priceData struct {
+		Date             string  `json:"occurred_at"` // "2017-12-19T00:00:00Z"
+		OpenBid          float64 `json:"open_bid"`
+		HighBid          float64 `json:"high_bid"`
+		LowBid           float64 `json:"low_bid"`
+		CloseBid         float64 `json:"close_bid"`
+ 		OpenAsk          float64 `json:"open_ask"`
+		HighAsk          float64 `json:"high_ask"`
+		LowAsk           float64 `json:"low_ask"`
+		CloseAsk         float64 `json:"close_ask"`
+		TotalTicks       float64 `json:"total_ticks"`
+	}
+    
+	type intrinioData struct {
+		PriceData     []priceData `json:"prices"`
+		PairData      pairData    `json:"pair"`
+		Page          string      `json:"next_page"`
+	}
+    
+	var forexData []intrinioData
+
+	url := fmt.Sprintf(
+        "https://api-v2.intrinio.com/forex/prices/%s/%s&start_date=%s&start_time=%s&end_date=%s&end_time=%s",
+        symbol,
+        resampleFreq,
+		url.QueryEscape(from.Format("2006-1-2")), // from date
+		url.QueryEscape(from.Format("21:01:21")), // from time
+		url.QueryEscape(to.Format("2006-1-2")),  // to date
+		url.QueryEscape(to.Format("21:01:21")), // to time
+		)
+        
+	client := &http.Client{Timeout: ClientTimeout}
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Info("IntrinioForex symbol '%s' not found\n", symbol)
+		return NewQuote("", 0), err
+	}
+	defer resp.Body.Close()
+
+	contents, _ := ioutil.ReadAll(resp.Body)
+	err = json.Unmarshal(contents, &forexData)
+	if err != nil {
+		log.Info("IntrinioForex symbol '%s' error: %v\n", symbol, err)
+		return NewQuote("", 0), err
+	}
+    
+	if len(forexData) < 1 {
+		log.Info("IntrinioForex symbol '%s' No data returned from %v-%v", symbol, from, to)  
+		return NewQuote("", 0), err
+	}
+    
+	numrows := len(forexData)
+	quote := NewQuote(symbol, numrows)
+    
+	for bar := 0; bar < numrows; bar++ {
+        dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
+        quote.Epoch[bar] = dt.Unix()
+        quote.Open[bar] = forexData[bar].Open
+        quote.High[bar] = forexData[bar].High
+        quote.Low[bar] = forexData[bar].Low
+        quote.Close[bar] = forexData[bar].Close
+        //quote.Volume[bar] = float64(forexData[bar].Volume)
+	}
+
+	return quote, nil
+}
+
 func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
     
 	resampleFreq := "1day"
 	switch period {
 	case "1Min":
 		resampleFreq = "1min"
-	case "3Min":
-		resampleFreq = "3min"
 	case "5Min":
 		resampleFreq = "5min"
 	case "15Min":
@@ -74,8 +174,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 		resampleFreq = "6hour"
 	case "8H":
 		resampleFreq = "8hour"
-	case "12H":
-		resampleFreq = "12hour"
 	case "1D":
 		resampleFreq = "1day"
 	}
