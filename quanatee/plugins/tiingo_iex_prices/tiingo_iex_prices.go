@@ -344,6 +344,9 @@ func (tiiex *TiingoIEXFetcher) Run() {
         
         for _, quote := range quotes {
             log.Info("TiingoIEX: Writing to %s/%s/OHLC from %v to %v", quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+            if len(quote.Epoch) < 1 {
+                continue
+            }
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
