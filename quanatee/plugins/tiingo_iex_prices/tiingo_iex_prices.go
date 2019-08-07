@@ -343,7 +343,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
                 tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
                 lastTimestamp := findLastTimestamp(tbk)
                 existingEpoch := lastTimestamp.UTC().Unix()
-                if existingEpoch == quote.Epoch[len(quote.Epoch)-1] {
+                if existingEpoch == quote.Epoch[0] || existingEpoch == quote.Epoch[len(quote.Epoch)-1] {
                     // Check if realTime entry already exists to prevent overwriting and retriggering stream
                     continue
                 } else {
