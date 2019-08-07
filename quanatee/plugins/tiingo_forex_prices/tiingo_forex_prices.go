@@ -123,6 +123,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
+        log.Info("%s", url)
 		log.Info(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
