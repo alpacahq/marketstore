@@ -97,7 +97,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
 		Page          string      `json:"next_page"`
 	}
     
-	var forexData []intrinioData
+	var forexData intrinioData
 
 	url := fmt.Sprintf(
         "https://api-v2.intrinio.com/forex/prices/%s/%s?start_date=%s&start_time=%s&end_date=%s&end_time=%s",
