@@ -345,7 +345,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             }
             if realTime {
                 // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
-                if timeEnd.Unix() >= quote.Epoch[0] || timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                if timeEnd.Unix() > quote.Epoch[0] || timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
