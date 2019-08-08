@@ -129,8 +129,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
-            quote.Epoch[bar] = dt.Unix()
+        if dt.UTC().Unix() >= from.UTC().Unix()  && dt.UTC().Unix() <= to.UTC().Unix() {
+            log.Info("Crypto: Adding %v", dt.UTC())
+            quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = cryptoData[0].PriceData[bar].Open
             quote.High[bar] = cryptoData[0].PriceData[bar].High
             quote.Low[bar] = cryptoData[0].PriceData[bar].Low
