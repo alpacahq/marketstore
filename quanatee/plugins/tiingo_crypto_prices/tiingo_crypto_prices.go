@@ -345,12 +345,11 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             }
             if realTime {
                 // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
-                if timeEnd.Unix() > quote.Epoch[0] || timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
+                if timeEnd.Unix() > quote.Epoch[0] && timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
                     log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", timeEnd, quote.Symbol, tiicc.baseTimeframe.String)
-                    log.Info("Crypto: Info First and Last Epochs of datas returned in %s/%s/OHLC", time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 } else {
                     // Write only the latest
@@ -362,14 +361,15 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
                     rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
                     quote = rtQuote
-                    log.Info("Crypto: Writing row dated %v to %s/%s/OHLC", time.Unix(quote.Epoch[0], 0), quote.Symbol, tiicc.baseTimeframe.String)
+                    log.Info("Crypto: Writing row dated %v to %s/%s/OHLC", time.Unix(quote.Epoch[0], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                 }
             } else {
                 log.Info("Crypto: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             }
-            for _, epoch := range quote.Epoch {
-                log.Info("Crypto: Adding %v", time.Unix(epoch, 0).UTC())
-            }
+            
+            //for _, epoch := range quote.Epoch {
+            //    log.Info("Crypto: Adding %v", time.Unix(epoch, 0).UTC())
+            //}
             
             // write to csm
             cs := io.NewColumnSeries()
