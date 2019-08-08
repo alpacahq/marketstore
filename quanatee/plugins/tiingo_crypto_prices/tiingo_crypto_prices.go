@@ -350,6 +350,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
                     log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", timeEnd, quote.Symbol, tiicc.baseTimeframe.String)
+                    log.Info("Crypto: Info First and Last Epochs of datas returned in %s/%s/OHLC", time.Unix(quote.Epoch[0], 0), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 } else {
                     // Write only the latest
