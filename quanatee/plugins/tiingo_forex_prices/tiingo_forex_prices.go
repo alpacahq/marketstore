@@ -494,12 +494,12 @@ func (tiifx *TiingoForexFetcher) Run() {
                 continue
             }
             if realTime {
-                // Check if realTime entry already exists to prevent overwriting and retriggering stream
-                if timeEnd.Unix() == quote.Epoch[0] || timeEnd.Unix() == quote.Epoch[len(quote.Epoch)-1] {
+                // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
+                if timeEnd.Unix() >= quote.Epoch[0] || timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
-                    log.Info("Forex: Row dated %v already exists in %s/%s/OHLC", timeEnd, quote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Forex: Row dated %v is still the latest in %s/%s/OHLC", timeEnd, quote.Symbol, tiifx.baseTimeframe.String)
                     continue
                 } else {
                     // Write only the latest
