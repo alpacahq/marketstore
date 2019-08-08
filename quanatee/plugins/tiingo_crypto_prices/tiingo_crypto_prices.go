@@ -130,7 +130,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix()  && dt.UTC().Unix() <= to.UTC().Unix() {
-            log.Info("Crypto: Adding %v", dt.UTC(), dt.UTC().Unix(), time.Unix(dt.UTC().Unix(), 0).UTC())
             quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = cryptoData[0].PriceData[bar].Open
             quote.High[bar] = cryptoData[0].PriceData[bar].High
@@ -368,6 +367,10 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             } else {
                 log.Info("Crypto: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             }
+            for _, epoch := range quote.Epoch {
+                log.Info("Crypto: Adding %v", time.Unix(epoch, 0).UTC())
+            }
+            
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
