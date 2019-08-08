@@ -38,7 +38,7 @@ type Quote struct {
 	Low           float32 `json:"Low"`
 	Close         float32 `json:"Close"`
 	PreviousClose float32 `json:"PreviousClose"`
-	Volume        int     `json:"Volume"`
+	Volume        int64   `json:"Volume"`
 	// Open/High/Low/Close/Volume/PreviousClose
 	UTCOffSet int `json:"UTCOffSet"`
 }
@@ -124,5 +124,5 @@ type EndOfDayQuote struct {
 	Close                 float32    `json:"Close"`
 	ExchangeOfficialClose float32    `json:"ExchangeOfficialClose"`
 	PreviousClose         float32    `json:"PreviousClose"`
-	Volume                float32    `json:"Volume"`
+	Volume                int64      `json:"Volume"`
 }

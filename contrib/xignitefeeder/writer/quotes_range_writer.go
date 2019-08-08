@@ -44,7 +44,7 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 	var highs []float32
 	var lows []float32
 	var previousCloses []float32
-	var volumes []float32
+	var volumes []int64
 
 	for _, eq := range resp.ArrayOfEndOfDayQuote {
 		// skip the symbol which date is empty string and cannot be parsed,
@@ -74,7 +74,7 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 }
 
 func (q QuotesRangeWriterImpl) newColumnSeries(
-	epochs []int64, opens, closes, highs, lows, previousCloses, volumes []float32,
+	epochs []int64, opens, closes, highs, lows, previousCloses []float32, volumes []int64,
 ) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epochs)

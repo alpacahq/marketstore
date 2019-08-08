@@ -76,7 +76,7 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 
 func (q QuotesWriterImpl) newColumnSeries(
 	epoch int64, ask, bid, last, open, high, low, close float32,
-	volume int, previousClose float32,
+	volume int64, previousClose float32,
 ) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{epoch})
@@ -87,7 +87,7 @@ func (q QuotesWriterImpl) newColumnSeries(
 	cs.AddColumn("High", []float32{high})
 	cs.AddColumn("Low", []float32{low})
 	cs.AddColumn("Close", []float32{close})
-	cs.AddColumn("Volume", []int{volume})
+	cs.AddColumn("Volume", []int64{volume})
 	cs.AddColumn("PreviousClose", []float32{previousClose})
 	return cs
 }
