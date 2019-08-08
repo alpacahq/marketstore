@@ -361,7 +361,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
                     rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
                     quote = rtQuote
-                    log.Info("Crypto: Writing row dated %v to %s/%s/OHLC", quote.Epoch[len(quote.Epoch)-1], quote.Symbol, tiicc.baseTimeframe.String)
+                    log.Info("Crypto: Writing row dated %v to %s/%s/OHLC", rtQuote.Epoch[0], rtQuote.Symbol, tiicc.baseTimeframe.String)
                 }
             } else {
                 log.Info("Crypto: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
