@@ -349,7 +349,7 @@ func (tiiex *TiingoIEXFetcher) Run() {
                     rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
                     quote = rtQuote
-                    log.Info("IEX: Writing row dated %v to %s/%s/OHLC", time.Unix(rtQuote.Epoch[0], 0), rtQuote.Symbol, tiiex.baseTimeframe.String)
+                    log.Info("IEX: Writing row dated %v to %s/%s/OHLC", time.Unix(quote.Epoch[0], 0), quote.Symbol, tiiex.baseTimeframe.String)
                 }
             } else {
                 log.Info("IEX: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)

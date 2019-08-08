@@ -510,7 +510,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                     rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
                     rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
                     quote = rtQuote
-                    log.Info("Forex: Writing row dated %v to %s/%s/OHLC", time.Unix(rtQuote.Epoch[0], 0), rtQuote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Forex: Writing row dated %v to %s/%s/OHLC", time.Unix(quote.Epoch[0], 0), quote.Symbol, tiifx.baseTimeframe.String)
                 }
             } else {
                 log.Info("Forex: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
