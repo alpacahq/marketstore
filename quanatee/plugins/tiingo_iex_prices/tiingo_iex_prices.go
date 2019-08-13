@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-    "strings"
+    //"strings"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -48,7 +48,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
 	switch period {
@@ -83,15 +83,18 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
     
 	var iexData []priceData
 
-	url := fmt.Sprintf(
-		"https://api.tiingo.com/iex/%s/prices?startDate=%s&endDate=%s&resampleFreq=%s&afterHours=false&forceFill=true",
-		symbol,
-		url.QueryEscape(from.Format("2006-1-2")),
-		url.QueryEscape(to.Format("2006-1-2")),
-		resampleFreq)
-        
+    api_url := fmt.Sprintf(
+                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=false&forceFill=truestartDate=%s",
+                        symbol,
+                        resampleFreq,
+                        url.QueryEscape(from.Format("2006-1-2")))
+    
+    if !realTime {
+        api_url = api_url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+    }
+    
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
@@ -115,28 +118,42 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
     
 	numrows := len(iexData)
 	quote := NewQuote(symbol, numrows)
-
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
+    
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, iexData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
-            quote.Epoch[bar] = dt.Unix()
-            quote.Open[bar] = iexData[bar].Open
-            quote.High[bar] = iexData[bar].High
-            quote.Low[bar] = iexData[bar].Low
-            quote.Close[bar] = iexData[bar].Close
+        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
+            }
+            endOfSlice = bar
+            quote.Epoch[bar] = dt.UTC().Unix()
+            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
+            quote.High[bar] = cryptoData[0].PriceData[bar].High
+            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
+            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+            //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
-
+    
+    quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+    quote.Open = quote.Open[startOfSlice:endOfSlice]
+    quote.High = quote.High[startOfSlice:endOfSlice]
+    quote.Low = quote.Low[startOfSlice:endOfSlice]
+    quote.Close = quote.Close[startOfSlice:endOfSlice]
+    
 	return quote, nil
 }
 
 // GetTiingoPricesFromSymbols - create a list of prices from symbols in string array
-func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period string, token string) (Quotes, error) {
+func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
 
 	quotes := Quotes{}
 	for _, symbol := range symbols {
-		quote, err := GetTiingoPrices(symbol, from, to, period, token)
+		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
@@ -300,32 +317,28 @@ func (tiiex *TiingoIEXFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration * 4900) // Under Tiingo's limit of 5000 records per request
+            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration * 3560) // Under Tiingo's limit of 5000 records per request - 1 day worth in minutes
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
             }
         }
         
+        /*
+        To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
+        But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
+        If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
+        Main goal is to ensure it runs every 1 <time duration> at :00
+        Tiingo returns data by the day, regardless of granularity
+        */
         year := timeEnd.Year()
         month := timeEnd.Month()
         day := timeEnd.Day()
         hour := timeEnd.Hour()
         minute := timeEnd.Minute()
-
-        // To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
-        // But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
-        // If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
-        // Main goal is to ensure it runs every 1 <time duration> at :00
-        if strings.HasSuffix(tiiex.baseTimeframe.String, "Min") {
-            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        } else if strings.HasSuffix(tiiex.baseTimeframe.String, "H") {
-            timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
-        } else if strings.HasSuffix(tiiex.baseTimeframe.String, "D") {
-            timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        }
+        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
-        quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, tiiex.baseTimeframe.String, tiiex.apiKey)
+        quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
         
         for _, quote := range quotes {
             // Check if there are entries to write
@@ -334,25 +347,17 @@ func (tiiex *TiingoIEXFetcher) Run() {
             }
             if realTime {
                 // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
-                if timeEnd.Unix() > quote.Epoch[0] || timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
+                if timeEnd.Unix() > quote.Epoch[0] && timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
-                    log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", timeEnd, quote.Symbol, tiiex.baseTimeframe.String)
+                    log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
                     continue
                 } else {
-                    // Write only the latest
-                    rtQuote := NewQuote(quote.Symbol, 1)
-                    rtQuote.Epoch[0] = quote.Epoch[len(quote.Epoch)-1]
-                    rtQuote.Open[0] = quote.Open[len(quote.Open)-1]
-                    rtQuote.High[0] = quote.High[len(quote.High)-1]
-                    rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
-                    rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
-                    quote = rtQuote
-                    log.Info("IEX: Writing row dated %v to %s/%s/OHLC", time.Unix(quote.Epoch[0], 0), quote.Symbol, tiiex.baseTimeframe.String)
+                    log.Info("IEX: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
                 }
             } else {
-                log.Info("IEX: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+                log.Info("IEX: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
             }
             // write to csm
             cs := io.NewColumnSeries()

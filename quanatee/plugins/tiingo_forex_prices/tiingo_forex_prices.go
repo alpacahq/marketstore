@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-    "strings"
+    //"strings"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -48,7 +48,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetIntrinioPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
+func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
     
 	resampleFreq := "H1"
 	switch period {
@@ -99,15 +99,18 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
     
 	var forexData intrinioData
 
-	url := fmt.Sprintf(
-        "https://api-v2.intrinio.com/forex/prices/%s/%s?start_date=%s&start_time=%s&end_date=%s&end_time=%s",
-        symbol,
-        resampleFreq,
-		url.QueryEscape(from.Format("2006-1-2")), // from date
-		url.QueryEscape(from.Format("21:01:21")), // from time
-		url.QueryEscape(to.Format("2006-1-2")), // to date
-		url.QueryEscape(to.Format("21:01:21")), // to time
-		)
+    api_url := fmt.Sprintf(
+                        "https://api-v2.intrinio.com/forex/prices/%s/%s?start_date=%s&start_time=%s",
+                        symbol,
+                        resampleFreq,
+                        url.QueryEscape(from.Format("2006-1-2")), // from date
+                        url.QueryEscape(from.Format("21:01:21")) // from time
+                        )
+    
+    if !realTime {
+        api_url = api_url + "&end_date=" + url.QueryEscape(to.Format("2006-1-2")) + "&end_time=" + url.QueryEscape(to.Format("21:01:21"))
+    }
+    
     log.Info("%s", url)
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", url, nil)
@@ -136,28 +139,42 @@ func GetIntrinioPrices(symbol string, from, to time.Time, period string, token s
     
 	numrows := len(forexData.PriceData)
 	quote := NewQuote(symbol, numrows)
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
-            quote.Epoch[bar] = dt.Unix()
-            quote.Open[bar] = (forexData.PriceData[bar].OpenBid + forexData.PriceData[bar].OpenAsk) / 2
-            quote.High[bar] = (forexData.PriceData[bar].HighBid + forexData.PriceData[bar].HighAsk) / 2
-            quote.Low[bar] = (forexData.PriceData[bar].LowBid + forexData.PriceData[bar].LowAsk) / 2
-            quote.Close[bar] = (forexData.PriceData[bar].CloseBid + forexData.PriceData[bar].CloseAsk) / 2
+        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
+            }
+            endOfSlice = bar
+            quote.Epoch[bar] = dt.UTC().Unix()
+            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
+            quote.High[bar] = cryptoData[0].PriceData[bar].High
+            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
+            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+            //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
-
+    
+    quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+    quote.Open = quote.Open[startOfSlice:endOfSlice]
+    quote.High = quote.High[startOfSlice:endOfSlice]
+    quote.Low = quote.Low[startOfSlice:endOfSlice]
+    quote.Close = quote.Close[startOfSlice:endOfSlice]
+    
 	return quote, nil
 }
 
 // GetIntrinioPricesFromSymbols - create a list of prices from symbols in string array
-func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, period string, token string) (Quotes, error) {
+func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
     
 	quotes := Quotes{}
 	for _, symbol := range symbols {
-		quote, err := GetIntrinioPrices(symbol, from, to, period, token)
+		quote, err := GetIntrinioPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
@@ -166,7 +183,7 @@ func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, period s
 	}
 	return quotes, nil
 }
-func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
 	switch period {
@@ -200,16 +217,19 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
     
 	var forexData []priceData
-
-	url := fmt.Sprintf(
-		"https://api.tiingo.com/tiingo/fx/%s/prices?startDate=%s&endDate=%s&resampleFreq=%s&afterHours=false&forceFill=true",
-		strings.ToUpper(symbol),
-		url.QueryEscape(from.Format("2006-1-2")),
-		url.QueryEscape(to.Format("2006-1-2")),
-		resampleFreq)
-        
+    
+    api_url := fmt.Sprintf(
+                        "https://api.tiingo.com/fx/%s/prices?resampleFreq=%s&afterHours=false&forceFill=truestartDate=%s",
+                        symbol,
+                        resampleFreq,
+                        url.QueryEscape(from.Format("2006-1-2")))
+    
+    if !realTime {
+        api_url = api_url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+    }
+    
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
@@ -233,28 +253,42 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
     
 	numrows := len(forexData)
 	quote := NewQuote(symbol, numrows)
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.Unix() >= from.Unix()  && dt.Unix() <= to.Unix() {
-            quote.Epoch[bar] = dt.Unix()
-            quote.Open[bar] = forexData[bar].Open
-            quote.High[bar] = forexData[bar].High
-            quote.Low[bar] = forexData[bar].Low
-            quote.Close[bar] = forexData[bar].Close
+        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
+            }
+            endOfSlice = bar
+            quote.Epoch[bar] = dt.UTC().Unix()
+            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
+            quote.High[bar] = cryptoData[0].PriceData[bar].High
+            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
+            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+            //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
+    
+    quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+    quote.Open = quote.Open[startOfSlice:endOfSlice]
+    quote.High = quote.High[startOfSlice:endOfSlice]
+    quote.Low = quote.Low[startOfSlice:endOfSlice]
+    quote.Close = quote.Close[startOfSlice:endOfSlice]
     
 	return quote, nil
 }
 
 // GetTiingoPricesFromSymbols - create a list of prices from symbols in string array
-func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period string, token string) (Quotes, error) {
+func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
 
 	quotes := Quotes{}
 	for _, symbol := range symbols {
-		quote, err := GetTiingoPrices(symbol, from, to, period, token)
+		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
@@ -421,33 +455,29 @@ func (tiifx *TiingoForexFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 90) // Under Intrinio's limit of 100 records per request
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99) // Under Intrinio's limit of 100 records per request
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
             }
         }
         
+        /*
+        To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
+        But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
+        If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
+        Main goal is to ensure it runs every 1 <time duration> at :00
+        Tiingo returns data by the day, regardless of granularity
+        */
         year := timeEnd.Year()
         month := timeEnd.Month()
         day := timeEnd.Day()
         hour := timeEnd.Hour()
         minute := timeEnd.Minute()
-
-        // To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
-        // But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
-        // If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
-        // Main goal is to ensure it runs every 1 <time duration> at :00
-        if strings.HasSuffix(tiifx.baseTimeframe.String, "Min") {
-            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        } else if strings.HasSuffix(tiifx.baseTimeframe.String, "H") {
-            timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
-        } else if strings.HasSuffix(tiifx.baseTimeframe.String, "D") {
-            timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        }
+        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
-        tiingoQuotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, tiifx.baseTimeframe.String, tiifx.apiKey)
-        intrinioQuotes, _ := GetIntrinioPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, tiifx.baseTimeframe.String, tiifx.apiKey2)
+        tiingoQuotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
+        intrinioQuotes, _ := GetIntrinioPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
         quotes := Quotes{}
         
         // Aggregate Tiingo and Intrinio quotes
@@ -495,25 +525,17 @@ func (tiifx *TiingoForexFetcher) Run() {
             }
             if realTime {
                 // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
-                if timeEnd.Unix() > quote.Epoch[0] || timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
+                if timeEnd.Unix() > quote.Epoch[0] && timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
-                    log.Info("Forex: Row dated %v is still the latest in %s/%s/OHLC", timeEnd, quote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Forex: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                     continue
                 } else {
-                    // Write only the latest
-                    rtQuote := NewQuote(quote.Symbol, 1)
-                    rtQuote.Epoch[0] = quote.Epoch[len(quote.Epoch)-1]
-                    rtQuote.Open[0] = quote.Open[len(quote.Open)-1]
-                    rtQuote.High[0] = quote.High[len(quote.High)-1]
-                    rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
-                    rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
-                    quote = rtQuote
-                    log.Info("Forex: Writing row dated %v to %s/%s/OHLC", time.Unix(quote.Epoch[0], 0), quote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Forex: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
                 }
             } else {
-                log.Info("Forex: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                log.Info("Forex: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
             }
             // write to csm
             cs := io.NewColumnSeries()

@@ -136,8 +136,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-        
-            log.Info("Added From: %v, Stamp: %v, To: %v", from.UTC(), dt.UTC(), to.UTC())
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
@@ -150,7 +148,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
-    log.Info("startOfSlice %v endOfSlice %v", startOfSlice, endOfSlice)
+    
     quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
     quote.Open = quote.Open[startOfSlice:endOfSlice]
     quote.High = quote.High[startOfSlice:endOfSlice]
@@ -329,7 +327,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 4900) // Under Tiingo's limit of 5000 records per request
+            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 3560) // Under Tiingo's limit of 5000 records per request - 1 day worth in minutes
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
@@ -347,21 +345,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         day := timeEnd.Day()
         hour := timeEnd.Hour()
         minute := timeEnd.Minute()
-        /*
-        if strings.HasSuffix(tiicc.baseTimeframe.String, "Min") {
-            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        } else if strings.HasSuffix(tiicc.baseTimeframe.String, "H") {
-            timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
-        } else if strings.HasSuffix(tiicc.baseTimeframe.String, "D") {
-            timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        }
-        */
-        
-        if realTime {
-            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        } else {
-            timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        }
+        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
         quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
         
@@ -372,16 +356,14 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             }
             if realTime {
                 // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
-                log.Info("Crypto: timeEnd %v First %v Last %v", timeEnd, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
-                log.Info("2 len(Epochs) %v", len(quote.Epoch))
                 if timeEnd.Unix() > quote.Epoch[0] && timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
-                    log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[0], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                    log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 } else {
-                    log.Info("Crypto: Realtiming %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+                    log.Info("Crypto: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
                 }
             } else {
                 log.Info("Crypto: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
@@ -406,10 +388,10 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         }
         
 		if realTime {
-			// Sleep till next interval (with a 1 millisecond delay) for data provider to update candles
+			// Sleep till next interval for data provider to update candles
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 1000000, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {

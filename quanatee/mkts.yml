@@ -26,3 +26,17 @@ bgworkers:
         - ETHBTC
       query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
+  - module: tiingo_forex_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      symbols:
+        - EURUSD
+      query_start: "2019-08-01 00:00"
+      base_timeframe: "1Min"
+  - module: tiingo_iex_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      symbols:
+        - SPY
+      query_start: "2019-08-01 00:00"
+      base_timeframe: "1Min"
