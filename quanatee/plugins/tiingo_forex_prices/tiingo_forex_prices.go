@@ -215,7 +215,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	var forexData []priceData
     
     api_url := fmt.Sprintf(
-                        "https://api.tiingo.com/fx/%s/prices?resampleFreq=%s&afterHours=false&forceFill=truestartDate=%s",
+                        "https://api.tiingo.com/fx/%s/prices?resampleFreq=%s&afterHours=false&forceFill=true&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
