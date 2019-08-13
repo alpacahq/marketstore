@@ -80,14 +80,14 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	type priceData struct {
 		Date             string  `json:"occurred_at"` // "2017-12-19T00:00:00Z"
-		OpenBid          float64 `json:"open_bid"`
-		HighBid          float64 `json:"high_bid"`
-		LowBid           float64 `json:"low_bid"`
-		CloseBid         float64 `json:"close_bid"`
- 		OpenAsk          float64 `json:"open_ask"`
-		HighAsk          float64 `json:"high_ask"`
-		LowAsk           float64 `json:"low_ask"`
-		CloseAsk         float64 `json:"close_ask"`
+		OpenBid          string `json:"open_bid"`
+		HighBid          string `json:"high_bid"`
+		LowBid           string `json:"low_bid"`
+		CloseBid         string `json:"close_bid"`
+ 		OpenAsk          string `json:"open_ask"`
+		HighAsk          string `json:"high_ask"`
+		LowAsk           string `json:"low_ask"`
+		CloseAsk         string `json:"close_ask"`
 		TotalTicks       int64   `json:"total_ticks"`
 	}
     
@@ -153,10 +153,10 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
             }
             endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = (forexData.PriceData[bar].OpenBid + forexData.PriceData[bar].OpenAsk) / 2
-            quote.High[bar] = (forexData.PriceData[bar].HighBid + forexData.PriceData[bar].HighAsk) / 2
-            quote.Low[bar] = (forexData.PriceData[bar].LowBid + forexData.PriceData[bar].LowAsk) / 2
-            quote.Close[bar] = (forexData.PriceData[bar].CloseBid + forexData.PriceData[bar].CloseAsk) / 2
+            quote.Open[bar] = (strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)) / 2
+            quote.High[bar] = (strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64)) / 2
+            quote.Low[bar] = (strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64)) / 2
+            quote.Close[bar] = (strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64)) / 2
         }
 	}
     
