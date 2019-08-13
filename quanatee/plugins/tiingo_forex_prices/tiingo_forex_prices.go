@@ -106,11 +106,13 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
                         token,
                         url.QueryEscape(from.Format("2006-1-2")),
                         url.QueryEscape(from.Format("21:01:21")))
-    
+                        
+    // Adding end_date and end_time seems to be buggy
+    /*
     if !realTime {
         api_url = api_url + "&end_date=" + url.QueryEscape(to.Format("2006-1-2")) + "&end_time=" + url.QueryEscape(to.Format("21:01:21"))
     }
-    
+    */
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -491,7 +493,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                                 quote := NewQuote(symbol, numrows)
                                 for bar := 0; bar < numrows; bar++ {
                                     if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
-                                        log.Info("Forex: Tiingo and Intrinio do not match in Epochs!")
+                                        log.Info("Forex: Tiingo and Intrinio do not match in Epochs! Tiingo: %v, Intrinio %v", tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
                                         // If flagged, the records are probably sorted in opposing orders
                                     } else {
                                         quote.Epoch[bar] = tiingoQuote.Epoch[bar]
