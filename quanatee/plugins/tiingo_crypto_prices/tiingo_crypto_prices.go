@@ -331,11 +331,13 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
         Main goal is to ensure it runs every 1 <time duration> at :00
         Tiingo returns data by the day, regardless of granularity
+        */
         year := timeEnd.Year()
         month := timeEnd.Month()
         day := timeEnd.Day()
         hour := timeEnd.Hour()
         minute := timeEnd.Minute()
+        /*
         if strings.HasSuffix(tiicc.baseTimeframe.String, "Min") {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         } else if strings.HasSuffix(tiicc.baseTimeframe.String, "H") {
@@ -344,6 +346,12 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
         }
         */
+        
+        if realTime {
+            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+        } else {
+            timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+        }
         
         quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
         
