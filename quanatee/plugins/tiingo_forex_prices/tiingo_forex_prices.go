@@ -80,7 +80,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	}
     
 	type priceData struct {
-		Date             string  `json:"occurred_at"` // "2017-12-19T00:00:00Z"
+		Date             string `json:"occurred_at"` // "2017-12-19T00:00:00Z"
 		OpenBid          string `json:"open_bid"`
 		HighBid          string `json:"high_bid"`
 		LowBid           string `json:"low_bid"`
@@ -147,6 +147,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
+        log.Info(dt)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -604,7 +605,7 @@ func (tiifx *TiingoForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*99)
+			time.Sleep(time.Second*33)
 		}
 	}
 }
