@@ -150,15 +150,13 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
-    
+    log.Info("startOfSlice %v endOfSlice %v", startOfSlice, endOfSlice)
     quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
     quote.Open = quote.Open[startOfSlice:endOfSlice]
     quote.High = quote.High[startOfSlice:endOfSlice]
     quote.Low = quote.Low[startOfSlice:endOfSlice]
     quote.Close = quote.Close[startOfSlice:endOfSlice]
     
-    log.Info("1 len(Epochs) %v", len(quote.Epoch))
-
 	return quote, nil
 }
 
@@ -383,19 +381,10 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                     log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[0], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 } else {
-                    // Write only the latest
-                    rtQuote := NewQuote(quote.Symbol, 1)
-                    rtQuote.Epoch[0] = quote.Epoch[len(quote.Epoch)-1]
-                    rtQuote.Open[0] = quote.Open[len(quote.Open)-1]
-                    rtQuote.High[0] = quote.High[len(quote.High)-1]
-                    rtQuote.Low[0] = quote.Low[len(quote.Low)-1]
-                    rtQuote.Close[0] = quote.Close[len(quote.Close)-1]
-                    rtQuote.Volume[0] = quote.Volume[len(quote.Volume)-1]
-                    quote = rtQuote
-                    log.Info("Crypto: Writing row dated %v to %s/%s/OHLC", time.Unix(quote.Epoch[0], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                    log.Info("Crypto: Realtiming %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
                 }
             } else {
-                log.Info("Crypto: Writing %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+                log.Info("Crypto: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             }
             
             //for _, epoch := range quote.Epoch {
@@ -417,10 +406,10 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         }
         
 		if realTime {
-			// Sleep till next :00 time
+			// Sleep till next interval (with a 1 millisecond delay) for data provider to update candles
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 1000000, time.UTC)
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
