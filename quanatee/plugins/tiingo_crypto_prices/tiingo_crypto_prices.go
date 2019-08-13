@@ -101,7 +101,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
                         url.QueryEscape(from.Format("2006-1-2")))
     
     if !realTime {
-        url = url + string("&endDate=") + string(url.QueryEscape(to.Format("2006-1-2")))
+        url = url + string("&endDate=") + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
