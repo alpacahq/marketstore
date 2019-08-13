@@ -488,7 +488,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                             // Both Quotes are for the same symbol here
                             // Combine, or add to quotes
                             // They should have the same len since we only add the requested time range to quotes
-                            if len(tiingoQuote.Epoch) > 1 && len(intrinioQuote.Epoch) > 1 {
+                            if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
                                 numrows := len(intrinioQuote.Epoch)
                                 quote := NewQuote(symbol, numrows)
                                 for bar := 0; bar < numrows; bar++ {
@@ -504,9 +504,9 @@ func (tiifx *TiingoForexFetcher) Run() {
                                     }
                                 }
                                 quotes = append(quotes, quote)   
-                            } else if len(tiingoQuote.Epoch) > 1 {
+                            } else if len(tiingoQuote.Epoch) > 0 {
                                 quotes = append(quotes, tiingoQuote)
-                            } else if len(intrinioQuote.Epoch) > 1 {
+                            } else if len(intrinioQuote.Epoch) > 0 {
                                 quotes = append(quotes, intrinioQuote)
                             } else {
                                 log.Info("Forex: Fringe case where all data providers returned no data")
