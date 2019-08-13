@@ -111,7 +111,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
 
@@ -124,7 +124,6 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-        log.Info("%s", url)
 		log.Info(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
