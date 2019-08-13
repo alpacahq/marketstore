@@ -154,10 +154,10 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
             }
             endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = (strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)) / 2
-            quote.High[bar] = (strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64)) / 2
-            quote.Low[bar] = (strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64)) / 2
-            quote.Close[bar] = (strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64) + strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64)) / 2
+            quote.Open[bar] = (strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64).Value + strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64).Value) / 2
+            quote.High[bar] = (strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64).Value + strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64).Value) / 2
+            quote.Low[bar] = (strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64).Value + strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64).Value) / 2
+            quote.Close[bar] = (strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64).Value + strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64).Value) / 2
         }
 	}
     
