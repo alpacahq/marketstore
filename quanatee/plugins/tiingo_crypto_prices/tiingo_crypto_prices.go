@@ -50,7 +50,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to time.Time, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
 	switch period {
@@ -93,14 +93,21 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	}
 
 	var cryptoData []tiingoData
-
-	url := fmt.Sprintf(
+    
+    if realTime {
+        url := fmt.Sprintf(
+            "https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&startDate=%s&resampleFreq=%s",
+            symbol,
+            url.QueryEscape(from.Format("2006-1-2")),
+            resampleFreq)
+    } else {
+    	url := fmt.Sprintf(
 		"https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&startDate=%s&endDate=%s&resampleFreq=%s",
 		symbol,
 		url.QueryEscape(from.Format("2006-1-2")),
 		url.QueryEscape(to.Format("2006-1-2")),
 		resampleFreq)
-        
+    }   
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
@@ -144,11 +151,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 }
 
 // GetTiingoPricesFromSymbols - create a list of prices from symbols in string array
-func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, period string, token string) (Quotes, error) {
+func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
 
 	quotes := Quotes{}
 	for _, symbol := range symbols {
-		quote, err := GetTiingoPrices(symbol, from, to, period, token)
+		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
 		} else {
@@ -324,13 +331,11 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
         Main goal is to ensure it runs every 1 <time duration> at :00
         Tiingo returns data by the day, regardless of granularity
-        */
         year := timeEnd.Year()
         month := timeEnd.Month()
         day := timeEnd.Day()
         hour := timeEnd.Hour()
         minute := timeEnd.Minute()
-        /*
         if strings.HasSuffix(tiicc.baseTimeframe.String, "Min") {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         } else if strings.HasSuffix(tiicc.baseTimeframe.String, "H") {
@@ -339,13 +344,8 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
         }
         */
-        if realTime {
-            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        } else {
-            timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-        }
         
-        quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, tiicc.baseTimeframe.String, tiicc.apiKey)
+        quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
         
         for _, quote := range quotes {
             // Check if there are entries to write
