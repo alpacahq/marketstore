@@ -144,7 +144,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, forexData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -152,11 +152,10 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
             }
             endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
-            quote.High[bar] = cryptoData[0].PriceData[bar].High
-            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
-            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
-            //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
+            quote.Open[bar] = (forexData.PriceData[bar].OpenBid + forexData.PriceData[bar].OpenAsk) / 2
+            quote.High[bar] = (forexData.PriceData[bar].HighBid + forexData.PriceData[bar].HighAsk) / 2
+            quote.Low[bar] = (forexData.PriceData[bar].LowBid + forexData.PriceData[bar].LowAsk) / 2
+            quote.Close[bar] = (forexData.PriceData[bar].CloseBid + forexData.PriceData[bar].CloseAsk) / 2
         }
 	}
     
@@ -258,7 +257,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -266,11 +265,10 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             }
             endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
-            quote.High[bar] = cryptoData[0].PriceData[bar].High
-            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
-            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
-            //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
+            quote.Open[bar] = forexData[bar].Open
+            quote.High[bar] = forexData[bar].High
+            quote.Low[bar] = forexData[bar].Low
+            quote.Close[bar] = forexData[bar].Close
         }
 	}
     
