@@ -131,15 +131,17 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
-        log.Info("From: %v, Stamp: %v, To: %v", from.UTC(), dt.UTC(), to.UTC())
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        if dt.UTC().Unix() >= from.Unix() && dt.UTC().Unix() <= to.Unix() {
+            log.Info("Added From: %v, Stamp: %v, To: %v", from, dt.UTC(), to)
             quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = cryptoData[0].PriceData[bar].Open
             quote.High[bar] = cryptoData[0].PriceData[bar].High
             quote.Low[bar] = cryptoData[0].PriceData[bar].Low
             quote.Close[bar] = cryptoData[0].PriceData[bar].Close
             //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
+        } else {
+            log.Info("Unadded From: %v, Stamp: %v, To: %v", from, dt.UTC(), to)
         }
 	}
     
