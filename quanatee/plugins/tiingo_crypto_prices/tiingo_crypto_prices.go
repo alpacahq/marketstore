@@ -131,9 +131,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
+        log.Info("From: %v, Stamp: %v, To: %v", from.UTC(), dt.UTC(), to.UTC())
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() >= from.UTC().Unix()  && dt.UTC().Unix() <= to.UTC().Unix() {
-            log.Info("From: %v, Stamp: %v, To: %v", from.UTC(), dt.UTC(), to.UTC())
+        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = cryptoData[0].PriceData[bar].Open
             quote.High[bar] = cryptoData[0].PriceData[bar].High
@@ -142,6 +142,8 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
+    
+    log.Info("1 len(Epochs) %v", len(quote.Epoch))
 
 	return quote, nil
 }
@@ -351,6 +353,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             if realTime {
                 // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
                 log.Info("Crypto: timeEnd %v First %v Last %v", timeEnd, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("2 len(Epochs) %v", len(quote.Epoch))
                 if timeEnd.Unix() > quote.Epoch[0] && timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
