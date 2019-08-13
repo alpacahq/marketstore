@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-    //"strings"
+    "strings"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -110,7 +110,6 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         api_url = api_url + "&end_date=" + url.QueryEscape(to.Format("2006-1-2")) + "&end_time=" + url.QueryEscape(to.Format("21:01:21"))
     }
     
-    log.Info("%s", url)
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -143,7 +142,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, forexData[0].PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
