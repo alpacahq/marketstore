@@ -94,18 +94,18 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 
 	var cryptoData []tiingoData
 
-    url := fmt.Sprintf(
+    api_url := fmt.Sprintf(
                         "https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&resampleFreq=%s&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
     
     if !realTime {
-        url = url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+        api_url = api_url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
