@@ -128,22 +128,34 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     
 	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
-
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
+    
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        
             log.Info("Added From: %v, Stamp: %v, To: %v", from.UTC(), dt.UTC(), to.UTC())
+            if startOfSlice == -1 {
+                startOfSlice = bar
+            }
+            endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = cryptoData[0].PriceData[bar].Open
             quote.High[bar] = cryptoData[0].PriceData[bar].High
             quote.Low[bar] = cryptoData[0].PriceData[bar].Low
             quote.Close[bar] = cryptoData[0].PriceData[bar].Close
             //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
-        } else {
-            log.Info("Unadded From: %v, Stamp: %v, To: %v", from.UTC(), dt.UTC(), to.UTC())
         }
 	}
+    
+    quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+    quote.Open = quote.Open[startOfSlice:endOfSlice]
+    quote.High = quote.High[startOfSlice:endOfSlice]
+    quote.Low = quote.Low[startOfSlice:endOfSlice]
+    quote.Close = quote.Close[startOfSlice:endOfSlice]
     
     log.Info("1 len(Epochs) %v", len(quote.Epoch))
 
