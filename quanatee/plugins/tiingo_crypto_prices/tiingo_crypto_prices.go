@@ -129,8 +129,8 @@ func GetTiingoPrices(symbol string, from, to time.Time, period string, token str
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        // if dt.UTC().Unix() >= from.UTC().Unix()  && dt.UTC().Unix() <= to.UTC().Unix() {
-        if dt.UTC().Unix() >= from.UTC().Unix() {
+        if dt.UTC().Unix() >= from.UTC().Unix()  && dt.UTC().Unix() <= to.UTC().Unix() {
+            log.Info("From: %v, Stamp: %v, To: %v", from.UTC(), dt.UTC(), to.UTC())
             quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = cryptoData[0].PriceData[bar].Open
             quote.High[bar] = cryptoData[0].PriceData[bar].High
@@ -351,7 +351,7 @@ func (tiicc *TiingoCryptoFetcher) Run() {
                     // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
                     // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
                     // if this is insufficient, we can always query the lastTimestamp from tbk
-                    log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", timeEnd, quote.Symbol, tiicc.baseTimeframe.String)
+                    log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[0], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 } else {
                     // Write only the latest
