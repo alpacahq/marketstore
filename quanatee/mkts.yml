@@ -14,8 +14,7 @@ triggers:
     config:
       filter: "nasdaq"
       destinations:
-        - 7Min
-        - 11Min
+        - 1H
   - module: stream.so
     on: "*/*/*"
 bgworkers:

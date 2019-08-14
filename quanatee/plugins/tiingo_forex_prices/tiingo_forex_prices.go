@@ -170,6 +170,8 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         quote.High = quote.High[startOfSlice:endOfSlice]
         quote.Low = quote.Low[startOfSlice:endOfSlice]
         quote.Close = quote.Close[startOfSlice:endOfSlice]
+    } else {
+        quote := NewQuote(symbol, 0)
     }
     
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
@@ -295,6 +297,8 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         quote.High = quote.High[startOfSlice:endOfSlice]
         quote.Low = quote.Low[startOfSlice:endOfSlice]
         quote.Close = quote.Close[startOfSlice:endOfSlice]
+    } else {
+        quote := NewQuote(symbol, 0)
     }
     
 	return quote, nil
