@@ -521,10 +521,10 @@ func (tiifx *TiingoForexFetcher) Run() {
                                         quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
                                     }
                                 }
-                                quotes = append(quotes, quote)   
-                            } else if len(tiingoQuote.Epoch) > 0 {
+                                quotes = append(quotes, quote)
+                            } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
                                 quotes = append(quotes, tiingoQuote)
-                            } else if len(intrinioQuote.Epoch) > 0 {
+                            } else if len(intrinioQuote.Epoch) > 0 && intrinioQuote.Epoch[0] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
                                 quotes = append(quotes, intrinioQuote)
                             } else {
                                 log.Info("Forex: Fringe case where all data providers returned no data")
