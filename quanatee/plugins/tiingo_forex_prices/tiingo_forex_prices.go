@@ -180,6 +180,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         quote.Low[i], quote.Low[opp] = quote.Low[opp], quote.Low[i]
         quote.Close[i], quote.Close[opp] = quote.Close[opp], quote.Close[i]
     }
+    
 	return quote, nil
 }
 
