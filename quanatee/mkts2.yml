@@ -14,12 +14,11 @@ triggers:
     config:
       filter: "nasdaq"
       destinations:
-        - 7Min
-        - 11Min
+        - 1H
   - module: stream.so
     on: "*/*/*"
 bgworkers:
-  - module: tiingo_crypto_prices.so
+  - module: quanatee_crypto_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
@@ -43,11 +42,12 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
-      query_start: "2019-02-01 00:00"
+      query_start: "2015-01-01 00:00"
       base_timeframe: "1Min"
-  - module: tiingo_forex_prices.so
+  - module: quanatee_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
+      api_key2: "<intrinio_api_key>"
       symbols:
         - EURUSD
         - GBPUSD
@@ -67,23 +67,43 @@ bgworkers:
         - CHFJPY
         - NZDJPY
         - CADJPY
-      query_start: "2019-02-01 00:00"
+      query_start: "2015-01-01 00:00"
       base_timeframe: "1Min"
-  - module: tiingo_iex_prices.so
+  - module: quanatee_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
-        - SPY
-        - IVV
-        - VOO
-        - VGK
-        - EZU
-        - BBEU
-        - EWJ
-        - BBJP
-        - DXJ
-        - GLD
-        - IAU
-        - SGOL
-      query_start: "2019-02-01 00:00"
+        - IBB
+        - ITA
+        - IYW
+        - IYF
+        - IYH
+        - IYJ
+        - IYE
+        - IYT
+        - IDU
+        - USRT
+        - KXI
+        - IXG
+        - IHE
+        - RXI
+        - CMDY
+        - ESGD
+        - ESGE
+        - ESGU
+        - ESML
+        - SUSA
+        - SUSB
+        - SUSC
+        - SFHY
+        - WFHY
+        - SFIG
+        - WFIG
+        - AGGY
+        - AGZD
+        - AGND
+        - HYZD
+        - USFR
+        - HYND
+      query_start: "2015-01-01 00:00"
       base_timeframe: "1Min"
