@@ -130,7 +130,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	if len(forexData.PriceData) < 1 {
 		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
-        log.Info("%s", api_url)
+        log.Info("%s, %s, %s", api_url, url.QueryEscape(from.Format("21:01:21")), url.QueryEscape(to.Format("21:01:21")))
         log.Info("%v", forexData)
 		return NewQuote(symbol, 0), err
 	}
@@ -482,6 +482,7 @@ func (tiifx *TiingoForexFetcher) Run() {
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
+        log.Info("%v-%v", timeStart, timeEnd)
         tiingoQuotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
         intrinioQuotes, _ := GetIntrinioPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
         quotes := Quotes{}
