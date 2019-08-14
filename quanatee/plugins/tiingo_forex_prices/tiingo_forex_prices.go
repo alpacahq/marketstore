@@ -105,10 +105,10 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
                         symbol,
                         resampleFreq,
                         token,
-                        url.QueryEscape(from.Format("2006-1-2")),
-                        url.QueryEscape(from.Format("21:01:21")),
-                        url.QueryEscape(to.Format("2006-1-2")),
-                        url.QueryEscape(to.Format("21:01:21")))
+                        url.QueryEscape(from.Format("2006-01-02")),
+                        url.QueryEscape(from.Format("15:04:05")),
+                        url.QueryEscape(to.Format("2006-01-02")),
+                        url.QueryEscape(to.Format("15:04:05")))
     
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", api_url, nil)
@@ -130,7 +130,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	if len(forexData.PriceData) < 1 {
 		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
-        log.Info("%s, %s, %s", api_url, url.QueryEscape(from.Format("21:01:21")), url.QueryEscape(to.Format("21:01:21")))
+        log.Info("%s, %s, %s", api_url, url.QueryEscape(from.Format("15:04:05")), url.QueryEscape(to.Format("15:04:05")))
         log.Info("%v", forexData)
 		return NewQuote(symbol, 0), err
 	}
