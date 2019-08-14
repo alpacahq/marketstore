@@ -506,7 +506,9 @@ func (tiifx *TiingoForexFetcher) Run() {
                             // If both Quotes have valid datas, combine them
                             // If not, serve only the quote with valid datas
                             // Both Quotes would have the same length since we only add datas according to the requested period range
-                            if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
+                            if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
+                                continue
+                            } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
                                 numrows := len(intrinioQuote.Epoch)
                                 quote := NewQuote(symbol, numrows)
                                 for bar := 0; bar < numrows; bar++ {
@@ -527,7 +529,7 @@ func (tiifx *TiingoForexFetcher) Run() {
                             } else if len(intrinioQuote.Epoch) > 0 && intrinioQuote.Epoch[0] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
                                 quotes = append(quotes, intrinioQuote)
                             } else {
-                                log.Info("Forex: Fringe case where all data providers returned no data")
+                                continue
                             }
                         }
                     }
