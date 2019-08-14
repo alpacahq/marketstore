@@ -101,19 +101,15 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	var forexData intrinioData
 
     api_url := fmt.Sprintf(
-                        "https://api-v2.intrinio.com/forex/prices/%s/%s?api_key=%s&start_date=%s&start_time=%s",
+                        "https://api-v2.intrinio.com/forex/prices/%s/%s?api_key=%s&start_date=%s&start_time=%s&end_date=%s&end_time=%s",
                         symbol,
                         resampleFreq,
                         token,
                         url.QueryEscape(from.Format("2006-1-2")),
-                        url.QueryEscape(from.Format("21:01:21")))
-                        
-    // Adding end_date and end_time seems to be buggy
-    /*
-    if !realTime {
-        api_url = api_url + "&end_date=" + url.QueryEscape(to.Format("2006-1-2")) + "&end_time=" + url.QueryEscape(to.Format("21:01:21"))
-    }
-    */
+                        url.QueryEscape(from.Format("21:01:21")),
+                        url.QueryEscape(to.Format("2006-1-2")),
+                        url.QueryEscape(to.Format("21:01:21")))
+    
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -150,7 +146,6 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         log.Info("%v, %v, %v", from, dt, to)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            log.Info("Added")
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
