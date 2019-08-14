@@ -130,8 +130,6 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	if len(forexData.PriceData) < 1 {
 		log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
-        log.Info("%s, %s, %s", api_url, url.QueryEscape(from.Format("15:04:05")), url.QueryEscape(to.Format("15:04:05")))
-        log.Info("%v", forexData)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -173,6 +171,15 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     quote.Low = quote.Low[startOfSlice:endOfSlice]
     quote.Close = quote.Close[startOfSlice:endOfSlice]
     
+    // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
+    for i := len(quote.Epoch)/2-1; i >= 0; i-- {
+        opp := len(quote.Epoch)-1-i
+        quote.Epoch[i], quote.Epoch[opp] = quote.Epoch[opp], quote.Epoch[i]
+        quote.Open[i], quote.Open[opp] = quote.Open[opp], quote.Open[i]
+        quote.High[i], quote.High[opp] = quote.High[opp], quote.High[i]
+        quote.Low[i], quote.Low[opp] = quote.Low[opp], quote.Low[i]
+        quote.Close[i], quote.Close[opp] = quote.Close[opp], quote.Close[i]
+    }
 	return quote, nil
 }
 
@@ -482,7 +489,6 @@ func (tiifx *TiingoForexFetcher) Run() {
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
-        log.Info("%v-%v", timeStart, timeEnd)
         tiingoQuotes, _ := GetTiingoPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
         intrinioQuotes, _ := GetIntrinioPricesFromSymbols(tiifx.symbols, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
         quotes := Quotes{}
