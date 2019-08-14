@@ -579,16 +579,25 @@ func (tiifx *TiingoForexFetcher) Run() {
                 numrows := len(quote.Epoch)
                 revQuote := NewQuote(revSymbol, numrows)
                 for bar := 0; bar < numrows; bar++ {
-                    revQuote.Epoch[bar] = 1/quote.Epoch[bar]
+                    revQuote.Epoch[bar] = quote.Epoch[bar]
                     revQuote.Open[bar] = 1/quote.Open[bar]
                     revQuote.High[bar] = 1/quote.High[bar]
                     revQuote.Low[bar] = 1/quote.Low[bar]
                     revQuote.Close[bar] = 1/quote.Close[bar]
                 }
-                if numrows > 1 {
-                    log.Info("Forex: Writing %v rows to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                if realTime {
+                    // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
+                    if timeEnd.Unix() > revQuote.Epoch[0] && timeEnd.Unix() > revQuote.Epoch[len(revQuote.Epoch)-1] {
+                        // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
+                        // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
+                        // if this is insufficient, we can always query the lastTimestamp from tbk
+                        log.Info("Forex: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC(), revQuote.Symbol, tiifx.baseTimeframe.String)
+                        continue
+                    } else {
+                        log.Info("Forex: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                    }
                 } else {
-                    log.Info("Forex: Writing to %s/%s/OHLC from %v to %v", revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                    log.Info("Forex: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
                 }
                 // write to csm
                 cs := io.NewColumnSeries()
