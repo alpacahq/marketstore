@@ -503,10 +503,10 @@ func (tiifx *TiingoForexFetcher) Run() {
                 if tiingoQuote.Symbol == symbol {
                     for _, intrinioQuote := range intrinioQuotes {
                         if intrinioQuote.Symbol == symbol {
-                            // Both Quotes are for the same symbol here
-                            // Combine, or add to quotes
-                            // They should have the same len since we only add the requested time range to quotes
-                            if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
+                            // If both Quotes have valid datas, combine them
+                            // If not, serve only the quote with valid datas
+                            // Both Quotes would have the same length since we only add datas according to the requested period range
+                            if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
                                 numrows := len(intrinioQuote.Epoch)
                                 quote := NewQuote(symbol, numrows)
                                 for bar := 0; bar < numrows; bar++ {
