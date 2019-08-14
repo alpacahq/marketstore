@@ -165,11 +165,13 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         }
 	}
     
-    quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
-    quote.Open = quote.Open[startOfSlice:endOfSlice]
-    quote.High = quote.High[startOfSlice:endOfSlice]
-    quote.Low = quote.Low[startOfSlice:endOfSlice]
-    quote.Close = quote.Close[startOfSlice:endOfSlice]
+    if startOfSlice > -1 && endOfSlice > -1 {
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+        quote.Open = quote.Open[startOfSlice:endOfSlice]
+        quote.High = quote.High[startOfSlice:endOfSlice]
+        quote.Low = quote.Low[startOfSlice:endOfSlice]
+        quote.Close = quote.Close[startOfSlice:endOfSlice]
+    }
     
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
     for i := len(quote.Epoch)/2-1; i >= 0; i-- {
@@ -288,11 +290,13 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         }
 	}
     
-    quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
-    quote.Open = quote.Open[startOfSlice:endOfSlice]
-    quote.High = quote.High[startOfSlice:endOfSlice]
-    quote.Low = quote.Low[startOfSlice:endOfSlice]
-    quote.Close = quote.Close[startOfSlice:endOfSlice]
+    if startOfSlice > -1 && endOfSlice > -1 {
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+        quote.Open = quote.Open[startOfSlice:endOfSlice]
+        quote.High = quote.High[startOfSlice:endOfSlice]
+        quote.Low = quote.Low[startOfSlice:endOfSlice]
+        quote.Close = quote.Close[startOfSlice:endOfSlice]
+    }
     
 	return quote, nil
 }

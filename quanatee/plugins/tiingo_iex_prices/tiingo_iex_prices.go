@@ -138,11 +138,13 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         }
 	}
     
-    quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
-    quote.Open = quote.Open[startOfSlice:endOfSlice]
-    quote.High = quote.High[startOfSlice:endOfSlice]
-    quote.Low = quote.Low[startOfSlice:endOfSlice]
-    quote.Close = quote.Close[startOfSlice:endOfSlice]
+    if startOfSlice > -1 && endOfSlice > -1 {
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+        quote.Open = quote.Open[startOfSlice:endOfSlice]
+        quote.High = quote.High[startOfSlice:endOfSlice]
+        quote.Low = quote.Low[startOfSlice:endOfSlice]
+        quote.Close = quote.Close[startOfSlice:endOfSlice]
+    }
     
 	return quote, nil
 }
