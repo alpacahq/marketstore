@@ -112,7 +112,12 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
 	if len(iexData) < 1 {
-		log.Info("IEX: symbol '%s' No data returned from %v-%v", symbol, from, to)  
+        if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
+            // log.Info("IEX: symbol '%s' Market Closed from %v-%v", symbol, from, to)
+            EmptyStmt = .
+        } else {
+            log.Info("IEX: symbol '%s' No data returned from %v-%v", symbol, from, to)
+        }
 		return NewQuote(symbol, 0), err
 	}
     
@@ -186,8 +191,8 @@ type FetcherConfig struct {
 	BaseTimeframe  string   `json:"base_timeframe"`
 }
 
-// TiingoIEXFetcher is the main worker for TiingoIEX
-type TiingoIEXFetcher struct {
+// IEXFetcher is the main worker for TiingoIEX
+type IEXFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
     apiKey         string
@@ -271,7 +276,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	return &TiingoIEXFetcher{
+	return &IEXFetcher{
 		config:         conf,
 		symbols:        symbols,
         apiKey:         config.ApiKey,
@@ -282,7 +287,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 // Run grabs data in intervals from starting time to ending time.
 // If query_end is not set, it will run forever.
-func (tiiex *TiingoIEXFetcher) Run() {
+func (tiiex *IEXFetcher) Run() {
     
 	realTime := false    
 	timeStart := time.Time{}

@@ -145,7 +145,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             quote.High[bar] = cryptoData[0].PriceData[bar].High
             quote.Low[bar] = cryptoData[0].PriceData[bar].Low
             quote.Close[bar] = cryptoData[0].PriceData[bar].Close
-            //quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
+            quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
     
@@ -155,6 +155,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         quote.High = quote.High[startOfSlice:endOfSlice]
         quote.Low = quote.Low[startOfSlice:endOfSlice]
         quote.Close = quote.Close[startOfSlice:endOfSlice]
+        quote.Volume = quote.Volume[startOfSlice:endOfSlice]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -195,15 +196,21 @@ type FetcherConfig struct {
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
+	BTCZ_Symbols   []string `json:"btcz_symbols"`
+	USDZ_Symbols   []string `json:"usdz_symbols"`
+	EURZ_Symbols   []string `json:"eurz_symbols"`
 }
 
-// TiingoCryptoFetcher is the main worker for TiingoCrypto
-type TiingoCryptoFetcher struct {
+// CryptoFetcher is the main worker for TiingoCrypto
+type CryptoFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
+	btcz_symbols   []string
+	usdz_symbols   []string
+	eurz_symbols   []string
 }
 
 // recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
@@ -269,6 +276,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
+	var btczSymbols []string
+	var usdzSymbols []string
+	var eurzSymbols []string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -282,18 +292,33 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	return &TiingoCryptoFetcher{
+	if len(config.BTCZ_Symbols) > 0 {
+		btczSymbols = config.BTCZ_Symbols
+	}
+    
+	if len(config.USDZ_Symbols) > 0 {
+		usdzSymbols = config.USDZ_Symbols
+	}
+    
+	if len(config.EURZ_Symbols) > 0 {
+		eurzSymbols = config.EURZ_Symbols
+	}
+    
+	return &CryptoFetcher{
 		config:         conf,
 		symbols:        symbols,
         apiKey:         config.ApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
+        btczSymbols:    btczSymbols,  
+        usdzSymbols:    usdzSymbols,
+        eurzSymbols:    eurzSymbols,
 	}, nil
 }
 
 // Run grabs data in intervals from starting time to ending time.
 // If query_end is not set, it will run forever.
-func (tiicc *TiingoCryptoFetcher) Run() {
+func (tiicc *CryptoFetcher) Run() {
     
 	realTime := false    
 	timeStart := time.Time{}
@@ -353,6 +378,9 @@ func (tiicc *TiingoCryptoFetcher) Run() {
         
         quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
         
+        // Combine original quotes with aggregated quotes for aggregation into index currencies (BTCZ, USDZ, EURZ)
+        finalQuotes := Quotes{}
+        
         for _, quote := range quotes {
             // Check if there are entries to write
             if len(quote.Epoch) < 1 {
@@ -372,11 +400,90 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             } else {
                 log.Info("Crypto: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             }
-            
-            //for _, epoch := range quote.Epoch {
-            //    log.Info("Crypto: Adding %v", time.Unix(epoch, 0).UTC())
-            //}
-            
+            // Add to finalQuotes
+            finalQuotes = append(finalQuotes, quote)
+        }
+        
+        // Add BTCZ
+        if len(tiicc.btczSymbols) > 0 {
+            btcz_quote := NewQuote("BTCZ", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiicc.btczSymbols {
+                    if quote.Symbol == symbol {
+                        if len(btcz_quote) == 0 {
+                            btcz_quote.Epoch = quote.Epoch
+                            btcz_quote.Open = quote.Open
+                            btcz_quote.High = quote.High
+                            btcz_quote.Low = quote.Low
+                            btcz_quote.Close = quote.Close
+                        } else {
+                            numrows := len(btcz_quote.Epoch)
+                            for bar := 0; bar < numrows; bar++ {
+                                btcz_quote.Open[bar] = (quote.Open[bar] + btcz_quote.Open[bar]) / 2
+                                btcz_quote.High[bar] = (quote.High[bar] + btcz_quote.High[bar]) / 2
+                                btcz_quote.Low[bar] = (quote.Low[bar] + btcz_quote.Low[bar]) / 2
+                                btcz_quote.Close[bar] = (quote.Close[bar] + btcz_quote.Close[bar]) / 2
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, btcz_quote)
+        }
+        // Add USDZ
+        if len(tiicc.usdzSymbols) > 0 {
+            usdz_quote := NewQuote("USDZ", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiicc.usdzSymbols {
+                    if quote.Symbol == symbol {
+                        if len(usdz_quote) == 0 {
+                            usdz_quote.Epoch = quote.Epoch
+                            usdz_quote.Open = quote.Open
+                            usdz_quote.High = quote.High
+                            usdz_quote.Low = quote.Low
+                            usdz_quote.Close = quote.Close
+                        } else {
+                            numrows := len(usdz_quote.Epoch)
+                            for bar := 0; bar < numrows; bar++ {
+                                usdz_quote.Open[bar] = (quote.Open[bar] + usdz_quote.Open[bar]) / 2
+                                usdz_quote.High[bar] = (quote.High[bar] + usdz_quote.High[bar]) / 2
+                                usdz_quote.Low[bar] = (quote.Low[bar] + usdz_quote.Low[bar]) / 2
+                                usdz_quote.Close[bar] = (quote.Close[bar] + usdz_quote.Close[bar]) / 2
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, usdz_quote)
+        }
+        // Add EURZ
+        if len(tiicc.eurzSymbols) > 0 {
+            eurz_quote := NewQuote("EURZ", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiicc.eurzSymbols {
+                    if quote.Symbol == symbol {
+                        if len(eurz_quote) == 0 {
+                            eurz_quote.Epoch = quote.Epoch
+                            eurz_quote.Open = quote.Open
+                            eurz_quote.High = quote.High
+                            eurz_quote.Low = quote.Low
+                            eurz_quote.Close = quote.Close
+                        } else {
+                            numrows := len(eurz_quote.Epoch)
+                            for bar := 0; bar < numrows; bar++ {
+                                eurz_quote.Open[bar] = (quote.Open[bar] + eurz_quote.Open[bar]) / 2
+                                eurz_quote.High[bar] = (quote.High[bar] + eurz_quote.High[bar]) / 2
+                                eurz_quote.Low[bar] = (quote.Low[bar] + eurz_quote.Low[bar]) / 2
+                                eurz_quote.Close[bar] = (quote.Close[bar] + eurz_quote.Close[bar]) / 2
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, eurz_quote)
+        }
+        
+        for _, quote := range finalQuotes {
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
@@ -384,7 +491,6 @@ func (tiicc *TiingoCryptoFetcher) Run() {
             cs.AddColumn("High", quote.High)
             cs.AddColumn("Low", quote.Low)
             cs.AddColumn("Close", quote.Close)
-            // cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)

@@ -44,6 +44,29 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
+      btcz_symbols:
+        - ETHBTC
+        - ETCBTC
+        - EOSBTC
+        - LTCBTC
+        - XLMBTC
+        - XRPBTC
+      usdz_symbols:
+        - BTCUSD
+        - ETHUSD
+        - ETCUSD
+        - EOSUSD
+        - LTCUSD
+        - XLMUSD
+        - XRPUSD
+      eurz_symbols:
+        - BTCEUR
+        - ETHEUR
+        - ETCEUR
+        - EOSEUR
+        - LTCEUR
+        - XLMEUR
+        - XRPEUR
       query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
@@ -64,6 +87,30 @@ bgworkers:
         - EURCAD
         - EURJPY
         - USDJPY
+        - GBPJPY
+        - AUDJPY
+        - CHFJPY
+        - NZDJPY
+        - CADJPY
+      usdx_symbols:
+        - EURUSD
+        - JPYUSD
+        - GBPUSD
+        - AUDUSD
+        - CHFUSD
+        - NZDUSD
+        - CADUSD
+      eurx_symbols:
+        - USDEUR
+        - JPYEUR
+        - GBPEUR
+        - AUDEUR
+        - CHFEUR
+        - NZDEUR
+        - CADEUR
+      jpyx_symbols:
+        - USDJPY
+        - EURJPY
         - GBPJPY
         - AUDJPY
         - CHFJPY
