@@ -362,6 +362,7 @@ func (tiicc *CryptoFetcher) Run() {
                 timeEnd = time.Now().UTC()
             }
         }
+        
         /*
         To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
         But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
