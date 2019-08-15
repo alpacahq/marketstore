@@ -196,9 +196,9 @@ type FetcherConfig struct {
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
-	BTCZSymbols   []string `json:"btcz_symbols"`
-	USDZSymbols   []string `json:"usdz_symbols"`
-	EURZSymbols   []string `json:"eurz_symbols"`
+	BTCZSymbols   []string  `json:"btcz_symbols"`
+	USDZSymbols   []string  `json:"usdz_symbols"`
+	EURZSymbols   []string  `json:"eurz_symbols"`
 }
 
 // CryptoFetcher is the main worker for TiingoCrypto
