@@ -348,9 +348,9 @@ type FetcherConfig struct {
     ApiKey2        string   `json:"api_key2"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
-	USDX_Symbols   []string `json:"usdx_symbols"`
-	EURX_Symbols   []string `json:"eurx_symbols"`
-	JPYX_Symbols   []string `json:"jpyx_symbols"`
+	USDXSymbols    []string `json:"usdx_symbols"`
+	EURXSymbols    []string `json:"eurx_symbols"`
+	JPYXSymbols    []string `json:"jpyx_symbols"`
 }
 
 // ForexFetcher is the main worker for TiingoForex
@@ -361,9 +361,9 @@ type ForexFetcher struct {
     apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
-	usdx_symbols   []string
-	eurx_symbols   []string
-	jpyx_symbols   []string
+	usdxSymbols    []string
+	eurxSymbols    []string
+	jpyxSymbols    []string
 }
 
 // recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
@@ -446,15 +446,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
     
 	if len(config.USDX_Symbols) > 0 {
-		usdxSymbols = config.USDX_Symbols
+		usdxSymbols = config.USDXSymbols
 	}
     
 	if len(config.EURX_Symbols) > 0 {
-		eurxSymbols = config.EURX_Symbols
+		eurxSymbols = config.EURXSymbols
 	}
     
 	if len(config.JPYX_Symbols) > 0 {
-		jpyxSymbols = config.JPYX_Symbols
+		jpyxSymbols = config.JPYXSymbols
 	}
     
 	return &ForexFetcher{

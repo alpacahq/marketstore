@@ -196,9 +196,9 @@ type FetcherConfig struct {
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
-	BTCZ_Symbols   []string `json:"btcz_symbols"`
-	USDZ_Symbols   []string `json:"usdz_symbols"`
-	EURZ_Symbols   []string `json:"eurz_symbols"`
+	BTCZSymbols   []string `json:"btcz_symbols"`
+	USDZSymbols   []string `json:"usdz_symbols"`
+	EURZSymbols   []string `json:"eurz_symbols"`
 }
 
 // CryptoFetcher is the main worker for TiingoCrypto
@@ -208,9 +208,9 @@ type CryptoFetcher struct {
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
-	btcz_symbols   []string
-	usdz_symbols   []string
-	eurz_symbols   []string
+	btczSymbols   []string
+	usdzSymbols   []string
+	eurzSymbols   []string
 }
 
 // recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
@@ -293,15 +293,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
     
 	if len(config.BTCZ_Symbols) > 0 {
-		btczSymbols = config.BTCZ_Symbols
+		btczSymbols = config.BTCZSymbols
 	}
     
 	if len(config.USDZ_Symbols) > 0 {
-		usdzSymbols = config.USDZ_Symbols
+		usdzSymbols = config.USDZSymbols
 	}
     
 	if len(config.EURZ_Symbols) > 0 {
-		eurzSymbols = config.EURZ_Symbols
+		eurzSymbols = config.EURZSymbols
 	}
     
 	return &CryptoFetcher{
