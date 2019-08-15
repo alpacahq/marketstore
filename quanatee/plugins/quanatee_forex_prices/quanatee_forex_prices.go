@@ -491,7 +491,7 @@ func (tiifx *ForexFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 98) // Under Intrinio's limit of 100 records per request
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99) // Under Intrinio's limit of 100 records per request
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
@@ -720,7 +720,7 @@ func (tiifx *ForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*11)
+			time.Sleep(time.Second*10)
 		}
 	}
 }

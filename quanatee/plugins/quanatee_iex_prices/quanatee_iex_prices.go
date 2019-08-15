@@ -385,7 +385,7 @@ func (tiiex *IEXFetcher) Run() {
             log.Info("IEX: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*99)
+			time.Sleep(time.Second*60)
 		}
 	}
 }

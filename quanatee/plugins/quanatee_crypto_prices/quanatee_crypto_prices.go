@@ -409,11 +409,11 @@ func (tiicc *CryptoFetcher) Run() {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
                             if len(btcz_quote.Epoch) == 0 {
-                                    btcz_quote.Epoch = quote.Epoch
-                                    btcz_quote.Open = quote.Open
-                                    btcz_quote.High = quote.High
-                                    btcz_quote.Low = quote.Low
-                                    btcz_quote.Close = quote.Close
+                                btcz_quote.Epoch = quote.Epoch
+                                btcz_quote.Open = quote.Open
+                                btcz_quote.High = quote.High
+                                btcz_quote.Low = quote.Low
+                                btcz_quote.Close = quote.Close
                             } else if len(btcz_quote.Epoch) == len(quote.Epoch) {
                                 numrows := len(btcz_quote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
@@ -510,7 +510,7 @@ func (tiicc *CryptoFetcher) Run() {
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*99)
+			time.Sleep(time.Second*60)
 		}
 	}
 }
