@@ -87,6 +87,11 @@ bgworkers:
         - EURCAD
         - EURJPY
         - USDJPY
+        - GBPJPY
+        - AUDJPY
+        - CHFJPY
+        - NZDJPY
+        - CADJPY
       usdx_symbols:
         - EURUSD
         - JPYUSD
@@ -103,6 +108,14 @@ bgworkers:
         - CHFEUR
         - NZDEUR
         - CADEUR
+      jpyx_symbols:
+        - USDJPY
+        - EURJPY
+        - GBPJPY
+        - AUDJPY
+        - CHFJPY
+        - NZDJPY
+        - CADJPY
       query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_iex_prices.so
