@@ -550,7 +550,7 @@ func (tiifx *ForexFetcher) Run() {
                                 quote := NewQuote(symbol, numrows)
                                 for bar := 0; bar < numrows; bar++ {
                                     if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
-                                        log.Info("Forex: Tiingo and Intrinio do not match in Epochs! Tiingo: %v, Intrinio %v", tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
+                                        log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs! Tiingo: %v, Intrinio %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
                                         // If flagged, the records are probably sorted in opposing orders
                                     } else {
                                         quote.Epoch[bar] = tiingoQuote.Epoch[bar]
