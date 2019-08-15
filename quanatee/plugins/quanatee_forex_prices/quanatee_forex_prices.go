@@ -634,19 +634,21 @@ func (tiifx *ForexFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiifx.usdxSymbols {
                     if quote.Symbol == symbol {
-                        if len(usdx_quote.Epoch) == 0 {
-                            usdx_quote.Epoch = quote.Epoch
-                            usdx_quote.Open = quote.Open
-                            usdx_quote.High = quote.High
-                            usdx_quote.Low = quote.Low
-                            usdx_quote.Close = quote.Close
-                        } else {
-                            numrows := len(usdx_quote.Epoch)
-                            for bar := 0; bar < numrows; bar++ {
-                                usdx_quote.Open[bar] = (quote.Open[bar] + usdx_quote.Open[bar]) / 2
-                                usdx_quote.High[bar] = (quote.High[bar] + usdx_quote.High[bar]) / 2
-                                usdx_quote.Low[bar] = (quote.Low[bar] + usdx_quote.Low[bar]) / 2
-                                usdx_quote.Close[bar] = (quote.Close[bar] + usdx_quote.Close[bar]) / 2
+                        if len(quote.Epoch) > 0 {
+                            if len(usdx_quote.Epoch) == 0 {
+                                usdx_quote.Epoch = quote.Epoch
+                                usdx_quote.Open = quote.Open
+                                usdx_quote.High = quote.High
+                                usdx_quote.Low = quote.Low
+                                usdx_quote.Close = quote.Close
+                            } else {
+                                numrows := len(usdx_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    usdx_quote.Open[bar] = (quote.Open[bar] + usdx_quote.Open[bar]) / 2
+                                    usdx_quote.High[bar] = (quote.High[bar] + usdx_quote.High[bar]) / 2
+                                    usdx_quote.Low[bar] = (quote.Low[bar] + usdx_quote.Low[bar]) / 2
+                                    usdx_quote.Close[bar] = (quote.Close[bar] + usdx_quote.Close[bar]) / 2
+                                }
                             }
                         }
                     }
@@ -660,19 +662,21 @@ func (tiifx *ForexFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiifx.eurxSymbols {
                     if quote.Symbol == symbol {
-                        if len(eurx_quote.Epoch) == 0 {
-                            eurx_quote.Epoch = quote.Epoch
-                            eurx_quote.Open = quote.Open
-                            eurx_quote.High = quote.High
-                            eurx_quote.Low = quote.Low
-                            eurx_quote.Close = quote.Close
-                        } else {
-                            numrows := len(eurx_quote.Epoch)
-                            for bar := 0; bar < numrows; bar++ {
-                                eurx_quote.Open[bar] = (quote.Open[bar] + eurx_quote.Open[bar]) / 2
-                                eurx_quote.High[bar] = (quote.High[bar] + eurx_quote.High[bar]) / 2
-                                eurx_quote.Low[bar] = (quote.Low[bar] + eurx_quote.Low[bar]) / 2
-                                eurx_quote.Close[bar] = (quote.Close[bar] + eurx_quote.Close[bar]) / 2
+                        if len(quote.Epoch) > 0 {
+                            if len(eurx_quote.Epoch) == 0 {
+                                eurx_quote.Epoch = quote.Epoch
+                                eurx_quote.Open = quote.Open
+                                eurx_quote.High = quote.High
+                                eurx_quote.Low = quote.Low
+                                eurx_quote.Close = quote.Close
+                            } else {
+                                numrows := len(eurx_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    eurx_quote.Open[bar] = (quote.Open[bar] + eurx_quote.Open[bar]) / 2
+                                    eurx_quote.High[bar] = (quote.High[bar] + eurx_quote.High[bar]) / 2
+                                    eurx_quote.Low[bar] = (quote.Low[bar] + eurx_quote.Low[bar]) / 2
+                                    eurx_quote.Close[bar] = (quote.Close[bar] + eurx_quote.Close[bar]) / 2
+                                }
                             }
                         }
                     }
@@ -686,19 +690,21 @@ func (tiifx *ForexFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiifx.jpyxSymbols {
                     if quote.Symbol == symbol {
-                        if len(jpyx_quote.Epoch) == 0 {
-                            jpyx_quote.Epoch = quote.Epoch
-                            jpyx_quote.Open = quote.Open
-                            jpyx_quote.High = quote.High
-                            jpyx_quote.Low = quote.Low
-                            jpyx_quote.Close = quote.Close
-                        } else {
-                            numrows := len(jpyx_quote.Epoch)
-                            for bar := 0; bar < numrows; bar++ {
-                                jpyx_quote.Open[bar] = (quote.Open[bar] + jpyx_quote.Open[bar]) / 2
-                                jpyx_quote.High[bar] = (quote.High[bar] + jpyx_quote.High[bar]) / 2
-                                jpyx_quote.Low[bar] = (quote.Low[bar] + jpyx_quote.Low[bar]) / 2
-                                jpyx_quote.Close[bar] = (quote.Close[bar] + jpyx_quote.Close[bar]) / 2
+                        if len(quote.Epoch) > 0 {
+                            if len(jpyx_quote.Epoch) == 0 {
+                                jpyx_quote.Epoch = quote.Epoch
+                                jpyx_quote.Open = quote.Open
+                                jpyx_quote.High = quote.High
+                                jpyx_quote.Low = quote.Low
+                                jpyx_quote.Close = quote.Close
+                            } else {
+                                numrows := len(jpyx_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    jpyx_quote.Open[bar] = (quote.Open[bar] + jpyx_quote.Open[bar]) / 2
+                                    jpyx_quote.High[bar] = (quote.High[bar] + jpyx_quote.High[bar]) / 2
+                                    jpyx_quote.Low[bar] = (quote.Low[bar] + jpyx_quote.Low[bar]) / 2
+                                    jpyx_quote.Close[bar] = (quote.Close[bar] + jpyx_quote.Close[bar]) / 2
+                                }
                             }
                         }
                     }

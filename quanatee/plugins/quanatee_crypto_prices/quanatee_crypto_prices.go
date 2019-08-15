@@ -406,19 +406,21 @@ func (tiicc *CryptoFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiicc.btczSymbols {
                     if quote.Symbol == symbol {
-                        if len(btcz_quote.Epoch) == 0 {
-                            btcz_quote.Epoch = quote.Epoch
-                            btcz_quote.Open = quote.Open
-                            btcz_quote.High = quote.High
-                            btcz_quote.Low = quote.Low
-                            btcz_quote.Close = quote.Close
-                        } else {
-                            numrows := len(btcz_quote.Epoch)
-                            for bar := 0; bar < numrows; bar++ {
-                                btcz_quote.Open[bar] = (quote.Open[bar] + btcz_quote.Open[bar]) / 2
-                                btcz_quote.High[bar] = (quote.High[bar] + btcz_quote.High[bar]) / 2
-                                btcz_quote.Low[bar] = (quote.Low[bar] + btcz_quote.Low[bar]) / 2
-                                btcz_quote.Close[bar] = (quote.Close[bar] + btcz_quote.Close[bar]) / 2
+                        if len(quote.Epoch) > 0 {
+                            if len(btcz_quote.Epoch) == 0 {
+                                    btcz_quote.Epoch = quote.Epoch
+                                    btcz_quote.Open = quote.Open
+                                    btcz_quote.High = quote.High
+                                    btcz_quote.Low = quote.Low
+                                    btcz_quote.Close = quote.Close
+                            } else {
+                                numrows := len(btcz_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    btcz_quote.Open[bar] = (quote.Open[bar] + btcz_quote.Open[bar]) / 2
+                                    btcz_quote.High[bar] = (quote.High[bar] + btcz_quote.High[bar]) / 2
+                                    btcz_quote.Low[bar] = (quote.Low[bar] + btcz_quote.Low[bar]) / 2
+                                    btcz_quote.Close[bar] = (quote.Close[bar] + btcz_quote.Close[bar]) / 2
+                                }
                             }
                         }
                     }
@@ -432,19 +434,21 @@ func (tiicc *CryptoFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiicc.usdzSymbols {
                     if quote.Symbol == symbol {
-                        if len(usdz_quote.Epoch) == 0 {
-                            usdz_quote.Epoch = quote.Epoch
-                            usdz_quote.Open = quote.Open
-                            usdz_quote.High = quote.High
-                            usdz_quote.Low = quote.Low
-                            usdz_quote.Close = quote.Close
-                        } else {
-                            numrows := len(usdz_quote.Epoch)
-                            for bar := 0; bar < numrows; bar++ {
-                                usdz_quote.Open[bar] = (quote.Open[bar] + usdz_quote.Open[bar]) / 2
-                                usdz_quote.High[bar] = (quote.High[bar] + usdz_quote.High[bar]) / 2
-                                usdz_quote.Low[bar] = (quote.Low[bar] + usdz_quote.Low[bar]) / 2
-                                usdz_quote.Close[bar] = (quote.Close[bar] + usdz_quote.Close[bar]) / 2
+                        if len(quote.Epoch) > 0 {
+                            if len(usdz_quote.Epoch) == 0 {
+                                usdz_quote.Epoch = quote.Epoch
+                                usdz_quote.Open = quote.Open
+                                usdz_quote.High = quote.High
+                                usdz_quote.Low = quote.Low
+                                usdz_quote.Close = quote.Close
+                            } else {
+                                numrows := len(usdz_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    usdz_quote.Open[bar] = (quote.Open[bar] + usdz_quote.Open[bar]) / 2
+                                    usdz_quote.High[bar] = (quote.High[bar] + usdz_quote.High[bar]) / 2
+                                    usdz_quote.Low[bar] = (quote.Low[bar] + usdz_quote.Low[bar]) / 2
+                                    usdz_quote.Close[bar] = (quote.Close[bar] + usdz_quote.Close[bar]) / 2
+                                }
                             }
                         }
                     }
@@ -458,19 +462,21 @@ func (tiicc *CryptoFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiicc.eurzSymbols {
                     if quote.Symbol == symbol {
-                        if len(eurz_quote.Epoch) == 0 {
-                            eurz_quote.Epoch = quote.Epoch
-                            eurz_quote.Open = quote.Open
-                            eurz_quote.High = quote.High
-                            eurz_quote.Low = quote.Low
-                            eurz_quote.Close = quote.Close
-                        } else {
-                            numrows := len(eurz_quote.Epoch)
-                            for bar := 0; bar < numrows; bar++ {
-                                eurz_quote.Open[bar] = (quote.Open[bar] + eurz_quote.Open[bar]) / 2
-                                eurz_quote.High[bar] = (quote.High[bar] + eurz_quote.High[bar]) / 2
-                                eurz_quote.Low[bar] = (quote.Low[bar] + eurz_quote.Low[bar]) / 2
-                                eurz_quote.Close[bar] = (quote.Close[bar] + eurz_quote.Close[bar]) / 2
+                        if len(quote.Epoch) > 0 {
+                            if len(eurz_quote.Epoch) == 0 {
+                                eurz_quote.Epoch = quote.Epoch
+                                eurz_quote.Open = quote.Open
+                                eurz_quote.High = quote.High
+                                eurz_quote.Low = quote.Low
+                                eurz_quote.Close = quote.Close
+                            } else {
+                                numrows := len(eurz_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    eurz_quote.Open[bar] = (quote.Open[bar] + eurz_quote.Open[bar]) / 2
+                                    eurz_quote.High[bar] = (quote.High[bar] + eurz_quote.High[bar]) / 2
+                                    eurz_quote.Low[bar] = (quote.Low[bar] + eurz_quote.Low[bar]) / 2
+                                    eurz_quote.Close[bar] = (quote.Close[bar] + eurz_quote.Close[bar]) / 2
+                                }
                             }
                         }
                     }
