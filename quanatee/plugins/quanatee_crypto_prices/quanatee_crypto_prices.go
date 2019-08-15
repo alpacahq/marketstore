@@ -292,15 +292,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	if len(config.BTCZ_Symbols) > 0 {
+	if len(config.BTCZSymbols) > 0 {
 		btczSymbols = config.BTCZSymbols
 	}
     
-	if len(config.USDZ_Symbols) > 0 {
+	if len(config.USDZSymbols) > 0 {
 		usdzSymbols = config.USDZSymbols
 	}
     
-	if len(config.EURZ_Symbols) > 0 {
+	if len(config.EURZSymbols) > 0 {
 		eurzSymbols = config.EURZSymbols
 	}
     
@@ -410,7 +410,7 @@ func (tiicc *CryptoFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiicc.btczSymbols {
                     if quote.Symbol == symbol {
-                        if len(btcz_quote) == 0 {
+                        if len(btcz_quote.Epoch) == 0 {
                             btcz_quote.Epoch = quote.Epoch
                             btcz_quote.Open = quote.Open
                             btcz_quote.High = quote.High
@@ -436,7 +436,7 @@ func (tiicc *CryptoFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiicc.usdzSymbols {
                     if quote.Symbol == symbol {
-                        if len(usdz_quote) == 0 {
+                        if len(usdz_quote.Epoch) == 0 {
                             usdz_quote.Epoch = quote.Epoch
                             usdz_quote.Open = quote.Open
                             usdz_quote.High = quote.High
@@ -462,7 +462,7 @@ func (tiicc *CryptoFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiicc.eurzSymbols {
                     if quote.Symbol == symbol {
-                        if len(eurz_quote) == 0 {
+                        if len(eurz_quote.Epoch) == 0 {
                             eurz_quote.Epoch = quote.Epoch
                             eurz_quote.Open = quote.Open
                             eurz_quote.High = quote.High

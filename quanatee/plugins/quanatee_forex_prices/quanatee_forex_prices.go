@@ -130,8 +130,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	if len(forexData.PriceData) < 1 {
         if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
-            //log.Info("Forex: Intrinio symbol '%s' Market Closed from %v-%v", symbol, from, to)
-            EmptyStmt = .
+            log.Warn("Forex: Intrinio symbol '%s' Market Closed from %v-%v", symbol, from, to)
         } else {
             log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
         }
@@ -271,8 +270,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     
 	if len(forexData) < 1 {
         if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
-            //log.Info("Forex: Tiingo symbol '%s' Market Closed from %v-%v", symbol, from, to)
-            EmptyStmt = .
+            log.Warn("Forex: Tiingo symbol '%s' Market Closed from %v-%v", symbol, from, to)
         } else {
             log.Info("Forex: Tiingo symbol '%s' No data returned from %v-%v", symbol, from, to)
         }
@@ -445,15 +443,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	if len(config.USDX_Symbols) > 0 {
+	if len(config.USDXSymbols) > 0 {
 		usdxSymbols = config.USDXSymbols
 	}
     
-	if len(config.EURX_Symbols) > 0 {
+	if len(config.EURXSymbols) > 0 {
 		eurxSymbols = config.EURXSymbols
 	}
     
-	if len(config.JPYX_Symbols) > 0 {
+	if len(config.JPYXSymbols) > 0 {
 		jpyxSymbols = config.JPYXSymbols
 	}
     
@@ -644,7 +642,7 @@ func (tiifx *ForexFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiifx.usdxSymbols {
                     if quote.Symbol == symbol {
-                        if len(usdx_quote) == 0 {
+                        if len(usdx_quote.Epoch) == 0 {
                             usdx_quote.Epoch = quote.Epoch
                             usdx_quote.Open = quote.Open
                             usdx_quote.High = quote.High
@@ -670,7 +668,7 @@ func (tiifx *ForexFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiifx.eurxSymbols {
                     if quote.Symbol == symbol {
-                        if len(eurx_quote) == 0 {
+                        if len(eurx_quote.Epoch) == 0 {
                             eurx_quote.Epoch = quote.Epoch
                             eurx_quote.Open = quote.Open
                             eurx_quote.High = quote.High
@@ -696,7 +694,7 @@ func (tiifx *ForexFetcher) Run() {
             for _, quote := range finalQuotes {
                 for _, symbol := range tiifx.jpyxSymbols {
                     if quote.Symbol == symbol {
-                        if len(jpyx_quote) == 0 {
+                        if len(jpyx_quote.Epoch) == 0 {
                             jpyx_quote.Epoch = quote.Epoch
                             jpyx_quote.Open = quote.Open
                             jpyx_quote.High = quote.High
