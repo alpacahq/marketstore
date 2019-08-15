@@ -589,11 +589,7 @@ func (tiifx *ForexFetcher) Run() {
                     // if this is insufficient, we can always query the lastTimestamp from tbk
                     log.Info("Forex: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                     continue
-                } else {
-                    log.Info("Forex: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
                 }
-            } else {
-                log.Info("Forex: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
             }
             // Add to finalQuotes
             finalQuotes = append(finalQuotes, quote)
