@@ -122,7 +122,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
-		log.Info("Crypto: symbol '%s' No data returned from %v-%v", symbol, from, to)
+		log.Warn("Crypto: symbol '%s' No data returned from %v-%v", symbol, from, to)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -394,11 +394,7 @@ func (tiicc *CryptoFetcher) Run() {
                     // if this is insufficient, we can always query the lastTimestamp from tbk
                     log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
-                } else {
-                    log.Info("Crypto: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
                 }
-            } else {
-                log.Info("Crypto: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
             }
             // Add to finalQuotes
             finalQuotes = append(finalQuotes, quote)
@@ -495,6 +491,8 @@ func (tiicc *CryptoFetcher) Run() {
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
+            
+            log.Info("Crypto: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
         }
         
 		if realTime {

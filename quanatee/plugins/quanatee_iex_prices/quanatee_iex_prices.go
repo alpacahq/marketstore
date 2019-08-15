@@ -115,7 +115,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
             log.Warn("IEX: symbol '%s' Market Closed from %v-%v", symbol, from, to)
         } else {
-            log.Info("IEX: symbol '%s' No data returned from %v-%v", symbol, from, to)
+            log.Warn("IEX: symbol '%s' No data returned from %v-%v", symbol, from, to)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -360,11 +360,7 @@ func (tiiex *IEXFetcher) Run() {
                     // if this is insufficient, we can always query the lastTimestamp from tbk
                     log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
                     continue
-                } else {
-                    log.Info("IEX: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
                 }
-            } else {
-                log.Info("IEX: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
             }
             // write to csm
             cs := io.NewColumnSeries()
@@ -377,6 +373,8 @@ func (tiiex *IEXFetcher) Run() {
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
+            
+            log.Info("IEX: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
         }
         
 		if realTime {

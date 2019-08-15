@@ -132,7 +132,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
             log.Warn("Forex: Intrinio symbol '%s' Market Closed from %v-%v", symbol, from, to)
         } else {
-            log.Info("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
+            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v", symbol, from, to)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -272,7 +272,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
             log.Warn("Forex: Tiingo symbol '%s' Market Closed from %v-%v", symbol, from, to)
         } else {
-            log.Info("Forex: Tiingo symbol '%s' No data returned from %v-%v", symbol, from, to)
+            log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v", symbol, from, to)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -625,11 +625,7 @@ func (tiifx *ForexFetcher) Run() {
                         // if this is insufficient, we can always query the lastTimestamp from tbk
                         log.Info("Forex: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC(), revQuote.Symbol, tiifx.baseTimeframe.String)
                         continue
-                    } else {
-                        log.Info("Forex: Realtiming %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
                     }
-                } else {
-                    log.Info("Forex: Backfilling %v rows to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
                 }
                 // Add to finalQuotes
                 finalQuotes = append(finalQuotes, revQuote)
@@ -727,6 +723,8 @@ func (tiifx *ForexFetcher) Run() {
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
+            
+            log.Info("Forex: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
         }
         
 		if realTime {
