@@ -513,7 +513,7 @@ func (tiifx *ForexFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99) // Under Intrinio's limit of 100 records per request
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 98) // Under Intrinio's limit of 100 records per request
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
