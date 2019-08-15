@@ -178,6 +178,9 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         quote = NewQuote(symbol, 0)
     }
     
+    sli := endOfSlice - startOfSlice
+    log.Info("Intrino %v", sli)
+    
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
     for i := len(quote.Epoch)/2-1; i >= 0; i-- {
         opp := len(quote.Epoch)-1-i
@@ -299,7 +302,8 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             quote.Close[bar] = forexData[bar].Close
         }
 	}
-    
+    sli := endOfSlice - startOfSlice
+    log.Info("Tiingo %v", sli)
     if startOfSlice > -1 && endOfSlice > -1 {
         quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
         quote.Open = quote.Open[startOfSlice:endOfSlice]
