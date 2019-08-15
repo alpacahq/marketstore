@@ -356,7 +356,7 @@ func (tiicc *CryptoFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration * 999) // Under Tiingo's limit of 5000 records per request
+            timeEnd = timeStart.AddDate(0, 0, 1)
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()

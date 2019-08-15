@@ -246,8 +246,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
     
-    if !realTime {
-        api_url = api_url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+    // Pad to with an extra day if backfilling to ensure that start_date and end_date is different
+    if !realTime && to.AddDate(0, 0, 1).After(time.Now().UTC()) {
+        api_url = api_url + "&endDate=" + url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
