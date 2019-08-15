@@ -139,18 +139,11 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	numrows := len(forexData.PriceData)
 	quote := NewQuote(symbol, numrows)
-    // Pointers to help slice into just the relevent datas
-    startOfSlice := -1
-    endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
-            }
-            endOfSlice = bar + 1
             quote.Epoch[bar] = dt.UTC().Unix()
             open_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) 
             open_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)
@@ -168,25 +161,13 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         }
 	}
     
-    log.Info("Intrino %v, %v", quote.Epoch[startOfSlice],  quote.Epoch[endOfSlice])
-    
-    if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
-        quote.Open = quote.Open[startOfSlice:endOfSlice]
-        quote.High = quote.High[startOfSlice:endOfSlice]
-        quote.Low = quote.Low[startOfSlice:endOfSlice]
-        quote.Close = quote.Close[startOfSlice:endOfSlice]
-    } else {
-        quote = NewQuote(symbol, 0)
-    }
-    
-    log.Info("Intrino After Slicing %v, %v", quote.Epoch[0],  quote.Epoch[len(quote.Epoch)-1])
-    
-/*  
-2019-08-15T17:20:41.985565976Z {"level":"info","timestamp":"2019-08-15T13:20:41.985-0400","msg":"Tiingo 1564629360, 1564635240"}
-2019-08-15T17:20:44.970380293Z {"level":"info","timestamp":"2019-08-15T13:20:44.970-0400","msg":"Intrino 1564635240, 1564629360"}
-2019-08-15T17:20:44.970416492Z {"level":"info","timestamp":"2019-08-15T13:20:44.970-0400","msg":"Intrino After Reversing 1564629420, 1564635240"}
-*/
+    log.Info("Intrino %v, %v", quote.Epoch[0],  quote.Epoch[len(quote.Epoch)-1])
+        
+    /*  
+    2019-08-15T17:20:41.985565976Z {"level":"info","timestamp":"2019-08-15T13:20:41.985-0400","msg":"Tiingo 1564629360, 1564635240"}
+    2019-08-15T17:20:44.970380293Z {"level":"info","timestamp":"2019-08-15T13:20:44.970-0400","msg":"Intrino 1564635240, 1564629360"}
+    2019-08-15T17:20:44.970416492Z {"level":"info","timestamp":"2019-08-15T13:20:44.970-0400","msg":"Intrino After Reversing 1564629420, 1564635240"}
+    */
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
     for i, j := 0, len(quote.Epoch)-1; i < j; i, j = i+1, j-1 {
         quote.Epoch[i], quote.Epoch[j] = quote.Epoch[j], quote.Epoch[i]
@@ -310,7 +291,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
-            endOfSlice = bar + 1
+            endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = forexData[bar].Open
             quote.High[bar] = forexData[bar].High
