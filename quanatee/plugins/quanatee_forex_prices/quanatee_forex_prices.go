@@ -171,11 +171,11 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     log.Info("Intrino %v, %v", quote.Epoch[startOfSlice],  quote.Epoch[endOfSlice])
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
-        quote.Open = quote.Open[startOfSlice:endOfSlice]
-        quote.High = quote.High[startOfSlice:endOfSlice]
-        quote.Low = quote.Low[startOfSlice:endOfSlice]
-        quote.Close = quote.Close[startOfSlice:endOfSlice]
+        quote.Epoch := quote.Epoch[startOfSlice:endOfSlice]
+        quote.Open := quote.Open[startOfSlice:endOfSlice]
+        quote.High := quote.High[startOfSlice:endOfSlice]
+        quote.Low := quote.Low[startOfSlice:endOfSlice]
+        quote.Close := quote.Close[startOfSlice:endOfSlice]
     } else {
         quote = NewQuote(symbol, 0)
     }
