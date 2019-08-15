@@ -182,11 +182,11 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
     for i, j := 0, len(quote.Epoch)-1; i < j; i, j = i+1, j-1 {
-        quote.Epoch[i], quote.Epoch[j] = quote.Epoch[j+1], quote.Epoch[i]
-        quote.Open[i], quote.Open[j] = quote.Open[j+1], quote.Open[i]
-        quote.High[i], quote.High[j] = quote.High[j+1], quote.High[i]
-        quote.Low[i], quote.Low[j] = quote.Low[j+1], quote.Low[i]
-        quote.Close[i], quote.Close[j] = quote.Close[j+1], quote.Close[i]
+        quote.Epoch[i], quote.Epoch[j] = quote.Epoch[j], quote.Epoch[i]
+        quote.Open[i], quote.Open[j] = quote.Open[j], quote.Open[i]
+        quote.High[i], quote.High[j] = quote.High[j], quote.High[i]
+        quote.Low[i], quote.Low[j] = quote.Low[j], quote.Low[i]
+        quote.Close[i], quote.Close[j] = quote.Close[j], quote.Close[i]
     }
     log.Info("Intrino After Reversing %v, %v", quote.Epoch[0],  quote.Epoch[len(quote.Epoch)-1])
     
