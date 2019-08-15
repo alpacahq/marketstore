@@ -154,5 +154,11 @@ bgworkers:
         - HYZD
         - USFR
         - HYND
+        - DLS
+        - DES
+        - DFE
+        - DFJ
+        - DGS
+        - AXJL
       query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
