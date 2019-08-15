@@ -161,13 +161,6 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         }
 	}
     
-    log.Info("Intrino %v, %v", quote.Epoch[0],  quote.Epoch[len(quote.Epoch)-1])
-        
-    /*  
-    2019-08-15T17:20:41.985565976Z {"level":"info","timestamp":"2019-08-15T13:20:41.985-0400","msg":"Tiingo 1564629360, 1564635240"}
-    2019-08-15T17:20:44.970380293Z {"level":"info","timestamp":"2019-08-15T13:20:44.970-0400","msg":"Intrino 1564635240, 1564629360"}
-    2019-08-15T17:20:44.970416492Z {"level":"info","timestamp":"2019-08-15T13:20:44.970-0400","msg":"Intrino After Reversing 1564629420, 1564635240"}
-    */
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
     for i, j := 0, len(quote.Epoch)-1; i < j; i, j = i+1, j-1 {
         quote.Epoch[i], quote.Epoch[j] = quote.Epoch[j], quote.Epoch[i]
@@ -176,18 +169,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         quote.Low[i], quote.Low[j] = quote.Low[j], quote.Low[i]
         quote.Close[i], quote.Close[j] = quote.Close[j], quote.Close[i]
     }
-    log.Info("Intrino After Reversing %v, %v", quote.Epoch[0],  quote.Epoch[len(quote.Epoch)-1])
-    
-    /*
-    for i := len(quote.Epoch)/2-1; i >= 0; i-- {
-        opp := len(quote.Epoch)-1-i
-        quote.Epoch[i], quote.Epoch[opp] = quote.Epoch[opp], quote.Epoch[i]
-        quote.Open[i], quote.Open[opp] = quote.Open[opp], quote.Open[i]
-        quote.High[i], quote.High[opp] = quote.High[opp], quote.High[i]
-        quote.Low[i], quote.Low[opp] = quote.Low[opp], quote.Low[i]
-        quote.Close[i], quote.Close[opp] = quote.Close[opp], quote.Close[i]
-    }
-    */
+
 	return quote, nil
 }
 
@@ -300,8 +282,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         }
 	}
     
-    log.Info("Tiingo %v, %v", quote.Epoch[startOfSlice],  quote.Epoch[endOfSlice])
-    
     if startOfSlice > -1 && endOfSlice > -1 {
         quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
         quote.Open = quote.Open[startOfSlice:endOfSlice]
@@ -311,8 +291,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     } else {
         quote = NewQuote(symbol, 0)
     }
-    
-    log.Info("Tiingo After Slicing %v, %v", quote.Epoch[0],  quote.Epoch[len(quote.Epoch)-1])
     
 	return quote, nil
 }
