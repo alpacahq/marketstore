@@ -413,7 +413,7 @@ func (tiicc *CryptoFetcher) Run() {
                                     btcz_quote.High = quote.High
                                     btcz_quote.Low = quote.Low
                                     btcz_quote.Close = quote.Close
-                            } else {
+                            } else if len(btcz_quote.Epoch) == len(quote.Epoch) {
                                 numrows := len(btcz_quote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     btcz_quote.Open[bar] = (quote.Open[bar] + btcz_quote.Open[bar]) / 2
@@ -441,7 +441,7 @@ func (tiicc *CryptoFetcher) Run() {
                                 usdz_quote.High = quote.High
                                 usdz_quote.Low = quote.Low
                                 usdz_quote.Close = quote.Close
-                            } else {
+                            } else if len(usdz_quote.Epoch) == len(quote.Epoch) {
                                 numrows := len(usdz_quote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     usdz_quote.Open[bar] = (quote.Open[bar] + usdz_quote.Open[bar]) / 2
@@ -469,7 +469,7 @@ func (tiicc *CryptoFetcher) Run() {
                                 eurz_quote.High = quote.High
                                 eurz_quote.Low = quote.Low
                                 eurz_quote.Close = quote.Close
-                            } else {
+                            } else if len(eurz_quote.Epoch) == len(quote.Epoch) {
                                 numrows := len(eurz_quote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     eurz_quote.Open[bar] = (quote.Open[bar] + eurz_quote.Open[bar]) / 2

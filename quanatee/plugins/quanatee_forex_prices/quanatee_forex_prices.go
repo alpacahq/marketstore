@@ -641,7 +641,7 @@ func (tiifx *ForexFetcher) Run() {
                                 usdx_quote.High = quote.High
                                 usdx_quote.Low = quote.Low
                                 usdx_quote.Close = quote.Close
-                            } else {
+                            } else if len(usdx_quote.Epoch) == len(quote.Epoch) {
                                 numrows := len(usdx_quote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     usdx_quote.Open[bar] = (quote.Open[bar] + usdx_quote.Open[bar]) / 2
@@ -669,7 +669,7 @@ func (tiifx *ForexFetcher) Run() {
                                 eurx_quote.High = quote.High
                                 eurx_quote.Low = quote.Low
                                 eurx_quote.Close = quote.Close
-                            } else {
+                            } else if len(eurx_quote.Epoch) == len(quote.Epoch) {
                                 numrows := len(eurx_quote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     eurx_quote.Open[bar] = (quote.Open[bar] + eurx_quote.Open[bar]) / 2
@@ -697,7 +697,7 @@ func (tiifx *ForexFetcher) Run() {
                                 jpyx_quote.High = quote.High
                                 jpyx_quote.Low = quote.Low
                                 jpyx_quote.Close = quote.Close
-                            } else {
+                            } else if len(jpyx_quote.Epoch) == len(quote.Epoch) {
                                 numrows := len(jpyx_quote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     jpyx_quote.Open[bar] = (quote.Open[bar] + jpyx_quote.Open[bar]) / 2
