@@ -188,6 +188,8 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
         quote.Low[i], quote.Low[j] = quote.Low[j], quote.Low[i]
         quote.Close[i], quote.Close[j] = quote.Close[j], quote.Close[i]
     }
+    log.Info("Intrino After Reversing %v, %v", quote.Epoch[0],  quote.Epoch[len(quote.Epoch)-1])
+    
     /*
     for i := len(quote.Epoch)/2-1; i >= 0; i-- {
         opp := len(quote.Epoch)-1-i
