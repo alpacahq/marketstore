@@ -50,28 +50,135 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
+func GetCoinbasePrices(symbol, from, to time.Time, period Period) (Quote, error) {
+
+	var granularity int // seconds
+
+	switch period {
+	case "1Min":
+		granularity = 60
+	case "5Min":
+		granularity = 5 * 60
+	case "15Min":
+		granularity = 15 * 60
+	case "30Min":
+		granularity = 30 * 60
+	case "1H":
+		granularity = 60 * 60
+	case "1D":
+		granularity = 24 * 60 * 60
+	case "1W":
+		granularity = 7 * 24 * 60 * 60
+	default:
+		granularity = 24 * 60 * 60
+	}
+
+	var quote Quote
+	quote.Symbol = symbol
+
+	maxBars := 200
+	var step time.Duration
+	step = time.Second * time.Duration(granularity)
+
+	startBar := from
+	endBar := startBar.Add(time.Duration(maxBars) * step)
+
+	if endBar.After(to) {
+		endBar = end
+	}
+
+	//Log.Printf("startBar=%v, endBar=%v\n", startBar, endBar)
+
+	for startBar.Before(end) {
+
+		url := fmt.Sprintf(
+			"https://api.pro.coinbase.com/products/%s/candles?start=%s&end=%s&granularity=%d",
+			symbol,
+			url.QueryEscape(startBar.Format(time.RFC3339)),
+			url.QueryEscape(endBar.Format(time.RFC3339)),
+			granularity)
+
+		client := &http.Client{Timeout: ClientTimeout}
+		req, _ := http.NewRequest("GET", url, nil)
+		resp, err := client.Do(req)
+
+		if err != nil {
+			Log.Printf("coinbase error: %v\n", err)
+			return NewQuote("", 0), err
+		}
+		defer resp.Body.Close()
+
+		contents, _ := ioutil.ReadAll(resp.Body)
+
+		type cb [6]float64
+		var bars []cb
+		err = json.Unmarshal(contents, &bars)
+		if err != nil {
+			Log.Printf("coinbase error: %v\n", err)
+		}
+
+		numrows := len(bars)
+		q := NewQuote(symbol, numrows)
+
+		//Log.Printf("numrows=%d, bars=%v\n", numrows, bars)
+        
+		for row := 0; row < numrows; row++ {
+			bar := numrows - 1 - row // reverse the order
+			q.Date[bar] = time.Unix(int64(bars[row][0]), 0)
+			q.Open[bar] = bars[row][1]
+			q.High[bar] = bars[row][2]
+			q.Low[bar] = bars[row][3]
+			q.Close[bar] = bars[row][4]
+			q.Volume[bar] = bars[row][5]
+		}
+		quote.Date = append(quote.Date, q.Date...)
+		quote.Open = append(quote.Open, q.Open...)
+		quote.High = append(quote.High, q.High...)
+		quote.Low = append(quote.Low, q.Low...)
+		quote.Close = append(quote.Close, q.Close...)
+		quote.Volume = append(quote.Volume, q.Volume...)
+        
+		time.Sleep(time.Second)
+		startBar = endBar.Add(step)
+		endBar = startBar.Add(time.Duration(maxBars) * step)
+
+	}
+
+	return quote, nil
+}
+
 func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
+    dailyFreq    := 24
 	switch period {
 	case "1Min":
 		resampleFreq = "1min"
+        dailyFreq    = 1440
 	case "5Min":
 		resampleFreq = "5min"
+        dailyFreq    = 288
 	case "15Min":
 		resampleFreq = "15min"
+        dailyFreq    = 96
 	case "30Min":
 		resampleFreq = "30min"
+        dailyFreq    = 48
 	case "1H":
 		resampleFreq = "1hour"
+        dailyFreq    = 24
 	case "2H":
 		resampleFreq = "2hour"
+        dailyFreq    = 12
 	case "4H":
 		resampleFreq = "4hour"
+        dailyFreq    = 6
 	case "6H":
 		resampleFreq = "6hour"
+        dailyFreq    = 4
 	case "8H":
 		resampleFreq = "8hour"
+        dailyFreq    = 3
 	}
 
 	type priceData struct {
@@ -110,7 +217,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("Crypto: symbol '%s' not found\n", symbol)
+		log.Info("Crypto: Tiingo symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -118,19 +225,29 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		log.Info("Crypto: symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Info("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
-		log.Warn("Crypto: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+		log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
 		return NewQuote(symbol, 0), err
 	}
     
 	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
+    sec_quote := NewQuote(symbol, 0)
+    sec_err := nil
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
+    
+    if !realTime && numrows < dailyFreq {
+        // Tiingo returned less data than expected (missing data), try direct to Coinbase
+        formatted_symbol := strings.Replace(symbol, "BTC", "-BTC")
+        formatted_symbol  = strings.Replace(symbol, "USD", "-USD")
+        formatted_symbol  = strings.Replace(symbol, "EUR", "-EUR")
+        sec_quote, sec_err = GetCoinbasePrices(formatted_symbol, from, to, period)
+    }
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
