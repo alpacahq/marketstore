@@ -101,14 +101,17 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	var forexData intrinioData
 
     api_url := fmt.Sprintf(
-                        "https://api-v2.intrinio.com/forex/prices/%s/%s?api_key=%s&start_date=%s&start_time=%s&end_date=%s&end_time=%s",
+                        "https://api-v2.intrinio.com/forex/prices/%s/%s?api_key=%s&start_date=%s&start_time=%s",
                         symbol,
                         resampleFreq,
                         token,
                         url.QueryEscape(from.Format("2006-01-02")),
-                        url.QueryEscape(from.Format("15:04:05")),
-                        url.QueryEscape(to.Format("2006-01-02")),
-                        url.QueryEscape(to.Format("15:04:05")))
+                        url.QueryEscape(from.Format("15:04:05"))
+                        )
+    
+    if !realTime {
+        api_url = api_url + "&end_date=" + url.QueryEscape(to.Format("2006-01-02")) + "&end_time=" + url.QueryEscape(to.Format("15:04:05")))
+    }
     
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", api_url, nil)
@@ -545,19 +548,34 @@ func (tiifx *ForexFetcher) Run() {
                             if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
                                 continue
                             } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
-                                numrows := len(intrinioQuote.Epoch)
-                                quote := NewQuote(symbol, numrows)
-                                for bar := 0; bar < numrows; bar++ {
-                                    if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
-                                        log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs! Tiingo: %v, Intrinio %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
-                                        // If flagged, the records are probably sorted in opposing orders
-                                    } else {
-                                        quote.Epoch[bar] = tiingoQuote.Epoch[bar]
-                                        quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
-                                        quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
-                                        quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
-                                        quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
+                                if tiingoQuote.Epoch[0] != intrinioQuote.Epoch[0] || tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] != intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
+                                    // First and last epochs do not match
+                                    // This could be either datas returned are in different orders; or
+                                    // Datas returned have missing data rows (likely from Tiingo); or
+                                    // Improper slicing of periods
+                                    log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs! Tiingo: %v, Intrinio %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
+                                    quotes = append(quotes, intrinioQuote)
+                                } else {
+                                    // First and last epochs match, we assume that the rows are lined up
+                                    numrows := len(intrinioQuote.Epoch)
+                                    quote := NewQuote(symbol, numrows)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
+                                            // If the rows are not lined up, we fallback to Intrinio only
+                                            quote.Epoch[bar] = intrinioQuote.Epoch[bar]
+                                            quote.Open[bar] = intrinioQuote.Open[bar]
+                                            quote.High[bar] = intrinioQuote.High[bar]
+                                            quote.Low[bar] = intrinioQuote.Low[bar]
+                                            quote.Close[bar] = intrinioQuote.Close[bar]
+                                        } else {
+                                            quote.Epoch[bar] = tiingoQuote.Epoch[bar]
+                                            quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
+                                            quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
+                                            quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
+                                            quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
+                                        }
                                     }
+                                    
                                 }
                                 quotes = append(quotes, quote)
                             } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
