@@ -242,7 +242,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         // Tiingo returned less data than expected (missing data), try direct to Coinbase
         formatted_symbol := symbol
         if strings.HasSuffix(formatted_symbol, "BTC") {
-            formatted_symbol := strings.Replace(formatted_symbol, "BTC", "-BTC", -1)
+            formatted_symbol = strings.Replace(formatted_symbol, "BTC", "-BTC", -1)
         } else if strings.HasSuffix(formatted_symbol, "USD") {
             formatted_symbol = strings.Replace(formatted_symbol, "USD", "-USD", -1)
         } else if strings.HasSuffix(formatted_symbol, "EUR") {
