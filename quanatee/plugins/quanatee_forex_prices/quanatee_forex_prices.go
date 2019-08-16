@@ -10,7 +10,7 @@ import (
 	"time"
     "strconv"
     "strings"
-    "rand"
+    "math/rand"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
