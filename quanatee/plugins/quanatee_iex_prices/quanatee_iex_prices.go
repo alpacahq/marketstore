@@ -115,7 +115,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
             log.Warn("IEX: symbol '%s' Market Closed from %v-%v", symbol, from, to)
         } else {
-            log.Warn("IEX: symbol '%s' No data returned from %v-%v", symbol, from, to)
+            log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
         }
 		return NewQuote(symbol, 0), err
 	}
