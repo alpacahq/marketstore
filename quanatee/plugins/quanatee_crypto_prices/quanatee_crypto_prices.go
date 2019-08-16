@@ -142,6 +142,8 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
 
 	}
     
+    log.Info("Before %v", len(quote.Epoch))
+    
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
@@ -166,6 +168,8 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
     } else {
         quote = NewQuote(symbol, 0)
     }
+    
+    log.Info("After %v", len(quote.Epoch))
     
 	return quote, nil
 }
