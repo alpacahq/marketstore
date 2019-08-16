@@ -135,7 +135,6 @@ bgworkers:
         - IHDG
         - DFE
         - DFJ
-        - DHDG
       ustf_symbols:
         - ESGU
         - ESML
@@ -150,7 +149,6 @@ bgworkers:
         - ESGD
         - IDEV
         - IHDG
-        - DHDG
       emtf_symbols:
         - ESGE
         - CEW
