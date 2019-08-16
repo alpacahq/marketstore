@@ -307,6 +307,8 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             quote = sec_quote
             quote.Symbol = symbol
             log.Warn("Crypto: Replacing %s Tiingo data with Coinbase data from %v-%v with %v rows", symbol, from, to, len(quote.Epoch))
+        } else {
+            log.Warn("Crypto: %s From %v-%v Tiingo %v rows Coinbase %v rows", symbol, from, to, len(quote.Epoch), len(sec_quote.Epoch))
         }
     }
     
