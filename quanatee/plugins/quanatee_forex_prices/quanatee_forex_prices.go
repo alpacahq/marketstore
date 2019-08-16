@@ -139,11 +139,18 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
     
 	numrows := len(forexData.PriceData)
 	quote := NewQuote(symbol, numrows)
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
+            }
+            endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
             open_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) 
             open_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)
@@ -160,6 +167,16 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
             quote.Close[bar] = (close_bid + close_ask) / 2
         }
 	}
+    
+    if startOfSlice > -1 && endOfSlice > -1 {
+        quote.Epoch = quote.Epoch[startOfSlice+1:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice+1:endOfSlice+1]
+        quote.High = quote.High[startOfSlice+1:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
+    } else {
+        quote = NewQuote(symbol, 0)
+    }
     
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
     for i, j := 0, len(quote.Epoch)-1; i < j; i, j = i+1, j-1 {
