@@ -552,8 +552,8 @@ func (tiifx *ForexFetcher) Run() {
                                     // This could be either datas returned are in different orders; or
                                     // Datas returned have missing data rows (likely from Tiingo); or
                                     // Improper slicing of periods
-                                    log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs! Tiingo: %v, Intrinio %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
-                                    quotes = append(quotes, intrinioQuote)
+                                    log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs!", symbol)
+                                    quote := intrinioQuote
                                 } else {
                                     // First and last epochs match, we assume that the rows are lined up
                                     numrows := len(intrinioQuote.Epoch)
