@@ -197,7 +197,7 @@ func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, realTime
     
 	quotes := Quotes{}
 	for _, symbol := range symbols {
-		time.Sleep(1 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		quote, err := GetIntrinioPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
