@@ -133,8 +133,8 @@ bgworkers:
         - HEDJ
         - DXJ
         - IHDG
-        - DDEZ
-        - DDJP
+        - DFE
+        - DFJ
         - DHDG
       ustf_symbols:
         - ESGU
@@ -142,10 +142,10 @@ bgworkers:
         - SUSA
       eutf_symbols:
         - HEDJ
-        - DDEZ
+        - DFE
       jptf_symbols:
         - DXJ
-        - DDJP
+        - DFJ
       wwtf_symbols:
         - ESGD
         - IDEV
