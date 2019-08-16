@@ -402,9 +402,9 @@ func (tiiex *IEXFetcher) Run() {
                     log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
                     continue
                 }
-                // Add to finalQuotes
-                finalQuotes = append(finalQuotes, quote)
             }
+            // Add to finalQuotes
+            finalQuotes = append(finalQuotes, quote)
         }
         
         // Add USTF
