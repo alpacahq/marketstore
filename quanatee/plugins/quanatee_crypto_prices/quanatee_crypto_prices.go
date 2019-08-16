@@ -234,7 +234,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
     sec_quote := NewQuote(symbol, 0)
-    var sec_err
+    sec_err := ""
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
