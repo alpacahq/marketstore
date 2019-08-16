@@ -433,7 +433,9 @@ func (tiiex *IEXFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, ustf_quote)
+            if len(ustf_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, ustf_quote)
+            }
         }
         // Add EUTF
         if len(tiiex.eutfSymbols) > 0 {
@@ -461,7 +463,9 @@ func (tiiex *IEXFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, eutf_quote)
+            if len(eutf_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, eutf_quote)
+            }
         }
         // Add JPTF
         if len(tiiex.jptfSymbols) > 0 {
@@ -489,7 +493,9 @@ func (tiiex *IEXFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, jptf_quote)
+            if len(jptf_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, jptf_quote)
+            }
         }
         // Add WWTF
         if len(tiiex.wwtfSymbols) > 0 {
@@ -517,7 +523,9 @@ func (tiiex *IEXFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, wwtf_quote)
+            if len(wwtf_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, wwtf_quote)
+            }
         }
         // Add EMTF
         if len(tiiex.emtfSymbols) > 0 {
@@ -545,7 +553,9 @@ func (tiiex *IEXFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, emtf_quote)
+            if len(emtf_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, emtf_quote)
+            }
         }
         
         for _, quote := range finalQuotes {

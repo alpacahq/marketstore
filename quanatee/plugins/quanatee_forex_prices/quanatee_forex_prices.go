@@ -674,7 +674,9 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, usdx_quote)
+            if len(usdx_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, usdx_quote)
+            }
         }
         // Add EURX
         if len(tiifx.eurxSymbols) > 0 {
@@ -702,7 +704,9 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, eurx_quote)
+            if len(eurx_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, eurx_quote)
+            }
         }
         // Add JPYX
         if len(tiifx.jpyxSymbols) > 0 {
@@ -730,7 +734,9 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, jpyx_quote)
+            if len(jpyx_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, jpyx_quote)
+            }
         }
         
         for _, quote := range finalQuotes {

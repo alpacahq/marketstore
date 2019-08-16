@@ -428,7 +428,9 @@ func (tiicc *CryptoFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, btcz_quote)
+            if len(btcz_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, btcz_quote)
+            }
         }
         // Add USDZ
         if len(tiicc.usdzSymbols) > 0 {
@@ -456,7 +458,9 @@ func (tiicc *CryptoFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, usdz_quote)
+            if len(usdz_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, usdz_quote)
+            }
         }
         // Add EURZ
         if len(tiicc.eurzSymbols) > 0 {
@@ -484,7 +488,9 @@ func (tiicc *CryptoFetcher) Run() {
                     }
                 }
             }
-            finalQuotes = append(finalQuotes, eurz_quote)
+            if len(eurz_quote.Epoch) > 0 {
+                finalQuotes = append(finalQuotes, eurz_quote)
+            }
         }
         
         for _, quote := range finalQuotes {
