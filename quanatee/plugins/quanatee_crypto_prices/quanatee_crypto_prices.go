@@ -240,7 +240,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     
     if !realTime && numrows < dailyFreq {
         // Tiingo returned less data than expected (missing data), try direct to Coinbase
-        formatted_symbol := strings.Replace(formatted_symbol, "BTC", "-BTC", -1)
+        formatted_symbol := strings.Replace(symbol, "BTC", "-BTC", -1)
         formatted_symbol  = strings.Replace(formatted_symbol, "USD", "-USD", -1)
         formatted_symbol  = strings.Replace(formatted_symbol, "EUR", "-EUR", -1)
         sec_quote, _ := GetCoinbasePrices(formatted_symbol, from, to, period)
