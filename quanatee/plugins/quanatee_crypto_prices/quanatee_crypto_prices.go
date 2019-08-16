@@ -122,7 +122,7 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
         
 		for row := 0; row < numrows; row++ {
 			bar := numrows - 1 - row // reverse the order
-			q.Epoch[bar] = time.Unix(int64(bars[row][0]), 0)
+			q.Epoch[bar] = int64(bars[row][0])
 			q.Open[bar] = bars[row][1]
 			q.High[bar] = bars[row][2]
 			q.Low[bar] = bars[row][3]
@@ -244,7 +244,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         formatted_symbol  = strings.Replace(symbol, "USD", "-USD", -1)
         formatted_symbol  = strings.Replace(symbol, "EUR", "-EUR", -1)
         sec_quote, _ := GetCoinbasePrices(formatted_symbol, from, to, period)
-        log.Info(sec_quote)
+        if len(sec_quote.Epoch) > len(quote.Epoch) {
+            quote = sec_quote
+            quote.Symbol = symbol
+            log.Warn("Crypto: Replacing %s Tiingo data with Coinbase data from %v-%v", symbol, from, to)
+        }
     }
     
 	for bar := 0; bar < numrows; bar++ {
