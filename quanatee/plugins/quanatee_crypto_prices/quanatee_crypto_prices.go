@@ -139,7 +139,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
-            endOfSlice = bar
+            endOfSlice = bar + 1
             quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = cryptoData[0].PriceData[bar].Open
             quote.High[bar] = cryptoData[0].PriceData[bar].High
