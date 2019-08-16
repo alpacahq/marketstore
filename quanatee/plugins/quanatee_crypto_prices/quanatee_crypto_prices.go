@@ -506,7 +506,7 @@ func (tiicc *CryptoFetcher) Run() {
 			// Sleep till next interval for data provider to update candles
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 9, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 45, 0, time.UTC)
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
