@@ -76,7 +76,7 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
 	var quote Quote
 	quote.Symbol = symbol
 
-	maxBars := 200
+	maxBars := 99
 	var step time.Duration
 	step = time.Second * time.Duration(granularity)
 
@@ -136,7 +136,7 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
 		quote.Close = append(quote.Close, q.Close...)
 		quote.Volume = append(quote.Volume, q.Volume...)
         
-		time.Sleep(time.Second)
+		time.Sleep(500 * time.Millisecond)
 		startBar = endBar.Add(step)
 		endBar = startBar.Add(time.Duration(maxBars) * step)
 
