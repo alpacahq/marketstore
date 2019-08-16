@@ -89,7 +89,7 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
     
 	for startBar.Before(to) {
 
-		url := fmt.Sprintf(
+		api_url := fmt.Sprintf(
 			"https://api.pro.coinbase.com/products/%s/candles?start=%s&end=%s&granularity=%d",
 			symbol,
 			url.QueryEscape(startBar.Format(time.RFC3339)),
@@ -97,11 +97,12 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
 			granularity)
 
 		client := &http.Client{Timeout: ClientTimeout}
-		req, _ := http.NewRequest("GET", url, nil)
+		req, _ := http.NewRequest("GET", api_url, nil)
 		resp, err := client.Do(req)
 
 		if err != nil {
 			log.Info("Crypto: Coinbase error: %v\n", err)
+			log.Info("Crypto: Coinbase error: %s\n", api_url)
 			return NewQuote("", 0), err
 		}
 		defer resp.Body.Close()
@@ -113,6 +114,7 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
 		err = json.Unmarshal(contents, &bars)
 		if err != nil {
 			log.Info("Crypto: Coinbase error: %v\n", err)
+			log.Info("Crypto: Coinbase error: %s\n", api_url)
 		}
 
 		numrows := len(bars)
