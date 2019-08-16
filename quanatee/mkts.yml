@@ -67,7 +67,7 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
-      query_start: "2019-08-15 00:00"
+      query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
@@ -100,5 +100,65 @@ bgworkers:
         - CHFUSD
         - NZDUSD
         - CADUSD
-      query_start: "2019-08-15 00:00"
+      eurx_symbols:
+        - USDEUR
+        - JPYEUR
+        - GBPEUR
+        - AUDEUR
+        - CHFEUR
+        - NZDEUR
+        - CADEUR
+      jpyx_symbols:
+        - USDJPY
+        - EURJPY
+        - GBPJPY
+        - AUDJPY
+        - CHFJPY
+        - NZDJPY
+        - CADJPY
+      query_start: "2019-08-01 00:00"
+      base_timeframe: "1Min"
+  - module: quanatee_iex_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      symbols:
+        - IBB
+        - ITA
+        - IYW
+        - IYF
+        - IYH
+        - IYJ
+        - IYE
+        - IYT
+        - IDU
+        - USRT
+        - KXI
+        - IXG
+        - IHE
+        - RXI
+        - CMDY
+        - ESGD
+        - ESGE
+        - ESGU
+        - ESML
+        - SUSA
+        - SUSB
+        - SUSC
+        - SFHY
+        - WFHY
+        - SFIG
+        - WFIG
+        - AGGY
+        - AGZD
+        - AGND
+        - HYZD
+        - USFR
+        - HYND
+        - DLS
+        - DES
+        - DFE
+        - DFJ
+        - DGS
+        - AXJL
+      query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
