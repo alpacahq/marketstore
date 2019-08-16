@@ -50,7 +50,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetCoinbasePrices(symbol, from, to time.Time, period string) (Quote, error) {
+func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote, error) {
 
 	var granularity int // seconds
 
@@ -122,7 +122,7 @@ func GetCoinbasePrices(symbol, from, to time.Time, period string) (Quote, error)
         
 		for row := 0; row < numrows; row++ {
 			bar := numrows - 1 - row // reverse the order
-			q.Epoch[bar] = time.Unix(int64(bars[row][0]), 0)
+			q.Epoch[bar] = time.Unix(bars[row][0], 0)
 			q.Open[bar] = bars[row][1]
 			q.High[bar] = bars[row][2]
 			q.Low[bar] = bars[row][3]
@@ -234,16 +234,16 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
     sec_quote := NewQuote(symbol, 0)
-    sec_err := nil
+    var sec_err
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
     
     if !realTime && numrows < dailyFreq {
         // Tiingo returned less data than expected (missing data), try direct to Coinbase
-        formatted_symbol := strings.Replace(symbol, "BTC", "-BTC")
-        formatted_symbol  = strings.Replace(symbol, "USD", "-USD")
-        formatted_symbol  = strings.Replace(symbol, "EUR", "-EUR")
+        formatted_symbol := strings.Replace(symbol, "BTC", "-BTC", -1)
+        formatted_symbol  = strings.Replace(symbol, "USD", "-USD", -1)
+        formatted_symbol  = strings.Replace(symbol, "EUR", "-EUR", -1)
         sec_quote, sec_err = GetCoinbasePrices(formatted_symbol, from, to, period)
     }
     
