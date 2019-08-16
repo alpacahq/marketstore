@@ -119,8 +119,6 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
 
 		numrows := len(bars)
 		q := NewQuote(symbol, numrows)
-
-		//Log.Printf("numrows=%d, bars=%v\n", numrows, bars)
         
 		for row := 0; row < numrows; row++ {
 			bar := numrows - 1 - row // reverse the order
