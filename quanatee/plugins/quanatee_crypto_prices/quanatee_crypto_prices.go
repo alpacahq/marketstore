@@ -156,7 +156,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
         quote.Volume = quote.Volume[startOfSlice+1:endOfSlice+1]
-        log.Info("SLICE %v to %v", quote.Epoch[0], quote.Epoch[len(quote.Epoch)-1])
+        log.Info("SLICE %v to %v", quote.Epoch[0], len(quote.Epoch))
     } else {
         quote = NewQuote(symbol, 0)
     }
