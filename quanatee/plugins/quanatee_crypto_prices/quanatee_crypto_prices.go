@@ -146,22 +146,17 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             quote.Low[bar] = cryptoData[0].PriceData[bar].Low
             quote.Close[bar] = cryptoData[0].PriceData[bar].Close
             quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
-            if realTime{
-                log.Info("LOOP %v", quote.Epoch[bar])
-            }
         }
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
-        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
-        quote.High = quote.High[startOfSlice:endOfSlice+1]
-        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
-        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
-        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
-        if realTime{
-            log.Info("SLICE %v", quote.Epoch)
-        }
+        quote.Epoch = quote.Epoch[startOfSlice+1:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice+1:endOfSlice+1]
+        quote.High = quote.High[startOfSlice+1:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice+1:endOfSlice+1]
+        log.Info("SLICE %v to %v", quote.Epoch[0], quote.Epoch[len(quote.Epoch)-1])
     } else {
         quote = NewQuote(symbol, 0)
     }
