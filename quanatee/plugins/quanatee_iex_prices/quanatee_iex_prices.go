@@ -189,6 +189,11 @@ type FetcherConfig struct {
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
+	USTFSymbols    []string `json:"ustf_symbols"`
+	EUTFSymbols    []string `json:"eutf_symbols"`
+	JPTFSymbols    []string `json:"jptf_symbols"`
+	WWTFSymbols    []string `json:"wwtf_symbols"`
+	EMTFSymbols    []string `json:"emtf_symbols"`
 }
 
 // IEXFetcher is the main worker for TiingoIEX
@@ -198,6 +203,11 @@ type IEXFetcher struct {
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
+	ustfSymbols    []string
+	eutfSymbols    []string
+	jptfSymbols    []string
+	wwtfSymbols    []string
+	emtfSymbols    []string
 }
 
 // recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
@@ -263,6 +273,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
+	var ustfSymbols []string
+	var eutfSymbols []string
+	var jptfSymbols []string
+	var wwtfSymbols []string
+	var emtfSymbols []string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -276,12 +291,35 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
+	if len(config.USTFSymbols) > 0 {
+		ustfSymbols = config.USTFSymbols
+	}
+    
+	if len(config.EUTFSymbols) > 0 {
+		eutfSymbols = config.EUTFSymbols
+	}
+    
+	if len(config.JPTFSymbols) > 0 {
+		jptfSymbols = config.JPTFSymbols
+	}
+    
+	if len(config.WWTFSymbols) > 0 {
+		wwtfSymbols = config.WWTFSymbols
+	}
+	if len(config.EMTFSymbols) > 0 {
+		emtfSymbols = config.EMTFSymbols
+	}
 	return &IEXFetcher{
 		config:         conf,
 		symbols:        symbols,
         apiKey:         config.ApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
+        ustfSymbols:    ustfSymbols,
+        eutfSymbols:    eutfSymbols,
+        jptfSymbols:    jptfSymbols,
+        wwtfSymbols:    wwtfSymbols,
+        emtfSymbols:    emtfSymbols,
 	}, nil
 }
 
@@ -376,6 +414,147 @@ func (tiiex *IEXFetcher) Run() {
             executor.WriteCSM(csm, false)
             
             log.Info("IEX: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+        }
+        
+        // Add USTF
+        if len(tiiex.ustfSymbols) > 0 {
+            ustf_quote := NewQuote("USTF", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiiex.ustfSymbols {
+                    if quote.Symbol == symbol {
+                        if len(quote.Epoch) > 0 {
+                            if len(ustf_quote.Epoch) == 0 {
+                                ustf_quote.Epoch = quote.Epoch
+                                ustf_quote.Open = quote.Open
+                                ustf_quote.High = quote.High
+                                ustf_quote.Low = quote.Low
+                                ustf_quote.Close = quote.Close
+                            } else if len(ustf_quote.Epoch) == len(quote.Epoch) {
+                                numrows := len(ustf_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    ustf_quote.Open[bar] = (quote.Open[bar] + ustf_quote.Open[bar]) / 2
+                                    ustf_quote.High[bar] = (quote.High[bar] + ustf_quote.High[bar]) / 2
+                                    ustf_quote.Low[bar] = (quote.Low[bar] + ustf_quote.Low[bar]) / 2
+                                    ustf_quote.Close[bar] = (quote.Close[bar] + ustf_quote.Close[bar]) / 2
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, ustf_quote)
+        }
+        // Add EUTF
+        if len(tiiex.eutfSymbols) > 0 {
+            eutf_quote := NewQuote("EUTF", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiiex.eutfSymbols {
+                    if quote.Symbol == symbol {
+                        if len(quote.Epoch) > 0 {
+                            if len(eutf_quote.Epoch) == 0 {
+                                eutf_quote.Epoch = quote.Epoch
+                                eutf_quote.Open = quote.Open
+                                eutf_quote.High = quote.High
+                                eutf_quote.Low = quote.Low
+                                eutf_quote.Close = quote.Close
+                            } else if len(eutf_quote.Epoch) == len(quote.Epoch) {
+                                numrows := len(eutf_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    eutf_quote.Open[bar] = (quote.Open[bar] + eutf_quote.Open[bar]) / 2
+                                    eutf_quote.High[bar] = (quote.High[bar] + eutf_quote.High[bar]) / 2
+                                    eutf_quote.Low[bar] = (quote.Low[bar] + eutf_quote.Low[bar]) / 2
+                                    eutf_quote.Close[bar] = (quote.Close[bar] + eutf_quote.Close[bar]) / 2
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, eutf_quote)
+        }
+        // Add JPTF
+        if len(tiiex.jptfSymbols) > 0 {
+            jptf_quote := NewQuote("JPTF", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiiex.jptfSymbols {
+                    if quote.Symbol == symbol {
+                        if len(quote.Epoch) > 0 {
+                            if len(jptf_quote.Epoch) == 0 {
+                                jptf_quote.Epoch = quote.Epoch
+                                jptf_quote.Open = quote.Open
+                                jptf_quote.High = quote.High
+                                jptf_quote.Low = quote.Low
+                                jptf_quote.Close = quote.Close
+                            } else if len(jptf_quote.Epoch) == len(quote.Epoch) {
+                                numrows := len(jptf_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    jptf_quote.Open[bar] = (quote.Open[bar] + jptf_quote.Open[bar]) / 2
+                                    jptf_quote.High[bar] = (quote.High[bar] + jptf_quote.High[bar]) / 2
+                                    jptf_quote.Low[bar] = (quote.Low[bar] + jptf_quote.Low[bar]) / 2
+                                    jptf_quote.Close[bar] = (quote.Close[bar] + jptf_quote.Close[bar]) / 2
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, jptf_quote)
+        }
+        // Add WWTF
+        if len(tiiex.wwtfSymbols) > 0 {
+            wwtf_quote := NewQuote("WWTF", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiiex.wwtfSymbols {
+                    if quote.Symbol == symbol {
+                        if len(quote.Epoch) > 0 {
+                            if len(wwtf_quote.Epoch) == 0 {
+                                wwtf_quote.Epoch = quote.Epoch
+                                wwtf_quote.Open = quote.Open
+                                wwtf_quote.High = quote.High
+                                wwtf_quote.Low = quote.Low
+                                wwtf_quote.Close = quote.Close
+                            } else if len(wwtf_quote.Epoch) == len(quote.Epoch) {
+                                numrows := len(wwtf_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    wwtf_quote.Open[bar] = (quote.Open[bar] + wwtf_quote.Open[bar]) / 2
+                                    wwtf_quote.High[bar] = (quote.High[bar] + wwtf_quote.High[bar]) / 2
+                                    wwtf_quote.Low[bar] = (quote.Low[bar] + wwtf_quote.Low[bar]) / 2
+                                    wwtf_quote.Close[bar] = (quote.Close[bar] + wwtf_quote.Close[bar]) / 2
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, wwtf_quote)
+        }
+        // Add EMTF
+        if len(tiiex.emtfSymbols) > 0 {
+            emtf_quote := NewQuote("EMTF", 0)
+            for _, quote := range finalQuotes {
+                for _, symbol := range tiiex.emtfSymbols {
+                    if quote.Symbol == symbol {
+                        if len(quote.Epoch) > 0 {
+                            if len(emtf_quote.Epoch) == 0 {
+                                emtf_quote.Epoch = quote.Epoch
+                                emtf_quote.Open = quote.Open
+                                emtf_quote.High = quote.High
+                                emtf_quote.Low = quote.Low
+                                emtf_quote.Close = quote.Close
+                            } else if len(emtf_quote.Epoch) == len(quote.Epoch) {
+                                numrows := len(emtf_quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    emtf_quote.Open[bar] = (quote.Open[bar] + emtf_quote.Open[bar]) / 2
+                                    emtf_quote.High[bar] = (quote.High[bar] + emtf_quote.High[bar]) / 2
+                                    emtf_quote.Low[bar] = (quote.Low[bar] + emtf_quote.Low[bar]) / 2
+                                    emtf_quote.Close[bar] = (quote.Close[bar] + emtf_quote.Close[bar]) / 2
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            finalQuotes = append(finalQuotes, emtf_quote)
         }
         
 		if realTime {

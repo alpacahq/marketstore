@@ -122,43 +122,37 @@ bgworkers:
     config:
       api_key: "<tiingo_api_key>"
       symbols:
-        - IBB
-        - ITA
-        - IYW
-        - IYF
-        - IYH
-        - IYJ
-        - IYE
-        - IYT
-        - IDU
-        - USRT
-        - KXI
-        - IXG
-        - IHE
-        - RXI
-        - CMDY
         - ESGD
         - ESGE
         - ESGU
         - ESML
         - SUSA
-        - SUSB
-        - SUSC
-        - SFHY
-        - WFHY
-        - SFIG
-        - WFIG
-        - AGGY
-        - AGZD
-        - AGND
-        - HYZD
-        - USFR
-        - HYND
-        - DLS
-        - DES
-        - DFE
-        - DFJ
-        - DGS
-        - AXJL
+        - IDEV
+        - CEW
+        - GCC
+        - HEDJ
+        - DXJ
+        - IHDG
+        - DDEZ
+        - DDJP
+        - DHDG
+      ustf_symbols:
+        - ESGU
+        - ESML
+        - SUSA
+      eutf_symbols:
+        - HEDJ
+        - DDEZ
+      jptf_symbols:
+        - DXJ
+        - DDJP
+      wwtf_symbols:
+        - ESGD
+        - IDEV
+        - IHDG
+        - DHDG
+      emtf_symbols:
+        - ESGE
+        - CEW
       query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"

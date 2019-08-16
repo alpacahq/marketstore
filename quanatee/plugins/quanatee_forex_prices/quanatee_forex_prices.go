@@ -468,7 +468,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
         usdxSymbols:    usdxSymbols,
         eurxSymbols:    eurxSymbols,
-        jpyxSymbols:    jpyxSymbols,        
+        jpyxSymbols:    jpyxSymbols,
 	}, nil
 }
 
