@@ -146,6 +146,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
             quote.Low[bar] = cryptoData[0].PriceData[bar].Low
             quote.Close[bar] = cryptoData[0].PriceData[bar].Close
             quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
+            log.Info(quote.Epoch[bar])
         }
 	}
     
