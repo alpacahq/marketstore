@@ -127,7 +127,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, iexData[bar].Date)
+        dt, _ := time.Parse(time.RFC10009, iexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -160,7 +160,7 @@ func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime b
 
 	quotes := Quotes{}
 	for _, symbol := range symbols {
-		time.Sleep(333 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
