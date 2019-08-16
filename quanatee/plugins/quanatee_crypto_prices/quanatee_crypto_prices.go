@@ -50,7 +50,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetCoinbasePrices(symbol, from, to time.Time, period Period) (Quote, error) {
+func GetCoinbasePrices(symbol, from, to time.Time, period string) (Quote, error) {
 
 	var granularity int // seconds
 
@@ -84,12 +84,10 @@ func GetCoinbasePrices(symbol, from, to time.Time, period Period) (Quote, error)
 	endBar := startBar.Add(time.Duration(maxBars) * step)
 
 	if endBar.After(to) {
-		endBar = end
+		endBar = to
 	}
-
-	//Log.Printf("startBar=%v, endBar=%v\n", startBar, endBar)
-
-	for startBar.Before(end) {
+    
+	for startBar.Before(to) {
 
 		url := fmt.Sprintf(
 			"https://api.pro.coinbase.com/products/%s/candles?start=%s&end=%s&granularity=%d",
@@ -103,7 +101,7 @@ func GetCoinbasePrices(symbol, from, to time.Time, period Period) (Quote, error)
 		resp, err := client.Do(req)
 
 		if err != nil {
-			Log.Printf("coinbase error: %v\n", err)
+			log.Info("Crypto: Coinbase error: %v\n", err)
 			return NewQuote("", 0), err
 		}
 		defer resp.Body.Close()
@@ -114,7 +112,7 @@ func GetCoinbasePrices(symbol, from, to time.Time, period Period) (Quote, error)
 		var bars []cb
 		err = json.Unmarshal(contents, &bars)
 		if err != nil {
-			Log.Printf("coinbase error: %v\n", err)
+			log.Info("Crypto: Coinbase error: %v\n", err)
 		}
 
 		numrows := len(bars)
@@ -124,14 +122,14 @@ func GetCoinbasePrices(symbol, from, to time.Time, period Period) (Quote, error)
         
 		for row := 0; row < numrows; row++ {
 			bar := numrows - 1 - row // reverse the order
-			q.Date[bar] = time.Unix(int64(bars[row][0]), 0)
+			q.Epoch[bar] = time.Unix(int64(bars[row][0]), 0)
 			q.Open[bar] = bars[row][1]
 			q.High[bar] = bars[row][2]
 			q.Low[bar] = bars[row][3]
 			q.Close[bar] = bars[row][4]
 			q.Volume[bar] = bars[row][5]
 		}
-		quote.Date = append(quote.Date, q.Date...)
+		quote.Epoch = append(quote.Epoch, q.Epoch...)
 		quote.Open = append(quote.Open, q.Open...)
 		quote.High = append(quote.High, q.High...)
 		quote.Low = append(quote.Low, q.Low...)
