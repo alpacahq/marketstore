@@ -141,7 +141,32 @@ func GetCoinbasePrices(symbol string, from, to time.Time, period string) (Quote,
 		endBar = startBar.Add(time.Duration(maxBars) * step)
 
 	}
-
+    
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
+    
+	for i, epoch := range quote.Epoch {
+        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+        if epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = i
+            }
+            endOfSlice = i
+        }
+    }
+    
+    if startOfSlice > -1 && endOfSlice > -1 {
+        quote.Epoch = quote.Epoch[startOfSlice+1:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice+1:endOfSlice+1]
+        quote.High = quote.High[startOfSlice+1:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice+1:endOfSlice+1]
+    } else {
+        quote = NewQuote(symbol, 0)
+    }
+    
 	return quote, nil
 }
 
@@ -233,29 +258,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     
 	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
-    
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
-    
-    if !realTime && numrows < dailyFreq {
-        // Tiingo returned less data than expected (missing data), try direct to Coinbase
-        formatted_symbol := symbol
-        if strings.HasSuffix(formatted_symbol, "BTC") {
-            formatted_symbol = strings.Replace(formatted_symbol, "BTC", "-BTC", -1)
-        } else if strings.HasSuffix(formatted_symbol, "USD") {
-            formatted_symbol = strings.Replace(formatted_symbol, "USD", "-USD", -1)
-        } else if strings.HasSuffix(formatted_symbol, "EUR") {
-            formatted_symbol = strings.Replace(formatted_symbol, "EUR", "-EUR", -1)
-        }
-        
-        sec_quote, _ := GetCoinbasePrices(formatted_symbol, from, to, period)
-        if len(sec_quote.Epoch) > len(quote.Epoch) {
-            quote = sec_quote
-            quote.Symbol = symbol
-            log.Warn("Crypto: Replacing %s Tiingo data with Coinbase data from %v-%v", symbol, from, to)
-        }
-    }
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
@@ -285,6 +290,26 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         quote = NewQuote(symbol, 0)
     }
     
+    if !realTime && len(quote.Epoch) < dailyFreq {
+        // Tiingo returned less data than expected (missing data), try direct to Coinbase
+        // This is for backfilling only
+        formatted_symbol := symbol
+        if strings.HasSuffix(formatted_symbol, "BTC") {
+            formatted_symbol = strings.Replace(formatted_symbol, "BTC", "-BTC", -1)
+        } else if strings.HasSuffix(formatted_symbol, "USD") {
+            formatted_symbol = strings.Replace(formatted_symbol, "USD", "-USD", -1)
+        } else if strings.HasSuffix(formatted_symbol, "EUR") {
+            formatted_symbol = strings.Replace(formatted_symbol, "EUR", "-EUR", -1)
+        }
+        
+        sec_quote, _ := GetCoinbasePrices(formatted_symbol, from, to, period)
+        if len(sec_quote.Epoch) > len(quote.Epoch) {
+            quote = sec_quote
+            quote.Symbol = symbol
+            log.Warn("Crypto: Replacing %s Tiingo data with Coinbase data from %v-%v with %v rows", symbol, from, to, len(quote.Epoch))
+        }
+    }
+    
 	return quote, nil
 }
 
@@ -293,7 +318,6 @@ func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime b
 
 	quotes := Quotes{}
 	for _, symbol := range symbols {
-		time.Sleep(1000 * time.Millisecond)
 		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
@@ -638,7 +662,7 @@ func (tiicc *CryptoFetcher) Run() {
 			// Sleep till next interval for data provider to update candles
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 5, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
