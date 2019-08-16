@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+    "rand"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -166,7 +167,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
 
 	quotes := Quotes{}
+    symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
 	for _, symbol := range symbols {
+        time.Sleep(333 * time.Millisecond)
 		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
 		if err == nil {
 			quotes = append(quotes, quote)
