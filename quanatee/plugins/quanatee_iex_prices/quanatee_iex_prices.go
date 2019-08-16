@@ -386,6 +386,8 @@ func (tiiex *IEXFetcher) Run() {
         
         quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
         
+        finalQuotes := Quotes{}
+        
         for _, quote := range quotes {
             // Check if there are entries to write
             if len(quote.Epoch) < 1 {
@@ -400,20 +402,9 @@ func (tiiex *IEXFetcher) Run() {
                     log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
                     continue
                 }
+                // Add to finalQuotes
+                finalQuotes = append(finalQuotes, quote)
             }
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
-            
-            log.Info("IEX: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
         }
         
         // Add USTF
@@ -555,6 +546,22 @@ func (tiiex *IEXFetcher) Run() {
                 }
             }
             finalQuotes = append(finalQuotes, emtf_quote)
+        }
+        
+        for _, quote := range finalQuotes {
+            // write to csm
+            cs := io.NewColumnSeries()
+            cs.AddColumn("Epoch", quote.Epoch)
+            cs.AddColumn("Open", quote.Open)
+            cs.AddColumn("High", quote.High)
+            cs.AddColumn("Low", quote.Low)
+            cs.AddColumn("Close", quote.Close)
+            csm := io.NewColumnSeriesMap()
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
+            csm.AddColumnSeries(*tbk, cs)
+            executor.WriteCSM(csm, false)
+            
+            log.Info("Forex: Writing %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
         }
         
 		if realTime {
