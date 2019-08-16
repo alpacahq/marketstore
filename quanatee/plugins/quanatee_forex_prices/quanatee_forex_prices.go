@@ -547,17 +547,18 @@ func (tiifx *ForexFetcher) Run() {
                             if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
                                 continue
                             } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
+                                quote := NewQuote(symbol, 0)
                                 if tiingoQuote.Epoch[0] != intrinioQuote.Epoch[0] || tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] != intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
                                     // First and last epochs do not match
                                     // This could be either datas returned are in different orders; or
                                     // Datas returned have missing data rows (likely from Tiingo); or
                                     // Improper slicing of periods
                                     log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs!", symbol)
-                                    quote := intrinioQuote
+                                    quote = intrinioQuote
                                 } else {
                                     // First and last epochs match, we assume that the rows are lined up
                                     numrows := len(intrinioQuote.Epoch)
-                                    quote := NewQuote(symbol, numrows)
+                                    quote = NewQuote(symbol, numrows)
                                     for bar := 0; bar < numrows; bar++ {
                                         if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
                                             // If the rows are not lined up, we fallback to Intrinio only
