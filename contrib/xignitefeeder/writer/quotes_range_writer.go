@@ -12,6 +12,7 @@ import (
 // QuotesRangeWriter is an interface to write the historical daily chart data to the marketstore
 type QuotesRangeWriter interface {
 	Write(quotesRange api.GetQuotesRangeResponse) error
+	WriteIndex(quotesRange api.GetIndexQuotesRangeResponse) error
 }
 
 // QuotesRangeWriterImpl is an implementation of the QuotesRangeWriter interface
@@ -20,12 +21,30 @@ type QuotesRangeWriterImpl struct {
 	Timeframe         string
 }
 
-// Write converts the Response of the GetQuotesRange API to a ColumnSeriesMap and write it to the local marketstore server.
+// Write converts the Response of the QuickEquityHistorical/GetQuotesRange API
+// to a ColumnSeriesMap and write it to the local marketstore server.
 func (q *QuotesRangeWriterImpl) Write(quotesRange api.GetQuotesRangeResponse) error {
 	// convert Quotes Data to CSM (ColumnSeriesMap)
 	csm, err := q.convertToCSM(quotesRange)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from Quotes Data. %v", quotesRange))
+	}
+
+	// write CSM to marketstore
+	if err := q.MarketStoreWriter.Write(csm); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to write the data to marketstore. %v", csm))
+	}
+
+	return nil
+}
+
+// WriteIndex converts the Response of the QuickIndexHistorical/GetQuotesRange API
+// to a ColumnSeriesMap and write it to the local marketstore server.
+func (q *QuotesRangeWriterImpl) WriteIndex(quotesRange api.GetIndexQuotesRangeResponse) error {
+	// convert Quotes Data to CSM (ColumnSeriesMap)
+	csm, err := q.convertIndexToCSM(quotesRange)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from index symbols Data. %v", quotesRange))
 	}
 
 	// write CSM to marketstore
@@ -66,6 +85,36 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 	}
 
 	tbk := io.NewTimeBucketKey(resp.Security.Symbol + "/" + q.Timeframe + "/OHLCV")
+	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, volumes)
+	csm.AddColumnSeries(*tbk, cs)
+	return csm, nil
+}
+
+func (q *QuotesRangeWriterImpl) convertIndexToCSM(resp api.GetIndexQuotesRangeResponse) (io.ColumnSeriesMap, error) {
+	csm := io.NewColumnSeriesMap()
+	var epochs []int64
+	var opens []float32
+	var closes []float32
+	var highs []float32
+	var lows []float32
+	var volumes []float32
+
+	for _, eq := range resp.ArrayOfEndOfDayQuote {
+		// skip the symbol which date is empty string and cannot be parsed,
+		// which means the symbols have never been executed
+		if time.Time(eq.Date) == (time.Time{}) {
+			continue
+		}
+
+		epochs = append(epochs, time.Time(eq.Date).In(time.UTC).Unix())
+		opens = append(opens, eq.Open)
+		closes = append(closes, eq.Close)
+		highs = append(highs, eq.High)
+		lows = append(lows, eq.Low)
+		volumes = append(volumes, eq.Volume)
+	}
+
+	tbk := io.NewTimeBucketKey(resp.IndexAndGroup.Symbol + "/" + q.Timeframe + "/OHLCV")
 	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, volumes)
 	csm.AddColumnSeries(*tbk, cs)
 	return csm, nil

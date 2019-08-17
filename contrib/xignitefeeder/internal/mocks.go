@@ -34,6 +34,11 @@ func (mac *MockAPIClient) ListSymbols(exchange string) (api.ListSymbolsResponse,
 	return api.ListSymbolsResponse{}, nil
 }
 
+// ListSymbols returns an empty api response
+func (mac *MockAPIClient) ListIndexSymbols(indexGroup string) (api.ListIndexSymbolsResponse, error) {
+	return api.ListIndexSymbolsResponse{}, nil
+}
+
 // GetQuotesRange returns an empty api response
 func (mac *MockAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
 	return api.GetQuotesRangeResponse{}, nil
