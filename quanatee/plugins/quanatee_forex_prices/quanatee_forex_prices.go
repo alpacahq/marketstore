@@ -193,22 +193,6 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	return quote, nil
 }
 
-// GetIntrinioPricesFromSymbols - create a list of prices from symbols in string array
-func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
-    
-	quotes := Quotes{}
-    symbols := rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-	for _, symbol := range symbols {
-		time.Sleep(1000 * time.Millisecond)
-		quote, err := GetIntrinioPrices(symbol, from, to, realTime, period, token)
-		if err == nil {
-			quotes = append(quotes, quote)
-		} else {
-			log.Info("Forex: Intrinio error downloading " + symbol)
-		}
-	}
-	return quotes, nil
-}
 func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
@@ -521,7 +505,10 @@ func (tiifx *ForexFetcher) Run() {
 
         quotes := Quotes{}
         symbols := tiifx.symbols
-        symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        // Data for symbols are retrieved in random order for fairness
+        // Data for symbols are written immediately for streaming functions
+        // This allows other functions to start processing data as soon as is available (Except aggregated data, which will be last)
         for _, symbol := range symbols {
             time.Sleep(1000 * time.Millisecond)
             intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
