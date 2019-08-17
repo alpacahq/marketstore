@@ -372,8 +372,7 @@ func (tiiex *IEXFetcher) Run() {
         symbols := tiiex.symbols
         rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
-        // Data for symbols are written immediately for streaming functions
-        // This allows other functions to start processing data as soon as is available (Except aggregated data, which will be last)
+        // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
             time.Sleep(333 * time.Millisecond)
             quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
