@@ -155,23 +155,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	return quote, nil
 }
 
-// GetTiingoPricesFromSymbols - create a list of prices from symbols in string array
-func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
-
-	quotes := Quotes{}
-    symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-	for _, symbol := range symbols {
-		time.Sleep(333 * time.Millisecond)
-		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
-		if err == nil {
-			quotes = append(quotes, quote)
-		} else {
-			log.Info("IEX: error downloading " + symbol)
-		}
-	}
-	return quotes, nil
-}
-
 // getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
 func getJSON(url string, target interface{}) error {
 	var myClient = &http.Client{Timeout: 10 * time.Second}
@@ -385,33 +368,45 @@ func (tiiex *IEXFetcher) Run() {
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
-        quotes, _ := GetTiingoPricesFromSymbols(tiiex.symbols, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
-        
-        finalQuotes := Quotes{}
-        
-        for _, quote := range quotes {
-            // Check if there are entries to write
-            if len(quote.Epoch) < 1 {
-                continue
-            }
-            if realTime {
-                // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
-                if timeEnd.Unix() > quote.Epoch[0] && timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
-                    // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
-                    // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
-                    // if this is insufficient, we can always query the lastTimestamp from tbk
+        quotes := Quotes{}
+        symbols = rand.Shuffle(len(tiiex.symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        for _, symbol := range symbols {
+            time.Sleep(333 * time.Millisecond)
+            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
+            if err == nil {
+                if len(quote.Epoch) < 1 {
+                    // Check if there is data to add
+                    continue
+                } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime is adding the most recent data
                     log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
                     continue
                 }
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", quote.Epoch)
+                cs.AddColumn("Open", quote.Open)
+                cs.AddColumn("High", quote.High)
+                cs.AddColumn("Low", quote.Low)
+                cs.AddColumn("Close", quote.Close)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+                
+                log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
+                quotes = append(quotes, quote)
+            } else {
+                log.Info("IEX: error downloading " + symbol)
             }
-            // Add to finalQuotes
-            finalQuotes = append(finalQuotes, quote)
         }
+        
+        aggQuotes := Quotes{}
         
         // Add USTF
         if len(tiiex.ustfSymbols) > 0 {
             ustf_quote := NewQuote("USTF", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiiex.ustfSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -435,13 +430,13 @@ func (tiiex *IEXFetcher) Run() {
                 }
             }
             if len(ustf_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, ustf_quote)
+                aggQuotes = append(aggQuotes, ustf_quote)
             }
         }
         // Add EUTF
         if len(tiiex.eutfSymbols) > 0 {
             eutf_quote := NewQuote("EUTF", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiiex.eutfSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -465,13 +460,13 @@ func (tiiex *IEXFetcher) Run() {
                 }
             }
             if len(eutf_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, eutf_quote)
+                aggQuotes = append(aggQuotes, eutf_quote)
             }
         }
         // Add JPTF
         if len(tiiex.jptfSymbols) > 0 {
             jptf_quote := NewQuote("JPTF", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiiex.jptfSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -495,13 +490,13 @@ func (tiiex *IEXFetcher) Run() {
                 }
             }
             if len(jptf_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, jptf_quote)
+                aggQuotes = append(aggQuotes, jptf_quote)
             }
         }
         // Add WWTF
         if len(tiiex.wwtfSymbols) > 0 {
             wwtf_quote := NewQuote("WWTF", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiiex.wwtfSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -525,13 +520,13 @@ func (tiiex *IEXFetcher) Run() {
                 }
             }
             if len(wwtf_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, wwtf_quote)
+                aggQuotes = append(aggQuotes, wwtf_quote)
             }
         }
         // Add EMTF
         if len(tiiex.emtfSymbols) > 0 {
             emtf_quote := NewQuote("EMTF", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiiex.emtfSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -555,11 +550,11 @@ func (tiiex *IEXFetcher) Run() {
                 }
             }
             if len(emtf_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, emtf_quote)
+                aggQuotes = append(aggQuotes, emtf_quote)
             }
         }
         
-        for _, quote := range finalQuotes {
+        for _, quote := range aggQuotes {
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
