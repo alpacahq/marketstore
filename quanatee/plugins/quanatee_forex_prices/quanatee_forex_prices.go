@@ -193,22 +193,6 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	return quote, nil
 }
 
-// GetIntrinioPricesFromSymbols - create a list of prices from symbols in string array
-func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
-    
-	quotes := Quotes{}
-    symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-	for _, symbol := range symbols {
-		time.Sleep(1000 * time.Millisecond)
-		quote, err := GetIntrinioPrices(symbol, from, to, realTime, period, token)
-		if err == nil {
-			quotes = append(quotes, quote)
-		} else {
-			log.Info("Forex: Intrinio error downloading " + symbol)
-		}
-	}
-	return quotes, nil
-}
 func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
@@ -315,23 +299,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     }
     
 	return quote, nil
-}
-
-// GetTiingoPricesFromSymbols - create a list of prices from symbols in string array
-func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
-
-	quotes := Quotes{}
-    symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-	for _, symbol := range symbols {
-        time.Sleep(333 * time.Millisecond)
-		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
-		if err == nil {
-			quotes = append(quotes, quote)
-		} else {
-			log.Info("Forex: Tiingo error downloading " + symbol)
-		}
-	}
-	return quotes, nil
 }
 
 // getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
@@ -537,18 +504,23 @@ func (tiifx *ForexFetcher) Run() {
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
 
         quotes := Quotes{}
-        symbols = rand.Shuffle(len(tiifx.symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        symbols := tiifx.symbols
+        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        // Data for symbols are retrieved in random order for fairness
+        // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(1000 * time.Millisecond)
-            intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
+            time.Sleep(333 * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
+            intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
             // If both Quotes have valid datas, combine them
             // If not, serve only the quote with valid datas
             // Both Quotes would have the same length since we only add datas according to the requested period range
             if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
+                // Both quotes are invalid
                 continue
             } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
+                // Both quotes are valid
                 if tiingoQuote.Epoch[0] != intrinioQuote.Epoch[0] || tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] != intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
                     // First and last epochs do not match
                     // This could be either datas returned are in different orders; or
@@ -578,12 +550,15 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
             } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
                 quote = tiingoQuote
             } else if len(intrinioQuote.Epoch) > 0 && intrinioQuote.Epoch[0] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
                 quote = intrinioQuote
             } else {
                 continue
             }
+            
             if len(quote.Epoch) < 1 {
                 // Check if there is data to add
                 continue
