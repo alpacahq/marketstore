@@ -163,23 +163,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	return quote, nil
 }
 
-// GetTiingoPricesFromSymbols - create a list of prices from symbols in string array
-func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
-
-	quotes := Quotes{}
-    symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-	for _, symbol := range symbols {
-        time.Sleep(333 * time.Millisecond)
-		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
-		if err == nil {
-			quotes = append(quotes, quote)
-		} else {
-			log.Info("Crypto: error downloading " + symbol)
-		}
-	}
-	return quotes, nil
-}
-
 // getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
 func getJSON(url string, target interface{}) error {
 	var myClient = &http.Client{Timeout: 10 * time.Second}
@@ -379,34 +362,45 @@ func (tiicc *CryptoFetcher) Run() {
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
-        quotes, _ := GetTiingoPricesFromSymbols(tiicc.symbols, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
-        
-        // Combine original quotes with aggregated quotes for aggregation into index currencies (BTCZ, USDZ, EURZ)
-        finalQuotes := Quotes{}
-        
-        for _, quote := range quotes {
-            // Check if there are entries to write
-            if len(quote.Epoch) < 1 {
-                continue
-            }
-            if realTime {
-                // Check if realTime entry already exists or is still the latest to prevent overwriting and retriggering stream
-                if timeEnd.Unix() > quote.Epoch[0] && timeEnd.Unix() > quote.Epoch[len(quote.Epoch)-1] {
-                    // We assume that the head or tail of the slice is the earliest/latest entry received from data provider; and
-                    // compare it against the timeEnd, which is the timestamp we want to write to the bucket; and
-                    // if this is insufficient, we can always query the lastTimestamp from tbk
+        quotes := Quotes{}
+        symbols = rand.Shuffle(len(tiicc.symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        for _, symbol := range symbols {
+            time.Sleep(333 * time.Millisecond)
+            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
+            if err == nil {
+                if len(quote.Epoch) < 1 {
+                    // Check if there is data to add
+                    continue
+                } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime is adding the most recent data
                     log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 }
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", quote.Epoch)
+                cs.AddColumn("Open", quote.Open)
+                cs.AddColumn("High", quote.High)
+                cs.AddColumn("Low", quote.Low)
+                cs.AddColumn("Close", quote.Close)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+                
+                log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+                quotes = append(quotes, quote)
+            } else {
+                log.Info("Crypto: error downloading " + symbol)
             }
-            // Add to finalQuotes
-            finalQuotes = append(finalQuotes, quote)
         }
+        
+        aggQuotes := Quotes{}
         
         // Add BTCZ
         if len(tiicc.btczSymbols) > 0 {
             btcz_quote := NewQuote("BTCZ", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiicc.btczSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -430,13 +424,13 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
             if len(btcz_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, btcz_quote)
+                aggQuotes = append(aggQuotes, btcz_quote)
             }
         }
         // Add USDZ
         if len(tiicc.usdzSymbols) > 0 {
             usdz_quote := NewQuote("USDZ", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiicc.usdzSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -460,13 +454,13 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
             if len(usdz_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, usdz_quote)
+                aggQuotes = append(aggQuotes, usdz_quote)
             }
         }
         // Add EURZ
         if len(tiicc.eurzSymbols) > 0 {
             eurz_quote := NewQuote("EURZ", 0)
-            for _, quote := range finalQuotes {
+            for _, quote := range quotes {
                 for _, symbol := range tiicc.eurzSymbols {
                     if quote.Symbol == symbol {
                         if len(quote.Epoch) > 0 {
@@ -490,11 +484,11 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
             if len(eurz_quote.Epoch) > 0 {
-                finalQuotes = append(finalQuotes, eurz_quote)
+                aggQuotes = append(aggQuotes, eurz_quote)
             }
         }
         
-        for _, quote := range finalQuotes {
+        for _, quote := range aggQuotes {
             // write to csm
             cs := io.NewColumnSeries()
             cs.AddColumn("Epoch", quote.Epoch)
