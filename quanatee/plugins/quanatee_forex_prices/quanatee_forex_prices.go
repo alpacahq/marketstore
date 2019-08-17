@@ -197,7 +197,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 func GetIntrinioPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
     
 	quotes := Quotes{}
-    symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+    symbols := rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
 	for _, symbol := range symbols {
 		time.Sleep(1000 * time.Millisecond)
 		quote, err := GetIntrinioPrices(symbol, from, to, realTime, period, token)
@@ -315,23 +315,6 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
     }
     
 	return quote, nil
-}
-
-// GetTiingoPricesFromSymbols - create a list of prices from symbols in string array
-func GetTiingoPricesFromSymbols(symbols []string, from, to time.Time, realTime bool, period string, token string) (Quotes, error) {
-
-	quotes := Quotes{}
-    symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-	for _, symbol := range symbols {
-        time.Sleep(333 * time.Millisecond)
-		quote, err := GetTiingoPrices(symbol, from, to, realTime, period, token)
-		if err == nil {
-			quotes = append(quotes, quote)
-		} else {
-			log.Info("Forex: Tiingo error downloading " + symbol)
-		}
-	}
-	return quotes, nil
 }
 
 // getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
@@ -537,7 +520,7 @@ func (tiifx *ForexFetcher) Run() {
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
 
         quotes := Quotes{}
-        symbols = rand.Shuffle(len(tiifx.symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        symbols := rand.Shuffle(len(tiifx.symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         for _, symbol := range symbols {
             time.Sleep(1000 * time.Millisecond)
             intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)

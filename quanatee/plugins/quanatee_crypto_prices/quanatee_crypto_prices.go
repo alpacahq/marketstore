@@ -363,7 +363,7 @@ func (tiicc *CryptoFetcher) Run() {
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
         quotes := Quotes{}
-        symbols = rand.Shuffle(len(tiicc.symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        symbols := rand.Shuffle(len(tiicc.symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         for _, symbol := range symbols {
             time.Sleep(333 * time.Millisecond)
             quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
