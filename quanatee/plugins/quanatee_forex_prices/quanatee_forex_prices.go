@@ -520,7 +520,8 @@ func (tiifx *ForexFetcher) Run() {
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
 
         quotes := Quotes{}
-        symbols := rand.Shuffle(len(tiifx.symbols), func(i, j int) { tiifx.symbols[i], tiifx.symbols[j] = tiifx.symbols[j], tiifx.symbols[i] })
+        symbols := tiifx.symbols
+        symbols = rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         for _, symbol := range symbols {
             time.Sleep(1000 * time.Millisecond)
             intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
