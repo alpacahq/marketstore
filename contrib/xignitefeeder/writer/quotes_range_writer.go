@@ -84,6 +84,12 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 		volumes = append(volumes, eq.Volume)
 	}
 
+	// to avoid that empty array is added to csm when all data are Volume=0 and there is no data to write
+	if len(epochs) == 0 {
+		// no data to write.
+		return csm, nil
+	}
+
 	tbk := io.NewTimeBucketKey(resp.Security.Symbol + "/" + q.Timeframe + "/OHLCV")
 	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, volumes)
 	csm.AddColumnSeries(*tbk, cs)

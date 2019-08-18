@@ -11,12 +11,18 @@ import (
 
 // MockSymbolsManager is a no-op SymbolsManager
 type MockSymbolsManager struct {
-	Identifiers []string
+	Identifiers      []string
+	IndexIdentifiers []string
 }
 
 // GetAllIdentifiers returns the static identifiers
 func (msm MockSymbolsManager) GetAllIdentifiers() []string {
 	return msm.Identifiers
+}
+
+// GetAllIdentifiers returns the static index identifiers
+func (msm MockSymbolsManager) GetAllIndexIdentifiers() []string {
+	return msm.IndexIdentifiers
 }
 
 // ----------------
@@ -42,6 +48,12 @@ func (mac *MockAPIClient) ListIndexSymbols(indexGroup string) (api.ListIndexSymb
 // GetQuotesRange returns an empty api response
 func (mac *MockAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
 	return api.GetQuotesRangeResponse{}, nil
+}
+
+// GetQuotesRange returns an empty api response
+func (mac *MockAPIClient) GetIndexQuotesRange(i string, sd, ed time.Time,
+) (resp api.GetIndexQuotesRangeResponse, err error) {
+	return api.GetIndexQuotesRangeResponse{}, nil
 }
 
 // ----------------
