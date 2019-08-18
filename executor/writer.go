@@ -264,7 +264,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 // not already exist for the given ColumnSeriesMap based on its TimeBucketKey.
 func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	cDir := ThisInstance.CatalogDir
-	var timeBucketCreator TimeBucketCreator = &TimeBucketCreatorImpl{
+	timeBucketCreator := &TimeBucketCreatorImpl{
 		CatalogDir:       cDir,
 		RootPath:         cDir.GetPath(),
 		IsVariableLength: isVariableLength,
