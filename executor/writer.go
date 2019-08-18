@@ -264,11 +264,13 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 // not already exist for the given ColumnSeriesMap based on its TimeBucketKey.
 func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	cDir := ThisInstance.CatalogDir
+	var timeBucketCreator TimeBucketCreator = &TimeBucketCreatorImpl{
+		CatalogDir:       cDir,
+		RootPath:         cDir.GetPath(),
+		IsVariableLength: isVariableLength,
+	}
+
 	for tbk, cs := range csm {
-		tf, err := tbk.GetTimeFrame()
-		if err != nil {
-			return err
-		}
 
 		/*
 			Prepare data for writing
@@ -287,28 +289,9 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			/*
 				If we can't get the info, we try here to add a new one
 			*/
-			var recordType io.EnumRecordType
-			if isVariableLength {
-				recordType = io.VARIABLE
-			} else {
-				recordType = io.FIXED
-			}
-
-			year := int16(cs.GetTime()[0].Year())
-			tbi = io.NewTimeBucketInfo(
-				*tf,
-				tbk.GetPathToYearFiles(cDir.GetPath()),
-				"Created By Writer", year,
-				cs.GetDataShapes(), recordType)
-
-			/*
-				Verify there is an available TimeBucket for the destination
-			*/
-			if err := cDir.AddTimeBucket(&tbk, tbi); err != nil {
-				// If File Exists error, ignore it, otherwise return the error
-				if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
-					return err
-				}
+			tbi, err = timeBucketCreator.Create(&tbk, cs)
+			if err != nil {
+				return err
 			}
 		}
 		// Check if the previously-written data schema matches the input
@@ -336,4 +319,62 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	wal := ThisInstance.WALFile
 	wal.RequestFlush()
 	return nil
+}
+
+// --------------------------------
+
+// TimeBucketCreator is an interface to add new TimeBucket to the local data directory.
+type TimeBucketCreator interface {
+	Create(tbk *TimeBucketKey, cs *ColumnSeries) (*TimeBucketInfo, error)
+	// AddToCatalog wraps CatalogDir.AddTimeBucket function for testability.
+	// By mocking this function, TimeBucketCreatorImpl can be tested without storing anything in the real local storage.
+	AddToCatalog(tbk *TimeBucketKey, tbi *TimeBucketInfo) error
+}
+
+// TimeBucketCreatorImpl is an implementation for TimeBucketCreator interface.
+type TimeBucketCreatorImpl struct {
+	CatalogDir       *catalog.Directory
+	RootPath         string
+	IsVariableLength bool
+}
+
+// Create makes a new TimeBucketInfo by the specified TimeBucketKey and ColumnSeries,
+// and makes a directory for the time bucket in the local storage.
+func (t *TimeBucketCreatorImpl) Create(tbk *TimeBucketKey, cs *ColumnSeries) (*TimeBucketInfo, error) {
+	tf, err := tbk.GetTimeFrame()
+	if err != nil {
+		return nil, err
+	}
+
+	var recordType io.EnumRecordType
+	if t.IsVariableLength {
+		recordType = io.VARIABLE
+	} else {
+		recordType = io.FIXED
+	}
+
+	year := int16(cs.GetTime()[0].Year())
+	tbi := io.NewTimeBucketInfo(
+		*tf,
+		tbk.GetPathToYearFiles(t.RootPath),
+		"Created By Writer", year,
+		cs.GetDataShapes(), recordType)
+
+	/*
+		Verify there is an available TimeBucket for the destination
+	*/
+	if err := t.AddToCatalog(tbk, tbi); err != nil {
+		// If File Exists error, ignore it, otherwise return the error
+		if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
+			return nil, err
+		}
+	}
+	return tbi, nil
+}
+
+// AddToCatalog calls CatalogDir.AddTimeBucket function only.
+// Because CatalogDir.AddTimeBucket is long and hard to mock (as of 2019-08),
+// wrapped it to improve testability.
+func (t *TimeBucketCreatorImpl) AddToCatalog(tbk *TimeBucketKey, tbi *TimeBucketInfo) error {
+	return t.CatalogDir.AddTimeBucket(tbk, tbi)
 }
