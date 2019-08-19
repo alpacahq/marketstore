@@ -84,7 +84,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	var iexData []priceData
 
     api_url := fmt.Sprintf(
-                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=false&forceFill=true&startDate=%s",
+                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=true&forceFill=true&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
@@ -112,12 +112,8 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
 	if len(iexData) < 1 {
-        if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
-            log.Warn("IEX: symbol '%s' Market Closed from %v-%v", symbol, from, to)
-        } else {
-            log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
-        }
-		return NewQuote(symbol, 0), err
+        log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+ 		return NewQuote(symbol, 0), err
 	}
     
 	numrows := len(iexData)
@@ -347,7 +343,7 @@ func (tiiex *IEXFetcher) Run() {
             } else {
                 timeStart = timeEnd
             }
-            timeEnd = timeStart.AddDate(0, 0, 1)
+            timeEnd = timeStart.AddDate(0, 0, 2)
             if timeEnd.After(time.Now().UTC()) {
                 realTime = true
                 timeEnd = time.Now().UTC()
@@ -574,10 +570,18 @@ func (tiiex *IEXFetcher) Run() {
         }
         
 		if realTime {
-			// Sleep till next :00 time
+			// Sleep till the next minute
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
+            // Monday 1200 UTC is the first data we will consume in the week
+            // Friday 2100 UTC is the last data we will consume in the week
+            if waitTill.WeekDay() == 5 && waitTill.Hour() == 21 && waitTill.Minute() > 0 {
+                // Add 3 days from Friday 210# UTC to get to Next Monday 210# UTC
+                waitTill = waitTill.Add(3 * time.Day())
+                // Change 210# UTC to 1200 UTC
+                waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), 12, waitTill.Minute(), 0, 0, time.UTC)
+            }
             log.Info("IEX: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {

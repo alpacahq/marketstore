@@ -255,6 +255,42 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
+func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
+    
+    // Quanatee Opening = Monday 1200 UTC is the first data we will consume in the week
+    // Quanatee Closing = Friday 2100 UTC is the last data we will consume in the week
+    
+    if opening == true {
+        // Set to nearest open hours time if timeCheck is over Quanatee Hours
+        if ( timeCheck.WeekDay() == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( timeCheck.WeekDay() == 5 && timeCheck.Hour() > 21 ) || ( timeCheck.WeekDay() > 5 && timeCheck.WeekDay() < 1 ) ( timeCheck.WeekDay() == 1 && timeCheck.Hour() < 12 ) {
+            if timeCheck.WeekDay() >= 5 {
+                // timeCheck is Friday or Saturday, set to Monday
+                timeCheck = timeCheck.Add((8 - timeCheck.WeekDay()) * time.Day())
+            } else if timeCheck.WeekDay() == 0 {
+                // timeCheck is Sunday, set to Monday
+                timeCheck = timeCheck.Add(1 * time.Day())
+            }
+            // Set the Hour and Minutes
+            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 12, 0, 0, 0, time.UTC)
+        }
+    } else {
+        // Set to nearest closing hours time if timeCheck is over Quanatee Hours
+        if ( timeCheck.WeekDay() == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( timeCheck.WeekDay() == 5 && timeCheck.Hour() > 21 ) || ( timeCheck.WeekDay() > 5 && timeCheck.WeekDay() < 1 ) ( timeCheck.WeekDay() == 1 && timeCheck.Hour() < 12 ) {
+            if timeCheck.WeekDay() == 6 {
+                // timeCheck is Saturday, Sub 1 Day to Friday
+                timeCheck = timeCheck.Sub(1 * time.Day())
+            } else if timeCheck.WeekDay() == 0 {
+                // timeCheck is Sunday, Sub 2 Days to Friday
+                timeCheck = timeCheck.Sub(2 * time.Day())
+            }
+            // Set the Hour and Minutes
+            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 21, 0, 0, 0, time.UTC)
+        }
+    }
+    
+    return timeCheck
+}
+
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
@@ -322,9 +358,9 @@ func (tiicc *CryptoFetcher) Run() {
 	if !tiicc.queryStart.IsZero() {
 		timeStart = tiicc.queryStart.UTC()
 	} else {
-		timeStart = time.Now().UTC().Add(-tiicc.baseTimeframe.Duration)
+		timeStart = time.Now().UTC().Sub(tiicc.baseTimeframe.Duration)
 	}
-
+    
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time
@@ -340,12 +376,20 @@ func (tiicc *CryptoFetcher) Run() {
                 firstLoop = false
             } else {
                 timeStart = timeEnd
+                timeEnd = timeStart.AddDate(0, 0, 1)
+                // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
+                timeEnd = alignTimeToQuanateeHours(timeEnd, false)
+                if timeEnd.After(time.Now().UTC()) {
+                    realTime = true
+                    timeEnd = time.Now().UTC()
+                }
             }
-            timeEnd = timeStart.AddDate(0, 0, 1)
-            if timeEnd.After(time.Now().UTC()) {
-                realTime = true
-                timeEnd = time.Now().UTC()
-            }
+        }
+        // If timeStart is after Quanatee Hours, set to the next opening time
+        timeStart = alignTimeToQuanateeHours(timeStart, true)
+        if timeStart == timeEnd {
+            // If timeStart is set to the next opening hours, timeEnd will be the same as timeStart. Minus timeStart by 1 interval to get the opening data (e.g. 1159 UTC to 1200 UTC)
+            timeStart = timeStart.Sub(tiicc.baseTimeframe.Duration)
         }
         
         /*
@@ -508,10 +552,12 @@ func (tiicc *CryptoFetcher) Run() {
         }
         
 		if realTime {
-			// Sleep till next interval for data provider to update candles
+			// Sleep till the next minute
             // This function ensures that we will always get full candles
-			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
+			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
+            waitTill = alignTimeToQuanateeHours(waitTill, true)
+            
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
