@@ -777,10 +777,10 @@ func (tiifx *ForexFetcher) Run() {
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
-            // Check if timeEnd is Friday 2100 UTC or later (return result is time for Monday 1200 UTC)
-            openTime = alignTimeToQuanateeHours(timeEnd, true)
+            // Check if timeEnd is Closing, will return Opening if so
+            openTime := alignTimeToQuanateeHours(timeEnd, true)
             if openTime != timeEnd {
-                // timeEnd is Friday 2100 UTC or later, set to sleep until Monday 1200 UTC 
+                // Set to wait till Opening
                 waitTill = openTime
             }
             log.Info("Forex: Next request at %v", waitTill)
