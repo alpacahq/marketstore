@@ -14,6 +14,7 @@ triggers:
     config:
       filter: "nasdaq"
       destinations:
+        - 3Min
         - 7Min
         - 11Min
         - 1H
@@ -67,7 +68,7 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
-      query_start: "2019-08-01 00:00"
+      query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
@@ -116,49 +117,43 @@ bgworkers:
         - CHFJPY
         - NZDJPY
         - CADJPY
-      query_start: "2019-08-01 00:00"
+      query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
-        - IBB
-        - ITA
-        - IYW
-        - IYF
-        - IYH
-        - IYJ
-        - IYE
-        - IYT
-        - IDU
-        - USRT
-        - KXI
-        - IXG
-        - IHE
-        - RXI
-        - CMDY
         - ESGD
         - ESGE
         - ESGU
         - ESML
         - SUSA
-        - SUSB
-        - SUSC
-        - SFHY
-        - WFHY
-        - SFIG
-        - WFIG
-        - AGGY
-        - AGZD
-        - AGND
-        - HYZD
-        - USFR
-        - HYND
-        - DLS
-        - DES
+        - IDEV
+        - CEW
+        - GCC
+        - HEDJ
+        - DXJ
+        - IHDG
         - DFE
         - DFJ
-        - DGS
-        - AXJL
-      query_start: "2019-08-01 00:00"
+        - DLS
+      ustf_symbols:
+        - ESGU
+        - ESML
+        - SUSA
+      eutf_symbols:
+        - HEDJ
+        - DFE
+      jptf_symbols:
+        - DXJ
+        - DFJ
+      wwtf_symbols:
+        - ESGD
+        - IDEV
+        - IHDG
+        - DLS
+      emtf_symbols:
+        - ESGE
+        - CEW
+      query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"

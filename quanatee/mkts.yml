@@ -14,6 +14,7 @@ triggers:
     config:
       filter: "nasdaq"
       destinations:
+        - 3Min
         - 7Min
         - 11Min
         - 1H
@@ -25,48 +26,6 @@ bgworkers:
       api_key: "<tiingo_api_key>"
       symbols:
         - ETHBTC
-        - ETCBTC
-        - EOSBTC
-        - LTCBTC
-        - XLMBTC
-        - XRPBTC
-        - BTCUSD
-        - ETHUSD
-        - ETCUSD
-        - EOSUSD
-        - LTCUSD
-        - XLMUSD
-        - XRPUSD
-        - BTCEUR
-        - ETHEUR
-        - ETCEUR
-        - EOSEUR
-        - LTCEUR
-        - XLMEUR
-        - XRPEUR
-      btcz_symbols:
-        - ETHBTC
-        - ETCBTC
-        - EOSBTC
-        - LTCBTC
-        - XLMBTC
-        - XRPBTC
-      usdz_symbols:
-        - BTCUSD
-        - ETHUSD
-        - ETCUSD
-        - EOSUSD
-        - LTCUSD
-        - XLMUSD
-        - XRPUSD
-      eurz_symbols:
-        - BTCEUR
-        - ETHEUR
-        - ETCEUR
-        - EOSEUR
-        - LTCEUR
-        - XLMEUR
-        - XRPEUR
       query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
@@ -75,47 +34,6 @@ bgworkers:
       api_key2: "<intrinio_api_key>"
       symbols:
         - EURUSD
-        - GBPUSD
-        - AUDUSD
-        - USDCHF
-        - NZDUSD
-        - USDCAD
-        - EURGBP
-        - EURAUD
-        - EURCHF
-        - EURNZD
-        - EURCAD
-        - EURJPY
-        - USDJPY
-        - GBPJPY
-        - AUDJPY
-        - CHFJPY
-        - NZDJPY
-        - CADJPY
-      usdx_symbols:
-        - EURUSD
-        - JPYUSD
-        - GBPUSD
-        - AUDUSD
-        - CHFUSD
-        - NZDUSD
-        - CADUSD
-      eurx_symbols:
-        - USDEUR
-        - JPYEUR
-        - GBPEUR
-        - AUDEUR
-        - CHFEUR
-        - NZDEUR
-        - CADEUR
-      jpyx_symbols:
-        - USDJPY
-        - EURJPY
-        - GBPJPY
-        - AUDJPY
-        - CHFJPY
-        - NZDJPY
-        - CADJPY
       query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_iex_prices.so
@@ -123,36 +41,5 @@ bgworkers:
       api_key: "<tiingo_api_key>"
       symbols:
         - ESGD
-        - ESGE
-        - ESGU
-        - ESML
-        - SUSA
-        - IDEV
-        - CEW
-        - GCC
-        - HEDJ
-        - DXJ
-        - IHDG
-        - DFE
-        - DFJ
-        - DLS
-      ustf_symbols:
-        - ESGU
-        - ESML
-        - SUSA
-      eutf_symbols:
-        - HEDJ
-        - DFE
-      jptf_symbols:
-        - DXJ
-        - DFJ
-      wwtf_symbols:
-        - ESGD
-        - IDEV
-        - IHDG
-        - DLS
-      emtf_symbols:
-        - ESGE
-        - CEW
       query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"

@@ -247,6 +247,42 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
+func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
+    
+    // Quanatee Opening = Monday 1200 UTC is the first data we will consume in the week
+    // Quanatee Closing = Friday 2100 UTC is the last data we will consume in the week
+    
+    if opening == true {
+        // Set to nearest open hours time if timeCheck is over Quanatee Hours
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+            if int(timeCheck.Weekday()) >= 5 {
+                // timeCheck is Friday or Saturday, set to Monday
+                timeCheck = timeCheck.AddDate(0, 0, (8 - int(timeCheck.Weekday())))
+            } else if int(timeCheck.Weekday()) == 0 {
+                // timeCheck is Sunday, set to Monday
+                timeCheck = timeCheck.AddDate(0, 0, 1)
+            }
+            // Set the Hour and Minutes
+            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 12, 0, 0, 0, time.UTC)
+        }
+    } else {
+        // Set to nearest closing hours time if timeCheck is over Quanatee Hours
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+            if int(timeCheck.Weekday()) == 6 {
+                // timeCheck is Saturday, Sub 1 Day to Friday
+                timeCheck = timeCheck.AddDate(0, 0, -1)
+            } else if int(timeCheck.Weekday()) == 0 {
+                // timeCheck is Sunday, Sub 2 Days to Friday
+                timeCheck = timeCheck.AddDate(0, 0, -2)
+            }
+            // Set the Hour and Minutes
+            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 21, 0, 0, 0, time.UTC)
+        }
+    }
+    
+    return timeCheck
+}
+
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
@@ -342,12 +378,20 @@ func (tiiex *IEXFetcher) Run() {
                 firstLoop = false
             } else {
                 timeStart = timeEnd
+                timeEnd = timeStart.AddDate(0, 0, 1)
+                // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
+                timeEnd = alignTimeToQuanateeHours(timeEnd, false)
+                if timeEnd.After(time.Now().UTC()) {
+                    realTime = true
+                    timeEnd = time.Now().UTC()
+                }
             }
-            timeEnd = timeStart.AddDate(0, 0, 2)
-            if timeEnd.After(time.Now().UTC()) {
-                realTime = true
-                timeEnd = time.Now().UTC()
-            }
+        }
+        // If timeStart is after Quanatee Hours, set to the next opening time
+        timeStart = alignTimeToQuanateeHours(timeStart, true)
+        if timeStart == timeEnd {
+            // If timeStart is set to the next opening hours, timeEnd will be the same as timeStart. Minus timeStart by 1 interval to get the opening data (e.g. 1159 UTC to 1200 UTC)
+            timeStart = timeStart.Add(-tiiex.baseTimeframe.Duration)
         }
         
         /*
