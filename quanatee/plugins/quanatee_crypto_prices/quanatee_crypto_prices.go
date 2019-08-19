@@ -262,7 +262,7 @@ func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
     
     if opening == true {
         // Set to nearest open hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
             if int(timeCheck.Weekday()) >= 5 {
                 // timeCheck is Friday or Saturday, set to Monday
                 timeCheck = timeCheck.AddDate(0, 0, (8 - int(timeCheck.Weekday())))
@@ -275,7 +275,7 @@ func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
         }
     } else {
         // Set to nearest closing hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
             if int(timeCheck.Weekday()) == 6 {
                 // timeCheck is Saturday, Sub 1 Day to Friday
                 timeCheck = timeCheck.AddDate(0, 0, -1)
