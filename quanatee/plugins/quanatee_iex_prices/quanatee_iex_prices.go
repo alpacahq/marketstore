@@ -364,7 +364,7 @@ func (tiiex *IEXFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiiex.baseTimeframe.Duration)
 	}
-    timeStart = alignTimeToQuanateeHours(timeStart, true).Add(-tiiex.baseTimeframe.Duration)
+    timeStart = alignTimeToQuanateeHours(timeStart, true)
 
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -391,7 +391,6 @@ func (tiiex *IEXFetcher) Run() {
                 firstLoop = true
                 realTime = true
                 timeStart = alignTimeToQuanateeHours(timeStart, true).Add(-tiiex.baseTimeframe.Duration)
-                // do not run bool
             } else if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
