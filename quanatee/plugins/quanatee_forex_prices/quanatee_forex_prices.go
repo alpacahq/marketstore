@@ -241,7 +241,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("Forex: Tiingo symbol '%s' not found\n", symbol)
+		// log.Info("Forex: Tiingo symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -249,12 +249,12 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		// log.Info("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
 	if len(forexData) < 1 {
-        log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+        // log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
 		return NewQuote(symbol, 0), err
 	}
     
