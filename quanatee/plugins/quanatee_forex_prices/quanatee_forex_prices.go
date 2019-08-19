@@ -132,11 +132,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	}
     
 	if len(forexData.PriceData) < 1 {
-        if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
-            log.Warn("Forex: Intrinio symbol '%s' Market Closed from %v-%v", symbol, from, to)
-        } else {
-            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
-        }
+        log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -258,11 +254,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
 	if len(forexData) < 1 {
-        if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
-            log.Warn("Forex: Tiingo symbol '%s' Market Closed from %v-%v", symbol, from, to)
-        } else {
-            log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
-        }
+        log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -519,7 +511,9 @@ func (tiifx *ForexFetcher) Run() {
                 timeStart = timeEnd
                 timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
                 // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
+                log.Info('Forex timeEnd 1: %v', timeEnd)
                 timeEnd = alignTimeToQuanateeHours(timeEnd, false)
+                log.Info('Forex timeEnd 2: %v', timeEnd)
                 if timeEnd.After(time.Now().UTC()) {
                     realTime = true
                     timeEnd = time.Now().UTC()
@@ -530,7 +524,9 @@ func (tiifx *ForexFetcher) Run() {
         timeStart = alignTimeToQuanateeHours(timeStart, true)
         if timeStart == timeEnd {
             // If timeStart is set to the next opening hours, timeEnd will be the same as timeStart. Minus timeStart by 1 interval to get the opening data (e.g. 1159 UTC to 1200 UTC)
+            log.Info('Forex timeStart 1: %v', timeStart)
             timeStart = timeStart.Add(-tiifx.baseTimeframe.Duration)
+            log.Info('Forex timeStart 1: %v', timeStart)
         }
         
         /*
