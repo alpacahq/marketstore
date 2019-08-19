@@ -262,26 +262,26 @@ func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
     
     if opening == true {
         // Set to nearest open hours time if timeCheck is over Quanatee Hours
-        if ( timeCheck.WeekDay() == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( timeCheck.WeekDay() == 5 && timeCheck.Hour() > 21 ) || ( timeCheck.WeekDay() > 5 && timeCheck.WeekDay() < 1 ) ( timeCheck.WeekDay() == 1 && timeCheck.Hour() < 12 ) {
-            if timeCheck.WeekDay() >= 5 {
+        if ( timeCheck.Weekday() == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( timeCheck.Weekday() == 5 && timeCheck.Hour() > 21 ) || ( timeCheck.Weekday() > 5 && timeCheck.Weekday() < 1 ) ( timeCheck.Weekday() == 1 && timeCheck.Hour() < 12 ) {
+            if timeCheck.Weekday() >= 5 {
                 // timeCheck is Friday or Saturday, set to Monday
-                timeCheck = timeCheck.Add((8 - timeCheck.WeekDay()) * time.Day())
-            } else if timeCheck.WeekDay() == 0 {
+                timeCheck = timeCheck.AddDate(0, 0, (8 - timeCheck.Weekday()))
+            } else if timeCheck.Weekday() == 0 {
                 // timeCheck is Sunday, set to Monday
-                timeCheck = timeCheck.Add(1 * time.Day())
+                timeCheck = timeCheck.AddDate(0, 0, 1)
             }
             // Set the Hour and Minutes
             timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 12, 0, 0, 0, time.UTC)
         }
     } else {
         // Set to nearest closing hours time if timeCheck is over Quanatee Hours
-        if ( timeCheck.WeekDay() == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( timeCheck.WeekDay() == 5 && timeCheck.Hour() > 21 ) || ( timeCheck.WeekDay() > 5 && timeCheck.WeekDay() < 1 ) ( timeCheck.WeekDay() == 1 && timeCheck.Hour() < 12 ) {
-            if timeCheck.WeekDay() == 6 {
+        if ( timeCheck.Weekday() == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( timeCheck.Weekday() == 5 && timeCheck.Hour() > 21 ) || ( timeCheck.Weekday() > 5 && timeCheck.Weekday() < 1 ) ( timeCheck.Weekday() == 1 && timeCheck.Hour() < 12 ) {
+            if timeCheck.Weekday() == 6 {
                 // timeCheck is Saturday, Sub 1 Day to Friday
-                timeCheck = timeCheck.Sub(1 * time.Day())
-            } else if timeCheck.WeekDay() == 0 {
+                timeCheck = timeCheck.AddDate(0, 0, -1)
+            } else if timeCheck.Weekday() == 0 {
                 // timeCheck is Sunday, Sub 2 Days to Friday
-                timeCheck = timeCheck.Sub(2 * time.Day())
+                timeCheck = timeCheck.AddDate(0, 0, -2)
             }
             // Set the Hour and Minutes
             timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 21, 0, 0, 0, time.UTC)
@@ -358,7 +358,7 @@ func (tiicc *CryptoFetcher) Run() {
 	if !tiicc.queryStart.IsZero() {
 		timeStart = tiicc.queryStart.UTC()
 	} else {
-		timeStart = time.Now().UTC().Sub(tiicc.baseTimeframe.Duration)
+		timeStart = time.Now().UTC().Add(-tiicc.baseTimeframe.Duration)
 	}
     
 	// For loop for collecting candlestick data forever
@@ -389,7 +389,7 @@ func (tiicc *CryptoFetcher) Run() {
         timeStart = alignTimeToQuanateeHours(timeStart, true)
         if timeStart == timeEnd {
             // If timeStart is set to the next opening hours, timeEnd will be the same as timeStart. Minus timeStart by 1 interval to get the opening data (e.g. 1159 UTC to 1200 UTC)
-            timeStart = timeStart.Sub(tiicc.baseTimeframe.Duration)
+            timeStart = timeStart.Add(-tiicc.baseTimeframe.Duration)
         }
         
         /*

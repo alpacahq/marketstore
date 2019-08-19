@@ -570,18 +570,10 @@ func (tiiex *IEXFetcher) Run() {
         }
         
 		if realTime {
-			// Sleep till the next minute
+			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
-            // Monday 1200 UTC is the first data we will consume in the week
-            // Friday 2100 UTC is the last data we will consume in the week
-            if waitTill.WeekDay() == 5 && waitTill.Hour() == 21 && waitTill.Minute() > 0 {
-                // Add 3 days from Friday 210# UTC to get to Next Monday 210# UTC
-                waitTill = waitTill.Add(3 * time.Day())
-                // Change 210# UTC to 1200 UTC
-                waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), 12, waitTill.Minute(), 0, 0, time.UTC)
-            }
             log.Info("IEX: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
