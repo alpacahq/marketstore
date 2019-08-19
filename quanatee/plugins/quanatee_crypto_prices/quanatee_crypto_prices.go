@@ -362,6 +362,7 @@ func (tiicc *CryptoFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiicc.baseTimeframe.Duration)
 	}
+    timeStart = alignTimeToQuanateeHours(timeStart, true).Add(-tiicc.baseTimeframe.Duration)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time

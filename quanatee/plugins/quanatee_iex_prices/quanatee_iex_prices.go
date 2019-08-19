@@ -364,6 +364,7 @@ func (tiiex *IEXFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiiex.baseTimeframe.Duration)
 	}
+    timeStart = alignTimeToQuanateeHours(timeStart, true).Add(-tiiex.baseTimeframe.Duration)
 
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
