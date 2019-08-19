@@ -493,7 +493,7 @@ func (tiifx *ForexFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiifx.baseTimeframe.Duration)
 	}
-
+    
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time
@@ -509,15 +509,15 @@ func (tiifx *ForexFetcher) Run() {
                 firstLoop = false
             } else {
                 timeStart = timeEnd
-                timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
-                // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
-                log.Info("Forex timeEnd 1: %v", timeEnd)
-                timeEnd = alignTimeToQuanateeHours(timeEnd, false)
-                log.Info("Forex timeEnd 2: %v", timeEnd)
-                if timeEnd.After(time.Now().UTC()) {
-                    realTime = true
-                    timeEnd = time.Now().UTC()
-                }
+            }
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
+            // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
+            log.Info("Forex timeEnd 1: %v", timeEnd)
+            timeEnd = alignTimeToQuanateeHours(timeEnd, false)
+            log.Info("Forex timeEnd 2: %v", timeEnd)
+            if timeEnd.After(time.Now().UTC()) {
+                realTime = true
+                timeEnd = time.Now().UTC()
             }
         }
         // If timeStart is after Quanatee Hours, set to the next opening time

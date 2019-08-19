@@ -376,13 +376,13 @@ func (tiicc *CryptoFetcher) Run() {
                 firstLoop = false
             } else {
                 timeStart = timeEnd
-                timeEnd = timeStart.AddDate(0, 0, 1)
-                // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
-                timeEnd = alignTimeToQuanateeHours(timeEnd, false)
-                if timeEnd.After(time.Now().UTC()) {
-                    realTime = true
-                    timeEnd = time.Now().UTC()
-                }
+            }
+            timeEnd = timeStart.AddDate(0, 0, 1)
+            // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
+            timeEnd = alignTimeToQuanateeHours(timeEnd, false)
+            if timeEnd.After(time.Now().UTC()) {
+                realTime = true
+                timeEnd = time.Now().UTC()
             }
         }
         // If timeStart is after Quanatee Hours, set to the next opening time
