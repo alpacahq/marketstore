@@ -259,10 +259,12 @@ func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
     
     // Quanatee Opening = Monday 1200 UTC is the first data we will consume in the week
     // Quanatee Closing = Friday 2100 UTC is the last data we will consume in the week
+    // We do not account for holidays or disruptions in Marketstore
+    // Aligning time series datas is done in Quanatee functions
     
     if opening == true {
         // Set to nearest open hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
             if int(timeCheck.Weekday()) >= 5 {
                 // timeCheck is Friday or Saturday, set to Monday
                 timeCheck = timeCheck.AddDate(0, 0, (8 - int(timeCheck.Weekday())))
@@ -275,7 +277,7 @@ func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
         }
     } else {
         // Set to nearest closing hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
             if int(timeCheck.Weekday()) == 6 {
                 // timeCheck is Saturday, Sub 1 Day to Friday
                 timeCheck = timeCheck.AddDate(0, 0, -1)
@@ -368,61 +370,178 @@ func (tiicc *CryptoFetcher) Run() {
     
 	for {
         
-        if realTime {
-            timeStart = timeEnd
-            timeEnd = time.Now().UTC()
+        if firstLoop {
+            firstLoop = false
         } else {
-            if firstLoop {
-                firstLoop = false
-            } else {
-                timeStart = timeEnd
-            }
+            timeStart = timeEnd
+        }
+        if realTime {
+            // Add timeEnd by a tick
+            timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration)
+        } else {
+            // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 1)
-            // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
+            // If timeEnd is outside of Closing, set it to the closing time
             timeEnd = alignTimeToQuanateeHours(timeEnd, false)
-            if timeEnd.After(time.Now().UTC()) {
+            if alignTimeToQuanateeHours(timeStart, true).After(time.Now().UTC()) {
+                // timeStart is at Closing and new timeStart (next Opening) is after current time
+                firstLoop = true
+                realTime = true
+                timeStart = alignTimeToQuanateeHours(timeStart, true).Add(-tiicc.baseTimeframe.Duration)
+                // do not run bool
+            } else if timeEnd.After(time.Now().UTC()) {
+                // timeEnd is after current time
                 realTime = true
                 timeEnd = time.Now().UTC()
             }
         }
-        // If timeStart is after Quanatee Hours, set to the next opening time
-        timeStart = alignTimeToQuanateeHours(timeStart, true)
-        if timeStart == timeEnd {
-            // If timeStart is set to the next opening hours, timeEnd will be the same as timeStart. Minus timeStart by 1 interval to get the opening data (e.g. 1159 UTC to 1200 UTC)
-            timeStart = timeStart.Add(-tiicc.baseTimeframe.Duration)
-        }
         
-        /*
-        To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
-        But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
-        If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
-        Main goal is to ensure it runs every 1 <time duration> at :00
-        Tiingo returns data by the day, regardless of granularity
-        */
-        year := timeEnd.Year()
-        month := timeEnd.Month()
-        day := timeEnd.Day()
-        hour := timeEnd.Hour()
-        minute := timeEnd.Minute()
-        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        
-        quotes := Quotes{}
-        symbols := tiicc.symbols
-        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-        // Data for symbols are retrieved in random order for fairness
-        // Data for symbols are written immediately for asynchronous-like processing
-        for _, symbol := range symbols {
-            time.Sleep(333 * time.Millisecond)
-            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
-            if err == nil {
-                if len(quote.Epoch) < 1 {
-                    // Check if there is data to add
-                    continue
-                } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
-                    // Check if realTime is adding the most recent data
-                    log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
-                    continue
+        if !firstLoop {
+            
+            /*
+            To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
+            But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
+            If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
+            Main goal is to ensure it runs every 1 <time duration> at :00
+            Tiingo returns data by the day, regardless of granularity
+            */
+            year := timeEnd.Year()
+            month := timeEnd.Month()
+            day := timeEnd.Day()
+            hour := timeEnd.Hour()
+            minute := timeEnd.Minute()
+            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+            
+            quotes := Quotes{}
+            symbols := tiicc.symbols
+            rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+            // Data for symbols are retrieved in random order for fairness
+            // Data for symbols are written immediately for asynchronous-like processing
+            for _, symbol := range symbols {
+                time.Sleep(333 * time.Millisecond)
+                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiicc.baseTimeframe.String, tiicc.apiKey)
+                if err == nil {
+                    if len(quote.Epoch) < 1 {
+                        // Check if there is data to add
+                        continue
+                    } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                        // Check if realTime is adding the most recent data
+                        log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                        continue
+                    }
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", quote.Epoch)
+                    cs.AddColumn("Open", quote.Open)
+                    cs.AddColumn("High", quote.High)
+                    cs.AddColumn("Low", quote.Low)
+                    cs.AddColumn("Close", quote.Close)
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    
+                    log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+                    quotes = append(quotes, quote)
+                } else {
+                    log.Info("Crypto: error downloading " + symbol)
                 }
+            }
+            
+            aggQuotes := Quotes{}
+            
+            // Add BTCZ
+            if len(tiicc.btczSymbols) > 0 {
+                btcz_quote := NewQuote("BTCZ", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiicc.btczSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(btcz_quote.Epoch) == 0 {
+                                    btcz_quote.Epoch = quote.Epoch
+                                    btcz_quote.Open = quote.Open
+                                    btcz_quote.High = quote.High
+                                    btcz_quote.Low = quote.Low
+                                    btcz_quote.Close = quote.Close
+                                } else if len(btcz_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(btcz_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        btcz_quote.Open[bar] = (quote.Open[bar] + btcz_quote.Open[bar]) / 2
+                                        btcz_quote.High[bar] = (quote.High[bar] + btcz_quote.High[bar]) / 2
+                                        btcz_quote.Low[bar] = (quote.Low[bar] + btcz_quote.Low[bar]) / 2
+                                        btcz_quote.Close[bar] = (quote.Close[bar] + btcz_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(btcz_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, btcz_quote)
+                }
+            }
+            // Add USDZ
+            if len(tiicc.usdzSymbols) > 0 {
+                usdz_quote := NewQuote("USDZ", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiicc.usdzSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(usdz_quote.Epoch) == 0 {
+                                    usdz_quote.Epoch = quote.Epoch
+                                    usdz_quote.Open = quote.Open
+                                    usdz_quote.High = quote.High
+                                    usdz_quote.Low = quote.Low
+                                    usdz_quote.Close = quote.Close
+                                } else if len(usdz_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(usdz_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        usdz_quote.Open[bar] = (quote.Open[bar] + usdz_quote.Open[bar]) / 2
+                                        usdz_quote.High[bar] = (quote.High[bar] + usdz_quote.High[bar]) / 2
+                                        usdz_quote.Low[bar] = (quote.Low[bar] + usdz_quote.Low[bar]) / 2
+                                        usdz_quote.Close[bar] = (quote.Close[bar] + usdz_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(usdz_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, usdz_quote)
+                }
+            }
+            // Add EURZ
+            if len(tiicc.eurzSymbols) > 0 {
+                eurz_quote := NewQuote("EURZ", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiicc.eurzSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(eurz_quote.Epoch) == 0 {
+                                    eurz_quote.Epoch = quote.Epoch
+                                    eurz_quote.Open = quote.Open
+                                    eurz_quote.High = quote.High
+                                    eurz_quote.Low = quote.Low
+                                    eurz_quote.Close = quote.Close
+                                } else if len(eurz_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(eurz_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        eurz_quote.Open[bar] = (quote.Open[bar] + eurz_quote.Open[bar]) / 2
+                                        eurz_quote.High[bar] = (quote.High[bar] + eurz_quote.High[bar]) / 2
+                                        eurz_quote.Low[bar] = (quote.Low[bar] + eurz_quote.Low[bar]) / 2
+                                        eurz_quote.Close[bar] = (quote.Close[bar] + eurz_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(eurz_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, eurz_quote)
+                }
+            }
+            
+            for _, quote := range aggQuotes {
                 // write to csm
                 cs := io.NewColumnSeries()
                 cs.AddColumn("Epoch", quote.Epoch)
@@ -436,128 +555,19 @@ func (tiicc *CryptoFetcher) Run() {
                 executor.WriteCSM(csm, false)
                 
                 log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
-                quotes = append(quotes, quote)
-            } else {
-                log.Info("Crypto: error downloading " + symbol)
             }
         }
-        
-        aggQuotes := Quotes{}
-        
-        // Add BTCZ
-        if len(tiicc.btczSymbols) > 0 {
-            btcz_quote := NewQuote("BTCZ", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiicc.btczSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(btcz_quote.Epoch) == 0 {
-                                btcz_quote.Epoch = quote.Epoch
-                                btcz_quote.Open = quote.Open
-                                btcz_quote.High = quote.High
-                                btcz_quote.Low = quote.Low
-                                btcz_quote.Close = quote.Close
-                            } else if len(btcz_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(btcz_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    btcz_quote.Open[bar] = (quote.Open[bar] + btcz_quote.Open[bar]) / 2
-                                    btcz_quote.High[bar] = (quote.High[bar] + btcz_quote.High[bar]) / 2
-                                    btcz_quote.Low[bar] = (quote.Low[bar] + btcz_quote.Low[bar]) / 2
-                                    btcz_quote.Close[bar] = (quote.Close[bar] + btcz_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(btcz_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, btcz_quote)
-            }
-        }
-        // Add USDZ
-        if len(tiicc.usdzSymbols) > 0 {
-            usdz_quote := NewQuote("USDZ", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiicc.usdzSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(usdz_quote.Epoch) == 0 {
-                                usdz_quote.Epoch = quote.Epoch
-                                usdz_quote.Open = quote.Open
-                                usdz_quote.High = quote.High
-                                usdz_quote.Low = quote.Low
-                                usdz_quote.Close = quote.Close
-                            } else if len(usdz_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(usdz_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    usdz_quote.Open[bar] = (quote.Open[bar] + usdz_quote.Open[bar]) / 2
-                                    usdz_quote.High[bar] = (quote.High[bar] + usdz_quote.High[bar]) / 2
-                                    usdz_quote.Low[bar] = (quote.Low[bar] + usdz_quote.Low[bar]) / 2
-                                    usdz_quote.Close[bar] = (quote.Close[bar] + usdz_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(usdz_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, usdz_quote)
-            }
-        }
-        // Add EURZ
-        if len(tiicc.eurzSymbols) > 0 {
-            eurz_quote := NewQuote("EURZ", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiicc.eurzSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(eurz_quote.Epoch) == 0 {
-                                eurz_quote.Epoch = quote.Epoch
-                                eurz_quote.Open = quote.Open
-                                eurz_quote.High = quote.High
-                                eurz_quote.Low = quote.Low
-                                eurz_quote.Close = quote.Close
-                            } else if len(eurz_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(eurz_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    eurz_quote.Open[bar] = (quote.Open[bar] + eurz_quote.Open[bar]) / 2
-                                    eurz_quote.High[bar] = (quote.High[bar] + eurz_quote.High[bar]) / 2
-                                    eurz_quote.Low[bar] = (quote.Low[bar] + eurz_quote.Low[bar]) / 2
-                                    eurz_quote.Close[bar] = (quote.Close[bar] + eurz_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(eurz_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, eurz_quote)
-            }
-        }
-        
-        for _, quote := range aggQuotes {
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
-            
-            log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
-        }
-        
 		if realTime {
 			// Sleep till the next minute
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
-            waitTill = alignTimeToQuanateeHours(waitTill, true)
-            
+            // Check if timeEnd is Friday 2100 UTC or later (return result is time for Monday 1200 UTC)
+            openTime = alignTimeToQuanateeHours(timeEnd, true)
+            if openTime != timeEnd {
+                // timeEnd is Friday 2100 UTC or later, set to sleep until Monday 1200 UTC 
+                waitTill = openTime
+            }
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {

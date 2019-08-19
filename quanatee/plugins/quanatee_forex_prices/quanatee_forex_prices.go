@@ -391,10 +391,12 @@ func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
     
     // Quanatee Opening = Monday 1200 UTC is the first data we will consume in the week
     // Quanatee Closing = Friday 2100 UTC is the last data we will consume in the week
+    // We do not account for holidays or disruptions in Marketstore
+    // Aligning time series datas is done in Quanatee functions
     
     if opening == true {
         // Set to nearest open hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
             if int(timeCheck.Weekday()) >= 5 {
                 // timeCheck is Friday or Saturday, set to Monday
                 timeCheck = timeCheck.AddDate(0, 0, (8 - int(timeCheck.Weekday())))
@@ -407,7 +409,7 @@ func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
         }
     } else {
         // Set to nearest closing hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() == 21 && timeCheck.Minute() > 0 ) || ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() > 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
             if int(timeCheck.Weekday()) == 6 {
                 // timeCheck is Saturday, Sub 1 Day to Friday
                 timeCheck = timeCheck.AddDate(0, 0, -1)
@@ -501,281 +503,286 @@ func (tiifx *ForexFetcher) Run() {
     
 	for {
         
-        if realTime {
-            timeStart = timeEnd
-            timeEnd = time.Now().UTC()
+        if firstLoop {
+            firstLoop = false
         } else {
-            if firstLoop {
-                firstLoop = false
-            } else {
-                timeStart = timeEnd
-            }
+            timeStart = timeEnd
+        }
+        if realTime {
+            // Add timeEnd by a tick
+            timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration)
+        } else {
+            // Add timeEnd by a range
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
-            // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
-            log.Info("Forex timeEnd 1: %v", timeEnd)
+            // If timeEnd is outside of Closing, set it to the closing time
             timeEnd = alignTimeToQuanateeHours(timeEnd, false)
-            log.Info("Forex timeEnd 2: %v", timeEnd)
-            if timeEnd.After(time.Now().UTC()) {
+            if alignTimeToQuanateeHours(timeStart, true).After(time.Now().UTC()) {
+                // timeStart is at Closing and new timeStart (next Opening) is after current time
+                firstLoop = true
+                realTime = true
+                timeStart = alignTimeToQuanateeHours(timeStart, true).Add(-tiifx.baseTimeframe.Duration)
+                // do not run bool
+            } else if timeEnd.After(time.Now().UTC()) {
+                // timeEnd is after current time
                 realTime = true
                 timeEnd = time.Now().UTC()
             }
         }
-        // If timeStart is after Quanatee Hours, set to the next opening time
-        timeStart = alignTimeToQuanateeHours(timeStart, true)
-        if timeStart == timeEnd {
-            // If timeStart is set to the next opening hours, timeEnd will be the same as timeStart. Minus timeStart by 1 interval to get the opening data (e.g. 1159 UTC to 1200 UTC)
-            log.Info("Forex timeStart 1: %v", timeStart)
-            timeStart = timeStart.Add(-tiifx.baseTimeframe.Duration)
-            log.Info("Forex timeStart 1: %v", timeStart)
-        }
         
-        /*
-        To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
-        But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
-        If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
-        Main goal is to ensure it runs every 1 <time duration> at :00
-        Tiingo returns data by the day, regardless of granularity
-        */
-        year := timeEnd.Year()
-        month := timeEnd.Month()
-        day := timeEnd.Day()
-        hour := timeEnd.Hour()
-        minute := timeEnd.Minute()
-        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+        if !firstLoop {
+            
+            /*
+            To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
+            But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
+            If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
+            Main goal is to ensure it runs every 1 <time duration> at :00
+            Tiingo returns data by the day, regardless of granularity
+            */
+            year := timeEnd.Year()
+            month := timeEnd.Month()
+            day := timeEnd.Day()
+            hour := timeEnd.Hour()
+            minute := timeEnd.Minute()
+            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
 
-        quotes := Quotes{}
-        symbols := tiifx.symbols
-        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-        // Data for symbols are retrieved in random order for fairness
-        // Data for symbols are written immediately for asynchronous-like processing
-        for _, symbol := range symbols {
-            time.Sleep(333 * time.Millisecond)
-            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
-            intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
-            quote := NewQuote(symbol, 0)
-            // If both Quotes have valid datas, combine them
-            // If not, serve only the quote with valid datas
-            // Both Quotes would have the same length since we only add datas according to the requested period range
-            if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
-                // Both quotes are invalid
-                continue
-            } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
-                // Both quotes are valid
-                if tiingoQuote.Epoch[0] != intrinioQuote.Epoch[0] || tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] != intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
-                    // First and last epochs do not match
-                    // This could be either datas returned are in different orders; or
-                    // Datas returned have missing data rows (likely from Tiingo); or
-                    // Improper slicing of periods
-                    log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs!", symbol)
-                    quote = intrinioQuote
-                } else {
-                    // First and last epochs match, we assume that the rows are lined up
-                    numrows := len(intrinioQuote.Epoch)
-                    quote = NewQuote(symbol, numrows)
-                    for bar := 0; bar < numrows; bar++ {
-                        if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
-                            // If the rows are not lined up, we fallback to Intrinio only
-                            quote.Epoch[bar] = intrinioQuote.Epoch[bar]
-                            quote.Open[bar] = intrinioQuote.Open[bar]
-                            quote.High[bar] = intrinioQuote.High[bar]
-                            quote.Low[bar] = intrinioQuote.Low[bar]
-                            quote.Close[bar] = intrinioQuote.Close[bar]
-                        } else {
-                            quote.Epoch[bar] = tiingoQuote.Epoch[bar]
-                            quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
-                            quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
-                            quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
-                            quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
+            quotes := Quotes{}
+            symbols := tiifx.symbols
+            rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+            // Data for symbols are retrieved in random order for fairness
+            // Data for symbols are written immediately for asynchronous-like processing
+            for _, symbol := range symbols {
+                time.Sleep(333 * time.Millisecond)
+                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
+                intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
+                quote := NewQuote(symbol, 0)
+                // If both Quotes have valid datas, combine them
+                // If not, serve only the quote with valid datas
+                // Both Quotes would have the same length since we only add datas according to the requested period range
+                if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
+                    // Both quotes are invalid
+                    continue
+                } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
+                    // Both quotes are valid
+                    if tiingoQuote.Epoch[0] != intrinioQuote.Epoch[0] || tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] != intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
+                        // First and last epochs do not match
+                        // This could be either datas returned are in different orders; or
+                        // Datas returned have missing data rows (likely from Tiingo); or
+                        // Improper slicing of periods
+                        log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs!", symbol)
+                        quote = intrinioQuote
+                    } else {
+                        // First and last epochs match, we assume that the rows are lined up
+                        numrows := len(intrinioQuote.Epoch)
+                        quote = NewQuote(symbol, numrows)
+                        for bar := 0; bar < numrows; bar++ {
+                            if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
+                                // If the rows are not lined up, we fallback to Intrinio only
+                                quote.Epoch[bar] = intrinioQuote.Epoch[bar]
+                                quote.Open[bar] = intrinioQuote.Open[bar]
+                                quote.High[bar] = intrinioQuote.High[bar]
+                                quote.Low[bar] = intrinioQuote.Low[bar]
+                                quote.Close[bar] = intrinioQuote.Close[bar]
+                            } else {
+                                quote.Epoch[bar] = tiingoQuote.Epoch[bar]
+                                quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
+                                quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
+                                quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
+                                quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
+                            }
                         }
                     }
+                } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
+                    // Only one quote is valid
+                    quote = tiingoQuote
+                } else if len(intrinioQuote.Epoch) > 0 && intrinioQuote.Epoch[0] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
+                    // Only one quote is valid
+                    quote = intrinioQuote
+                } else {
+                    continue
                 }
-            } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
-                // Only one quote is valid
-                quote = tiingoQuote
-            } else if len(intrinioQuote.Epoch) > 0 && intrinioQuote.Epoch[0] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
-                // Only one quote is valid
-                quote = intrinioQuote
-            } else {
-                continue
-            }
-            
-            if len(quote.Epoch) < 1 {
-                // Check if there is data to add
-                continue
-            } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
-                // Check if realTime is adding the most recent data
-                log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
-                continue
-            }
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
-            
-            log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
-            quotes = append(quotes, quote)
-        }
-        
-        // Add reversed pairs
-        for _, quote := range quotes {
-            revSymbol := ""
-            if strings.HasPrefix(quote.Symbol, "USD") {
-                revSymbol = strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
-            } else if strings.HasPrefix(quote.Symbol, "EUR") {
-                revSymbol = strings.Replace(quote.Symbol, "EUR", "", -1) + "EUR"
-            } else if strings.HasPrefix(quote.Symbol, "JPY") {
-                revSymbol = strings.Replace(quote.Symbol, "JPY", "", -1) + "JPY"
-            }
-            if revSymbol != "" {
-                numrows := len(quote.Epoch)
-                revQuote := NewQuote(revSymbol, numrows)
-                for bar := 0; bar < numrows; bar++ {
-                    revQuote.Epoch[bar] = quote.Epoch[bar]
-                    revQuote.Open[bar] = 1/quote.Open[bar]
-                    revQuote.High[bar] = 1/quote.High[bar]
-                    revQuote.Low[bar] = 1/quote.Low[bar]
-                    revQuote.Close[bar] = 1/quote.Close[bar]
+                
+                if len(quote.Epoch) < 1 {
+                    // Check if there is data to add
+                    continue
+                } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime is adding the most recent data
+                    log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                    continue
                 }
                 // write to csm
                 cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", revQuote.Epoch)
-                cs.AddColumn("Open", revQuote.Open)
-                cs.AddColumn("High", revQuote.High)
-                cs.AddColumn("Low", revQuote.Low)
-                cs.AddColumn("Close", revQuote.Close)
+                cs.AddColumn("Epoch", quote.Epoch)
+                cs.AddColumn("Open", quote.Open)
+                cs.AddColumn("High", quote.High)
+                cs.AddColumn("Low", quote.Low)
+                cs.AddColumn("Close", quote.Close)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
-                quotes = append(quotes, revQuote)
+                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                quotes = append(quotes, quote)
             }
-        }
-        
-        // Combine original quotes with mirrored quotes for aggregation into index currencies (USDX, EURX, JPYX)
-        aggQuotes := Quotes{}
-        
-        // Add USDX
-        if len(tiifx.usdxSymbols) > 0 {
-            usdx_quote := NewQuote("USDX", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiifx.usdxSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(usdx_quote.Epoch) == 0 {
-                                usdx_quote.Epoch = quote.Epoch
-                                usdx_quote.Open = quote.Open
-                                usdx_quote.High = quote.High
-                                usdx_quote.Low = quote.Low
-                                usdx_quote.Close = quote.Close
-                            } else if len(usdx_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(usdx_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    usdx_quote.Open[bar] = (quote.Open[bar] + usdx_quote.Open[bar]) / 2
-                                    usdx_quote.High[bar] = (quote.High[bar] + usdx_quote.High[bar]) / 2
-                                    usdx_quote.Low[bar] = (quote.Low[bar] + usdx_quote.Low[bar]) / 2
-                                    usdx_quote.Close[bar] = (quote.Close[bar] + usdx_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(usdx_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, usdx_quote)
-            }
-        }
-        // Add EURX
-        if len(tiifx.eurxSymbols) > 0 {
-            eurx_quote := NewQuote("EURX", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiifx.eurxSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(eurx_quote.Epoch) == 0 {
-                                eurx_quote.Epoch = quote.Epoch
-                                eurx_quote.Open = quote.Open
-                                eurx_quote.High = quote.High
-                                eurx_quote.Low = quote.Low
-                                eurx_quote.Close = quote.Close
-                            } else if len(eurx_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(eurx_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    eurx_quote.Open[bar] = (quote.Open[bar] + eurx_quote.Open[bar]) / 2
-                                    eurx_quote.High[bar] = (quote.High[bar] + eurx_quote.High[bar]) / 2
-                                    eurx_quote.Low[bar] = (quote.Low[bar] + eurx_quote.Low[bar]) / 2
-                                    eurx_quote.Close[bar] = (quote.Close[bar] + eurx_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(eurx_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, eurx_quote)
-            }
-        }
-        // Add JPYX
-        if len(tiifx.jpyxSymbols) > 0 {
-            jpyx_quote := NewQuote("JPYX", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiifx.jpyxSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(jpyx_quote.Epoch) == 0 {
-                                jpyx_quote.Epoch = quote.Epoch
-                                jpyx_quote.Open = quote.Open
-                                jpyx_quote.High = quote.High
-                                jpyx_quote.Low = quote.Low
-                                jpyx_quote.Close = quote.Close
-                            } else if len(jpyx_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(jpyx_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    jpyx_quote.Open[bar] = (quote.Open[bar] + jpyx_quote.Open[bar]) / 2
-                                    jpyx_quote.High[bar] = (quote.High[bar] + jpyx_quote.High[bar]) / 2
-                                    jpyx_quote.Low[bar] = (quote.Low[bar] + jpyx_quote.Low[bar]) / 2
-                                    jpyx_quote.Close[bar] = (quote.Close[bar] + jpyx_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(jpyx_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, jpyx_quote)
-            }
-        }
-        
-        for _, quote := range aggQuotes {
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
             
-            log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+            // Add reversed pairs
+            for _, quote := range quotes {
+                revSymbol := ""
+                if strings.HasPrefix(quote.Symbol, "USD") {
+                    revSymbol = strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
+                } else if strings.HasPrefix(quote.Symbol, "EUR") {
+                    revSymbol = strings.Replace(quote.Symbol, "EUR", "", -1) + "EUR"
+                } else if strings.HasPrefix(quote.Symbol, "JPY") {
+                    revSymbol = strings.Replace(quote.Symbol, "JPY", "", -1) + "JPY"
+                }
+                if revSymbol != "" {
+                    numrows := len(quote.Epoch)
+                    revQuote := NewQuote(revSymbol, numrows)
+                    for bar := 0; bar < numrows; bar++ {
+                        revQuote.Epoch[bar] = quote.Epoch[bar]
+                        revQuote.Open[bar] = 1/quote.Open[bar]
+                        revQuote.High[bar] = 1/quote.High[bar]
+                        revQuote.Low[bar] = 1/quote.Low[bar]
+                        revQuote.Close[bar] = 1/quote.Close[bar]
+                    }
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", revQuote.Epoch)
+                    cs.AddColumn("Open", revQuote.Open)
+                    cs.AddColumn("High", revQuote.High)
+                    cs.AddColumn("Low", revQuote.Low)
+                    cs.AddColumn("Close", revQuote.Close)
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    
+                    log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                    quotes = append(quotes, revQuote)
+                }
+            }
+            
+            // Combine original quotes with mirrored quotes for aggregation into index currencies (USDX, EURX, JPYX)
+            aggQuotes := Quotes{}
+            
+            // Add USDX
+            if len(tiifx.usdxSymbols) > 0 {
+                usdx_quote := NewQuote("USDX", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiifx.usdxSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(usdx_quote.Epoch) == 0 {
+                                    usdx_quote.Epoch = quote.Epoch
+                                    usdx_quote.Open = quote.Open
+                                    usdx_quote.High = quote.High
+                                    usdx_quote.Low = quote.Low
+                                    usdx_quote.Close = quote.Close
+                                } else if len(usdx_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(usdx_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        usdx_quote.Open[bar] = (quote.Open[bar] + usdx_quote.Open[bar]) / 2
+                                        usdx_quote.High[bar] = (quote.High[bar] + usdx_quote.High[bar]) / 2
+                                        usdx_quote.Low[bar] = (quote.Low[bar] + usdx_quote.Low[bar]) / 2
+                                        usdx_quote.Close[bar] = (quote.Close[bar] + usdx_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(usdx_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, usdx_quote)
+                }
+            }
+            // Add EURX
+            if len(tiifx.eurxSymbols) > 0 {
+                eurx_quote := NewQuote("EURX", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiifx.eurxSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(eurx_quote.Epoch) == 0 {
+                                    eurx_quote.Epoch = quote.Epoch
+                                    eurx_quote.Open = quote.Open
+                                    eurx_quote.High = quote.High
+                                    eurx_quote.Low = quote.Low
+                                    eurx_quote.Close = quote.Close
+                                } else if len(eurx_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(eurx_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        eurx_quote.Open[bar] = (quote.Open[bar] + eurx_quote.Open[bar]) / 2
+                                        eurx_quote.High[bar] = (quote.High[bar] + eurx_quote.High[bar]) / 2
+                                        eurx_quote.Low[bar] = (quote.Low[bar] + eurx_quote.Low[bar]) / 2
+                                        eurx_quote.Close[bar] = (quote.Close[bar] + eurx_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(eurx_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, eurx_quote)
+                }
+            }
+            // Add JPYX
+            if len(tiifx.jpyxSymbols) > 0 {
+                jpyx_quote := NewQuote("JPYX", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiifx.jpyxSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(jpyx_quote.Epoch) == 0 {
+                                    jpyx_quote.Epoch = quote.Epoch
+                                    jpyx_quote.Open = quote.Open
+                                    jpyx_quote.High = quote.High
+                                    jpyx_quote.Low = quote.Low
+                                    jpyx_quote.Close = quote.Close
+                                } else if len(jpyx_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(jpyx_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        jpyx_quote.Open[bar] = (quote.Open[bar] + jpyx_quote.Open[bar]) / 2
+                                        jpyx_quote.High[bar] = (quote.High[bar] + jpyx_quote.High[bar]) / 2
+                                        jpyx_quote.Low[bar] = (quote.Low[bar] + jpyx_quote.Low[bar]) / 2
+                                        jpyx_quote.Close[bar] = (quote.Close[bar] + jpyx_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(jpyx_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, jpyx_quote)
+                }
+            }
+            
+            for _, quote := range aggQuotes {
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", quote.Epoch)
+                cs.AddColumn("Open", quote.Open)
+                cs.AddColumn("High", quote.High)
+                cs.AddColumn("Low", quote.Low)
+                cs.AddColumn("Close", quote.Close)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+                
+                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+            }
         }
-        
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
-            waitTill = alignTimeToQuanateeHours(waitTill, true)
+            // Check if timeEnd is Friday 2100 UTC or later (return result is time for Monday 1200 UTC)
+            openTime = alignTimeToQuanateeHours(timeEnd, true)
+            if openTime != timeEnd {
+                // timeEnd is Friday 2100 UTC or later, set to sleep until Monday 1200 UTC 
+                waitTill = openTime
+            }
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
