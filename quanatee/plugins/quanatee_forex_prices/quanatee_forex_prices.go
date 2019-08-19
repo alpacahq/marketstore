@@ -511,9 +511,9 @@ func (tiifx *ForexFetcher) Run() {
                 timeStart = timeEnd
                 timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
                 // If timeEnd is backfilling up to after Quanatee Hours, set to the nearest closing time
-                log.Info('Forex timeEnd 1: %v', timeEnd)
+                log.Info("Forex timeEnd 1: %v", timeEnd)
                 timeEnd = alignTimeToQuanateeHours(timeEnd, false)
-                log.Info('Forex timeEnd 2: %v', timeEnd)
+                log.Info("Forex timeEnd 2: %v", timeEnd)
                 if timeEnd.After(time.Now().UTC()) {
                     realTime = true
                     timeEnd = time.Now().UTC()
@@ -524,9 +524,9 @@ func (tiifx *ForexFetcher) Run() {
         timeStart = alignTimeToQuanateeHours(timeStart, true)
         if timeStart == timeEnd {
             // If timeStart is set to the next opening hours, timeEnd will be the same as timeStart. Minus timeStart by 1 interval to get the opening data (e.g. 1159 UTC to 1200 UTC)
-            log.Info('Forex timeStart 1: %v', timeStart)
+            log.Info("Forex timeStart 1: %v", timeStart)
             timeStart = timeStart.Add(-tiifx.baseTimeframe.Duration)
-            log.Info('Forex timeStart 1: %v', timeStart)
+            log.Info("Forex timeStart 1: %v", timeStart)
         }
         
         /*
