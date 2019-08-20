@@ -406,6 +406,20 @@ func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
             }
             // Set the Hour and Minutes
             timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 12, 0, 0, 0, time.UTC)
+            // Modifier for Holidays
+            if calendar.IsWorkday(timeCheck) {
+                timeCheck = timeCheck
+            } else {
+                nextWorkday := false
+                days := 1
+                for nextWorkday == false {
+                    if timeCheck.AddDate(0, 0, days) {
+                        nextWorkday = true
+                    }
+                    days += days
+                }
+                timeCheck = timeCheck.AddDate(0, 0, days)
+            }
         }
     } else {
         // Set to nearest closing hours time if timeCheck is over Trading Hours
@@ -421,7 +435,6 @@ func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
             timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 21, 0, 0, 0, time.UTC)
         }
     }
-    
     return timeCheck
 }
 
