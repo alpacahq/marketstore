@@ -316,26 +316,34 @@ func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
         // Set to nearest close hours time if timeCheck is over Trading Hours
         if int(timeCheck.Weekday()) >= 1 && int(timeCheck.Weekday()) < 5 {
             // If next open hours time will be a weekday
-            if ( timeCheck.Hour() == 22 && timeCheck.Minute() >= 30 ) && ( timeCheck.Hour() <= 23 ) {
+            if ( timeCheck.Hour() == 22 && timeCheck.Minute() >= 30 ) || ( timeCheck.Hour() <= 23 ) {
                 // Sub 0 Days since timeCheck is still in the current closing day
                 timeCheck = timeCheck
-            } else {
+                // Set the Hour and Minutes
+                timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
+            } else if ( timeCheck.Hour() == 13 && timeCheck.Minute() == 0 ) || ( timeCheck.Hour() < 13 ) {
                 // Sub 1 Day since timeCheck is in the next opening day
                 timeCheck = timeCheck.AddDate(0, 0, -1)
+                // Set the Hour and Minutes
+                timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
             }
         } else if int(timeCheck.Weekday()) == 6 {
             // timeCheck is Saturday Sub 1 Day to Friday
             timeCheck = timeCheck.AddDate(0, 0, -1)
+            // Set the Hour and Minutes
+            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
         } else if int(timeCheck.Weekday()) == 0 {
             // timeCheck is Sunday Sub 2 Days to Friday
             timeCheck = timeCheck.AddDate(0, 0, -2)
-        } else if int(timeCheck.Weekday()) == 0 {
-            if timeCheck.Hour() <= 13 {
-                // timeCheck is Monday before open Sub 3 Days to Friday
-                timeCheck = timeCheck.AddDate(0, 0, -3)
-            }
             // Set the Hour and Minutes
             timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
+        } else if int(timeCheck.Weekday()) == 0 {
+            if ( timeCheck.Hour() == 13 && timeCheck.Minute() == 0 ) || ( timeCheck.Hour() < 13 ) {
+                // timeCheck is Monday before open Sub 3 Days to Friday
+                timeCheck = timeCheck.AddDate(0, 0, -3)
+                // Set the Hour and Minutes
+                timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
+            }
         }
     }
     return timeCheck
