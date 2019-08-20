@@ -507,6 +507,8 @@ func (tiifx *ForexFetcher) Run() {
 	}
     timeStart = alignTimeToTradingHours(timeStart)
     
+    log.Info("%v", timeStart)
+        
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time
@@ -530,6 +532,7 @@ func (tiifx *ForexFetcher) Run() {
                 timeEnd = time.Now().UTC()
             }
         }
+        log.Info("%v-%v", timeStart, timeEnd)
         
         if !firstLoop {
             
