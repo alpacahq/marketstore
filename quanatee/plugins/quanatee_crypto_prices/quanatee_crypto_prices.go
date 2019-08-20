@@ -156,7 +156,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
         quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
         quote.Volume = quote.Volume[startOfSlice+1:endOfSlice+1]
-        if !realTime && quote.Epoch < 300 {
+        if !realTime && len(quote.Epoch) < 300 {
             log.Info("Crypto: %v", quote.Epoch)
         }
     } else {
