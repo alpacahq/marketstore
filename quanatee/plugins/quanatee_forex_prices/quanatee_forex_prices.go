@@ -387,34 +387,34 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToQuanateeHours(timeCheck time.Time, opening bool) time.Time {
+func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
     
-    // Quanatee Opening = Monday 1200 UTC is the first data we will consume in the week
-    // Quanatee Closing = Friday 2100 UTC is the last data we will consume in the week
+    // Forex Opening = Sunday 2200 UTC is the first data we will consume in a session
+    // Forex Closing = Friday 2200 UTC is the last data we will consume in a session
     // We do not account for holidays or disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
     
     if opening == true {
-        // Set to nearest open hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
-            if int(timeCheck.Weekday()) >= 5 {
-                // timeCheck is Friday or Saturday, set to Monday
-                timeCheck = timeCheck.AddDate(0, 0, (8 - int(timeCheck.Weekday())))
-            } else if int(timeCheck.Weekday()) == 0 {
-                // timeCheck is Sunday, set to Monday
+        // Set to nearest open hours time if timeCheck is over Trading Hours
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 22 ) || ( int(timeCheck.Weekday()) > 5 ) || ( int(timeCheck.Weekday()) == 0 && timeCheck.Hour() < 22 ) {
+            if int(timeCheck.Weekday()) == 5 {
+                // timeCheck is Friday, Add 2 Days to Sunday
+                timeCheck = timeCheck.AddDate(0, 0, 2)
+            } else if int(timeCheck.Weekday()) == 6 {
+                // timeCheck is Saturday, Add 1 Day to Sunday
                 timeCheck = timeCheck.AddDate(0, 0, 1)
             }
             // Set the Hour and Minutes
             timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 12, 0, 0, 0, time.UTC)
         }
     } else {
-        // Set to nearest closing hours time if timeCheck is over Quanatee Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 21 ) || ( int(timeCheck.Weekday()) > 5 && int(timeCheck.Weekday()) < 1 ) || ( int(timeCheck.Weekday()) == 1 && timeCheck.Hour() < 12 ) {
+        // Set to nearest closing hours time if timeCheck is over Trading Hours
+        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 22 ) || ( int(timeCheck.Weekday()) > 5 ) || ( int(timeCheck.Weekday()) == 0 && timeCheck.Hour() < 22 ) {
             if int(timeCheck.Weekday()) == 6 {
                 // timeCheck is Saturday, Sub 1 Day to Friday
                 timeCheck = timeCheck.AddDate(0, 0, -1)
             } else if int(timeCheck.Weekday()) == 0 {
-                // timeCheck is Sunday, Sub 2 Days to Friday
+                // timeCheck is Sunday, Add 2 Days to Friday
                 timeCheck = timeCheck.AddDate(0, 0, -2)
             }
             // Set the Hour and Minutes
@@ -495,7 +495,7 @@ func (tiifx *ForexFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiifx.baseTimeframe.Duration)
 	}
-    timeStart = alignTimeToQuanateeHours(timeStart, true)
+    timeStart = alignTimeToTradingHours(timeStart, true)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -516,12 +516,12 @@ func (tiifx *ForexFetcher) Run() {
             // Add timeEnd by a range
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
             // If timeEnd is outside of Closing, set it to the closing time
-            timeEnd = alignTimeToQuanateeHours(timeEnd, false)
-            if alignTimeToQuanateeHours(timeStart, true).After(time.Now().UTC()) {
+            timeEnd = alignTimeToTradingHours(timeEnd, false)
+            if alignTimeToTradingHours(timeStart, true).After(time.Now().UTC()) {
                 // timeStart is at Closing and new timeStart (next Opening) is after current time
                 firstLoop = true
                 realTime = true
-                timeStart = alignTimeToQuanateeHours(timeStart, true).Add(-tiifx.baseTimeframe.Duration)
+                timeStart = alignTimeToTradingHours(timeStart, true).Add(-tiifx.baseTimeframe.Duration)
                 // do not run bool
             } else if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
@@ -779,7 +779,7 @@ func (tiifx *ForexFetcher) Run() {
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToQuanateeHours(timeEnd, true)
+            openTime := alignTimeToTradingHours(timeEnd, true)
             if openTime != timeEnd {
                 // Set to wait till Opening
                 waitTill = openTime
