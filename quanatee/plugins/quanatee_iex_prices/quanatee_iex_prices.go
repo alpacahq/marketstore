@@ -251,7 +251,22 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time, calendar interface{}, opening bool) time.Time {
+func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
+    
+    calendar := cal.NewCalendar()
+
+    // Add US holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+    )
     
     // IEX Opening = Weekday 1300 UTC is the first data we will consume in a session
     // IEX Closing = Weekday 2230 UTC is the last data we will consume in a session
@@ -399,28 +414,13 @@ func (tiiex *IEXFetcher) Run() {
         }
 	}
     
-    calendar := cal.NewCalendar()
-
-    // Add US holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-    )
-    
 	// Set start time if not given.
 	if !tiiex.queryStart.IsZero() {
 		timeStart = tiiex.queryStart.UTC()
 	} else {
 		timeStart = time.Now().UTC().Add(-tiiex.baseTimeframe.Duration)
 	}
-    timeStart = alignTimeToTradingHours(timeStart, calendar, true)
+    timeStart = alignTimeToTradingHours(timeStart, true)
 
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -441,12 +441,12 @@ func (tiiex *IEXFetcher) Run() {
             // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 1)
             // If timeEnd is outside of Closing, set it to the closing time
-            timeEnd = alignTimeToTradingHours(timeEnd, calendar, false)
-            if alignTimeToTradingHours(timeStart, calendar, true).After(time.Now().UTC()) {
+            timeEnd = alignTimeToTradingHours(timeEnd, false)
+            if alignTimeToTradingHours(timeStart, true).After(time.Now().UTC()) {
                 // timeStart is at Closing and new timeStart (next Opening) is after current time
                 firstLoop = true
                 realTime = true
-                timeStart = alignTimeToTradingHours(timeStart, calendar, true).Add(-tiiex.baseTimeframe.Duration)
+                timeStart = alignTimeToTradingHours(timeStart, true).Add(-tiiex.baseTimeframe.Duration)
             } else if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -681,7 +681,7 @@ func (tiiex *IEXFetcher) Run() {
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToTradingHours(timeEnd, calendar, true)
+            openTime := alignTimeToTradingHours(timeEnd, true)
             if openTime != timeEnd {
                 // Set to wait till Opening
                 waitTill = openTime

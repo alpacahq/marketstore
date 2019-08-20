@@ -388,7 +388,30 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time, calendar interface{}, opening bool) time.Time {
+func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
+    
+    calendar := cal.NewCalendar()
+
+    // Add US and UK holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+		cal.GBNewYear,
+		cal.GBGoodFriday,
+		cal.GBEasterMonday,
+		cal.GBEarlyMay,
+		cal.GBSpringHoliday,
+		cal.GBSummerHoliday,
+		cal.GBChristmasDay,
+		cal.GBBoxingDay,
+    )
     
     // Forex Opening = Sunday 2200 UTC is the first data we will consume in a session
     // Forex Closing = Friday 2200 UTC is the last data we will consume in a session
@@ -502,29 +525,6 @@ func (tiifx *ForexFetcher) Run() {
             timeStart = lastTimestamp.UTC()
         }
 	}
-        
-    calendar := cal.NewCalendar()
-
-    // Add US and UK holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-		cal.GBNewYear,
-		cal.GBGoodFriday,
-		cal.GBEasterMonday,
-		cal.GBEarlyMay,
-		cal.GBSpringHoliday,
-		cal.GBSummerHoliday,
-		cal.GBChristmasDay,
-		cal.GBBoxingDay,
-    )
     
 	// Set start time if not given.
 	if !tiifx.queryStart.IsZero() {
@@ -532,7 +532,7 @@ func (tiifx *ForexFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiifx.baseTimeframe.Duration)
 	}
-    timeStart = alignTimeToTradingHours(timeStart, calendar, true)
+    timeStart = alignTimeToTradingHours(timeStart, true)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -553,12 +553,12 @@ func (tiifx *ForexFetcher) Run() {
             // Add timeEnd by a range
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
             // If timeEnd is outside of Closing, set it to the closing time
-            timeEnd = alignTimeToTradingHours(timeEnd, calendar, false)
-            if alignTimeToTradingHours(timeStart, calendar, true).After(time.Now().UTC()) {
+            timeEnd = alignTimeToTradingHours(timeEnd, false)
+            if alignTimeToTradingHours(timeStart, true).After(time.Now().UTC()) {
                 // timeStart is at Closing and new timeStart (next Opening) is after current time
                 firstLoop = true
                 realTime = true
-                timeStart = alignTimeToTradingHours(timeStart, calendar, true).Add(-tiifx.baseTimeframe.Duration)
+                timeStart = alignTimeToTradingHours(timeStart, true).Add(-tiifx.baseTimeframe.Duration)
                 // do not run bool
             } else if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
@@ -816,7 +816,7 @@ func (tiifx *ForexFetcher) Run() {
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToTradingHours(timeEnd, calendar, true)
+            openTime := alignTimeToTradingHours(timeEnd, true)
             if openTime != timeEnd {
                 // Set to wait till Opening
                 waitTill = openTime
