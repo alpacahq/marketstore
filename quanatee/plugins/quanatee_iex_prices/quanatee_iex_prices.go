@@ -305,7 +305,7 @@ func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
             nextWorkday := false
             days := 1
             for nextWorkday == false {
-                if calendar.IsWorkDay(timeCheck.AddDate(0, 0, days)) {
+                if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
                     nextWorkday = true
                 }
                 days += days
@@ -476,7 +476,8 @@ func (tiiex *IEXFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(333 * time.Millisecond)
+                time.Sleep(250 * time.Millisecond)
+                time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
