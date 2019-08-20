@@ -19,6 +19,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
     
+	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_forex_prices/calendar"
 )
 
 // Quote - stucture for historical price data

@@ -17,7 +17,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
     
-	"github.com/rickar/cal"
+	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_iex_prices/calendar"    
 )
 
 // Quote - stucture for historical price data
