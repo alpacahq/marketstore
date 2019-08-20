@@ -505,12 +505,8 @@ func (tiifx *ForexFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiifx.baseTimeframe.Duration)
 	}
-    log.Info("1 %v", timeStart)
-        
     timeStart = alignTimeToTradingHours(timeStart)
-    
-    log.Info("2 %v", timeStart)
-        
+       
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time
@@ -527,14 +523,14 @@ func (tiifx *ForexFetcher) Run() {
             // Add timeEnd by a tick
             timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration)
         } else {
-            timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration * 95)
+            // Add timeEnd by a range
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
                 timeEnd = time.Now().UTC()
             }
         }
-        log.Info("%v-%v", timeStart, timeEnd)
         
         if !firstLoop {
             
