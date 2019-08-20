@@ -388,7 +388,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
+func alignTimeToTradingHours(timeCheck time.Time) time.Time {
     
     calendar := cal.NewCalendar()
 
@@ -413,51 +413,24 @@ func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
 		cal.GBBoxingDay,
     )
     
-    // Forex Opening = Sunday 2200 UTC is the first data we will consume in a session
-    // Forex Closing = Friday 2200 UTC is the last data we will consume in a session
-    // We do not account for holidays or disruptions in Marketstore
+    // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
+    // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
+    // We do not account for disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
-    
-    if opening == true {
-        // Set to nearest open hours time if timeCheck is over Trading Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 22 ) || ( int(timeCheck.Weekday()) > 5 ) || ( int(timeCheck.Weekday()) == 0 && timeCheck.Hour() < 22 ) {
-            if int(timeCheck.Weekday()) == 5 {
-                // timeCheck is Friday, Add 2 Days to Sunday
-                timeCheck = timeCheck.AddDate(0, 0, 2)
-            } else if int(timeCheck.Weekday()) == 6 {
-                // timeCheck is Saturday, Add 1 Day to Sunday
-                timeCheck = timeCheck.AddDate(0, 0, 1)
+
+    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 20 ) {
+        // Current date is not a Work Day, or next day is not a Work Day and current Work Day in New York has ended
+        // Find the next Work Day and set to Germany Opening (Overlaps with Japan)
+        nextWorkday := false
+        days := 1
+        for nextWorkday == false {
+            if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
+                nextWorkday = true
             }
-            // Set the Hour and Minutes
-            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 12, 0, 0, 0, time.UTC)
-            // Modifier for Holidays
-            if calendar.IsWorkday(timeCheck) {
-                timeCheck = timeCheck
-            } else {
-                nextWorkday := false
-                days := 1
-                for nextWorkday == false {
-                    if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
-                        nextWorkday = true
-                    }
-                    days += days
-                }
-                timeCheck = timeCheck.AddDate(0, 0, days)
-            }
+            days += days
         }
-    } else {
-        // Set to nearest closing hours time if timeCheck is over Trading Hours
-        if ( int(timeCheck.Weekday()) == 5 && timeCheck.Hour() >= 22 ) || ( int(timeCheck.Weekday()) > 5 ) || ( int(timeCheck.Weekday()) == 0 && timeCheck.Hour() < 22 ) {
-            if int(timeCheck.Weekday()) == 6 {
-                // timeCheck is Saturday, Sub 1 Day to Friday
-                timeCheck = timeCheck.AddDate(0, 0, -1)
-            } else if int(timeCheck.Weekday()) == 0 {
-                // timeCheck is Sunday, Add 2 Days to Friday
-                timeCheck = timeCheck.AddDate(0, 0, -2)
-            }
-            // Set the Hour and Minutes
-            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 21, 0, 0, 0, time.UTC)
-        }
+        timeCheck = timeCheck.AddDate(0, 0, days)
+        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 7, 0, 0, 0, time.UTC)
     }
     return timeCheck
 }
@@ -532,7 +505,7 @@ func (tiifx *ForexFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiifx.baseTimeframe.Duration)
 	}
-    timeStart = alignTimeToTradingHours(timeStart, true)
+    timeStart = alignTimeToTradingHours(timeStart)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -550,17 +523,7 @@ func (tiifx *ForexFetcher) Run() {
             // Add timeEnd by a tick
             timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration)
         } else {
-            // Add timeEnd by a range
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
-            // If timeEnd is outside of Closing, set it to the closing time
-            timeEnd = alignTimeToTradingHours(timeEnd, false)
-            if alignTimeToTradingHours(timeStart, true).After(time.Now().UTC()) {
-                // timeStart is at Closing and new timeStart (next Opening) is after current time
-                firstLoop = true
-                realTime = true
-                timeStart = alignTimeToTradingHours(timeStart, true).Add(-tiifx.baseTimeframe.Duration)
-                // do not run bool
-            } else if timeEnd.After(time.Now().UTC()) {
+            if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
                 timeEnd = time.Now().UTC()
@@ -817,7 +780,7 @@ func (tiifx *ForexFetcher) Run() {
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToTradingHours(timeEnd, true)
+            openTime := alignTimeToTradingHours(timeEnd)
             if openTime != timeEnd {
                 // Set to wait till Opening
                 waitTill = openTime

@@ -251,7 +251,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
+func alignTimeToTradingHours(timeCheck time.Time) time.Time {
     
     calendar := cal.NewCalendar()
 
@@ -268,87 +268,29 @@ func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
         cal.USChristmas,
     )
     
-    // IEX Opening = Weekday 1300 UTC is the first data we will consume in a session
-    // IEX Closing = Weekday 2230 UTC is the last data we will consume in a session
-    // We do not account for holidays or disruptions in Marketstore
+    // Forex Opening = Monday 1300 UTC is the first data we will consume in a session (Germany Open)
+    // Forex Closing = Friday 2230 UTC is the last data we will consume in a session (New York Close)
+    // We do not account for disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
-    
-    if opening == true {
-        // Set to nearest open hours time if timeCheck is over Trading Hours
-        if int(timeCheck.Weekday()) >= 1 && int(timeCheck.Weekday()) < 5 {
-            // If next open hours time will be a weekday
-            if ( timeCheck.Hour() == 22 && timeCheck.Minute() > 30 ) && ( timeCheck.Hour() <= 23 ) {
-                // Add 1 Day since timeCheck is still in the current closing day
-                timeCheck = timeCheck.AddDate(0, 0, 1)
-            } else {
-                // Add 0 Days since timeCheck is already in the next opening day
-                timeCheck = timeCheck
+
+    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && ( (timeCheck.Hour() == 22 && timeCheck.Minute() >= 30) || ( timeCheck.Hour() > 23 ) ) ) {
+        // Current date is not a Work Day, or next day is not a Work Day and current Work Day has ended
+        // Find the next Work Day and set to Opening
+        nextWorkday := false
+        days := 1
+        for nextWorkday == false {
+            if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
+                nextWorkday = true
             }
-        } else if int(timeCheck.Weekday()) == 5 {
-            if ( timeCheck.Hour() == 22 && timeCheck.Minute() >= 30 ) && ( timeCheck.Hour() <= 23 ) {
-                // timeCheck is Friday Add 3 Days to Monday
-                timeCheck = timeCheck.AddDate(0, 0, 3)
-            }
-        } else if int(timeCheck.Weekday()) == 6 {
-            // timeCheck is Saturday Add 2 Day to Monday
-            timeCheck = timeCheck.AddDate(0, 0, 2)
-        } else if int(timeCheck.Weekday()) == 0 {
-            // timeCheck is Sunday Add 1 Day to Monday
-            timeCheck = timeCheck.AddDate(0, 0, 1)
+            days += days
         }
-        // Set the Hour and Minutes
+        timeCheck = timeCheck.AddDate(0, 0, days)
         timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 13, 0, 0, 0, time.UTC)
-        // Modifier for Holidays
-        if calendar.IsWorkday(timeCheck) {
-            timeCheck = timeCheck
-        } else {
-            nextWorkday := false
-            days := 1
-            for nextWorkday == false {
-                if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
-                    nextWorkday = true
-                }
-                days += days
-            }
-            timeCheck = timeCheck.AddDate(0, 0, days)
-        }
-    } else {
-        // Set to nearest close hours time if timeCheck is over Trading Hours
-        if int(timeCheck.Weekday()) >= 1 && int(timeCheck.Weekday()) < 5 {
-            // If next open hours time will be a weekday
-            if ( timeCheck.Hour() == 22 && timeCheck.Minute() >= 30 ) || ( timeCheck.Hour() <= 23 ) {
-                // Sub 0 Days since timeCheck is still in the current closing day
-                timeCheck = timeCheck
-                // Set the Hour and Minutes
-                timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
-            } else if ( timeCheck.Hour() == 13 && timeCheck.Minute() == 0 ) || ( timeCheck.Hour() < 13 ) {
-                // Sub 1 Day since timeCheck is in the next opening day
-                timeCheck = timeCheck.AddDate(0, 0, -1)
-                // Set the Hour and Minutes
-                timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
-            }
-        } else if int(timeCheck.Weekday()) == 6 {
-            // timeCheck is Saturday Sub 1 Day to Friday
-            timeCheck = timeCheck.AddDate(0, 0, -1)
-            // Set the Hour and Minutes
-            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
-        } else if int(timeCheck.Weekday()) == 0 {
-            // timeCheck is Sunday Sub 2 Days to Friday
-            timeCheck = timeCheck.AddDate(0, 0, -2)
-            // Set the Hour and Minutes
-            timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
-        } else if int(timeCheck.Weekday()) == 0 {
-            if ( timeCheck.Hour() == 13 && timeCheck.Minute() == 0 ) || ( timeCheck.Hour() < 13 ) {
-                // timeCheck is Monday before open Sub 3 Days to Friday
-                timeCheck = timeCheck.AddDate(0, 0, -3)
-                // Set the Hour and Minutes
-                timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 22, 30, 0, 0, time.UTC)
-            }
-        }
     }
+    
     return timeCheck
 }
-    
+   
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
@@ -428,7 +370,7 @@ func (tiiex *IEXFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiiex.baseTimeframe.Duration)
 	}
-    timeStart = alignTimeToTradingHours(timeStart, true)
+    timeStart = alignTimeToTradingHours(timeStart)
 
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -447,15 +389,8 @@ func (tiiex *IEXFetcher) Run() {
             timeEnd = timeEnd.Add(tiiex.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 1)
-            // If timeEnd is outside of Closing, set it to the closing time
-            timeEnd = alignTimeToTradingHours(timeEnd, false)
-            if alignTimeToTradingHours(timeStart, true).After(time.Now().UTC()) {
-                // timeStart is at Closing and new timeStart (next Opening) is after current time
-                firstLoop = true
-                realTime = true
-                timeStart = alignTimeToTradingHours(timeStart, true).Add(-tiiex.baseTimeframe.Duration)
-            } else if timeEnd.After(time.Now().UTC()) {
+            timeEnd = timeStart.AddDate(0, 0, 3)
+            if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
                 timeEnd = time.Now().UTC()
@@ -692,7 +627,7 @@ func (tiiex *IEXFetcher) Run() {
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToTradingHours(timeEnd, true)
+            openTime := alignTimeToTradingHours(timeEnd)
             if openTime != timeEnd {
                 // Set to wait till Opening
                 waitTill = openTime
