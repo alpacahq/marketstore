@@ -251,7 +251,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time, calendar Calendar, opening bool) time.Time {
+func alignTimeToTradingHours(timeCheck time.Time, calendar interface{}, opening bool) time.Time {
     
     // IEX Opening = Weekday 1300 UTC is the first data we will consume in a session
     // IEX Closing = Weekday 2230 UTC is the last data we will consume in a session
@@ -407,7 +407,7 @@ func (tiiex *IEXFetcher) Run() {
         cal.USMLK,
         cal.USPresidents,
         cal.GoodFriday,
-        cal.USmemorial,
+        cal.USMemorial,
         cal.USIndependence,
         cal.USLabor,
         cal.USThanksgiving,
