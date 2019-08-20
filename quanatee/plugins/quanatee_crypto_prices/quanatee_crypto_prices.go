@@ -399,7 +399,7 @@ func (tiicc *CryptoFetcher) Run() {
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
-                    log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+                    log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {
                     log.Info("Crypto: error downloading " + symbol)

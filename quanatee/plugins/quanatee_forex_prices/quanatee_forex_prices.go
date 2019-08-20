@@ -625,7 +625,7 @@ func (tiifx *ForexFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0))
+                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, quote)
             }
             
@@ -661,7 +661,7 @@ func (tiifx *ForexFetcher) Run() {
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
-                    log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0))
+                    log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, revQuote)
                 }
             }
