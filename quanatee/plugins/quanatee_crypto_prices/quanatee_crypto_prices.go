@@ -150,15 +150,12 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
-        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
-        quote.High = quote.High[startOfSlice:endOfSlice+1]
-        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
-        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
-        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
-        if !realTime && len(quote.Epoch) < 300 {
-            log.Info("Crypto: %v", quote.Epoch)
-        }
+        quote.Epoch = quote.Epoch[startOfSlice+1:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice+1:endOfSlice+1]
+        quote.High = quote.High[startOfSlice+1:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice+1:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -345,7 +342,9 @@ func (tiicc *CryptoFetcher) Run() {
             timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 1)
+            // Test uneven increments
+            timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true

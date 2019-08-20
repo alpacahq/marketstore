@@ -169,11 +169,11 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice-1:endOfSlice]
-        quote.Open = quote.Open[startOfSlice-1:endOfSlice]
-        quote.High = quote.High[startOfSlice-1:endOfSlice]
-        quote.Low = quote.Low[startOfSlice-1:endOfSlice]
-        quote.Close = quote.Close[startOfSlice-1:endOfSlice]
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+        quote.Open = quote.Open[startOfSlice:endOfSlice]
+        quote.High = quote.High[startOfSlice:endOfSlice]
+        quote.Low = quote.Low[startOfSlice:endOfSlice]
+        quote.Close = quote.Close[startOfSlice:endOfSlice]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -282,11 +282,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
-        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
-        quote.High = quote.High[startOfSlice:endOfSlice+1]
-        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
-        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.Epoch = quote.Epoch[startOfSlice+1:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice+1:endOfSlice+1]
+        quote.High = quote.High[startOfSlice+1:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
     }
