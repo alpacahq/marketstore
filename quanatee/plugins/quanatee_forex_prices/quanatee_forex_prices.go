@@ -418,7 +418,7 @@ func alignTimeToTradingHours(timeCheck time.Time) time.Time {
     // We do not account for disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
 
-    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 20 ) {
+    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 21 ) {
         // Current date is not a Work Day, or next day is not a Work Day and current Work Day in New York has ended
         // Find the next Work Day and set to Germany Opening (Overlaps with Japan)
         nextWorkday := false
@@ -523,6 +523,7 @@ func (tiifx *ForexFetcher) Run() {
             // Add timeEnd by a tick
             timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration)
         } else {
+            timeEnd = timeEnd.Add(tiiex.baseTimeframe.Duration * 95)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true

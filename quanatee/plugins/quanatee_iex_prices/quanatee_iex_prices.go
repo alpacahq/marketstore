@@ -397,8 +397,6 @@ func (tiiex *IEXFetcher) Run() {
             }
         }
         
-        log.Info("IEX %v-%v", timeStart, timeEnd)
-        
         if !firstLoop {
             
             /*
