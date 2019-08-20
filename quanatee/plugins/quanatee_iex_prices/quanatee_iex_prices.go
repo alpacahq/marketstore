@@ -140,14 +140,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice+1:endOfSlice+1]
-        quote.Open = quote.Open[startOfSlice+1:endOfSlice+1]
-        quote.High = quote.High[startOfSlice+1:endOfSlice+1]
-        quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
-        quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
-        if !realTime && len(quote.Epoch) < 300 {
-            log.Info("IEX: %v", quote.Epoch)
-        }
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
+        quote.High = quote.High[startOfSlice:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -370,8 +367,7 @@ func (tiiex *IEXFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC().Add(-tiiex.baseTimeframe.Duration)
 	}
-    timeStart = alignTimeToTradingHours(timeStart)
-
+    
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time
