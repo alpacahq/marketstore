@@ -414,7 +414,7 @@ func alignTimeToTradingHours(timeCheck time.Time, opening bool) time.Time {
                 nextWorkday := false
                 days := 1
                 for nextWorkday == false {
-                    if timeCheck.AddDate(0, 0, days) {
+                    if calendar.IsWorkingDay(timeCheck.AddDate(0, 0, days)) {
                         nextWorkday = true
                     }
                     days += days
@@ -502,6 +502,29 @@ func (tiifx *ForexFetcher) Run() {
             timeStart = lastTimestamp.UTC()
         }
 	}
+        
+    calendar := cal.NewCalendar()
+
+    // Add US and UK holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USmemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+		cal.GBNewYear,
+		cal.GBGoodFriday,
+		cal.GBEasterMonday,
+		cal.GBEarlyMay,
+		cal.GBSpringHoliday,
+		cal.GBSummerHoliday,
+		cal.GBChristmasDay,
+		cal.GBBoxingDay,
+    )
     
 	// Set start time if not given.
 	if !tiifx.queryStart.IsZero() {

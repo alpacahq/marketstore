@@ -290,7 +290,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar cal.Calendar, opening
             nextWorkday := false
             days := 1
             for nextWorkday == false {
-                if timeCheck.AddDate(0, 0, days) {
+                if calendar.IsWorkingDay(timeCheck.AddDate(0, 0, days)) {
                     nextWorkday = true
                 }
                 days += days
@@ -401,25 +401,17 @@ func (tiiex *IEXFetcher) Run() {
     
     calendar := cal.NewCalendar()
 
-    // Add US and UK holidays
+    // Add US holidays
     calendar.AddHoliday(
-        calendar.USNewYear,
-        calendar.USMLK,
-        calendar.USPresidents,
-        calendar.GoodFriday,
-        calendar.USmemorial,
-        calendar.USIndependence,
-        calendar.USLabor,
-        calendar.USThanksgiving,
-        calendar.USChristmas,
-		calendar.GBNewYear,
-		calendarGBGoodFriday,
-		calendar.GBEasterMonday,
-		calendar.GBEarlyMay,
-		calendar.GBSpringHoliday,
-		calendar.GBSummerHoliday,
-		calendar.GBChristmasDay,
-		calendar.GBBoxingDay,
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USmemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
     )
     
 	// Set start time if not given.
