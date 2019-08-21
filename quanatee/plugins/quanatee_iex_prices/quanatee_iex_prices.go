@@ -35,7 +35,7 @@ type Quote struct {
 type Quotes []Quote
 
 // ClientTimeout - connect/read timeout for client requests
-const ClientTimeout = 10 * time.Second
+const ClientTimeout = 30 * time.Second
 
 // NewQuote - new empty Quote struct
 func NewQuote(symbol string, bars int) Quote {
@@ -316,43 +316,43 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 
     symbols := map[string][]string{
-        "US_EQ": config.US_EQ,
-        "US_CB": config.US_CB,
-        "US_GB": config.US_GB,
-        "US_FX": config.US_FX,
-        "EU_EQ": config.EU_EQ,
-        "EU_EQH": config.EU_EQH,
-        "EU_FX": config.EU_FX,
-        "GB_EQ": config.GB_EQ,
-        "GB_EQH": config.GB_EQH,
-        "GB_FX": config.GB_FX,
-        "JP_EQ": config.JP_EQ,
-        "JP_EQH": config.JP_EQH,
-        "JP_FX": config.JP_FX,
-        "CH_EQ": config.CH_EQ,
-        "CH_EQH": config.CH_EQH,
-        "CH_FX": config.CH_FX,
-        "AU_EQ": config.AU_EQ,
-        "AU_EQH": config.AU_EQH,
-        "AU_FX": config.AU_FX,
-        "CA_EQ": config.CA_EQ,
-        "CA_EQH": config.CA_EQH,
-        "CA_FX": config.CA_FX,
-        "CN_EQ": config.CN_EQ,
-        "CN_EQH": config.CN_EQH,
-        "CN_FX": config.CN_FX,
-        "EM_EQ": config.EM_EQ,
-        "EM_EQH": config.EM_EQH,
-        "EM_CB": config.EM_CB,
-        "EM_GB": config.EM_GB,
-        "EM_GBH": config.EM_GBH,
-        "EM_FX": config.EM_FX,
-        "DM_EQ": config.DM_EQ,
-        "DM_EQH": config.DM_EQH,
-        "DM_CB": config.DM_CB,
-        "DM_GB": config.DM_GB,
-        "DM_GBH": config.DM_GBH,
-        "DM_FX": config.DM_FX,
+        "US-EQ": config.US_EQ,
+        "US-CB": config.US_CB,
+        "US-GB": config.US_GB,
+        "US-FX": config.US_FX,
+        "EU-EQ": config.EU_EQ,
+        "EU-EQH": config.EU_EQH,
+        "EU-FX": config.EU_FX,
+        "GB-EQ": config.GB_EQ,
+        "GB-EQH": config.GB_EQH,
+        "GB-FX": config.GB_FX,
+        "JP-EQ": config.JP_EQ,
+        "JP-EQH": config.JP_EQH,
+        "JP-FX": config.JP_FX,
+        "CH-EQ": config.CH_EQ,
+        "CH-EQH": config.CH_EQH,
+        "CH-FX": config.CH_FX,
+        "AU-EQ": config.AU_EQ,
+        "AU-EQH": config.AU_EQH,
+        "AU-FX": config.AU_FX,
+        "CA-EQ": config.CA_EQ,
+        "CA-EQH": config.CA_EQH,
+        "CA-FX": config.CA_FX,
+        "CN-EQ": config.CN_EQ,
+        "CN-EQH": config.CN_EQH,
+        "CN-FX": config.CN_FX,
+        "EM-EQ": config.EM_EQ,
+        "EM-EQH": config.EM_EQH,
+        "EM-CB": config.EM_CB,
+        "EM-GB": config.EM_GB,
+        "EM-GBH": config.EM_GBH,
+        "EM-FX": config.EM_FX,
+        "DM-EQ": config.DM_EQ,
+        "DM-EQH": config.DM_EQH,
+        "DM-CB": config.DM_CB,
+        "DM-GB": config.DM_GB,
+        "DM-GBH": config.DM_GBH,
+        "DM-FX": config.DM_FX,
     }
     
 	return &IEXFetcher{
@@ -461,7 +461,7 @@ func (tiiex *IEXFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(100 * time.Millisecond)
+                time.Sleep(233 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, calendar, tiiex.apiKey)
                 if err == nil {

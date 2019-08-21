@@ -37,7 +37,7 @@ type Quote struct {
 type Quotes []Quote
 
 // ClientTimeout - connect/read timeout for client requests
-const ClientTimeout = 10 * time.Second
+const ClientTimeout = 30 * time.Second
 
 // NewQuote - new empty Quote struct
 func NewQuote(symbol string, bars int) Quote {
@@ -315,10 +315,9 @@ func getJSON(url string, target interface{}) error {
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
-	BTCX           []string  `json:"BTCX"`
-	USDX           []string  `json:"USDX"`
-	EURX           []string  `json:"EURX"`
-	JPYX           []string  `json:"JPYX"`
+	USD_FX          []string `json:"USD-FX"`
+	EUR_FX          []string `json:"EUR-FX"`
+	JPY_FX          []string `json:"JPY-FX"`
     ApiKey         string   `json:"api_key"`
     ApiKey2        string   `json:"api_key2"`
 	QueryStart     string   `json:"query_start"`
@@ -437,9 +436,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
     
     aggSymbols := map[string][]string{
-        "USDX": config.USDX,
-        "EURX": config.EURX,
-        "JPYX": config.JPYX,
+        "USD-FX": config.USD_FX,
+        "EUR-FX": config.EUR_FX,
+        "JPY-FX": config.JPY_FX,
     }
     
 	return &ForexFetcher{
@@ -550,7 +549,7 @@ func (tiifx *ForexFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(100 * time.Millisecond)
+                time.Sleep(233 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
                 intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)

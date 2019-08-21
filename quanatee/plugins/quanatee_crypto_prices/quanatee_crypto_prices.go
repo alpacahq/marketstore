@@ -35,7 +35,7 @@ type Quote struct {
 type Quotes []Quote
 
 // ClientTimeout - connect/read timeout for client requests
-const ClientTimeout = 10 * time.Second
+const ClientTimeout = 30 * time.Second
 
 // NewQuote - new empty Quote struct
 func NewQuote(symbol string, bars int) Quote {
@@ -178,10 +178,10 @@ func getJSON(url string, target interface{}) error {
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
-	BTCZ           []string  `json:"BTCZ"`
-	USDZ           []string  `json:"USDZ"`
-	EURZ           []string  `json:"EURZ"`
-	JPYZ           []string  `json:"JPYZ"`
+	BTC_CC          []string  `json:"BTC-CC"`
+	USD_CC          []string  `json:"USD-CC"`
+	EUR_CC          []string  `json:"EUR-CC"`
+	JPY_CC          []string  `json:"JPY-CC"`
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
@@ -274,10 +274,10 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
     
     aggSymbols := map[string][]string{
-        "BTCZ": config.BTCZ,
-        "USDZ": config.USDZ,
-        "EURZ": config.EURZ,
-        "JPYZ": config.JPYZ,
+        "BTC-CC": config.BTC_CC,
+        "USD-CC": config.USD_CC,
+        "EUR-CC": config.EUR_CC,
+        "JPY-CC": config.JPY_CC,
     }
     
 	return &CryptoFetcher{
@@ -364,7 +364,7 @@ func (tiicc *CryptoFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(100 * time.Millisecond)
+                time.Sleep(233 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
                 if err == nil {
