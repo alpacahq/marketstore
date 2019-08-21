@@ -171,7 +171,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && > dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
@@ -316,7 +316,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && > dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
