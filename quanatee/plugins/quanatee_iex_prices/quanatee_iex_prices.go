@@ -370,7 +370,7 @@ func (tiiex *IEXFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC()
 	}
-    timeStart = alignTimeToTradingHours(timeStart)
+    timeStart = alignTimeToTradingHours(timeStart, calendar)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -629,7 +629,7 @@ func (tiiex *IEXFetcher) Run() {
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 1, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToTradingHours(timeEnd)
+            openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {
                 // Set to wait till Opening
                 waitTill = openTime
