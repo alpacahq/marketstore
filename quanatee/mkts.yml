@@ -14,7 +14,6 @@ triggers:
     config:
       filter: "nasdaq"
       destinations:
-        - 3Min
         - 7Min
         - 11Min
         - 1H
