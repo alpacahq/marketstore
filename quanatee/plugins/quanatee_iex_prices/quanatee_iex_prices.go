@@ -369,8 +369,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 func (tiiex *IEXFetcher) Run() {
 
     symbols := make([]string, 0)
-
-    for aggSymbol, indSymbols := range tiiex.symbols {
+    for _, indSymbols := range tiiex.symbols {
         for _, symbol := range indSymbols {
             symbols = append(symbols, symbol)
         }
