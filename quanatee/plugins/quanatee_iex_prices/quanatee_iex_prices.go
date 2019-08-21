@@ -368,8 +368,8 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 // If query_end is not set, it will run forever.
 func (tiiex *IEXFetcher) Run() {
 
-    symbols := []string()
-    
+    symbols := make([]string, 0)
+
     for aggSymbol, indSymbols := range tiiex.symbols {
         for _, symbol := range indSymbols {
             symbols = append(symbols, symbol)
