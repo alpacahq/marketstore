@@ -350,11 +350,12 @@ func (tiiex *IEXFetcher) Run() {
     
 	realTime := false    
 	timeStart := time.Time{}
-	
+	lastTimestamp := time.Time{}
+    
     // Get last timestamp collected
 	for _, symbol := range tiiex.symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
-        lastTimestamp := findLastTimestamp(tbk)
+        lastTimestamp = findLastTimestamp(tbk)
         log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
             timeStart = lastTimestamp.UTC()
@@ -424,9 +425,9 @@ func (tiiex *IEXFetcher) Run() {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add
                         continue
-                    } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                         // Check if realTime is adding the most recent data
-                        log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
+                        log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
                         continue
                     }
                     // write to csm
@@ -441,6 +442,8 @@ func (tiiex *IEXFetcher) Run() {
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
+                    // Save the latest timestamp written
+                    lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC()
                     log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {

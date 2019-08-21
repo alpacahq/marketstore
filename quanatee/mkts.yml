@@ -26,7 +26,7 @@ bgworkers:
       api_key: "<tiingo_api_key>"
       symbols:
         - ETHBTC
-      query_start: "2019-01-01 00:00"
+      query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
@@ -34,12 +34,12 @@ bgworkers:
       api_key2: "<intrinio_api_key>"
       symbols:
         - EURUSD
-      query_start: "2019-01-01 00:00"
+      query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
         - ESGD
-      query_start: "2019-01-01 00:00"
+      query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"

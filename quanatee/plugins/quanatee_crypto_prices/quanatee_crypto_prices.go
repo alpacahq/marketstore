@@ -307,11 +307,12 @@ func (tiicc *CryptoFetcher) Run() {
     
 	realTime := false    
 	timeStart := time.Time{}
+	lastTimestamp := time.Time{}
 	
     // Get last timestamp collected
 	for _, symbol := range tiicc.symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
-        lastTimestamp := findLastTimestamp(tbk)
+        lastTimestamp = findLastTimestamp(tbk)
         log.Info("Crypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
             timeStart = lastTimestamp.UTC()
@@ -381,9 +382,9 @@ func (tiicc *CryptoFetcher) Run() {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add
                         continue
-                    } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                         // Check if realTime is adding the most recent data
-                        log.Info("Crypto: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                        log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                         continue
                     }
                     // write to csm
@@ -398,6 +399,8 @@ func (tiicc *CryptoFetcher) Run() {
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
+                    // Save the latest timestamp written
+                    lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC()
                     log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {
