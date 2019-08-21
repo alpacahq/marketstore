@@ -213,7 +213,7 @@ type FetcherConfig struct {
 // IEXFetcher is the main worker for TiingoIEX
 type IEXFetcher struct {
 	config         map[string]interface{}
-	symbols        []string
+	symbols        map[string][]string
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
@@ -495,10 +495,16 @@ func (tiiex *IEXFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            for aggSymbol, indSymbols := range tiiex.symbols {
-                aggQuote := NewQuote(aggSymbol, 0)
+            // Convert keys (int) into strings
+            keys := reflect.ValueOf(tiiex.symbols).MapKeys()
+            aggSymbols := make([]string, len(keys))
+            for i := 0; i < len(keys); i++ {
+                aggSymbols[i] = keys[i].String()
+            }
+            for key, symbols := range tiiex.symbols {
+                aggQuote := NewQuote(aggSymbols[key], 0)
                 for _, quote := range quotes {
-                    for _, symbol := range indSymbols {
+                    for _, symbol := range symbols {
                         if quote.Symbol == symbol {
                             if len(quote.Epoch) > 0 {
                                 if len(aggQuote.Epoch) == 0 {

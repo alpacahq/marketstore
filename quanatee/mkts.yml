@@ -45,14 +45,14 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
-      btcz_symbols:
+      BTCZ:
         - ETHBTC
         - ETCBTC
         - EOSBTC
         - LTCBTC
         - XLMBTC
         - XRPBTC
-      usdz_symbols:
+      USDZ:
         - BTCUSD
         - ETHUSD
         - ETCUSD
@@ -60,7 +60,7 @@ bgworkers:
         - LTCUSD
         - XLMUSD
         - XRPUSD
-      eurz_symbols:
+      EURZ:
         - BTCEUR
         - ETHEUR
         - ETCEUR
@@ -93,7 +93,7 @@ bgworkers:
         - CHFJPY
         - NZDJPY
         - CADJPY
-      usdx_symbols:
+      USDX:
         - EURUSD
         - JPYUSD
         - GBPUSD
@@ -101,7 +101,7 @@ bgworkers:
         - CHFUSD
         - NZDUSD
         - CADUSD
-      eurx_symbols:
+      EURX:
         - USDEUR
         - JPYEUR
         - GBPEUR
@@ -109,7 +109,7 @@ bgworkers:
         - CHFEUR
         - NZDEUR
         - CADEUR
-      jpyx_symbols:
+      JPX:
         - USDJPY
         - EURJPY
         - GBPJPY

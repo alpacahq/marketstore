@@ -178,24 +178,23 @@ func getJSON(url string, target interface{}) error {
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
+	BTCZ           []string  `json:"BTCZ"`
+	USDZ           []string  `json:"USDZ"`
+	EURZ           []string  `json:"EURZ"`
+	JPYZ           []string  `json:"JPYZ"`
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
-	BTCZSymbols   []string  `json:"btcz_symbols"`
-	USDZSymbols   []string  `json:"usdz_symbols"`
-	EURZSymbols   []string  `json:"eurz_symbols"`
 }
 
 // CryptoFetcher is the main worker for TiingoCrypto
 type CryptoFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
+	aggSymbols    map[string][]string
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
-	btczSymbols   []string
-	usdzSymbols   []string
-	eurzSymbols   []string
 }
 
 // recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
@@ -261,9 +260,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	var btczSymbols []string
-	var usdzSymbols []string
-	var eurzSymbols []string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -277,27 +273,20 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	if len(config.BTCZSymbols) > 0 {
-		btczSymbols = config.BTCZSymbols
-	}
-    
-	if len(config.USDZSymbols) > 0 {
-		usdzSymbols = config.USDZSymbols
-	}
-    
-	if len(config.EURZSymbols) > 0 {
-		eurzSymbols = config.EURZSymbols
-	}
+    aggSymbols := map[string][]string{
+        "BTCZ": config.BTCZ,
+        "USDZ": config.USDZ,
+        "EURZ": config.EURZ,
+        "JPYZ": config.JPYZ,
+    }
     
 	return &CryptoFetcher{
 		config:         conf,
 		symbols:        symbols,
+		aggSymbols:     aggSymbols,
         apiKey:         config.ApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
-        btczSymbols:    btczSymbols,  
-        usdzSymbols:    usdzSymbols,
-        eurzSymbols:    eurzSymbols,
 	}, nil
 }
 
@@ -409,95 +398,39 @@ func (tiicc *CryptoFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            
-            // Add BTCZ
-            if len(tiicc.btczSymbols) > 0 {
-                btcz_quote := NewQuote("BTCZ", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiicc.btczSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(btcz_quote.Epoch) == 0 {
-                                    btcz_quote.Epoch = quote.Epoch
-                                    btcz_quote.Open = quote.Open
-                                    btcz_quote.High = quote.High
-                                    btcz_quote.Low = quote.Low
-                                    btcz_quote.Close = quote.Close
-                                } else if len(btcz_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(btcz_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        btcz_quote.Open[bar] = (quote.Open[bar] + btcz_quote.Open[bar]) / 2
-                                        btcz_quote.High[bar] = (quote.High[bar] + btcz_quote.High[bar]) / 2
-                                        btcz_quote.Low[bar] = (quote.Low[bar] + btcz_quote.Low[bar]) / 2
-                                        btcz_quote.Close[bar] = (quote.Close[bar] + btcz_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(btcz_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, btcz_quote)
-                }
+            // Convert keys (int) into strings
+            keys := reflect.ValueOf(tiiex.symbols).MapKeys()
+            aggSymbols := make([]string, len(keys))
+            for i := 0; i < len(keys); i++ {
+                aggSymbols[i] = keys[i].String()
             }
-            // Add USDZ
-            if len(tiicc.usdzSymbols) > 0 {
-                usdz_quote := NewQuote("USDZ", 0)
+            for key, symbols := range tiiex.symbols {
+                aggQuote := NewQuote(aggSymbols[key], 0)
                 for _, quote := range quotes {
-                    for _, symbol := range tiicc.usdzSymbols {
+                    for _, symbol := range symbols {
                         if quote.Symbol == symbol {
                             if len(quote.Epoch) > 0 {
-                                if len(usdz_quote.Epoch) == 0 {
-                                    usdz_quote.Epoch = quote.Epoch
-                                    usdz_quote.Open = quote.Open
-                                    usdz_quote.High = quote.High
-                                    usdz_quote.Low = quote.Low
-                                    usdz_quote.Close = quote.Close
-                                } else if len(usdz_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(usdz_quote.Epoch)
+                                if len(aggQuote.Epoch) == 0 {
+                                    aggQuote.Epoch = quote.Epoch
+                                    aggQuote.Open = quote.Open
+                                    aggQuote.High = quote.High
+                                    aggQuote.Low = quote.Low
+                                    aggQuote.Close = quote.Close
+                                } else if len(aggQuote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
-                                        usdz_quote.Open[bar] = (quote.Open[bar] + usdz_quote.Open[bar]) / 2
-                                        usdz_quote.High[bar] = (quote.High[bar] + usdz_quote.High[bar]) / 2
-                                        usdz_quote.Low[bar] = (quote.Low[bar] + usdz_quote.Low[bar]) / 2
-                                        usdz_quote.Close[bar] = (quote.Close[bar] + usdz_quote.Close[bar]) / 2
+                                        aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
+                                        aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
+                                        aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
+                                        aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
                                     }
                                 }
                             }
                         }
                     }
                 }
-                if len(usdz_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, usdz_quote)
-                }
-            }
-            // Add EURZ
-            if len(tiicc.eurzSymbols) > 0 {
-                eurz_quote := NewQuote("EURZ", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiicc.eurzSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(eurz_quote.Epoch) == 0 {
-                                    eurz_quote.Epoch = quote.Epoch
-                                    eurz_quote.Open = quote.Open
-                                    eurz_quote.High = quote.High
-                                    eurz_quote.Low = quote.Low
-                                    eurz_quote.Close = quote.Close
-                                } else if len(eurz_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(eurz_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        eurz_quote.Open[bar] = (quote.Open[bar] + eurz_quote.Open[bar]) / 2
-                                        eurz_quote.High[bar] = (quote.High[bar] + eurz_quote.High[bar]) / 2
-                                        eurz_quote.Low[bar] = (quote.Low[bar] + eurz_quote.Low[bar]) / 2
-                                        eurz_quote.Close[bar] = (quote.Close[bar] + eurz_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(eurz_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, eurz_quote)
+                if len(aggQuote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, aggQuote)
                 }
             }
             

@@ -315,26 +315,25 @@ func getJSON(url string, target interface{}) error {
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
+	BTCX           []string  `json:"BTCZ"`
+	USDX           []string  `json:"USDZ"`
+	EURX           []string  `json:"EURZ"`
+	JPYZ           []string  `json:"JPYZ"`
     ApiKey         string   `json:"api_key"`
     ApiKey2        string   `json:"api_key2"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
-	USDXSymbols    []string `json:"usdx_symbols"`
-	EURXSymbols    []string `json:"eurx_symbols"`
-	JPYXSymbols    []string `json:"jpyx_symbols"`
 }
 
 // ForexFetcher is the main worker for TiingoForex
 type ForexFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
+	aggSymbols    map[string][]string
     apiKey         string
     apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
-	usdxSymbols    []string
-	eurxSymbols    []string
-	jpyxSymbols    []string
 }
 
 // recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
@@ -424,9 +423,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	var usdxSymbols []string
-	var eurxSymbols []string
-	var jpyxSymbols []string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -440,28 +436,20 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	if len(config.USDXSymbols) > 0 {
-		usdxSymbols = config.USDXSymbols
-	}
-    
-	if len(config.EURXSymbols) > 0 {
-		eurxSymbols = config.EURXSymbols
-	}
-    
-	if len(config.JPYXSymbols) > 0 {
-		jpyxSymbols = config.JPYXSymbols
-	}
+    aggSymbols := map[string][]string{
+        "USDX": config.USDX,
+        "EURX": config.EURX,
+        "JPYX": config.JPYX,
+    }
     
 	return &ForexFetcher{
 		config:         conf,
 		symbols:        symbols,
+		aggSymbols:     aggSymbols,
         apiKey:         config.ApiKey,
         apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
-        usdxSymbols:    usdxSymbols,
-        eurxSymbols:    eurxSymbols,
-        jpyxSymbols:    jpyxSymbols,
 	}, nil
 }
 
@@ -682,99 +670,43 @@ func (tiifx *ForexFetcher) Run() {
                 }
             }
             
-            // Combine original quotes with mirrored quotes for aggregation into index currencies (USDX, EURX, JPYX)
             aggQuotes := Quotes{}
+            // Convert keys (int) into strings
+            keys := reflect.ValueOf(tiiex.symbols).MapKeys()
+            aggSymbols := make([]string, len(keys))
+            for i := 0; i < len(keys); i++ {
+                aggSymbols[i] = keys[i].String()
+            }
+            for key, symbols := range tiiex.symbols {
+                aggQuote := NewQuote(aggSymbols[key], 0)
+                for _, quote := range quotes {
+                    for _, symbol := range symbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(aggQuote.Epoch) == 0 {
+                                    aggQuote.Epoch = quote.Epoch
+                                    aggQuote.Open = quote.Open
+                                    aggQuote.High = quote.High
+                                    aggQuote.Low = quote.Low
+                                    aggQuote.Close = quote.Close
+                                } else if len(aggQuote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(aggQuote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
+                                        aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
+                                        aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
+                                        aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(aggQuote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, aggQuote)
+                }
+            }
             
-            // Add USDX
-            if len(tiifx.usdxSymbols) > 0 {
-                usdx_quote := NewQuote("USDX", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiifx.usdxSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(usdx_quote.Epoch) == 0 {
-                                    usdx_quote.Epoch = quote.Epoch
-                                    usdx_quote.Open = quote.Open
-                                    usdx_quote.High = quote.High
-                                    usdx_quote.Low = quote.Low
-                                    usdx_quote.Close = quote.Close
-                                } else if len(usdx_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(usdx_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        usdx_quote.Open[bar] = (quote.Open[bar] + usdx_quote.Open[bar]) / 2
-                                        usdx_quote.High[bar] = (quote.High[bar] + usdx_quote.High[bar]) / 2
-                                        usdx_quote.Low[bar] = (quote.Low[bar] + usdx_quote.Low[bar]) / 2
-                                        usdx_quote.Close[bar] = (quote.Close[bar] + usdx_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(usdx_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, usdx_quote)
-                }
-            }
-            // Add EURX
-            if len(tiifx.eurxSymbols) > 0 {
-                eurx_quote := NewQuote("EURX", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiifx.eurxSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(eurx_quote.Epoch) == 0 {
-                                    eurx_quote.Epoch = quote.Epoch
-                                    eurx_quote.Open = quote.Open
-                                    eurx_quote.High = quote.High
-                                    eurx_quote.Low = quote.Low
-                                    eurx_quote.Close = quote.Close
-                                } else if len(eurx_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(eurx_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        eurx_quote.Open[bar] = (quote.Open[bar] + eurx_quote.Open[bar]) / 2
-                                        eurx_quote.High[bar] = (quote.High[bar] + eurx_quote.High[bar]) / 2
-                                        eurx_quote.Low[bar] = (quote.Low[bar] + eurx_quote.Low[bar]) / 2
-                                        eurx_quote.Close[bar] = (quote.Close[bar] + eurx_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(eurx_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, eurx_quote)
-                }
-            }
-            // Add JPYX
-            if len(tiifx.jpyxSymbols) > 0 {
-                jpyx_quote := NewQuote("JPYX", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiifx.jpyxSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(jpyx_quote.Epoch) == 0 {
-                                    jpyx_quote.Epoch = quote.Epoch
-                                    jpyx_quote.Open = quote.Open
-                                    jpyx_quote.High = quote.High
-                                    jpyx_quote.Low = quote.Low
-                                    jpyx_quote.Close = quote.Close
-                                } else if len(jpyx_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(jpyx_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        jpyx_quote.Open[bar] = (quote.Open[bar] + jpyx_quote.Open[bar]) / 2
-                                        jpyx_quote.High[bar] = (quote.High[bar] + jpyx_quote.High[bar]) / 2
-                                        jpyx_quote.Low[bar] = (quote.Low[bar] + jpyx_quote.Low[bar]) / 2
-                                        jpyx_quote.Close[bar] = (quote.Close[bar] + jpyx_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(jpyx_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, jpyx_quote)
-                }
-            }
             
             for _, quote := range aggQuotes {
                 // write to csm
