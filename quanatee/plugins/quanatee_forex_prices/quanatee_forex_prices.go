@@ -156,7 +156,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	}
     
 	if len(forexData.PriceData) < 1 {
-        if !calendar.isWorkday(from) && !calendar.isWorkday(to) {
+        if !calendar.IsWorkday(from) && !calendar.IsWorkday(to) {
             log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
         }
 		return NewQuote(symbol, 0), err

@@ -99,6 +99,21 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
+    calendar := cal.NewCalendar()
+
+    // Add US holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+    )
+    
 	if err != nil {
 		log.Info("IEX: symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
@@ -113,7 +128,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
 	if len(iexData) < 1 {
-        log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+        if !calendar.IsWorkday(from) && !calendar.IsWorkday(to) {
+            log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+        }
  		return NewQuote(symbol, 0), err
 	}
     
