@@ -100,7 +100,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("IEX: symbol '%s' not found \n %s", symbol, api_url)
+		log.Info("IEX: symbol '%s' error: %s \n %s", symbol, err, api_url)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
