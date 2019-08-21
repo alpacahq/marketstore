@@ -50,7 +50,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period utils.NewTimeframe, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period utils.Timeframe, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
 	switch period.String {
