@@ -459,7 +459,7 @@ func (tiiex *IEXFetcher) Run() {
                     executor.WriteCSM(csm, false)
                     
                     // Save the latest timestamp written
-                    lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC()
+                    lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
                     log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {
