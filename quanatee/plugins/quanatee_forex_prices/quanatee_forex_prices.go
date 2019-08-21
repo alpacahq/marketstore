@@ -804,7 +804,7 @@ func (tiifx *ForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*5)
+			time.Sleep(time.Second*4)
 		}
 	}
 }
