@@ -384,6 +384,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
     
     // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
     // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
+    // In the event of a holiday, we close at 2100 UTC and open at 0700 UTC
     // We do not account for disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
 
@@ -599,7 +600,7 @@ func (tiifx *ForexFetcher) Run() {
                     continue
                 } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                     // Check if realTime is adding the most recent data
-                    log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Forex: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                     continue
                 }
                 // write to csm
@@ -652,7 +653,7 @@ func (tiifx *ForexFetcher) Run() {
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
-                    // log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                    log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, revQuote)
                 }
             }
