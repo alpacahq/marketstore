@@ -397,14 +397,14 @@ func (tiiex *IEXFetcher) Run() {
         if firstLoop {
             firstLoop = false
         } else {
-            timeStart = lastTimestamp
+            timeStart = timeEnd
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration)
+            timeEnd = timeEnd.Add(tiiex.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 1)
+            timeEnd = timeEnd.AddDate(0, 0, 1)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -650,7 +650,7 @@ func (tiiex *IEXFetcher) Run() {
             log.Info("IEX: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*60)
+			time.Sleep(time.Second*30)
 		}
 	}
 }

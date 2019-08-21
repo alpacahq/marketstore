@@ -566,14 +566,14 @@ func (tiifx *ForexFetcher) Run() {
         if firstLoop {
             firstLoop = false
         } else {
-            timeStart = lastTimestamp
+            timeStart = timeEnd
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
+            timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99)
+            timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration * 99)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -841,7 +841,7 @@ func (tiifx *ForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*5)
+			time.Sleep(time.Second*15)
 		}
 	}
 }
