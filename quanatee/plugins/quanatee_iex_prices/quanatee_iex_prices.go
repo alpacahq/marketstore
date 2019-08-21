@@ -112,8 +112,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		return NewQuote(symbol, 0), err
 	}
     
-	if len(iexData) < 1 {
-        if !calendar.IsWorkday(from) && !calendar.IsWorkday(to) {
+    if len(iexData) < 1 {
+        if ( ( calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() >= 12 ) && ( ( from.Hour() < 22 ) || ( from.Hour() == 22 && from.Minute() <= 30 ) ) ) ) ) {
             log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
         }
  		return NewQuote(symbol, 0), err
@@ -421,8 +421,8 @@ func (tiiex *IEXFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(250 * time.Millisecond)
-                time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
+                time.Sleep(100 * time.Millisecond)
+                time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, calendar, tiiex.apiKey)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
@@ -627,7 +627,7 @@ func (tiiex *IEXFetcher) Run() {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 1, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 5, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {
