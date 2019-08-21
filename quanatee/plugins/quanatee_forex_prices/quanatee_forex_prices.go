@@ -552,10 +552,10 @@ func (tiifx *ForexFetcher) Run() {
 	if !tiifx.queryStart.IsZero() {
 		timeStart = tiifx.queryStart.UTC()
 	} else {
-		timeStart = time.Now().UTC().Add(-tiifx.baseTimeframe.Duration)
+		timeStart = time.Now().UTC()
 	}
     timeStart = alignTimeToTradingHours(timeStart)
-       
+    
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time

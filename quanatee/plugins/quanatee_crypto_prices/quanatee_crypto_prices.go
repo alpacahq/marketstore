@@ -150,12 +150,12 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
-        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
-        quote.High = quote.High[startOfSlice:endOfSlice+1]
-        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
-        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
-        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+        quote.Open = quote.Open[startOfSlice:endOfSlice]
+        quote.High = quote.High[startOfSlice:endOfSlice]
+        quote.Low = quote.Low[startOfSlice:endOfSlice]
+        quote.Close = quote.Close[startOfSlice:endOfSlice]
+        quote.Volume = quote.Volume[startOfSlice:endOfSlice]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -323,7 +323,7 @@ func (tiicc *CryptoFetcher) Run() {
 	if !tiicc.queryStart.IsZero() {
 		timeStart = tiicc.queryStart.UTC()
 	} else {
-		timeStart = time.Now().UTC().Add(-tiicc.baseTimeframe.Duration)
+		timeStart = time.Now().UTC()
 	}
     
 	// For loop for collecting candlestick data forever

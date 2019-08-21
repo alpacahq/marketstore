@@ -157,11 +157,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
-        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
-        quote.High = quote.High[startOfSlice:endOfSlice+1]
-        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
-        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice]
+        quote.Open = quote.Open[startOfSlice:endOfSlice]
+        quote.High = quote.High[startOfSlice:endOfSlice]
+        quote.Low = quote.Low[startOfSlice:endOfSlice]
+        quote.Close = quote.Close[startOfSlice:endOfSlice]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -282,8 +282,8 @@ func alignTimeToTradingHours(timeCheck time.Time) time.Time {
         cal.USChristmas,
     )
     
-    // Forex Opening = Monday 1300 UTC is the first data we will consume in a session (Germany Open)
-    // Forex Closing = Friday 2230 UTC is the last data we will consume in a session (New York Close)
+    // NYSE Opening = 1200 UTC is the first data we will consume in a session
+    // NYSE Closing = 2130 UTC is the last data we will consume in a session
     // We do not account for disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
 
@@ -383,8 +383,9 @@ func (tiiex *IEXFetcher) Run() {
 	if !tiiex.queryStart.IsZero() {
 		timeStart = tiiex.queryStart.UTC()
 	} else {
-		timeStart = time.Now().UTC().Add(-tiiex.baseTimeframe.Duration)
+		timeStart = time.Now().UTC()
 	}
+    timeStart = alignTimeToTradingHours(timeStart)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
