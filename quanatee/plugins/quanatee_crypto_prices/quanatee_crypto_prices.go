@@ -351,6 +351,8 @@ func (tiicc *CryptoFetcher) Run() {
             }
         }
         
+        log.Info("Crypto: %v-%v", timeStart, timeEnd)
+        
         if !firstLoop {
             
             /*
