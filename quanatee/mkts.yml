@@ -45,6 +45,13 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
+        - BTCJPY
+        - ETHJPY
+        - ETCJPY
+        - EOSJPY
+        - LTCJPY
+        - XLMJPY
+        - XRPJPY
       BTC-CC:
         - ETHBTC
         - ETCBTC
