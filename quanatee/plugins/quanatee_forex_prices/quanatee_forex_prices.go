@@ -37,7 +37,7 @@ type Quote struct {
 type Quotes []Quote
 
 // ClientTimeout - connect/read timeout for client requests
-const ClientTimeout = 30 * time.Second
+const ClientTimeout = 15 * time.Second
 
 // NewQuote - new empty Quote struct
 func NewQuote(symbol string, bars int) Quote {
@@ -300,18 +300,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	return quote, nil
 }
 
-// getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
-func getJSON(url string, target interface{}) error {
-	var myClient = &http.Client{Timeout: 10 * time.Second}
-	r, err := myClient.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Decode(target)
-}
-
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
@@ -549,8 +537,8 @@ func (tiifx *ForexFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(233 * time.Millisecond)
-                time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+                time.Sleep(300 * time.Millisecond)
+                time.Sleep(time.Duration(rand.Intn(200)) * time.Millisecond)
                 tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
                 intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
                 quote := NewQuote(symbol, 0)
