@@ -336,16 +336,14 @@ func (tiicc *CryptoFetcher) Run() {
         if firstLoop {
             firstLoop = false
         } else {
-            timeStart = timeEnd
+            timeStart = lastTimestamp
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration)
+            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 1)
-            // Test uneven increments
-            timeEnd = timeEnd.Add(tiicc.baseTimeframe.Duration)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -514,7 +512,7 @@ func (tiicc *CryptoFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, timeStart, timeEnd)
+                log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
             }
         }
 		if realTime {

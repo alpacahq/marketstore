@@ -566,14 +566,14 @@ func (tiifx *ForexFetcher) Run() {
         if firstLoop {
             firstLoop = false
         } else {
-            timeStart = timeEnd
+            timeStart = lastTimestamp
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration)
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 95) // Under Intrinio's limit of 100 records per request
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
