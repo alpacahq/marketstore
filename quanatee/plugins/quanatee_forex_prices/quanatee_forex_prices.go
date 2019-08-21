@@ -51,10 +51,10 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, period string, token string) (Quote, error) {
+func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, period utils.NewTimeframe, token string) (Quote, error) {
     
 	resampleFreq := "H1"
-	switch period {
+	switch period.String {
 	case "1Min":
 		resampleFreq = "m1"
 	case "5Min":
@@ -108,7 +108,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
                         resampleFreq,
                         token,
                         url.QueryEscape(from.Format("2006-01-02")),
-                        url.QueryEscape(from.Format("15:04:05")))
+                        url.QueryEscape(from.Add(-period.Duration).Format("15:04:05")))
     
     if !realTime {
         api_url = api_url + "&end_date=" + url.QueryEscape(to.Format("2006-01-02")) + "&end_time=" + url.QueryEscape(to.Format("15:04:05"))
@@ -215,10 +215,10 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	return quote, nil
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period utils.NewTimeframe, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
-	switch period {
+	switch period.String {
 	case "1Min":
 		resampleFreq = "1min"
 	case "5Min":
@@ -605,8 +605,8 @@ func (tiifx *ForexFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(250 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
-                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
-                intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
+                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.apiKey)
+                intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.apiKey2)
                 quote := NewQuote(symbol, 0)
                 // If both Quotes have valid datas, combine them
                 // If not, serve only the quote with valid datas

@@ -49,10 +49,10 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period utils.NewTimeframe, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
-	switch period {
+	switch period.String {
 	case "1Min":
 		resampleFreq = "1min"
 	case "5Min":
@@ -438,7 +438,7 @@ func (tiiex *IEXFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(250 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
-                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
+                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, tiiex.apiKey)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add
