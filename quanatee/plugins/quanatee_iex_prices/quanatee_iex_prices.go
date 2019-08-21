@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
     "math/rand"
+    "reflect"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -367,13 +368,21 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 // Run grabs data in intervals from starting time to ending time.
 // If query_end is not set, it will run forever.
 func (tiiex *IEXFetcher) Run() {
+
+    symbols := []string
+    
+    for aggSymbol, indSymbols := range tiiex.symbols {
+        for _, symbol := range indSymbols {
+            symbols = append(symbols, symbol)
+        }
+    }
     
 	realTime := false    
 	timeStart := time.Time{}
 	lastTimestamp := time.Time{}
     
     // Get last timestamp collected
-	for _, symbol := range tiiex.symbols {
+	for _, symbol := range symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
@@ -449,13 +458,6 @@ func (tiiex *IEXFetcher) Run() {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
             
             quotes := Quotes{}
-            symbols := []string
-            
-            for aggSymbol, indSymbols := range tiiex.symbols {
-                for _, symbol := range indSymbols {
-                    symbols = append(symbols, symbol)
-                }
-            }
             
             rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
             // Data for symbols are retrieved in random order for fairness

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
     "math/rand"
+    "reflect"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -399,12 +400,12 @@ func (tiicc *CryptoFetcher) Run() {
             
             aggQuotes := Quotes{}
             // Convert keys (int) into strings
-            keys := reflect.ValueOf(tiiex.symbols).MapKeys()
+            keys := reflect.ValueOf(tiicc.symbols).MapKeys()
             aggSymbols := make([]string, len(keys))
             for i := 0; i < len(keys); i++ {
                 aggSymbols[i] = keys[i].String()
             }
-            for key, symbols := range tiiex.symbols {
+            for key, symbols := range tiicc.symbols {
                 aggQuote := NewQuote(aggSymbols[key], 0)
                 for _, quote := range quotes {
                     for _, symbol := range symbols {

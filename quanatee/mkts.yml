@@ -109,7 +109,7 @@ bgworkers:
         - CHFEUR
         - NZDEUR
         - CADEUR
-      JPX:
+      JPYX:
         - USDJPY
         - EURJPY
         - GBPJPY

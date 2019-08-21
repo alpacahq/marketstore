@@ -11,6 +11,7 @@ import (
     "strconv"
     "strings"
     "math/rand"
+    "reflect"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -672,12 +673,12 @@ func (tiifx *ForexFetcher) Run() {
             
             aggQuotes := Quotes{}
             // Convert keys (int) into strings
-            keys := reflect.ValueOf(tiiex.symbols).MapKeys()
+            keys := reflect.ValueOf(tiifx.symbols).MapKeys()
             aggSymbols := make([]string, len(keys))
             for i := 0; i < len(keys); i++ {
                 aggSymbols[i] = keys[i].String()
             }
-            for key, symbols := range tiiex.symbols {
+            for key, symbols := range tiifx.symbols {
                 aggQuote := NewQuote(aggSymbols[key], 0)
                 for _, quote := range quotes {
                     for _, symbol := range symbols {
