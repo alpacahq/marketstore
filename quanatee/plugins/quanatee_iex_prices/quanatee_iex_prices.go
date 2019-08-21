@@ -401,10 +401,10 @@ func (tiiex *IEXFetcher) Run() {
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeEnd.Add(tiiex.baseTimeframe.Duration)
+            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeEnd.AddDate(0, 0, 1)
+            timeEnd = timeStart.AddDate(0, 0, 1)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true

@@ -570,10 +570,10 @@ func (tiifx *ForexFetcher) Run() {
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration)
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeEnd.Add(tiifx.baseTimeframe.Duration * 99)
+            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
