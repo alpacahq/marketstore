@@ -44,7 +44,7 @@ plugins:
 
 unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...
-	$(MAKE) test
+	$(MAKE) coverage
 	$(MAKE) integration-test
 
 integration-test:
@@ -52,6 +52,11 @@ integration-test:
 
 test:
 	GOFLAGS=$(GOFLAGS) go test ./...
+
+coverage:
+	# marketstore/contrib/stream/shelf/shelf_test.go fails if "-race" enabled...
+	# GOFLAGS=$(GOFLAGS) go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+	go test -coverprofile=coverage.txt -covermode=atomic ./...
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)

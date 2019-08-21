@@ -2,7 +2,6 @@ package api
 
 import (
 	"testing"
-	"time"
 )
 
 var client BitmexClient
@@ -27,17 +26,17 @@ func TestGetInstruments(t *testing.T) {
 	}
 }
 
-func TestGetBucket(t *testing.T) {
-	symbol := "XBTUSD"
-	lastWeek := time.Now().AddDate(0, -1, 0)
-	trades, err := client.GetBuckets(symbol, lastWeek, "1H")
-	if err != nil {
-		t.Error(err)
-	}
-	if len(trades) == 0 {
-		t.Errorf("Did not load any trades from GetBucket()")
-	}
-	if trades[0].Symbol != symbol {
-		t.Errorf("Did not load trades from correct symbol %s", symbol)
-	}
-}
+//func TestGetBucket(t *testing.T) {
+//	symbol := "XBTUSD"
+//	lastWeek := time.Now().AddDate(0, -1, 0)
+//	trades, err := client.GetBuckets(symbol, lastWeek, "1H")
+//	if err != nil {
+//		t.Error(err)
+//	}
+//	if len(trades) == 0 {
+//		t.Errorf("Did not load any trades from GetBucket()")
+//	}
+//	if trades[0].Symbol != symbol {
+//		t.Errorf("Did not load trades from correct symbol %s", symbol)
+//	}
+//}

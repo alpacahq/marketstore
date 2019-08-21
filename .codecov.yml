@@ -1,0 +1,22 @@
+coverage:
+  range: "70..90"
+  round: down
+  precision: 2
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        target: 70%
+  ignore:
+    - "vendor/.*"
+
+comment:
+  layout: "header, diff, changes, tree"
+  behavior: default
+
+ignore:
+  - "vendor/.*"
