@@ -49,7 +49,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
 	switch period.String {
@@ -99,21 +99,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
-    calendar := cal.NewCalendar()
-
-    // Add US holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-    )
-    
 	if err != nil {
 		log.Info("IEX: symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
@@ -265,22 +250,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time) time.Time {
-    
-    calendar := cal.NewCalendar()
-
-    // Add US holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-    )
+func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
     
     // NYSE Opening = 1200 UTC is the first data we will consume in a session
     // NYSE Closing = 2130 UTC is the last data we will consume in a session
@@ -378,6 +348,21 @@ func (tiiex *IEXFetcher) Run() {
             timeStart = lastTimestamp.UTC()
         }
 	}
+    
+    calendar := cal.NewCalendar()
+
+    // Add US holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+    )
     
 	// Set start time if not given.
 	if !tiiex.queryStart.IsZero() {

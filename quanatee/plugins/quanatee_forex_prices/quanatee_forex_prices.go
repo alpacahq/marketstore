@@ -51,7 +51,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
+func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
     
 	resampleFreq := "H1"
 	switch period.String {
@@ -118,29 +118,6 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
-
-    calendar := cal.NewCalendar()
-
-    // Add US and UK holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-		cal.GBNewYear,
-		cal.GBGoodFriday,
-		cal.GBEasterMonday,
-		cal.GBEarlyMay,
-		cal.GBSpringHoliday,
-		cal.GBSummerHoliday,
-		cal.GBChristmasDay,
-		cal.GBBoxingDay,
-    )
     
 	if err != nil {
 		log.Info("Forex: Intrinio symbol '%s' not found\n", symbol)
@@ -215,7 +192,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	return quote, nil
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
 	switch period.String {
@@ -265,29 +242,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
-
-    calendar := cal.NewCalendar()
-
-    // Add US and UK holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-		cal.GBNewYear,
-		cal.GBGoodFriday,
-		cal.GBEasterMonday,
-		cal.GBEarlyMay,
-		cal.GBSpringHoliday,
-		cal.GBSummerHoliday,
-		cal.GBChristmasDay,
-		cal.GBBoxingDay,
-    )
     
 	if err != nil {
 		// log.Info("Forex: Tiingo symbol '%s' not found\n", symbol)
@@ -436,30 +390,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time) time.Time {
-    
-    calendar := cal.NewCalendar()
-
-    // Add US and UK holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-		cal.GBNewYear,
-		cal.GBGoodFriday,
-		cal.GBEasterMonday,
-		cal.GBEarlyMay,
-		cal.GBSpringHoliday,
-		cal.GBSummerHoliday,
-		cal.GBChristmasDay,
-		cal.GBBoxingDay,
-    )
+func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
     
     // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
     // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
@@ -548,13 +479,36 @@ func (tiifx *ForexFetcher) Run() {
         }
 	}
     
+    calendar := cal.NewCalendar()
+
+    // Add US and UK holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+		cal.GBNewYear,
+		cal.GBGoodFriday,
+		cal.GBEasterMonday,
+		cal.GBEarlyMay,
+		cal.GBSpringHoliday,
+		cal.GBSummerHoliday,
+		cal.GBChristmasDay,
+		cal.GBBoxingDay,
+    )
+    
 	// Set start time if not given.
 	if !tiifx.queryStart.IsZero() {
 		timeStart = tiifx.queryStart.UTC()
 	} else {
 		timeStart = time.Now().UTC()
 	}
-    timeStart = alignTimeToTradingHours(timeStart)
+    timeStart = alignTimeToTradingHours(timeStart, calendar)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -605,8 +559,8 @@ func (tiifx *ForexFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(250 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
-                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.apiKey)
-                intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.apiKey2)
+                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
+                intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
                 quote := NewQuote(symbol, 0)
                 // If both Quotes have valid datas, combine them
                 // If not, serve only the quote with valid datas
@@ -833,7 +787,7 @@ func (tiifx *ForexFetcher) Run() {
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 1, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToTradingHours(timeEnd)
+            openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {
                 // Set to wait till Opening
                 waitTill = openTime
