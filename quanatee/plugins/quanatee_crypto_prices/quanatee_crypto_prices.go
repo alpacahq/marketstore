@@ -110,7 +110,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("Crypto: Tiingo symbol '%s' not found\n", symbol)
+		log.Info("Crypto: symbol '%s' not found \n %s", symbol, api_url)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()

@@ -120,7 +120,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	resp, err := client.Do(req)
     
 	if err != nil {
-		log.Info("Forex: Intrinio symbol '%s' not found\n", symbol)
+		log.Info("Forex: Intrinio symbol '%s' not found \n %s", symbol, api_url)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -134,7 +134,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     
 	if len(forexData.PriceData) < 1 {
         if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( int(from.Weekday()) == 1 && from.Hour() >= 7 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) ) {
-            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, api_url)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -244,7 +244,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	resp, err := client.Do(req)
     
 	if err != nil {
-		// log.Info("Forex: Tiingo symbol '%s' not found\n", symbol)
+		log.Info("Forex: Tiingo symbol '%s' not found \n %s", symbol, api_url)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -252,7 +252,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		// log.Info("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Info("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
