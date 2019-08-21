@@ -639,7 +639,7 @@ func (tiifx *ForexFetcher) Run() {
                 
                 // Save the latest timestamp written
                 lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 quotes = append(quotes, quote)
             }
             
@@ -787,7 +787,7 @@ func (tiifx *ForexFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd, dataProvider)
+                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             }
         }
 		if realTime {
