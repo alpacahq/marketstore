@@ -17,6 +17,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
     
+	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_iex_prices/calendar"    
 )
 
 // Quote - stucture for historical price data
@@ -48,10 +49,10 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
-	switch period {
+	switch period.String {
 	case "1Min":
 		resampleFreq = "1min"
 	case "5Min":
@@ -82,9 +83,9 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
 	var iexData []priceData
-
+    
     api_url := fmt.Sprintf(
-                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=false&forceFill=true&startDate=%s",
+                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=true&forceFill=true&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
@@ -99,7 +100,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Info("IEX: symbol '%s' not found\n", symbol)
+		log.Info("IEX: symbol '%s' error: %s \n %s", symbol, err, api_url)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -111,13 +112,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 		return NewQuote(symbol, 0), err
 	}
     
-	if len(iexData) < 1 {
-        if ( from.Weekday() == 0 || from.Weekday() == 6 ) && ( to.Weekday() == 0 || to.Weekday() == 6 ) {
-            log.Warn("IEX: symbol '%s' Market Closed from %v-%v", symbol, from, to)
-        } else {
+    if len(iexData) < 1 {
+        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() >= 12 ) && ( ( from.Hour() < 22 ) || ( from.Hour() == 22 && from.Minute() <= 30 ) ) ) ) ) {
             log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
         }
-		return NewQuote(symbol, 0), err
+ 		return NewQuote(symbol, 0), err
 	}
     
 	numrows := len(iexData)
@@ -129,7 +128,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, iexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
@@ -143,11 +142,11 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	}
     
     if startOfSlice > -1 && endOfSlice > -1 {
-        quote.Epoch = quote.Epoch[startOfSlice+1:endOfSlice+1]
-        quote.Open = quote.Open[startOfSlice+1:endOfSlice+1]
-        quote.High = quote.High[startOfSlice+1:endOfSlice+1]
-        quote.Low = quote.Low[startOfSlice+1:endOfSlice+1]
-        quote.Close = quote.Close[startOfSlice+1:endOfSlice+1]
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
+        quote.High = quote.High[startOfSlice:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -251,6 +250,31 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
+func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
+    
+    // NYSE Opening = 1200 UTC is the first data we will consume in a session
+    // NYSE Closing = 2130 UTC is the last data we will consume in a session
+    // We do not account for disruptions in Marketstore
+    // Aligning time series datas is done in Quanatee functions
+
+    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && ( (timeCheck.Hour() == 22 && timeCheck.Minute() >= 30) || ( timeCheck.Hour() > 23 ) ) ) {
+        // Current date is not a Work Day, or next day is not a Work Day and current Work Day has ended
+        // Find the next Work Day and set to Opening
+        nextWorkday := false
+        days := 1
+        for nextWorkday == false {
+            if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
+                nextWorkday = true
+            }
+            days += days
+        }
+        timeCheck = timeCheck.AddDate(0, 0, days)
+        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 13, 0, 0, 0, time.UTC)
+    }
+    
+    return timeCheck
+}
+   
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
@@ -313,24 +337,41 @@ func (tiiex *IEXFetcher) Run() {
     
 	realTime := false    
 	timeStart := time.Time{}
-	
+	lastTimestamp := time.Time{}
+    
     // Get last timestamp collected
 	for _, symbol := range tiiex.symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
-        lastTimestamp := findLastTimestamp(tbk)
+        lastTimestamp = findLastTimestamp(tbk)
         log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
             timeStart = lastTimestamp.UTC()
         }
 	}
     
+    calendar := cal.NewCalendar()
+
+    // Add US holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+    )
+    
 	// Set start time if not given.
 	if !tiiex.queryStart.IsZero() {
 		timeStart = tiiex.queryStart.UTC()
 	} else {
-		timeStart = time.Now().UTC().Add(-tiiex.baseTimeframe.Duration)
+		timeStart = time.Now().UTC()
 	}
-
+    timeStart = alignTimeToTradingHours(timeStart, calendar)
+    
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time
@@ -338,53 +379,235 @@ func (tiiex *IEXFetcher) Run() {
     
 	for {
         
-        if realTime {
-            timeStart = timeEnd
-            timeEnd = time.Now().UTC()
+        if firstLoop {
+            firstLoop = false
         } else {
-            if firstLoop {
-                firstLoop = false
-            } else {
-                timeStart = timeEnd
-            }
+            timeStart = timeEnd
+        }
+        if realTime {
+            // Add timeEnd by a tick
+            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration)
+        } else {
+            // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 1)
             if timeEnd.After(time.Now().UTC()) {
+                // timeEnd is after current time
                 realTime = true
                 timeEnd = time.Now().UTC()
             }
         }
         
-        /*
-        To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
-        But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
-        If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
-        Main goal is to ensure it runs every 1 <time duration> at :00
-        Tiingo returns data by the day, regardless of granularity
-        */
-        year := timeEnd.Year()
-        month := timeEnd.Month()
-        day := timeEnd.Day()
-        hour := timeEnd.Hour()
-        minute := timeEnd.Minute()
-        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+        log.Info("IEX: %v-%v", timeStart, timeEnd)
         
-        quotes := Quotes{}
-        symbols := tiiex.symbols
-        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-        // Data for symbols are retrieved in random order for fairness
-        // Data for symbols are written immediately for asynchronous-like processing
-        for _, symbol := range symbols {
-            time.Sleep(333 * time.Millisecond)
-            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
-            if err == nil {
-                if len(quote.Epoch) < 1 {
-                    // Check if there is data to add
-                    continue
-                } else if realTime && timeEnd.Unix() >= quote.Epoch[0] && timeEnd.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
-                    // Check if realTime is adding the most recent data
-                    log.Info("IEX: Row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
-                    continue
+        if !firstLoop {
+            
+            /*
+            To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
+            But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
+            If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
+            Main goal is to ensure it runs every 1 <time duration> at :00
+            Tiingo returns data by the day, regardless of granularity
+            */
+            year := timeEnd.Year()
+            month := timeEnd.Month()
+            day := timeEnd.Day()
+            hour := timeEnd.Hour()
+            minute := timeEnd.Minute()
+            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+            
+            quotes := Quotes{}
+            symbols := tiiex.symbols
+            rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+            // Data for symbols are retrieved in random order for fairness
+            // Data for symbols are written immediately for asynchronous-like processing
+            for _, symbol := range symbols {
+                time.Sleep(100 * time.Millisecond)
+                time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, calendar, tiiex.apiKey)
+                if err == nil {
+                    if len(quote.Epoch) < 1 {
+                        // Check if there is data to add
+                        continue
+                    } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                        // Check if realTime is adding the most recent data
+                        log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
+                        continue
+                    }
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", quote.Epoch)
+                    cs.AddColumn("Open", quote.Open)
+                    cs.AddColumn("High", quote.High)
+                    cs.AddColumn("Low", quote.Low)
+                    cs.AddColumn("Close", quote.Close)
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    
+                    // Save the latest timestamp written
+                    lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
+                    log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                    quotes = append(quotes, quote)
+                } else {
+                    log.Info("IEX: error downloading " + symbol)
                 }
+            }
+            
+            aggQuotes := Quotes{}
+            
+            // Add USTF
+            if len(tiiex.ustfSymbols) > 0 {
+                ustf_quote := NewQuote("USTF", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiiex.ustfSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(ustf_quote.Epoch) == 0 {
+                                    ustf_quote.Epoch = quote.Epoch
+                                    ustf_quote.Open = quote.Open
+                                    ustf_quote.High = quote.High
+                                    ustf_quote.Low = quote.Low
+                                    ustf_quote.Close = quote.Close
+                                } else if len(ustf_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(ustf_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        ustf_quote.Open[bar] = (quote.Open[bar] + ustf_quote.Open[bar]) / 2
+                                        ustf_quote.High[bar] = (quote.High[bar] + ustf_quote.High[bar]) / 2
+                                        ustf_quote.Low[bar] = (quote.Low[bar] + ustf_quote.Low[bar]) / 2
+                                        ustf_quote.Close[bar] = (quote.Close[bar] + ustf_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(ustf_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, ustf_quote)
+                }
+            }
+            // Add EUTF
+            if len(tiiex.eutfSymbols) > 0 {
+                eutf_quote := NewQuote("EUTF", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiiex.eutfSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(eutf_quote.Epoch) == 0 {
+                                    eutf_quote.Epoch = quote.Epoch
+                                    eutf_quote.Open = quote.Open
+                                    eutf_quote.High = quote.High
+                                    eutf_quote.Low = quote.Low
+                                    eutf_quote.Close = quote.Close
+                                } else if len(eutf_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(eutf_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        eutf_quote.Open[bar] = (quote.Open[bar] + eutf_quote.Open[bar]) / 2
+                                        eutf_quote.High[bar] = (quote.High[bar] + eutf_quote.High[bar]) / 2
+                                        eutf_quote.Low[bar] = (quote.Low[bar] + eutf_quote.Low[bar]) / 2
+                                        eutf_quote.Close[bar] = (quote.Close[bar] + eutf_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(eutf_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, eutf_quote)
+                }
+            }
+            // Add JPTF
+            if len(tiiex.jptfSymbols) > 0 {
+                jptf_quote := NewQuote("JPTF", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiiex.jptfSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(jptf_quote.Epoch) == 0 {
+                                    jptf_quote.Epoch = quote.Epoch
+                                    jptf_quote.Open = quote.Open
+                                    jptf_quote.High = quote.High
+                                    jptf_quote.Low = quote.Low
+                                    jptf_quote.Close = quote.Close
+                                } else if len(jptf_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(jptf_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        jptf_quote.Open[bar] = (quote.Open[bar] + jptf_quote.Open[bar]) / 2
+                                        jptf_quote.High[bar] = (quote.High[bar] + jptf_quote.High[bar]) / 2
+                                        jptf_quote.Low[bar] = (quote.Low[bar] + jptf_quote.Low[bar]) / 2
+                                        jptf_quote.Close[bar] = (quote.Close[bar] + jptf_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(jptf_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, jptf_quote)
+                }
+            }
+            // Add WWTF
+            if len(tiiex.wwtfSymbols) > 0 {
+                wwtf_quote := NewQuote("WWTF", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiiex.wwtfSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(wwtf_quote.Epoch) == 0 {
+                                    wwtf_quote.Epoch = quote.Epoch
+                                    wwtf_quote.Open = quote.Open
+                                    wwtf_quote.High = quote.High
+                                    wwtf_quote.Low = quote.Low
+                                    wwtf_quote.Close = quote.Close
+                                } else if len(wwtf_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(wwtf_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        wwtf_quote.Open[bar] = (quote.Open[bar] + wwtf_quote.Open[bar]) / 2
+                                        wwtf_quote.High[bar] = (quote.High[bar] + wwtf_quote.High[bar]) / 2
+                                        wwtf_quote.Low[bar] = (quote.Low[bar] + wwtf_quote.Low[bar]) / 2
+                                        wwtf_quote.Close[bar] = (quote.Close[bar] + wwtf_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(wwtf_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, wwtf_quote)
+                }
+            }
+            // Add EMTF
+            if len(tiiex.emtfSymbols) > 0 {
+                emtf_quote := NewQuote("EMTF", 0)
+                for _, quote := range quotes {
+                    for _, symbol := range tiiex.emtfSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(emtf_quote.Epoch) == 0 {
+                                    emtf_quote.Epoch = quote.Epoch
+                                    emtf_quote.Open = quote.Open
+                                    emtf_quote.High = quote.High
+                                    emtf_quote.Low = quote.Low
+                                    emtf_quote.Close = quote.Close
+                                } else if len(emtf_quote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(emtf_quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        emtf_quote.Open[bar] = (quote.Open[bar] + emtf_quote.Open[bar]) / 2
+                                        emtf_quote.High[bar] = (quote.High[bar] + emtf_quote.High[bar]) / 2
+                                        emtf_quote.Low[bar] = (quote.Low[bar] + emtf_quote.Low[bar]) / 2
+                                        emtf_quote.Close[bar] = (quote.Close[bar] + emtf_quote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(emtf_quote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, emtf_quote)
+                }
+            }
+            
+            for _, quote := range aggQuotes {
                 // write to csm
                 cs := io.NewColumnSeries()
                 cs.AddColumn("Epoch", quote.Epoch)
@@ -397,187 +620,20 @@ func (tiiex *IEXFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
-                quotes = append(quotes, quote)
-            } else {
-                log.Info("IEX: error downloading " + symbol)
+                log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
             }
         }
-        
-        aggQuotes := Quotes{}
-        
-        // Add USTF
-        if len(tiiex.ustfSymbols) > 0 {
-            ustf_quote := NewQuote("USTF", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiiex.ustfSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(ustf_quote.Epoch) == 0 {
-                                ustf_quote.Epoch = quote.Epoch
-                                ustf_quote.Open = quote.Open
-                                ustf_quote.High = quote.High
-                                ustf_quote.Low = quote.Low
-                                ustf_quote.Close = quote.Close
-                            } else if len(ustf_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(ustf_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    ustf_quote.Open[bar] = (quote.Open[bar] + ustf_quote.Open[bar]) / 2
-                                    ustf_quote.High[bar] = (quote.High[bar] + ustf_quote.High[bar]) / 2
-                                    ustf_quote.Low[bar] = (quote.Low[bar] + ustf_quote.Low[bar]) / 2
-                                    ustf_quote.Close[bar] = (quote.Close[bar] + ustf_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(ustf_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, ustf_quote)
-            }
-        }
-        // Add EUTF
-        if len(tiiex.eutfSymbols) > 0 {
-            eutf_quote := NewQuote("EUTF", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiiex.eutfSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(eutf_quote.Epoch) == 0 {
-                                eutf_quote.Epoch = quote.Epoch
-                                eutf_quote.Open = quote.Open
-                                eutf_quote.High = quote.High
-                                eutf_quote.Low = quote.Low
-                                eutf_quote.Close = quote.Close
-                            } else if len(eutf_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(eutf_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    eutf_quote.Open[bar] = (quote.Open[bar] + eutf_quote.Open[bar]) / 2
-                                    eutf_quote.High[bar] = (quote.High[bar] + eutf_quote.High[bar]) / 2
-                                    eutf_quote.Low[bar] = (quote.Low[bar] + eutf_quote.Low[bar]) / 2
-                                    eutf_quote.Close[bar] = (quote.Close[bar] + eutf_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(eutf_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, eutf_quote)
-            }
-        }
-        // Add JPTF
-        if len(tiiex.jptfSymbols) > 0 {
-            jptf_quote := NewQuote("JPTF", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiiex.jptfSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(jptf_quote.Epoch) == 0 {
-                                jptf_quote.Epoch = quote.Epoch
-                                jptf_quote.Open = quote.Open
-                                jptf_quote.High = quote.High
-                                jptf_quote.Low = quote.Low
-                                jptf_quote.Close = quote.Close
-                            } else if len(jptf_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(jptf_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    jptf_quote.Open[bar] = (quote.Open[bar] + jptf_quote.Open[bar]) / 2
-                                    jptf_quote.High[bar] = (quote.High[bar] + jptf_quote.High[bar]) / 2
-                                    jptf_quote.Low[bar] = (quote.Low[bar] + jptf_quote.Low[bar]) / 2
-                                    jptf_quote.Close[bar] = (quote.Close[bar] + jptf_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(jptf_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, jptf_quote)
-            }
-        }
-        // Add WWTF
-        if len(tiiex.wwtfSymbols) > 0 {
-            wwtf_quote := NewQuote("WWTF", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiiex.wwtfSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(wwtf_quote.Epoch) == 0 {
-                                wwtf_quote.Epoch = quote.Epoch
-                                wwtf_quote.Open = quote.Open
-                                wwtf_quote.High = quote.High
-                                wwtf_quote.Low = quote.Low
-                                wwtf_quote.Close = quote.Close
-                            } else if len(wwtf_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(wwtf_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    wwtf_quote.Open[bar] = (quote.Open[bar] + wwtf_quote.Open[bar]) / 2
-                                    wwtf_quote.High[bar] = (quote.High[bar] + wwtf_quote.High[bar]) / 2
-                                    wwtf_quote.Low[bar] = (quote.Low[bar] + wwtf_quote.Low[bar]) / 2
-                                    wwtf_quote.Close[bar] = (quote.Close[bar] + wwtf_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(wwtf_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, wwtf_quote)
-            }
-        }
-        // Add EMTF
-        if len(tiiex.emtfSymbols) > 0 {
-            emtf_quote := NewQuote("EMTF", 0)
-            for _, quote := range quotes {
-                for _, symbol := range tiiex.emtfSymbols {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(emtf_quote.Epoch) == 0 {
-                                emtf_quote.Epoch = quote.Epoch
-                                emtf_quote.Open = quote.Open
-                                emtf_quote.High = quote.High
-                                emtf_quote.Low = quote.Low
-                                emtf_quote.Close = quote.Close
-                            } else if len(emtf_quote.Epoch) == len(quote.Epoch) {
-                                numrows := len(emtf_quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    emtf_quote.Open[bar] = (quote.Open[bar] + emtf_quote.Open[bar]) / 2
-                                    emtf_quote.High[bar] = (quote.High[bar] + emtf_quote.High[bar]) / 2
-                                    emtf_quote.Low[bar] = (quote.Low[bar] + emtf_quote.Low[bar]) / 2
-                                    emtf_quote.Close[bar] = (quote.Close[bar] + emtf_quote.Close[bar]) / 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(emtf_quote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, emtf_quote)
-            }
-        }
-        
-        for _, quote := range aggQuotes {
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
-            
-            log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, timeStart, timeEnd)
-        }
-        
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
+            // Check if timeEnd is Closing, will return Opening if so
+            openTime := alignTimeToTradingHours(timeEnd, calendar)
+            if openTime != timeEnd {
+                // Set to wait till Opening
+                waitTill = openTime
+            }
             log.Info("IEX: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
