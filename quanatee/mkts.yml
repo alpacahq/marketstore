@@ -36,10 +36,3 @@ bgworkers:
         - EURUSD
       query_start: "2019-08-20 00:00"
       base_timeframe: "1Min"
-  - module: quanatee_iex_prices.so
-    config:
-      api_key: "<tiingo_api_key>"
-      symbols:
-        - ESGD
-      query_start: "2019-08-20 00:00"
-      base_timeframe: "1Min"

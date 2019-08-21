@@ -436,7 +436,7 @@ func (tiiex *IEXFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(250 * time.Millisecond)
+                time.Sleep(500 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
                 if err == nil {
