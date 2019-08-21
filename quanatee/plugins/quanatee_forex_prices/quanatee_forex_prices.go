@@ -107,7 +107,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
                         symbol,
                         resampleFreq,
                         token,
-                        url.QueryEscape(from.Format("2006-01-02")),
+                        url.QueryEscape(from.Add(-period.Duration).Format("2006-01-02")),
                         url.QueryEscape(from.Add(-period.Duration).Format("15:04:05")))
     
     if !realTime {
