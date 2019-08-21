@@ -119,6 +119,29 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
 
+    calendar := cal.NewCalendar()
+
+    // Add US and UK holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+		cal.GBNewYear,
+		cal.GBGoodFriday,
+		cal.GBEasterMonday,
+		cal.GBEarlyMay,
+		cal.GBSpringHoliday,
+		cal.GBSummerHoliday,
+		cal.GBChristmasDay,
+		cal.GBBoxingDay,
+    )
+    
 	if err != nil {
 		log.Info("Forex: Intrinio symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
@@ -133,7 +156,9 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	}
     
 	if len(forexData.PriceData) < 1 {
-        log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+        if !calendar.isWorkday(from) && !calendar.isWorkday(to) {
+            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+        }
 		return NewQuote(symbol, 0), err
 	}
     
@@ -241,6 +266,29 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
+    calendar := cal.NewCalendar()
+
+    // Add US and UK holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+		cal.GBNewYear,
+		cal.GBGoodFriday,
+		cal.GBEasterMonday,
+		cal.GBEarlyMay,
+		cal.GBSpringHoliday,
+		cal.GBSummerHoliday,
+		cal.GBChristmasDay,
+		cal.GBBoxingDay,
+    )
+    
 	if err != nil {
 		// log.Info("Forex: Tiingo symbol '%s' not found\n", symbol)
 		return NewQuote(symbol, 0), err
