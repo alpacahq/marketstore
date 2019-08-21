@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"time"
     "math/rand"
-    "reflect"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -497,16 +496,10 @@ func (tiiex *IEXFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            // Convert keys (int) into strings
-            keys := reflect.ValueOf(tiiex.symbols).MapKeys()
-            aggSymbols := make([]string, len(keys))
-            for i := 0; i < len(keys); i++ {
-                aggSymbols[i] = keys[i].String()
-            }
-            for key, symbols := range tiiex.symbols {
-                aggQuote := NewQuote(aggSymbols[key], 0)
+            for key, value := range tiiex.symbols {
+                aggQuote := NewQuote(key, 0)
                 for _, quote := range quotes {
-                    for _, symbol := range symbols {
+                    for _, symbol := range value {
                         if quote.Symbol == symbol {
                             if len(quote.Epoch) > 0 {
                                 if len(aggQuote.Epoch) == 0 {

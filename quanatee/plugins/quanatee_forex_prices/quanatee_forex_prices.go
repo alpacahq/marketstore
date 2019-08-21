@@ -11,7 +11,6 @@ import (
     "strconv"
     "strings"
     "math/rand"
-    "reflect"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -316,10 +315,10 @@ func getJSON(url string, target interface{}) error {
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
-	BTCX           []string  `json:"BTCZ"`
-	USDX           []string  `json:"USDZ"`
-	EURX           []string  `json:"EURZ"`
-	JPYZ           []string  `json:"JPYZ"`
+	BTCX           []string  `json:"BTCX"`
+	USDX           []string  `json:"USDX"`
+	EURX           []string  `json:"EURX"`
+	JPYX           []string  `json:"JPYX"`
     ApiKey         string   `json:"api_key"`
     ApiKey2        string   `json:"api_key2"`
 	QueryStart     string   `json:"query_start"`
@@ -672,16 +671,10 @@ func (tiifx *ForexFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            // Convert keys (int) into strings
-            keys := reflect.ValueOf(tiifx.symbols).MapKeys()
-            aggSymbols := make([]string, len(keys))
-            for i := 0; i < len(keys); i++ {
-                aggSymbols[i] = keys[i].String()
-            }
-            for key, symbols := range tiifx.symbols {
-                aggQuote := NewQuote(aggSymbols[key], 0)
+            for key, value := range tiifx.aggSymbols {
+                aggQuote := NewQuote(key, 0)
                 for _, quote := range quotes {
-                    for _, symbol := range symbols {
+                    for _, symbol := range value {
                         if quote.Symbol == symbol {
                             if len(quote.Epoch) > 0 {
                                 if len(aggQuote.Epoch) == 0 {
