@@ -257,11 +257,9 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
 	if len(forexData) < 1 {
-        /*
         if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( int(from.Weekday()) == 1 && from.Hour() >= 7 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) ) {
             log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
         }
-        */
 		return NewQuote(symbol, 0), err
 	}
     
@@ -518,6 +516,7 @@ func (tiifx *ForexFetcher) Run() {
 	var timeEnd time.Time
 	var waitTill time.Time
 	firstLoop := true
+    dataProvider := "None"
     
 	for {
         
@@ -581,6 +580,7 @@ func (tiifx *ForexFetcher) Run() {
                         // Improper slicing of periods
                         log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs!", symbol)
                         quote = intrinioQuote
+                        dataProvider = "Intrinio"
                     } else {
                         // First and last epochs match, we assume that the rows are lined up
                         numrows := len(intrinioQuote.Epoch)
@@ -588,6 +588,7 @@ func (tiifx *ForexFetcher) Run() {
                         for bar := 0; bar < numrows; bar++ {
                             if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
                                 // If the rows are not lined up, we fallback to Intrinio only
+                                log.Info("Forex: %s mismatched Epochs during aggregation %v, %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
                                 quote.Epoch[bar] = intrinioQuote.Epoch[bar]
                                 quote.Open[bar] = intrinioQuote.Open[bar]
                                 quote.High[bar] = intrinioQuote.High[bar]
@@ -601,14 +602,18 @@ func (tiifx *ForexFetcher) Run() {
                                 quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
                             }
                         }
+                        dataProvider = "Aggregation"
                     }
                 } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
                     // Only one quote is valid
                     quote = tiingoQuote
+                    dataProvider = "Tiingo"
                 } else if len(intrinioQuote.Epoch) > 0 && intrinioQuote.Epoch[0] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
                     // Only one quote is valid
                     quote = intrinioQuote
+                    dataProvider = "Intrinio"
                 } else {
+                    dataProvider = "None"
                     continue
                 }
                 
@@ -782,7 +787,7 @@ func (tiifx *ForexFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd)
+                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, timeStart, timeEnd, dataProvider)
             }
         }
 		if realTime {
