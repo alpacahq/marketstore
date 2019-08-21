@@ -423,7 +423,7 @@ func (tiiex *IEXFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(250 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
-                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, tiiex.apiKey)
+                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, calendar, tiiex.apiKey)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add
