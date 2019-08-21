@@ -68,7 +68,7 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
-      query_start: "2018-01-01 00:00"
+      query_start: "2018-07-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
@@ -117,43 +117,160 @@ bgworkers:
         - CHFJPY
         - NZDJPY
         - CADJPY
-      query_start: "2018-01-01 00:00"
+      query_start: "2018-07-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
-      symbols:
-        - ESGD
-        - ESGE
-        - ESGU
-        - ESML
-        - SUSA
-        - IDEV
-        - CEW
-        - GCC
-        - HEDJ
-        - DXJ
-        - IHDG
+      US_EQ:
+        - SPY
+        - IVV
+        - VOO
+        - VTI
+        - QQQ
+        - IJH
+        - VTV
+      US_CB:
+        - VCSH
+        - IGSB
+        - SPSB
+      US_GB:
+        - SHV
+        - SCHO
+        - VGSH
+        - SPTS
+      US_FX:
+        - UUP	
+        - USDU
+      EU_EQ:
+        - VGK
+        - EZU
+        - BBEU
+        - IEUR
+        - FEZ
+        - IEV
         - DFE
-        - DFJ
-        - DLS
-      ustf_symbols:
-        - ESGU
-        - ESML
-        - SUSA
-      eutf_symbols:
+      EU_EQH:
         - HEDJ
-        - DFE
-      jptf_symbols:
-        - DXJ
+        - HEZU
+        - DBEU
+        - EUSC
+      EU_FX:
+        - FXE
+      GB_EQ:
+        - EWU
+        - EWUS
+        - FLGB
+        - FKU
+      GB_EQH:
+        - HEWU
+      GB_FX:
+        - FXB
+      JP_EQ:
+        - EWJ
+        - BBJP
         - DFJ
-      wwtf_symbols:
-        - ESGD
-        - IDEV
+        - IVLU
+        - FLJP
+        - JPXN
+      JP_EQH:
+        - DXJ
+        - DBJP
+        - HEWJ
+      JP_FX:
+        - FXY
+      CH_EQ:
+        - EWL
+        - FSZ
+        - FLSW
+      CH_EQH:
+        - HEWL
+      CH_FX:
+        - FXF
+      AU_EQ:
+        - EWA
+        - FLAU
+        - FAUS
+      AU_EQH:
+        - HAUD
+      AU_FX:
+        - FXA
+      CA_EQ:
+        - BBCA
+        - EWC
+        - ZCAN
+        - FLCA
+        - FCAN
+      CA_EQH:
+        - HEWC
+      CA_FX:
+        - FXC
+      CN_EQ:
+        - FXI
+        - MCHI
+        - ASHR
+        - GXC
+        - CQQQ
+        - PGJ
+      CN_EQH:
+        - ASHX
+        - CNHX
+      CN_FX:
+        - CYB
+        - FXCH
+      EM_EQ:
+        - VWO
+        - IEMG
+        - EEM
+        - SCHE
+        - SPEM
+      EM_EQH:
+        - HEEM
+        - DBEM
+      EM_CB:
+        - HYEM
+        - CEMB
+        - EMCB
+      EM_GB:
+        - EMLC
+        - PCY
+        - VWOB
+        - EBND
+        - LEMB
+        - ELD
+      EM_GBH:
+        - EMB
+        - EMIH
+        - EMBH
+        - JPMB
+      DM_EQ:
+        - VEA
+        - EFA
+        - VEU
+        - SCHF
+        - IXUS
+        - VXUS
+      DM_EQH:
+        - DBEF
+        - HEFA
+        - HEZU
         - IHDG
-        - DLS
-      emtf_symbols:
-        - ESGE
-        - CEW
-      query_start: "2018-01-01 00:00"
+        - HDEF
+        - DDWM
+        - DBAW
+      DM_CB:
+        - IHY
+        - HYXU
+      DM_GB:
+        - BWX
+        - IGOV
+        - BWZ
+        - ISHG
+        - IGVT
+        - FLIA
+      DM_GBH:
+       - IGVT
+      DM_FX:
+        - DBV
+      query_start: "2018-07-01 00:00"
       base_timeframe: "1Min"
