@@ -113,7 +113,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
     if len(iexData) < 1 {
-        if ( ( calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() >= 12 ) && ( ( from.Hour() < 22 ) || ( from.Hour() == 22 && from.Minute() <= 30 ) ) ) ) ) {
+        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() >= 12 ) && ( ( from.Hour() < 22 ) || ( from.Hour() == 22 && from.Minute() <= 30 ) ) ) ) ) {
             log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
         }
  		return NewQuote(symbol, 0), err
