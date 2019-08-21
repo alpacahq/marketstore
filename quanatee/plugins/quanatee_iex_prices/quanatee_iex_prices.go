@@ -49,7 +49,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period string, token string) (Quote, error) {
 
 	resampleFreq := "1hour"
 	switch period {
@@ -143,7 +143,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, iexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        if dt.UTC().Unix() > last.UTC.Unix() && > dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
@@ -438,7 +438,7 @@ func (tiiex *IEXFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(500 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
-                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
+                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe.String, tiiex.apiKey)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add

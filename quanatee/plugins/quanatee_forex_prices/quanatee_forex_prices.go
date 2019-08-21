@@ -51,7 +51,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
+func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, period string, token string) (Quote, error) {
     
 	resampleFreq := "H1"
 	switch period {
@@ -171,7 +171,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        if dt.UTC().Unix() > last.UTC.Unix() && > dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
@@ -215,7 +215,7 @@ func GetIntrinioPrices(symbol string, from, to time.Time, realTime bool, period 
 	return quote, nil
 }
 
-func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period string, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period string, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
 	switch period {
@@ -316,7 +316,7 @@ func GetTiingoPrices(symbol string, from, to time.Time, realTime bool, period st
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+        if dt.UTC().Unix() > last.UTC.Unix() && > dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
@@ -605,8 +605,8 @@ func (tiifx *ForexFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(500 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
-                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
-                intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
+                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe.String, tiifx.apiKey)
+                intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe.String, tiifx.apiKey2)
                 quote := NewQuote(symbol, 0)
                 // If both Quotes have valid datas, combine them
                 // If not, serve only the quote with valid datas
