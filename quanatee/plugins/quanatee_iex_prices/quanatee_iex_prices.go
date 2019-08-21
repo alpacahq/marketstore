@@ -496,34 +496,32 @@ func (tiiex *IEXFetcher) Run() {
             
             aggQuotes := Quotes{}
             for aggSymbol, indSymbols := range tiiex.symbols {
-                for _, symbol := range indSymbols {
-                    aggQuote := NewQuote(aggSymbol, 0)
-                    for _, quote := range quotes {
-                        for _, symbol := range tiiex.ustfSymbols {
-                            if quote.Symbol == symbol {
-                                if len(quote.Epoch) > 0 {
-                                    if len(aggQuote.Epoch) == 0 {
-                                        aggQuote.Epoch = quote.Epoch
-                                        aggQuote.Open = quote.Open
-                                        aggQuote.High = quote.High
-                                        aggQuote.Low = quote.Low
-                                        aggQuote.Close = quote.Close
-                                    } else if len(aggQuote.Epoch) == len(quote.Epoch) {
-                                        numrows := len(aggQuote.Epoch)
-                                        for bar := 0; bar < numrows; bar++ {
-                                            aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
-                                            aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
-                                            aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
-                                            aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
-                                        }
+                aggQuote := NewQuote(aggSymbol, 0)
+                for _, quote := range quotes {
+                    for _, symbol := range indSymbols {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(aggQuote.Epoch) == 0 {
+                                    aggQuote.Epoch = quote.Epoch
+                                    aggQuote.Open = quote.Open
+                                    aggQuote.High = quote.High
+                                    aggQuote.Low = quote.Low
+                                    aggQuote.Close = quote.Close
+                                } else if len(aggQuote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(aggQuote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
+                                        aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
+                                        aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
+                                        aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
                                     }
                                 }
                             }
                         }
                     }
-                    if len(aggQuote.Epoch) > 0 {
-                        aggQuotes = append(aggQuotes, aggQuote)
-                    }
+                }
+                if len(aggQuote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, aggQuote)
                 }
             }
             
