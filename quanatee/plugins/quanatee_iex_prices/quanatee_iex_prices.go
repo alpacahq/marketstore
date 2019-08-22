@@ -99,6 +99,12 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
+    // Try again if fail
+	if err != nil {
+        time.Sleep(100 * time.Millisecond)
+        resp, err = client.Do(req)
+    }
+    
 	if err != nil {
 		log.Info("IEX: symbol '%s' error: %s \n %s", symbol, err, api_url)
 		return NewQuote(symbol, 0), err
@@ -449,8 +455,8 @@ func (tiiex *IEXFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(300 * time.Millisecond)
-                time.Sleep(time.Duration(rand.Intn(200)) * time.Millisecond)
+                time.Sleep(150 * time.Millisecond)
+                time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, calendar, tiiex.apiKey)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
