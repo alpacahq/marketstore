@@ -34,9 +34,9 @@ COPY --from=builder /go/bin/marketstore /bin/
 COPY --from=builder /go/bin/*.so /bin/
 ENV GOPATH=/
 
-COPY /quanatee/mkts-blankslate.yml .
+COPY /quanatee/mkts-pure.yml .
 
 VOLUME /data
 EXPOSE 5993
 
-ENTRYPOINT sed -i "s|<tiingo_api_key>|${TIINGO_API_KEY}|g" mkts.yml && sed -i "s|<intrinio_api_key>|${INTRINIO_API_KEY}|g" mkts.yml && marketstore start --config mkts-blankslate.yml && /bin/bash
+ENTRYPOINT sed -i "s|<tiingo_api_key>|${TIINGO_API_KEY}|g" mkts.yml && sed -i "s|<intrinio_api_key>|${INTRINIO_API_KEY}|g" mkts.yml && marketstore start --config mkts-pure.yml && /bin/bash

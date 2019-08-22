@@ -37,7 +37,7 @@ type Quote struct {
 type Quotes []Quote
 
 // ClientTimeout - connect/read timeout for client requests
-const ClientTimeout = 10 * time.Second
+const ClientTimeout = 15 * time.Second
 
 // NewQuote - new empty Quote struct
 func NewQuote(symbol string, bars int) Quote {
@@ -118,6 +118,12 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
+    
+    // Try again if fail
+	if err != nil {
+        time.Sleep(1 * time.Second)    
+        resp, err = client.Do(req)
+    }
     
 	if err != nil {
 		log.Info("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, api_url)
@@ -243,6 +249,12 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
     
+    // Try again if fail
+	if err != nil {
+        time.Sleep(100 * time.Millisecond)
+        resp, err = client.Do(req)
+    }
+    
 	if err != nil {
 		log.Info("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, api_url)
 		return NewQuote(symbol, 0), err
@@ -300,41 +312,27 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	return quote, nil
 }
 
-// getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
-func getJSON(url string, target interface{}) error {
-	var myClient = &http.Client{Timeout: 10 * time.Second}
-	r, err := myClient.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Decode(target)
-}
-
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
+	USD_FX          []string `json:"USD-FX"`
+	EUR_FX          []string `json:"EUR-FX"`
+	JPY_FX          []string `json:"JPY-FX"`
     ApiKey         string   `json:"api_key"`
     ApiKey2        string   `json:"api_key2"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
-	USDXSymbols    []string `json:"usdx_symbols"`
-	EURXSymbols    []string `json:"eurx_symbols"`
-	JPYXSymbols    []string `json:"jpyx_symbols"`
 }
 
 // ForexFetcher is the main worker for TiingoForex
 type ForexFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
+	aggSymbols    map[string][]string
     apiKey         string
     apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
-	usdxSymbols    []string
-	eurxSymbols    []string
-	jpyxSymbols    []string
 }
 
 // recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
@@ -398,6 +396,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
     
     // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
     // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
+    // In the event of a holiday, we close at 2100 UTC and open at 0700 UTC
     // We do not account for disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
 
@@ -424,9 +423,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	var usdxSymbols []string
-	var eurxSymbols []string
-	var jpyxSymbols []string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -440,28 +436,20 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-	if len(config.USDXSymbols) > 0 {
-		usdxSymbols = config.USDXSymbols
-	}
-    
-	if len(config.EURXSymbols) > 0 {
-		eurxSymbols = config.EURXSymbols
-	}
-    
-	if len(config.JPYXSymbols) > 0 {
-		jpyxSymbols = config.JPYXSymbols
-	}
+    aggSymbols := map[string][]string{
+        "USD-FX": config.USD_FX,
+        "EUR-FX": config.EUR_FX,
+        "JPY-FX": config.JPY_FX,
+    }
     
 	return &ForexFetcher{
 		config:         conf,
 		symbols:        symbols,
+		aggSymbols:     aggSymbols,
         apiKey:         config.ApiKey,
         apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
-        usdxSymbols:    usdxSymbols,
-        eurxSymbols:    eurxSymbols,
-        jpyxSymbols:    jpyxSymbols,
 	}, nil
 }
 
@@ -562,7 +550,7 @@ func (tiifx *ForexFetcher) Run() {
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
-                time.Sleep(100 * time.Millisecond)
+                time.Sleep(150 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
                 intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
@@ -624,7 +612,7 @@ func (tiifx *ForexFetcher) Run() {
                     continue
                 } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                     // Check if realTime is adding the most recent data
-                    log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Forex: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                     continue
                 }
                 // write to csm
@@ -677,104 +665,42 @@ func (tiifx *ForexFetcher) Run() {
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
-                    // log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                    log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, revQuote)
                 }
             }
             
-            // Combine original quotes with mirrored quotes for aggregation into index currencies (USDX, EURX, JPYX)
             aggQuotes := Quotes{}
+            for key, value := range tiifx.aggSymbols {
+                aggQuote := NewQuote(key, 0)
+                for _, quote := range quotes {
+                    for _, symbol := range value {
+                        if quote.Symbol == symbol {
+                            if len(quote.Epoch) > 0 {
+                                if len(aggQuote.Epoch) == 0 {
+                                    aggQuote.Epoch = quote.Epoch
+                                    aggQuote.Open = quote.Open
+                                    aggQuote.High = quote.High
+                                    aggQuote.Low = quote.Low
+                                    aggQuote.Close = quote.Close
+                                } else if len(aggQuote.Epoch) == len(quote.Epoch) {
+                                    numrows := len(aggQuote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
+                                        aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
+                                        aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
+                                        aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if len(aggQuote.Epoch) > 0 {
+                    aggQuotes = append(aggQuotes, aggQuote)
+                }
+            }
             
-            // Add USDX
-            if len(tiifx.usdxSymbols) > 0 {
-                usdx_quote := NewQuote("USDX", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiifx.usdxSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(usdx_quote.Epoch) == 0 {
-                                    usdx_quote.Epoch = quote.Epoch
-                                    usdx_quote.Open = quote.Open
-                                    usdx_quote.High = quote.High
-                                    usdx_quote.Low = quote.Low
-                                    usdx_quote.Close = quote.Close
-                                } else if len(usdx_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(usdx_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        usdx_quote.Open[bar] = (quote.Open[bar] + usdx_quote.Open[bar]) / 2
-                                        usdx_quote.High[bar] = (quote.High[bar] + usdx_quote.High[bar]) / 2
-                                        usdx_quote.Low[bar] = (quote.Low[bar] + usdx_quote.Low[bar]) / 2
-                                        usdx_quote.Close[bar] = (quote.Close[bar] + usdx_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(usdx_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, usdx_quote)
-                }
-            }
-            // Add EURX
-            if len(tiifx.eurxSymbols) > 0 {
-                eurx_quote := NewQuote("EURX", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiifx.eurxSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(eurx_quote.Epoch) == 0 {
-                                    eurx_quote.Epoch = quote.Epoch
-                                    eurx_quote.Open = quote.Open
-                                    eurx_quote.High = quote.High
-                                    eurx_quote.Low = quote.Low
-                                    eurx_quote.Close = quote.Close
-                                } else if len(eurx_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(eurx_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        eurx_quote.Open[bar] = (quote.Open[bar] + eurx_quote.Open[bar]) / 2
-                                        eurx_quote.High[bar] = (quote.High[bar] + eurx_quote.High[bar]) / 2
-                                        eurx_quote.Low[bar] = (quote.Low[bar] + eurx_quote.Low[bar]) / 2
-                                        eurx_quote.Close[bar] = (quote.Close[bar] + eurx_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(eurx_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, eurx_quote)
-                }
-            }
-            // Add JPYX
-            if len(tiifx.jpyxSymbols) > 0 {
-                jpyx_quote := NewQuote("JPYX", 0)
-                for _, quote := range quotes {
-                    for _, symbol := range tiifx.jpyxSymbols {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(jpyx_quote.Epoch) == 0 {
-                                    jpyx_quote.Epoch = quote.Epoch
-                                    jpyx_quote.Open = quote.Open
-                                    jpyx_quote.High = quote.High
-                                    jpyx_quote.Low = quote.Low
-                                    jpyx_quote.Close = quote.Close
-                                } else if len(jpyx_quote.Epoch) == len(quote.Epoch) {
-                                    numrows := len(jpyx_quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        jpyx_quote.Open[bar] = (quote.Open[bar] + jpyx_quote.Open[bar]) / 2
-                                        jpyx_quote.High[bar] = (quote.High[bar] + jpyx_quote.High[bar]) / 2
-                                        jpyx_quote.Low[bar] = (quote.Low[bar] + jpyx_quote.Low[bar]) / 2
-                                        jpyx_quote.Close[bar] = (quote.Close[bar] + jpyx_quote.Close[bar]) / 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(jpyx_quote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, jpyx_quote)
-                }
-            }
             
             for _, quote := range aggQuotes {
                 // write to csm

@@ -14,7 +14,6 @@ triggers:
     config:
       filter: "nasdaq"
       destinations:
-        - 3Min
         - 7Min
         - 11Min
         - 1H
@@ -45,14 +44,21 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
-      btcz_symbols:
+        - BTCJPY
+        - ETHJPY
+        - ETCJPY
+        - EOSJPY
+        - LTCJPY
+        - XLMJPY
+        - XRPJPY
+      BTC-CC:
         - ETHBTC
         - ETCBTC
         - EOSBTC
         - LTCBTC
         - XLMBTC
         - XRPBTC
-      usdz_symbols:
+      USD-CC:
         - BTCUSD
         - ETHUSD
         - ETCUSD
@@ -60,7 +66,7 @@ bgworkers:
         - LTCUSD
         - XLMUSD
         - XRPUSD
-      eurz_symbols:
+      EUR-CC:
         - BTCEUR
         - ETHEUR
         - ETCEUR
@@ -68,6 +74,14 @@ bgworkers:
         - LTCEUR
         - XLMEUR
         - XRPEUR
+      JPY-CC:
+        - BTCJPY
+        - ETHJPY
+        - ETCJPY
+        - EOSJPY
+        - LTCJPY
+        - XLMJPY
+        - XRPJPY
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
@@ -93,7 +107,7 @@ bgworkers:
         - CHFJPY
         - NZDJPY
         - CADJPY
-      usdx_symbols:
+      USD-FX:
         - EURUSD
         - JPYUSD
         - GBPUSD
@@ -101,7 +115,7 @@ bgworkers:
         - CHFUSD
         - NZDUSD
         - CADUSD
-      eurx_symbols:
+      EUR-FX:
         - USDEUR
         - JPYEUR
         - GBPEUR
@@ -109,7 +123,7 @@ bgworkers:
         - CHFEUR
         - NZDEUR
         - CADEUR
-      jpyx_symbols:
+      JPY-FX:
         - USDJPY
         - EURJPY
         - GBPJPY
@@ -122,38 +136,155 @@ bgworkers:
   - module: quanatee_iex_prices.so
     config:
       api_key: "<tiingo_api_key>"
-      symbols:
-        - ESGD
-        - ESGE
-        - ESGU
-        - ESML
-        - SUSA
-        - IDEV
-        - CEW
-        - GCC
-        - HEDJ
-        - DXJ
-        - IHDG
+      US-EQ:
+        - SPY
+        - IVV
+        - VOO
+        - VTI
+        - QQQ
+        - IJH
+        - VTV
+      US-CB:
+        - VCSH
+        - IGSB
+        - SPSB
+      US-GB:
+        - SHV
+        - SCHO
+        - VGSH
+        - SPTS
+      US-FX:
+        - UUP	
+        - USDU
+      EU-EQ:
+        - VGK
+        - EZU
+        - BBEU
+        - IEUR
+        - FEZ
+        - IEV
         - DFE
-        - DFJ
-        - DLS
-      ustf_symbols:
-        - ESGU
-        - ESML
-        - SUSA
-      eutf_symbols:
+      EU-EQH:
         - HEDJ
-        - DFE
-      jptf_symbols:
-        - DXJ
+        - HEZU
+        - DBEU
+        - EUSC
+      EU-FX:
+        - FXE
+      GB-EQ:
+        - EWU
+        - EWUS
+        - FLGB
+        - FKU
+      GB-EQH:
+        - HEWU
+      GB-FX:
+        - FXB
+      JP-EQ:
+        - EWJ
+        - BBJP
         - DFJ
-      wwtf_symbols:
-        - ESGD
-        - IDEV
+        - IVLU
+        - FLJP
+        - JPXN
+      JP-EQH:
+        - DXJ
+        - DBJP
+        - HEWJ
+      JP-FX:
+        - FXY
+      CH-EQ:
+        - EWL
+        - FSZ
+        - FLSW
+      CH-EQH:
+        - HEWL
+      CH-FX:
+        - FXF
+      AU-EQ:
+        - EWA
+        - FLAU
+        - FAUS
+      AU-EQH:
+        - HAUD
+      AU-FX:
+        - FXA
+      CA-EQ:
+        - BBCA
+        - EWC
+        - ZCAN
+        - FLCA
+        - FCAN
+      CA-EQH:
+        - HEWC
+      CA-FX:
+        - FXC
+      CN-EQ:
+        - FXI
+        - MCHI
+        - ASHR
+        - GXC
+        - CQQQ
+        - PGJ
+      CN-EQH:
+        - ASHX
+        - CNHX
+      CN-FX:
+        - CYB
+        - FXCH
+      EM-EQ:
+        - VWO
+        - IEMG
+        - EEM
+        - SCHE
+        - SPEM
+      EM-EQH:
+        - HEEM
+        - DBEM
+      EM-CB:
+        - HYEM
+        - CEMB
+        - EMCB
+      EM-GB:
+        - EMLC
+        - PCY
+        - VWOB
+        - EBND
+        - LEMB
+        - ELD
+      EM-GBH:
+        - EMB
+        - EMIH
+        - EMBH
+        - JPMB
+      DM-EQ:
+        - VEA
+        - EFA
+        - VEU
+        - SCHF
+        - IXUS
+        - VXUS
+      DM-EQH:
+        - DBEF
+        - HEFA
+        - HEZU
         - IHDG
-        - DLS
-      emtf_symbols:
-        - ESGE
-        - CEW
+        - HDEF
+        - DDWM
+        - DBAW
+      DM-CB:
+        - IHY
+        - HYXU
+      DM-GB:
+        - BWX
+        - IGOV
+        - BWZ
+        - ISHG
+        - IGVT
+        - FLIA
+      DM-GBH:
+       - IGVT
+      DM-FX:
+        - DBV
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
