@@ -1,0 +1,182 @@
+# -----------------------------------------
+# Auto-generated marketstore configuration.
+# -----------------------------------------
+# root directory of the database
+root_directory: data
+# listen port - the port exposed by the database server
+listen_port: 5993
+# log level (info|warn|error)
+log_level: debug
+# queryable - allows the database to be queried through a client connection
+queryable: true
+#
+stop_grace_period: 0
+#
+wal_rotate_interval: 5
+#
+enable_add: true
+#
+enable_remove: false
+#
+enable_last_known: false
+# 
+# timezone: "America/New_York"
+utilities_url: "localhost:5993"
+
+# ----------------------------------------
+# Example trigger modules
+#
+# Un-comment to enable.
+# ----------------------------------------
+#
+# triggers:
+#   - module: ondiskagg.so
+#     on: "*/1Min/OHLCV"
+#     config:
+#       destinations:
+#         - 5Min
+#         - 15Min
+#         - 1H
+#         - 1D
+#   - module: stream.so
+#     on: "*/*/*"
+#     config:
+#       filter: nasdaq
+#
+
+#bgworkers:
+#  # -----------------------
+#  # XigniteFeeder get the realtime stock data from Xignite API (https://www.quick.co.jp/qxapis/index.php)
+#  # and write it to the local marketstore at fixed intervals.
+#  # -----------------------
+#  - module: xignitefeeder.so
+#    config:
+#      # 取引所(exchange) list
+#      exchanges:
+#        #- XTKS # 東京証券取引所
+#        - XJAS # ジャスダック
+#        #- XNGO # 名古屋証券取引所
+#        #- XSAP # 札幌証券取引所
+#        #- XFKA # 福岡証券取引所
+#        #- XTAM # 東京プロマーケット
+#      # Xignite feeder also retrieves data of Index Symbols (ex. ＴＯＰＩＸ（東証１部株価指数）) every day.
+#      # To get target indices, index groups that the indices belong are necessary.
+#      # (cf. https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols )
+#      index_groups:
+#        - INDXJPX # JAPAN EXCHANGE GROUP
+#        - IND_NIKKEI # NIKKEI INDICES
+#      # time when target symbols in the exchanges are updated everyday(UTC)
+#      updatingHour: 21 #:00:00
+#      # XigniteFeeder writes data to "{identifier}/{timeframe}/TICK" TimeBucketKey
+#      timeframe: "1Sec"
+#      # Auth token for Xignite API
+#      token: "D89CC29A925148DC9AAE38E4FA2713C0"
+#      # Timeout [sec] for Xignite API
+#      timeout: 20
+#      # Interval [sec] to call Xignite API
+#      interval: 100
+#      # XigniteFeeder runs from openTime ~ closeTime (UTC)
+#      #      openTime: "23:55:00" # 08:55 (JST)
+#      #      closeTime: "06:10:00" # 15:10 (JST)
+#      openTime: "00:00:00" # 08:55 (JST)
+#      closeTime: "23:55:00" # 15:10 (JST)
+#      # XigniteFeeder doesn't run on the following days
+#      closedDaysOfTheWeek:
+#        - "Saturday"
+#        - "Sunday"
+#      # XigniteFeeder doesn't run on the closed dates (in JST)
+#      # (cf. https://www.jpx.co.jp/corporate/about-jpx/calendar/ )
+#      closedDays:
+#        - "2019-01-01"
+#        - "2019-01-02"
+#        - "2019-01-03"
+#        - "2019-01-14"
+#        - "2019-02-11"
+#        - "2019-03-21"
+#        - "2019-04-29"
+#        - "2019-04-30"
+#        - "2019-05-01"
+#        - "2019-05-02"
+#        - "2019-05-03"
+#        - "2019-05-04"
+#        - "2019-05-05"
+#        - "2019-05-06"
+#        - "2019-07-15"
+#        - "2019-08-11"
+#        - "2019-08-12"
+#        - "2019-09-16"
+#        - "2019-09-23"
+#        - "2019-10-14"
+#        - "2019-10-22"
+#        - "2019-11-03"
+#        - "2019-11-04"
+#        - "2019-11-23"
+#        - "2019-12-31"
+#        - "2020-01-01"
+#        - "2020-01-02"
+#        - "2020-01-03"
+#        - "2020-01-13"
+#        - "2020-02-11"
+#        - "2020-02-23"
+#        - "2020-02-24"
+#        - "2020-03-20"
+#        - "2020-04-29"
+#        - "2020-05-03"
+#        - "2020-05-04"
+#        - "2020-05-05"
+#        - "2020-05-06"
+#        - "2020-07-23"
+#        - "2020-07-24"
+#        - "2020-08-10"
+#      # if backfill is enabled, historical daily chart data for all symbols in the target exchanges
+#      # are aggregated using Xignite API (=GetQuotesRange endpoint) and stored to "{symbol}/{timeframe}/OHLCV" bucket.
+#      backfill:
+#        enabled: true
+#        since: "2019-09-01"
+#        timeframe: "1D"
+#      # In addition to the daily-chart backfill above,
+#      # Xignite Feeder can feed 5-minute chart data of the target symbols for the past X business days.
+#      recentBackfill:
+#        enabled: true
+#        days: 7
+#        timeframe: "5Min"
+
+# bgworkers:
+#   - module: gdaxfeeder.so
+#     name: GdaxFetcher
+#     config:
+#       query_start: "2017-09-01 00:00"
+#   - module: slait.so
+#       name: SlaitSubscriber
+#       config:
+#           endpoint: localhost:5000
+#           topic: bars_gdax
+#           attribute_group: OHLCV
+#           shape:
+#           - - Epoch
+#             - int64
+#           - - Open
+#             - float64
+#           - - High
+#             - float64
+#           - - Low
+#             - float64
+#           - - Close
+#             - float64
+#           - - Volume
+#             - float64
+#   - module: polygon.so
+#         name: Polygon
+#         config:
+#             api_key: your_api_key
+#             base_url: https://api.polygon.io
+#             symbols:
+#                 - AAPL
+#                 - SPY
+#   - module: bitmexfeeder.so
+#     name: BitmexFeeder
+#     config:
+#       query_start: "2017-01-01 00:00"
+#       symbols:
+#         - .XBT
+#       base_timeframe: "5Min"
