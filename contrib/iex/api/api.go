@@ -21,7 +21,7 @@ var (
 	NY, _ = time.LoadLocation("America/New_York")
 	token string
 	base  = "https://cloud.iexapis.com/stable"
-	symbolsexcluded = map[string]bool{}
+	symbolsExcluded = map[string]bool{}
 )
 
 func SetToken(t string) {
@@ -108,7 +108,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	} else {
 		var newsymbols []string
 		for _, sym := range symbols {
-			if !symbolsexcluded[sym] {
+			if !symbolsExcluded[sym] {
 				newsymbols = append(newsymbols, sym)
 			}
 		}
@@ -167,8 +167,8 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		// One of the symbols is DELAYED_OTC
 		// Binary divide the symbols list until we can identify the conflict
 		if len(symbols) == 1 {  // Idenified an OTC symbol
-			symbolsexcluded[symbols[0]] = true
-			return nil, errors.New(fmt.Sprintf("%s: %s [Symbol: %s]", res.Status, string(body), symbols[0]))
+			symbolsExcluded[symbols[0]] = true
+			return nil, fmt.Errorf("OTC Error: %s: %s [Symbol: %s]", res.Status, string(body), symbols[0])
 		} else {
 			var resp0 *GetBarsResponse
 			var resp1 *GetBarsResponse
@@ -180,14 +180,14 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 			resp0, err1 := GetBars(symbols[:split], barRange, limit, retries)
 			resp1, err2 := GetBars(symbols[split:], barRange, limit, retries)
 			if err1 != nil {
-				log.Error(fmt.Sprintf("OTC Error: %v", err1))
+				log.Error(err1.Error())
 			} else {
 				for k,v := range *resp0 {
 					resp[k] = v
 				}
 			}
 			if err2 != nil {
-				log.Error(fmt.Sprintf("OTC Error: %v", err2))
+				log.Error(err2.Error())
 			} else {
 				for k,v := range *resp1 {
 					resp[k] = v

@@ -25,10 +25,11 @@ const (
 )
 
 type IEXFetcher struct {
-	config    FetcherConfig
-	backfillM *sync.Map
-	queue     chan []string
-	lastM     *sync.Map
+	config         FetcherConfig
+	backfillM      *sync.Map
+	queue          chan []string
+	lastM          *sync.Map
+	refreshSymbols bool
 }
 
 type FetcherConfig struct {
@@ -44,19 +45,19 @@ type FetcherConfig struct {
 	Sandbox bool
 }
 
-func VerifySymbols(config *FetcherConfig) {
-	// grab the symbol list if none are specified
-	if len(config.Symbols) == 0 {
+func UpdateSymbolList(f *IEXFetcher) {
+	// update the symbol list if there was no static list in config
+	if f.refreshSymbols {
 		resp, err := api.ListSymbols()
 		if err != nil {
 			return
 		}
 
-		config.Symbols = make([]string, len(*resp))
+		f.config.Symbols = make([]string, len(*resp))
 
 		for i, s := range *resp {
 			if s.IsEnabled {
-				config.Symbols[i] = s.Symbol
+				f.config.Symbols[i] = s.Symbol
 			}
 		}
 	}
@@ -80,14 +81,17 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		log.Info("starting for IEX production")
 	}
 
-	VerifySymbols(&config)
-
-	return &IEXFetcher{
+	f := IEXFetcher{
 		backfillM: &sync.Map{},
 		config:    config,
 		queue:     make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
 		lastM:     &sync.Map{},
-	}, nil
+		refreshSymbols: len(config.Symbols) == 0,
+	}
+
+	UpdateSymbolList(&f)
+
+	return &f, nil
 }
 
 func (f *IEXFetcher) Run() {
