@@ -3,20 +3,15 @@
 ################################################################################
 
 IMAGE_NAME ?= alpacahq/integrationtests.marketstore
-CONTAINER_NAME = integration_tests_mstore
 MARKETSTORE_DEV_DB_URL = https://s3.amazonaws.com/dev.alpaca.markets/gobroker/mktsdb.tar.gz
 MARKETSTORE_DEV_DB_TMPFILE = /tmp/mktsdb.tgz
 
 # User targets
 ################################################################################
 
-# build marketstore docker container for integration test
-build_mstore:
-	docker build -t ${IMAGE_NAME} ../..
-
 # start a marketstore docker container and check if ListSymbols API can be consumed
 .PHONY: connect
-connect: run
+connect:
 	@curl -s \
 	--data-binary '{"jsonrpc":"2.0", "method":"DataService.ListSymbols", "id":1, "params": {"parameters": {}}}' \
 	-H 'Content-Type: application/json' http://localhost:5993/rpc ; \
@@ -46,24 +41,17 @@ clean: stop
 
 # Utils
 ################################################################################
-.PHONY: _init
-_init: build_mstore
-	@if [ ! -d data/mktsdb ]; then \
-		rm -rf data; \
-		$(MAKE) _get_data; \
-	fi
 
 .PHONY: _get_data
 _get_data:
-	@rm -rf data && mkdir data
+	@rm -rf /tmp/data && mkdir /tmp/data
 	@if [ ! -f ${MARKETSTORE_DEV_DB_TMPFILE} ]; then \
 		wget ${MARKETSTORE_DEV_DB_URL} -O ${MARKETSTORE_DEV_DB_TMPFILE}; \
 	fi
-	@tar -C data -xzf ${MARKETSTORE_DEV_DB_TMPFILE}
+	@tar -C /tmp/data -xzf ${MARKETSTORE_DEV_DB_TMPFILE}
 
 .PHONY: _startup
 _startup: stop
-	@echo "Starting a marketstore instance..."
 
 	# copy the test config and data to the container and start it after the container is created
 	# because mounting folders from docker executor is not supported in Circle CI2.0.
@@ -94,4 +82,4 @@ test_import_csv:
 .PHONY: test
 test: test_import_csv clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
-	make -C dockerfiles/pyclient test
+	make -C dockerfiles test

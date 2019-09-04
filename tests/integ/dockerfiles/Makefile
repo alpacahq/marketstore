@@ -1,0 +1,34 @@
+MAKEFILE_PATH := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+PROJECT_ROOT := $(abspath $(MAKEFILE_PATH)/)
+DATA_DIR ?= $(PROJECT_ROOT)/data
+
+CONTAINER_NAME=integrationtests.pyclient
+IMAGE_NAME=alpacahq/$(CONTAINER_NAME)
+
+test:
+	docker exec integrationtests.pyclient bash -c \
+		"pytest -v -v -v $(TEST_FILENAME)"
+
+# build pymarketstore docker container for integration test
+build:
+	docker build -t $(IMAGE_NAME) pyclient
+
+run:
+	# copy the test config and data to the container and start it after the container is created
+	# because mounting folders from docker executor is not supported in Circle CI2.0.
+	# https://discuss.circleci.com/t/why-circleci-2-0-does-not-support-mounting-folders/11605
+	docker create --name $(CONTAINER_NAME) --net=host $(IMAGE_NAME)
+	docker cp $(CURDIR)/../tests $(CONTAINER_NAME):/project/tests
+	docker start $(CONTAINER_NAME)
+
+rm:
+	docker rm -f $(CONTAINER_NAME) || echo
+
+logs:
+	docker logs -f --tail 100 $(CONTAINER_NAME)
+
+bash:
+	docker exec -i -t $(CONTAINER_NAME) bash
+
+cpsource:
+	docker cp ../. $(CONTAINER_NAME):/project
