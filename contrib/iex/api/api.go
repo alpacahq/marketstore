@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/alpacahq/marketstore/utils/log"
 )
 
 const (
@@ -20,6 +21,7 @@ var (
 	NY, _ = time.LoadLocation("America/New_York")
 	token string
 	base  = "https://cloud.iexapis.com/stable"
+	symbolsexcluded = map[string]bool{}
 )
 
 func SetToken(t string) {
@@ -103,6 +105,14 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 
 	if len(symbols) == 0 {
 		return &GetBarsResponse{}, nil
+	} else {
+		var newsymbols []string
+		for _, sym := range symbols {
+			if !symbolsexcluded[sym] {
+				newsymbols = append(newsymbols, sym)
+			}
+		}
+		symbols = newsymbols
 	}
 
 	q := u.Query()
@@ -153,23 +163,56 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		return nil, err
 	}
 
-	if err = json.Unmarshal(body, &resp); err != nil {
-		return nil, errors.New(res.Status + ": " + string(body))
-	}
+	if res.StatusCode == http.StatusUnavailableForLegalReasons {
+		// One of the symbols is DELAYED_OTC
+		// Binary divide the symbols list until we can identify the conflict
+		if len(symbols) == 1 {  // Idenified an OTC symbol
+			symbolsexcluded[symbols[0]] = true
+			return nil, errors.New(fmt.Sprintf("%s: %s [Symbol: %s]", res.Status, string(body), symbols[0]))
+		} else {
+			var resp0 *GetBarsResponse
+			var resp1 *GetBarsResponse
+			var split int = len(symbols) / 2
 
-	if q.Get("types") == "intraday-prices" {
-		for key, val := range resp {
-			resp[key].Chart = val.IntradayPrices
-		}
-	}
+			// fmt.Printf("Symbol groups: %v - %v\n", symbols[:split], symbols[split:])
 
-	if resp[symbols[0]] != nil && resp[symbols[0]].Chart == nil {
-		if retries > 0 {
-			// log.Info("retrying due to null response")
-			<-time.After(time.Second)
-			return GetBars(symbols, barRange, limit, retries-1)
+			resp = GetBarsResponse{}
+			resp0, err1 := GetBars(symbols[:split], barRange, limit, retries)
+			resp1, err2 := GetBars(symbols[split:], barRange, limit, retries)
+			if err1 != nil {
+				log.Error(fmt.Sprintf("OTC Error: %v", err1))
+			} else {
+				for k,v := range *resp0 {
+					resp[k] = v
+				}
+			}
+			if err2 != nil {
+				log.Error(fmt.Sprintf("OTC Error: %v", err2))
+			} else {
+				for k,v := range *resp1 {
+					resp[k] = v
+				}
+			}
 		}
-		return nil, fmt.Errorf("retry count exceeded")
+	} else {
+		if err = json.Unmarshal(body, &resp); err != nil {
+			return nil, errors.New(res.Status + ": " + string(body))
+		}
+
+		if q.Get("types") == "intraday-prices" {
+			for key, val := range resp {
+				resp[key].Chart = val.IntradayPrices
+			}
+		}
+
+		if resp[symbols[0]] != nil && resp[symbols[0]].Chart == nil {
+			if retries > 0 {
+				// log.Info("retrying due to null response")
+				<-time.After(time.Second)
+				return GetBars(symbols, barRange, limit, retries-1)
+			}
+			return nil, fmt.Errorf("retry count exceeded")
+		}
 	}
 
 	return &resp, nil

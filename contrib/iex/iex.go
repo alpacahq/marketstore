@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"os"
 
 	"github.com/alpacahq/marketstore/contrib/iex/api"
 	"github.com/alpacahq/marketstore/executor"
@@ -43,6 +44,24 @@ type FetcherConfig struct {
 	Sandbox bool
 }
 
+func VerifySymbols(config *FetcherConfig) {
+	// grab the symbol list if none are specified
+	if len(config.Symbols) == 0 {
+		resp, err := api.ListSymbols()
+		if err != nil {
+			return
+		}
+
+		config.Symbols = make([]string, len(*resp))
+
+		for i, s := range *resp {
+			if s.IsEnabled {
+				config.Symbols[i] = s.Symbol
+			}
+		}
+	}
+}
+
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}
@@ -61,21 +80,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		log.Info("starting for IEX production")
 	}
 
-	// grab the symbol list if none are specified
-	if len(config.Symbols) == 0 {
-		resp, err := api.ListSymbols()
-		if err != nil {
-			return nil, err
-		}
-
-		config.Symbols = make([]string, len(*resp))
-
-		for i, s := range *resp {
-			if s.IsEnabled {
-				config.Symbols[i] = s.Symbol
-			}
-		}
-	}
+	VerifySymbols(&config)
 
 	return &IEXFetcher{
 		backfillM: &sync.Map{},
@@ -136,11 +141,11 @@ func (f *IEXFetcher) pollDaily(symbols []string) {
 
 	resp, err := api.GetBars(symbols, monthly, &limit, 5)
 	if err != nil {
-		log.Error("failed to query intraday bar batch (%v)", err)
+		log.Error("failed to query daily bar batch (%v)", err)
 	}
 
 	if err = f.writeBars(resp, false, false); err != nil {
-		log.Error("failed to write intraday bar batch (%v)", err)
+		log.Error("failed to write daily bar batch (%v)", err)
 	}
 }
 
@@ -331,7 +336,21 @@ func limiter() time.Duration {
 }
 
 func main() {
-	resp, err := api.GetBars([]string{"AAPL"}, oneDay, nil, 5)
+	api.SetToken(os.Getenv("IEXTOKEN"))
+	resp, err := api.GetBars([]string{"AAPL", "AMD", "X", "NVDA", "AMPY", "IBM", "GOOG"}, oneDay, nil, 5)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for symbol, chart := range *resp {
+		for _, bar := range chart.Chart {
+			fmt.Printf("symbol: %v bar: %v\n", symbol, bar)
+		}
+	}
+
+	fmt.Printf("-------------------\n\n")
+	resp, err = api.GetBars([]string{"AMPY", "MSFT", "DVCR"}, oneDay, nil, 5)
 
 	if err != nil {
 		panic(err)
