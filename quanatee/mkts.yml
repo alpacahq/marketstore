@@ -23,9 +23,26 @@ bgworkers:
   - module: quanatee_crypto_prices.so
     config:
       api_key: "<tiingo_api_key>"
-      symbols: [ 'BTCUSD', 'ETHUSD', 'ETCUSD', 'EOSUSD', 'LTCUSD', 'XLMUSD', 'XRPUSD' ]
+      symbols: 
+       - BTCUSD
+       - ETHUSD
+       - ETCUSD
+       - EOSUSD
+       - LTCUSD
+       - XLMUSD
+       - XRPUSD
       schema:
-        USDCC: [ 'USDBTC', 'USDETH', 'USDETC', 'USDEOS', 'USDLTC', 'USDXLM', 'USDXRP' ]
+        USDCC:
+          - USDBTC
+          - USDETH
+          - USDETC
+          - USDEOS
+          - USDLTC
+          - USDXLM
+          - USDXRP
+        USDXX:
+          - USDETH
+          - USDETC
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
