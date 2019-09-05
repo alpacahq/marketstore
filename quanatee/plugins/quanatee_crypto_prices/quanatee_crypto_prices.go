@@ -262,14 +262,14 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		queryStart = queryTime(config.QueryStart)
 	}
 
+    log.Info("%v", config.Symbols)
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
-        log.Info("%v", symbols)
 	}
     
+    log.Info("%v", config.Schema)
 	if len(config.Schema) > 0 {
 		schema = config.Schema
-        log.Info("%v", schema)
 	}
     
 	return &CryptoFetcher{
