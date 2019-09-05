@@ -24,7 +24,6 @@ bgworkers:
     config:
       api_key: "<tiingo_api_key>"
       symbols:
-      symbols:
         - ETHBTC
         - ETCBTC
         - EOSBTC
