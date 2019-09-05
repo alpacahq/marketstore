@@ -269,6 +269,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
     
     for key, value := range config.Indices {
         indices[key] = value.([]string)
+    }
     
     log.Info("%v", config.Indices)
     log.Info("%v", indices)
