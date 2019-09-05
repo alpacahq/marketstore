@@ -692,6 +692,7 @@ func (tiifx *ForexFetcher) Run() {
                                     aggQuote.High = quote.High
                                     aggQuote.Low = quote.Low
                                     aggQuote.Close = quote.Close
+                                    aggQuote.Volume = quote.Volume
                                 } else if len(aggQuote.Epoch) == len(quote.Epoch) {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
