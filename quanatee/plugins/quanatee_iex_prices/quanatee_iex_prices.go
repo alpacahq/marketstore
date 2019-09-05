@@ -235,9 +235,9 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
     Indices        map[string][]string `yaml:"indices"`
-    ApiKey         string    `json:"api_key"`
-	QueryStart     string    `json:"query_start"`
-	BaseTimeframe  string    `json:"base_timeframe"`
+    ApiKey         string    `yaml:"api_key"`
+	QueryStart     string    `yaml:"query_start"`
+	BaseTimeframe  string    `yaml:"base_timeframe"`
 }
 
 // IEXFetcher is the main worker for TiingoIEX
