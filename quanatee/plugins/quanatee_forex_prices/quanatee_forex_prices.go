@@ -19,6 +19,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
     
+	"gopkg.in/yaml.v2"
 	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_forex_prices/calendar"
 )
 
@@ -319,12 +320,9 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	return quote, nil
 }
 
-// FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
-	Symbols        []string `json:"symbols"`
-	USD_FX          []string `json:"USD-FX"`
-	EUR_FX          []string `json:"EUR-FX"`
-	JPY_FX          []string `json:"JPY-FX"`
+	Symbols        []string `yaml:"symbols"`
+    Indices        map[string][]string `yaml:"indices"`
     ApiKey         string   `json:"api_key"`
     ApiKey2        string   `json:"api_key2"`
 	QueryStart     string   `json:"query_start"`
@@ -335,18 +333,18 @@ type FetcherConfig struct {
 type ForexFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
-	aggSymbols    map[string][]string
+	indices        map[string][]string
     apiKey         string
     apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
 
-// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
+// recast changes parsed yaml-encoded data represented as an interface to FetcherConfig structure
 func recast(config map[string]interface{}) *FetcherConfig {
-	data, _ := json.Marshal(config)
+	data, _ := yaml.Marshal(config)
 	ret := FetcherConfig{}
-	json.Unmarshal(data, &ret)
+	yaml.Unmarshal(data, &ret)
 
 	return &ret
 }
@@ -430,6 +428,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
+	var indices map[string][]string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -443,11 +442,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-    aggSymbols := map[string][]string{
-        "USD-FX": config.USD_FX,
-        "EUR-FX": config.EUR_FX,
-        "JPY-FX": config.JPY_FX,
-    }
+	if len(config.Indices) > 0 {
+		indices = config.Indices
+	}
     
 	return &ForexFetcher{
 		config:         conf,
@@ -683,7 +680,7 @@ func (tiifx *ForexFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            for key, value := range tiifx.aggSymbols {
+            for key, value := range tiifx.indices {
                 aggQuote := NewQuote(key, 0)
                 for _, quote := range quotes {
                     for _, symbol := range value {
@@ -695,7 +692,6 @@ func (tiifx *ForexFetcher) Run() {
                                     aggQuote.High = quote.High
                                     aggQuote.Low = quote.Low
                                     aggQuote.Close = quote.Close
-                                    aggQuote.Volume = quote.Volume
                                 } else if len(aggQuote.Epoch) == len(quote.Epoch) {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
@@ -719,7 +715,6 @@ func (tiifx *ForexFetcher) Run() {
                     aggQuotes = append(aggQuotes, aggQuote)
                 }
             }
-            
             
             for _, quote := range aggQuotes {
                 // write to csm

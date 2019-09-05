@@ -17,6 +17,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
     
+	"gopkg.in/yaml.v2"
 	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_iex_prices/calendar"    
 )
 
@@ -231,45 +232,9 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	return quote, nil
 }
 
-// FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
-	US_EQ          []string  `json:"US_EQ"`
-	US_CB          []string  `json:"US_CB"`
-	US_GB          []string  `json:"US_GB"`
-	US_FX          []string  `json:"US_FX"`
-	EU_EQ          []string  `json:"EU_EQ"`
-	EU_EQH         []string  `json:"EU_EQH"`
-	EU_FX          []string  `json:"EU_FX"`
-	GB_EQ          []string  `json:"GB_EQ"`
-	GB_EQH         []string  `json:"GB_EQH"`
-	GB_FX          []string  `json:"GB_FX"`
-	JP_EQ          []string  `json:"JP_EQ"`
-	JP_EQH         []string  `json:"JP_EQH"`
-	JP_FX          []string  `json:"JP_FX"`
-	CH_EQ          []string  `json:"CH_EQ"`
-	CH_EQH         []string  `json:"CH_EQH"`
-	CH_FX          []string  `json:"CH_FX"`
-	AU_EQ          []string  `json:"AU_EQ"`
-	AU_EQH         []string  `json:"AU_EQH"`
-	AU_FX          []string  `json:"AU_FX"`
-	CA_EQ          []string  `json:"CA_EQ"`
-	CA_EQH         []string  `json:"CA_EQH"`
-	CA_FX          []string  `json:"CA_FX"`
-	CN_EQ          []string  `json:"CN_EQ"`
-	CN_EQH         []string  `json:"CN_EQH"`
-	CN_FX          []string  `json:"CN_FX"`
-	EM_EQ          []string  `json:"EM_EQ"`
-	EM_EQH         []string  `json:"EM_EQH"`
-	EM_CB          []string  `json:"EM_CB"`
-	EM_GB          []string  `json:"EM_GB"`
-	EM_GBH         []string  `json:"EM_GBH"`
-	EM_FX          []string  `json:"EM_FX"`
-	DM_EQ          []string  `json:"DM_EQ"`
-	DM_EQH         []string  `json:"DM_EQH"`
-	DM_CB          []string  `json:"DM_CB"`
-	DM_GB          []string  `json:"DM_GB"`
-	DM_GBH         []string  `json:"DM_GBH"`
-	DM_FX          []string  `json:"DM_FX"`
+	Symbols        []string `yaml:"symbols"`
+    Indices        map[string][]string `yaml:"indices"`
     ApiKey         string    `json:"api_key"`
 	QueryStart     string    `json:"query_start"`
 	BaseTimeframe  string    `json:"base_timeframe"`
@@ -278,17 +243,18 @@ type FetcherConfig struct {
 // IEXFetcher is the main worker for TiingoIEX
 type IEXFetcher struct {
 	config         map[string]interface{}
-	symbols        map[string][]string
+	symbols        []string
+	indices        map[string][]string
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
 
-// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
+// recast changes parsed yaml-encoded data represented as an interface to FetcherConfig structure
 func recast(config map[string]interface{}) *FetcherConfig {
-	data, _ := json.Marshal(config)
+	data, _ := yaml.Marshal(config)
 	ret := FetcherConfig{}
-	json.Unmarshal(data, &ret)
+	yaml.Unmarshal(data, &ret)
 
 	return &ret
 }
@@ -372,6 +338,8 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
 	var queryStart time.Time
 	timeframeStr := "1Min"
+	var symbols []string
+	var indices map[string][]string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -381,45 +349,13 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		queryStart = queryTime(config.QueryStart)
 	}
 
-    symbols := map[string][]string{
-        "US-EQ": config.US_EQ,
-        "US-CB": config.US_CB,
-        "US-GB": config.US_GB,
-        "US-FX": config.US_FX,
-        "EU-EQ": config.EU_EQ,
-        "EU-EQH": config.EU_EQH,
-        "EU-FX": config.EU_FX,
-        "GB-EQ": config.GB_EQ,
-        "GB-EQH": config.GB_EQH,
-        "GB-FX": config.GB_FX,
-        "JP-EQ": config.JP_EQ,
-        "JP-EQH": config.JP_EQH,
-        "JP-FX": config.JP_FX,
-        "CH-EQ": config.CH_EQ,
-        "CH-EQH": config.CH_EQH,
-        "CH-FX": config.CH_FX,
-        "AU-EQ": config.AU_EQ,
-        "AU-EQH": config.AU_EQH,
-        "AU-FX": config.AU_FX,
-        "CA-EQ": config.CA_EQ,
-        "CA-EQH": config.CA_EQH,
-        "CA-FX": config.CA_FX,
-        "CN-EQ": config.CN_EQ,
-        "CN-EQH": config.CN_EQH,
-        "CN-FX": config.CN_FX,
-        "EM-EQ": config.EM_EQ,
-        "EM-EQH": config.EM_EQH,
-        "EM-CB": config.EM_CB,
-        "EM-GB": config.EM_GB,
-        "EM-GBH": config.EM_GBH,
-        "EM-FX": config.EM_FX,
-        "DM-EQ": config.DM_EQ,
-        "DM-EQH": config.DM_EQH,
-        "DM-CB": config.DM_CB,
-        "DM-GB": config.DM_GB,
-        "DM-GBH": config.DM_GBH,
-        "DM-FX": config.DM_FX,
-    }
+	if len(config.Symbols) > 0 {
+		symbols = config.Symbols
+	}
+    
+	if len(config.Indices) > 0 {
+		indices = config.Indices
+	}
     
 	return &IEXFetcher{
 		config:         conf,
@@ -434,19 +370,12 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 // If query_end is not set, it will run forever.
 func (tiiex *IEXFetcher) Run() {
 
-    symbols := make([]string, 0)
-    for _, indSymbols := range tiiex.symbols {
-        for _, symbol := range indSymbols {
-            symbols = append(symbols, symbol)
-        }
-    }
-    
 	realTime := false    
 	timeStart := time.Time{}
 	lastTimestamp := time.Time{}
     
     // Get last timestamp collected
-	for _, symbol := range symbols {
+	for _, symbol := range tiiex.symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
@@ -520,7 +449,7 @@ func (tiiex *IEXFetcher) Run() {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
             
             quotes := Quotes{}
-            
+            symbols := tiiex.symbols
             rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
@@ -560,7 +489,7 @@ func (tiiex *IEXFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            for key, value := range tiiex.symbols {
+            for key, value := range tiiex.indices {
                 aggQuote := NewQuote(key, 0)
                 for _, quote := range quotes {
                     for _, symbol := range value {

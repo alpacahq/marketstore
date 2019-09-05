@@ -171,7 +171,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	return quote, nil
 }
 
-// FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
     Indices        map[string][]string `yaml:"indices"`
@@ -190,7 +189,7 @@ type CryptoFetcher struct {
 	baseTimeframe  *utils.Timeframe
 }
 
-// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
+// recast changes parsed yaml-encoded data represented as an interface to FetcherConfig structure
 func recast(config map[string]interface{}) *FetcherConfig {
 	data, _ := yaml.Marshal(config)
 	ret := FetcherConfig{}
@@ -263,7 +262,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		queryStart = queryTime(config.QueryStart)
 	}
 
-    log.Info("%v", config.Symbols)
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	}
@@ -271,9 +269,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if len(config.Indices) > 0 {
 		indices = config.Indices
 	}
-    log.Info("%v", config.Indices)
-    log.Info("%v", indices)
-	
+    
 	return &CryptoFetcher{
 		config:         conf,
 		symbols:        symbols,
