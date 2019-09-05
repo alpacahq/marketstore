@@ -173,7 +173,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
-    Schema         map[string][]string 'json:"schema"'
+    Schema         map[string][]string `json:"schema"`
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
