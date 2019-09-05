@@ -360,6 +360,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	return &IEXFetcher{
 		config:         conf,
 		symbols:        symbols,
+		indices:        indices,
         apiKey:         config.ApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),

@@ -449,7 +449,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	return &ForexFetcher{
 		config:         conf,
 		symbols:        symbols,
-		aggSymbols:     aggSymbols,
+		indices:        indices,
         apiKey:         config.ApiKey,
         apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
