@@ -264,10 +264,12 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
+        log.Info("%v", symbols)
 	}
     
 	if len(config.Schema) > 0 {
 		schema = config.Schema
+        log.Info("%v", schema)
 	}
     
 	return &CryptoFetcher{
