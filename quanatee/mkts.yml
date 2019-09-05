@@ -32,7 +32,7 @@ bgworkers:
         - XLMUSD
         - XRPUSD
       schema:
-        -  USDCC
+        USDCC:
           - USDBTC
           - USDETH
           - USDETC
@@ -40,7 +40,7 @@ bgworkers:
           - USDLTC
           - USDXLM
           - USDXRP
-        -  USDXX
+        USDXX:
           - USDETH
           - USDETC
       query_start: "2018-01-01 00:00"
