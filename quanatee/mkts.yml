@@ -28,6 +28,12 @@ bgworkers:
         - ETCBTC
         - EOSBTC
         - LTCBTC
-      indices: `{ "BTCXX": ["BTCETH", "BTCETC"], "BTCYY": ["BTCEOS", "BTCLTC"] }`
+      indices:
+        - BTCXX: 
+          - BTCETH
+          - BTCETC
+        - BTCYY:
+          - BTCEOS
+          - BTCLTC
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
