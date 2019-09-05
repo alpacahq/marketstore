@@ -24,24 +24,17 @@ bgworkers:
     config:
       api_key: "<tiingo_api_key>"
       symbols:
-        - BTCUSD
-        - ETHUSD
-        - ETCUSD
-        - EOSUSD
-        - LTCUSD
-        - XLMUSD
-        - XRPUSD
+      symbols:
+        - ETHBTC
+        - ETCBTC
+        - EOSBTC
+        - LTCBTC
       schema:
-        USDCC:
-          - USDBTC
-          - USDETH
-          - USDETC
-          - USDEOS
-          - USDLTC
-          - USDXLM
-          - USDXRP
-        USDXX:
-          - USDETH
-          - USDETC
+        BTCXX:
+          - ETHBTC
+          - ETCBTC
+        BTCYY:
+          - EOSBTC
+          - LTCBTC
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
