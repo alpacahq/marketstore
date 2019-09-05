@@ -252,7 +252,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	var indices map[string]interface{}
+	var indices map[string][]string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -267,11 +267,10 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
+    indices = config.Indices.(map[string][]string)
     log.Info("%v", config.Indices)
-	if len(config.Indices) > 0 {
-		indices = config.Indices
-	}
-    
+    log.Info("%v", indices)
+	
 	return &CryptoFetcher{
 		config:         conf,
 		symbols:        symbols,
