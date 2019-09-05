@@ -700,9 +700,9 @@ func (tiifx *ForexFetcher) Run() {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
                                         // Calculate the market capitalization
-                                        quote_cap = (quote.Close[bar] * quote.Volume[bar])
-                                        aggQuote_cap = (aggQuote.Close[bar] * aggQuote.Volume[bar])
-                                        total_cap = quote_cap + aggQuote_cap
+                                        quote_cap := (quote.Close[bar] * quote.Volume[bar])
+                                        aggQuote_cap := (aggQuote.Close[bar] * aggQuote.Volume[bar])
+                                        total_cap := quote_cap + aggQuote_cap
                                         // Calculate the weighted averages
                                         aggQuote.Open[bar] = ( quote.Open[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Open[bar] * ( aggQuote_cap / total_cap ) )
                                         aggQuote.High[bar] = ( quote.High[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.High[bar] * ( aggQuote_cap / total_cap ) )
