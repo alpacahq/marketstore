@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-    "strings"
     "math/rand"
     
 	"github.com/alpacahq/marketstore/executor"
