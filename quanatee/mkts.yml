@@ -28,8 +28,5 @@ bgworkers:
         - ETCBTC
         - EOSBTC
         - LTCBTC
-      indices:
-        BTCXX: ["ETHBTC", "ETCBTC"]
-        BTCYY: ["EOSBTC", "LTCBTC"]
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
