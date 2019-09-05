@@ -271,6 +271,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
         indexSymbols := make([]string, 0)
         for _, value2 := range value {
             indexSymbols = append(indexSymbols, value2.(string))
+        }
         indices[key] = indexSymbols
     }
     
