@@ -173,7 +173,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
-    Indices        map[string][]interface{} `json:"indices"`
+    Indices        string `json:"indices"`
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
@@ -267,14 +267,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-    for key, value := range config.Indices {
-        indexSymbols := make([]string, 0)
-        for _, value2 := range value {
-            indexSymbols = append(indexSymbols, value2.(string))
-        }
-        indices[key] = indexSymbols
-    }
-    
+	if len(config.Indices) > 0 {
+		indices = config.Indices
+	}
     log.Info("%v", config.Indices)
     log.Info("%v", indices)
 	
