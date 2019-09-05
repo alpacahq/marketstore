@@ -173,7 +173,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
-    Schema         map[string][]string `json:"schema"`
+    Indices         map[string][]string `json:"indices"`
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
@@ -183,7 +183,7 @@ type FetcherConfig struct {
 type CryptoFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
-	schema         map[string][]string
+	indices         map[string][]string
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
@@ -252,7 +252,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	var schema map[string][]string
+	var indices map[string][]string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -267,15 +267,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-    log.Info("%v", config.Schema)
-	if len(config.Schema) > 0 {
-		schema = config.Schema
+    log.Info("%v", config.Indices)
+	if len(config.Indices) > 0 {
+		indices = config.Indices
 	}
     
 	return &CryptoFetcher{
 		config:         conf,
 		symbols:        symbols,
-		schema:         schema,
+		indices:         indices,
         apiKey:         config.ApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
@@ -430,7 +430,7 @@ func (tiicc *CryptoFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            for key, value := range tiicc.schema {
+            for key, value := range tiicc.indices {
                 aggQuote := NewQuote(key, 0)
                 for _, quote := range quotes {
                     for _, symbol := range value {

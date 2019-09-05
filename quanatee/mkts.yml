@@ -28,7 +28,7 @@ bgworkers:
         - ETCBTC
         - EOSBTC
         - LTCBTC
-      schema:
+      indices:
         BTCXX: ["ETHBTC", "ETCBTC"]
         BTCYY: ["EOSBTC", "LTCBTC"]
       query_start: "2018-01-01 00:00"
