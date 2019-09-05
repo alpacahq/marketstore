@@ -294,7 +294,7 @@ func (tiicc *CryptoFetcher) Run() {
 	
     // Get last timestamp collected
 	for _, symbol := range tiicc.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("Crypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -367,7 +367,7 @@ func (tiicc *CryptoFetcher) Run() {
                         continue
                     } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                         // Check if realTime is adding the most recent data
-                        log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                        log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                         continue
                     }
                     // write to csm
@@ -377,17 +377,57 @@ func (tiicc *CryptoFetcher) Run() {
                     cs.AddColumn("High", quote.High)
                     cs.AddColumn("Low", quote.Low)
                     cs.AddColumn("Close", quote.Close)
+                    cs.AddColumn("Volume", quote.Volume)
                     csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
                     // Save the latest timestamp written
                     lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                    log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                    log.Info("Crypto: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {
                     log.Info("Crypto: error downloading " + symbol)
+                }
+            }
+            
+            // Add reversed pairs
+            for _, quote := range quotes {
+                revSymbol := ""
+                if strings.HasSuffix(quote.Symbol, "USD") {
+                    revSymbol = "USD" + strings.Replace(quote.Symbol, "USD", "", -1)
+                } else if strings.HasSuffix(quote.Symbol, "EUR") {
+                    revSymbol = "EUR" + strings.Replace(quote.Symbol, "EUR", "", -1)
+                } else if strings.HasSuffix(quote.Symbol, "JPY") {
+                    revSymbol = "JPY" + strings.Replace(quote.Symbol, "JPY", "", -1)
+                }
+                if revSymbol != "" {
+                    numrows := len(quote.Epoch)
+                    revQuote := NewQuote(revSymbol, numrows)
+                    for bar := 0; bar < numrows; bar++ {
+                        revQuote.Epoch[bar] = quote.Epoch[bar]
+                        revQuote.Open[bar] = 1/quote.Open[bar]
+                        revQuote.High[bar] = 1/quote.High[bar]
+                        revQuote.Low[bar] = 1/quote.Low[bar]
+                        revQuote.Close[bar] = 1/quote.Close[bar]
+                        revQuote.Volume[bar] = (quote.Close[bar]*quote.Volume[bar]) / revQuote.Close[bar]
+                    }
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", revQuote.Epoch)
+                    cs.AddColumn("Open", revQuote.Open)
+                    cs.AddColumn("High", revQuote.High)
+                    cs.AddColumn("Low", revQuote.Low)
+                    cs.AddColumn("Close", revQuote.Close)
+                    cs.AddColumn("Volume", revQuote.Volume)
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    
+                    log.Info("Crypto: %v row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiicc.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                    quotes = append(quotes, revQuote)
                 }
             }
             
@@ -407,10 +447,16 @@ func (tiicc *CryptoFetcher) Run() {
                                 } else if len(aggQuote.Epoch) == len(quote.Epoch) {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
-                                        aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
-                                        aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
-                                        aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
-                                        aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
+                                        // Calculate the market capitalization
+                                        quote_cap = (quote.Close[bar] * quote.Volume[bar])
+                                        aggQuote_cap = (aggQuote.Close[bar] * aggQuote.Volume[bar])
+                                        total_cap = quote_cap + aggQuote_cap
+                                        // Calculate the weighted averages
+                                        aggQuote.Open[bar] = ( quote.Open[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Open[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.High[bar] = ( quote.High[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.High[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Low[bar] = ( quote.Low[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Low[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Close[bar] = ( quote.Close[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Close[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Volume[bar] = total_cap / aggQuote.Close[bar]
                                     }
                                 }
                             }
@@ -430,12 +476,13 @@ func (tiicc *CryptoFetcher) Run() {
                 cs.AddColumn("High", quote.High)
                 cs.AddColumn("Low", quote.Low)
                 cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLC")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Crypto: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("Crypto: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
             }
         }
 		if realTime {

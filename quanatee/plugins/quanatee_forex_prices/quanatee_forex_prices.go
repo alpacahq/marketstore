@@ -31,6 +31,7 @@ type Quote struct {
 	High      []float64   `json:"high"`
 	Low       []float64   `json:"low"`
 	Close     []float64   `json:"close"`
+	Volume    []float64   `json:"volume"`
 }
 
 // Quotes - an array of historical price data
@@ -48,6 +49,7 @@ func NewQuote(symbol string, bars int) Quote {
 		High:   make([]float64, bars),
 		Low:    make([]float64, bars),
 		Close:  make([]float64, bars),
+		Volume: make([]float64, bars),
 	}
 }
 
@@ -173,6 +175,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
             quote.High[bar] = (high_bid + high_ask) / 2
             quote.Low[bar] = (low_bid + low_ask) / 2
             quote.Close[bar] = (close_bid + close_ask) / 2
+            quote.Volume[bar] = float64(forexData.PriceData[bar].TotalTicks)
         }
 	}
     
@@ -182,6 +185,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
         quote.High = quote.High[startOfSlice:endOfSlice+1]
         quote.Low = quote.Low[startOfSlice:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -193,6 +197,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
         quote.High[i], quote.High[j] = quote.High[j], quote.High[i]
         quote.Low[i], quote.Low[j] = quote.Low[j], quote.Low[i]
         quote.Close[i], quote.Close[j] = quote.Close[j], quote.Close[i]
+        quote.Volume[i], quote.Volume[j] = quote.Volume[j], quote.Volume[i]
     }
 
 	return quote, nil
@@ -296,6 +301,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
             quote.High[bar] = forexData[bar].High
             quote.Low[bar] = forexData[bar].Low
             quote.Close[bar] = forexData[bar].Close
+            quote.Volume[bar] = 1.0
         }
 	}
     
@@ -305,6 +311,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
         quote.High = quote.High[startOfSlice:endOfSlice+1]
         quote.Low = quote.Low[startOfSlice:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -463,7 +470,7 @@ func (tiifx *ForexFetcher) Run() {
     
     // Get last timestamp collected
 	for _, symbol := range tiifx.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("Forex: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -584,12 +591,14 @@ func (tiifx *ForexFetcher) Run() {
                                 quote.High[bar] = intrinioQuote.High[bar]
                                 quote.Low[bar] = intrinioQuote.Low[bar]
                                 quote.Close[bar] = intrinioQuote.Close[bar]
+                                quote.Volume[bar] = intrinioQuote.Volume[bar]
                             } else {
                                 quote.Epoch[bar] = tiingoQuote.Epoch[bar]
                                 quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
                                 quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
                                 quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
                                 quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
+                                quote.Volume[bar] = intrinioQuote.Volume[bar]
                             }
                         }
                         dataProvider = "Aggregation"
@@ -612,7 +621,7 @@ func (tiifx *ForexFetcher) Run() {
                     continue
                 } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                     // Check if realTime is adding the most recent data
-                    log.Info("Forex: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Forex: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                     continue
                 }
                 // write to csm
@@ -622,14 +631,15 @@ func (tiifx *ForexFetcher) Run() {
                 cs.AddColumn("High", quote.High)
                 cs.AddColumn("Low", quote.Low)
                 cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
                 // Save the latest timestamp written
                 lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                log.Info("Forex: %v row(s) to %s/%s/OHLCV from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 quotes = append(quotes, quote)
             }
             
@@ -652,6 +662,7 @@ func (tiifx *ForexFetcher) Run() {
                         revQuote.High[bar] = 1/quote.High[bar]
                         revQuote.Low[bar] = 1/quote.Low[bar]
                         revQuote.Close[bar] = 1/quote.Close[bar]
+                        revQuote.Volume[bar] = (quote.Close[bar]*quote.Volume[bar]) / revQuote.Close[bar]
                     }
                     // write to csm
                     cs := io.NewColumnSeries()
@@ -660,12 +671,13 @@ func (tiifx *ForexFetcher) Run() {
                     cs.AddColumn("High", revQuote.High)
                     cs.AddColumn("Low", revQuote.Low)
                     cs.AddColumn("Close", revQuote.Close)
+                    cs.AddColumn("Volume", revQuote.Volume)
                     csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+                    tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
-                    log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                    log.Info("Forex: %v row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, revQuote)
                 }
             }
@@ -683,13 +695,20 @@ func (tiifx *ForexFetcher) Run() {
                                     aggQuote.High = quote.High
                                     aggQuote.Low = quote.Low
                                     aggQuote.Close = quote.Close
+                                    aggQuote.Volume = quote.Volume
                                 } else if len(aggQuote.Epoch) == len(quote.Epoch) {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
-                                        aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
-                                        aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
-                                        aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
-                                        aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
+                                        // Calculate the market capitalization
+                                        quote_cap = (quote.Close[bar] * quote.Volume[bar])
+                                        aggQuote_cap = (aggQuote.Close[bar] * aggQuote.Volume[bar])
+                                        total_cap = quote_cap + aggQuote_cap
+                                        // Calculate the weighted averages
+                                        aggQuote.Open[bar] = ( quote.Open[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Open[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.High[bar] = ( quote.High[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.High[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Low[bar] = ( quote.Low[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Low[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Close[bar] = ( quote.Close[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Close[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Volume[bar] = total_cap / aggQuote.Close[bar]
                                     }
                                 }
                             }
@@ -710,12 +729,13 @@ func (tiifx *ForexFetcher) Run() {
                 cs.AddColumn("High", quote.High)
                 cs.AddColumn("Low", quote.Low)
                 cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLC")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Forex: %v row(s) to %s/%s/OHLC from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                log.Info("Forex: %v row(s) to %s/%s/OHLCV from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             }
         }
 		if realTime {

@@ -280,7 +280,6 @@ bgworkers:
         - IGOV
         - BWZ
         - ISHG
-        - IGVT
         - FLIA
       DM-GBH:
        - IGVT

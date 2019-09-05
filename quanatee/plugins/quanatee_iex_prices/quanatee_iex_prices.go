@@ -29,6 +29,7 @@ type Quote struct {
 	High      []float64   `json:"high"`
 	Low       []float64   `json:"low"`
 	Close     []float64   `json:"close"`
+	Volume    []float64   `json:"volume"`
 }
 
 // Quotes - an array of historical price data
@@ -46,6 +47,7 @@ func NewQuote(symbol string, bars int) Quote {
 		High:   make([]float64, bars),
 		Low:    make([]float64, bars),
 		Close:  make([]float64, bars),
+		Volume: make([]float64, bars),
 	}
 }
 
@@ -82,40 +84,85 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		Close          float64 `json:"close"`
 	}
     
-	var iexData []priceData
+	type dailyData struct {
+		Date           string  `json:"date"` // "2017-12-19T00:00:00Z"
+		Open           float64 `json:"open"`
+		Low            float64 `json:"low"`
+		High           float64 `json:"high"`
+		Close          float64 `json:"close"`
+		Volume         float64 `json:"volume"`
+		AdjOpen        float64 `json:"adjOpen"`
+		AdjLow         float64 `json:"adjLow"`
+		AdjHigh        float64 `json:"adjHigh"`
+		AdjClose       float64 `json:"adjClose"`
+		AdjVolume      float64 `json:"adjVolume"`
+	}
+    
+	var iexData  []priceData
+	var iexDaily []dailyData
     
     api_url := fmt.Sprintf(
                         "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=true&forceFill=true&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
+                        
+    // For getting volume data
+    api_url2 := fmt.Sprintf(
+                        "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
+                        symbol,
+                        url.QueryEscape(from.AddDate(0, 0, -7).Format("2006-1-2")))
     
     if !realTime {
         api_url = api_url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+        // Minus 1 back since in realtime, we use the volume from the previous end-of-day to calculate weights;
+        // So in backfill, we query from 1 day before to simulate realtime data presentation
+        api_url2 = fmt.Sprintf(
+                            "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
+                            symbol,
+                            url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-1-2")))
+        api_url2 = api_url2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", api_url, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
-
+    
+	req2, _ := http.NewRequest("GET", api_url2, nil)
+	req2.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
+	resp2, err2 := client.Do(req2)
+    
     // Try again if fail
-	if err != nil {
+	if err != nil || err2 != nil {
         time.Sleep(100 * time.Millisecond)
         resp, err = client.Do(req)
+        resp2, err2 = client.Do(req2)
     }
     
-	if err != nil {
-		log.Info("IEX: symbol '%s' error: %s \n %s", symbol, err, api_url)
-		return NewQuote(symbol, 0), err
+	if err != nil || err2 != nil {
+		log.Info("IEX: symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, api_url, api_url2)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        } else {
+            return NewQuote(symbol, 0), err2
+        }
 	}
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &iexData)
-	if err != nil {
-		log.Info("IEX: symbol '%s' error: %v\n contents: %s", symbol, err, contents)
-		return NewQuote(symbol, 0), err
+    
+	contents2, _ := ioutil.ReadAll(resp2.Body)
+	err2 = json.Unmarshal(contents2, &iexDaily)
+    
+	if err != nil || err2 != nil {
+		log.Info("IEX: symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        } else {
+            return NewQuote(symbol, 0), err2
+        }
 	}
     
     if len(iexData) < 1 {
@@ -125,7 +172,13 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
  		return NewQuote(symbol, 0), err
 	}
     
+    if len(iexDaily) < 1 {
+        log.Warn("IEX: symbol '%s' No daily data returned url %s", symbol, api_url2)
+ 		return NewQuote(symbol, 0), err2
+	}
+    
 	numrows := len(iexData)
+	numdays := len(iexDaily)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
@@ -144,6 +197,23 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
             quote.High[bar] = iexData[bar].High
             quote.Low[bar] = iexData[bar].Low
             quote.Close[bar] = iexData[bar].Close
+            // Find the previous valid workday
+            previousWorkday := false
+            days := 1
+            for previousWorkday == false {
+                if calendar.IsWorkday(dt.AddDate(0, 0, -days)) {
+                    previousWorkday = true
+                } else {
+                    days += days
+                }
+            }
+            // Add volume from previous daily price data
+            for bar2 := 0; bar2 < numdays; bar2++ {
+                dt2, _ := time.Parse(time.RFC3339, iexDaily[bar2].Date)
+                if dt.AddDate(0, 0, -days) == dt2 {
+                    quote.Volume[bar] = iexDaily[bar2].AdjVolume
+                }
+            }
         }
 	}
     
@@ -153,6 +223,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
         quote.High = quote.High[startOfSlice:endOfSlice+1]
         quote.Low = quote.Low[startOfSlice:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
     }
@@ -285,8 +356,9 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
         for nextWorkday == false {
             if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
                 nextWorkday = true
+            } else {
+                days += days
             }
-            days += days
         }
         timeCheck = timeCheck.AddDate(0, 0, days)
         timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 13, 0, 0, 0, time.UTC)
@@ -375,7 +447,7 @@ func (tiiex *IEXFetcher) Run() {
     
     // Get last timestamp collected
 	for _, symbol := range symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -462,7 +534,7 @@ func (tiiex *IEXFetcher) Run() {
                         continue
                     } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                         // Check if realTime is adding the most recent data
-                        log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLC", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
+                        log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
                         continue
                     }
                     // write to csm
@@ -472,14 +544,15 @@ func (tiiex *IEXFetcher) Run() {
                     cs.AddColumn("High", quote.High)
                     cs.AddColumn("Low", quote.Low)
                     cs.AddColumn("Close", quote.Close)
+                    cs.AddColumn("Volume", quote.Volume)
                     csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
                     // Save the latest timestamp written
                     lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                    log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                    log.Info("IEX: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {
                     log.Info("IEX: error downloading " + symbol)
@@ -502,10 +575,16 @@ func (tiiex *IEXFetcher) Run() {
                                 } else if len(aggQuote.Epoch) == len(quote.Epoch) {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
-                                        aggQuote.Open[bar] = (quote.Open[bar] + aggQuote.Open[bar]) / 2
-                                        aggQuote.High[bar] = (quote.High[bar] + aggQuote.High[bar]) / 2
-                                        aggQuote.Low[bar] = (quote.Low[bar] + aggQuote.Low[bar]) / 2
-                                        aggQuote.Close[bar] = (quote.Close[bar] + aggQuote.Close[bar]) / 2
+                                        // Calculate the market capitalization
+                                        quote_cap = (quote.Close[bar] * quote.Volume[bar])
+                                        aggQuote_cap = (aggQuote.Close[bar] * aggQuote.Volume[bar])
+                                        total_cap = quote_cap + aggQuote_cap
+                                        // Calculate the weighted averages
+                                        aggQuote.Open[bar] = ( quote.Open[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Open[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.High[bar] = ( quote.High[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.High[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Low[bar] = ( quote.Low[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Low[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Close[bar] = ( quote.Close[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Close[bar] * ( aggQuote_cap / total_cap ) )
+                                        aggQuote.Volume[bar] = total_cap / aggQuote.Close[bar]
                                     }
                                 }
                             }
@@ -525,12 +604,13 @@ func (tiiex *IEXFetcher) Run() {
                 cs.AddColumn("High", quote.High)
                 cs.AddColumn("Low", quote.Low)
                 cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLC")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("IEX: %v row(s) to %s/%s/OHLC from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("IEX: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
             }
         }
 		if realTime {
