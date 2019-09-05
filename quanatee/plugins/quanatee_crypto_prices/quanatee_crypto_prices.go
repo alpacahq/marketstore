@@ -183,7 +183,7 @@ type FetcherConfig struct {
 type CryptoFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
-	indices        map[string]interface{}
+	indices        map[string][]string
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
