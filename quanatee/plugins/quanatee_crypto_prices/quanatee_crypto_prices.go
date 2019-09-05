@@ -389,6 +389,7 @@ func (tiicc *CryptoFetcher) Run() {
             }
             
             // Add reversed pairs
+            /*
             for _, quote := range quotes {
                 revSymbol := ""
                 if strings.HasSuffix(quote.Symbol, "USD") {
@@ -426,7 +427,7 @@ func (tiicc *CryptoFetcher) Run() {
                     quotes = append(quotes, revQuote)
                 }
             }
-            
+            */
             aggQuotes := Quotes{}
             for key, value := range tiicc.indices {
                 aggQuote := NewQuote(key, 0)

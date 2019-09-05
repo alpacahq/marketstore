@@ -31,7 +31,7 @@ bgworkers:
         - XLMUSD
         - XRPUSD
       indices:
-        USDCC: ["USDBTC", "USDETH", "USDETC", "USDEOS", "USDLTC", "USDXLM", "USDXRP"]
+        USDCC: ["BTCUSD", "ETHUSD", "ETCUSD", "EOSUSD", "LTCUSD", "XLMUSD", "XRPUSD"]
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
