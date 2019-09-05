@@ -252,7 +252,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	var indices map[string][]string
+	var indices map[string]interface{}
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
