@@ -23,65 +23,9 @@ bgworkers:
   - module: quanatee_crypto_prices.so
     config:
       api_key: "<tiingo_api_key>"
-      symbols:
-        - ETHBTC
-        - ETCBTC
-        - EOSBTC
-        - LTCBTC
-        - XLMBTC
-        - XRPBTC
-        - BTCUSD
-        - ETHUSD
-        - ETCUSD
-        - EOSUSD
-        - LTCUSD
-        - XLMUSD
-        - XRPUSD
-        - BTCEUR
-        - ETHEUR
-        - ETCEUR
-        - EOSEUR
-        - LTCEUR
-        - XLMEUR
-        - XRPEUR
-        - BTCJPY
-        - ETHJPY
-        - ETCJPY
-        - EOSJPY
-        - LTCJPY
-        - XLMJPY
-        - XRPJPY
-      BTC-CC:
-        - ETHBTC
-        - ETCBTC
-        - EOSBTC
-        - LTCBTC
-        - XLMBTC
-        - XRPBTC
-      USD-CC:
-        - BTCUSD
-        - ETHUSD
-        - ETCUSD
-        - EOSUSD
-        - LTCUSD
-        - XLMUSD
-        - XRPUSD
-      EUR-CC:
-        - BTCEUR
-        - ETHEUR
-        - ETCEUR
-        - EOSEUR
-        - LTCEUR
-        - XLMEUR
-        - XRPEUR
-      JPY-CC:
-        - BTCJPY
-        - ETHJPY
-        - ETCJPY
-        - EOSJPY
-        - LTCJPY
-        - XLMJPY
-        - XRPJPY
+      symbols: [ "BTCUSD", "ETHUSD", "ETCUSD", "EOSUSD", "LTCUSD", "XLMUSD", "XRPUSD" ]
+      schema:
+        USDCC: [ "USDBTC", "USDETH", "USDETC", "USDEOS", "USDLTC", "USDXLM", "USDXRP" ]
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so

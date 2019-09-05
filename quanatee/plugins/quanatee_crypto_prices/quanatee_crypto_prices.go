@@ -173,10 +173,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 // FetcherConfig is a structure of binancefeeder's parameters
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
-	BTC_CC          []string  `json:"BTC-CC"`
-	USD_CC          []string  `json:"USD-CC"`
-	EUR_CC          []string  `json:"EUR-CC"`
-	JPY_CC          []string  `json:"JPY-CC"`
+    Schema         map[string][]string 'json:"schema"'
     ApiKey         string   `json:"api_key"`
 	QueryStart     string   `json:"query_start"`
 	BaseTimeframe  string   `json:"base_timeframe"`
@@ -186,7 +183,7 @@ type FetcherConfig struct {
 type CryptoFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
-	aggSymbols    map[string][]string
+	schema         map[string][]string
     apiKey         string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
@@ -268,17 +265,14 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols = config.Symbols
 	}
     
-    aggSymbols := map[string][]string{
-        "BTC-CC": config.BTC_CC,
-        "USD-CC": config.USD_CC,
-        "EUR-CC": config.EUR_CC,
-        "JPY-CC": config.JPY_CC,
-    }
+	if len(config.Schema) > 0 {
+		schema = config.Schema
+	}
     
 	return &CryptoFetcher{
 		config:         conf,
 		symbols:        symbols,
-		aggSymbols:     aggSymbols,
+		schema:         schema,
         apiKey:         config.ApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
@@ -433,7 +427,7 @@ func (tiicc *CryptoFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            for key, value := range tiicc.aggSymbols {
+            for key, value := range tiicc.schema {
                 aggQuote := NewQuote(key, 0)
                 for _, quote := range quotes {
                     for _, symbol := range value {
