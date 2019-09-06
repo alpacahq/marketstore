@@ -467,11 +467,11 @@ func (tiicc *CryptoFetcher) Run() {
                                         weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
                                         weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
                                         
-                                        aggQuote.Open, _ = weightedOpen.Float64()
-                                        aggQuote.High, _ = weightedHigh.Float64()
-                                        aggQuote.Low, _ = weightedLow.Float64()
-                                        aggQuote.Close, _ = weightedClose.Float64()
-                                        aggQuote.Volume, _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                        aggQuote.Open[bar], _ = weightedOpen.Float64()
+                                        aggQuote.High[bar], _ = weightedHigh.Float64()
+                                        aggQuote.Low[bar], _ = weightedLow.Float64()
+                                        aggQuote.Close[bar], _ = weightedClose.Float64()
+                                        aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
                                     }
                                 }
                             }
