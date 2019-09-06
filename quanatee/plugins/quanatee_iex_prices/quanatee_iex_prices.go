@@ -208,6 +208,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
                 dt2, _ := time.Parse(time.RFC3339, iexDaily[bar2].Date)
                 if dt.AddDate(0, 0, -days) == dt2 {
                     quote.Volume[bar] = iexDaily[bar2].AdjVolume
+                } else {
+                    quote.Volume[bar] = 1.0
                 }
             }
         }
