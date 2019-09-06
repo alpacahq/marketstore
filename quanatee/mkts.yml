@@ -9,15 +9,15 @@ enable_remove: true
 enable_last_known: false
 timezone: "America/New_York"
 triggers:
-  - module: ondiskagg.so
+  - module: stream.so
+    on: "*/*/*"
+  - module: quanatee_ondiskagg.so
     on: "*/1Min/*"
     config:
       destinations:
         - 7Min
         - 11Min
         - 1H
-  - module: stream.so
-    on: "*/*/*"
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:
