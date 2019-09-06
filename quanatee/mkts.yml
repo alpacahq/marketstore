@@ -76,7 +76,6 @@ bgworkers:
         - IJH
         - VTV
         - VCSH
-        - IGSB
         - SPSB
         - SHV
         - SCHO
@@ -87,10 +86,7 @@ bgworkers:
         - EEM
         - SCHE
         - SPEM
-        - HEEM
-        - DBEM
         - HYEM
-        - CEMB
         - EMCB
         - EMLC
         - PCY
@@ -98,47 +94,31 @@ bgworkers:
         - EBND
         - LEMB
         - ELD
-        - EMB
-        - EMIH
-        - EMBH
-        - JPMB
         - VEA
         - EFA
         - VEU
         - SCHF
         - IXUS
         - VXUS
-        - DBEF
-        - HEFA
-        - HEZU
-        - IHDG
-        - HDEF
-        - DDWM
-        - DBAW
         - IHY
         - HYXU
+        - PICB
         - BWX
         - IGOV
         - BWZ
         - ISHG
-        - FLIA
-        - IGVT
       indices:
-        USDETF-US: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV", "VCSH", "IGSB", "SPSB", "VCSH", "IGSB", "SPSB", "SHV", "SCHO", "VGSH", "SPTS"]
+        USDETF-US: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV", "VCSH", "SPSB", "SHV", "SCHO", "VGSH", "SPTS"]
         USDETF-US-EQ: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV"]
-        USDETF-US-CB: ["VCSH", "IGSB", "SPSB"]
+        USDETF-US-CB: ["VCSH", "SPSB"]
         USDETF-US-GB: ["SHV", "SCHO", "VGSH", "SPTS"]
-        USDETF-DM: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS", "DBEF", "HEFA", "HEZU", "IHDG", "HDEF", "DDWM", "DBAW", "IHY", "HYXU", "PICB", "BWX", "IGOV", "BWZ", "ISHG", "FLIA", "IGVT", "WIP"]
+        USDETF-DM: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS", "IHY", "HYXU", "PICB", "BWX", "IGOV", "BWZ", "ISHG"]
         USDETF-DM-EQ: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS"]
-        USDETF-DM-EQH: ["DBEF", "HEFA", "HEZU", "IHDG", "HDEF", "DDWM", "DBAW"]
         USDETF-DM-CB: ["IHY", "HYXU", "PICB"]
-        USDETF-DM-GB: ["BWX", "IGOV", "BWZ", "ISHG", "FLIA"]
-        USDETF-DM-GBH: ["IGVT", "WIP"]
-        USDETF-EM: ["VWO", "IEMG", "EEM", "SCHE", "SPEM", "HEEM", "DBEM", "HYEM", "CEMB", "EMCB", "EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD", "EMB", "EMIH", "EMBH", "JPMB"]
+        USDETF-DM-GB: ["BWX", "IGOV", "BWZ", "ISHG"]
+        USDETF-EM: ["VWO", "IEMG", "EEM", "SCHE", "SPEM", "HYEM", "EMCB", "EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD"]
         USDETF-EM-EQ: ["VWO", "IEMG", "EEM", "SCHE", "SPEM"]
-        USDETF-EM-EQH: ["HEEM", "DBEM"]
-        USDETF-EM-CB: ["HYEM", "CEMB", "EMCB"]
+        USDETF-EM-CB: ["HYEM", "EMCB"]
         USDETF-EM-GB: ["EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD"]
-        USDETF-EM-GBH: ["EMB", "EMIH", "EMBH", "JPMB"]
       query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
