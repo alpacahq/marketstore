@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/alpacahq/marketstore/utils/log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/alpacahq/marketstore/utils/log"
 )
 
 const (
@@ -18,9 +18,9 @@ const (
 )
 
 var (
-	NY, _ = time.LoadLocation("America/New_York")
-	token string
-	base  = "https://cloud.iexapis.com/stable"
+	NY, _           = time.LoadLocation("America/New_York")
+	token           string
+	base            = "https://cloud.iexapis.com/stable"
 	symbolsExcluded = map[string]bool{}
 )
 
@@ -166,7 +166,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	if res.StatusCode == http.StatusUnavailableForLegalReasons {
 		// One of the symbols is DELAYED_OTC
 		// Binary divide the symbols list until we can identify the conflict
-		if len(symbols) == 1 {  // Idenified an OTC symbol
+		if len(symbols) == 1 { // Idenified an OTC symbol
 			symbolsExcluded[symbols[0]] = true
 			return nil, fmt.Errorf("OTC Error: %s: %s [Symbol: %s]", res.Status, string(body), symbols[0])
 		} else {
@@ -182,14 +182,14 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 			if err1 != nil {
 				log.Error(err1.Error())
 			} else {
-				for k,v := range *resp0 {
+				for k, v := range *resp0 {
 					resp[k] = v
 				}
 			}
 			if err2 != nil {
 				log.Error(err2.Error())
 			} else {
-				for k,v := range *resp1 {
+				for k, v := range *resp1 {
 					resp[k] = v
 				}
 			}

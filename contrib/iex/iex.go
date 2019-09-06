@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
-	"os"
 
 	"github.com/alpacahq/marketstore/contrib/iex/api"
 	"github.com/alpacahq/marketstore/executor"
@@ -25,12 +25,12 @@ const (
 )
 
 type IEXFetcher struct {
-	config            FetcherConfig
-	backfillM         *sync.Map
-	queue             chan []string
-	lastM             *sync.Map
-	refreshSymbols    bool
-	lastDailyRunDate  int
+	config           FetcherConfig
+	backfillM        *sync.Map
+	queue            chan []string
+	lastM            *sync.Map
+	refreshSymbols   bool
+	lastDailyRunDate int
 }
 
 type FetcherConfig struct {
@@ -65,11 +65,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 
 	f := IEXFetcher{
-		backfillM: &sync.Map{},
-		config:    config,
-		queue:     make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
-		lastM:     &sync.Map{},
-		refreshSymbols: len(config.Symbols) == 0,
+		backfillM:        &sync.Map{},
+		config:           config,
+		queue:            make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
+		lastM:            &sync.Map{},
+		refreshSymbols:   len(config.Symbols) == 0,
 		lastDailyRunDate: 0,
 	}
 
@@ -118,7 +118,7 @@ func (f *IEXFetcher) Run() {
 	for batch := range f.queue {
 		f.pollIntraday(batch)
 
-		if (onceDaily(&f.lastDailyRunDate, 0, 10)) {
+		if onceDaily(&f.lastDailyRunDate, 0, 10) {
 			f.UpdateSymbolList()
 			f.pollDaily(batch)
 		}
@@ -349,7 +349,7 @@ func limiter() time.Duration {
 func onceDaily(lastDailyRunDate *int, runHour int, runMinute int) bool {
 	now := time.Now()
 
-	if ( *lastDailyRunDate == 0 || ( *lastDailyRunDate != now.Day() && runHour == now.Hour() && runMinute == now.Minute() )) {
+	if *lastDailyRunDate == 0 || (*lastDailyRunDate != now.Day() && runHour == now.Hour() && runMinute == now.Minute()) {
 		*lastDailyRunDate = now.Day()
 		return true
 	} else {
