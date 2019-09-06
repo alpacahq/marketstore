@@ -32,7 +32,7 @@ update:
 	GOFLAGS=$(GOFLAGS) go mod tidy
 
 plugins:
-	$(MAKE) -C contrib/ondiskagg
+	#$(MAKE) -C contrib/ondiskagg
 	#$(MAKE) -C contrib/gdaxfeeder
 	#$(MAKE) -C contrib/slait
 	$(MAKE) -C contrib/stream
