@@ -199,6 +199,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
             for previousWorkday == false {
                 if calendar.IsWorkday(dt.AddDate(0, 0, -days)) {
                     previousWorkday = true
+                    break
                 } else {
                     days += days
                 }

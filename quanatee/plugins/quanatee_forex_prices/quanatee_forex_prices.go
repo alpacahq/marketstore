@@ -414,8 +414,10 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
         for nextWorkday == false {
             if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
                 nextWorkday = true
+                break
+            } else {
+                days += days
             }
-            days += days
         }
         timeCheck = timeCheck.AddDate(0, 0, days)
         timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 7, 0, 0, 0, time.UTC)
