@@ -139,5 +139,5 @@ bgworkers:
         USDETF-EM-CB: ["HYEM", "CEMB", "EMCB"]
         USDETF-EM-GB: ["EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD"]
         USDETF-EM-GBH: ["EMB", "EMIH", "EMBH", "JPMB"]
-      query_start: "2018-01-01 00:00"
+      query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
