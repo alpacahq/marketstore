@@ -32,7 +32,7 @@ bgworkers:
         - XRPUSD
       indices:
         USDCC: ["BTCUSD", "ETHUSD", "ETCUSD", "EOSUSD", "LTCUSD", "XLMUSD", "XRPUSD"]
-      query_start: "2018-03-06 00:00"
+      query_start: "2018-04-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
@@ -61,7 +61,7 @@ bgworkers:
         USDFX: ["USDEUR", "USDJPY", "USDGBP", "USDAUD", "USDCHF", "USDNZD", "USDCAD"]
         EURFX: ["EURUSD", "EURJPY", "EURGBP", "EURAUD", "EURCHF", "EURNZD", "EURCAD"]
         JPYFX: ["JPYUSD", "JPYEUR", "JPYGBP", "JPYAUD", "JPYCHF", "JPYNZD", "JPYCAD"]
-      query_start: "2018-03-06 00:00"
+      query_start: "2018-04-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
     config:
@@ -143,5 +143,5 @@ bgworkers:
         USDETF-CM-IM: ["DBB", "JJM", "RJZ"]
         USDETF-CM-PM: ["DBP", "JJP", "GLTR"]
         USDETF-CM-GD: ["GLD", "IAU", "SGOL"]
-      query_start: "2018-03-06 00:00"
+      query_start: "2018-04-01 00:00"
       base_timeframe: "1Min"
