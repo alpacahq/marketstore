@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-    //"strings"
+    "strings"
     "math/rand"
     "math/big"
     
