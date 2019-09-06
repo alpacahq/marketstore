@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
     "math/rand"
+    "math/big"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -507,15 +508,30 @@ func (tiiex *IEXFetcher) Run() {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
                                         // Calculate the market capitalization
-                                        quote_cap := (quote.Close[bar] * quote.Volume[bar])
-                                        aggQuote_cap := (aggQuote.Close[bar] * aggQuote.Volume[bar])
-                                        total_cap := quote_cap + aggQuote_cap
+                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
+                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), big.NewFloat(aggQuote.Volume[bar]))
+                                        totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                         // Calculate the weighted averages
-                                        aggQuote.Open[bar] = ( quote.Open[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Open[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.High[bar] = ( quote.High[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.High[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.Low[bar] = ( quote.Low[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Low[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.Close[bar] = ( quote.Close[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Close[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.Volume[bar] = total_cap / aggQuote.Close[bar]
+                                        quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
+                                        aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
+                                        
+                                        weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
+                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight))
+                                        
+                                        weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
+                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight))
+                                        
+                                        weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
+                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight))
+                                        
+                                        weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
+                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
+                                        
+                                        aggQuote.Open[bar], _ = weightedOpen.Float64()
+                                        aggQuote.High[bar], _ = weightedHigh.Float64()
+                                        aggQuote.Low[bar], _ = weightedLow.Float64()
+                                        aggQuote.Close[bar], _ = weightedClose.Float64()
+                                        aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
                                     }
                                 }
                             }
