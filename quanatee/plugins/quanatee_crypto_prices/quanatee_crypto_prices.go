@@ -456,16 +456,16 @@ func (tiicc *CryptoFetcher) Run() {
                                         aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
                                         
                                         weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
-                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight)))
+                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight))
                                         
                                         weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
-                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight)))
+                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight))
                                         
                                         weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
-                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight)))
+                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight))
                                         
                                         weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
-                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight)))
+                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
                                         
                                         aggQuote.Open, _ = weightedOpen.Float64()
                                         aggQuote.High, _ = weightedHigh.Float64()
