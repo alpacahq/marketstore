@@ -80,19 +80,11 @@ bgworkers:
         - SCHO
         - VGSH
         - SPTS
-        - VWO
-        - IEMG
-        - EEM
-        - SCHE
-        - SPEM
-        - HYEM
-        - EMCB
-        - EMLC
-        - PCY
-        - VWOB
-        - EBND
-        - LEMB
-        - ELD
+        - VNQ
+        - SCHH
+        - IYR
+        - ICF
+        - RWR
         - VEA
         - EFA
         - VEU
@@ -106,6 +98,23 @@ bgworkers:
         - IGOV
         - BWZ
         - ISHG
+        - VNQI
+        - RWX
+        - IFGL
+        - WPS
+        - VWO
+        - IEMG
+        - EEM
+        - SCHE
+        - SPEM
+        - HYEM
+        - EMCB
+        - EMLC
+        - PCY
+        - VWOB
+        - EBND
+        - LEMB
+        - ELD
         - DBA
         - JJA
         - RJA
@@ -125,14 +134,16 @@ bgworkers:
         - IAU
         - SGOL
       indices:
-        USDETF-US: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV", "VCSH", "SPSB", "SHV", "SCHO", "VGSH", "SPTS"]
+        USDETF-US: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV", "VCSH", "SPSB", "SHV", "SCHO", "VGSH", "SPTS", "VNQ", "SCHH", "IYR", "ICF", "RWR"]
         USDETF-US-EQ: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV"]
         USDETF-US-CB: ["VCSH", "SPSB"]
         USDETF-US-GB: ["SHV", "SCHO", "VGSH", "SPTS"]
-        USDETF-DM: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS", "IHY", "HYXU", "PICB", "BWX", "IGOV", "BWZ", "ISHG"]
+        USDETF-US-RE: ["VNQ", "SCHH", "IYR", "ICF", "RWR"]
+        USDETF-DM: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS", "IHY", "HYXU", "PICB", "BWX", "IGOV", "BWZ", "ISHG", "VNQI", "RWX", "IFGL", "WPS"]
         USDETF-DM-EQ: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS"]
         USDETF-DM-CB: ["IHY", "HYXU", "PICB"]
         USDETF-DM-GB: ["BWX", "IGOV", "BWZ", "ISHG"]
+        USDETF-DM-RE: ["VNQI", "RWX", "IFGL", "WPS"]
         USDETF-EM: ["VWO", "IEMG", "EEM", "SCHE", "SPEM", "HYEM", "EMCB", "EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD"]
         USDETF-EM-EQ: ["VWO", "IEMG", "EEM", "SCHE", "SPEM"]
         USDETF-EM-CB: ["HYEM", "EMCB"]
