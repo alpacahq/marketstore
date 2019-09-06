@@ -32,7 +32,7 @@ bgworkers:
         - XRPUSD
       indices:
         USDCC: ["BTCUSD", "ETHUSD", "ETCUSD", "EOSUSD", "LTCUSD", "XLMUSD", "XRPUSD"]
-      query_start: "2018-01-01 00:00"
+      query_start: "2018-06-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
@@ -61,7 +61,7 @@ bgworkers:
         USDFX: ["USDEUR", "USDJPY", "USDGBP", "USDAUD", "USDCHF", "USDNZD", "USDCAD"]
         EURFX: ["EURUSD", "EURJPY", "EURGBP", "EURAUD", "EURCHF", "EURNZD", "EURCAD"]
         JPYFX: ["JPYUSD", "JPYEUR", "JPYGBP", "JPYAUD", "JPYCHF", "JPYNZD", "JPYCAD"]
-      query_start: "2018-01-01 00:00"
+      query_start: "2018-06-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
     config:
@@ -106,6 +106,24 @@ bgworkers:
         - IGOV
         - BWZ
         - ISHG
+        - DBA
+        - JJA
+        - RJA
+        - UAG
+        - DBE
+        - JJE
+        - VDE
+        - XLE
+        - ICLN
+        - DBB
+        - JJM
+        - RJZ
+        - DBP
+        - JJP
+        - GLTR
+        - GLD
+        - IAU
+        - SGOL
       indices:
         USDETF-US: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV", "VCSH", "SPSB", "SHV", "SCHO", "VGSH", "SPTS"]
         USDETF-US-EQ: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV"]
@@ -119,5 +137,11 @@ bgworkers:
         USDETF-EM-EQ: ["VWO", "IEMG", "EEM", "SCHE", "SPEM"]
         USDETF-EM-CB: ["HYEM", "EMCB"]
         USDETF-EM-GB: ["EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD"]
-      query_start: "2019-01-01 00:00"
+        USDETF-CM: ["DBA", "JJA", "RJA", "UAG", "DBE", "JJE", "VDE", "XLE", "ICLN", "DBB", "JJM", "RJZ", "DBP", "JJP", "GLTR", "GLD", "IAU", "SGOL"]
+        USDETF-CM-AG: ["DBA", "JJA", "RJA", "UAG"]
+        USDETF-CM-EN: ["DBE", "JJE", "VDE", "XLE", "ICLN"]
+        USDETF-CM-IM: ["DBB", "JJM", "RJZ"]
+        USDETF-CM-PM: ["DBP", "JJP", "GLTR"]
+        USDETF-CM-GD: ["GLD", "IAU", "SGOL"]
+      query_start: "2018-06-01 00:00"
       base_timeframe: "1Min"
