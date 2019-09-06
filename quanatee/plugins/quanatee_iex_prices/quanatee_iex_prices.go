@@ -224,8 +224,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
         quote = NewQuote(symbol, 0)
     }
     
-    if !realTime && len(quote) <= 100 {
-        log.Warn("IEX: Tiingo symbol '%s' received %v rows", symbol, len(quote))
+    if !realTime && len(quote.Epoch) <= 100 {
+        log.Warn("IEX: Tiingo symbol '%s' received %v rows", symbol, len(quote.Epoch))
     }
     
 	return quote, nil
