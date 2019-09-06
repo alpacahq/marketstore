@@ -17,9 +17,9 @@ func SumFloat64(values []float64) float64 {
         sum = sum.Add(sum, big.NewFloat(float64(val)))
 	}
     
-    sum, _ = sum.Float64()
+    result, _ := sum.Float64()
     
-	return sum
+	return result
 }
 
 func SumInt8(values []int8) int8 {
