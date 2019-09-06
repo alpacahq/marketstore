@@ -19,7 +19,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
     
 	"gopkg.in/yaml.v2"
-	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_iex_prices/calendar"    
+	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_stock_prices/calendar"    
 )
 
 // Quote - stucture for historical price data
@@ -366,15 +366,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 // Run grabs data in intervals from starting time to ending time.
 // If query_end is not set, it will run forever.
-func (tiiex *IEXFetcher) Run() {
+func (tiieq *IEXFetcher) Run() {
 
 	realTime := false    
 	timeStart := time.Time{}
 	lastTimestamp := time.Time{}
     
     // Get last timestamp collected
-	for _, symbol := range tiiex.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
+	for _, symbol := range tiieq.symbols {
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -398,8 +398,8 @@ func (tiiex *IEXFetcher) Run() {
     )
     
 	// Set start time if not given.
-	if !tiiex.queryStart.IsZero() {
-		timeStart = tiiex.queryStart.UTC()
+	if !tiieq.queryStart.IsZero() {
+		timeStart = tiieq.queryStart.UTC()
 	} else {
 		timeStart = time.Now().UTC()
 	}
@@ -419,7 +419,7 @@ func (tiiex *IEXFetcher) Run() {
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeStart.Add(tiiex.baseTimeframe.Duration)
+            timeEnd = timeStart.Add(tiieq.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 1)
@@ -447,21 +447,21 @@ func (tiiex *IEXFetcher) Run() {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
             
             quotes := Quotes{}
-            symbols := tiiex.symbols
+            symbols := tiieq.symbols
             rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
             for _, symbol := range symbols {
                 time.Sleep(150 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiiex.baseTimeframe, calendar, tiiex.apiKey)
+                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add
                         continue
                     } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                         // Check if realTime is adding the most recent data
-                        log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiiex.baseTimeframe.String)
+                        log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
                         continue
                     }
                     // write to csm
@@ -473,13 +473,13 @@ func (tiiex *IEXFetcher) Run() {
                     cs.AddColumn("Close", quote.Close)
                     cs.AddColumn("Volume", quote.Volume)
                     csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
                     
                     // Save the latest timestamp written
                     lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                    log.Info("IEX: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                    log.Info("IEX: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {
                     log.Info("IEX: error downloading " + symbol)
@@ -487,7 +487,7 @@ func (tiiex *IEXFetcher) Run() {
             }
             
             aggQuotes := Quotes{}
-            for key, value := range tiiex.indices {
+            for key, value := range tiieq.indices {
                 aggQuote := NewQuote(key, 0)
                 for _, quote := range quotes {
                     for _, symbol := range value {
@@ -607,17 +607,17 @@ func (tiiex *IEXFetcher) Run() {
                 cs.AddColumn("Close", quote.Close)
                 cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiiex.baseTimeframe.String + "/OHLCV")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("IEX: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiiex.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("IEX: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
             }
         }
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
-			waitTill = time.Now().UTC().Add(tiiex.baseTimeframe.Duration)
+			waitTill = time.Now().UTC().Add(tiieq.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
