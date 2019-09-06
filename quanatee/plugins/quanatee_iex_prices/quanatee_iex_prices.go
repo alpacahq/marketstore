@@ -117,12 +117,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-        // Minus 1 back since in realtime, we use the volume from the previous end-of-day to calculate weights;
-        // So in backfill, we query from 1 day before to simulate realtime data presentation
-        apiUrl2 = fmt.Sprintf(
-                            "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
-                            symbol,
-                            url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-1-2")))
         apiUrl2 = apiUrl2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
@@ -228,6 +222,10 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
         quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
+    }
+    
+    if !realTime && len(quote) <= 100 {
+        log.Warn("IEX: Tiingo symbol '%s' received %v rows", symbol, len(quote))
     }
     
 	return quote, nil
