@@ -564,7 +564,7 @@ func (tiifx *ForexFetcher) Run() {
                 if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
                     // Both quotes are invalid
                     continue
-                else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] == intrinioQuote.Epoch[0] && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] == intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
+                } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] == intrinioQuote.Epoch[0] && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] == intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
                     numrows := len(intrinioQuote.Epoch)
                     quote = NewQuote(symbol, numrows)
                     for bar := 0; bar < numrows; bar++ {
