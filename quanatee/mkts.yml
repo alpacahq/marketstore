@@ -63,9 +63,10 @@ bgworkers:
         JPYFX: ["JPYUSD", "JPYEUR", "JPYGBP", "JPYAUD", "JPYCHF", "JPYNZD", "JPYCAD"]
       query_start: "2018-01-01 00:00"
       base_timeframe: "1Min"
-  - module: quanatee_iex_prices.so
+  - module: quanatee_stock_prices.so
     config:
       api_key: "<tiingo_api_key>"
+      api_key2: "<iexcloud_api_key>"
       symbols:
         - SPY
         - IVV
