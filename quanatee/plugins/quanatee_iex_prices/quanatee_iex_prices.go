@@ -498,8 +498,8 @@ func (tiiex *IEXFetcher) Run() {
                                     aggQuote.Low = quote.Low
                                     aggQuote.Close = quote.Close
                                     aggQuote.Volume = quote.Volume
-                                } else if len(aggQuote.Epoch) == len(quote.Epoch) {
-                                    // aggQuote (Index) and quote (new symbol to be added) does not match in row length
+                                } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
+                                    // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
                                         // Calculate the market capitalization
@@ -528,8 +528,8 @@ func (tiiex *IEXFetcher) Run() {
                                         aggQuote.Close[bar], _ = weightedClose.Float64()
                                         aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
                                     }
-                                } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 && len(aggQuote.Epoch) != len(quote.Epoch) {
-                                    // aggQuote (Index) and quote (new symbol to be added) does not match in row length
+                                } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
+                                    // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
                                     numrows := len(quote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
                                         matchedEpochs := false

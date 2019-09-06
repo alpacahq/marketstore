@@ -560,47 +560,68 @@ func (tiifx *ForexFetcher) Run() {
                 tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
                 intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
                 quote := NewQuote(symbol, 0)
-                // If both Quotes have valid datas, combine them
-                // If not, serve only the quote with valid datas
-                // Both Quotes would have the same length since we only add datas according to the requested period range
-                if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
-                    // Both quotes are invalid
-                    continue
-                } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] > 0 && intrinioQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
-                    // Both quotes are valid
-                    if tiingoQuote.Epoch[0] != intrinioQuote.Epoch[0] || tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] != intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
-                        // First and last epochs do not match
-                        // This could be either datas returned are in different orders; or
-                        // Datas returned have missing data rows (likely from Tiingo); or
-                        // Improper slicing of periods
-                        log.Info("Forex: %s Tiingo and Intrinio do not match in Epochs!", symbol)
-                        quote = intrinioQuote
-                        dataProvider = "Intrinio"
-                    } else {
-                        // First and last epochs match, we assume that the rows are lined up
-                        numrows := len(intrinioQuote.Epoch)
-                        quote = NewQuote(symbol, numrows)
-                        for bar := 0; bar < numrows; bar++ {
-                            if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
-                                // If the rows are not lined up, we fallback to Intrinio only
-                                log.Info("Forex: %s mismatched Epochs during aggregation %v, %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
-                                quote.Epoch[bar] = intrinioQuote.Epoch[bar]
-                                quote.Open[bar] = intrinioQuote.Open[bar]
-                                quote.High[bar] = intrinioQuote.High[bar]
-                                quote.Low[bar] = intrinioQuote.Low[bar]
-                                quote.Close[bar] = intrinioQuote.Close[bar]
-                                quote.Volume[bar] = intrinioQuote.Volume[bar]
-                            } else {
-                                quote.Epoch[bar] = tiingoQuote.Epoch[bar]
-                                quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
-                                quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
-                                quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
-                                quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
-                                quote.Volume[bar] = intrinioQuote.Volume[bar]
+                if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] == intrinioQuote.Epoch[0] && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] == intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
+                    numrows := len(intrinioQuote.Epoch)
+                    quote = NewQuote(symbol, numrows)
+                    for bar := 0; bar < numrows; bar++ {
+                        if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
+                            // If the rows are not lined up, we fallback to Intrinio only
+                            log.Info("Forex: %s mismatched Epochs during aggregation %v, %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
+                            quote.Epoch[bar] = intrinioQuote.Epoch[bar]
+                            quote.Open[bar] = intrinioQuote.Open[bar]
+                            quote.High[bar] = intrinioQuote.High[bar]
+                            quote.Low[bar] = intrinioQuote.Low[bar]
+                            quote.Close[bar] = intrinioQuote.Close[bar]
+                            quote.Volume[bar] = intrinioQuote.Volume[bar]
+                        } else {
+                            quote.Epoch[bar] = tiingoQuote.Epoch[bar]
+                            quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
+                            quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
+                            quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
+                            quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
+                            quote.Volume[bar] = intrinioQuote.Volume[bar]
+                        }
+                    }
+                    dataProvider = "Aggregation"
+                } else if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
+                    // intrinioQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
+                    quote = intrinioQuote
+                    numrows := len(tiingoQuote.Epoch)
+                    for bar := 0; bar < numrows; bar++ {
+                        matchedEpochs := false
+                        matchedBar    := bar
+                        if tiingoQuote.Epoch[bar] == intrinioQuote.Epoch[bar] {
+                            // Shallow Iteration on tiingoQuote matches with intrinioQuote
+                            matchedEpochs = true
+                            matchedBar = bar
+                        } else {
+                            // Nested Iteration on intrinioQuote to match tiingoQuote with intrinioQuote
+                            numrows2 := len(quote.Epoch)
+                            for bar2 := 0; bar2 < numrows2; bar2++ {
+                                if tiingoQuote.Epoch[bar] == quote.Epoch[bar2] {
+                                    matchedEpochs = true
+                                    matchedBar = bar2
+                                    break
+                                }
                             }
                         }
-                        dataProvider = "Aggregation"
+                        if !matchedEpochs {
+                            // If no Epochs were matched, it means tiingoQuote contains Epoch that intrinioQuote does not have
+                            quote.Epoch = append(quote.Epoch, tiingoQuote.Epoch[bar])
+                            quote.Open = append(quote.Open, tiingoQuote.Open[bar])
+                            quote.High = append(quote.High, tiingoQuote.High[bar])
+                            quote.Low = append(quote.Low, tiingoQuote.Low[bar])
+                            quote.Close = append(quote.Close, tiingoQuote.Close[bar])
+                            quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
+                        } else {
+                            quote.Open[matchedBar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[matchedBar]) / 2
+                            quote.High[matchedBar] = (tiingoQuote.High[bar] + intrinioQuote.High[matchedBar]) / 2
+                            quote.Low[matchedBar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[matchedBar]) / 2
+                            quote.Close[matchedBar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[matchedBar]) / 2
+                            quote.Volume[matchedBar] = quote.Volume[matchedBar]
+                        }
                     }
+                    dataProvider = "Aggregation"
                 } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
                     // Only one quote is valid
                     quote = tiingoQuote
@@ -689,14 +710,15 @@ func (tiifx *ForexFetcher) Run() {
                     for _, symbol := range value {
                         if quote.Symbol == symbol {
                             if len(quote.Epoch) > 0 {
-                                if len(aggQuote.Epoch) == 0 {
+                                if len(aggQuote.Epoch) == 0 && len(quote.Epoch) > 0 {
                                     aggQuote.Epoch = quote.Epoch
                                     aggQuote.Open = quote.Open
                                     aggQuote.High = quote.High
                                     aggQuote.Low = quote.Low
                                     aggQuote.Close = quote.Close
                                     aggQuote.Volume = quote.Volume
-                                } else if len(aggQuote.Epoch) == len(quote.Epoch) {
+                                } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
+                                    // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
                                         // Calculate the market capitalization
@@ -724,6 +746,63 @@ func (tiifx *ForexFetcher) Run() {
                                         aggQuote.Low[bar], _ = weightedLow.Float64()
                                         aggQuote.Close[bar], _ = weightedClose.Float64()
                                         aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                    }
+                                } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
+                                    // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
+                                    numrows := len(quote.Epoch)
+                                    for bar := 0; bar < numrows; bar++ {
+                                        matchedEpochs := false
+                                        matchedBar    := bar
+                                        if quote.Epoch[bar] == aggQuote.Epoch[bar] {
+                                            // Shallow Iteration on quote matches with aggQuote
+                                            matchedEpochs = true
+                                            matchedBar = bar
+                                        } else {
+                                            // Nested Iteration on aggQuote to match quote with aggQuote
+                                            numrows2 := len(aggQuote.Epoch)
+                                            for bar2 := 0; bar2 < numrows2; bar2++ {
+                                                if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
+                                                    matchedEpochs = true
+                                                    matchedBar = bar2
+                                                    break
+                                                }
+                                            }
+                                        }
+                                        if !matchedEpochs {
+                                            // If no Epochs were matched, it means quote contains Epoch that aggQuote does not have
+                                            aggQuote.Epoch = append(aggQuote.Epoch, quote.Epoch[bar])
+                                            aggQuote.Open = append(aggQuote.Open, quote.Open[bar])
+                                            aggQuote.High = append(aggQuote.High, quote.High[bar])
+                                            aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
+                                            aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
+                                            aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
+                                        } else {
+                                            // Calculate the market capitalization
+                                            quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
+                                            aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
+                                            totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
+                                            // Calculate the weighted averages
+                                            quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
+                                            aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
+                                            
+                                            weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
+                                            weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[matchedBar]), aggQuoteWeight))
+                                            
+                                            weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
+                                            weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[matchedBar]), aggQuoteWeight))
+                                            
+                                            weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
+                                            weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[matchedBar]), aggQuoteWeight))
+                                            
+                                            weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
+                                            weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
+                                            
+                                            aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
+                                            aggQuote.High[matchedBar], _ = weightedHigh.Float64()
+                                            aggQuote.Low[matchedBar], _ = weightedLow.Float64()
+                                            aggQuote.Close[matchedBar], _ = weightedClose.Float64()
+                                            aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                        }
                                     }
                                 }
                             }
