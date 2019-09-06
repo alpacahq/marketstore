@@ -16,6 +16,9 @@ func SumFloat64(values []float64) float64 {
 	for _, val := range values {
         sum = sum.Add(sum, big.NewFloat(float64(val)))
 	}
+    
+    sum, _ = sum.Float64()
+    
 	return sum
 }
 
