@@ -410,8 +410,8 @@ func (tiicc *CryptoFetcher) Run() {
                         revQuote.Close[bar] = 1/quote.Close[bar]
                         x := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
                         z := new(big.Float).Quo(x, big.NewFloat(revQuote.Close[bar]))
-                        revQuote.Volume[bar] = float64(z)
-                        log.Info("%v ---- %v", z, float64(z) )
+                        revQuote.Volume[bar], _ = z.Float64()
+                        log.Info("%v ---- %v", z, revQuote.Volume[bar] )
                     }
                     // write to csm
                     cs := io.NewColumnSeries()
