@@ -25,11 +25,12 @@ const (
 )
 
 type IEXFetcher struct {
-	config         FetcherConfig
-	backfillM      *sync.Map
-	queue          chan []string
-	lastM          *sync.Map
-	refreshSymbols bool
+	config            FetcherConfig
+	backfillM         *sync.Map
+	queue             chan []string
+	lastM             *sync.Map
+	refreshSymbols    bool
+	lastDailyRunDate  int
 }
 
 type FetcherConfig struct {
@@ -43,24 +44,6 @@ type FetcherConfig struct {
 	Token string
 	// True for sandbox
 	Sandbox bool
-}
-
-func UpdateSymbolList(f *IEXFetcher) {
-	// update the symbol list if there was no static list in config
-	if f.refreshSymbols {
-		resp, err := api.ListSymbols()
-		if err != nil {
-			return
-		}
-
-		f.config.Symbols = make([]string, len(*resp))
-
-		for i, s := range *resp {
-			if s.IsEnabled {
-				f.config.Symbols[i] = s.Symbol
-			}
-		}
-	}
 }
 
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
@@ -87,11 +70,31 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		queue:     make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
 		lastM:     &sync.Map{},
 		refreshSymbols: len(config.Symbols) == 0,
+		lastDailyRunDate: 0,
 	}
 
-	UpdateSymbolList(&f)
+	f.UpdateSymbolList()
 
 	return &f, nil
+}
+
+func (f *IEXFetcher) UpdateSymbolList() {
+	// update the symbol list if there was no static list in config
+	if f.refreshSymbols {
+		log.Info("refreshing symbols list from IEX")
+		resp, err := api.ListSymbols()
+		if err != nil {
+			return
+		}
+
+		f.config.Symbols = make([]string, len(*resp))
+
+		for i, s := range *resp {
+			if s.IsEnabled {
+				f.config.Symbols[i] = s.Symbol
+			}
+		}
+	}
 }
 
 func (f *IEXFetcher) Run() {
@@ -114,7 +117,11 @@ func (f *IEXFetcher) Run() {
 	// loop forever over the batches
 	for batch := range f.queue {
 		f.pollIntraday(batch)
-		f.pollDaily(batch)
+
+		if (onceDaily(&f.lastDailyRunDate, 0, 10)) {
+			f.UpdateSymbolList()
+			f.pollDaily(batch)
+		}
 
 		<-time.After(limiter())
 		f.queue <- batch
@@ -142,7 +149,7 @@ func (f *IEXFetcher) pollDaily(symbols []string) {
 		return
 	}
 	limit := 1
-
+	log.Info("running daily bars poll from IEX")
 	resp, err := api.GetBars(symbols, monthly, &limit, 5)
 	if err != nil {
 		log.Error("failed to query daily bar batch (%v)", err)
@@ -337,6 +344,17 @@ func (f *IEXFetcher) workBackfill() {
 
 func limiter() time.Duration {
 	return time.Second / 50
+}
+
+func onceDaily(lastDailyRunDate *int, runHour int, runMinute int) bool {
+	now := time.Now()
+
+	if ( *lastDailyRunDate == 0 || ( *lastDailyRunDate != now.Day() && runHour == now.Hour() && runMinute == now.Minute() )) {
+		*lastDailyRunDate = now.Day()
+		return true
+	} else {
+		return false
+	}
 }
 
 func main() {
