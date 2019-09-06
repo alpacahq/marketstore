@@ -102,35 +102,35 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	var iexData  []priceData
 	var iexDaily []dailyData
     
-    api_url := fmt.Sprintf(
+    apiUrl := fmt.Sprintf(
                         "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=true&forceFill=true&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
                         
     // For getting volume data
-    api_url2 := fmt.Sprintf(
+    apiUrl2 := fmt.Sprintf(
                         "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
                         symbol,
                         url.QueryEscape(from.AddDate(0, 0, -7).Format("2006-1-2")))
     
     if !realTime {
-        api_url = api_url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
         // Minus 1 back since in realtime, we use the volume from the previous end-of-day to calculate weights;
         // So in backfill, we query from 1 day before to simulate realtime data presentation
-        api_url2 = fmt.Sprintf(
+        apiUrl2 = fmt.Sprintf(
                             "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
                             symbol,
                             url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-1-2")))
-        api_url2 = api_url2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+        apiUrl2 = apiUrl2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", api_url, nil)
+	req, _ := http.NewRequest("GET", apiUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
     
-	req2, _ := http.NewRequest("GET", api_url2, nil)
+	req2, _ := http.NewRequest("GET", apiUrl2, nil)
 	req2.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp2, err2 := client.Do(req2)
     
@@ -142,7 +142,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil || err2 != nil {
-		log.Info("IEX: symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, api_url, api_url2)
+		log.Info("IEX: symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -168,13 +168,13 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     if len(iexData) < 1 {
         if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() >= 12 ) && ( ( from.Hour() < 22 ) || ( from.Hour() == 22 && from.Minute() <= 30 ) ) ) ) ) {
-            log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+            log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
 	}
     
     if len(iexDaily) < 1 {
-        log.Warn("IEX: symbol '%s' No daily data returned url %s", symbol, api_url2)
+        log.Warn("IEX: symbol '%s' No daily data returned url %s", symbol, apiUrl2)
  		return NewQuote(symbol, 0), err2
 	}
     

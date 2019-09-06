@@ -97,18 +97,18 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 
 	var cryptoData []tiingoData
 
-    api_url := fmt.Sprintf(
+    apiUrl := fmt.Sprintf(
                         "https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&resampleFreq=%s&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
     
     if !realTime {
-        api_url = api_url + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", api_url, nil)
+	req, _ := http.NewRequest("GET", apiUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
 
@@ -119,7 +119,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Info("Crypto: symbol '%s' error: %s \n %s", symbol, err, api_url)
+		log.Info("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -131,7 +131,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
-		log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+		log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -411,7 +411,6 @@ func (tiicc *CryptoFetcher) Run() {
                         x := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
                         z := new(big.Float).Quo(x, big.NewFloat(revQuote.Close[bar]))
                         revQuote.Volume[bar], _ = z.Float64()
-                        log.Info("%v ---- %v", z, revQuote.Volume[bar] )
                     }
                     // write to csm
                     cs := io.NewColumnSeries()
@@ -449,15 +448,30 @@ func (tiicc *CryptoFetcher) Run() {
                                     numrows := len(aggQuote.Epoch)
                                     for bar := 0; bar < numrows; bar++ {
                                         // Calculate the market capitalization
-                                        quote_cap := (quote.Close[bar] * quote.Volume[bar])
-                                        aggQuote_cap := (aggQuote.Close[bar] * aggQuote.Volume[bar])
-                                        total_cap := quote_cap + aggQuote_cap
+                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
+                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), big.NewFloat(aggQuote.Volume[bar]))
+                                        totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                         // Calculate the weighted averages
-                                        aggQuote.Open[bar] = ( quote.Open[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Open[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.High[bar] = ( quote.High[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.High[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.Low[bar] = ( quote.Low[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Low[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.Close[bar] = ( quote.Close[bar] * ( quote_cap / total_cap ) ) + ( aggQuote.Close[bar] * ( aggQuote_cap / total_cap ) )
-                                        aggQuote.Volume[bar] = total_cap / aggQuote.Close[bar]
+                                        quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
+                                        aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
+                                        
+                                        weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
+                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight)))
+                                        
+                                        weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
+                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight)))
+                                        
+                                        weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
+                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight)))
+                                        
+                                        weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
+                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight)))
+                                        
+                                        aggQuote.Open, _ = weightedOpen.Float64()
+                                        aggQuote.High, _ = weightedHigh.Float64()
+                                        aggQuote.Low, _ = weightedLow.Float64()
+                                        aggQuote.Close, _ = weightedClose.Float64()
+                                        aggQuote.Volume, _ = totalCap.Quo(totalCap, weightedClose).Float64()
                                     }
                                 }
                             }

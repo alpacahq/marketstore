@@ -105,7 +105,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     
 	var forexData intrinioData
 
-    api_url := fmt.Sprintf(
+    apiUrl := fmt.Sprintf(
                         "https://api-v2.intrinio.com/forex/prices/%s/%s?api_key=%s&start_date=%s&start_time=%s",
                         symbol,
                         resampleFreq,
@@ -114,11 +114,11 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
                         url.QueryEscape(from.Add(-period.Duration).Format("15:04:05")))
     
     if !realTime {
-        api_url = api_url + "&end_date=" + url.QueryEscape(to.Format("2006-01-02")) + "&end_time=" + url.QueryEscape(to.Format("15:04:05"))
+        apiUrl = apiUrl + "&end_date=" + url.QueryEscape(to.Format("2006-01-02")) + "&end_time=" + url.QueryEscape(to.Format("15:04:05"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", api_url, nil)
+	req, _ := http.NewRequest("GET", apiUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
     
@@ -129,7 +129,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     }
     
 	if err != nil {
-		log.Info("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, api_url)
+		log.Info("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -143,7 +143,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     
 	if len(forexData.PriceData) < 1 {
         if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( int(from.Weekday()) == 1 && from.Hour() >= 7 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) ) {
-            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, api_url)
+            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -239,7 +239,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
 	var forexData []priceData
     
-    api_url := fmt.Sprintf(
+    apiUrl := fmt.Sprintf(
                         "https://api.tiingo.com/tiingo/fx/%s/prices?resampleFreq=%s&startDate=%s",
                         symbol,
                         resampleFreq,
@@ -247,11 +247,11 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     // Pad to with an extra day if backfilling to ensure that start_date and end_date is different
     if !realTime && to.AddDate(0, 0, 1).After(time.Now().UTC()) {
-        api_url = api_url + "&endDate=" + url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-1-2"))
+        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
-	req, _ := http.NewRequest("GET", api_url, nil)
+	req, _ := http.NewRequest("GET", apiUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
     
@@ -262,7 +262,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Info("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, api_url)
+		log.Info("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -277,7 +277,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	if len(forexData) < 1 {
         /*
         if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( int(from.Weekday()) == 1 && from.Hour() >= 7 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) ) {
-            log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, api_url)
+            log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
         */
 		return NewQuote(symbol, 0), err
