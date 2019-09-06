@@ -389,7 +389,6 @@ func (tiicc *CryptoFetcher) Run() {
             }
             
             // Add reversed pairs
-            /*
             for _, quote := range quotes {
                 revSymbol := ""
                 if strings.HasSuffix(quote.Symbol, "USD") {
@@ -408,7 +407,10 @@ func (tiicc *CryptoFetcher) Run() {
                         revQuote.High[bar] = 1/quote.High[bar]
                         revQuote.Low[bar] = 1/quote.Low[bar]
                         revQuote.Close[bar] = 1/quote.Close[bar]
-                        revQuote.Volume[bar] = (quote.Close[bar]*quote.Volume[bar]) / revQuote.Close[bar]
+                        x := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
+                        z := new(big.Float).Quo(x, big.NewFloat(revQuote.Close[bar]))
+                        revQuote.Volume[bar] = float64(z)
+                        log.Info("%v ---- %v", z, float64(z) )
                     }
                     // write to csm
                     cs := io.NewColumnSeries()
@@ -427,7 +429,7 @@ func (tiicc *CryptoFetcher) Run() {
                     quotes = append(quotes, revQuote)
                 }
             }
-            */
+            
             aggQuotes := Quotes{}
             for key, value := range tiicc.indices {
                 aggQuote := NewQuote(key, 0)
