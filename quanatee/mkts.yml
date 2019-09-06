@@ -124,15 +124,15 @@ bgworkers:
         - VDE
         - XLE
         - ICLN
+        - GLD
+        - IAU
+        - SGOL
         - DBB
         - JJM
         - RJZ
         - DBP
         - JJP
         - GLTR
-        - GLD
-        - IAU
-        - SGOL
       indices:
         USDETF-US: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV", "VCSH", "SPSB", "SHV", "SCHO", "VGSH", "SPTS", "VNQ", "SCHH", "IYR", "ICF", "RWR"]
         USDETF-US-EQ: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV"]
@@ -148,11 +148,11 @@ bgworkers:
         USDETF-EM-EQ: ["VWO", "IEMG", "EEM", "SCHE", "SPEM"]
         USDETF-EM-CB: ["HYEM", "EMCB"]
         USDETF-EM-GB: ["EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD"]
-        USDETF-CM: ["DBA", "JJA", "RJA", "UAG", "DBE", "JJE", "VDE", "XLE", "ICLN", "DBB", "JJM", "RJZ", "DBP", "JJP", "GLTR", "GLD", "IAU", "SGOL"]
+        USDETF-CM: ["DBA", "JJA", "RJA", "UAG", "DBE", "JJE", "VDE", "XLE", "ICLN", "GLD", "IAU", "SGOL", "DBB", "JJM", "RJZ", "DBP", "JJP", "GLTR"]
         USDETF-CM-AG: ["DBA", "JJA", "RJA", "UAG"]
         USDETF-CM-EN: ["DBE", "JJE", "VDE", "XLE", "ICLN"]
+        USDETF-CM-GD: ["GLD", "IAU", "SGOL"]
         USDETF-CM-IM: ["DBB", "JJM", "RJZ"]
         USDETF-CM-PM: ["DBP", "JJP", "GLTR"]
-        USDETF-CM-GD: ["GLD", "IAU", "SGOL"]
       query_start: "2018-06-01 00:00"
       base_timeframe: "1Min"
