@@ -564,35 +564,7 @@ func (tiifx *ForexFetcher) Run() {
                 tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
                 intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
                 quote := NewQuote(symbol, 0)
-                
-                if len(tiingoQuote.Epoch) < 1 && len(intrinioQuote.Epoch) < 1 {
-                    // Both quotes are invalid
-                    continue
-                } else if len(tiingoQuote.Epoch) == len(intrinioQuote.Epoch) && tiingoQuote.Epoch[0] == intrinioQuote.Epoch[0] && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] == intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] {
-                    numrows := len(intrinioQuote.Epoch)
-                    quote = NewQuote(symbol, numrows)
-                    for bar := 0; bar < numrows; bar++ {
-                        if tiingoQuote.Epoch[bar] != intrinioQuote.Epoch[bar] {
-                            // If the rows are not lined up, we fallback to Intrinio only
-                            log.Info("Forex: %s mismatched Epochs during aggregation %v, %v", symbol, tiingoQuote.Epoch[bar], intrinioQuote.Epoch[bar])
-                            quote.Epoch[bar] = intrinioQuote.Epoch[bar]
-                            quote.Open[bar] = intrinioQuote.Open[bar]
-                            quote.High[bar] = intrinioQuote.High[bar]
-                            quote.Low[bar] = intrinioQuote.Low[bar]
-                            quote.Close[bar] = intrinioQuote.Close[bar]
-                            quote.Volume[bar] = intrinioQuote.Volume[bar]
-                        } else {
-                            quote.Epoch[bar] = tiingoQuote.Epoch[bar]
-                            quote.Open[bar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[bar]) / 2
-                            quote.High[bar] = (tiingoQuote.High[bar] + intrinioQuote.High[bar]) / 2
-                            quote.Low[bar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[bar]) / 2
-                            quote.Close[bar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[bar]) / 2
-                            quote.Volume[bar] = intrinioQuote.Volume[bar]
-                        }
-                    }
-                    dataProvider = "Aggregation"
-                } else if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
-                    // intrinioQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
+                if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
                     quote = intrinioQuote
                     numrows := len(tiingoQuote.Epoch)
                     for bar := 0; bar < numrows; bar++ {
@@ -622,11 +594,31 @@ func (tiifx *ForexFetcher) Run() {
                             quote.Close = append(quote.Close, tiingoQuote.Close[bar])
                             quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
                         } else {
-                            quote.Open[matchedBar] = (tiingoQuote.Open[bar] + intrinioQuote.Open[matchedBar]) / 2
-                            quote.High[matchedBar] = (tiingoQuote.High[bar] + intrinioQuote.High[matchedBar]) / 2
-                            quote.Low[matchedBar] = (tiingoQuote.Low[bar] + intrinioQuote.Low[matchedBar]) / 2
-                            quote.Close[matchedBar] = (tiingoQuote.Close[bar] + intrinioQuote.Close[matchedBar]) / 2
-                            quote.Volume[matchedBar] = quote.Volume[matchedBar]
+                            // Calculate the market capitalization
+                            tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
+                            intrinioQuoteCap := new(big.Float).Mul(big.NewFloat(intrinioQuote.Close[matchedBar]), big.NewFloat(intrinioQuote.Volume[matchedBar]))
+                            totalCap := new(big.Float).Add(tiingoQuoteCap, intrinioQuoteCap)
+                            // Calculate the weighted averages
+                            tiingoQuoteWeight := new(big.Float).Quo(tiingoQuoteCap, totalCap)
+                            intrinioQuoteWeight := new(big.Float).Quo(intrinioQuoteCap, totalCap)
+                            
+                            weightedOpen := new(big.Float).Mul(big.NewFloat(tiingoQuote.Open[bar]), tiingoQuoteWeight)
+                            weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(intrinioQuote.Open[matchedBar]), intrinioQuoteWeight))
+                            
+                            weightedHigh := new(big.Float).Mul(big.NewFloat(tiingoQuote.High[bar]), tiingoQuoteWeight)
+                            weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(intrinioQuote.High[matchedBar]), intrinioQuoteWeight))
+                            
+                            weightedLow := new(big.Float).Mul(big.NewFloat(tiingoQuote.Low[bar]), tiingoQuoteWeight)
+                            weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(intrinioQuote.Low[matchedBar]), intrinioQuoteWeight))
+                            
+                            weightedClose := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), tiingoQuoteWeight)
+                            weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(intrinioQuote.Close[matchedBar]), intrinioQuoteWeight))
+                            
+                            quote.Open[matchedBar], _ = weightedOpen.Float64()
+                            quote.High[matchedBar], _ = weightedHigh.Float64()
+                            quote.Low[matchedBar], _ = weightedLow.Float64()
+                            quote.Close[matchedBar], _ = weightedClose.Float64()
+                            quote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
                         }
                     }
                     dataProvider = "Aggregation"

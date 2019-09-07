@@ -129,7 +129,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	}
     
     if len(tdaData.PriceData) < 1 {
-        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) ) {
+        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) {
             log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
@@ -271,7 +271,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
     if len(iexData) < 1 {
-        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) ) {
+        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) {
             log.Warn("Stock: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
@@ -570,8 +570,116 @@ func (tiieq *IEXFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(400 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+                tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
+                tdameritradeQuote, err2 := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
+                quote := NewQuote(symbol, 0)
+                if len(tiingoQuote.Epoch) > 0 && len(tdameritradeQuote.Epoch) > 0 {
+                    quote = tdameritradeQuote
+                    numrows := len(tiingoQuote.Epoch)
+                    for bar := 0; bar < numrows; bar++ {
+                        matchedEpochs := false
+                        matchedBar    := bar
+                        if tiingoQuote.Epoch[bar] == tdameritradeQuote.Epoch[bar] {
+                            // Shallow Iteration on tiingoQuote matches with tdameritradeQuote
+                            matchedEpochs = true
+                            matchedBar = bar
+                        } else {
+                            // Nested Iteration on tdameritradeQuote to match tiingoQuote with tdameritradeQuote
+                            numrows2 := len(quote.Epoch)
+                            for bar2 := 0; bar2 < numrows2; bar2++ {
+                                if tiingoQuote.Epoch[bar] == quote.Epoch[bar2] {
+                                    matchedEpochs = true
+                                    matchedBar = bar2
+                                    break
+                                }
+                            }
+                        }
+                        if !matchedEpochs {
+                            // If no Epochs were matched, it means tiingoQuote contains Epoch that tdameritradeQuote does not have
+                            quote.Epoch = append(quote.Epoch, tiingoQuote.Epoch[bar])
+                            quote.Open = append(quote.Open, tiingoQuote.Open[bar])
+                            quote.High = append(quote.High, tiingoQuote.High[bar])
+                            quote.Low = append(quote.Low, tiingoQuote.Low[bar])
+                            quote.Close = append(quote.Close, tiingoQuote.Close[bar])
+                            quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
+                        } else {
+                            // Calculate the market capitalization
+                            tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
+                            tdameritradeQuoteCap := new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Close[matchedBar]), big.NewFloat(tdameritradeQuote.Volume[matchedBar]))
+                            totalCap := new(big.Float).Add(tiingoQuoteCap, tdameritradeQuoteCap)
+                            // Calculate the weighted averages
+                            tiingoQuoteWeight := new(big.Float).Quo(tiingoQuoteCap, totalCap)
+                            tdameritradeQuoteWeight := new(big.Float).Quo(tdameritradeQuoteCap, totalCap)
+                            
+                            weightedOpen := new(big.Float).Mul(big.NewFloat(tiingoQuote.Open[bar]), tiingoQuoteWeight)
+                            weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Open[matchedBar]), tdameritradeQuoteWeight))
+                            
+                            weightedHigh := new(big.Float).Mul(big.NewFloat(tiingoQuote.High[bar]), tiingoQuoteWeight)
+                            weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.High[matchedBar]), tdameritradeQuoteWeight))
+                            
+                            weightedLow := new(big.Float).Mul(big.NewFloat(tiingoQuote.Low[bar]), tiingoQuoteWeight)
+                            weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Low[matchedBar]), tdameritradeQuoteWeight))
+                            
+                            weightedClose := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), tiingoQuoteWeight)
+                            weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Close[matchedBar]), tdameritradeQuoteWeight))
+                            
+                            quote.Open[matchedBar], _ = weightedOpen.Float64()
+                            quote.High[matchedBar], _ = weightedHigh.Float64()
+                            quote.Low[matchedBar], _ = weightedLow.Float64()
+                            quote.Close[matchedBar], _ = weightedClose.Float64()
+                            quote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                        }
+                    }
+                    dataProvider = "Aggregation"
+                } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
+                    // Only one quote is valid
+                    quote = tiingoQuote
+                    dataProvider = "Tiingo"
+                } else if len(tdameritradeQuote.Epoch) > 0 && tdameritradeQuote.Epoch[0] > 0 && tdameritradeQuote.Epoch[len(tdameritradeQuote.Epoch)-1] > 0 {
+                    // Only one quote is valid
+                    quote = tdameritradeQuote
+                    dataProvider = "TD Ameritrade"
+                } else {
+                    dataProvider = "None"
+                    continue
+                }
+                
+                if len(quote.Epoch) < 1 {
+                    // Check if there is data to add
+                    continue
+                } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime is adding the most recent data
+                    log.Info("Forex: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                    continue
+                }
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", quote.Epoch)
+                cs.AddColumn("Open", quote.Open)
+                cs.AddColumn("High", quote.High)
+                cs.AddColumn("Low", quote.Low)
+                cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("Volume", quote.Volume)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+                
+                // Save the latest timestamp written
+                lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
+                log.Info("Forex: %v row(s) to %s/%s/OHLCV from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                quotes = append(quotes, quote)
+            }
+            
+            
+            // Data for symbols are retrieved in random order for fairness
+            // Data for symbols are written immediately for asynchronous-like processing
+            for _, symbol := range symbols {
+                time.Sleep(400 * time.Millisecond)
+                time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
-                quote, err := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
+                quote2, err2 := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
+                
                 if err == nil {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add
