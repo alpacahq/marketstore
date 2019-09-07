@@ -258,7 +258,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     // Try again if fail
 	if err != nil {
-        time.Sleep(100 * time.Millisecond)
+        time.Sleep(500 * time.Millisecond)
         resp, err = client.Do(req)
     }
     
@@ -526,6 +526,8 @@ func (tiifx *ForexFetcher) Run() {
             // Add timeEnd by a tick
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
+            // Reset timeStart to beginning of each hour to ensure backfilling (and subsequent aggregation) does not skip any datas
+            timeStart = time.Date(timeStart.Year(), timeStart.Month(), timeStart.Day(), timeStart.Hour(), 0, 0, 0, time.UTC)
             // Add timeEnd by a range
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99)
             if timeEnd.After(time.Now().UTC()) {

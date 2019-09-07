@@ -53,9 +53,128 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
+func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+
+	resampleFreq := "1"
+	switch period.String {
+	case "1Min":
+		resampleFreq = "1"
+	case "5Min":
+		resampleFreq = "5"
+	case "15Min":
+		resampleFreq = "15"
+	case "30Min":
+		resampleFreq = "30"
+	}
+
+	type priceData struct {
+		Date           int64   `json:"datetime"` // "1567594800000"
+		Open           float64 `json:"open"`
+		Low            float64 `json:"low"`
+		High           float64 `json:"high"`
+		Close          float64 `json:"close"`
+		Volume         int64   `json:"volume"`
+	}
+
+	type tdameritradeData struct {
+		Ticker        string      `json:"symbol"`
+		Empty         bool        `json:"empty"`
+		PriceData     []priceData `json:"candles"`
+	}    
+	var tdaData tdameritradeData
+   
+    apiUrl := fmt.Sprintf(
+                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=true&startDate=%s",
+                        symbol,
+                        token,
+                        resampleFreq,
+                        strconv.Itoa(from.Unix() * 1000))
+                        
+    if !realTime {
+        apiUrl = apiUrl + "&endDate=" + strconv.Itoa(to.Unix() * 1000)
+    }
+    
+	client := &http.Client{Timeout: ClientTimeout}
+	req, _ := http.NewRequest("GET", apiUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
+	resp, err := client.Do(req)
+    
+    // Try again if fail
+	if err != nil || err2 != nil {
+        time.Sleep(500 * time.Millisecond)
+        resp, err = client.Do(req)
+        resp2, err2 = client.Do(req2)
+    }
+    
+	if err != nil || err2 != nil {
+		log.Info("Stock: TD Ameritrade symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        } else {
+            return NewQuote(symbol, 0), err2
+        }
+	}
+	defer resp.Body.Close()
+
+	contents, _ := ioutil.ReadAll(resp.Body)
+	err = json.Unmarshal(contents, &tdaData)
+    
+	if err != nil || err2 != nil {
+		log.Info("Stock: TD Ameritrade symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        } else {
+            return NewQuote(symbol, 0), err2
+        }
+	}
+    
+    if len(tdaData.PriceData) < 1 {
+        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) ) {
+            log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        }
+ 		return NewQuote(symbol, 0), err
+	}
+    
+	numrows := len(tdaData.PriceData)
+	quote := NewQuote(symbol, numrows)
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
+    
+	for bar := 0; bar < numrows; bar++ {
+        epoch = tdaData.PriceData[bar].Date / 1000
+        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+        if epoch > last.UTC().Unix() && epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
+            }
+            endOfSlice = bar
+            quote.Epoch[bar] = epoch
+            quote.Open[bar] = tdaData.PriceData[bar].Open
+            quote.High[bar] = tdaData.PriceData[bar].High
+            quote.Low[bar] = tdaData.PriceData[bar].Low
+            quote.Close[bar] = tdaData.PriceData[bar].Close
+            quote.Volume[bar] = float64(tdaData.PriceData[bar].Volume)
+        }
+	}
+    
+    if startOfSlice > -1 && endOfSlice > -1 {
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
+        quote.High = quote.High[startOfSlice:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
+    } else {
+        quote = NewQuote(symbol, 0)
+    }
+    
+	return quote, nil
+}
+
 func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
 
-	resampleFreq := "1hour"
+	resampleFreq := "1min"
 	switch period.String {
 	case "1Min":
 		resampleFreq = "1min"
@@ -65,16 +184,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		resampleFreq = "15min"
 	case "30Min":
 		resampleFreq = "30min"
-	case "1H":
-		resampleFreq = "1hour"
-	case "2H":
-		resampleFreq = "2hour"
-	case "4H":
-		resampleFreq = "4hour"
-	case "6H":
-		resampleFreq = "6hour"
-	case "8H":
-		resampleFreq = "8hour"
 	}
 
 	type priceData struct {
@@ -104,7 +213,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	var iexDaily []dailyData
     
     apiUrl := fmt.Sprintf(
-                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=true&forceFill=true&startDate=%s",
+                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=false&forceFill=false&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
@@ -131,13 +240,13 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     // Try again if fail
 	if err != nil || err2 != nil {
-        time.Sleep(100 * time.Millisecond)
+        time.Sleep(500 * time.Millisecond)
         resp, err = client.Do(req)
         resp2, err2 = client.Do(req2)
     }
     
 	if err != nil || err2 != nil {
-		log.Info("IEX: symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
+		log.Info("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -153,7 +262,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	err2 = json.Unmarshal(contents2, &iexDaily)
     
 	if err != nil || err2 != nil {
-		log.Info("IEX: symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+		log.Info("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -162,14 +271,14 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
     if len(iexData) < 1 {
-        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() >= 12 ) && ( ( from.Hour() < 22 ) || ( from.Hour() == 22 && from.Minute() <= 30 ) ) ) ) ) {
-            log.Warn("IEX: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) ) {
+            log.Warn("Stock: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
 	}
     
     if len(iexDaily) < 1 {
-        log.Warn("IEX: symbol '%s' No daily data returned url %s", symbol, apiUrl2)
+        log.Warn("Stock: Tiingo symbol '%s' No daily data returned url %s", symbol, apiUrl2)
  		return NewQuote(symbol, 0), err2
 	}
     
@@ -378,7 +487,7 @@ func (tiieq *IEXFetcher) Run() {
 	for _, symbol := range tiieq.symbols {
         tbk := io.NewTimeBucketKey(symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
         lastTimestamp = findLastTimestamp(tbk)
-        log.Info("IEX: lastTimestamp for %s = %v", symbol, lastTimestamp)
+        log.Info("Stock: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
             timeStart = lastTimestamp.UTC()
         }
@@ -423,6 +532,8 @@ func (tiieq *IEXFetcher) Run() {
             // Add timeEnd by a tick
             timeEnd = timeStart.Add(tiieq.baseTimeframe.Duration)
         } else {
+            // Reset timeStart to beginning of each day to ensure backfilling (and subsequent aggregation) does not skip any datas
+            timeStart = time.Date(timeStart.Year(), timeStart.Month(), timeStart.Day(), 0, 0, 0, 0, time.UTC)
             // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 3)
             if timeEnd.After(time.Now().UTC()) {
@@ -463,7 +574,7 @@ func (tiieq *IEXFetcher) Run() {
                         continue
                     } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                         // Check if realTime is adding the most recent data
-                        log.Info("IEX: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
+                        log.Info("Stock: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
                         continue
                     }
                     // write to csm
@@ -481,10 +592,10 @@ func (tiieq *IEXFetcher) Run() {
                     
                     // Save the latest timestamp written
                     lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                    log.Info("IEX: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                    log.Info("Stock: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                     quotes = append(quotes, quote)
                 } else {
-                    log.Info("IEX: error downloading " + symbol)
+                    log.Info("Stock: error downloading " + symbol)
                 }
             }
             
@@ -613,7 +724,7 @@ func (tiieq *IEXFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("IEX: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("Stock: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
             }
         }
 		if realTime {
@@ -627,7 +738,7 @@ func (tiieq *IEXFetcher) Run() {
                 // Set to wait till Opening
                 waitTill = openTime
             }
-            log.Info("IEX: Next request at %v", waitTill)
+            log.Info("Stock: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
 			time.Sleep(time.Second*120)
