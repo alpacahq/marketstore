@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+    "strconv"
 	"time"
     "math/rand"
     "math/big"
@@ -100,18 +101,15 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	resp, err := client.Do(req)
     
     // Try again if fail
-	if err != nil || err2 != nil {
+	if err != nil {
         time.Sleep(500 * time.Millisecond)
         resp, err = client.Do(req)
-        resp2, err2 = client.Do(req2)
     }
     
-	if err != nil || err2 != nil {
-		log.Info("Stock: TD Ameritrade symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
+	if err != nil {
+		log.Info("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
         if err != nil {
             return NewQuote(symbol, 0), err
-        } else {
-            return NewQuote(symbol, 0), err2
         }
 	}
 	defer resp.Body.Close()
@@ -119,12 +117,10 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &tdaData)
     
-	if err != nil || err2 != nil {
-		log.Info("Stock: TD Ameritrade symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+	if err != nil {
+		log.Info("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
-        } else {
-            return NewQuote(symbol, 0), err2
         }
 	}
     
@@ -669,46 +665,6 @@ func (tiieq *IEXFetcher) Run() {
                 lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
                 log.Info("Forex: %v row(s) to %s/%s/OHLCV from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 quotes = append(quotes, quote)
-            }
-            
-            
-            // Data for symbols are retrieved in random order for fairness
-            // Data for symbols are written immediately for asynchronous-like processing
-            for _, symbol := range symbols {
-                time.Sleep(400 * time.Millisecond)
-                time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
-                quote2, err2 := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
-                
-                if err == nil {
-                    if len(quote.Epoch) < 1 {
-                        // Check if there is data to add
-                        continue
-                    } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
-                        // Check if realTime is adding the most recent data
-                        log.Info("Stock: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
-                        continue
-                    }
-                    // write to csm
-                    cs := io.NewColumnSeries()
-                    cs.AddColumn("Epoch", quote.Epoch)
-                    cs.AddColumn("Open", quote.Open)
-                    cs.AddColumn("High", quote.High)
-                    cs.AddColumn("Low", quote.Low)
-                    cs.AddColumn("Close", quote.Close)
-                    cs.AddColumn("Volume", quote.Volume)
-                    csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
-                    csm.AddColumnSeries(*tbk, cs)
-                    executor.WriteCSM(csm, false)
-                    
-                    // Save the latest timestamp written
-                    lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                    log.Info("Stock: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
-                    quotes = append(quotes, quote)
-                } else {
-                    log.Info("Stock: error downloading " + symbol)
-                }
             }
             
             aggQuotes := Quotes{}
