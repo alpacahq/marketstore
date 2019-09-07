@@ -335,215 +335,38 @@ func (tiicc *CryptoFetcher) Run() {
             }
         }
         
-        if !firstLoop {
-            
-            /*
-            To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
-            But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
-            If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
-            Main goal is to ensure it runs every 1 <time duration> at :00
-            Tiingo returns data by the day, regardless of granularity
-            */
-            year := timeEnd.Year()
-            month := timeEnd.Month()
-            day := timeEnd.Day()
-            hour := timeEnd.Hour()
-            minute := timeEnd.Minute()
-            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-            
-            quotes := Quotes{}
-            symbols := tiicc.symbols
-            rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-            // Data for symbols are retrieved in random order for fairness
-            // Data for symbols are written immediately for asynchronous-like processing
-            for _, symbol := range symbols {
-                time.Sleep(400 * time.Millisecond)
-                time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-                quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
-                if err == nil {
-                    if len(quote.Epoch) < 1 {
-                        // Check if there is data to add
-                        continue
-                    } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
-                        // Check if realTime is adding the most recent data
-                        log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
-                        continue
-                    }
-                    // write to csm
-                    cs := io.NewColumnSeries()
-                    cs.AddColumn("Epoch", quote.Epoch)
-                    cs.AddColumn("Open", quote.Open)
-                    cs.AddColumn("High", quote.High)
-                    cs.AddColumn("Low", quote.Low)
-                    cs.AddColumn("Close", quote.Close)
-                    cs.AddColumn("Volume", quote.Volume)
-                    csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
-                    csm.AddColumnSeries(*tbk, cs)
-                    executor.WriteCSM(csm, false)
-                    
-                    // Save the latest timestamp written
-                    lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                    log.Info("Crypto: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
-                    quotes = append(quotes, quote)
-                } else {
-                    log.Info("Crypto: error downloading " + symbol)
+        /*
+        To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
+        But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
+        If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
+        Main goal is to ensure it runs every 1 <time duration> at :00
+        Tiingo returns data by the day, regardless of granularity
+        */
+        year := timeEnd.Year()
+        month := timeEnd.Month()
+        day := timeEnd.Day()
+        hour := timeEnd.Hour()
+        minute := timeEnd.Minute()
+        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+        
+        quotes := Quotes{}
+        symbols := tiicc.symbols
+        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        // Data for symbols are retrieved in random order for fairness
+        // Data for symbols are written immediately for asynchronous-like processing
+        for _, symbol := range symbols {
+            time.Sleep(400 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
+            if err == nil {
+                if len(quote.Epoch) < 1 {
+                    // Check if there is data to add
+                    continue
+                } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime is adding the most recent data
+                    log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                    continue
                 }
-            }
-            
-            // Add reversed pairs
-            for _, quote := range quotes {
-                revSymbol := ""
-                if strings.HasSuffix(quote.Symbol, "USD") {
-                    revSymbol = "USD" + strings.Replace(quote.Symbol, "USD", "", -1)
-                } else if strings.HasSuffix(quote.Symbol, "EUR") {
-                    revSymbol = "EUR" + strings.Replace(quote.Symbol, "EUR", "", -1)
-                } else if strings.HasSuffix(quote.Symbol, "JPY") {
-                    revSymbol = "JPY" + strings.Replace(quote.Symbol, "JPY", "", -1)
-                }
-                if revSymbol != "" {
-                    numrows := len(quote.Epoch)
-                    revQuote := NewQuote(revSymbol, numrows)
-                    for bar := 0; bar < numrows; bar++ {
-                        revQuote.Epoch[bar] = quote.Epoch[bar]
-                        revQuote.Open[bar] = 1/quote.Open[bar]
-                        revQuote.High[bar] = 1/quote.High[bar]
-                        revQuote.Low[bar] = 1/quote.Low[bar]
-                        revQuote.Close[bar] = 1/quote.Close[bar]
-                        x := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                        z := new(big.Float).Quo(x, big.NewFloat(revQuote.Close[bar]))
-                        revQuote.Volume[bar], _ = z.Float64()
-                    }
-                    // write to csm
-                    cs := io.NewColumnSeries()
-                    cs.AddColumn("Epoch", revQuote.Epoch)
-                    cs.AddColumn("Open", revQuote.Open)
-                    cs.AddColumn("High", revQuote.High)
-                    cs.AddColumn("Low", revQuote.Low)
-                    cs.AddColumn("Close", revQuote.Close)
-                    cs.AddColumn("Volume", revQuote.Volume)
-                    csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
-                    csm.AddColumnSeries(*tbk, cs)
-                    executor.WriteCSM(csm, false)
-                    
-                    log.Info("Crypto: %v inverted row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiicc.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
-                    quotes = append(quotes, revQuote)
-                }
-            }
-            
-            aggQuotes := Quotes{}
-            for key, value := range tiicc.indices {
-                aggQuote := NewQuote(key, 0)
-                for _, quote := range quotes {
-                    for _, symbol := range value {
-                        if quote.Symbol == symbol {
-                            if len(quote.Epoch) > 0 {
-                                if len(aggQuote.Epoch) == 0 && len(quote.Epoch) > 0 {
-                                    aggQuote.Epoch = quote.Epoch
-                                    aggQuote.Open = quote.Open
-                                    aggQuote.High = quote.High
-                                    aggQuote.Low = quote.Low
-                                    aggQuote.Close = quote.Close
-                                    aggQuote.Volume = quote.Volume
-                                } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
-                                    // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
-                                    numrows := len(aggQuote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        // Calculate the market capitalization
-                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), big.NewFloat(aggQuote.Volume[bar]))
-                                        totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
-                                        // Calculate the weighted averages
-                                        quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
-                                        aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
-                                        
-                                        weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
-                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight))
-                                        
-                                        weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
-                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight))
-                                        
-                                        weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
-                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight))
-                                        
-                                        weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
-                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
-                                        
-                                        aggQuote.Open[bar], _ = weightedOpen.Float64()
-                                        aggQuote.High[bar], _ = weightedHigh.Float64()
-                                        aggQuote.Low[bar], _ = weightedLow.Float64()
-                                        aggQuote.Close[bar], _ = weightedClose.Float64()
-                                        aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
-                                    }
-                                } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
-                                    // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
-                                    numrows := len(quote.Epoch)
-                                    for bar := 0; bar < numrows; bar++ {
-                                        matchedEpochs := false
-                                        matchedBar    := bar
-                                        if quote.Epoch[bar] == aggQuote.Epoch[bar] {
-                                            // Shallow Iteration on quote matches with aggQuote
-                                            matchedEpochs = true
-                                            matchedBar = bar
-                                        } else {
-                                            // Nested Iteration on aggQuote to match quote with aggQuote
-                                            numrows2 := len(aggQuote.Epoch)
-                                            for bar2 := 0; bar2 < numrows2; bar2++ {
-                                                if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
-                                                    matchedEpochs = true
-                                                    matchedBar = bar2
-                                                    break
-                                                }
-                                            }
-                                        }
-                                        if !matchedEpochs {
-                                            // If no Epochs were matched, it means quote contains Epoch that aggQuote does not have
-                                            aggQuote.Epoch = append(aggQuote.Epoch, quote.Epoch[bar])
-                                            aggQuote.Open = append(aggQuote.Open, quote.Open[bar])
-                                            aggQuote.High = append(aggQuote.High, quote.High[bar])
-                                            aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
-                                            aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
-                                            aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
-                                        } else {
-                                            // Calculate the market capitalization
-                                            quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                            aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
-                                            totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
-                                            // Calculate the weighted averages
-                                            quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
-                                            aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
-                                            
-                                            weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
-                                            weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[matchedBar]), aggQuoteWeight))
-                                            
-                                            weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
-                                            weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[matchedBar]), aggQuoteWeight))
-                                            
-                                            weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
-                                            weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[matchedBar]), aggQuoteWeight))
-                                            
-                                            weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
-                                            weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
-                                            
-                                            aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
-                                            aggQuote.High[matchedBar], _ = weightedHigh.Float64()
-                                            aggQuote.Low[matchedBar], _ = weightedLow.Float64()
-                                            aggQuote.Close[matchedBar], _ = weightedClose.Float64()
-                                            aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if len(aggQuote.Epoch) > 0 {
-                    aggQuotes = append(aggQuotes, aggQuote)
-                }
-            }
-            
-            for _, quote := range aggQuotes {
                 // write to csm
                 cs := io.NewColumnSeries()
                 cs.AddColumn("Epoch", quote.Epoch)
@@ -557,8 +380,182 @@ func (tiicc *CryptoFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Crypto: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                // Save the latest timestamp written
+                lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
+                log.Info("Crypto: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                quotes = append(quotes, quote)
+            } else {
+                log.Info("Crypto: error downloading " + symbol)
             }
+        }
+        
+        // Add reversed pairs
+        for _, quote := range quotes {
+            revSymbol := ""
+            if strings.HasSuffix(quote.Symbol, "USD") {
+                revSymbol = "USD" + strings.Replace(quote.Symbol, "USD", "", -1)
+            } else if strings.HasSuffix(quote.Symbol, "EUR") {
+                revSymbol = "EUR" + strings.Replace(quote.Symbol, "EUR", "", -1)
+            } else if strings.HasSuffix(quote.Symbol, "JPY") {
+                revSymbol = "JPY" + strings.Replace(quote.Symbol, "JPY", "", -1)
+            }
+            if revSymbol != "" {
+                numrows := len(quote.Epoch)
+                revQuote := NewQuote(revSymbol, numrows)
+                for bar := 0; bar < numrows; bar++ {
+                    revQuote.Epoch[bar] = quote.Epoch[bar]
+                    revQuote.Open[bar] = 1/quote.Open[bar]
+                    revQuote.High[bar] = 1/quote.High[bar]
+                    revQuote.Low[bar] = 1/quote.Low[bar]
+                    revQuote.Close[bar] = 1/quote.Close[bar]
+                    x := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
+                    z := new(big.Float).Quo(x, big.NewFloat(revQuote.Close[bar]))
+                    revQuote.Volume[bar], _ = z.Float64()
+                }
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", revQuote.Epoch)
+                cs.AddColumn("Open", revQuote.Open)
+                cs.AddColumn("High", revQuote.High)
+                cs.AddColumn("Low", revQuote.Low)
+                cs.AddColumn("Close", revQuote.Close)
+                cs.AddColumn("Volume", revQuote.Volume)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+                
+                log.Info("Crypto: %v inverted row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiicc.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                quotes = append(quotes, revQuote)
+            }
+        }
+        
+        aggQuotes := Quotes{}
+        for key, value := range tiicc.indices {
+            aggQuote := NewQuote(key, 0)
+            for _, quote := range quotes {
+                for _, symbol := range value {
+                    if quote.Symbol == symbol {
+                        if len(quote.Epoch) > 0 {
+                            if len(aggQuote.Epoch) == 0 && len(quote.Epoch) > 0 {
+                                aggQuote.Epoch = quote.Epoch
+                                aggQuote.Open = quote.Open
+                                aggQuote.High = quote.High
+                                aggQuote.Low = quote.Low
+                                aggQuote.Close = quote.Close
+                                aggQuote.Volume = quote.Volume
+                            } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
+                                // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
+                                numrows := len(aggQuote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    // Calculate the market capitalization
+                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
+                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), big.NewFloat(aggQuote.Volume[bar]))
+                                    totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
+                                    // Calculate the weighted averages
+                                    quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
+                                    aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
+                                    
+                                    weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
+                                    weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight))
+                                    
+                                    weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
+                                    weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight))
+                                    
+                                    weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
+                                    weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight))
+                                    
+                                    weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
+                                    weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
+                                    
+                                    aggQuote.Open[bar], _ = weightedOpen.Float64()
+                                    aggQuote.High[bar], _ = weightedHigh.Float64()
+                                    aggQuote.Low[bar], _ = weightedLow.Float64()
+                                    aggQuote.Close[bar], _ = weightedClose.Float64()
+                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                }
+                            } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
+                                // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
+                                numrows := len(quote.Epoch)
+                                for bar := 0; bar < numrows; bar++ {
+                                    matchedEpochs := false
+                                    matchedBar    := bar
+                                    if quote.Epoch[bar] == aggQuote.Epoch[bar] {
+                                        // Shallow Iteration on quote matches with aggQuote
+                                        matchedEpochs = true
+                                        matchedBar = bar
+                                    } else {
+                                        // Nested Iteration on aggQuote to match quote with aggQuote
+                                        numrows2 := len(aggQuote.Epoch)
+                                        for bar2 := 0; bar2 < numrows2; bar2++ {
+                                            if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
+                                                matchedEpochs = true
+                                                matchedBar = bar2
+                                                break
+                                            }
+                                        }
+                                    }
+                                    if !matchedEpochs {
+                                        // If no Epochs were matched, it means quote contains Epoch that aggQuote does not have
+                                        aggQuote.Epoch = append(aggQuote.Epoch, quote.Epoch[bar])
+                                        aggQuote.Open = append(aggQuote.Open, quote.Open[bar])
+                                        aggQuote.High = append(aggQuote.High, quote.High[bar])
+                                        aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
+                                        aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
+                                        aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
+                                    } else {
+                                        // Calculate the market capitalization
+                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
+                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
+                                        totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
+                                        // Calculate the weighted averages
+                                        quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
+                                        aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
+                                        
+                                        weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
+                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[matchedBar]), aggQuoteWeight))
+                                        
+                                        weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
+                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[matchedBar]), aggQuoteWeight))
+                                        
+                                        weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
+                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[matchedBar]), aggQuoteWeight))
+                                        
+                                        weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
+                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
+                                        
+                                        aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
+                                        aggQuote.High[matchedBar], _ = weightedHigh.Float64()
+                                        aggQuote.Low[matchedBar], _ = weightedLow.Float64()
+                                        aggQuote.Close[matchedBar], _ = weightedClose.Float64()
+                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if len(aggQuote.Epoch) > 0 {
+                aggQuotes = append(aggQuotes, aggQuote)
+            }
+        }
+        
+        for _, quote := range aggQuotes {
+            // write to csm
+            cs := io.NewColumnSeries()
+            cs.AddColumn("Epoch", quote.Epoch)
+            cs.AddColumn("Open", quote.Open)
+            cs.AddColumn("High", quote.High)
+            cs.AddColumn("Low", quote.Low)
+            cs.AddColumn("Close", quote.Close)
+            cs.AddColumn("Volume", quote.Volume)
+            csm := io.NewColumnSeriesMap()
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
+            csm.AddColumnSeries(*tbk, cs)
+            executor.WriteCSM(csm, false)
+            
+            log.Info("Crypto: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
 		if realTime {
 			// Sleep till the next minute
