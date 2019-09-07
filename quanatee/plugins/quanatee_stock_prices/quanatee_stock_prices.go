@@ -526,11 +526,7 @@ func (tiieq *IEXFetcher) Run() {
         if firstLoop {
             firstLoop = false
         } else {
-            if !realTime {
-                timeStart = time.Date(timeEnd.Year(), timeEnd.Month(), timeEnd.Day(), 0, 0, 0, 0, time.UTC)
-            } else {
-                timeStart = timeEnd
-            }
+            timeStart = timeEnd
         }
         if realTime {
             // Add timeEnd by a tick
