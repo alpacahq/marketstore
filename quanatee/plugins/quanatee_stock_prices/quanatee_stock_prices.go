@@ -343,6 +343,7 @@ type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
     Indices        map[string][]string `yaml:"indices"`
     ApiKey         string    `yaml:"api_key"`
+    ApiKey2        string    `yaml:"api_key2"`
 	QueryStart     string    `yaml:"query_start"`
 	BaseTimeframe  string    `yaml:"base_timeframe"`
 }
@@ -353,6 +354,7 @@ type IEXFetcher struct {
 	symbols        []string
 	indices        map[string][]string
     apiKey         string
+    apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
@@ -470,6 +472,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols:        symbols,
 		indices:        indices,
         apiKey:         config.ApiKey,
+        apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
 	}, nil
@@ -568,6 +571,7 @@ func (tiieq *IEXFetcher) Run() {
                 time.Sleep(400 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
                 quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
+                quote, err := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
                 if err == nil {
                     if len(quote.Epoch) < 1 {
                         // Check if there is data to add
