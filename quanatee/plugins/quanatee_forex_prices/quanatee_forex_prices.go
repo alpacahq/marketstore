@@ -576,6 +576,7 @@ func (tiifx *ForexFetcher) Run() {
                                 // Shallow Iteration on tiingoQuote matches with intrinioQuote
                                 matchedEpochs = true
                                 matchedBar = bar
+                            }
                         }
                         // Second Test
                         if !matchedEpochs {

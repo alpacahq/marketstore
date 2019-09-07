@@ -582,6 +582,7 @@ func (tiieq *IEXFetcher) Run() {
                                 // Shallow Iteration on tiingoQuote matches with tdameritradeQuote
                                 matchedEpochs = true
                                 matchedBar = bar
+                            }
                         }
                         // Second Test
                         if !matchedEpochs {
