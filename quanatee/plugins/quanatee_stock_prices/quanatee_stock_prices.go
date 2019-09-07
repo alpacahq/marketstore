@@ -89,10 +89,10 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
                         symbol,
                         token,
                         resampleFreq,
-                        strconv.Itoa(from.Unix() * 1000))
+                        strconv.Itoa(int(from.Unix() * 1000)))
                         
     if !realTime {
-        apiUrl = apiUrl + "&endDate=" + strconv.Itoa(to.Unix() * 1000)
+        apiUrl = apiUrl + "&endDate=" + strconv.Itoa(int(to.Unix() * 1000))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -138,7 +138,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        epoch = tdaData.PriceData[bar].Date / 1000
+        epoch := tdaData.PriceData[bar].Date / 1000
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if epoch > last.UTC().Unix() && epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -519,6 +519,7 @@ func (tiieq *IEXFetcher) Run() {
 	var timeEnd time.Time
 	var waitTill time.Time
 	firstLoop := true
+    dataProvider := "None"
     
 	for {
         
@@ -645,7 +646,7 @@ func (tiieq *IEXFetcher) Run() {
                     continue
                 } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                     // Check if realTime is adding the most recent data
-                    log.Info("Forex: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                    log.Info("Stock: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
                     continue
                 }
                 // write to csm
@@ -657,13 +658,13 @@ func (tiieq *IEXFetcher) Run() {
                 cs.AddColumn("Close", quote.Close)
                 cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/OHLCV")
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
                 // Save the latest timestamp written
                 lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                log.Info("Forex: %v row(s) to %s/%s/OHLCV from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                log.Info("Stock: %v row(s) to %s/%s/OHLCV from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 quotes = append(quotes, quote)
             }
             
