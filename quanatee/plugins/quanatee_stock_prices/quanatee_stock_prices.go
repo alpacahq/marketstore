@@ -201,7 +201,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
                     previousWorkday = true
                     break
                 } else {
-                    days += days
+                    days += 1
                 }
             }
             // Add volume from previous daily price data
@@ -320,8 +320,9 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
         for nextWorkday == false {
             if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
                 nextWorkday = true
+                break
             } else {
-                days += days
+                days += 1
             }
         }
         timeCheck = timeCheck.AddDate(0, 0, days)
@@ -423,7 +424,7 @@ func (tiieq *IEXFetcher) Run() {
             timeEnd = timeStart.Add(tiieq.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 1)
+            timeEnd = timeStart.AddDate(0, 0, 3)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -629,7 +630,7 @@ func (tiieq *IEXFetcher) Run() {
             log.Info("IEX: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*60)
+			time.Sleep(time.Second*120)
 		}
 	}
 }

@@ -416,7 +416,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
                 nextWorkday = true
                 break
             } else {
-                days += days
+                days += 1
             }
         }
         timeCheck = timeCheck.AddDate(0, 0, days)
@@ -851,7 +851,7 @@ func (tiifx *ForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*4)
+			time.Sleep(time.Second*60)
 		}
 	}
 }
