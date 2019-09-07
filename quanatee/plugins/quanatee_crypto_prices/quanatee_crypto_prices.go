@@ -316,10 +316,10 @@ func (tiicc *CryptoFetcher) Run() {
         if firstLoop {
             firstLoop = false
         } else {
-            timeStart = timeEnd
             if !realTime {
-                // Reset timeStart to beginning of each day to ensure backfilling (and subsequent aggregation) does not skip any datas
-                timeStart = time.Date(timeStart.Year(), timeStart.Month(), timeStart.Day(), 0, 0, 0, 0, time.UTC)
+                timeStart = time.Date(timeEnd.Year(), timeEnd.Month(), timeEnd.Day(), 0, 0, 0, 0, time.UTC)
+            } else {
+                timeStart = timeEnd
             }
         }
         if realTime {

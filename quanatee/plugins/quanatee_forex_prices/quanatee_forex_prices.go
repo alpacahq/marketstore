@@ -520,12 +520,10 @@ func (tiifx *ForexFetcher) Run() {
         if firstLoop {
             firstLoop = false
         } else {
-            timeStart = timeEnd
             if !realTime {
-                log.Info("%v", timeStart)
-                // Reset timeStart to beginning of each hour to ensure backfilling (and subsequent aggregation) does not skip any datas
-                timeStart = time.Date(timeStart.Year(), timeStart.Month(), timeStart.Day(), timeStart.Hour(), 0, 0, 0, time.UTC)
-                log.Info("%v", timeStart)
+                timeStart = time.Date(timeEnd.Year(), timeEnd.Month(), timeEnd.Day(), timeEnd.Hour(), 0, 0, 0, time.UTC)
+            } else {
+                timeStart = timeEnd
             }
         }
         if realTime {
