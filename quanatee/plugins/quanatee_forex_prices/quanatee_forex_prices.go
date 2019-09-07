@@ -570,11 +570,15 @@ func (tiifx *ForexFetcher) Run() {
                     for bar := 0; bar < numrows; bar++ {
                         matchedEpochs := false
                         matchedBar    := bar
-                        if tiingoQuote.Epoch[bar] == intrinioQuote.Epoch[bar] {
-                            // Shallow Iteration on tiingoQuote matches with intrinioQuote
-                            matchedEpochs = true
-                            matchedBar = bar
-                        } else {
+                        // First Test
+                        if len(intrinioQuote.Epoch) > bar {
+                            if tiingoQuote.Epoch[bar] == intrinioQuote.Epoch[bar] {
+                                // Shallow Iteration on tiingoQuote matches with intrinioQuote
+                                matchedEpochs = true
+                                matchedBar = bar
+                        }
+                        // Second Test
+                        if !matchedEpochs {
                             // Nested Iteration on intrinioQuote to match tiingoQuote with intrinioQuote
                             numrows2 := len(quote.Epoch)
                             for bar2 := 0; bar2 < numrows2; bar2++ {

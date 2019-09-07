@@ -85,7 +85,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	var tdaData tdameritradeData
    
     apiUrl := fmt.Sprintf(
-                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=true&startDate=%s",
+                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=false&startDate=%s",
                         symbol,
                         token,
                         resampleFreq,
@@ -97,7 +97,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", apiUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
     
     // Try again if fail
@@ -576,11 +576,15 @@ func (tiieq *IEXFetcher) Run() {
                     for bar := 0; bar < numrows; bar++ {
                         matchedEpochs := false
                         matchedBar    := bar
-                        if tiingoQuote.Epoch[bar] == tdameritradeQuote.Epoch[bar] {
-                            // Shallow Iteration on tiingoQuote matches with tdameritradeQuote
-                            matchedEpochs = true
-                            matchedBar = bar
-                        } else {
+                        // First Test
+                        if len(tdameritradeQuote.Epoch) > bar {
+                            if tiingoQuote.Epoch[bar] == tdameritradeQuote.Epoch[bar] {
+                                // Shallow Iteration on tiingoQuote matches with tdameritradeQuote
+                                matchedEpochs = true
+                                matchedBar = bar
+                        }
+                        // Second Test
+                        if !matchedEpochs {
                             // Nested Iteration on tdameritradeQuote to match tiingoQuote with tdameritradeQuote
                             numrows2 := len(quote.Epoch)
                             for bar2 := 0; bar2 < numrows2; bar2++ {
