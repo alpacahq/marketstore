@@ -567,8 +567,8 @@ func (tiieq *IEXFetcher) Run() {
             for _, symbol := range symbols {
                 time.Sleep(400 * time.Millisecond)
                 time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-                tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
-                tdameritradeQuote, err2 := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
+                tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
+                tdameritradeQuote, _ := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
                 quote := NewQuote(symbol, 0)
                 if len(tiingoQuote.Epoch) > 0 && len(tdameritradeQuote.Epoch) > 0 {
                     quote = tdameritradeQuote
