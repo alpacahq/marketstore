@@ -15,7 +15,9 @@ triggers:
     on: "*/1Min/*"
     config:
       destinations:
-        - 11Min
+        - 7Min
+        - 13Min
+        - 1H
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:
