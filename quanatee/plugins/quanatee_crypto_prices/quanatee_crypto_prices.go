@@ -495,9 +495,9 @@ func (tiicc *CryptoFetcher) Run() {
                                     // Second Test
                                     if !matchedEpochs {
                                         // Nested Iteration on aggQuote to match quote with aggQuote
-                                        numrows2 := len(quote.Epoch)
+                                        numrows2 := len(aggQuote.Epoch)
                                         for bar2 := 0; bar2 < numrows2; bar2++ {
-                                            if quote.Epoch[bar] == quote.Epoch[bar2] {
+                                            if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
                                                 matchedEpochs = true
                                                 matchedBar = bar2
                                                 break
@@ -611,9 +611,9 @@ func (tiicc *CryptoFetcher) Run() {
                                     // Second Test
                                     if !matchedEpochs {
                                         // Nested Iteration on aggQuote to match quote with aggQuote
-                                        numrows2 := len(quote.Epoch)
+                                        numrows2 := len(aggQuote.Epoch)
                                         for bar2 := 0; bar2 < numrows2; bar2++ {
-                                            if quote.Epoch[bar] == quote.Epoch[bar2] {
+                                            if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
                                                 matchedEpochs = true
                                                 matchedBar = bar2
                                                 break
