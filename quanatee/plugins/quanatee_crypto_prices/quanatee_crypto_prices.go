@@ -268,7 +268,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	} else {
         for key, value := range config.Indices {
             for _, symbol := range value {
-                if !strings.Contains(index, "-") {
+                if !strings.Contains(symbol, "-") {
                     symbols = append(symbols, index)
                 }
             }
