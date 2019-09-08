@@ -126,9 +126,11 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	}
     
     if len(tdaData.PriceData) < 1 {
+        /*
         if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) {
             log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
+        */
  		return NewQuote(symbol, 0), err
 	}
     
