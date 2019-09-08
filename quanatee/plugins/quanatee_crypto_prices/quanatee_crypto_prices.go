@@ -484,15 +484,20 @@ func (tiicc *CryptoFetcher) Run() {
                                 for bar := 0; bar < numrows; bar++ {
                                     matchedEpochs := false
                                     matchedBar    := bar
-                                    if quote.Epoch[bar] == aggQuote.Epoch[bar] {
-                                        // Shallow Iteration on quote matches with aggQuote
-                                        matchedEpochs = true
-                                        matchedBar = bar
-                                    } else {
+                                    // First Test
+                                    if len(aggQuote.Epoch) > bar {
+                                        if quote.Epoch[bar] == aggQuote.Epoch[bar] {
+                                            // Shallow Iteration on quote matches with aggQuote
+                                            matchedEpochs = true
+                                            matchedBar = bar
+                                        }
+                                    }
+                                    // Second Test
+                                    if !matchedEpochs {
                                         // Nested Iteration on aggQuote to match quote with aggQuote
-                                        numrows2 := len(aggQuote.Epoch)
+                                        numrows2 := len(quote.Epoch)
                                         for bar2 := 0; bar2 < numrows2; bar2++ {
-                                            if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
+                                            if quote.Epoch[bar] == quote.Epoch[bar2] {
                                                 matchedEpochs = true
                                                 matchedBar = bar2
                                                 break
@@ -595,15 +600,20 @@ func (tiicc *CryptoFetcher) Run() {
                                 for bar := 0; bar < numrows; bar++ {
                                     matchedEpochs := false
                                     matchedBar    := bar
-                                    if quote.Epoch[bar] == aggQuote.Epoch[bar] {
-                                        // Shallow Iteration on quote matches with aggQuote
-                                        matchedEpochs = true
-                                        matchedBar = bar
-                                    } else {
+                                    // First Test
+                                    if len(aggQuote.Epoch) > bar {
+                                        if quote.Epoch[bar] == aggQuote.Epoch[bar] {
+                                            // Shallow Iteration on quote matches with aggQuote
+                                            matchedEpochs = true
+                                            matchedBar = bar
+                                        }
+                                    }
+                                    // Second Test
+                                    if !matchedEpochs {
                                         // Nested Iteration on aggQuote to match quote with aggQuote
-                                        numrows2 := len(aggQuote.Epoch)
+                                        numrows2 := len(quote.Epoch)
                                         for bar2 := 0; bar2 < numrows2; bar2++ {
-                                            if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
+                                            if quote.Epoch[bar] == quote.Epoch[bar2] {
                                                 matchedEpochs = true
                                                 matchedBar = bar2
                                                 break
