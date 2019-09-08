@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
     "strconv"
+    "strings"
 	"time"
     "math/rand"
     "math/big"
@@ -458,9 +459,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	} else {
-        for _, index := range config.Indices {
-            if !strings.Contains(index, "-") {
-                symbols = append(symbols, index)
+        for key, value := range config.Indices {
+            for _, symbol := range value {
+                if !strings.Contains(index, "-") {
+                    symbols = append(symbols, index)
+                }
             }
         }
     }
@@ -788,7 +791,6 @@ func (tiieq *IEXFetcher) Run() {
         }
         
         // Create indexes from created indexes
-        aggQuotes := Quotes{}
         for key, value := range tiieq.indices {
             aggQuote := NewQuote(key, 0)
             for _, quote := range aggQuotes {
