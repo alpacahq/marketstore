@@ -258,7 +258,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     // Try again if fail
 	if err != nil {
-        time.Sleep(500 * time.Millisecond)
+        time.Sleep(250 * time.Millisecond)
         resp, err = client.Do(req)
     }
     
@@ -563,7 +563,7 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(400 * time.Millisecond)
+            time.Sleep(100 * time.Millisecond)
             time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
             intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
