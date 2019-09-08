@@ -67,79 +67,36 @@ bgworkers:
     config:
       api_key: "<tiingo_api_key>"
       api_key2: "<tdameritrade_api_key>"
-      symbols:
-        - SPY
-        - IVV
-        - VOO
-        - VTI
-        - QQQ
-        - IJH
-        - VTV
-        - VCSH
-        - SPSB
-        - SHV
-        - SCHO
-        - VGSH
-        - SPTS
-        - VNQ
-        - SCHH
-        - IYR
-        - ICF
-        - RWR
-        - VEA
-        - EFA
-        - VEU
-        - SCHF
-        - IXUS
-        - VXUS
-        - IHY
-        - HYXU
-        - PICB
-        - BWX
-        - IGOV
-        - BWZ
-        - ISHG
-        - VNQI
-        - RWX
-        - IFGL
-        - WPS
-        - VWO
-        - IEMG
-        - EEM
-        - SCHE
-        - SPEM
-        - HYEM
-        - EMCB
-        - EMLC
-        - PCY
-        - VWOB
-        - EBND
-        - LEMB
-        - ELD
-        - DBA
-        - JJA
-        - RJA
-        - UAG
-        - DBE
-        - JJE
-        - VDE
-        - XLE
-        - ICLN
-        - GLD
-        - IAU
-        - SGOL
-        - DBB
-        - JJM
-        - RJZ
-        - DBP
-        - JJP
-        - GLTR
       indices:
-        USDETF-US: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV", "VCSH", "SPSB", "SHV", "SCHO", "VGSH", "SPTS", "VNQ", "SCHH", "IYR", "ICF", "RWR"]
+        USDETF-US: ["USDETF-US-EQ", "USDETF-US-CB", "USDETF-US-GB"]
         USDETF-US-EQ: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV"]
-        USDETF-US-CB: ["VCSH", "SPSB"]
-        USDETF-US-GB: ["SHV", "SCHO", "VGSH", "SPTS"]
-        USDETF-US-RE: ["VNQ", "SCHH", "IYR", "ICF", "RWR"]
+        USDETF-US-EC-HI: ["USDETF-US-CD", "USDETF-US-FI", "USDETF-US-ID", "USDETF-US-IT", "USDETF-US-RE"]
+        USDETF-US-MC-HI: ["USDETF-US-ID", "USDETF-US-IT"]
+        USDETF-US-LC-HI: ["USDETF-US-CS", "USDETF-US-EN", "USDETF-US-HC", "USDETF-US-MA", "USDETF-US-UT"]
+        USDETF-US-RC-HI: ["USDETF-US-CS", "USDETF-US-HC", "USDETF-US-TE", "USDETF-US-UT"]
+        USDETF-US-EC-LO: ["USDETF-US-EN", "USDETF-US-TE", "USDETF-US-UT", "USDETF-US-HC", "USDETF-US-CS"]
+        USDETF-US-MC-LO: ["USDETF-US-MA", "USDETF-US-UT"]
+        USDETF-US-LC-LO: ["USDETF-US-CD", "USDETF-US-IT"]
+        USDETF-US-RC-LO: ["USDETF-US-ID", "USDETF-US-IT", "USDETF-US-FI", "USDETF-US-MA", "USDETF-US-RE"]
+        USDETF-US-CD: ["XLY", "VCR", "IYC"]
+        USDETF-US-CS: ["XLP", "VDC", "IYK"]
+        USDETF-US-EN: ["XLE", "VDE", "IYE"]
+        USDETF-US-FI: ["XLF", "VFH", "IYF"]
+        USDETF-US-HC: ["XLV", "VHT", "IYH"]
+        USDETF-US-ID: ["XLI", "VIS", "IYJ"]
+        USDETF-US-IT: ["XLK", "VGT", "IYW"]
+        USDETF-US-MA: ["XLB", "VAW", "IYM"]
+        USDETF-US-RE: ["XLRE", "VNQ", "IYR"]
+        USDETF-US-TE: ["XTL", "VOX", "IYZ"]
+        USDETF-US-UT: ["XLU", "VPU", "IDU"]
+        USDETF-US-CB: ["USDETF-US-CB-ST", "USDETF-US-CB-MT", "USDETF-US-CB-LT"]
+        USDETF-US-CB-ST: ["VCSH", "SPSB"]
+        USDETF-US-CB-MT: ["VCIT", "HYG", "JNK", "IGIB"]
+        USDETF-US-CB-LT: ["VCLT", "IGLB", "SPLB"]
+        USDETF-US-GB: ["USDETF-US-GB-ST", "USDETF-US-GB-MT", "USDETF-US-GB-LT"]
+        USDETF-US-GB-ST: ["SHY", "SCHO", "VGSH", "SPTS"]
+        USDETF-US-GB-MT: ["IEF", "IEI", "SCHR", "VGIT"]
+        USDETF-US-GB-LT: ["TLT", "SPTL", "VGLT"]
         USDETF-DM: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS", "IHY", "HYXU", "PICB", "BWX", "IGOV", "BWZ", "ISHG", "VNQI", "RWX", "IFGL", "WPS"]
         USDETF-DM-EQ: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS"]
         USDETF-DM-CB: ["IHY", "HYXU", "PICB"]
