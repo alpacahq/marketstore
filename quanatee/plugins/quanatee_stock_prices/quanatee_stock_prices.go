@@ -108,7 +108,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     }
     
 	if err != nil {
-		log.Info("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
+		log.Error("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
         if err != nil {
             return NewQuote(symbol, 0), err
         }
@@ -119,7 +119,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	err = json.Unmarshal(contents, &tdaData)
     
 	if err != nil {
-		log.Info("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
+		log.Error("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
         }
@@ -243,7 +243,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil || err2 != nil {
-		log.Info("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
+		log.Error("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -259,7 +259,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	err2 = json.Unmarshal(contents2, &iexDaily)
     
 	if err != nil || err2 != nil {
-		log.Info("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+		log.Error("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -656,7 +656,7 @@ func (tiieq *IEXFetcher) Run() {
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
-                log.Info("Stock: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
+                log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
                 continue
             }
             // write to csm
@@ -914,7 +914,7 @@ func (tiieq *IEXFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Warn("Stock: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            log.Debug("Stock: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
 		if realTime {
 			// Sleep till next :00 time

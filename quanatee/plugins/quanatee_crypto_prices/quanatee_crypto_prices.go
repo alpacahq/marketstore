@@ -119,7 +119,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Info("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Error("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -127,7 +127,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		log.Info("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Error("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
@@ -389,7 +389,7 @@ func (tiicc *CryptoFetcher) Run() {
                 log.Info("Crypto: %v row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, quote)
             } else {
-                log.Info("Crypto: error downloading " + symbol)
+                log.Error("Crypto: error downloading " + symbol)
             }
         }
         
@@ -429,7 +429,7 @@ func (tiicc *CryptoFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Crypto: %v inverted row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiicc.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                log.Debug("Crypto: %v inverted row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiicc.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, revQuote)
             }
         }
@@ -669,7 +669,7 @@ func (tiicc *CryptoFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Info("Crypto: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            log.Debug("Crypto: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
 		if realTime {
 			// Sleep till the next minute

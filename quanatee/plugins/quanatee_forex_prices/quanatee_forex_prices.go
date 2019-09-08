@@ -130,7 +130,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     }
     
 	if err != nil {
-		log.Info("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Error("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -138,13 +138,13 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Error(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
 	if len(forexData.PriceData) < 1 {
         if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( int(from.Weekday()) == 1 && from.Hour() >= 7 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) ) {
-            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
+            log.Error("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -263,7 +263,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Info("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Error("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -271,7 +271,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Info("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Error("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -649,7 +649,7 @@ func (tiifx *ForexFetcher) Run() {
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
-                log.Info("Forex: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                log.Warn("Forex: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                 continue
             }
             // write to csm
@@ -707,7 +707,7 @@ func (tiifx *ForexFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Forex: %v inverted row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                log.Debug("Forex: %v inverted row(s) to %s/%s/OHLCV from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, revQuote)
             }
         }
@@ -947,7 +947,7 @@ func (tiifx *ForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Info("Forex: %v index row(s) to %s/%s/OHLCV from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            log.Debug("Forex: %v index row(s) to %s/%s/OHLCV from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
 		if realTime {
 			// Sleep till next :00 time

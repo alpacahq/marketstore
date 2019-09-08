@@ -40,27 +40,16 @@ bgworkers:
       api_key2: "<intrinio_api_key>"
       symbols:
         - EURUSD
+        - USDJPY
         - GBPUSD
         - AUDUSD
         - USDCHF
         - NZDUSD
         - USDCAD
-        - EURGBP
-        - EURAUD
-        - EURCHF
-        - EURNZD
-        - EURCAD
-        - EURJPY
-        - USDJPY
-        - GBPJPY
-        - AUDJPY
-        - CHFJPY
-        - NZDJPY
-        - CADJPY
       indices:
         FX-US: ["USDEUR", "USDJPY", "USDGBP", "USDAUD", "USDCHF", "USDNZD", "USDCAD"]
-        FX-EU: ["EURUSD", "EURJPY", "EURGBP", "EURAUD", "EURCHF", "EURNZD", "EURCAD"]
-        FX-JP: ["JPYUSD", "JPYEUR", "JPYGBP", "JPYAUD", "JPYCHF", "JPYNZD", "JPYCAD"]
+        FX-EU: ["USDEUR", "USDGBP", "USDCHF"]
+        FX-AS: ["USDJPY", "USDAUD", "USDNZD"]
       query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
