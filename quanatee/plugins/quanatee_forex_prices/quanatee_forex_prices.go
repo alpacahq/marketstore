@@ -143,7 +143,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	}
     
 	if len(forexData.PriceData) < 1 {
-        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( int(from.Weekday()) == 1 && from.Hour() >= 7 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) ) {
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) {
             log.Error("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -276,11 +276,9 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
 	if len(forexData) < 1 {
-        /*
-        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( int(from.Weekday()) == 1 && from.Hour() >= 7 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) ) {
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) {
             log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
-        */
 		return NewQuote(symbol, 0), err
 	}
     

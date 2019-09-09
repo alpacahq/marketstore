@@ -84,7 +84,12 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 		PriceData     []priceData `json:"candles"`
 	}    
 	var tdaData tdameritradeData
-   
+
+    // TD Ameritrade only retains historical intraday data up to 20 days from current date
+    if from.Unix() > time.Now().AddDate(0, 0, -20).Unix() {
+ 		return NewQuote(symbol, 0), "Date request too far back"
+    }
+    
     apiUrl := fmt.Sprintf(
                         "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=false&startDate=%s",
                         symbol,
@@ -126,11 +131,11 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	}
     
     if len(tdaData.PriceData) < 1 {
-        /*
-        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) {
+        // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
+        // We only error check for the inner period
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) {
             log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
-        */
  		return NewQuote(symbol, 0), err
 	}
     
@@ -270,8 +275,10 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
     if len(iexData) < 1 {
-        if ( ( !realTime && calendar.IsWorkday(from) && calendar.IsWorkday(to) ) || ( realTime && calendar.IsWorkday(from) && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || ( from.Hour() >= 14 ) ) && ( from.Hour() < 20 ) ) ) {
-            log.Warn("Stock: symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
+        // We only error check for the inner period
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) {
+            log.Warn("Stock: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
 	}
