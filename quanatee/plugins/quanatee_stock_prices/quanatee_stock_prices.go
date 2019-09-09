@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+    "errors"
 	"math"
 	"io/ioutil"
 	"net/http"
@@ -87,7 +88,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 
     // TD Ameritrade only retains historical intraday data up to 20 days from current date
     if from.Unix() > time.Now().AddDate(0, 0, -20).Unix() {
- 		return NewQuote(symbol, 0), "Date request too far back"
+ 		return NewQuote(symbol, 0), errors.New("Date requested too far back")
     }
     
     apiUrl := fmt.Sprintf(
