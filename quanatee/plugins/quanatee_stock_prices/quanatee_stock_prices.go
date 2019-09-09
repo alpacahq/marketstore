@@ -133,7 +133,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     if len(tdaData.PriceData) < 1 {
         // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
         // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) {
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) ) {
             log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
@@ -277,7 +277,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     if len(iexData) < 1 {
         // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
         // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) {
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) ) {
             log.Warn("Stock: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
