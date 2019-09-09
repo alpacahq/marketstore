@@ -143,7 +143,8 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	}
     
 	if len(forexData.PriceData) < 1 {
-        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) {
+        // NYSE DST varies the closing time from 20:00 to 21:00
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
             log.Error("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -276,7 +277,9 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
 	if len(forexData) < 1 {
-        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) {
+        // NYSE DST varies the closing time from 20:00 to 21:00
+        // We only error check for the inner period
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
             log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -401,9 +404,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
     // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
     // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
     // In the event of a holiday, we close at 2100 UTC and open at 0700 UTC
-    // We do not account for disruptions in Marketstore
-    // Aligning time series datas is done in Quanatee functions
-
+    
     if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 21 ) {
         // Current date is not a Work Day, or next day is not a Work Day and current Work Day in New York has ended
         // Find the next Work Day and set to Germany Opening (Overlaps with Japan)
