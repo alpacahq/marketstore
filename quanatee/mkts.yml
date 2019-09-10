@@ -15,7 +15,6 @@ triggers:
     on: "*/1Min/*"
     config:
       destinations:
-        - 7Min
         - 13Min
         - 1H
 bgworkers:
@@ -46,10 +45,21 @@ bgworkers:
         - USDCHF
         - NZDUSD
         - USDCAD
+        - USDCNH
+        - USDHKD
+        - USDINR
+        - USDRUB
+        - USDZAR
+        - USDMXN
+        - USDTRY
       indices:
         FX-US: ["USDEUR", "USDJPY", "USDGBP", "USDAUD", "USDCHF", "USDNZD", "USDCAD"]
-        FX-US-EU: ["USDEUR", "USDGBP", "USDCHF"]
-        FX-US-AS: ["USDJPY", "USDAUD", "USDNZD"]
+        FX-US-DM: ["USDEUR", "USDJPY", "USDGBP", "USDAUD", "USDCHF", "USDNZD", "USDCAD"]
+        FX-US-EM: ["USDCNH", "USDHKD", "USDINR", "USDRUB", "USDZAR", "USDMXN", "USDTRY"]
+        FX-CM-EN-EXP: ["USDCAD", "USDRUB"]
+        FX-CM-EN-IMP: ["USDCNH", "USDINR", "USDJPY"]
+        FX-CM-GD-EXP: ["USDCNH", "USDAUD", "USDRUB", "USDCAD"]
+        FX-CM-GD-IMP: ["USDCHF", "USDCNH", "USDINR", "USDGBP", "USDHKD"]
       query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
@@ -59,14 +69,14 @@ bgworkers:
       indices:
         ETF-US: ["ETF-US-EQ", "ETF-US-CB", "ETF-US-GB"]
         ETF-US-EQ: ["SPY", "IVV", "VOO", "VTI", "QQQ", "IJH", "VTV"]
-        ETF-US-EC-HI: ["ETF-US-CD", "ETF-US-FI", "ETF-US-ID", "ETF-US-IT", "ETF-US-RE"]
-        ETF-US-MC-HI: ["ETF-US-ID", "ETF-US-IT"]
-        ETF-US-LC-HI: ["ETF-US-CS", "ETF-US-EN", "ETF-US-HC", "ETF-US-MA", "ETF-US-UT"]
-        ETF-US-RC-HI: ["ETF-US-CS", "ETF-US-HC", "ETF-US-TE", "ETF-US-UT"]
-        ETF-US-EC-LO: ["ETF-US-EN", "ETF-US-TE", "ETF-US-UT", "ETF-US-HC", "ETF-US-CS"]
-        ETF-US-MC-LO: ["ETF-US-MA", "ETF-US-UT"]
-        ETF-US-LC-LO: ["ETF-US-CD", "ETF-US-IT"]
-        ETF-US-RC-LO: ["ETF-US-ID", "ETF-US-IT", "ETF-US-FI", "ETF-US-MA", "ETF-US-RE"]
+        ETF-US-ER-HI: ["ETF-US-CD", "ETF-US-FI", "ETF-US-ID", "ETF-US-IT", "ETF-US-RE"]
+        ETF-US-EE-HI: ["ETF-US-ID", "ETF-US-IT"]
+        ETF-US-ES-HI: ["ETF-US-CS", "ETF-US-EN", "ETF-US-HC", "ETF-US-MA", "ETF-US-UT"]
+        ETF-US-EC-HI: ["ETF-US-CS", "ETF-US-HC", "ETF-US-TE", "ETF-US-UT"]
+        ETF-US-ER-LO: ["ETF-US-EN", "ETF-US-TE", "ETF-US-UT", "ETF-US-HC", "ETF-US-CS"]
+        ETF-US-EE-LO: ["ETF-US-MA", "ETF-US-UT"]
+        ETF-US-ES-LO: ["ETF-US-CD", "ETF-US-IT"]
+        ETF-US-EC-LO: ["ETF-US-ID", "ETF-US-IT", "ETF-US-FI", "ETF-US-MA", "ETF-US-RE"]
         ETF-US-CD: ["XLY", "VCR", "IYC"]
         ETF-US-CS: ["XLP", "VDC", "IYK"]
         ETF-US-EN: ["XLE", "VDE", "IYE"]
@@ -79,27 +89,26 @@ bgworkers:
         ETF-US-TE: ["XTL", "VOX", "IYZ"]
         ETF-US-UT: ["XLU", "VPU", "IDU"]
         ETF-US-CB: ["ETF-US-CB-ST", "ETF-US-CB-MT", "ETF-US-CB-LT"]
-        ETF-US-CB-ST: ["VCSH", "SPSB"]
-        ETF-US-CB-MT: ["VCIT", "HYG", "JNK", "IGIB"]
-        ETF-US-CB-LT: ["VCLT", "IGLB", "SPLB"]
+        ETF-US-CB-ST: ["ICSH", "JPST"]
+        ETF-US-CB-MT: ["VCSH", "SPSB"]
+        ETF-US-CB-LT: ["VCIT", "HYG", "JNK", "IGIB"]
         ETF-US-GB: ["ETF-US-GB-ST", "ETF-US-GB-MT", "ETF-US-GB-LT"]
-        ETF-US-GB-ST: ["SHY", "SCHO", "VGSH", "SPTS"]
-        ETF-US-GB-MT: ["IEF", "IEI", "SCHR", "VGIT"]
-        ETF-US-GB-LT: ["TLT", "SPTL", "VGLT"]
-        ETF-CM: ["ETF-CM-AG", "ETF-CM-EN", "ETF-CM-GD", "ETF-CM-IM", "ETF-CM-PM"]
-        ETF-CM-AG: ["DBA", "RJA", "UAG"]
-        ETF-CM-EN: ["DBE", "VDE", "XLE", "ICLN"]
+        ETF-US-GB-ST: ["SHV", "BIL", "GBIL"]
+        ETF-US-GB-MT: ["SHY", "SCHO", "VGSH"]
+        ETF-US-GB-LT: ["IEI", "SCHR", "VGIT", "ITE"]
+        ETF-CM: ["PDBC", "DBC", "GSG"]
+        ETF-CM-AG: ["DBA", "JJA", "RJA", "UAG"]
+        ETF-CM-EN: ["DBE", "JJE", "VDE", "XLE", "ICLN"]
         ETF-CM-GD: ["GLD", "IAU", "SGOL"]
-        ETF-CM-IM: ["DBB", "XME"]
-        ETF-CM-PM: ["DBP", "GLTR"]
-        ETF-DM: ["ETF-DM-EQ", "ETF-DM-CB", "ETF-DM-GB", "ETF-DM-RE"]
+        ETF-CM-IM: ["DBB", "JJM", "RJZ"]
+        ETF-DM: ["ETF-DM-EQ", "ETF-DM-CB", "ETF-DM-GB"]
         ETF-DM-EQ: ["VEA", "EFA", "VEU", "SCHF", "IXUS", "VXUS"]
         ETF-DM-CB: ["IHY", "HYXU", "PICB"]
-        ETF-DM-GB: ["BWX", "IGOV", "BWZ"]
+        ETF-DM-GB: ["BWX", "IGOV", "BWZ", "ISHG"]
         ETF-DM-RE: ["VNQI", "RWX", "IFGL", "WPS"]
         ETF-EM: ["ETF-EM-EQ", "ETF-EM-CB", "ETF-EM-GB"]
         ETF-EM-EQ: ["VWO", "IEMG", "EEM", "SCHE", "SPEM"]
         ETF-EM-CB: ["HYEM", "EMCB"]
-        ETF-EM-GB: ["EMLC", "PCY", "VWOB", "EBND", "LEMB", "ELD"]
+        ETF-EM-GB: ["VWOB", "EBND", "LEMB", "ELD"]
       query_start: "2019-08-01 00:00"
       base_timeframe: "1Min"
