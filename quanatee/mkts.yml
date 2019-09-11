@@ -53,7 +53,7 @@ bgworkers:
         - USDMXN
         - USDTRY
       indices:
-        FX-US: ["USDEUR", "USDJPY", "USDGBP", "USDAUD", "USDCHF", "USDNZD", "USDCAD"]
+        FX-US: ["FX-US-DM", "FX-US-EM"]
         FX-US-DM: ["USDEUR", "USDJPY", "USDGBP", "USDAUD", "USDCHF", "USDNZD", "USDCAD"]
         FX-US-EM: ["USDCNH", "USDHKD", "USDINR", "USDRUB", "USDZAR", "USDMXN", "USDTRY"]
         FX-CM-EN-EXP: ["USDCAD", "USDRUB"]
