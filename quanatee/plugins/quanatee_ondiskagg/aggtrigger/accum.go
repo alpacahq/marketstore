@@ -264,7 +264,6 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			fmt.Printf("no compatible function\n")
 			return nil
 		}
-	}
 	case "avg":
 		inColumn := cs.GetColumn(param.inputName)
 		switch inColumn.(type) {
