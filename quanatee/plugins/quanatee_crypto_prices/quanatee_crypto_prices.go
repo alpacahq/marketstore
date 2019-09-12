@@ -382,6 +382,7 @@ func (tiicc *CryptoFetcher) Run() {
                 cs.AddColumn("High", quote.High)
                 cs.AddColumn("Low", quote.Low)
                 cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("HLC", quote.HLC)
                 cs.AddColumn("Volume", quote.Volume)
                 csm := io.NewColumnSeriesMap()
                 tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
@@ -416,8 +417,9 @@ func (tiicc *CryptoFetcher) Run() {
                     revQuote.High[bar] = 1/quote.High[bar]
                     revQuote.Low[bar] = 1/quote.Low[bar]
                     revQuote.Close[bar] = 1/quote.Close[bar]
-                    x := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                    z := new(big.Float).Quo(x, big.NewFloat(revQuote.Close[bar]))
+                    revQuote.HLC[bar] = 1/quote.HLC[bar]
+                    x := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
+                    z := new(big.Float).Quo(x, big.NewFloat(revQuote.HLC[bar]))
                     revQuote.Volume[bar], _ = z.Float64()
                 }
                 // write to csm
@@ -427,6 +429,7 @@ func (tiicc *CryptoFetcher) Run() {
                 cs.AddColumn("High", revQuote.High)
                 cs.AddColumn("Low", revQuote.Low)
                 cs.AddColumn("Close", revQuote.Close)
+                cs.AddColumn("HLC", revQuote.HLC)
                 cs.AddColumn("Volume", revQuote.Volume)
                 csm := io.NewColumnSeriesMap()
                 tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
@@ -451,14 +454,15 @@ func (tiicc *CryptoFetcher) Run() {
                                 aggQuote.High = quote.High
                                 aggQuote.Low = quote.Low
                                 aggQuote.Close = quote.Close
+                                aggQuote.HLC = quote.HLC
                                 aggQuote.Volume = quote.Volume
                             } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
                                 // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
                                 numrows := len(aggQuote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     // Calculate the market capitalization
-                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), big.NewFloat(aggQuote.Volume[bar]))
+                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
+                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), big.NewFloat(aggQuote.Volume[bar]))
                                     totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                     // Calculate the weighted averages
                                     quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
@@ -476,11 +480,15 @@ func (tiicc *CryptoFetcher) Run() {
                                     weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
                                     weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
                                     
+                                    weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
+                                    weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), aggQuoteWeight))
+
                                     aggQuote.Open[bar], _ = weightedOpen.Float64()
                                     aggQuote.High[bar], _ = weightedHigh.Float64()
                                     aggQuote.Low[bar], _ = weightedLow.Float64()
                                     aggQuote.Close[bar], _ = weightedClose.Float64()
-                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                    aggQuote.HLC[bar], _ = weightedHLC.Float64()
+                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
                                 }
                             } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
                                 // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
@@ -515,11 +523,12 @@ func (tiicc *CryptoFetcher) Run() {
                                         aggQuote.High = append(aggQuote.High, quote.High[bar])
                                         aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
                                         aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
+                                        aggQuote.HLC = append(aggQuote.HLC, quote.HLC[bar])
                                         aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
                                     } else {
                                         // Calculate the market capitalization
-                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
+                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
+                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
                                         totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                         // Calculate the weighted averages
                                         quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
@@ -537,11 +546,15 @@ func (tiicc *CryptoFetcher) Run() {
                                         weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
                                         weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
                                         
+                                        weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
+                                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), aggQuoteWeight))
+                                        
                                         aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
                                         aggQuote.High[matchedBar], _ = weightedHigh.Float64()
                                         aggQuote.Low[matchedBar], _ = weightedLow.Float64()
                                         aggQuote.Close[matchedBar], _ = weightedClose.Float64()
-                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                        aggQuote.HLC[matchedBar], _ = weightedHLC.Float64()
+                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
                                     }
                                 }
                             }
@@ -567,14 +580,15 @@ func (tiicc *CryptoFetcher) Run() {
                                 aggQuote.High = quote.High
                                 aggQuote.Low = quote.Low
                                 aggQuote.Close = quote.Close
+                                aggQuote.HLC = quote.HLC
                                 aggQuote.Volume = quote.Volume
                             } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
                                 // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
                                 numrows := len(aggQuote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     // Calculate the market capitalization
-                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), big.NewFloat(aggQuote.Volume[bar]))
+                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
+                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), big.NewFloat(aggQuote.Volume[bar]))
                                     totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                     // Calculate the weighted averages
                                     quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
@@ -592,11 +606,15 @@ func (tiicc *CryptoFetcher) Run() {
                                     weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
                                     weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
                                     
+                                    weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
+                                    weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), aggQuoteWeight))
+
                                     aggQuote.Open[bar], _ = weightedOpen.Float64()
                                     aggQuote.High[bar], _ = weightedHigh.Float64()
                                     aggQuote.Low[bar], _ = weightedLow.Float64()
                                     aggQuote.Close[bar], _ = weightedClose.Float64()
-                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                    aggQuote.HLC[bar], _ = weightedHLC.Float64()
+                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
                                 }
                             } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
                                 // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
@@ -631,11 +649,12 @@ func (tiicc *CryptoFetcher) Run() {
                                         aggQuote.High = append(aggQuote.High, quote.High[bar])
                                         aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
                                         aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
+                                        aggQuote.HLC = append(aggQuote.HLC, quote.HLC[bar])
                                         aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
                                     } else {
                                         // Calculate the market capitalization
-                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
+                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
+                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
                                         totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                         // Calculate the weighted averages
                                         quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
@@ -653,11 +672,15 @@ func (tiicc *CryptoFetcher) Run() {
                                         weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
                                         weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
                                         
+                                        weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
+                                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), aggQuoteWeight))
+                                        
                                         aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
                                         aggQuote.High[matchedBar], _ = weightedHigh.Float64()
                                         aggQuote.Low[matchedBar], _ = weightedLow.Float64()
                                         aggQuote.Close[matchedBar], _ = weightedClose.Float64()
-                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                        aggQuote.HLC[matchedBar], _ = weightedHLC.Float64()
+                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
                                     }
                                 }
                             }
@@ -677,6 +700,7 @@ func (tiicc *CryptoFetcher) Run() {
             cs.AddColumn("High", quote.High)
             cs.AddColumn("Low", quote.Low)
             cs.AddColumn("Close", quote.Close)
+            cs.AddColumn("HLC", quote.HLC)
             cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/OHLCV")
