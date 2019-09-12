@@ -34,6 +34,7 @@ type Quote struct {
 	High      []float64   `json:"high"`
 	Low       []float64   `json:"low"`
 	Close     []float64   `json:"close"`
+	HLC       []float64   `json:"HLC"`
 	Volume    []float64   `json:"volume"`
 }
 
@@ -52,6 +53,7 @@ func NewQuote(symbol string, bars int) Quote {
 		High:   make([]float64, bars),
 		Low:    make([]float64, bars),
 		Close:  make([]float64, bars),
+		HLC:    make([]float64, bars),
 		Volume: make([]float64, bars),
 	}
 }
@@ -159,6 +161,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
             quote.High[bar] = tdaData.PriceData[bar].High
             quote.Low[bar] = tdaData.PriceData[bar].Low
             quote.Close[bar] = tdaData.PriceData[bar].Close
+            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
             quote.Volume[bar] = float64(tdaData.PriceData[bar].Volume)
         }
 	}
@@ -169,6 +172,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
         quote.High = quote.High[startOfSlice:endOfSlice+1]
         quote.Low = quote.Low[startOfSlice:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.HLC = quote.HLC[startOfSlice:endOfSlice+1]
         quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
@@ -308,6 +312,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
             quote.Open[bar] = iexData[bar].Open
             quote.High[bar] = iexData[bar].High
             quote.Low[bar] = iexData[bar].Low
+            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
             quote.Close[bar] = iexData[bar].Close
             // Find the previous valid workday
             previousWorkday := false
@@ -338,6 +343,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
         quote.High = quote.High[startOfSlice:endOfSlice+1]
         quote.Low = quote.Low[startOfSlice:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.HLC = quote.HLC[startOfSlice:endOfSlice+1]
         quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
@@ -618,11 +624,12 @@ func (tiieq *IEXFetcher) Run() {
                         quote.High = append(quote.High, tiingoQuote.High[bar])
                         quote.Low = append(quote.Low, tiingoQuote.Low[bar])
                         quote.Close = append(quote.Close, tiingoQuote.Close[bar])
+                        quote.HLC = append(quote.HLC, tiingoQuote.HLC[bar])
                         quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
                     } else {
                         // Calculate the market capitalization
-                        tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
-                        tdameritradeQuoteCap := new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Close[matchedBar]), big.NewFloat(tdameritradeQuote.Volume[matchedBar]))
+                        tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
+                        tdameritradeQuoteCap := new(big.Float).Mul(big.NewFloat(tdameritradeQuote.HLC[matchedBar]), big.NewFloat(tdameritradeQuote.Volume[matchedBar]))
                         totalCap := new(big.Float).Add(tiingoQuoteCap, tdameritradeQuoteCap)
                         // Calculate the weighted averages
                         tiingoQuoteWeight := new(big.Float).Quo(tiingoQuoteCap, totalCap)
@@ -640,11 +647,15 @@ func (tiieq *IEXFetcher) Run() {
                         weightedClose := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), tiingoQuoteWeight)
                         weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Close[matchedBar]), tdameritradeQuoteWeight))
                         
+                        weightedHLC := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), tiingoQuoteWeight)
+                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.HLC[matchedBar]), tdameritradeQuoteWeight))
+                        
                         quote.Open[matchedBar], _ = weightedOpen.Float64()
                         quote.High[matchedBar], _ = weightedHigh.Float64()
                         quote.Low[matchedBar], _ = weightedLow.Float64()
                         quote.Close[matchedBar], _ = weightedClose.Float64()
-                        quote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                        quote.HLC[matchedBar], _ = weightedHLC.Float64()
+                        quote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
                     }
                 }
                 dataProvider = "Aggregation"
@@ -676,6 +687,7 @@ func (tiieq *IEXFetcher) Run() {
             cs.AddColumn("High", quote.High)
             cs.AddColumn("Low", quote.Low)
             cs.AddColumn("Close", quote.Close)
+            cs.AddColumn("HLC", quote.HLC)
             cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
             tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
@@ -702,14 +714,15 @@ func (tiieq *IEXFetcher) Run() {
                                 aggQuote.High = quote.High
                                 aggQuote.Low = quote.Low
                                 aggQuote.Close = quote.Close
+                                aggQuote.HLC = quote.HLC
                                 aggQuote.Volume = quote.Volume
                             } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
                                 // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
                                 numrows := len(aggQuote.Epoch)
                                 for bar := 0; bar < numrows; bar++ {
                                     // Calculate the market capitalization
-                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), big.NewFloat(aggQuote.Volume[bar]))
+                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
+                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), big.NewFloat(aggQuote.Volume[bar]))
                                     totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                     // Calculate the weighted averages
                                     quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
@@ -727,11 +740,15 @@ func (tiieq *IEXFetcher) Run() {
                                     weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
                                     weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
                                     
+                                    weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
+                                    weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), aggQuoteWeight))
+                                    
                                     aggQuote.Open[bar], _ = weightedOpen.Float64()
                                     aggQuote.High[bar], _ = weightedHigh.Float64()
                                     aggQuote.Low[bar], _ = weightedLow.Float64()
                                     aggQuote.Close[bar], _ = weightedClose.Float64()
-                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                    aggQuote.HLC[bar], _ = weightedHLC.Float64()
+                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
                                 }
                             } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
                                 // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
@@ -766,11 +783,12 @@ func (tiieq *IEXFetcher) Run() {
                                         aggQuote.High = append(aggQuote.High, quote.High[bar])
                                         aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
                                         aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
+                                        aggQuote.HLC = append(aggQuote.HLC, quote.HLC[bar])
                                         aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
                                     } else {
                                         // Calculate the market capitalization
-                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), big.NewFloat(quote.Volume[bar]))
-                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
+                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
+                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
                                         totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
                                         // Calculate the weighted averages
                                         quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
@@ -788,11 +806,15 @@ func (tiieq *IEXFetcher) Run() {
                                         weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
                                         weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
                                         
+                                        weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
+                                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), aggQuoteWeight))
+                                        
                                         aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
                                         aggQuote.High[matchedBar], _ = weightedHigh.Float64()
                                         aggQuote.Low[matchedBar], _ = weightedLow.Float64()
                                         aggQuote.Close[matchedBar], _ = weightedClose.Float64()
-                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedClose).Float64()
+                                        aggQuote.HLC[matchedBar], _ = weightedHLC.Float64()
+                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
                                     }
                                 }
                             }
@@ -818,6 +840,7 @@ func (tiieq *IEXFetcher) Run() {
                                 aggQuote.High = quote.High
                                 aggQuote.Low = quote.Low
                                 aggQuote.Close = quote.Close
+                                aggQuote.HLC = quote.HLC
                                 aggQuote.Volume = quote.Volume
                             } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
                                 // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
@@ -882,6 +905,7 @@ func (tiieq *IEXFetcher) Run() {
                                         aggQuote.High = append(aggQuote.High, quote.High[bar])
                                         aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
                                         aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
+                                        aggQuote.HLC = append(aggQuote.Close, quote.HLC[bar])
                                         aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
                                     } else {
                                         // Calculate the market capitalization

@@ -31,6 +31,7 @@ type Quote struct {
 	High      []float64   `json:"high"`
 	Low       []float64   `json:"low"`
 	Close     []float64   `json:"close"`
+	HLC       []float64   `json:"HLC"`
 	Volume    []float64   `json:"volume"`
 }
 
@@ -49,6 +50,7 @@ func NewQuote(symbol string, bars int) Quote {
 		High:   make([]float64, bars),
 		Low:    make([]float64, bars),
 		Close:  make([]float64, bars),
+		HLC:    make([]float64, bars),
 		Volume: make([]float64, bars),
 	}
 }
@@ -154,6 +156,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
             quote.High[bar] = cryptoData[0].PriceData[bar].High
             quote.Low[bar] = cryptoData[0].PriceData[bar].Low
             quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
             quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
@@ -164,6 +167,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
         quote.High = quote.High[startOfSlice:endOfSlice+1]
         quote.Low = quote.Low[startOfSlice:endOfSlice+1]
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.HLC = quote.HLC[startOfSlice:endOfSlice+1]
         quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
     } else {
         quote = NewQuote(symbol, 0)
