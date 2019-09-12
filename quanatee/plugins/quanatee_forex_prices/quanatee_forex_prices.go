@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+    "errors"
 	"math"
 	"io/ioutil"
 	"net/http"
@@ -118,7 +119,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
         "USDNOK", "USDSEK", "USDTRY", "USDZAR", "ZARJPY"}
 
     supported := false
-    
+
     for _, supported_symbol := range supported_symbols {
         if strings.Contains(symbol, supported_symbol) {
             supported = true
