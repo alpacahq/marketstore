@@ -983,7 +983,7 @@ func (tiieq *IEXFetcher) Run() {
             log.Info("Stock: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*300)
+			time.Sleep(time.Second*500)
 		}
 	}
 }
