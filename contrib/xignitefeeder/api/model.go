@@ -32,8 +32,15 @@ type Quote struct {
 	Bid         float32         `json:"Bid"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
 	// price of the most recent deal
-	Last      float32 `json:"Last"`
-	UTCOffSet int     `json:"UTCOffSet"`
+	Last          float32 `json:"Last"`
+	Open          float32 `json:"Open"`
+	High          float32 `json:"High"`
+	Low           float32 `json:"Low"`
+	Close         float32 `json:"Close"`
+	PreviousClose float32 `json:"PreviousClose"`
+	Volume        int64   `json:"Volume"`
+	// Open/High/Low/Close/Volume/PreviousClose
+	UTCOffSet int `json:"UTCOffSet"`
 }
 
 // XigniteDateTime is a date time in XigniteDateTimeLayout format
@@ -116,5 +123,6 @@ type EndOfDayQuote struct {
 	Low                   float32    `json:"Low"`
 	Close                 float32    `json:"Close"`
 	ExchangeOfficialClose float32    `json:"ExchangeOfficialClose"`
-	Volume                float32    `json:"Volume"`
+	PreviousClose         float32    `json:"PreviousClose"`
+	Volume                int64      `json:"Volume"`
 }
