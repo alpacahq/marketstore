@@ -1,6 +1,5 @@
 package functions
 
-import "math"
 import "math/big"
 
 func AvgFloat32(values []float32) float32 {
@@ -9,7 +8,7 @@ func AvgFloat32(values []float32) float32 {
 		avg += val
 	}
     
-    avg = avg/len(float32(values))
+    avg = avg/len(float32(len(values)))
     
 	return avg
 }
