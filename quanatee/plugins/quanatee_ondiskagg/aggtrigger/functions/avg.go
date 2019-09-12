@@ -8,7 +8,7 @@ func AvgFloat32(values []float32) float32 {
 		avg += val
 	}
     
-    avg = avg/len(float32(len(values)))
+    avg = avg/float32(len(values))
     
 	return avg
 }
