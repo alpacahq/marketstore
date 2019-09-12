@@ -107,6 +107,26 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	}
     
 	var forexData intrinioData
+    
+    supported_symbols := []string{"AUDCAD", "AUDCHF", "AUDJPY", "AUDNZD", "AUDUSD",
+        "CADCHF", "CADJPY", "CHFJPY", "EURAUD", "EURCAD",
+        "EURCHF", "EURGBP", "EURJPY", "EURNOK", "EURNZD",
+        "EURSEK", "EURTRY", "EURUSD", "GBPAUD", "GBPCAD",
+        "GBPCHF", "GBPJPY", "GBPNZD", "GBPUSD", "NZDCAD",
+        "NZDCHF", "NZDJPY", "NZDUSD", "TRYJPY", "USDCAD",
+        "USDCHF", "USDCNH", "USDHKD", "USDJPY", "USDMXN",
+        "USDNOK", "USDSEK", "USDTRY", "USDZAR", "ZARJPY"}
+
+    supported := false
+    
+    for _, supported_symbol := range supported_symbols {
+        if strings.Contains(symbol, supported_symbol) {
+            supported = true
+        }
+    }
+    if !supported {
+ 		return NewQuote(symbol, 0), errors.New("Unsupported symbol")
+    }
 
     apiUrl := fmt.Sprintf(
                         "https://api-v2.intrinio.com/forex/prices/%s/%s?api_key=%s&start_date=%s&start_time=%s",
