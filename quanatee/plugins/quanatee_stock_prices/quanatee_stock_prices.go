@@ -509,7 +509,7 @@ func (tiieq *IEXFetcher) Run() {
     
     // Get last timestamp collected
 	for _, symbol := range tiieq.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiieq.baseTimeframe.String + "/PRICE")
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("Stock: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
@@ -677,7 +677,7 @@ func (tiieq *IEXFetcher) Run() {
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
-                log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/OHLCV", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
+                log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/PRICE", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
                 continue
             }
             // write to csm
@@ -690,13 +690,13 @@ func (tiieq *IEXFetcher) Run() {
             cs.AddColumn("HLC", quote.HLC)
             cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/PRICE")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
             // Save the latest timestamp written
             lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-            log.Info("Stock: %v row(s) to %s/%s/OHLCV from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            log.Info("Stock: %v row(s) to %s/%s/PRICE from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -963,11 +963,11 @@ func (tiieq *IEXFetcher) Run() {
             cs.AddColumn("HLC", quote.HLC)
             cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/OHLCV")
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/PRICE")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Debug("Stock: %v index row(s) to %s/%s/OHLCV from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            log.Debug("Stock: %v index row(s) to %s/%s/PRICE from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
 		if realTime {
 			// Sleep till next :00 time
