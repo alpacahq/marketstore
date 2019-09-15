@@ -29,8 +29,8 @@ stop_marketstore:
 	# stop marketstore process
 	kill `cat save_pid.txt`
 	rm save_pid.txt
-	# stop data written by the integration tests
-	rm -rf ../../data/*
+	# delete data written by the integration tests
+	rm -rf /tmp/data/*
 
 .PHONY: _start_pyclient_container
 _start_pyclient_container:

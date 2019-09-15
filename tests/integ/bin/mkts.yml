@@ -1,4 +1,4 @@
-root_directory: ../../data # root directory of local marketstore project
+root_directory: /tmp/data
 listen_port: 5993
 polling_interval: 60
 log_level: info

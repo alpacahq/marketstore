@@ -47,7 +47,7 @@ test:
 	$(MAKE) integration-test
 
 integration-test: install
-	make -C tests/integ test
+	$(MAKE) -C tests/integ test
 
 unittest:
 	GOFLAGS=$(GOFLAGS) go test ./...
