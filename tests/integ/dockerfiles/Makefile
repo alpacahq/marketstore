@@ -10,7 +10,7 @@ build:
 	docker build -t $(IMAGE_NAME) pyclient
 
 run:
-	docker run --net=host $(IMAGE_NAME) bash -c "pytest -v -v -v $(TEST_FILENAME)"
+	docker run $(IMAGE_NAME) bash -c "pytest -v -v -v $(TEST_FILENAME)"
 
 rm:
 	docker rm -f $(CONTAINER_NAME) || echo

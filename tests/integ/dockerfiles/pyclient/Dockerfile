@@ -5,4 +5,4 @@ COPY tests /project
 RUN pip install -r /requirements.txt
 
 WORKDIR /project
-ENV MARKETSTORE_HOST="host.docker.internal:5993"
+ENV MARKETSTORE_HOST="localhost:5993"
