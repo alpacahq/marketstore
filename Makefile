@@ -46,34 +46,8 @@ test:
 	$(MAKE) unittest
 	$(MAKE) integration-test
 
-# ------------ integration test ----------------
-
-start-marketstore:
-	# the background operator (&) will give us the PID at the command prompt.
-	nohup marketstore start --config tests/integ/bin/mkts.yml & echo $$! > save_pid.txt
-
-stop-marketstore:
-	# stop marketstore process
-	kill `cat save_pid.txt`
-	rm save_pid.txt
-
 integration-test: install
-	make -C tests/integ test_import_csv _get_data
-	exit
-	@echo "Starting a marketstore at localhost..."
-	make start-marketstore
-
-	@echo "Starting a pymarketstore container..."
-	make -C tests/integ/dockerfiles rm build run
-	$(MAKE) -C tests/integ _start_pyclient_container
-
-	$(MAKE) -C tests/integ connect
-#	TEST_FILENAME='/project/tests/$@.py'; \
-#    make -C tests/integ/dockerfiles/pyclient test
-
-	# stop marketstore process
-	make stop-marketstore
-
+	make -C tests/integ test
 
 unittest:
 	GOFLAGS=$(GOFLAGS) go test ./...
