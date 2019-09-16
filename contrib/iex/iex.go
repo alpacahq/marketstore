@@ -88,7 +88,7 @@ func (f *IEXFetcher) UpdateSymbolList() {
 		}
 
 		f.config.Symbols = make([]string, len(*resp))
-
+		log.Info("Loaded list of %d symbols from IEX", len(f.config.Symbols))
 		for i, s := range *resp {
 			if s.IsEnabled {
 				f.config.Symbols[i] = s.Symbol
@@ -155,10 +155,10 @@ func (f *IEXFetcher) pollDaily(symbols []string) {
 		log.Error("failed to query daily bar batch (%v)", err)
 	}
 
-	if err = f.writeBars(resp, false, false); err != nil {
-		log.Error("failed to write daily bar batch (%v)", err)
+		if err = f.writeBars(resp, false, false); err != nil {
+			log.Error("failed to write daily bar batch (%v)", err)
+		}
 	}
-}
 
 func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill bool) error {
 	if resp == nil {
@@ -170,6 +170,10 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 	for symbol, bars := range *resp {
 		if len(bars.Chart) == 0 {
 			continue
+		}
+
+		if backfill {
+			log.Info("backfill: Writing %d bars for %s", len(bars), symbol)
 		}
 
 		var (
@@ -271,8 +275,10 @@ func (f *IEXFetcher) backfill(symbol, timeframe string, ts *time.Time) (err erro
 	)
 
 	if intraday {
+		log.Info("Running backfill to load intraday bars")
 		resp, err = api.GetBars([]string{symbol}, oneDay, nil, 5)
 	} else {
+		log.Info("Running backfill to load intraday bars")
 		resp, err = api.GetBars([]string{symbol}, fiveYear, nil, 5)
 	}
 
@@ -313,11 +319,10 @@ func (f *IEXFetcher) workBackfill() {
 			symbol := parts[0]
 			timeframe := parts[1]
 
-			// log.Info("backfilling [%v|%v]", symbol, timeframe)
-
 			// make sure epoch value isn't nil (i.e. hasn't
 			// been backfilled already)
 			if value != nil {
+			 log.Info("backfilling [%v|%v]", symbol, timeframe)
 				go func() {
 					count++
 
@@ -329,6 +334,8 @@ func (f *IEXFetcher) workBackfill() {
 						f.backfillM.Store(key, nil)
 					}
 				}()
+			} else {
+				log.Info("skipping backfill [%v|%v]", symbol, timeframe)
 			}
 
 			// limit 10 goroutines per CPU core
