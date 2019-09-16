@@ -173,7 +173,7 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 		}
 
 		if backfill {
-			log.Info("backfill: Writing %d bars for %s", len(bars), symbol)
+			log.Info("backfill: Writing %d bars for %s", len(bars.Chart), symbol)
 		}
 
 		var (
