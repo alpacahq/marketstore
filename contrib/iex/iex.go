@@ -132,7 +132,7 @@ func (f *IEXFetcher) pollIntraday(symbols []string) {
 	if !f.config.Intraday {
 		return
 	}
-	limit := 1
+	limit := 10
 
 	resp, err := api.GetBars(symbols, oneDay, &limit, 5)
 	if err != nil {
