@@ -367,7 +367,7 @@ func (f *IEXFetcher) workBackfill() {
 					}
 				}()
 			} else {
-				log.Info("skipping backfill [%v|%v]", symbol, timeframe)
+				log.Debug("skipping backfill [%v|%v]", symbol, timeframe)
 			}
 
 			// limit 10 goroutines per CPU core
