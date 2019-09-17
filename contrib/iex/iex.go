@@ -168,11 +168,13 @@ func (f *IEXFetcher) pollIntraday(symbols []string) {
 	resp, err := api.GetBars(symbols, oneDay, &limit, 5)
 	if err != nil {
 		log.Error("failed to query intraday bar batch (%v)", err)
+		return
 	}
 	fetched := time.Now()
 
 	if err = f.writeBars(resp, true, false); err != nil {
 		log.Error("failed to write intraday bar batch (%v)", err)
+		return
 	}
 	done := time.Now()
 	log.Debug("Done Batch (fetched: %s, wrote: %s)", done.Sub(fetched).String(), fetched.Sub(start).String())
