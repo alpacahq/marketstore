@@ -30,7 +30,7 @@ bgworkers:
         - XRPUSD
       indices:
         CC-US: ["BTCUSD", "ETHUSD", "ETCUSD", "EOSUSD", "LTCUSD", "XLMUSD", "XRPUSD"]
-      query_start: "2019-08-01 00:00"
+      query_start: "2019-04-01 00:00"
       base_timeframe: "15Min"
   - module: quanatee_forex_prices.so
     config:
@@ -59,7 +59,7 @@ bgworkers:
         FX-CM-EN-IMP: ["USDCNH", "USDINR", "USDJPY"]
         FX-CM-GD-EXP: ["USDCNH", "USDAUD", "USDRUB", "USDCAD"]
         FX-CM-GD-IMP: ["USDCHF", "USDCNH", "USDINR", "USDGBP", "USDHKD"]
-      query_start: "2019-08-01 00:00"
+      query_start: "2019-04-01 00:00"
       base_timeframe: "15Min"
   - module: quanatee_stock_prices.so
     config:
@@ -109,5 +109,5 @@ bgworkers:
         ETF-EM-EQ: ["VWO", "IEMG", "EEM", "SCHE", "SPEM"]
         ETF-EM-CB: ["HYEM", "EMCB"]
         ETF-EM-GB: ["VWOB", "EBND", "LEMB", "ELD"]
-      query_start: "2019-08-01 00:00"
+      query_start: "2019-04-01 00:00"
       base_timeframe: "15Min"
