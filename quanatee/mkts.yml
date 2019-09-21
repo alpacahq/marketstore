@@ -12,10 +12,9 @@ triggers:
   - module: stream.so
     on: "*/*/*"
   - module: quanatee_ondiskagg.so
-    on: "*/1Min/*"
+    on: "*/5Min/Price"
     config:
       destinations:
-        - 13Min
         - 1H
 bgworkers:
   - module: quanatee_crypto_prices.so
@@ -32,7 +31,7 @@ bgworkers:
       indices:
         CC-US: ["BTCUSD", "ETHUSD", "ETCUSD", "EOSUSD", "LTCUSD", "XLMUSD", "XRPUSD"]
       query_start: "2019-08-01 00:00"
-      base_timeframe: "1Min"
+      base_timeframe: "5Min"
   - module: quanatee_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
@@ -61,7 +60,7 @@ bgworkers:
         FX-CM-GD-EXP: ["USDCNH", "USDAUD", "USDRUB", "USDCAD"]
         FX-CM-GD-IMP: ["USDCHF", "USDCNH", "USDINR", "USDGBP", "USDHKD"]
       query_start: "2019-08-01 00:00"
-      base_timeframe: "1Min"
+      base_timeframe: "5Min"
   - module: quanatee_stock_prices.so
     config:
       api_key: "<tiingo_api_key>"
@@ -111,4 +110,4 @@ bgworkers:
         ETF-EM-CB: ["HYEM", "EMCB"]
         ETF-EM-GB: ["VWOB", "EBND", "LEMB", "ELD"]
       query_start: "2019-08-01 00:00"
-      base_timeframe: "1Min"
+      base_timeframe: "5Min"
