@@ -7,7 +7,7 @@ wal_rotate_interval: 5
 enable_add: true
 enable_remove: true
 enable_last_known: false
-timezone: "America/New_York"
+timezone: "UTC"
 triggers:
   - module: stream.so
     on: "*/*/*"
