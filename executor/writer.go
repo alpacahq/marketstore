@@ -299,6 +299,9 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 				recordType = io.FIXED
 			}
 
+			if len(cs.GetTime()) == 0 {
+				continue
+			}
 			year := int16(cs.GetTime()[0].Year())
 			tbi = io.NewTimeBucketInfo(
 				*tf,
