@@ -251,6 +251,34 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
+func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
+    
+    // We sync Forex 24/5 market with Crypto, so we do not collect data outside of Forex hours
+    // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
+    // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
+    // In the event of a holiday, we close at 2100 UTC and open at 0700 UTC
+    // NYSE DST varies the closing time from 20:00 to 21:00
+    // We only realign when it is in the outer closing period
+    // Europe does not impact since during DST Frankfurt Session opens at 0700 UTC (London Open shifts to 0800 UTC)
+    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 21 ) {
+        // Current date is not a Work Day, or next day is not a Work Day and current Work Day in New York has ended
+        // Find the next Work Day and set to Germany Opening (Overlaps with Japan)
+        nextWorkday := false
+        days := 1
+        for nextWorkday == false {
+            if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
+                nextWorkday = true
+                break
+            } else {
+                days += 1
+            }
+        }
+        timeCheck = timeCheck.AddDate(0, 0, days)
+        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 7, 0, 0, 0, time.UTC)
+    }
+    return timeCheck
+}
+
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
@@ -317,6 +345,8 @@ func (tiicc *CryptoFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC()
 	}
+    
+    timeStart = alignTimeToTradingHours(timeStart, calendar)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -710,10 +740,16 @@ func (tiicc *CryptoFetcher) Run() {
             log.Debug("Crypto: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
 		if realTime {
-			// Sleep till the next minute
+			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
+            // Check if timeEnd is Closing, will return Opening if so
+            openTime := alignTimeToTradingHours(timeEnd, calendar)
+            if openTime != timeEnd {
+                // Set to wait till Opening
+                waitTill = openTime
+            }
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
