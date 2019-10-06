@@ -7,9 +7,6 @@ FROM golang:1.13.0-buster as builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
 ENV GOPATH=/go
-# without GOPROXY=direct option, some transient dependencies cannot be resolved
-# due to some invalid pseudo-version issues of them
-ENV GOPROXY=direct
 
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
