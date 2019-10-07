@@ -16,6 +16,7 @@ triggers:
     config:
       destinations:
         - 1H
+        - 1D
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:
@@ -23,13 +24,10 @@ bgworkers:
       symbols:
         - BTCUSD
         - ETHUSD
-        - ETCUSD
         - EOSUSD
         - LTCUSD
         - XLMUSD
         - XRPUSD
-      indices:
-        CC-US: ["BTCUSD", "ETHUSD", "ETCUSD", "EOSUSD", "LTCUSD", "XLMUSD", "XRPUSD"]
       query_start: "2019-07-01 00:00"
       base_timeframe: "15Min"
   - module: quanatee_forex_prices.so
@@ -53,8 +51,9 @@ bgworkers:
         - USDTRY
         - USDNOK
         - USDSEK
-      indices:
-        FX-US: ["USDEUR", "JPYUSD"]
+        - USDSGD
+        - XAGUSD
+        - XAUUSD
       query_start: "2019-07-01 00:00"
       base_timeframe: "15Min"
   - module: quanatee_stock_prices.so
@@ -62,6 +61,24 @@ bgworkers:
       api_key: "<tiingo_api_key>"
       api_key2: "<tdameritrade_api_key>"
       symbols:
+        - SPY
+        - GLD
+        - SLV
+        - EZU
+        - EWU
+        - EWA
+        - ENZL
+        - EWC
+        - MCHI
+        - INDA
+        - ERUS
+        - EWW
+        - TUR
+        - EWJ
+        - EWL
+        - ENOR
+        - EWD
+        - EWS
         - XLC
         - XLY
         - XLP
