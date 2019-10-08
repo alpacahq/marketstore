@@ -116,7 +116,7 @@ triggers | slice | List of trigger plugins
 bgworkers | slice | List of background worker plugins
 
 ### Default mkts.yml
-```
+```yml
 root_directory: data
 listen_port: 5993
 log_level: info
@@ -135,19 +135,16 @@ After starting up a MarketStore instance on your machine, you're all set to be a
 ### Python
 [pymarketstore](https://github.com/alpacahq/pymarketstore) is the standard
 python client. Make sure that in another terminal, you have marketstore running
-
+* query data
+```py
+import pymarketstore as pymkts
+param = pymkts.Params('BTC', '1Min', 'OHLCV', limit=10)
+cli = pymkts.Client()
+reply = cli.query(param)
+reply.first().df()
 ```
-In [1]: import pymarketstore as pymkts
-
-## query data
-
-In [2]: param = pymkts.Params('BTC', '1Min', 'OHLCV', limit=10)
-
-In [3]: cli = pymkts.Client()
-
-In [4]: reply = cli.query(param)
-
-In [5]: reply.first().df()
+shows
+```
 Out[5]:
                                Open      High       Low     Close     Volume
 Epoch
@@ -161,20 +158,19 @@ Epoch
 2018-01-17 17:26:00+00:00  10210.02  10210.02  10101.00  10138.00   6.616969
 2018-01-17 17:27:00+00:00  10137.99  10138.00  10108.76  10124.94   9.962978
 2018-01-17 17:28:00+00:00  10124.95  10142.39  10124.94  10142.39   2.262249
+```
+* write data
+```py
+import numpy as np
+import pandas as pd
+data = np.array([(pd.Timestamp('2017-01-01 00:00').value / 10**9, 10.0)], dtype=[('Epoch', 'i8'), ('Ask', 'f4')])
+cli.write(data, 'TEST/1Min/Tick')
+# Out[10]: {'responses': None}
 
-## write data
-
-In [7]: import numpy as np
-
-In [8]: import pandas as pd
-
-In [9]: data = np.array([(pd.Timestamp('2017-01-01 00:00').value / 10**9, 10.0)], dtype=[('Epoch', 'i8'), ('Ask', 'f4')])
-
-In [10]: cli.write(data, 'TEST/1Min/Tick')
-Out[10]: {'responses': None}
-
-In [11]: cli.query(pymkts.Params('TEST', '1Min', 'Tick')).first().df()
-Out[11]:
+cli.query(pymkts.Params('TEST', '1Min', 'Tick')).first().df()
+```
+shows
+```
                             Ask
 Epoch
 2017-01-01 00:00:00+00:00  10.0

@@ -32,7 +32,7 @@ update:
 	GOFLAGS=$(GOFLAGS) go mod tidy
 
 plugins:
-	$(MAKE) -C contrib/ondiskagg
+	#$(MAKE) -C contrib/ondiskagg
 	#$(MAKE) -C contrib/gdaxfeeder
 	#$(MAKE) -C contrib/slait
 	$(MAKE) -C contrib/stream
@@ -41,9 +41,10 @@ plugins:
 	#$(MAKE) -C contrib/binancefeeder
 	#$(MAKE) -C contrib/iex
 	#$(MAKE) -C contrib/xignitefeeder
+	$(MAKE) -C quanatee/plugins/quanatee_ondiskagg
 	$(MAKE) -C quanatee/plugins/quanatee_crypto_prices
 	$(MAKE) -C quanatee/plugins/quanatee_forex_prices
-	$(MAKE) -C quanatee/plugins/quanatee_iex_prices
+	$(MAKE) -C quanatee/plugins/quanatee_stock_prices
 
 unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...

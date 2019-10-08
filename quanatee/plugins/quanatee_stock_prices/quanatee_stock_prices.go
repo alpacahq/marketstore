@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+    "errors"
 	"math"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
+    "strconv"
     "strings"
+	"time"
     "math/rand"
     "math/big"
     
@@ -20,6 +22,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
     
 	"gopkg.in/yaml.v2"
+	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_stock_prices/calendar"    
 )
 
 // Quote - stucture for historical price data
@@ -55,9 +58,132 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
+func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
 
-	resampleFreq := "1hour"
+	resampleFreq := "1"
+	switch period.String {
+	case "1Min":
+		resampleFreq = "1"
+	case "5Min":
+		resampleFreq = "5"
+	case "15Min":
+		resampleFreq = "15"
+	case "30Min":
+		resampleFreq = "30"
+	}
+
+	type priceData struct {
+		Date           int64   `json:"datetime"` // "1567594800000"
+		Open           float64 `json:"open"`
+		Low            float64 `json:"low"`
+		High           float64 `json:"high"`
+		Close          float64 `json:"close"`
+		Volume         int64   `json:"volume"`
+	}
+
+	type tdameritradeData struct {
+		Ticker        string      `json:"symbol"`
+		Empty         bool        `json:"empty"`
+		PriceData     []priceData `json:"candles"`
+	}    
+	var tdaData tdameritradeData
+
+    // TD Ameritrade only retains historical intraday data up to 20 days from current date
+    if from.Unix() > time.Now().AddDate(0, 0, -20).Unix() {
+ 		return NewQuote(symbol, 0), errors.New("Date requested too far back")
+    }
+    
+    apiUrl := fmt.Sprintf(
+                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=false&startDate=%s",
+                        symbol,
+                        token,
+                        resampleFreq,
+                        strconv.Itoa(int(from.Unix() * 1000)))
+                        
+    if !realTime {
+        apiUrl = apiUrl + "&endDate=" + strconv.Itoa(int(to.Unix() * 1000))
+    }
+    
+	client := &http.Client{Timeout: ClientTimeout}
+	req, _ := http.NewRequest("GET", apiUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	resp, err := client.Do(req)
+    
+    // Try again if fail
+	if err != nil {
+        time.Sleep(250 * time.Millisecond)
+        resp, err = client.Do(req)
+    }
+    
+	if err != nil {
+		log.Error("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        }
+	}
+	defer resp.Body.Close()
+
+	contents, _ := ioutil.ReadAll(resp.Body)
+	err = json.Unmarshal(contents, &tdaData)
+    
+	if err != nil {
+		log.Error("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        }
+	}
+    
+    if len(tdaData.PriceData) < 1 {
+        // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
+        // We only error check for the inner period
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) ) {
+            log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        }
+ 		return NewQuote(symbol, 0), err
+	}
+    
+	numrows := len(tdaData.PriceData)
+	quote := NewQuote(symbol, numrows)
+    // Pointers to help slice into just the relevent datas
+    startOfSlice := -1
+    endOfSlice := -1
+    
+	for bar := 0; bar < numrows; bar++ {
+        epoch := tdaData.PriceData[bar].Date / 1000
+        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+        if epoch > last.UTC().Unix() && epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
+            }
+            endOfSlice = bar
+            quote.Epoch[bar] = epoch
+            quote.Open[bar] = tdaData.PriceData[bar].Open
+            quote.High[bar] = tdaData.PriceData[bar].High
+            quote.Low[bar] = tdaData.PriceData[bar].Low
+            quote.Close[bar] = tdaData.PriceData[bar].Close
+            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
+            quote.Volume[bar] = float64(tdaData.PriceData[bar].Volume)
+        }
+	}
+    
+    if startOfSlice > -1 && endOfSlice > -1 {
+        quote.Epoch = quote.Epoch[startOfSlice:endOfSlice+1]
+        quote.Open = quote.Open[startOfSlice:endOfSlice+1]
+        quote.High = quote.High[startOfSlice:endOfSlice+1]
+        quote.Low = quote.Low[startOfSlice:endOfSlice+1]
+        quote.Close = quote.Close[startOfSlice:endOfSlice+1]
+        quote.HLC = quote.HLC[startOfSlice:endOfSlice+1]
+        quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
+    } else {
+        quote = NewQuote(symbol, 0)
+    }
+    
+	return quote, nil
+}
+
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+
+	resampleFreq := "1min"
 	switch period.String {
 	case "1Min":
 		resampleFreq = "1min"
@@ -67,84 +193,115 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		resampleFreq = "15min"
 	case "30Min":
 		resampleFreq = "30min"
-	case "1H":
-		resampleFreq = "1hour"
-	case "2H":
-		resampleFreq = "2hour"
-	case "4H":
-		resampleFreq = "4hour"
-	case "6H":
-		resampleFreq = "6hour"
-	case "8H":
-		resampleFreq = "8hour"
 	}
 
 	type priceData struct {
-		TradesDone     float64 `json:"tradesDone"`
-		Close          float64 `json:"close"`
-		VolumeNotional float64 `json:"volumeNotional"`
-		Low            float64 `json:"low"`
-		Open           float64 `json:"open"`
 		Date           string  `json:"date"` // "2017-12-19T00:00:00Z"
+		Ticker         string  `json:"ticker"`
+		Open           float64 `json:"open"`
+		Low            float64 `json:"low"`
 		High           float64 `json:"high"`
+		Close          float64 `json:"close"`
+	}
+    
+	type dailyData struct {
+		Date           string  `json:"date"` // "2017-12-19T00:00:00Z"
+		Open           float64 `json:"open"`
+		Low            float64 `json:"low"`
+		High           float64 `json:"high"`
+		Close          float64 `json:"close"`
 		Volume         float64 `json:"volume"`
+		AdjOpen        float64 `json:"adjOpen"`
+		AdjLow         float64 `json:"adjLow"`
+		AdjHigh        float64 `json:"adjHigh"`
+		AdjClose       float64 `json:"adjClose"`
+		AdjVolume      float64 `json:"adjVolume"`
 	}
-
-	type tiingoData struct {
-		Ticker        string      `json:"ticker"`
-		BaseCurrency  string      `json:"baseCurrency"`
-		QuoteCurrency string      `json:"quoteCurrency"`
-		PriceData     []priceData `json:"priceData"`
-	}
-
-	var cryptoData []tiingoData
-
+    
+	var iexData  []priceData
+	var iexDaily []dailyData
+    
     apiUrl := fmt.Sprintf(
-                        "https://api.tiingo.com/tiingo/crypto/prices?tickers=%s&resampleFreq=%s&startDate=%s",
+                        "https://api.tiingo.com/iex/%s/prices?resampleFreq=%s&afterHours=false&forceFill=false&startDate=%s",
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
+                        
+    // For getting volume data
+    apiUrl2 := fmt.Sprintf(
+                        "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
+                        symbol,
+                        url.QueryEscape(from.AddDate(0, 0, -5).Format("2006-1-2")))
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+        apiUrl2 = apiUrl2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", apiUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	resp, err := client.Do(req)
-
+    
+	req2, _ := http.NewRequest("GET", apiUrl2, nil)
+	req2.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
+	resp2, err2 := client.Do(req2)
+    
     // Try again if fail
-	if err != nil {
+	if err != nil || err2 != nil {
         time.Sleep(250 * time.Millisecond)
         resp, err = client.Do(req)
+        resp2, err2 = client.Do(req2)
     }
     
-	if err != nil {
-		log.Error("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
-		return NewQuote(symbol, 0), err
+	if err != nil || err2 != nil {
+		log.Error("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        } else {
+            return NewQuote(symbol, 0), err2
+        }
 	}
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(contents, &cryptoData)
-	if err != nil {
-		log.Error("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
-		return NewQuote(symbol, 0), err
-	}
-	if len(cryptoData) < 1 {
-		log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
-		return NewQuote(symbol, 0), err
+	err = json.Unmarshal(contents, &iexData)
+    
+	contents2, _ := ioutil.ReadAll(resp2.Body)
+	err2 = json.Unmarshal(contents2, &iexDaily)
+    
+	if err != nil || err2 != nil {
+		log.Error("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+        if err != nil {
+            return NewQuote(symbol, 0), err
+        } else {
+            return NewQuote(symbol, 0), err2
+        }
 	}
     
-	numrows := len(cryptoData[0].PriceData)
+    if len(iexData) < 1 {
+        // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
+        // We only error check for the inner period
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) ) {
+            log.Warn("Stock: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        }
+ 		return NewQuote(symbol, 0), err
+	}
+    
+    if len(iexDaily) < 1 {
+        log.Warn("Stock: Tiingo symbol '%s' No daily data returned url %s", symbol, apiUrl2)
+ 		return NewQuote(symbol, 0), err2
+	}
+    
+	numrows := len(iexData)
+	numdays := len(iexDaily)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
+        dt, _ := time.Parse(time.RFC3339, iexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -152,12 +309,31 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
             }
             endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
-            quote.High[bar] = cryptoData[0].PriceData[bar].High
-            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
-            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+            quote.Open[bar] = iexData[bar].Open
+            quote.High[bar] = iexData[bar].High
+            quote.Low[bar] = iexData[bar].Low
+            quote.Close[bar] = iexData[bar].Close
             quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-            quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
+            // Find the previous valid workday
+            previousWorkday := false
+            days := 1
+            for previousWorkday == false {
+                if calendar.IsWorkday(dt.AddDate(0, 0, -days)) {
+                    previousWorkday = true
+                    break
+                } else {
+                    days += 1
+                }
+            }
+            // Add volume from previous daily price data
+            for bar2 := 0; bar2 < numdays; bar2++ {
+                dt2, _ := time.Parse(time.RFC3339, iexDaily[bar2].Date)
+                if dt.AddDate(0, 0, -days) == dt2 {
+                    quote.Volume[bar] = iexDaily[bar2].AdjVolume
+                } else {
+                    quote.Volume[bar] = 1.0
+                }
+            }
         }
 	}
     
@@ -179,17 +355,19 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
     Indices        map[string][]string `yaml:"indices"`
-    ApiKey         string   `yaml:"api_key"`
-	QueryStart     string   `yaml:"query_start"`
-	BaseTimeframe  string   `yaml:"base_timeframe"`
+    ApiKey         string    `yaml:"api_key"`
+    ApiKey2        string    `yaml:"api_key2"`
+	QueryStart     string    `yaml:"query_start"`
+	BaseTimeframe  string    `yaml:"base_timeframe"`
 }
 
-// CryptoFetcher is the main worker for TiingoCrypto
-type CryptoFetcher struct {
+// IEXFetcher is the main worker for TiingoIEX
+type IEXFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
 	indices        map[string][]string
     apiKey         string
+    apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
@@ -253,16 +431,14 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 
 func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
     
-    // We sync Forex 24/5 market with Crypto, so we do not collect data outside of Forex hours
-    // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
-    // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
-    // In the event of a holiday, we close at 2100 UTC and open at 0700 UTC
-    // NYSE DST varies the closing time from 20:00 to 21:00
-    // We only realign when it is in the outer closing period
-    // Europe does not impact since during DST Frankfurt Session opens at 0700 UTC (London Open shifts to 0800 UTC)
-    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 21 ) {
-        // Current date is not a Work Day, or next day is not a Work Day and current Work Day in New York has ended
-        // Find the next Work Day and set to Germany Opening (Overlaps with Japan)
+    // NYSE Opening = 1200 UTC is the first data we will consume in a session
+    // NYSE Closing = 2130 UTC is the last data we will consume in a session
+    // We do not account for disruptions in Marketstore
+    // Aligning time series datas is done in Quanatee functions
+
+    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && ( (timeCheck.Hour() == 22 && timeCheck.Minute() >= 30) || ( timeCheck.Hour() > 23 ) ) ) {
+        // Current date is not a Work Day, or next day is not a Work Day and current Work Day has ended
+        // Find the next Work Day and set to Opening
         nextWorkday := false
         days := 1
         for nextWorkday == false {
@@ -274,11 +450,12 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
             }
         }
         timeCheck = timeCheck.AddDate(0, 0, days)
-        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 7, 0, 0, 0, time.UTC)
+        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 13, 0, 0, 0, time.UTC)
     }
+    
     return timeCheck
 }
-
+   
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
@@ -294,7 +471,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if config.QueryStart != "" {
 		queryStart = queryTime(config.QueryStart)
 	}
-    
+
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	} else {
@@ -311,11 +488,12 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		indices = config.Indices
 	}
     
-	return &CryptoFetcher{
+	return &IEXFetcher{
 		config:         conf,
 		symbols:        symbols,
 		indices:        indices,
         apiKey:         config.ApiKey,
+        apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
 	}, nil
@@ -323,35 +501,50 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 // Run grabs data in intervals from starting time to ending time.
 // If query_end is not set, it will run forever.
-func (tiicc *CryptoFetcher) Run() {
-    
+func (tiieq *IEXFetcher) Run() {
+
 	realTime := false    
 	timeStart := time.Time{}
 	lastTimestamp := time.Time{}
-	
+    
     // Get last timestamp collected
-	for _, symbol := range tiicc.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/Price")
+	for _, symbol := range tiieq.symbols {
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiieq.baseTimeframe.String + "/Price")
         lastTimestamp = findLastTimestamp(tbk)
-        log.Info("Crypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
+        log.Info("Stock: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
             timeStart = lastTimestamp.UTC()
         }
 	}
     
+    calendar := cal.NewCalendar()
+
+    // Add US holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+    )
+    
 	// Set start time if not given.
-	if !tiicc.queryStart.IsZero() {
-		timeStart = tiicc.queryStart.UTC()
+	if !tiieq.queryStart.IsZero() {
+		timeStart = tiieq.queryStart.UTC()
 	} else {
 		timeStart = time.Now().UTC()
 	}
-    
     timeStart = alignTimeToTradingHours(timeStart, calendar)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	var waitTill time.Time
 	firstLoop := true
+    dataProvider := "None"
     
 	for {
         
@@ -362,7 +555,7 @@ func (tiicc *CryptoFetcher) Run() {
         }
         if realTime {
             // Add timeEnd by a tick
-            timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration)
+            timeEnd = timeStart.Add(tiieq.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 3)
@@ -388,91 +581,128 @@ func (tiicc *CryptoFetcher) Run() {
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
         quotes := Quotes{}
-        symbols := tiicc.symbols
+        symbols := tiieq.symbols
         rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
             time.Sleep(100 * time.Millisecond)
             time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
-            if err == nil {
-                if len(quote.Epoch) < 1 {
-                    // Check if there is data to add
-                    continue
-                } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
-                    // Check if realTime is adding the most recent data
-                    log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
-                    continue
-                }
-                // write to csm
-                cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", quote.Epoch)
-                cs.AddColumn("Open", quote.Open)
-                cs.AddColumn("High", quote.High)
-                cs.AddColumn("Low", quote.Low)
-                cs.AddColumn("Close", quote.Close)
-                cs.AddColumn("HLC", quote.HLC)
-                cs.AddColumn("Volume", quote.Volume)
-                csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
-                csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)
-                
-                // Save the latest timestamp written
-                lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
-                quotes = append(quotes, quote)
-            } else {
-                log.Error("Crypto: error downloading " + symbol)
-            }
-        }
-        
-        // Add reversed pairs
-        for _, quote := range quotes {
-            revSymbol := ""
-            if strings.HasSuffix(quote.Symbol, "USD") {
-                revSymbol = "USD" + strings.Replace(quote.Symbol, "USD", "", -1)
-            } else if strings.HasSuffix(quote.Symbol, "EUR") {
-                revSymbol = "EUR" + strings.Replace(quote.Symbol, "EUR", "", -1)
-            } else if strings.HasSuffix(quote.Symbol, "JPY") {
-                revSymbol = "JPY" + strings.Replace(quote.Symbol, "JPY", "", -1)
-            }
-            if revSymbol != "" {
-                numrows := len(quote.Epoch)
-                revQuote := NewQuote(revSymbol, numrows)
+            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
+            tdameritradeQuote, _ := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
+            quote := NewQuote(symbol, 0)
+            if len(tiingoQuote.Epoch) > 0 && len(tdameritradeQuote.Epoch) > 0 {
+                quote = tdameritradeQuote
+                numrows := len(tiingoQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
-                    revQuote.Epoch[bar] = quote.Epoch[bar]
-                    revQuote.Open[bar] = 1/quote.Open[bar]
-                    revQuote.High[bar] = 1/quote.High[bar]
-                    revQuote.Low[bar] = 1/quote.Low[bar]
-                    revQuote.Close[bar] = 1/quote.Close[bar]
-                    revQuote.HLC[bar] = 1/quote.HLC[bar]
-                    x := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
-                    z := new(big.Float).Quo(x, big.NewFloat(revQuote.HLC[bar]))
-                    revQuote.Volume[bar], _ = z.Float64()
+                    matchedEpochs := false
+                    matchedBar    := bar
+                    // First Test
+                    if len(tdameritradeQuote.Epoch) > bar {
+                        if tiingoQuote.Epoch[bar] == tdameritradeQuote.Epoch[bar] {
+                            // Shallow Iteration on tiingoQuote matches with tdameritradeQuote
+                            matchedEpochs = true
+                            matchedBar = bar
+                        }
+                    }
+                    // Second Test
+                    if !matchedEpochs {
+                        // Nested Iteration on tdameritradeQuote to match tiingoQuote with tdameritradeQuote
+                        numrows2 := len(quote.Epoch)
+                        for bar2 := 0; bar2 < numrows2; bar2++ {
+                            if tiingoQuote.Epoch[bar] == quote.Epoch[bar2] {
+                                matchedEpochs = true
+                                matchedBar = bar2
+                                break
+                            }
+                        }
+                    }
+                    if !matchedEpochs {
+                        // If no Epochs were matched, it means tiingoQuote contains Epoch that tdameritradeQuote does not have
+                        quote.Epoch = append(quote.Epoch, tiingoQuote.Epoch[bar])
+                        quote.Open = append(quote.Open, tiingoQuote.Open[bar])
+                        quote.High = append(quote.High, tiingoQuote.High[bar])
+                        quote.Low = append(quote.Low, tiingoQuote.Low[bar])
+                        quote.Close = append(quote.Close, tiingoQuote.Close[bar])
+                        quote.HLC = append(quote.HLC, tiingoQuote.HLC[bar])
+                        quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
+                    } else {
+                        // Calculate the market capitalization
+                        tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
+                        tdameritradeQuoteCap := new(big.Float).Mul(big.NewFloat(tdameritradeQuote.HLC[matchedBar]), big.NewFloat(tdameritradeQuote.Volume[matchedBar]))
+                        totalCap := new(big.Float).Add(tiingoQuoteCap, tdameritradeQuoteCap)
+                        // Calculate the weighted averages
+                        tiingoQuoteWeight := new(big.Float).Quo(tiingoQuoteCap, totalCap)
+                        tdameritradeQuoteWeight := new(big.Float).Quo(tdameritradeQuoteCap, totalCap)
+                        
+                        weightedOpen := new(big.Float).Mul(big.NewFloat(tiingoQuote.Open[bar]), tiingoQuoteWeight)
+                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Open[matchedBar]), tdameritradeQuoteWeight))
+                        
+                        weightedHigh := new(big.Float).Mul(big.NewFloat(tiingoQuote.High[bar]), tiingoQuoteWeight)
+                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.High[matchedBar]), tdameritradeQuoteWeight))
+                        
+                        weightedLow := new(big.Float).Mul(big.NewFloat(tiingoQuote.Low[bar]), tiingoQuoteWeight)
+                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Low[matchedBar]), tdameritradeQuoteWeight))
+                        
+                        weightedClose := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), tiingoQuoteWeight)
+                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Close[matchedBar]), tdameritradeQuoteWeight))
+                        
+                        weightedHLC := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), tiingoQuoteWeight)
+                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.HLC[matchedBar]), tdameritradeQuoteWeight))
+                        
+                        quote.Open[matchedBar], _ = weightedOpen.Float64()
+                        quote.High[matchedBar], _ = weightedHigh.Float64()
+                        quote.Low[matchedBar], _ = weightedLow.Float64()
+                        quote.Close[matchedBar], _ = weightedClose.Float64()
+                        quote.HLC[matchedBar], _ = weightedHLC.Float64()
+                        quote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
+                    }
                 }
-                // write to csm
-                cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", revQuote.Epoch)
-                cs.AddColumn("Open", revQuote.Open)
-                cs.AddColumn("High", revQuote.High)
-                cs.AddColumn("Low", revQuote.Low)
-                cs.AddColumn("Close", revQuote.Close)
-                cs.AddColumn("HLC", revQuote.HLC)
-                cs.AddColumn("Volume", revQuote.Volume)
-                csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
-                csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)
-                
-                log.Debug("Crypto: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiicc.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
-                quotes = append(quotes, revQuote)
+                dataProvider = "Aggregation"
+            } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
+                quote = tiingoQuote
+                dataProvider = "Tiingo"
+            } else if len(tdameritradeQuote.Epoch) > 0 && tdameritradeQuote.Epoch[0] > 0 && tdameritradeQuote.Epoch[len(tdameritradeQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
+                quote = tdameritradeQuote
+                dataProvider = "TD Ameritrade"
+            } else {
+                dataProvider = "None"
+                continue
             }
+            
+            if len(quote.Epoch) < 1 {
+                // Check if there is data to add
+                continue
+            } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                // Check if realTime is adding the most recent data
+                log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
+                continue
+            }
+            // write to csm
+            cs := io.NewColumnSeries()
+            cs.AddColumn("Epoch", quote.Epoch)
+            cs.AddColumn("Open", quote.Open)
+            cs.AddColumn("High", quote.High)
+            cs.AddColumn("Low", quote.Low)
+            cs.AddColumn("Close", quote.Close)
+            cs.AddColumn("HLC", quote.HLC)
+            cs.AddColumn("Volume", quote.Volume)
+            csm := io.NewColumnSeriesMap()
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
+            csm.AddColumnSeries(*tbk, cs)
+            executor.WriteCSM(csm, false)
+            
+            // Save the latest timestamp written
+            lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
+            log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            quotes = append(quotes, quote)
         }
         
+        // Create indexes from collected symbols
         aggQuotes := Quotes{}
-        for key, value := range tiicc.indices {
+        for key, value := range tiieq.indices {
             aggQuote := NewQuote(key, 0)
             for _, quote := range quotes {
                 for _, symbol := range value {
@@ -598,7 +828,7 @@ func (tiicc *CryptoFetcher) Run() {
         }
         
         // Create indexes from created indexes
-        for key, value := range tiicc.indices {
+        for key, value := range tiieq.indices {
             aggQuote := NewQuote(key, 0)
             for _, quote := range aggQuotes {
                 for _, symbol := range value {
@@ -733,16 +963,16 @@ func (tiicc *CryptoFetcher) Run() {
             cs.AddColumn("HLC", quote.HLC)
             cs.AddColumn("Volume", quote.Volume)
             csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
+            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Debug("Crypto: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
-			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
+			waitTill = time.Now().UTC().Add(tiieq.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
@@ -750,7 +980,7 @@ func (tiicc *CryptoFetcher) Run() {
                 // Set to wait till Opening
                 waitTill = openTime
             }
-            log.Info("Crypto: Next request at %v", waitTill)
+            log.Info("Stock: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
 			time.Sleep(time.Second*500)

@@ -58,6 +58,7 @@ func main() {
 	log.Info("backfilling from %v to %v", start.Format(format), end.Format(format))
 
 	sem := make(chan struct{}, runtime.NumCPU())
+	log.Info("Using %d threads", runtime.NumCPU())
 
 	for end.After(start) {
 		if calendar.Nasdaq.IsMarketDay(end) {
@@ -67,7 +68,7 @@ func main() {
 				log.Info("backfilling %v...", t.Format("2006-01-02"))
 				s := time.Now()
 				pullDate(t)
-				log.Info("Done (in %s)", time.Now().Sub(s).String())
+				log.Info("Done %v (in %s)", t.Format("2006-01-02"), time.Now().Sub(s).String())
 			}(end)
 		}
 
@@ -96,6 +97,7 @@ func pullDate(t time.Time) {
 	}
 
 	// Fetch the pcap dump for that date and iterate through its messages.
+	log.Info("pcap url: %s", histData[0].Link)
 	resp, err := http.Get(histData[0].Link)
 	if err != nil {
 		panic(err)
@@ -172,7 +174,7 @@ func writeBar(bar *consolidator.Bar, w *csv.Writer) error {
 		strconv.FormatFloat(bar.Close, 'f', 4, 64),
 		strconv.FormatInt(bar.Volume, 10),
 	}
-
+	log.Debug("write bar: %v", row)
 	return w.Write(row)
 }
 
