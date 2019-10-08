@@ -420,7 +420,7 @@ func (tiicc *CryptoFetcher) Run() {
         
         quotes := Quotes{}
         symbols := tiicc.symbols
-        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        // rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
