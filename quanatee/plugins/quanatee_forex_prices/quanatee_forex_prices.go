@@ -308,10 +308,13 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	if len(forexData) < 1 {
         // NYSE DST varies the closing time from 20:00 to 21:00
         // We only error check for the inner period
+        err := ""
         if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
-            log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+            err = fmt.Sprintf("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+            return NewQuote(symbol, 0), err
+        } else {
+            return NewQuote(symbol, 0), err
         }
-		return NewQuote(symbol, 0), err
 	}
     
 	numrows := len(forexData)
@@ -691,7 +694,7 @@ func (tiifx *ForexFetcher) Run() {
             if err != nil {
                 logInfo += fmt.Sprintf("Forex: %s returned error %s \n", quote.Symbol, err)
                 continue
-            if len(quote.Epoch) < 1 {
+            } else if len(quote.Epoch) < 1 {
                 // Check if there is data to add
                 logInfo += fmt.Sprintf("Forex: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
                 continue
