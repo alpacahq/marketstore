@@ -43,7 +43,8 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 	var closes []float32
 	var highs []float32
 	var lows []float32
-	var volumes []float32
+	var previousCloses []float32
+	var volumes []int64
 
 	for _, eq := range resp.ArrayOfEndOfDayQuote {
 		// skip the symbol which date is empty string and cannot be parsed,
@@ -62,22 +63,26 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 		closes = append(closes, eq.Close)
 		highs = append(highs, eq.High)
 		lows = append(lows, eq.Low)
+		previousCloses = append(previousCloses, eq.PreviousClose)
 		volumes = append(volumes, eq.Volume)
 	}
 
 	tbk := io.NewTimeBucketKey(resp.Security.Symbol + "/" + q.Timeframe + "/OHLCV")
-	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, volumes)
+	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses, volumes)
 	csm.AddColumnSeries(*tbk, cs)
 	return csm, nil
 }
 
-func (q QuotesRangeWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows, volumes []float32) *io.ColumnSeries {
+func (q QuotesRangeWriterImpl) newColumnSeries(
+	epochs []int64, opens, closes, highs, lows, previousCloses []float32, volumes []int64,
+) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epochs)
 	cs.AddColumn("Open", opens)
 	cs.AddColumn("Close", closes)
 	cs.AddColumn("High", highs)
 	cs.AddColumn("Low", lows)
+	cs.AddColumn("PreviousClose", previousCloses)
 	cs.AddColumn("Volume", volumes)
 
 	return cs
