@@ -599,6 +599,8 @@ func (tiifx *ForexFetcher) Run() {
             time.Sleep(10 * time.Millisecond)
             time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
+            // Removed Intrinio as a data source
+            quote := NewQuote(symbol, 0)
             quote = tiingoQuote
             dataProvider = "Tiingo"
             /*
