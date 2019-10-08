@@ -590,7 +590,7 @@ func (tiifx *ForexFetcher) Run() {
         hour := timeEnd.Hour()
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-
+        
         quotes := Quotes{}
         symbols := tiifx.symbols
         rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
@@ -712,7 +712,7 @@ func (tiifx *ForexFetcher) Run() {
             
             // Save the latest timestamp written
             lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-            logInfo += fmt.Sprintf("Forex: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            logInfo += fmt.Sprintf("Forex: %v row(s) to %s/%s/Price from %v to %v by %s \n", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -754,7 +754,7 @@ func (tiifx *ForexFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Debug("Forex: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                // log.Debug("Forex: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, revQuote)
             }
         }
@@ -1025,7 +1025,7 @@ func (tiifx *ForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Debug("Forex: %v index row(s) to %s/%s/Price from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            // log.Debug("Forex: %v index row(s) to %s/%s/Price from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
         if logInfo != "" {
             log.Info(logInfo)

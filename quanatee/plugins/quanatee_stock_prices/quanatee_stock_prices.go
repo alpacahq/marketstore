@@ -968,7 +968,7 @@ func (tiieq *IEXFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            // log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
         if logInfo != "" {
             log.Info(logInfo)
