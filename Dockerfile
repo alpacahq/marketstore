@@ -3,7 +3,7 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.13.0-buster as builder
+FROM golang:1.13.1-alpine3.10 as builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
 ENV GOPATH=/go
