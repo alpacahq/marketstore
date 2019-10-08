@@ -714,8 +714,6 @@ func (tiifx *ForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            // Save the latest timestamp written
-            lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
             logInfo += fmt.Sprintf("Forex: %v row(s) to %s/%s/Price from %v to %v by %s \n ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
@@ -1035,6 +1033,9 @@ func (tiifx *ForexFetcher) Run() {
             log.Info(logInfo)
             logInfo = ""
         }
+    
+        // Save the latest timestamp written
+        lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
