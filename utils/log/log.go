@@ -23,14 +23,6 @@ func init() {
 	zap.ReplaceGlobals(logger)
 }
 
-func Print(msg string, args ...interface{}) {
-    if len(args) > 0 {
-        zap.S().Infof(msg, args...)
-    } else {
-        zap.S().Info(msg)
-    }
-}
-
 func Debug(msg string, args ...interface{}) {
 	if logLevel <= DEBUG {
 		if len(args) > 0 {
