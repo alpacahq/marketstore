@@ -8,16 +8,6 @@ enable_add: true
 enable_remove: true
 enable_last_known: false
 timezone: "UTC"
-triggers:
-  - module: stream.so
-    on: "*/*/*"
-  - module: quanatee_ondiskagg.so
-    on: "*/15Min/Price"
-    config:
-      destinations:
-        - 10Min
-        - 1H
-        - 1D
 bgworkers:
   - module: quanatee_forex_prices.so
     config:
@@ -43,4 +33,4 @@ bgworkers:
         - XAGUSD
         - XAUUSD
       query_start: "2019-07-01 00:00"
-      base_timeframe: "5Min"
+      base_timeframe: "15Min"
