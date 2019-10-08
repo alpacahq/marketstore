@@ -8,7 +8,7 @@ ARG tag=latest
 ENV DOCKER_TAG=$tag
 ENV GOPATH=/go
 
-WORKDIR /go/src/github.com/alpacahq/marketstore/
+WORKDIR /go/src/github.com/rymdluo/marketstore/
 ADD ./ ./
 RUN make vendor
 RUN make install plugins
