@@ -19,15 +19,28 @@ triggers:
         - 1H
         - 1D
 bgworkers:
-  - module: quanatee_crypto_prices.so
+  - module: quanatee_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
       symbols:
-        - BTCUSD
-        - ETHUSD
-        - EOSUSD
-        - LTCUSD
-        - XLMUSD
-        - XRPUSD
+        - EURUSD
+        - USDJPY
+        - GBPUSD
+        - AUDUSD
+        - USDCHF
+        - NZDUSD
+        - USDCAD
+        - USDCNH
+        - USDHKD
+        - USDINR
+        - USDRUB
+        - USDZAR
+        - USDMXN
+        - USDTRY
+        - USDNOK
+        - USDSEK
+        - USDSGD
+        - XAGUSD
+        - XAUUSD
       query_start: "2019-07-01 00:00"
       base_timeframe: "5Min"

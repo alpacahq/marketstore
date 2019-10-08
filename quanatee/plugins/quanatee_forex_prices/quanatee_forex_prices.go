@@ -569,7 +569,7 @@ func (tiifx *ForexFetcher) Run() {
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 7)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -597,8 +597,8 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(50 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
+            time.Sleep(2000 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
             // Removed Intrinio as a data source
             quote := NewQuote(symbol, 0)
@@ -690,10 +690,11 @@ func (tiifx *ForexFetcher) Run() {
             */
             if len(quote.Epoch) < 1 {
                 // Check if there is data to add
+                logInfo += fmt.Sprintf("Forex: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
-                log.Warn("Forex: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                logInfo += fmt.Sprintf("Forex: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                 continue
             }
             // write to csm
