@@ -3,12 +3,17 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.13.0-buster as builder
+
+FROM ubuntu:18.04 as builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
+ENV GO111MODULE=on
 ENV GOPATH=/go
 
-WORKDIR /go/src/github.com/rymdluo/marketstore/
+#RUN apk --no-cache add git make gcc g++
+RUN apt update
+RUN apt install -y golang gcc g++ make wget git
+WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
 RUN make vendor
 RUN make install plugins
