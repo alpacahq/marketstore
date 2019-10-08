@@ -33,4 +33,4 @@ bgworkers:
         - XAGUSD
         - XAUUSD
       query_start: "2019-07-01 00:00"
-      base_timeframe: "15Min"
+      base_timeframe: "1Min"
