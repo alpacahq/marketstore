@@ -277,9 +277,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
     
-    // Pad to with an extra day if backfilling to ensure that start_date and end_date is different
-    if !realTime && to.AddDate(0, 0, 1).After(time.Now().UTC()) {
-        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-1-2"))
+    if !realTime {
+        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -569,7 +568,7 @@ func (tiifx *ForexFetcher) Run() {
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 5)
+            timeEnd = timeStart.AddDate(0, 0, 3)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
