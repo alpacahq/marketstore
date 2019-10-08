@@ -181,29 +181,32 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
-        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
+        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)        
+        // Only add data that falls into Forex trading hours
+        if ( calendar.IsWorkday(dt.UTC()) && ( ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() > 7 ) || ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 20 ) ) ) {            
+            // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+                if startOfSlice == -1 {
+                    startOfSlice = bar
+                }
+                endOfSlice = bar
+                quote.Epoch[bar] = dt.UTC().Unix()
+                open_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) 
+                open_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)
+                high_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64) 
+                high_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64)
+                low_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64) 
+                low_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64)
+                close_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64) 
+                close_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64)
+                
+                quote.Open[bar] = (open_bid + open_ask) / 2
+                quote.High[bar] = (high_bid + high_ask) / 2
+                quote.Low[bar] = (low_bid + low_ask) / 2
+                quote.Close[bar] = (close_bid + close_ask) / 2
+                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
+                quote.Volume[bar] = float64(forexData.PriceData[bar].TotalTicks)
             }
-            endOfSlice = bar
-            quote.Epoch[bar] = dt.UTC().Unix()
-            open_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) 
-            open_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)
-            high_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64) 
-            high_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64)
-            low_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64) 
-            low_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64)
-            close_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64) 
-            close_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64)
-            
-            quote.Open[bar] = (open_bid + open_ask) / 2
-            quote.High[bar] = (high_bid + high_ask) / 2
-            quote.Low[bar] = (low_bid + low_ask) / 2
-            quote.Close[bar] = (close_bid + close_ask) / 2
-            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-            quote.Volume[bar] = float64(forexData.PriceData[bar].TotalTicks)
         }
 	}
     

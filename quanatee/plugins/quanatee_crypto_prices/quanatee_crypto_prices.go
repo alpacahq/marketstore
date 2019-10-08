@@ -149,19 +149,22 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
-        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
+        // Only add data that falls into Forex trading hours
+        if ( calendar.IsWorkday(dt.UTC()) && ( ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() > 7 ) || ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 20 ) ) ) {
+            // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+                if startOfSlice == -1 {
+                    startOfSlice = bar
+                }
+                endOfSlice = bar
+                quote.Epoch[bar] = dt.UTC().Unix()
+                quote.Open[bar] = cryptoData[0].PriceData[bar].Open
+                quote.High[bar] = cryptoData[0].PriceData[bar].High
+                quote.Low[bar] = cryptoData[0].PriceData[bar].Low
+                quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
+                quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
             }
-            endOfSlice = bar
-            quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
-            quote.High[bar] = cryptoData[0].PriceData[bar].High
-            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
-            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
-            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-            quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
     
