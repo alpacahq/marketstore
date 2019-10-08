@@ -20,9 +20,9 @@ RUN make install plugins
 # a very small output image for deployment.
 #
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata libc6-compat# set your timezone
-RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-RUN dpkg-reconfigure --frontend noninteractive tzdata
+RUN apk --no-cache add ca-certificates tzdata libc6-compat
+RUN cp /usr/share/zoneinfo/America/New_York /etc/localtime
+
 WORKDIR /
 COPY --from=builder /go/bin/marketstore /bin/
 COPY --from=builder /go/bin/*.so /bin/
