@@ -121,7 +121,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Error("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -129,7 +129,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		log.Error("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
@@ -456,7 +456,7 @@ func (tiicc *CryptoFetcher) Run() {
                 logInfo += fmt.Sprintf("Crypto: %v row(s) to %s/%s/Price from %v to %v \n ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, quote)
             } else {
-                log.Error("Crypto: error downloading " + symbol)
+                log.Warn("Crypto: error downloading " + symbol)
             }
         }
         

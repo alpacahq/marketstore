@@ -153,7 +153,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     }
     
 	if err != nil {
-		log.Error("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -161,7 +161,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Error(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -169,7 +169,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
         // NYSE DST varies the closing time from 20:00 to 21:00
         // We only error check for the inner period
         if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
-            log.Error("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
+            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -293,7 +293,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Error("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -301,7 +301,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Error("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     

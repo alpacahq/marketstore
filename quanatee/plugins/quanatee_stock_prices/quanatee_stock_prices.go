@@ -116,7 +116,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     }
     
 	if err != nil {
-		log.Error("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
+		log.Warn("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
         if err != nil {
             return NewQuote(symbol, 0), err
         }
@@ -127,7 +127,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	err = json.Unmarshal(contents, &tdaData)
     
 	if err != nil {
-		log.Error("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
+		log.Warn("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
         }
@@ -255,7 +255,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil || err2 != nil {
-		log.Error("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
+		log.Warn("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -271,7 +271,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	err2 = json.Unmarshal(contents2, &iexDaily)
     
 	if err != nil || err2 != nil {
-		log.Error("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+		log.Warn("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
