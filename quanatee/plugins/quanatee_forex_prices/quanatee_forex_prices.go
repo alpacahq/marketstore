@@ -596,8 +596,8 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(10 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+            time.Sleep(50 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
             // Removed Intrinio as a data source
             quote := NewQuote(symbol, 0)
@@ -711,7 +711,7 @@ func (tiifx *ForexFetcher) Run() {
             
             // Save the latest timestamp written
             lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-            fmt.Println("Forex: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            println("Forex: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         

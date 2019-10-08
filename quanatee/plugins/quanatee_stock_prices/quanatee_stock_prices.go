@@ -586,8 +586,8 @@ func (tiieq *IEXFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(10 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+            time.Sleep(50 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
             tdameritradeQuote, _ := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
             quote := NewQuote(symbol, 0)
@@ -696,7 +696,7 @@ func (tiieq *IEXFetcher) Run() {
             
             // Save the latest timestamp written
             lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-            log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            println("Stock: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
