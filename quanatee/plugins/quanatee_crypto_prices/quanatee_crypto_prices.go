@@ -55,9 +55,8 @@ func NewQuote(symbol string, bars int) Quote {
 		Volume: make([]float64, bars),
 	}
 }
-
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
-
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+    
 	resampleFreq := "1hour"
 	switch period.String {
 	case "1Min":
@@ -134,10 +133,14 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
-		log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        // NYSE DST varies the closing time from 20:00 to 21:00
+        // We only error check for the inner period
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
+            log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        }
 		return NewQuote(symbol, 0), err
 	}
-    
+
 	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
@@ -340,6 +343,29 @@ func (tiicc *CryptoFetcher) Run() {
         }
 	}
     
+    calendar := cal.NewCalendar()
+
+    // Add US and UK holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+		cal.GBNewYear,
+		cal.GBGoodFriday,
+		cal.GBEasterMonday,
+		cal.GBEarlyMay,
+		cal.GBSpringHoliday,
+		cal.GBSummerHoliday,
+		cal.GBChristmasDay,
+		cal.GBBoxingDay,
+    )
+    
 	// Set start time if not given.
 	if !tiicc.queryStart.IsZero() {
 		timeStart = tiicc.queryStart.UTC()
@@ -396,7 +422,7 @@ func (tiicc *CryptoFetcher) Run() {
         for _, symbol := range symbols {
             time.Sleep(100 * time.Millisecond)
             time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
+            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.apiKey)
             if err == nil {
                 if len(quote.Epoch) < 1 {
                     // Check if there is data to add
