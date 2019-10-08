@@ -545,6 +545,7 @@ func (tiieq *IEXFetcher) Run() {
 	var waitTill time.Time
 	firstLoop := true
     dataProvider := "None"
+    logInfo := ""
     
 	for {
         
@@ -696,7 +697,7 @@ func (tiieq *IEXFetcher) Run() {
             
             // Save the latest timestamp written
             lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-            fmt.Println("Stock: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            logInfo += fmt.Sprintf("Stock: %v row(s) to %s/%s/Price from %v to %v by %s \n", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -968,6 +969,10 @@ func (tiieq *IEXFetcher) Run() {
             executor.WriteCSM(csm, false)
             
             log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+        }
+        if logInfo != "" {
+            log.Info(logInfo)
+            logInfo = ""
         }
 		if realTime {
 			// Sleep till next :00 time

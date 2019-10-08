@@ -382,6 +382,7 @@ func (tiicc *CryptoFetcher) Run() {
 	var timeEnd time.Time
 	var waitTill time.Time
 	firstLoop := true
+    logInfo := ""
     
 	for {
         
@@ -451,7 +452,7 @@ func (tiicc *CryptoFetcher) Run() {
                 
                 // Save the latest timestamp written
                 lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                fmt.Println("Crypto: %v row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                logInfo += fmt.Sprintf("Crypto: %v row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, quote)
             } else {
                 log.Error("Crypto: error downloading " + symbol)
@@ -768,6 +769,10 @@ func (tiicc *CryptoFetcher) Run() {
             executor.WriteCSM(csm, false)
             
             log.Debug("Crypto: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+        }
+        if logInfo != "" {
+            log.Info(logInfo)
+            logInfo = ""
         }
 		if realTime {
 			// Sleep till next :00 time
