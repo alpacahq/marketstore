@@ -358,7 +358,7 @@ type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
     Indices        map[string][]string `yaml:"indices"`
     ApiKey         string   `yaml:"api_key"`
-    ApiKey2        string   `yaml:"api_key2"`
+    //ApiKey2        string   `yaml:"api_key2"`
 	QueryStart     string   `yaml:"query_start"`
 	BaseTimeframe  string   `yaml:"base_timeframe"`
 }
@@ -369,7 +369,7 @@ type ForexFetcher struct {
 	symbols        []string
 	indices        map[string][]string
     apiKey         string
-    apiKey2        string
+    //apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
@@ -495,7 +495,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols:        symbols,
 		indices:        indices,
         apiKey:         config.ApiKey,
-        apiKey2:        config.ApiKey2,
+        //apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
 	}, nil
@@ -568,7 +568,7 @@ func (tiifx *ForexFetcher) Run() {
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99)
+            timeEnd = timeStart.AddDate(0, 0, 7)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -596,9 +596,12 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(100 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
+            time.Sleep(10 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
+            quote = tiingoQuote
+            dataProvider = "Tiingo"
+            /*
             intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
             if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
@@ -681,7 +684,7 @@ func (tiifx *ForexFetcher) Run() {
                 dataProvider = "None"
                 continue
             }
-            
+            */
             if len(quote.Epoch) < 1 {
                 // Check if there is data to add
                 continue
@@ -1035,7 +1038,7 @@ func (tiifx *ForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*30)
+			time.Sleep(time.Second*120)
 		}
 	}
 }

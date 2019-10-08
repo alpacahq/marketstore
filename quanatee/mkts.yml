@@ -15,6 +15,7 @@ triggers:
     on: "*/15Min/Price"
     config:
       destinations:
+        - 10Min
         - 1H
         - 1D
 bgworkers:
@@ -29,11 +30,10 @@ bgworkers:
         - XLMUSD
         - XRPUSD
       query_start: "2019-07-01 00:00"
-      base_timeframe: "15Min"
+      base_timeframe: "5Min"
   - module: quanatee_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
-      api_key2: "<intrinio_api_key>"
       symbols:
         - EURUSD
         - USDJPY
@@ -55,7 +55,7 @@ bgworkers:
         - XAGUSD
         - XAUUSD
       query_start: "2019-07-01 00:00"
-      base_timeframe: "15Min"
+      base_timeframe: "5Min"
   - module: quanatee_stock_prices.so
     config:
       api_key: "<tiingo_api_key>"
@@ -98,4 +98,4 @@ bgworkers:
         - BIL
         - SHY
       query_start: "2019-07-01 00:00"
-      base_timeframe: "15Min"
+      base_timeframe: "5Min"
