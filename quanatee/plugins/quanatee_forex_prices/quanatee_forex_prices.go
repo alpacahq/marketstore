@@ -1035,7 +1035,7 @@ func (tiifx *ForexFetcher) Run() {
         }
     
         // Save the latest timestamp written
-        lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
+        lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
