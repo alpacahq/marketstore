@@ -308,13 +308,10 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	if len(forexData) < 1 {
         // NYSE DST varies the closing time from 20:00 to 21:00
         // We only error check for the inner period
-        err := ""
         if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
-            err = fmt.Sprintf("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
-            return NewQuote(symbol, 0), err
-        } else {
-            return NewQuote(symbol, 0), err
+            log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
+		return NewQuote(symbol, 0), err
 	}
     
 	numrows := len(forexData)
