@@ -596,8 +596,8 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(30 * time.Second)
-            // time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+            time.Sleep(10 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
             tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
             // Removed Intrinio as a data source
             quote := NewQuote(symbol, 0)
