@@ -2,7 +2,7 @@
 
 GOFLAGS="-mod=vendor"
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
-UTIL_PATH := github.com/rymdluo/marketstore/utils
+UTIL_PATH := github.com/alpacahq/marketstore/utils
 
 all:
 	GOFLAGS=$(GOFLAGS) go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...

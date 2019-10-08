@@ -22,7 +22,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
     
 	"gopkg.in/yaml.v2"
-	"github.com/rymdluo/marketstore/quanatee/plugins/quanatee_stock_prices/calendar"    
+	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_stock_prices/calendar"    
 )
 
 // Quote - stucture for historical price data
