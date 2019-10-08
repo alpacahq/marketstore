@@ -598,7 +598,7 @@ func (tiifx *ForexFetcher) Run() {
         for _, symbol := range symbols {
             time.Sleep(30 * time.Second)
             // time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
-            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
+            tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
             // Removed Intrinio as a data source
             quote := NewQuote(symbol, 0)
             quote = tiingoQuote
@@ -687,6 +687,10 @@ func (tiifx *ForexFetcher) Run() {
                 continue
             }
             */
+            
+            if err != nil {
+                logInfo += fmt.Sprintf("Forex: %s returned error %s \n", quote.Symbol, err)
+                continue
             if len(quote.Epoch) < 1 {
                 // Check if there is data to add
                 logInfo += fmt.Sprintf("Forex: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
