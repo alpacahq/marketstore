@@ -420,12 +420,12 @@ func (tiicc *CryptoFetcher) Run() {
         
         quotes := Quotes{}
         symbols := tiicc.symbols
-        // rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(1000 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+            time.Sleep(2000 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
             quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.apiKey)
             if err == nil {
                 if len(quote.Epoch) < 1 {
