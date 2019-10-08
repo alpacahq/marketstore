@@ -430,10 +430,11 @@ func (tiicc *CryptoFetcher) Run() {
             if err == nil {
                 if len(quote.Epoch) < 1 {
                     // Check if there is data to add
+                    logInfo += fmt.Sprintf("Crypto: %s returned no data between %v and %v \n" quote.Symbol, timeStart, timeEnd)
                     continue
                 } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                     // Check if realTime is adding the most recent data
-                    log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                    logInfo += fmt.Sprintf("Crypto: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 }
                 // write to csm
