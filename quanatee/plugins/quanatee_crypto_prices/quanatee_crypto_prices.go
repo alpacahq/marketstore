@@ -452,7 +452,7 @@ func (tiicc *CryptoFetcher) Run() {
                 
                 // Save the latest timestamp written
                 lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                logInfo += fmt.Sprintf("Crypto: %v row(s) to %s/%s/Price from %v to %v \n", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                logInfo += fmt.Sprintf("Crypto: %v row(s) to %s/%s/Price from %v to %v \n ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, quote)
             } else {
                 log.Error("Crypto: error downloading " + symbol)
