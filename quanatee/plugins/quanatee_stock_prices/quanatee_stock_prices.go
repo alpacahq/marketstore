@@ -89,7 +89,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	var tdaData tdameritradeData
 
     // TD Ameritrade only retains historical intraday data up to 20 days from current date
-    if from.Unix() > time.Now().AddDate(0, 0, -20).Unix() {
+    if from.Unix() < time.Now().AddDate(0, 0, -20).Unix() {
  		return NewQuote(symbol, 0), errors.New("Date requested too far back")
     }
     
