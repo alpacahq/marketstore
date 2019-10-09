@@ -20,6 +20,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
     
 	"gopkg.in/yaml.v2"
+	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_crypto_prices/calendar"
 )
 
 // Quote - stucture for historical price data
@@ -54,9 +55,8 @@ func NewQuote(symbol string, bars int) Quote {
 		Volume: make([]float64, bars),
 	}
 }
-
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
-
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+    
 	resampleFreq := "1hour"
 	switch period.String {
 	case "1Min":
@@ -121,7 +121,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Error("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Crypto: symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -129,14 +129,20 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		log.Error("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
-		log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        if ( calendar.IsWorkday(from.UTC()) && 
+           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
+            log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+        }
 		return NewQuote(symbol, 0), err
 	}
-    
+
 	numrows := len(cryptoData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
@@ -145,19 +151,26 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
-        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
+        // Only add data that falls into Forex trading hours
+        if ( calendar.IsWorkday(dt.UTC()) && 
+            (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
+             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
+            // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+                if startOfSlice == -1 {
+                    startOfSlice = bar
+                }
+                endOfSlice = bar
+                quote.Epoch[bar] = dt.UTC().Unix()
+                quote.Open[bar] = cryptoData[0].PriceData[bar].Open
+                quote.High[bar] = cryptoData[0].PriceData[bar].High
+                quote.Low[bar] = cryptoData[0].PriceData[bar].Low
+                quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
+                quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
             }
-            endOfSlice = bar
-            quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
-            quote.High[bar] = cryptoData[0].PriceData[bar].High
-            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
-            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
-            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-            quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
         }
 	}
     
@@ -339,6 +352,29 @@ func (tiicc *CryptoFetcher) Run() {
         }
 	}
     
+    calendar := cal.NewCalendar()
+
+    // Add US and UK holidays
+    calendar.AddHoliday(
+        cal.USNewYear,
+        cal.USMLK,
+        cal.USPresidents,
+        cal.GoodFriday,
+        cal.USMemorial,
+        cal.USIndependence,
+        cal.USLabor,
+        cal.USThanksgiving,
+        cal.USChristmas,
+		cal.GBNewYear,
+		cal.GBGoodFriday,
+		cal.GBEasterMonday,
+		cal.GBEarlyMay,
+		cal.GBSpringHoliday,
+		cal.GBSummerHoliday,
+		cal.GBChristmasDay,
+		cal.GBBoxingDay,
+    )
+    
 	// Set start time if not given.
 	if !tiicc.queryStart.IsZero() {
 		timeStart = tiicc.queryStart.UTC()
@@ -365,7 +401,7 @@ func (tiicc *CryptoFetcher) Run() {
             timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -393,16 +429,17 @@ func (tiicc *CryptoFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(100 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
+            time.Sleep(10 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+            quote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.apiKey)
             if err == nil {
                 if len(quote.Epoch) < 1 {
                     // Check if there is data to add
+                    log.Info("Crypto: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
                     continue
                 } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                     // Check if realTime is adding the most recent data
-                    log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
+                    log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                     continue
                 }
                 // write to csm
@@ -419,12 +456,10 @@ func (tiicc *CryptoFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                // Save the latest timestamp written
-                lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-                log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, quote)
             } else {
-                log.Error("Crypto: error downloading " + symbol)
+                log.Warn("Crypto: error downloading " + symbol)
             }
         }
         
@@ -739,11 +774,13 @@ func (tiicc *CryptoFetcher) Run() {
             
             log.Debug("Crypto: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
+        // Save the latest timestamp written
+        lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {
@@ -753,7 +790,7 @@ func (tiicc *CryptoFetcher) Run() {
             log.Info("Crypto: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*500)
+			time.Sleep(time.Second*360)
 		}
 	}
 }

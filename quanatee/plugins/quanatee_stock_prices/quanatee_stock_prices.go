@@ -89,7 +89,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	var tdaData tdameritradeData
 
     // TD Ameritrade only retains historical intraday data up to 20 days from current date
-    if from.Unix() > time.Now().AddDate(0, 0, -20).Unix() {
+    if from.Unix() < time.Now().AddDate(0, 0, -20).Unix() {
  		return NewQuote(symbol, 0), errors.New("Date requested too far back")
     }
     
@@ -116,7 +116,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     }
     
 	if err != nil {
-		log.Error("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
+		log.Warn("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
         if err != nil {
             return NewQuote(symbol, 0), err
         }
@@ -127,16 +127,15 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	err = json.Unmarshal(contents, &tdaData)
     
 	if err != nil {
-		log.Error("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
+		log.Warn("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
         }
 	}
     
     if len(tdaData.PriceData) < 1 {
-        // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
-        // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) ) {
+        // NYSE opening time from 13:30 to 21:00
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 21 ) ) ) {
             log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
@@ -151,18 +150,20 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	for bar := 0; bar < numrows; bar++ {
         epoch := tdaData.PriceData[bar].Date / 1000
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if epoch > last.UTC().Unix() && epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 14 ) && ( from.Hour() < 21 ) ) ) {
+            if epoch > last.UTC().Unix() && epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
+                if startOfSlice == -1 {
+                    startOfSlice = bar
+                }
+                endOfSlice = bar
+                quote.Epoch[bar] = epoch
+                quote.Open[bar] = tdaData.PriceData[bar].Open
+                quote.High[bar] = tdaData.PriceData[bar].High
+                quote.Low[bar] = tdaData.PriceData[bar].Low
+                quote.Close[bar] = tdaData.PriceData[bar].Close
+                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
+                quote.Volume[bar] = float64(tdaData.PriceData[bar].Volume)
             }
-            endOfSlice = bar
-            quote.Epoch[bar] = epoch
-            quote.Open[bar] = tdaData.PriceData[bar].Open
-            quote.High[bar] = tdaData.PriceData[bar].High
-            quote.Low[bar] = tdaData.PriceData[bar].Low
-            quote.Close[bar] = tdaData.PriceData[bar].Close
-            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-            quote.Volume[bar] = float64(tdaData.PriceData[bar].Volume)
         }
 	}
     
@@ -255,7 +256,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil || err2 != nil {
-		log.Error("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
+		log.Warn("Stock: Tiingo symbol '%s' error: %s, error2: %s \n %s \n %s", symbol, err, err2, apiUrl, apiUrl2)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -271,7 +272,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	err2 = json.Unmarshal(contents2, &iexDaily)
     
 	if err != nil || err2 != nil {
-		log.Error("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+		log.Warn("Stock: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -280,9 +281,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
     if len(iexData) < 1 {
-        // NYSE DST varies the opening time from 13:30 to 14:30, and 20:00 to 21:00
-        // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 14 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 20 ) ) ) {
+        // NYSE opening time from 13:30 to 21:00
+        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 14 ) && ( from.Hour() < 20 ) ) ) {
             log.Warn("Stock: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
  		return NewQuote(symbol, 0), err
@@ -431,12 +431,12 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 
 func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
     
-    // NYSE Opening = 1200 UTC is the first data we will consume in a session
-    // NYSE Closing = 2130 UTC is the last data we will consume in a session
+    // NYSE Opening = 1330 UTC is the first data we will consume in a session
+    // NYSE Closing = 2100 UTC is the last data we will consume in a session
     // We do not account for disruptions in Marketstore
     // Aligning time series datas is done in Quanatee functions
 
-    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && ( (timeCheck.Hour() == 22 && timeCheck.Minute() >= 30) || ( timeCheck.Hour() > 23 ) ) ) {
+    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() > 21 ) {
         // Current date is not a Work Day, or next day is not a Work Day and current Work Day has ended
         // Find the next Work Day and set to Opening
         nextWorkday := false
@@ -450,7 +450,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
             }
         }
         timeCheck = timeCheck.AddDate(0, 0, days)
-        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 13, 0, 0, 0, time.UTC)
+        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 13, 30, 0, 0, time.UTC)
     }
     
     return timeCheck
@@ -538,6 +538,7 @@ func (tiieq *IEXFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC()
 	}
+    
     timeStart = alignTimeToTradingHours(timeStart, calendar)
     
 	// For loop for collecting candlestick data forever
@@ -558,7 +559,7 @@ func (tiieq *IEXFetcher) Run() {
             timeEnd = timeStart.Add(tiieq.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -586,8 +587,8 @@ func (tiieq *IEXFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(100 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+            time.Sleep(10 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
             tdameritradeQuote, _ := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
             quote := NewQuote(symbol, 0)
@@ -694,9 +695,7 @@ func (tiieq *IEXFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            // Save the latest timestamp written
-            lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-            log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -969,11 +968,13 @@ func (tiieq *IEXFetcher) Run() {
             
             log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
+        // Save the latest timestamp written
+        lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiieq.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {
@@ -983,7 +984,7 @@ func (tiieq *IEXFetcher) Run() {
             log.Info("Stock: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*500)
+			time.Sleep(time.Second*360)
 		}
 	}
 }

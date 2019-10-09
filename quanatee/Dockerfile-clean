@@ -3,11 +3,15 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.13.0-buster as builder
+FROM ubuntu:18.04 as builder
 ARG tag=latest
 ENV DOCKER_TAG=$tag
+ENV GO111MODULE=on
 ENV GOPATH=/go
 
+#RUN apk --no-cache add git make gcc g++
+RUN apt update
+RUN apt install -y golang gcc g++ make wget git
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
 RUN make vendor
@@ -19,8 +23,10 @@ RUN make install plugins
 # Use a tiny base image (alpine) and copy in the release target. This produces
 # a very small output image for deployment.
 #
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata libc6-compat# set your timezone
+FROM ubuntu:18.04
+RUN apt update
+RUN apt install -y ca-certificates tzdata
+# set your timezone
 RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
 RUN dpkg-reconfigure --frontend noninteractive tzdata
 WORKDIR /

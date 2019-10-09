@@ -153,7 +153,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     }
     
 	if err != nil {
-		log.Error("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -161,15 +161,17 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Error(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
 	if len(forexData.PriceData) < 1 {
-        // NYSE DST varies the closing time from 20:00 to 21:00
-        // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
-            log.Error("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
+        if ( calendar.IsWorkday(from.UTC()) && 
+           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
+            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -181,29 +183,36 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)
-        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
+        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)        
+        // Only add data that falls into Forex trading hours
+        if ( calendar.IsWorkday(dt.UTC()) && 
+           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
+            // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+                if startOfSlice == -1 {
+                    startOfSlice = bar
+                }
+                endOfSlice = bar
+                quote.Epoch[bar] = dt.UTC().Unix()
+                open_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) 
+                open_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)
+                high_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64) 
+                high_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64)
+                low_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64) 
+                low_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64)
+                close_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64) 
+                close_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64)
+                
+                quote.Open[bar] = (open_bid + open_ask) / 2
+                quote.High[bar] = (high_bid + high_ask) / 2
+                quote.Low[bar] = (low_bid + low_ask) / 2
+                quote.Close[bar] = (close_bid + close_ask) / 2
+                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
+                quote.Volume[bar] = float64(forexData.PriceData[bar].TotalTicks)
             }
-            endOfSlice = bar
-            quote.Epoch[bar] = dt.UTC().Unix()
-            open_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) 
-            open_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)
-            high_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64) 
-            high_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64)
-            low_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64) 
-            low_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64)
-            close_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64) 
-            close_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64)
-            
-            quote.Open[bar] = (open_bid + open_ask) / 2
-            quote.High[bar] = (high_bid + high_ask) / 2
-            quote.Low[bar] = (low_bid + low_ask) / 2
-            quote.Close[bar] = (close_bid + close_ask) / 2
-            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-            quote.Volume[bar] = float64(forexData.PriceData[bar].TotalTicks)
         }
 	}
     
@@ -274,9 +283,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
                         resampleFreq,
                         url.QueryEscape(from.Format("2006-1-2")))
     
-    // Pad to with an extra day if backfilling to ensure that start_date and end_date is different
-    if !realTime && to.AddDate(0, 0, 1).After(time.Now().UTC()) {
-        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-1-2"))
+    if !realTime {
+        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -291,7 +299,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     }
     
 	if err != nil {
-		log.Error("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Forex: Tiingo symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -299,14 +307,16 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Error("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
 	if len(forexData) < 1 {
-        // NYSE DST varies the closing time from 20:00 to 21:00
-        // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
+        if ( calendar.IsWorkday(from.UTC()) && 
+           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
             log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -321,18 +331,24 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
+        if ( calendar.IsWorkday(dt.UTC()) && 
+           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
+            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+                if startOfSlice == -1 {
+                    startOfSlice = bar
+                }
+                endOfSlice = bar
+                quote.Epoch[bar] = dt.UTC().Unix()
+                quote.Open[bar] = forexData[bar].Open
+                quote.High[bar] = forexData[bar].High
+                quote.Low[bar] = forexData[bar].Low
+                quote.Close[bar] = forexData[bar].Close
+                quote.HLC[bar] = (forexData[bar].High + forexData[bar].Low + forexData[bar].Close)/3
+                quote.Volume[bar] = 1.0
             }
-            endOfSlice = bar
-            quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = forexData[bar].Open
-            quote.High[bar] = forexData[bar].High
-            quote.Low[bar] = forexData[bar].Low
-            quote.Close[bar] = forexData[bar].Close
-            quote.HLC[bar] = (forexData[bar].High + forexData[bar].Low + forexData[bar].Close)/3
-            quote.Volume[bar] = 1.0
         }
 	}
     
@@ -355,7 +371,7 @@ type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
     Indices        map[string][]string `yaml:"indices"`
     ApiKey         string   `yaml:"api_key"`
-    ApiKey2        string   `yaml:"api_key2"`
+    //ApiKey2        string   `yaml:"api_key2"`
 	QueryStart     string   `yaml:"query_start"`
 	BaseTimeframe  string   `yaml:"base_timeframe"`
 }
@@ -366,7 +382,7 @@ type ForexFetcher struct {
 	symbols        []string
 	indices        map[string][]string
     apiKey         string
-    apiKey2        string
+    //apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
@@ -492,7 +508,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols:        symbols,
 		indices:        indices,
         apiKey:         config.ApiKey,
-        apiKey2:        config.ApiKey2,
+        //apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
 	}, nil
@@ -545,6 +561,7 @@ func (tiifx *ForexFetcher) Run() {
 	} else {
 		timeStart = time.Now().UTC()
 	}
+    
     timeStart = alignTimeToTradingHours(timeStart, calendar)
     
 	// For loop for collecting candlestick data forever
@@ -565,7 +582,7 @@ func (tiifx *ForexFetcher) Run() {
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration * 99)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -586,16 +603,21 @@ func (tiifx *ForexFetcher) Run() {
         hour := timeEnd.Hour()
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-
+        
         quotes := Quotes{}
         symbols := tiifx.symbols
         rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(100 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
+            time.Sleep(10 * time.Millisecond)
+            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
+            tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
+            // Removed Intrinio as a data source
+            quote := NewQuote(symbol, 0)
+            quote = tiingoQuote
+            dataProvider = "Tiingo"
+            /*
             intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
             if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
@@ -678,13 +700,18 @@ func (tiifx *ForexFetcher) Run() {
                 dataProvider = "None"
                 continue
             }
+            */
             
-            if len(quote.Epoch) < 1 {
+            if err != nil {
+                log.Info("Forex: %s returned error %s \n", quote.Symbol, err)
+                continue
+            } else if len(quote.Epoch) < 1 {
                 // Check if there is data to add
+                log.Info("Forex: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
-                log.Warn("Forex: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                log.Info("Forex: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                 continue
             }
             // write to csm
@@ -701,9 +728,7 @@ func (tiifx *ForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            // Save the latest timestamp written
-            lastTimestamp = time.Unix(quote.Epoch[len(quote.Epoch)-1], 0)
-            log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -745,7 +770,7 @@ func (tiifx *ForexFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Debug("Forex: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                // log.Debug("Forex: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, revQuote)
             }
         }
@@ -1016,13 +1041,16 @@ func (tiifx *ForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Debug("Forex: %v index row(s) to %s/%s/Price from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+            // log.Debug("Forex: %v index row(s) to %s/%s/Price from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
+    
+        // Save the latest timestamp written
+        lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {
@@ -1032,7 +1060,7 @@ func (tiifx *ForexFetcher) Run() {
             log.Info("Forex: Next request at %v", waitTill)
 			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
-			time.Sleep(time.Second*30)
+			time.Sleep(time.Second*360)
 		}
 	}
 }
