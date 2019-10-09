@@ -8,5 +8,6 @@ enable_add: true
 enable_remove: true
 enable_last_known: false
 timezone: "UTC"
+triggers:
   - module: stream.so
     on: "*/*/*"
