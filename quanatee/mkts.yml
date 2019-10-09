@@ -1,6 +1,6 @@
 root_directory: data
 listen_port: 5993
-log_level: warn
+log_level: info
 queryable: true
 stop_grace_period: 0
 wal_rotate_interval: 5
@@ -8,7 +8,29 @@ enable_add: true
 enable_remove: true
 enable_last_known: false
 timezone: "UTC"
+triggers:
+  - module: stream.so
+    on: "*/*/*"
+  - module: quanatee_ondiskagg.so
+    on: "*/15Min/Price"
+    config:
+      destinations:
+        - 10Min
+        - 1H
+        - 1D
 bgworkers:
+  - module: quanatee_crypto_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      symbols:
+        - BTCUSD
+        - ETHUSD
+        - EOSUSD
+        - LTCUSD
+        - XLMUSD
+        - XRPUSD
+      query_start: "2019-07-01 00:00"
+      base_timeframe: "5Min"
   - module: quanatee_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
@@ -33,4 +55,47 @@ bgworkers:
         - XAGUSD
         - XAUUSD
       query_start: "2019-07-01 00:00"
-      base_timeframe: "15Min"
+      base_timeframe: "5Min"
+  - module: quanatee_stock_prices.so
+    config:
+      api_key: "<tiingo_api_key>"
+      api_key2: "<tdameritrade_api_key>"
+      symbols:
+        - SPY
+        - GLD
+        - SLV
+        - EZU
+        - EWU
+        - EWA
+        - ENZL
+        - EWC
+        - MCHI
+        - INDA
+        - ERUS
+        - EWW
+        - TUR
+        - EWJ
+        - EWL
+        - ENOR
+        - EWD
+        - EWS
+        - XLC
+        - XLY
+        - XLP
+        - XLE
+        - XLF
+        - XLV
+        - XLI
+        - XLK
+        - XLB
+        - XLRE
+        - XLU
+        - VCSH
+        - HYG
+        - VCIT
+        - IMTB
+        - SHV
+        - BIL
+        - SHY
+      query_start: "2019-07-01 00:00"
+      base_timeframe: "5Min"

@@ -554,7 +554,6 @@ func (tiifx *ForexFetcher) Run() {
 	var waitTill time.Time
 	firstLoop := true
     dataProvider := "None"
-    logInfo := ""
     
 	for {
         
@@ -689,15 +688,15 @@ func (tiifx *ForexFetcher) Run() {
             */
             
             if err != nil {
-                logInfo += fmt.Sprintf("Forex: %s returned error %s \n", quote.Symbol, err)
+                log.Info("Forex: %s returned error %s \n", quote.Symbol, err)
                 continue
             } else if len(quote.Epoch) < 1 {
                 // Check if there is data to add
-                logInfo += fmt.Sprintf("Forex: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
+                log.Info("Forex: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
-                logInfo += fmt.Sprintf("Forex: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                log.Info("Forex: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                 continue
             }
             // write to csm
@@ -714,7 +713,7 @@ func (tiifx *ForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            logInfo += fmt.Sprintf("Forex: %v row(s) to %s/%s/Price from %v to %v by %s \n ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s \n ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -1028,10 +1027,6 @@ func (tiifx *ForexFetcher) Run() {
             executor.WriteCSM(csm, false)
             
             // log.Debug("Forex: %v index row(s) to %s/%s/Price from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
-        }
-        if logInfo != "" {
-            log.Info(logInfo)
-            logInfo = ""
         }
     
         // Save the latest timestamp written
