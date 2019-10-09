@@ -151,7 +151,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
         epoch := tdaData.PriceData[bar].Date / 1000
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 14 ) && ( from.Hour() < 21 ) ) ) {
-            if epoch > last.Unix() && epoch >= from.Unix() && epoch <= to.Unix() {
+            if epoch > last.UTC().Unix() && epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
                 if startOfSlice == -1 {
                     startOfSlice = bar
                 }
@@ -303,12 +303,12 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, iexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.Unix() > last.Unix() && dt.Unix() >= from.Unix() && dt.Unix() <= to.Unix() {
+        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
                 startOfSlice = bar
             }
             endOfSlice = bar
-            quote.Epoch[bar] = dt.Unix()
+            quote.Epoch[bar] = dt.UTC().Unix()
             quote.Open[bar] = iexData[bar].Open
             quote.High[bar] = iexData[bar].High
             quote.Low[bar] = iexData[bar].Low
@@ -513,7 +513,7 @@ func (tiieq *IEXFetcher) Run() {
         lastTimestamp = findLastTimestamp(tbk)
         log.Info("Stock: lastTimestamp for %s = %v", symbol, lastTimestamp)
         if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
-            timeStart = lastTimestamp
+            timeStart = lastTimestamp.UTC()
         }
 	}
     
@@ -534,9 +534,9 @@ func (tiieq *IEXFetcher) Run() {
     
 	// Set start time if not given.
 	if !tiieq.queryStart.IsZero() {
-		timeStart = tiieq.queryStart
+		timeStart = tiieq.queryStart.UTC()
 	} else {
-		timeStart = time.Now()
+		timeStart = time.Now().UTC()
 	}
     
     timeStart = alignTimeToTradingHours(timeStart, calendar)
@@ -560,10 +560,10 @@ func (tiieq *IEXFetcher) Run() {
         } else {
             // Add timeEnd by a range
             timeEnd = timeStart.AddDate(0, 0, 5)
-            if timeEnd.After(time.Now()) {
+            if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
-                timeEnd = time.Now()
+                timeEnd = time.Now().UTC()
             }
         }
         
@@ -678,7 +678,7 @@ func (tiieq *IEXFetcher) Run() {
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
-                log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0), quote.Symbol, tiieq.baseTimeframe.String)
+                log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
                 continue
             }
             // write to csm
@@ -695,7 +695,7 @@ func (tiieq *IEXFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0), dataProvider)
+            log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -966,14 +966,14 @@ func (tiieq *IEXFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0))
+            log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
         // Save the latest timestamp written
         lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
-			waitTill = time.Now().Add(tiieq.baseTimeframe.Duration)
+			waitTill = time.Now().UTC().Add(tiieq.baseTimeframe.Duration)
             waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
@@ -982,7 +982,7 @@ func (tiieq *IEXFetcher) Run() {
                 waitTill = openTime
             }
             log.Info("Stock: Next request at %v", waitTill)
-			time.Sleep(waitTill.Sub(time.Now()))
+			time.Sleep(waitTill.Sub(time.Now().UTC()))
 		} else {
 			time.Sleep(time.Second*360)
 		}
