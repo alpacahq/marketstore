@@ -166,15 +166,12 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	}
     
 	if len(forexData.PriceData) < 1 {
-        if (
-                calendar.IsWorkday(from.UTC()) && 
-                ( 
-                    ( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
-                    ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
-                    ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
-                    ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )
-                ) 
-            ) {
+        if ( calendar.IsWorkday(from.UTC()) && 
+           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) )
+        {
             log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -189,15 +186,12 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)        
         // Only add data that falls into Forex trading hours
-        if (
-                calendar.IsWorkday(dt.UTC()) && 
-                ( 
-                    ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
-                    ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
-                    ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
-                    ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )
-                ) 
-            ) {
+        if ( calendar.IsWorkday(dt.UTC()) && 
+           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) )
+        {
             // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
@@ -320,7 +314,12 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
 	if len(forexData) < 1 {
-        if ( calendar.IsWorkday(from.UTC()) && ( ( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 ) ) ) {
+        if ( calendar.IsWorkday(from.UTC()) && 
+           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) )
+        {
             log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -335,15 +334,12 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if (
-                calendar.IsWorkday(dt.UTC()) && 
-                ( 
-                    ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
-                    ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
-                    ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
-                    ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )
-                ) 
-            ) {
+        if ( calendar.IsWorkday(dt.UTC()) && 
+           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) 
+        {
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
                     startOfSlice = bar
