@@ -168,7 +168,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	if len(forexData.PriceData) < 1 {
         // NYSE DST varies the closing time from 20:00 to 21:00
         // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) {
             log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -183,7 +183,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)        
         // Only add data that falls into Forex trading hours
-        if ( calendar.IsWorkday(dt.UTC()) && ( ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() > 7 ) || ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 20 ) ) ) {            
+        if ( calendar.IsWorkday(dt.UTC()) && ( ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 ) ) ) {
             // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
@@ -308,7 +308,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	if len(forexData) < 1 {
         // NYSE DST varies the closing time from 20:00 to 21:00
         // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) {
             log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -323,18 +323,21 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-            if startOfSlice == -1 {
-                startOfSlice = bar
+        
+        if ( calendar.IsWorkday(dt.UTC()) && ( ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 ) ) ) {
+            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+                if startOfSlice == -1 {
+                    startOfSlice = bar
+                }
+                endOfSlice = bar
+                quote.Epoch[bar] = dt.UTC().Unix()
+                quote.Open[bar] = forexData[bar].Open
+                quote.High[bar] = forexData[bar].High
+                quote.Low[bar] = forexData[bar].Low
+                quote.Close[bar] = forexData[bar].Close
+                quote.HLC[bar] = (forexData[bar].High + forexData[bar].Low + forexData[bar].Close)/3
+                quote.Volume[bar] = 1.0
             }
-            endOfSlice = bar
-            quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = forexData[bar].Open
-            quote.High[bar] = forexData[bar].High
-            quote.Low[bar] = forexData[bar].Low
-            quote.Close[bar] = forexData[bar].Close
-            quote.HLC[bar] = (forexData[bar].High + forexData[bar].Low + forexData[bar].Close)/3
-            quote.Volume[bar] = 1.0
         }
 	}
     
@@ -568,7 +571,7 @@ func (tiifx *ForexFetcher) Run() {
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 7)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -714,7 +717,7 @@ func (tiifx *ForexFetcher) Run() {
             csm.AddColumnSeries(*tbk, cs)
             executor.WriteCSM(csm, false)
             
-            log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s \n ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+            log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             quotes = append(quotes, quote)
         }
         
@@ -1036,7 +1039,7 @@ func (tiifx *ForexFetcher) Run() {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {

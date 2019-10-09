@@ -134,8 +134,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
 	if len(cryptoData) < 1 {
         // NYSE DST varies the closing time from 20:00 to 21:00
-        // We only error check for the inner period
-        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 20 ) ) ) {
+        // We only error check for the outer period
+        if ( calendar.IsWorkday(from) && ( ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 4 ) || ( int(from.Weekday()) == 5 && from.Hour() < 21 ) ) ) {
             log.Warn("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
@@ -150,7 +150,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
         // Only add data that falls into Forex trading hours
-        if ( calendar.IsWorkday(dt.UTC()) && ( ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() > 7 ) || ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 20 ) ) ) {
+        if ( calendar.IsWorkday(dt.UTC()) && ( ( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 ) ) ) {
             // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
@@ -395,7 +395,7 @@ func (tiicc *CryptoFetcher) Run() {
             timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 7)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -450,7 +450,7 @@ func (tiicc *CryptoFetcher) Run() {
                 csm.AddColumnSeries(*tbk, cs)
                 executor.WriteCSM(csm, false)
                 
-                log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v \n ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
+                log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
                 quotes = append(quotes, quote)
             } else {
                 log.Warn("Crypto: error downloading " + symbol)
@@ -774,7 +774,7 @@ func (tiicc *CryptoFetcher) Run() {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
 			waitTill = time.Now().UTC().Add(tiicc.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 3, 0, time.UTC)
+            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
             // Check if timeEnd is Closing, will return Opening if so
             openTime := alignTimeToTradingHours(timeEnd, calendar)
             if openTime != timeEnd {
