@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -24,10 +25,12 @@ const (
 )
 
 type IEXFetcher struct {
-	config    FetcherConfig
-	backfillM *sync.Map
-	queue     chan []string
-	lastM     *sync.Map
+	config           FetcherConfig
+	backfillM        *sync.Map
+	queue            chan []string
+	lastM            *sync.Map
+	refreshSymbols   bool
+	lastDailyRunDate int
 }
 
 type FetcherConfig struct {
@@ -61,71 +64,120 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		log.Info("starting for IEX production")
 	}
 
-	// grab the symbol list if none are specified
-	if len(config.Symbols) == 0 {
+	 return &IEXFetcher{
+		backfillM:        &sync.Map{},
+		config:           config,
+		queue:            make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
+		lastM:            &sync.Map{},
+		refreshSymbols:   len(config.Symbols) == 0,
+		lastDailyRunDate: 0,
+	}, nil
+}
+
+func (f *IEXFetcher) UpdateSymbolList() {
+	// update the symbol list if there was no static list in config
+	if f.refreshSymbols {
+		log.Info("refreshing symbols list from IEX")
 		resp, err := api.ListSymbols()
 		if err != nil {
-			return nil, err
+			return
 		}
 
-		config.Symbols = make([]string, len(*resp))
-
+		f.config.Symbols = make([]string, len(*resp))
+		log.Info("Loaded list of %d symbols from IEX", len(f.config.Symbols))
 		for i, s := range *resp {
 			if s.IsEnabled {
-				config.Symbols[i] = s.Symbol
+				f.config.Symbols[i] = s.Symbol
 			}
 		}
 	}
-
-	return &IEXFetcher{
-		backfillM: &sync.Map{},
-		config:    config,
-		queue:     make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
-		lastM:     &sync.Map{},
-	}, nil
 }
 
 func (f *IEXFetcher) Run() {
 	// batchify the symbols & queue the batches
-	{
-		symbols := f.config.Symbols
+		f.UpdateSymbolList()
+		f.queue = make(chan []string, int(len(f.config.Symbols)/api.BatchSize)+1)
 
-		for i := 0; i < len(symbols); i += api.BatchSize {
-			end := i + api.BatchSize
-			if end > len(symbols) {
-				end = len(symbols)
+		log.Info("Launching backfill")
+		go f.workBackfill()
+
+		go func() {
+			for { // loop forever adding batches of symbols to fetch
+				symbols := f.config.Symbols
+				for i := 0; i < len(symbols); i += api.BatchSize {
+					end := i + api.BatchSize
+					if end > len(symbols) {
+						end = len(symbols)
+					}
+					f.queue <- symbols[i:end]
+				}
+
+				// Put a marker in the queue so the loop can pause til the next minute
+				f.queue <- []string{"__EOL__"}
+			}
+		}()
+
+	runDaily := onceDaily(&f.lastDailyRunDate, 5, 10)
+	start := time.Now()
+	iWorkers := make(chan bool, (runtime.NumCPU()))
+	var iWg sync.WaitGroup
+	for batch := range f.queue {
+		if batch[0] == "__EOL__" {
+			log.Debug("End of Symbol list.. waiting for workers")
+			iWg.Wait()
+			end := time.Now()
+			log.Info("Minute bar fetch for %d symbols completed (elapsed %s)", len(f.config.Symbols), end.Sub(start).String())
+
+			runDaily = onceDaily(&f.lastDailyRunDate, 5, 10)
+			if runDaily {
+				log.Info("time for daily task(s)")
+				go f.UpdateSymbolList()
 			}
 
-			f.queue <- symbols[i:end]
+			delay := time.Minute - end.Sub(start)
+			log.Debug("Sleep for %s", delay.String())
+			<- time.After(delay)
+			start = time.Now()
+		} else {
+			iWorkers <- true
+			go func(wg *sync.WaitGroup) {
+				wg.Add(1)
+				defer  wg.Done()
+				defer func() { <-iWorkers }()
+
+				f.pollIntraday(batch)
+
+				if runDaily {
+					f.pollDaily(batch)
+				}
+			}(&iWg)
+
+			<-time.After(limiter())
 		}
 	}
 
-	go f.workBackfill()
-
-	// loop forever over the batches
-	for batch := range f.queue {
-		f.pollIntraday(batch)
-		f.pollDaily(batch)
-
-		<-time.After(limiter())
-		f.queue <- batch
-	}
 }
 
 func (f *IEXFetcher) pollIntraday(symbols []string) {
 	if !f.config.Intraday {
 		return
 	}
-	limit := 1
+	limit := 10
 
+	start := time.Now()
 	resp, err := api.GetBars(symbols, oneDay, &limit, 5)
 	if err != nil {
 		log.Error("failed to query intraday bar batch (%v)", err)
+		return
 	}
+	fetched := time.Now()
 
 	if err = f.writeBars(resp, true, false); err != nil {
 		log.Error("failed to write intraday bar batch (%v)", err)
+		return
 	}
+	done := time.Now()
+	log.Debug("Done Batch (fetched: %s, wrote: %s)", done.Sub(fetched).String(), fetched.Sub(start).String())
 }
 
 func (f *IEXFetcher) pollDaily(symbols []string) {
@@ -133,16 +185,16 @@ func (f *IEXFetcher) pollDaily(symbols []string) {
 		return
 	}
 	limit := 1
-
+	log.Info("running daily bars poll from IEX")
 	resp, err := api.GetBars(symbols, monthly, &limit, 5)
 	if err != nil {
-		log.Error("failed to query intraday bar batch (%v)", err)
+		log.Error("failed to query daily bar batch (%v)", err)
 	}
 
-	if err = f.writeBars(resp, false, false); err != nil {
-		log.Error("failed to write intraday bar batch (%v)", err)
+		if err = f.writeBars(resp, false, false); err != nil {
+			log.Error("failed to write daily bar batch (%v)", err)
+		}
 	}
-}
 
 func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill bool) error {
 	if resp == nil {
@@ -154,6 +206,10 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 	for symbol, bars := range *resp {
 		if len(bars.Chart) == 0 {
 			continue
+		}
+
+		if backfill {
+			log.Info("backfill: Writing %d bars for %s", len(bars.Chart), symbol)
 		}
 
 		var (
@@ -297,11 +353,10 @@ func (f *IEXFetcher) workBackfill() {
 			symbol := parts[0]
 			timeframe := parts[1]
 
-			// log.Info("backfilling [%v|%v]", symbol, timeframe)
-
 			// make sure epoch value isn't nil (i.e. hasn't
 			// been backfilled already)
 			if value != nil {
+			 log.Info("backfilling [%v|%v]", symbol, timeframe)
 				go func() {
 					count++
 
@@ -313,6 +368,8 @@ func (f *IEXFetcher) workBackfill() {
 						f.backfillM.Store(key, nil)
 					}
 				}()
+			} else {
+				log.Debug("skipping backfill [%v|%v]", symbol, timeframe)
 			}
 
 			// limit 10 goroutines per CPU core
@@ -330,8 +387,33 @@ func limiter() time.Duration {
 	return time.Second / 50
 }
 
+func onceDaily(lastDailyRunDate *int, runHour int, runMinute int) bool {
+	now := time.Now()
+
+	if *lastDailyRunDate == 0 || (*lastDailyRunDate != now.Day() && runHour == now.Hour() && runMinute <= now.Minute()) {
+		*lastDailyRunDate = now.Day()
+		return true
+	} else {
+		return false
+	}
+}
+
 func main() {
-	resp, err := api.GetBars([]string{"AAPL"}, oneDay, nil, 5)
+	api.SetToken(os.Getenv("IEXTOKEN"))
+	resp, err := api.GetBars([]string{"AAPL", "AMD", "X", "NVDA", "AMPY", "IBM", "GOOG"}, oneDay, nil, 5)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for symbol, chart := range *resp {
+		for _, bar := range chart.Chart {
+			fmt.Printf("symbol: %v bar: %v\n", symbol, bar)
+		}
+	}
+
+	fmt.Printf("-------------------\n\n")
+	resp, err = api.GetBars([]string{"AMPY", "MSFT", "DVCR"}, oneDay, nil, 5)
 
 	if err != nil {
 		panic(err)

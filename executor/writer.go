@@ -70,6 +70,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 
 	var (
 		prevIndex int64
+		prevYear  int16
 		cc        *WriteCommand
 		outBuf    []byte
 		rowLen    = len(data) / numRows
@@ -110,6 +111,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 
 		if i == 0 {
 			prevIndex = index
+			prevYear = year
 			cc = &WriteCommand{
 				RecordType: rt,
 				WALKeyPath: wkp,
@@ -118,14 +120,17 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 				Index:      index,
 				Data:       nil}
 		}
-		if index == prevIndex {
+		// Because index is relative time from the beginning of the year
+		// To confirm that the next data is a different data, both index and year should be checked.
+		// (ex. when writing "2017-02-03 04:05:06" and "2018-02-03 04:05:06", index (02-03 04:05:06) is the same)
+		if index == prevIndex && year == prevYear {
 			/*
 				This is the interior of a multi-row write buffer
 			*/
 			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals())
 			cc.Data = outBuf
 		}
-		if index != prevIndex {
+		if index != prevIndex || year != prevYear {
 			/*
 				This row is at a new index, output previous output buffer
 			*/
@@ -294,6 +299,9 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 				recordType = io.FIXED
 			}
 
+			if len(cs.GetTime()) == 0 {
+				continue
+			}
 			year := int16(cs.GetTime()[0].Year())
 			tbi = io.NewTimeBucketInfo(
 				*tf,
