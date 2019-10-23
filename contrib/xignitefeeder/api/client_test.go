@@ -85,6 +85,44 @@ func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
 	}
 }
 
+func TestDefaultAPIClient_GetRealTimeBars_Success(t *testing.T) {
+	// --- given ---
+	SUT := &DefaultClient{
+		// return "Outcome: Success" response body
+		httpClient: NewMockClient(t, GetBarsResponse{Outcome: "Success", ArrayOfBar: []Bar{}}),
+		token:      DummyXigniteToken}
+
+	// --- when ---
+	got, err := SUT.GetRealTimeBars("foobar", time.Now(), time.Now())
+
+	// --- then ---
+	if err != nil {
+		t.Fatalf("Error should be nil. Err = %v", err)
+	}
+	if got.Outcome != "Success" {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	}
+}
+
+func TestDefaultAPIClient_GetIndexBars_Success(t *testing.T) {
+	// --- given ---
+	SUT := &DefaultClient{
+		// return "Outcome: Success" response body
+		httpClient: NewMockClient(t, GetIndexBarsResponse{Outcome: "Success", ArrayOfBar: []Bar{}}),
+		token:      DummyXigniteToken}
+
+	// --- when ---
+	got, err := SUT.GetIndexBars("foobar", time.Now(), time.Now())
+
+	// --- then ---
+	if err != nil {
+		t.Fatalf("Error should be nil. Err = %v", err)
+	}
+	if got.Outcome != "Success" {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	}
+}
+
 func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
 	// --- given ---
 	SUT := &DefaultClient{

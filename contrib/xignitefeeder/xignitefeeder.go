@@ -52,6 +52,16 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timer.RunEveryDayAt(config.UpdatingHour, bf.Update)
 	}
 
+	if config.GranularBackfill.Enabled {
+		msbw := &writer.BarWriterImpl{
+			MarketStoreWriter: &writer.MarketStoreWriterImpl{},
+			Timeframe:         config.GranularBackfill.Timeframe,
+			Timezone:          utils.InstanceConfig.Timezone,
+		}
+		gbf := feed.NewGranularBackfill(sm, timeChecker, apiClient, msbw, config.GranularBackfill.Days)
+		timer.RunEveryDayAt(config.UpdatingHour, gbf.Update)
+	}
+
 	// init Quotes Writer
 	var msqw writer.QuotesWriter = writer.QuotesWriterImpl{
 		MarketStoreWriter: &writer.MarketStoreWriterImpl{},

@@ -37,6 +37,13 @@ type DefaultConfig struct {
 		Since     CustomDay `json:"since"`
 		Timeframe string    `json:"timeframe"`
 	} `json:"backfill"`
+	// for the past X market-open days,
+	// Xignite Feeder can feed 5-minute chart data for the target symbols in addition to daily-chart data backfill.
+	GranularBackfill struct {
+		Enabled   bool   `json:"enabled"`
+		Days      int    `json:"days"`
+		Timeframe string `json:"timeframe"`
+	} `json:"granularBackfill"`
 }
 
 // NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal

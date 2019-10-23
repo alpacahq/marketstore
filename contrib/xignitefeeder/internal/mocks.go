@@ -34,6 +34,16 @@ func (mac *MockAPIClient) ListSymbols(exchange string) (api.ListSymbolsResponse,
 	return api.ListSymbolsResponse{}, nil
 }
 
+// GetRealTimeBars returns an empty api response
+func (mac *MockAPIClient) GetRealTimeBars(identifier string, start, end time.Time) (response api.GetBarsResponse, err error) {
+	return api.GetBarsResponse{}, nil
+}
+
+// GetIndexBars returns an empty api response
+func (mac *MockAPIClient) GetIndexBars(identifier string, start, end time.Time) (response api.GetIndexBarsResponse, err error) {
+	return api.GetIndexBarsResponse{}, nil
+}
+
 // GetQuotesRange returns an empty api response
 func (mac *MockAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
 	return api.GetQuotesRangeResponse{}, nil

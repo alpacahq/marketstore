@@ -89,6 +89,12 @@ bgworkers:
         enabled: false
         since: "2008-04-01"
         timeframe: "1D"
+      # In addition to daily-chart data backfill above,
+      # Xignite Feeder can feed 5-minute chart data of the target symbols for the past X business days. The data is stored to {symbol}/{timeframe}/OHLCV bucket (e.g. "1400/5Min/OHLCV" )
+      granularBackfill:
+        enabled: true
+        days: 7 # Xignite Feeder feeds the data for {days} business days
+        timeframe: "5Min"
 ```
 
 # Build
