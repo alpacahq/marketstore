@@ -23,7 +23,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
 	github.com/iris-contrib/formBinder v0.0.0-20190104093907-fbd5963f41e1 // indirect
-	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.6
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/kataras/golog v0.0.0-20190620222301-4851375e24d4 // indirect
@@ -35,9 +34,6 @@ require (
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
 	github.com/moul/http2curl v1.0.0 // indirect
-	github.com/nats-io/gnatsd v1.3.0 // indirect
-	github.com/nats-io/go-nats v1.6.0
-	github.com/nats-io/nuid v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/pkg/errors v0.8.0
@@ -53,6 +49,7 @@ require (
 	github.com/timpalpant/go-iex v0.0.0-20181027174710-0b8a5fdd2ec1
 	github.com/valyala/fasthttp v1.0.0
 	github.com/vmihailenco/msgpack v4.0.1+incompatible
+	github.com/xeipuuv/gojsonpointer v0.0.0-20190809123943-df4f5c81cb3b // indirect
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1

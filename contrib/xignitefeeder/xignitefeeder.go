@@ -37,9 +37,12 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		config.OpenTime,
 		config.CloseTime)
 
-	// init Symbols Manager to update symbols in the target exchanges every day
-	sm := symbols.NewManager(apiClient, config.Exchanges)
-	timer.RunEveryDayAt(config.UpdatingHour, sm.UpdateSymbols)
+	// init Symbols Manager to...
+	// 1. update symbols in the target exchanges
+	// 2. update index symbols in the target index groups
+	// every day
+	sm := symbols.NewManager(apiClient, config.Exchanges, config.IndexGroups)
+	timer.RunEveryDayAt(config.UpdatingHour, sm.Update)
 
 	// init QuotesRangeWriter to backfill daily chart data every day
 	if config.Backfill.Enabled {
