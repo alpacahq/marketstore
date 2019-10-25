@@ -93,7 +93,7 @@ func (cd *XigniteDay) UnmarshalJSON(input []byte) error {
 
 // --------------------------
 
-// ListSymbolsResponse is a response model for the List Symbols endpoint
+// ListSymbolsResponse is a response model for the /QUICKEquityRealTime.json/ListSymbols endpoint
 type ListSymbolsResponse struct {
 	Outcome                    string                `json:"Outcome"`
 	Message                    string                `json:"Message"`
@@ -106,8 +106,21 @@ type SecurityDescription struct {
 }
 
 // --------------------------
+// ListIndexSymbolsResponse is a response model for the /QUICKIndexHistorical.json/ListSymbols endpoint
+type ListIndexSymbolsResponse struct {
+	Outcome      string  `json:"Outcome"`
+	Message      string  `json:"Message"`
+	ArrayOfIndex []Index `json:"ArrayOfIndex"`
+}
 
-// GetQuotesRangeResponse is a response model for the Get Quotes Range endpoint
+// Index object in ListIndexSymbolsResponse
+type Index struct {
+	Symbol string `json:"Symbol"`
+}
+
+// --------------------------
+
+// GetQuotesRangeResponse is a response model for the QUICKEquityHistorical/GetQuotesRange endpoint
 type GetQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
 	Message              string          `json:"Message"`
@@ -125,4 +138,14 @@ type EndOfDayQuote struct {
 	ExchangeOfficialClose float32    `json:"ExchangeOfficialClose"`
 	PreviousClose         float32    `json:"PreviousClose"`
 	Volume                int64      `json:"Volume"`
+}
+
+// --------------------------
+
+// GetQuotesRangeResponse is a response model for the QuickIndexHistorical/GetQuotesRange endpoint
+type GetIndexQuotesRangeResponse struct {
+	Outcome              string          `json:"Outcome"`
+	Message              string          `json:"Message"`
+	IndexAndGroup        *Security       `json:"IndexAndGroup"`
+	ArrayOfEndOfDayQuote []EndOfDayQuote `json:"ArrayOfEndOfDayQuote"`
 }
