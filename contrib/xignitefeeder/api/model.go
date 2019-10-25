@@ -32,15 +32,18 @@ type Quote struct {
 	Bid         float32         `json:"Bid"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
 	// price of the most recent deal
-	Last          float32 `json:"Last"`
-	Open          float32 `json:"Open"`
-	High          float32 `json:"High"`
-	Low           float32 `json:"Low"`
-	Close         float32 `json:"Close"`
-	PreviousClose float32 `json:"PreviousClose"`
-	Volume        int64   `json:"Volume"`
-	// Open/High/Low/Close/Volume/PreviousClose
-	UTCOffSet int `json:"UTCOffSet"`
+	Last                           float32 `json:"Last"`
+	Open                           float32 `json:"Open"`
+	High                           float32 `json:"High"`
+	Low                            float32 `json:"Low"`
+	Close                          float32 `json:"Close"`
+	PreviousClose                  float32 `json:"PreviousClose"`
+	Volume                         int64   `json:"Volume"`
+	ExchangeOfficialClose          float32 `json:"ExchangeOfficialClose"`
+	PreviousExchangeOfficialClose  float32 `json:"PreviousExchangeOfficialClose"`
+	ChangeFromPreviousClose        float32 `json:"ChangeFromPreviousClose"`
+	PercentChangeFromPreviousClose float32 `json:"PercentChangeFromPreviousClose"`
+	UTCOffSet                      int     `json:"UTCOffSet"`
 }
 
 // XigniteDateTime is a date time in XigniteDateTimeLayout format
@@ -130,14 +133,17 @@ type GetQuotesRangeResponse struct {
 
 // EndOfDayQuote object in GetQuotesRangeResponse
 type EndOfDayQuote struct {
-	Date                  XigniteDay `json:"Date"`
-	Open                  float32    `json:"Open"`
-	High                  float32    `json:"High"`
-	Low                   float32    `json:"Low"`
-	Close                 float32    `json:"Close"`
-	ExchangeOfficialClose float32    `json:"ExchangeOfficialClose"`
-	PreviousClose         float32    `json:"PreviousClose"`
-	Volume                int64      `json:"Volume"`
+	Date                           XigniteDay `json:"Date"`
+	Open                           float32    `json:"Open"`
+	High                           float32    `json:"High"`
+	Low                            float32    `json:"Low"`
+	Close                          float32    `json:"Close"`
+	ExchangeOfficialClose          float32    `json:"ExchangeOfficialClose"`
+	PreviousClose                  float32    `json:"PreviousClose"`
+	Volume                         int64      `json:"Volume"`
+	PreviousExchangeOfficialClose  float32    `json:"PreviousExchangeOfficialClose"`
+	ChangeFromPreviousClose        float32    `json:"ChangeFromPreviousClose"`
+	PercentChangeFromPreviousClose float32    `json:"PercentChangeFromPreviousClose"`
 }
 
 // --------------------------

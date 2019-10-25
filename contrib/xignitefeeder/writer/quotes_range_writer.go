@@ -64,6 +64,9 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 	var lows []float32
 	var previousCloses []float32
 	var volumes []int64
+	var previousExchangeOfficialClose []float32
+	var changeFromPreviousClose []float32
+	var percentChangeFromPreviousClose []float32
 
 	for _, eq := range resp.ArrayOfEndOfDayQuote {
 		// skip the symbol which date is empty string and cannot be parsed,
@@ -84,6 +87,9 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 		lows = append(lows, eq.Low)
 		previousCloses = append(previousCloses, eq.PreviousClose)
 		volumes = append(volumes, eq.Volume)
+		previousExchangeOfficialClose = append(previousExchangeOfficialClose, eq.PreviousExchangeOfficialClose)
+		changeFromPreviousClose = append(changeFromPreviousClose, eq.ChangeFromPreviousClose)
+		percentChangeFromPreviousClose = append(percentChangeFromPreviousClose, eq.PercentChangeFromPreviousClose)
 	}
 
 	// to avoid that empty array is added to csm when all data are Volume=0 and there is no data to write
@@ -93,7 +99,8 @@ func (q *QuotesRangeWriterImpl) convertToCSM(resp api.GetQuotesRangeResponse) (i
 	}
 
 	tbk := io.NewTimeBucketKey(resp.Security.Symbol + "/" + q.Timeframe + "/OHLCV")
-	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses, volumes)
+	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses,
+		previousExchangeOfficialClose, changeFromPreviousClose, percentChangeFromPreviousClose, volumes)
 	csm.AddColumnSeries(*tbk, cs)
 	return csm, nil
 }
@@ -138,7 +145,8 @@ func (q *QuotesRangeWriterImpl) convertIndexToCSM(resp api.GetIndexQuotesRangeRe
 }
 
 func (q QuotesRangeWriterImpl) newColumnSeries(
-	epochs []int64, opens, closes, highs, lows, previousCloses []float32, volumes []int64,
+	epochs []int64, opens, closes, highs, lows, previousCloses,
+	previousExchangeOfficialClose, changeFromPreviousClose, percentChangeFromPreviousClose []float32, volumes []int64,
 ) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epochs)
@@ -148,6 +156,9 @@ func (q QuotesRangeWriterImpl) newColumnSeries(
 	cs.AddColumn("Low", lows)
 	cs.AddColumn("PreviousClose", previousCloses)
 	cs.AddColumn("Volume", volumes)
+	cs.AddColumn("PreviousExchangeOfficialClose", previousExchangeOfficialClose)
+	cs.AddColumn("ChangeFromPreviousClose", changeFromPreviousClose)
+	cs.AddColumn("PercentChangeFromPreviousClose", percentChangeFromPreviousClose)
 
 	return cs
 }
