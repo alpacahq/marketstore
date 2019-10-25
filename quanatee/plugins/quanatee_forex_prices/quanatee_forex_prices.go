@@ -1043,9 +1043,12 @@ func (tiifx *ForexFetcher) Run() {
             
             // log.Debug("Forex: %v index row(s) to %s/%s/Price from %v to %v by Aggregation", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
         }
-    
         // Save the latest timestamp written
-        lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
+        if len(quotes) > 0 {
+            if len(quotes[0].Epoch) > 0{
+                lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
+            }
+        }
 		if realTime {
 			// Sleep till next :00 time
             // This function ensures that we will always get full candles
