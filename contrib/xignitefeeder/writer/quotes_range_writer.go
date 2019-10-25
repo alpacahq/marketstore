@@ -114,6 +114,9 @@ func (q *QuotesRangeWriterImpl) convertIndexToCSM(resp api.GetIndexQuotesRangeRe
 	var lows []float32
 	var previousCloses []float32
 	var volumes []int64
+	var previousExchangeOfficialClose []float32
+	var changeFromPreviousClose []float32
+	var percentChangeFromPreviousClose []float32
 
 	for _, eq := range resp.ArrayOfEndOfDayQuote {
 		// skip the symbol which date is empty string and cannot be parsed,
@@ -129,10 +132,14 @@ func (q *QuotesRangeWriterImpl) convertIndexToCSM(resp api.GetIndexQuotesRangeRe
 		lows = append(lows, eq.Low)
 		volumes = append(volumes, eq.Volume)
 		previousCloses = append(previousCloses, eq.PreviousClose)
+		previousExchangeOfficialClose = append(previousExchangeOfficialClose, eq.PreviousExchangeOfficialClose)
+		changeFromPreviousClose = append(changeFromPreviousClose, eq.ChangeFromPreviousClose)
+		percentChangeFromPreviousClose = append(percentChangeFromPreviousClose, eq.PercentChangeFromPreviousClose)
 	}
 
 	tbk := io.NewTimeBucketKey(resp.IndexAndGroup.Symbol + "/" + q.Timeframe + "/OHLCV")
-	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses, volumes)
+	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses,
+		previousExchangeOfficialClose, changeFromPreviousClose, percentChangeFromPreviousClose, volumes)
 	csm.AddColumnSeries(*tbk, cs)
 	return csm, nil
 }
