@@ -23,14 +23,8 @@ func NewBackfill(symbolManager symbols.Manager, apiClient api.Client, writer wri
 	return &Backfill{symbolManager: symbolManager, apiClient: apiClient, writer: writer, since: Since}
 }
 
-// Update calls UpdateSymbols and UpdateIndexSymbols functions sequentially
+// Update aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore
 func (b *Backfill) Update() {
-	b.UpdateSymbols()
-	b.UpdateIndexSymbols()
-}
-
-// UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore
-func (b *Backfill) UpdateSymbols() {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIdentifiers() {
 		// call a Xignite API to get the historical data
@@ -49,37 +43,6 @@ func (b *Backfill) UpdateSymbols() {
 
 		// write the data to marketstore
 		err = b.writer.Write(resp)
-		if err != nil {
-			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore. identifier=%v", identifier))
-		}
-
-		log.Info("backfilling the historical daily chart data... identifier=%s", identifier)
-	}
-
-	log.Info("Data backfill is successfully done.")
-}
-
-// UpdateIndexSymbols aggregates daily chart data of index symbols
-// since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore
-func (b *Backfill) UpdateIndexSymbols() {
-	endDate := time.Now().UTC()
-	for _, identifier := range b.symbolManager.GetAllIndexIdentifiers() {
-		// call a Xignite API to get the historical data
-		resp, err := b.apiClient.GetIndexQuotesRange(identifier, b.since, endDate)
-
-		if err != nil {
-			// The RequestError is returned when the symbol doesn't have any quotes data
-			// (i.e. the symbol has not been listed yet)
-			if resp.Outcome == "RequestError" {
-				log.Info(fmt.Sprintf("failed to get the daily chart data for identifier=%s. Err=%v", identifier, err))
-				continue
-			}
-			log.Error("Xignite API call error. Err=%v, API response=%v", err, resp)
-			return
-		}
-
-		// write the data to marketstore
-		err = b.writer.WriteIndex(resp)
 		if err != nil {
 			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore. identifier=%v", identifier))
 		}
