@@ -23,26 +23,16 @@ const (
 	// ListSymbolsURL is the URL of List Symbols endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols)
 	ListSymbolsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/ListSymbols"
-	// ListIndexSymbolsURL is the URL of List Symbols endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols)
-	// /QUICKEquityRealTime.json/ListSymbols : list symbols for a exchange
-	// /QUICKIndexHistorical.json/ListSymbols : list index symbols for an index group (ex. TOPIX)
-	ListIndexSymbolsURL = XigniteBaseURL + "/QUICKIndexHistorical.json/ListSymbols"
 	// GetQuotesRangeURL is the URL of Get Quotes Range endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityHistorical/Overview/GetQuotesRange)
 	GetQuotesRangeURL = XigniteBaseURL + "/QUICKEquityHistorical.json/GetQuotesRange"
-	// GetIndexQuotesRangeURL is the URL of Get Index Quotes Range endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/GetQuotesRange)
-	GetIndexQuotesRangeURL = XigniteBaseURL + "/QUICKIndexHistorical.json/GetQuotesRange"
 )
 
 // Client calls an endpoint and returns the parsed response
 type Client interface {
 	GetRealTimeQuotes(identifiers []string) (GetQuotesResponse, error)
 	ListSymbols(exchange string) (ListSymbolsResponse, error)
-	ListIndexSymbols(indexGroup string) (ListIndexSymbolsResponse, error)
 	GetQuotesRange(identifier string, startDate, endDate time.Time) (response GetQuotesRangeResponse, err error)
-	GetIndexQuotesRange(identifier string, startDate, endDate time.Time) (response GetIndexQuotesRangeResponse, err error)
 }
 
 // NewDefaultAPIClient initializes Xignite API client with the specified API token and HTTP timeout[sec].
@@ -85,7 +75,7 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 	return response, nil
 }
 
-// ListSymbols calls /QUICKEquityRealTime.json/ListSymbols endpoint of Xignite API with a specified exchange
+// ListSymbols calls ListSymbols endpoint of Xignite API with a specified exchange
 // and returns the parsed API response
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols
 // exchange: XTKS, XNGO, XSAP, XFKA, XJAS, XTAM
@@ -108,30 +98,7 @@ func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsRespon
 	return response, nil
 }
 
-// ListIndexSymbols calls QUICKIndexHistorical.json/ListSymbols endpoint of Xignite API with a specified index group
-// and returns the parsed API response
-// https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols
-// indexGroup: INDXJPX, IND_NIKKEI
-func (c *DefaultClient) ListIndexSymbols(indexGroup string) (response ListIndexSymbolsResponse, err error) {
-	apiURL := ListIndexSymbolsURL + fmt.Sprintf("?_token=%s&GroupName=%s", c.token, indexGroup)
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		return response, errors.Wrap(err, "failed to create an http request.")
-	}
-
-	err = c.execute(req, &response)
-	if err != nil {
-		return response, err
-	}
-
-	if response.Outcome != "Success" {
-		return response, errors.Errorf("error response is returned from Xignite. %v", response)
-	}
-
-	return response, nil
-}
-
-// GetQuotesRange calls QUICKEquityHistorical/GetQuotesRange endpoint of Xignite API with a specified identifier
+// GetQuotesRange calls GetQuotes endpoint of Xignite API with specified identifiers
 //// and returns the parsed API response
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes
 func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate time.Time) (response GetQuotesRangeResponse, err error) {
@@ -145,40 +112,6 @@ func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate tim
 		"EndOfDate":   {fmt.Sprintf("%d/%02d/%02d", endDate.Year(), endDate.Month(), endDate.Day())},
 	}
 	req, err := http.NewRequest("POST", GetQuotesRangeURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return response, errors.Wrap(err, "failed to create an http request.")
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	err = c.execute(req, &response)
-	if err != nil {
-		return response, err
-	}
-
-	if response.Outcome != "Success" {
-		return response, errors.Errorf("error response is returned from Xignite. response=%v"+
-			", identifier=%s", response, identifier)
-	}
-
-	return response, nil
-}
-
-// GetIndexQuotesRange calls QUICKIndexHistorical/GetQuotesRange endpoint with a specified index symbol
-// and returns the parsed API response
-// https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/GetQuotesRange
-// As of 2019-08, the API response model is exactly the same as Get Quotes Range API
-func (c *DefaultClient) GetIndexQuotesRange(identifier string, startDate, endDate time.Time,
-) (response GetIndexQuotesRangeResponse, err error) {
-	form := url.Values{
-		"IdentifierType":   {"Symbol"},
-		"_token":           {c.token},
-		"Identifier":       {identifier},
-		"AdjustmentMethod": {"All"},
-		// "yyyy/mm/dd" format
-		"StartOfDate": {fmt.Sprintf("%d/%02d/%02d", startDate.Year(), startDate.Month(), startDate.Day())},
-		"EndOfDate":   {fmt.Sprintf("%d/%02d/%02d", endDate.Year(), endDate.Month(), endDate.Day())},
-	}
-	req, err := http.NewRequest("POST", GetIndexQuotesRangeURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}

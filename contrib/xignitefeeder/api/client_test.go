@@ -121,23 +121,6 @@ func TestDefaultAPIClient_ListSymbols_Error(t *testing.T) {
 	}
 }
 
-// When Xignite returns Outcome:"SystemError" to ListIndexSymbols API, throw an error
-func TestDefaultAPIClient_ListIndexSymbols_Error(t *testing.T) {
-	// --- given ---
-	SUT := &DefaultClient{
-		// return "Outcome: SystemError" response body
-		httpClient: NewMockClient(t, ListIndexSymbolsResponse{Outcome: "SystemError"}),
-		token:      DummyXigniteToken}
-
-	// --- when ---
-	_, err := SUT.ListIndexSymbols("exampleIndexGroup")
-
-	// --- then ---
-	if err == nil {
-		t.Errorf("An error should be returned when the Outcome is not 'Success' s")
-	}
-}
-
 // When Xignite returns Outcome:"SystemError", throw an error
 func TestDefaultAPIClient_GetQuotesRange_Error(t *testing.T) {
 	// --- given ---

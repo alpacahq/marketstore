@@ -28,19 +28,12 @@ func (mac *MockErrorAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp 
 }
 
 type MockQuotesRangeWriter struct {
-	WriteCount      int
-	WriteIndexCount int
+	WriteCount int
 }
 
 func (mqrw *MockQuotesRangeWriter) Write(quotesRange api.GetQuotesRangeResponse) error {
 	// in order to assert the number of writes in the test
 	mqrw.WriteCount++
-	return nil
-}
-
-func (mqrw *MockQuotesRangeWriter) WriteIndex(quotesRange api.GetIndexQuotesRangeResponse) error {
-	// in order to assert the number of writes in the test
-	mqrw.WriteIndexCount++
 	return nil
 }
 
