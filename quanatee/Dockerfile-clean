@@ -39,4 +39,4 @@ COPY /quanatee/mkts-clean.yml .
 VOLUME /data
 EXPOSE 5993
 
-ENTRYPOINT sed -i "s|<tiingo_api_key>|${TIINGO_API_KEY}|g" mkts-clean.yml && sed -i "s|<intrinio_api_key>|${INTRINIO_API_KEY}|g" mkts-clean.yml && marketstore start --config mkts-clean.yml && /bin/bash
+ENTRYPOINT marketstore start --config mkts-clean.yml && /bin/bash
