@@ -65,7 +65,7 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 		//	continue
 		//}
 
-		cs := q.newColumnSeries(latestDateTime.Unix(), eq.Quote.Ask, eq.Quote.Bid, eq.Quote.Last)
+		cs := q.newColumnSeries(latestDateTime.Unix(), eq)
 		tbk := io.NewTimeBucketKey(eq.Security.Symbol + "/" + q.Timeframe + "/TICK")
 		csm.AddColumnSeries(*tbk, cs)
 	}
@@ -73,12 +73,22 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 	return csm, nil
 }
 
-func (q QuotesWriterImpl) newColumnSeries(epoch int64, ask, bid, last float32) *io.ColumnSeries {
+func (q QuotesWriterImpl) newColumnSeries(epoch int64, eq api.EquityQuote) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{epoch})
-	cs.AddColumn("Ask", []float32{ask})
-	cs.AddColumn("Bid", []float32{bid})
-	cs.AddColumn("Last", []float32{last})
+	cs.AddColumn("Ask", []float32{eq.Quote.Ask})
+	cs.AddColumn("Bid", []float32{eq.Quote.Bid})
+	cs.AddColumn("Last", []float32{eq.Quote.Last})
+	cs.AddColumn("Open", []float32{eq.Quote.Open})
+	cs.AddColumn("High", []float32{eq.Quote.High})
+	cs.AddColumn("Low", []float32{eq.Quote.Low})
+	cs.AddColumn("Close", []float32{eq.Quote.Close})
+	cs.AddColumn("Volume", []int64{eq.Quote.Volume})
+	cs.AddColumn("PreviousClose", []float32{eq.Quote.PreviousClose})
+	cs.AddColumn("ExchangeOfficialClose", []float32{eq.Quote.ExchangeOfficialClose})
+	cs.AddColumn("PreviousExchangeOfficialClose", []float32{eq.Quote.PreviousExchangeOfficialClose})
+	cs.AddColumn("ChangeFromPreviousClose", []float32{eq.Quote.ChangeFromPreviousClose})
+	cs.AddColumn("PercentChangeFromPreviousClose", []float32{eq.Quote.PercentChangeFromPreviousClose})
 	return cs
 }
 
