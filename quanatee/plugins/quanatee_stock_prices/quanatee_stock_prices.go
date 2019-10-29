@@ -232,7 +232,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     apiUrl2 := fmt.Sprintf(
                         "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
                         symbol,
-                        url.QueryEscape(from.AddDate(0, 0, -5).Format("2006-1-2")))
+                        url.QueryEscape(from.AddDate(0, 0, -7).Format("2006-1-2")))
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))

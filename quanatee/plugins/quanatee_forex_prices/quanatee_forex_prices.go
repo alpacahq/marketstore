@@ -58,92 +58,58 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
     
-	resampleFreq := "H1"
+	resampleFreq := "5"
 	switch period.String {
 	case "1Min":
-		resampleFreq = "m1"
+		resampleFreq = "1"
 	case "5Min":
-		resampleFreq = "m5"
+		resampleFreq = "5"
 	case "15Min":
-		resampleFreq = "m15"
+		resampleFreq = "15"
 	case "30Min":
-		resampleFreq = "m30"
-	case "1H":
-		resampleFreq = "H1"
-	case "2H":
-		resampleFreq = "H2"
-	case "4H":
-		resampleFreq = "H4"
-	case "6H":
-		resampleFreq = "H6"
-	case "8H":
-		resampleFreq = "H8"
-	}
-
-	type pairData struct {
-		Symbol         string  `json:"code"`
-		BaseCurrency   string  `json:"base_currency"`
-		QuoteCurrency  string  `json:"quote_currency"`
+		resampleFreq = "30"
 	}
     
 	type priceData struct {
-		Date             string `json:"occurred_at"` // "2017-12-19T00:00:00Z"
-		OpenBid          string `json:"open_bid"`
-		HighBid          string `json:"high_bid"`
-		LowBid           string `json:"low_bid"`
-		CloseBid         string `json:"close_bid"`
- 		OpenAsk          string `json:"open_ask"`
-		HighAsk          string `json:"high_ask"`
-		LowAsk           string `json:"low_ask"`
-		CloseAsk         string `json:"close_ask"`
-		TotalTicks       int64   `json:"total_ticks"`
+        Ticker         string  `json:"T"`
+		Volume         float64 `json:"v"`
+		Open           float64 `json:"o"`
+		High           float64 `json:"h"`
+		Low            float64 `json:"l"`
+		Close          float64 `json:"c"`
+		Timestamp      int64   `json:"t"`
+		Items          int64   `json:"n"`
 	}
     
-	type intrinioData struct {
-		PriceData     []priceData `json:"prices"`
-		PairData      pairData    `json:"pair"`
-		Page          string      `json:"next_page"`
+	type polygonData struct {
+        Symbol          string        `json:"ticker"`
+		Status          string        `json:"status"`
+		Adjusted        bool          `json:"adjusted"`
+		queryCount      int64         `json:"queryCount"`
+		resultsCount    int64         `json:"resultsCount"`
+        PriceData       []priceData   `json:"results"`
 	}
     
-	var forexData intrinioData
-    
-    supported_symbols := []string{"AUDCAD", "AUDCHF", "AUDJPY", "AUDNZD", "AUDUSD",
-        "CADCHF", "CADJPY", "CHFJPY", "EURAUD", "EURCAD",
-        "EURCHF", "EURGBP", "EURJPY", "EURNOK", "EURNZD",
-        "EURSEK", "EURTRY", "EURUSD", "GBPAUD", "GBPCAD",
-        "GBPCHF", "GBPJPY", "GBPNZD", "GBPUSD", "NZDCAD",
-        "NZDCHF", "NZDJPY", "NZDUSD", "TRYJPY", "USDCAD",
-        "USDCHF", "USDCNH", "USDHKD", "USDJPY", "USDMXN",
-        "USDNOK", "USDSEK", "USDTRY", "USDZAR", "ZARJPY"}
-
-    supported := false
-
-    for _, supported_symbol := range supported_symbols {
-        if strings.Contains(symbol, supported_symbol) {
-            supported = true
-        }
-    }
-    if !supported {
- 		return NewQuote(symbol, 0), errors.New("Unsupported symbol")
-    }
-
+    var forexData polygonData
+    // https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/minute/2019-01-01/2019-02-01?unadjusted=true&apiKey=
     apiUrl := fmt.Sprintf(
-                        "https://api-v2.intrinio.com/forex/prices/%s/%s?api_key=%s&start_date=%s&start_time=%s",
+                        "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
                         symbol,
                         resampleFreq,
-                        token,
-                        url.QueryEscape(from.Add(-period.Duration).Format("2006-01-02")),
-                        url.QueryEscape(from.Add(-period.Duration).Format("15:04:05")))
+                        url.QueryEscape(to.Format("2006-01-02")),
+                        url.QueryEscape(from.Format("2006-01-02")),
+                        token)
     
     if !realTime {
-        apiUrl = apiUrl + "&end_date=" + url.QueryEscape(to.Format("2006-01-02")) + "&end_time=" + url.QueryEscape(to.Format("15:04:05"))
+        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+    } else {
     }
-    
+
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", apiUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
     
     // Try again if fail
@@ -153,7 +119,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     }
     
 	if err != nil {
-		log.Warn("Forex: Intrinio symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Forex: Polygon symbol '%s' error: %s \n %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -161,7 +127,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Warn(": Intrinio symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn(": Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -171,7 +137,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
             ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
-            log.Warn("Forex: Intrinio symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
+            log.Warn("Forex: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -183,35 +149,25 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt, _ := time.Parse(time.RFC3339, forexData.PriceData[bar].Date)        
-        // Only add data that falls into Forex trading hours
+        dt := time.Unix(0, forexData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds    
+        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( calendar.IsWorkday(dt.UTC()) && 
            (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
-            // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
                     startOfSlice = bar
                 }
                 endOfSlice = bar
                 quote.Epoch[bar] = dt.UTC().Unix()
-                open_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenBid, 64) 
-                open_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].OpenAsk, 64)
-                high_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].HighBid, 64) 
-                high_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].HighAsk, 64)
-                low_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].LowBid, 64) 
-                low_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].LowAsk, 64)
-                close_bid, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseBid, 64) 
-                close_ask, _ := strconv.ParseFloat(forexData.PriceData[bar].CloseAsk, 64)
-                
-                quote.Open[bar] = (open_bid + open_ask) / 2
-                quote.High[bar] = (high_bid + high_ask) / 2
-                quote.Low[bar] = (low_bid + low_ask) / 2
-                quote.Close[bar] = (close_bid + close_ask) / 2
-                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-                quote.Volume[bar] = float64(forexData.PriceData[bar].TotalTicks)
+                quote.Open[bar] = forexData[bar].Open
+                quote.High[bar] = forexData[bar].High
+                quote.Low[bar] = forexData[bar].Low
+                quote.Close[bar] = forexData[bar].Close
+                quote.HLC[bar] = (forexData[bar].High + forexData[bar].Low + forexData[bar].Close)/3
+                quote.Volume[bar] = 1.0
             }
         }
 	}
@@ -227,7 +183,8 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
     } else {
         quote = NewQuote(symbol, 0)
     }
-    
+    /*
+    // DEPRECATED BUT KEPT FOR REFERENCE
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
     for i, j := 0, len(quote.Epoch)-1; i < j; i, j = i+1, j-1 {
         quote.Epoch[i], quote.Epoch[j] = quote.Epoch[j], quote.Epoch[i]
@@ -238,6 +195,7 @@ func GetIntrinioPrices(symbol string, from, to, last time.Time, realTime bool, p
         quote.HLC[i], quote.HLC[j] = quote.HLC[j], quote.HLC[i]
         quote.Volume[i], quote.Volume[j] = quote.Volume[j], quote.Volume[i]
     }
+    */
 
 	return quote, nil
 }
@@ -254,16 +212,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		resampleFreq = "15min"
 	case "30Min":
 		resampleFreq = "30min"
-	case "1H":
-		resampleFreq = "1hour"
-	case "2H":
-		resampleFreq = "2hour"
-	case "4H":
-		resampleFreq = "4hour"
-	case "6H":
-		resampleFreq = "6hour"
-	case "8H":
-		resampleFreq = "8hour"
 	}
 
 	type priceData struct {
@@ -371,7 +319,7 @@ type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
     Indices        map[string][]string `yaml:"indices"`
     ApiKey         string   `yaml:"api_key"`
-    //ApiKey2        string   `yaml:"api_key2"`
+    ApiKey2        string   `yaml:"api_key2"`
 	QueryStart     string   `yaml:"query_start"`
 	BaseTimeframe  string   `yaml:"base_timeframe"`
 }
@@ -382,7 +330,7 @@ type ForexFetcher struct {
 	symbols        []string
 	indices        map[string][]string
     apiKey         string
-    //apiKey2        string
+    apiKey2        string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
@@ -508,7 +456,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		symbols:        symbols,
 		indices:        indices,
         apiKey:         config.ApiKey,
-        //apiKey2:        config.ApiKey2,
+        apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
 	}, nil
@@ -612,31 +560,26 @@ func (tiifx *ForexFetcher) Run() {
         for _, symbol := range symbols {
             time.Sleep(10 * time.Millisecond)
             time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
-            tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)        
-            // Removed Intrinio as a data source
+            tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
+            polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
-            quote = tiingoQuote
-            dataProvider = "Tiingo"
-            /*
-            intrinioQuote, _ := GetIntrinioPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
-            quote := NewQuote(symbol, 0)
-            if len(tiingoQuote.Epoch) > 0 && len(intrinioQuote.Epoch) > 0 {
-                quote = intrinioQuote
+            if len(tiingoQuote.Epoch) > 0 && len(polygonQuote.Epoch) > 0 {
+                quote = polygonQuote
                 numrows := len(tiingoQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
                     matchedEpochs := false
                     matchedBar    := bar
                     // First Test
-                    if len(intrinioQuote.Epoch) > bar {
-                        if tiingoQuote.Epoch[bar] == intrinioQuote.Epoch[bar] {
-                            // Shallow Iteration on tiingoQuote matches with intrinioQuote
+                    if len(polygonQuote.Epoch) > bar {
+                        if tiingoQuote.Epoch[bar] == polygonQuote.Epoch[bar] {
+                            // Shallow Iteration on tiingoQuote matches with polygonQuote
                             matchedEpochs = true
                             matchedBar = bar
                         }
                     }
                     // Second Test
                     if !matchedEpochs {
-                        // Nested Iteration on intrinioQuote to match tiingoQuote with intrinioQuote
+                        // Nested Iteration on polygonQuote to match tiingoQuote with polygonQuote
                         numrows2 := len(quote.Epoch)
                         for bar2 := 0; bar2 < numrows2; bar2++ {
                             if tiingoQuote.Epoch[bar] == quote.Epoch[bar2] {
@@ -647,7 +590,7 @@ func (tiifx *ForexFetcher) Run() {
                         }
                     }
                     if !matchedEpochs {
-                        // If no Epochs were matched, it means tiingoQuote contains Epoch that intrinioQuote does not have
+                        // If no Epochs were matched, it means tiingoQuote contains Epoch that polygonQuote does not have
                         quote.Epoch = append(quote.Epoch, tiingoQuote.Epoch[bar])
                         quote.Open = append(quote.Open, tiingoQuote.Open[bar])
                         quote.High = append(quote.High, tiingoQuote.High[bar])
@@ -658,26 +601,26 @@ func (tiifx *ForexFetcher) Run() {
                     } else {
                         // Calculate the market capitalization
                         tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
-                        intrinioQuoteCap := new(big.Float).Mul(big.NewFloat(intrinioQuote.HLC[matchedBar]), big.NewFloat(intrinioQuote.Volume[matchedBar]))
-                        totalCap := new(big.Float).Add(tiingoQuoteCap, intrinioQuoteCap)
+                        polygonQuoteCap := new(big.Float).Mul(big.NewFloat(polygonQuote.HLC[matchedBar]), big.NewFloat(polygonQuote.Volume[matchedBar]))
+                        totalCap := new(big.Float).Add(tiingoQuoteCap, polygonQuoteCap)
                         // Calculate the weighted averages
                         tiingoQuoteWeight := new(big.Float).Quo(tiingoQuoteCap, totalCap)
-                        intrinioQuoteWeight := new(big.Float).Quo(intrinioQuoteCap, totalCap)
+                        polygonQuoteWeight := new(big.Float).Quo(polygonQuoteCap, totalCap)
                         
                         weightedOpen := new(big.Float).Mul(big.NewFloat(tiingoQuote.Open[bar]), tiingoQuoteWeight)
-                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(intrinioQuote.Open[matchedBar]), intrinioQuoteWeight))
+                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(polygonQuote.Open[matchedBar]), polygonQuoteWeight))
                         
                         weightedHigh := new(big.Float).Mul(big.NewFloat(tiingoQuote.High[bar]), tiingoQuoteWeight)
-                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(intrinioQuote.High[matchedBar]), intrinioQuoteWeight))
+                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(polygonQuote.High[matchedBar]), polygonQuoteWeight))
                         
                         weightedLow := new(big.Float).Mul(big.NewFloat(tiingoQuote.Low[bar]), tiingoQuoteWeight)
-                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(intrinioQuote.Low[matchedBar]), intrinioQuoteWeight))
+                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(polygonQuote.Low[matchedBar]), polygonQuoteWeight))
                         
                         weightedClose := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), tiingoQuoteWeight)
-                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(intrinioQuote.Close[matchedBar]), intrinioQuoteWeight))
+                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(polygonQuote.Close[matchedBar]), polygonQuoteWeight))
                         
                         weightedHLC := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), tiingoQuoteWeight)
-                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(intrinioQuote.HLC[matchedBar]), intrinioQuoteWeight))
+                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(polygonQuote.HLC[matchedBar]), polygonQuoteWeight))
                         
                         quote.Open[matchedBar], _ = weightedOpen.Float64()
                         quote.High[matchedBar], _ = weightedHigh.Float64()
@@ -688,19 +631,18 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
                 dataProvider = "Aggregation"
+            } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
+                quote = polygonQuote
+                dataProvider = "Polygon"
             } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
-            } else if len(intrinioQuote.Epoch) > 0 && intrinioQuote.Epoch[0] > 0 && intrinioQuote.Epoch[len(intrinioQuote.Epoch)-1] > 0 {
-                // Only one quote is valid
-                quote = intrinioQuote
-                dataProvider = "Intrinio"
             } else {
                 dataProvider = "None"
                 continue
             }
-            */
             
             if err != nil {
                 log.Info("Forex: %s returned error %s \n", quote.Symbol, err)

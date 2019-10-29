@@ -34,24 +34,32 @@ bgworkers:
   - module: quanatee_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
+      api_key2: "<polygon_api_key>"
       symbols:
-        - EURUSD
-        - USDJPY
-        - GBPUSD
-        - AUDUSD
-        - USDCHF
-        - NZDUSD
         - USDCAD
-        - USDCNH
-        - USDHKD
-        - USDINR
-        - USDRUB
-        - USDZAR
         - USDMXN
-        - USDTRY
+        - USDBRL
+        - EURUSD
+        - GBPUSD
+        - USDCHF
+        - USDDKK
         - USDNOK
         - USDSEK
+        - USDRUB
+        - USDTRY
+        - USDAED
+        - USDCNH
+        - USDINR
+        - KRWUSD
+        - USDJPY
+        - TWDUSD
+        - USDHKD
+        - THBUSD
+        - VNDUSD
+        - PHPUSD
         - USDSGD
+        - AUDUSD
+        - NZDUSD
         - XAGUSD
         - XAUUSD
       query_start: "2019-06-01 00:00"

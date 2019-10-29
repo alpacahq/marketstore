@@ -67,16 +67,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		resampleFreq = "15min"
 	case "30Min":
 		resampleFreq = "30min"
-	case "1H":
-		resampleFreq = "1hour"
-	case "2H":
-		resampleFreq = "2hour"
-	case "4H":
-		resampleFreq = "4hour"
-	case "6H":
-		resampleFreq = "6hour"
-	case "8H":
-		resampleFreq = "8hour"
 	}
 
 	type priceData struct {
