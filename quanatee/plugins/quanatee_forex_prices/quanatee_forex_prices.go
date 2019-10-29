@@ -557,7 +557,7 @@ func (tiifx *ForexFetcher) Run() {
                         matchedEpochs := false
                         numrows2 := len(tiingoQuote.Epoch)
                         for bar2 := 0; bar2 < numrows2; bar2++ {
-                            if quote.Epoch[bar] == tiingoQUote.Epoch[bar2] {
+                            if quote.Epoch[bar] == tiingoQuote.Epoch[bar2] {
                                 quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar2]) / 2
                                 quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar2]) / 2
                                 quote.Low[bar] = (quote.Low[bar] + tiingoQuote.Low[bar2]) / 2
