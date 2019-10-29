@@ -552,17 +552,16 @@ func (tiifx *ForexFetcher) Run() {
                     quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
                 }
                 dataProvider = "Even Aggregation"
-            } else if len(tiingoQuote.Epoch) > 0 && len(polygonQuote.Epoch) > 0 {
+            } else if len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0 {
+                quote2 := NewQuote(symbol, 0)
                 if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
                     quote = polygonQuote
-                    quote2 := tiingoQuote
-                    numrows := len(polygonQuote.Epoch)
+                    quote2 = tiingoQuote
                 } else {
                     quote = tiingoQuote
-                    quote2 := polygonQuote
-                    numrows := len(tiingoQuote.Epoch)
+                    quote2 = polygonQuote
                 }
-                for bar := 0; bar < numrows; bar++ {
+                for bar := 0; bar < len(quote.Epoch); bar++ {
                     // Test if they both have the same Epochs in the same bar (position)
                     if len(quote2.Epoch) > bar { // Check if quote2 has enough length first
                         if quote.Epoch[bar] == quote2.Epoch[bar] {
@@ -576,8 +575,7 @@ func (tiifx *ForexFetcher) Run() {
                         }
                     }
                     // Test if they both have the same Epochs, but in different bars
-                    numrows2 := len(quote2.Epoch)
-                    for bar2 := 0; bar2 < numrows2; bar2++ {
+                    for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
                         if quote.Epoch[bar] == quote2.Epoch[bar2] {
                             quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
                             quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2

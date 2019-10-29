@@ -591,17 +591,16 @@ func (tiieq *IEXFetcher) Run() {
                     quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
                 }
                 dataProvider = "Even Aggregation"
-            } else if len(tiingoQuote.Epoch) > 0 && len(tdameritradeQuote.Epoch) > 0 {
+            } else if len(tdameritradeQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0 {
+                quote2 := NewQuote(symbol, 0)
                 if len(tdameritradeQuote.Epoch) > len(tiingoQuote.Epoch) {
                     quote = tdameritradeQuote
-                    quote2 := tiingoQuote
-                    numrows := len(tdameritradeQuote.Epoch)
+                    quote2 = tiingoQuote
                 } else {
                     quote = tiingoQuote
-                    quote2 := tdameritradeQuote
-                    numrows := len(tiingoQuote.Epoch)
+                    quote2 = tdameritradeQuote
                 }
-                for bar := 0; bar < numrows; bar++ {
+                for bar := 0; bar < len(quote.Epoch); bar++ {
                     // Test if they both have the same Epochs in the same bar (position)
                     if len(quote2.Epoch) > bar { // Check if quote2 has enough length first
                         if quote.Epoch[bar] == quote2.Epoch[bar] {
@@ -615,8 +614,7 @@ func (tiieq *IEXFetcher) Run() {
                         }
                     }
                     // Test if they both have the same Epochs, but in different bars
-                    numrows2 := len(quote2.Epoch)
-                    for bar2 := 0; bar2 < numrows2; bar2++ {
+                    for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
                         if quote.Epoch[bar] == quote2.Epoch[bar2] {
                             quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
                             quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
