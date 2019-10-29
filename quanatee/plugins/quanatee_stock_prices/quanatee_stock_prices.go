@@ -580,12 +580,16 @@ func (tiieq *IEXFetcher) Run() {
             tdameritradeQuote, _ := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
             quote := NewQuote(symbol, 0)
             if len(tdameritradeQuote.Epoch) == len(tiingoQuote.Epoch) {
-                quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar]) / 2
-                quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar]) / 2
-                quote.Low[bar] = (quote.Low[bar] + tiingoQuote.Low[bar]) / 2
-                quote.Close[bar] = (quote.Close[bar] + tiingoQuote.Close[bar]) / 2
-                quote.HLC[bar] = (quote.HLC[bar] + tiingoQuote.HLC[bar]) / 2
-                quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
+                quote = tdameritradeQuote
+                numrows := len(tdameritradeQuote.Epoch)
+                for bar := 0; bar < numrows; bar++ {
+                    quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar]) / 2
+                    quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar]) / 2
+                    quote.Low[bar] = (quote.Low[bar] + tiingoQuote.Low[bar]) / 2
+                    quote.Close[bar] = (quote.Close[bar] + tiingoQuote.Close[bar]) / 2
+                    quote.HLC[bar] = (quote.HLC[bar] + tiingoQuote.HLC[bar]) / 2
+                    quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
+                }
                 dataProvider = "Even Aggregation"
             } else if len(tiingoQuote.Epoch) > 0 && len(tdameritradeQuote.Epoch) > 0 {
                 quote = tdameritradeQuote
