@@ -503,7 +503,8 @@ func (tiicc *CryptoFetcher) Run() {
 	var timeEnd time.Time
 	var waitTill time.Time
 	firstLoop := true
-    
+    dataProvider := "None"
+
 	for {
         
         if firstLoop {
