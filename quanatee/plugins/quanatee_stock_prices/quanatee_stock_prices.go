@@ -73,10 +73,10 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	}
 
 	type priceData struct {
-		Date           int64   `json:"datetime"` // "1567594800000"
+		Timestamp      int64   `json:"datetime"` // "1567594800000"
 		Open           float64 `json:"open"`
-		Low            float64 `json:"low"`
 		High           float64 `json:"high"`
+		Low            float64 `json:"low"`
 		Close          float64 `json:"close"`
 		Volume         int64   `json:"volume"`
 	}
@@ -94,7 +94,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     }
     
     apiUrl := fmt.Sprintf(
-                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=true&startDate=%s",
+                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=false&startDate=%s",
                         symbol,
                         token,
                         resampleFreq,
@@ -148,15 +148,20 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        epoch := tdaData.PriceData[bar].Date / 1000
+        dt := time.Unix(0, tdaData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 14 ) && ( from.Hour() < 21 ) ) ) {
-            if epoch > last.UTC().Unix() && epoch >= from.UTC().Unix() && epoch <= to.UTC().Unix() {
+        if ( calendar.IsWorkday(from) && 
+        ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && 
+        ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 14 ) && 
+        ( from.Hour() < 21 ) ) ) {
+            if ( ( dt.UTC().Unix() > last.UTC().Unix() ) && 
+            ( dt.UTC().Unix() >= from.UTC().Unix() ) && 
+            ( dt.UTC().Unix() <= to.UTC().Unix() ) ) {
                 if startOfSlice == -1 {
                     startOfSlice = bar
                 }
                 endOfSlice = bar
-                quote.Epoch[bar] = epoch
+                quote.Epoch[bar] = dt.UTC().Unix()
                 quote.Open[bar] = tdaData.PriceData[bar].Open
                 quote.High[bar] = tdaData.PriceData[bar].High
                 quote.Low[bar] = tdaData.PriceData[bar].Low
