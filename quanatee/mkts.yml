@@ -22,6 +22,7 @@ bgworkers:
   - module: quanatee_crypto_prices.so
     config:
       api_key: "<tiingo_api_key>"
+      api_key2: "<polygon_api_key>"
       symbols:
         - BTCUSD
         - ETHUSD
