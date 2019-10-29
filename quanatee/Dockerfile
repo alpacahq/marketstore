@@ -39,4 +39,4 @@ COPY /quanatee/mkts.yml .
 VOLUME /data
 EXPOSE 5993
 
-ENTRYPOINT sed -i "s|<tiingo_api_key>|${TIINGO_API_KEY}|g" mkts.yml && sed -i "s|<intrinio_api_key>|${INTRINIO_API_KEY}|g" mkts.yml && sed -i "s|<tdameritrade_api_key>|${TDAMERITRADE_API_KEY}|g" mkts.yml && marketstore start --config mkts.yml && /bin/bash
+ENTRYPOINT sed -i "s|<tiingo_api_key>|${TIINGO_API_KEY}|g" mkts.yml && sed -i "s|<polygon_api_key>|${POLYGON_API_KEY}|g" mkts.yml && sed -i "s|<tdameritrade_api_key>|${TDAMERITRADE_API_KEY}|g" mkts.yml && marketstore start --config mkts.yml && /bin/bash
