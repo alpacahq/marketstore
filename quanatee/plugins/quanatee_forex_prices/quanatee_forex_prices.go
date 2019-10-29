@@ -102,11 +102,6 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         url.QueryEscape(from.Format("2006-01-02")),
                         token)
     
-    if !realTime {
-        apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-    } else {
-    }
-
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", apiUrl, nil)
 	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
