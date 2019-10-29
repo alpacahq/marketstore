@@ -162,7 +162,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                 quote.Low[bar] = forexData.PriceData[bar].Low
                 quote.Close[bar] = forexData.PriceData[bar].Close
                 quote.HLC[bar] = (forexData.PriceData[bar].High + forexData.PriceData[bar].Low + forexData.PriceData[bar].Close)/3
-                quote.Volume[bar] = 1.0
+                quote.Volume[bar] = forexData.PriceData[bar].Volume
             }
         }
 	}
@@ -594,35 +594,12 @@ func (tiifx *ForexFetcher) Run() {
                         quote.HLC = append(quote.HLC, tiingoQuote.HLC[bar])
                         quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
                     } else {
-                        // Calculate the market capitalization
-                        tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
-                        polygonQuoteCap := new(big.Float).Mul(big.NewFloat(polygonQuote.HLC[matchedBar]), big.NewFloat(polygonQuote.Volume[matchedBar]))
-                        totalCap := new(big.Float).Add(tiingoQuoteCap, polygonQuoteCap)
-                        // Calculate the weighted averages
-                        tiingoQuoteWeight := new(big.Float).Quo(tiingoQuoteCap, totalCap)
-                        polygonQuoteWeight := new(big.Float).Quo(polygonQuoteCap, totalCap)
-                        
-                        weightedOpen := new(big.Float).Mul(big.NewFloat(tiingoQuote.Open[bar]), tiingoQuoteWeight)
-                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(polygonQuote.Open[matchedBar]), polygonQuoteWeight))
-                        
-                        weightedHigh := new(big.Float).Mul(big.NewFloat(tiingoQuote.High[bar]), tiingoQuoteWeight)
-                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(polygonQuote.High[matchedBar]), polygonQuoteWeight))
-                        
-                        weightedLow := new(big.Float).Mul(big.NewFloat(tiingoQuote.Low[bar]), tiingoQuoteWeight)
-                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(polygonQuote.Low[matchedBar]), polygonQuoteWeight))
-                        
-                        weightedClose := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), tiingoQuoteWeight)
-                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(polygonQuote.Close[matchedBar]), polygonQuoteWeight))
-                        
-                        weightedHLC := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), tiingoQuoteWeight)
-                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(polygonQuote.HLC[matchedBar]), polygonQuoteWeight))
-                        
-                        quote.Open[matchedBar], _ = weightedOpen.Float64()
-                        quote.High[matchedBar], _ = weightedHigh.Float64()
-                        quote.Low[matchedBar], _ = weightedLow.Float64()
-                        quote.Close[matchedBar], _ = weightedClose.Float64()
-                        quote.HLC[matchedBar], _ = weightedHLC.Float64()
-                        quote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
+                        quote.Open[matchedBar] = (quote.Open[matchedBar] + tiingoQuote.Open[matchedBar]) / 2
+                        quote.High[matchedBar] = (quote.High[matchedBar] + tiingoQuote.High[matchedBar]) / 2
+                        quote.Low[matchedBar] = (quote.Low[matchedBar] + tiingoQuote.Low[matchedBar]) / 2
+                        quote.Close[matchedBar] = (quote.Close[matchedBar] + tiingoQuote.CLose[matchedBar]) / 2
+                        quote.HLC[matchedBar] = (quote.HLC[matchedBar] + tiingoQuote.HLC[matchedBar]) / 2
+                        quote.Volume[matchedBar] = (quote.Volume[matchedBar] + tiingoQuote.Volume[matchedBar])
                     }
                 }
                 dataProvider = "Aggregation"

@@ -359,7 +359,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 
 type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
-    Indices        map[string][]string `yaml:"indices"`
     ApiKey         string    `yaml:"api_key"`
     ApiKey2        string    `yaml:"api_key2"`
 	QueryStart     string    `yaml:"query_start"`
@@ -370,7 +369,6 @@ type FetcherConfig struct {
 type IEXFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
-	indices        map[string][]string
     apiKey         string
     apiKey2        string
 	queryStart     time.Time
@@ -467,7 +465,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	var queryStart time.Time
 	timeframeStr := "1Min"
 	var symbols []string
-	var indices map[string][]string
 
 	if config.BaseTimeframe != "" {
 		timeframeStr = config.BaseTimeframe
@@ -479,24 +476,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
-	} else {
-        for _, value := range config.Indices {
-            for _, symbol := range value {
-                if !strings.Contains(symbol, "-") {
-                    symbols = append(symbols, symbol)
-                }
-            }
-        }
-    }
-    
-	if len(config.Indices) > 0 {
-		indices = config.Indices
 	}
     
 	return &IEXFetcher{
 		config:         conf,
 		symbols:        symbols,
-		indices:        indices,
         apiKey:         config.ApiKey,
         apiKey2:        config.ApiKey2,
 		queryStart:     queryStart,
@@ -633,35 +617,12 @@ func (tiieq *IEXFetcher) Run() {
                         quote.HLC = append(quote.HLC, tiingoQuote.HLC[bar])
                         quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
                     } else {
-                        // Calculate the market capitalization
-                        tiingoQuoteCap := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), big.NewFloat(tiingoQuote.Volume[bar]))
-                        tdameritradeQuoteCap := new(big.Float).Mul(big.NewFloat(tdameritradeQuote.HLC[matchedBar]), big.NewFloat(tdameritradeQuote.Volume[matchedBar]))
-                        totalCap := new(big.Float).Add(tiingoQuoteCap, tdameritradeQuoteCap)
-                        // Calculate the weighted averages
-                        tiingoQuoteWeight := new(big.Float).Quo(tiingoQuoteCap, totalCap)
-                        tdameritradeQuoteWeight := new(big.Float).Quo(tdameritradeQuoteCap, totalCap)
-                        
-                        weightedOpen := new(big.Float).Mul(big.NewFloat(tiingoQuote.Open[bar]), tiingoQuoteWeight)
-                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Open[matchedBar]), tdameritradeQuoteWeight))
-                        
-                        weightedHigh := new(big.Float).Mul(big.NewFloat(tiingoQuote.High[bar]), tiingoQuoteWeight)
-                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.High[matchedBar]), tdameritradeQuoteWeight))
-                        
-                        weightedLow := new(big.Float).Mul(big.NewFloat(tiingoQuote.Low[bar]), tiingoQuoteWeight)
-                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Low[matchedBar]), tdameritradeQuoteWeight))
-                        
-                        weightedClose := new(big.Float).Mul(big.NewFloat(tiingoQuote.Close[bar]), tiingoQuoteWeight)
-                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.Close[matchedBar]), tdameritradeQuoteWeight))
-                        
-                        weightedHLC := new(big.Float).Mul(big.NewFloat(tiingoQuote.HLC[bar]), tiingoQuoteWeight)
-                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(tdameritradeQuote.HLC[matchedBar]), tdameritradeQuoteWeight))
-                        
-                        quote.Open[matchedBar], _ = weightedOpen.Float64()
-                        quote.High[matchedBar], _ = weightedHigh.Float64()
-                        quote.Low[matchedBar], _ = weightedLow.Float64()
-                        quote.Close[matchedBar], _ = weightedClose.Float64()
-                        quote.HLC[matchedBar], _ = weightedHLC.Float64()
-                        quote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
+                        quote.Open[matchedBar] = (quote.Open[matchedBar] + tiingoQuote.Open[matchedBar]) / 2
+                        quote.High[matchedBar] = (quote.High[matchedBar] + tiingoQuote.High[matchedBar]) / 2
+                        quote.Low[matchedBar] = (quote.Low[matchedBar] + tiingoQuote.Low[matchedBar]) / 2
+                        quote.Close[matchedBar] = (quote.Close[matchedBar] + tiingoQuote.CLose[matchedBar]) / 2
+                        quote.HLC[matchedBar] = (quote.HLC[matchedBar] + tiingoQuote.HLC[matchedBar]) / 2
+                        quote.Volume[matchedBar] = (quote.Volume[matchedBar] + tiingoQuote.Volume[matchedBar])
                     }
                 }
                 dataProvider = "Aggregation"
@@ -704,275 +665,6 @@ func (tiieq *IEXFetcher) Run() {
             quotes = append(quotes, quote)
         }
         
-        // Create indexes from collected symbols
-        aggQuotes := Quotes{}
-        for key, value := range tiieq.indices {
-            aggQuote := NewQuote(key, 0)
-            for _, quote := range quotes {
-                for _, symbol := range value {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(aggQuote.Epoch) == 0 && len(quote.Epoch) > 0 {
-                                aggQuote.Epoch = quote.Epoch
-                                aggQuote.Open = quote.Open
-                                aggQuote.High = quote.High
-                                aggQuote.Low = quote.Low
-                                aggQuote.Close = quote.Close
-                                aggQuote.HLC = quote.HLC
-                                aggQuote.Volume = quote.Volume
-                            } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
-                                // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
-                                numrows := len(aggQuote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    // Calculate the market capitalization
-                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
-                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), big.NewFloat(aggQuote.Volume[bar]))
-                                    totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
-                                    // Calculate the weighted averages
-                                    quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
-                                    aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
-                                    
-                                    weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
-                                    weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight))
-                                    
-                                    weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
-                                    weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight))
-                                    
-                                    weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
-                                    weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight))
-                                    
-                                    weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
-                                    weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
-                                    
-                                    weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
-                                    weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), aggQuoteWeight))
-
-                                    aggQuote.Open[bar], _ = weightedOpen.Float64()
-                                    aggQuote.High[bar], _ = weightedHigh.Float64()
-                                    aggQuote.Low[bar], _ = weightedLow.Float64()
-                                    aggQuote.Close[bar], _ = weightedClose.Float64()
-                                    aggQuote.HLC[bar], _ = weightedHLC.Float64()
-                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
-                                }
-                            } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
-                                // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
-                                numrows := len(quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    matchedEpochs := false
-                                    matchedBar    := bar
-                                    // First Test
-                                    if len(aggQuote.Epoch) > bar {
-                                        if quote.Epoch[bar] == aggQuote.Epoch[bar] {
-                                            // Shallow Iteration on quote matches with aggQuote
-                                            matchedEpochs = true
-                                            matchedBar = bar
-                                        }
-                                    }
-                                    // Second Test
-                                    if !matchedEpochs {
-                                        // Nested Iteration on aggQuote to match quote with aggQuote
-                                        numrows2 := len(aggQuote.Epoch)
-                                        for bar2 := 0; bar2 < numrows2; bar2++ {
-                                            if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
-                                                matchedEpochs = true
-                                                matchedBar = bar2
-                                                break
-                                            }
-                                        }
-                                    }
-                                    if !matchedEpochs {
-                                        // If no Epochs were matched, it means quote contains Epoch that aggQuote does not have
-                                        aggQuote.Epoch = append(aggQuote.Epoch, quote.Epoch[bar])
-                                        aggQuote.Open = append(aggQuote.Open, quote.Open[bar])
-                                        aggQuote.High = append(aggQuote.High, quote.High[bar])
-                                        aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
-                                        aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
-                                        aggQuote.HLC = append(aggQuote.HLC, quote.HLC[bar])
-                                        aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
-                                    } else {
-                                        // Calculate the market capitalization
-                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
-                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
-                                        totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
-                                        // Calculate the weighted averages
-                                        quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
-                                        aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
-                                        
-                                        weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
-                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
-                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
-                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
-                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
-                                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), aggQuoteWeight))
-                                        
-                                        aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
-                                        aggQuote.High[matchedBar], _ = weightedHigh.Float64()
-                                        aggQuote.Low[matchedBar], _ = weightedLow.Float64()
-                                        aggQuote.Close[matchedBar], _ = weightedClose.Float64()
-                                        aggQuote.HLC[matchedBar], _ = weightedHLC.Float64()
-                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(aggQuote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, aggQuote)
-            }
-        }
-        
-        // Create indexes from created indexes
-        for key, value := range tiieq.indices {
-            aggQuote := NewQuote(key, 0)
-            for _, quote := range aggQuotes {
-                for _, symbol := range value {
-                    if quote.Symbol == symbol {
-                        if len(quote.Epoch) > 0 {
-                            if len(aggQuote.Epoch) == 0 && len(quote.Epoch) > 0 {
-                                aggQuote.Epoch = quote.Epoch
-                                aggQuote.Open = quote.Open
-                                aggQuote.High = quote.High
-                                aggQuote.Low = quote.Low
-                                aggQuote.Close = quote.Close
-                                aggQuote.HLC = quote.HLC
-                                aggQuote.Volume = quote.Volume
-                            } else if len(aggQuote.Epoch) == len(quote.Epoch) && aggQuote.Epoch[0] == quote.Epoch[0] && aggQuote.Epoch[len(aggQuote.Epoch)-1] == quote.Epoch[len(quote.Epoch)-1] {
-                                // aggQuote (Index) and quote (new symbol to be added) matches in row length and start/end points
-                                numrows := len(aggQuote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    // Calculate the market capitalization
-                                    quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
-                                    aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), big.NewFloat(aggQuote.Volume[bar]))
-                                    totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
-                                    // Calculate the weighted averages
-                                    quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
-                                    aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
-                                    
-                                    weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
-                                    weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[bar]), aggQuoteWeight))
-                                    
-                                    weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
-                                    weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[bar]), aggQuoteWeight))
-                                    
-                                    weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
-                                    weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[bar]), aggQuoteWeight))
-                                    
-                                    weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
-                                    weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[bar]), aggQuoteWeight))
-                                    
-                                    weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
-                                    weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[bar]), aggQuoteWeight))
-
-                                    aggQuote.Open[bar], _ = weightedOpen.Float64()
-                                    aggQuote.High[bar], _ = weightedHigh.Float64()
-                                    aggQuote.Low[bar], _ = weightedLow.Float64()
-                                    aggQuote.Close[bar], _ = weightedClose.Float64()
-                                    aggQuote.HLC[bar], _ = weightedHLC.Float64()
-                                    aggQuote.Volume[bar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
-                                }
-                            } else if len(aggQuote.Epoch) > 0 && len(quote.Epoch) > 0 {
-                                // aggQuote (Index) and quote (new symbol to be added) does not match in row length or start/end points
-                                numrows := len(quote.Epoch)
-                                for bar := 0; bar < numrows; bar++ {
-                                    matchedEpochs := false
-                                    matchedBar    := bar
-                                    // First Test
-                                    if len(aggQuote.Epoch) > bar {
-                                        if quote.Epoch[bar] == aggQuote.Epoch[bar] {
-                                            // Shallow Iteration on quote matches with aggQuote
-                                            matchedEpochs = true
-                                            matchedBar = bar
-                                        }
-                                    }
-                                    // Second Test
-                                    if !matchedEpochs {
-                                        // Nested Iteration on aggQuote to match quote with aggQuote
-                                        numrows2 := len(aggQuote.Epoch)
-                                        for bar2 := 0; bar2 < numrows2; bar2++ {
-                                            if quote.Epoch[bar] == aggQuote.Epoch[bar2] {
-                                                matchedEpochs = true
-                                                matchedBar = bar2
-                                                break
-                                            }
-                                        }
-                                    }
-                                    if !matchedEpochs {
-                                        // If no Epochs were matched, it means quote contains Epoch that aggQuote does not have
-                                        aggQuote.Epoch = append(aggQuote.Epoch, quote.Epoch[bar])
-                                        aggQuote.Open = append(aggQuote.Open, quote.Open[bar])
-                                        aggQuote.High = append(aggQuote.High, quote.High[bar])
-                                        aggQuote.Low = append(aggQuote.Low, quote.Low[bar])
-                                        aggQuote.Close = append(aggQuote.Close, quote.Close[bar])
-                                        aggQuote.HLC = append(aggQuote.HLC, quote.HLC[bar])
-                                        aggQuote.Volume = append(aggQuote.Volume, quote.Volume[bar])
-                                    } else {
-                                        // Calculate the market capitalization
-                                        quoteCap := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
-                                        aggQuoteCap := new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), big.NewFloat(aggQuote.Volume[matchedBar]))
-                                        totalCap := new(big.Float).Add(quoteCap, aggQuoteCap)
-                                        // Calculate the weighted averages
-                                        quoteWeight := new(big.Float).Quo(quoteCap, totalCap)
-                                        aggQuoteWeight := new(big.Float).Quo(aggQuoteCap, totalCap)
-                                        
-                                        weightedOpen := new(big.Float).Mul(big.NewFloat(quote.Open[bar]), quoteWeight)
-                                        weightedOpen = weightedOpen.Add(weightedOpen, new(big.Float).Mul(big.NewFloat(aggQuote.Open[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedHigh := new(big.Float).Mul(big.NewFloat(quote.High[bar]), quoteWeight)
-                                        weightedHigh = weightedHigh.Add(weightedHigh, new(big.Float).Mul(big.NewFloat(aggQuote.High[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedLow := new(big.Float).Mul(big.NewFloat(quote.Low[bar]), quoteWeight)
-                                        weightedLow = weightedLow.Add(weightedLow, new(big.Float).Mul(big.NewFloat(aggQuote.Low[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedClose := new(big.Float).Mul(big.NewFloat(quote.Close[bar]), quoteWeight)
-                                        weightedClose = weightedClose.Add(weightedClose, new(big.Float).Mul(big.NewFloat(aggQuote.Close[matchedBar]), aggQuoteWeight))
-                                        
-                                        weightedHLC := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), quoteWeight)
-                                        weightedHLC = weightedHLC.Add(weightedHLC, new(big.Float).Mul(big.NewFloat(aggQuote.HLC[matchedBar]), aggQuoteWeight))
-                                        
-                                        aggQuote.Open[matchedBar], _ = weightedOpen.Float64()
-                                        aggQuote.High[matchedBar], _ = weightedHigh.Float64()
-                                        aggQuote.Low[matchedBar], _ = weightedLow.Float64()
-                                        aggQuote.Close[matchedBar], _ = weightedClose.Float64()
-                                        aggQuote.HLC[matchedBar], _ = weightedHLC.Float64()
-                                        aggQuote.Volume[matchedBar], _ = totalCap.Quo(totalCap, weightedHLC).Float64()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if len(aggQuote.Epoch) > 0 {
-                aggQuotes = append(aggQuotes, aggQuote)
-            }
-        }
-        for _, quote := range aggQuotes {
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            cs.AddColumn("HLC", quote.HLC)
-            cs.AddColumn("Volume", quote.Volume)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
-            
-            log.Debug("Stock: %v index row(s) to %s/%s/Price from %v to %v", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC())
-        }
         // Save the latest timestamp written
         if len(quotes) > 0 {
             if len(quotes[0].Epoch) > 0{
