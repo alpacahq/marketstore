@@ -593,7 +593,6 @@ func (tiieq *IEXFetcher) Run() {
                         quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
                     } else {
                         // Test if they both have the same Epochs, but in different bars
-                        matchedEpochs := false
                         numrows2 := len(tiingoQuote.Epoch)
                         for bar2 := 0; bar2 < numrows2; bar2++ {
                             if quote.Epoch[bar] == tiingoQuote.Epoch[bar2] {
@@ -603,7 +602,6 @@ func (tiieq *IEXFetcher) Run() {
                                 quote.Close[bar] = (quote.Close[bar] + tiingoQuote.Close[bar2]) / 2
                                 quote.HLC[bar] = (quote.HLC[bar] + tiingoQuote.HLC[bar2]) / 2
                                 quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar2])
-                                matchedEpochs = true
                                 break
                             }
                         }
