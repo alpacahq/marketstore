@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"net/url"
     "strconv"
-    "strings"
+    //"strings"
 	"time"
     "math/rand"
-    "math/big"
+    //"math/big"
     
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/planner"
@@ -576,8 +576,6 @@ func (tiieq *IEXFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(10 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
             tdameritradeQuote, _ := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
             quote := NewQuote(symbol, 0)
@@ -620,7 +618,7 @@ func (tiieq *IEXFetcher) Run() {
                         quote.Open[matchedBar] = (quote.Open[matchedBar] + tiingoQuote.Open[matchedBar]) / 2
                         quote.High[matchedBar] = (quote.High[matchedBar] + tiingoQuote.High[matchedBar]) / 2
                         quote.Low[matchedBar] = (quote.Low[matchedBar] + tiingoQuote.Low[matchedBar]) / 2
-                        quote.Close[matchedBar] = (quote.Close[matchedBar] + tiingoQuote.CLose[matchedBar]) / 2
+                        quote.Close[matchedBar] = (quote.Close[matchedBar] + tiingoQuote.Close[matchedBar]) / 2
                         quote.HLC[matchedBar] = (quote.HLC[matchedBar] + tiingoQuote.HLC[matchedBar]) / 2
                         quote.Volume[matchedBar] = (quote.Volume[matchedBar] + tiingoQuote.Volume[matchedBar])
                     }

@@ -553,8 +553,6 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            time.Sleep(10 * time.Millisecond)
-            time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
             tiingoQuote, err := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
             polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
@@ -597,7 +595,7 @@ func (tiifx *ForexFetcher) Run() {
                         quote.Open[matchedBar] = (quote.Open[matchedBar] + tiingoQuote.Open[matchedBar]) / 2
                         quote.High[matchedBar] = (quote.High[matchedBar] + tiingoQuote.High[matchedBar]) / 2
                         quote.Low[matchedBar] = (quote.Low[matchedBar] + tiingoQuote.Low[matchedBar]) / 2
-                        quote.Close[matchedBar] = (quote.Close[matchedBar] + tiingoQuote.CLose[matchedBar]) / 2
+                        quote.Close[matchedBar] = (quote.Close[matchedBar] + tiingoQuote.Close[matchedBar]) / 2
                         quote.HLC[matchedBar] = (quote.HLC[matchedBar] + tiingoQuote.HLC[matchedBar]) / 2
                         quote.Volume[matchedBar] = (quote.Volume[matchedBar] + tiingoQuote.Volume[matchedBar])
                     }
