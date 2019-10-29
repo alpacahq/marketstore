@@ -581,46 +581,32 @@ func (tiieq *IEXFetcher) Run() {
             quote := NewQuote(symbol, 0)
             if len(tiingoQuote.Epoch) > 0 && len(tdameritradeQuote.Epoch) > 0 {
                 quote = tdameritradeQuote
-                numrows := len(tiingoQuote.Epoch)
+                numrows := len(tdameritradeQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
-                    matchedEpochs := false
-                    matchedBar    := bar
-                    // First Test
-                    if len(tdameritradeQuote.Epoch) > bar {
-                        if tiingoQuote.Epoch[bar] == tdameritradeQuote.Epoch[bar] {
-                            // Shallow Iteration on tiingoQuote matches with tdameritradeQuote
-                            matchedEpochs = true
-                            matchedBar = bar
-                        }
-                    }
-                    // Second Test
-                    if !matchedEpochs {
-                        // Nested Iteration on tdameritradeQuote to match tiingoQuote with tdameritradeQuote
-                        numrows2 := len(quote.Epoch)
+                    // Test if they both have the same Epochs in the same bar (position)
+                    if quote.Epoch[bar] == tiingoQuote.Epoch[bar] {
+                        quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar]) / 2
+                        quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar]) / 2
+                        quote.Low[bar] = (quote.Low[bar] + tiingoQuote.Low[bar]) / 2
+                        quote.Close[bar] = (quote.Close[bar] + tiingoQuote.Close[bar]) / 2
+                        quote.HLC[bar] = (quote.HLC[bar] + tiingoQuote.HLC[bar]) / 2
+                        quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
+                    } else {
+                        // Test if they both have the same Epochs, but in different bars
+                        matchedEpochs := false
+                        numrows2 := len(tiingoQuote.Epoch)
                         for bar2 := 0; bar2 < numrows2; bar2++ {
-                            if tiingoQuote.Epoch[bar] == quote.Epoch[bar2] {
+                            if quote.Epoch[bar] == tiingoQUote.Epoch[bar2] {
+                                quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar2]) / 2
+                                quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar2]) / 2
+                                quote.Low[bar] = (quote.Low[bar] + tiingoQuote.Low[bar2]) / 2
+                                quote.Close[bar] = (quote.Close[bar] + tiingoQuote.Close[bar2]) / 2
+                                quote.HLC[bar] = (quote.HLC[bar] + tiingoQuote.HLC[bar2]) / 2
+                                quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar2])
                                 matchedEpochs = true
-                                matchedBar = bar2
                                 break
                             }
                         }
-                    }
-                    if !matchedEpochs {
-                        // If no Epochs were matched, it means tiingoQuote contains Epoch that tdameritradeQuote does not have
-                        quote.Epoch = append(quote.Epoch, tiingoQuote.Epoch[bar])
-                        quote.Open = append(quote.Open, tiingoQuote.Open[bar])
-                        quote.High = append(quote.High, tiingoQuote.High[bar])
-                        quote.Low = append(quote.Low, tiingoQuote.Low[bar])
-                        quote.Close = append(quote.Close, tiingoQuote.Close[bar])
-                        quote.HLC = append(quote.HLC, tiingoQuote.HLC[bar])
-                        quote.Volume = append(quote.Volume, tiingoQuote.Volume[bar])
-                    } else {
-                        quote.Open[matchedBar] = (quote.Open[matchedBar] + tiingoQuote.Open[matchedBar]) / 2
-                        quote.High[matchedBar] = (quote.High[matchedBar] + tiingoQuote.High[matchedBar]) / 2
-                        quote.Low[matchedBar] = (quote.Low[matchedBar] + tiingoQuote.Low[matchedBar]) / 2
-                        quote.Close[matchedBar] = (quote.Close[matchedBar] + tiingoQuote.Close[matchedBar]) / 2
-                        quote.HLC[matchedBar] = (quote.HLC[matchedBar] + tiingoQuote.HLC[matchedBar]) / 2
-                        quote.Volume[matchedBar] = (quote.Volume[matchedBar] + tiingoQuote.Volume[matchedBar])
                     }
                 }
                 dataProvider = "Aggregation"
