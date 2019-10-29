@@ -94,7 +94,7 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     }
     
     apiUrl := fmt.Sprintf(
-                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=false&startDate=%s",
+                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=true&startDate=%s",
                         symbol,
                         token,
                         resampleFreq,

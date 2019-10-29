@@ -126,7 +126,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 		return NewQuote(symbol, 0), err
 	}
     
-	if len(forexData.PriceData) < 1 {
+	if len(forexData[0].PriceData) < 1 {
         if ( calendar.IsWorkday(from.UTC()) && 
            (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
             ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
@@ -137,14 +137,14 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 		return NewQuote(symbol, 0), err
 	}
     
-	numrows := len(forexData.PriceData)
+	numrows := len(forexData[0].PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt := time.Unix(0, forexData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds    
+        dt := time.Unix(0, forexData[0].PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds    
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( calendar.IsWorkday(dt.UTC()) && 
            (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
@@ -157,11 +157,11 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                 }
                 endOfSlice = bar
                 quote.Epoch[bar] = dt.UTC().Unix()
-                quote.Open[bar] = forexData[bar].Open
-                quote.High[bar] = forexData[bar].High
-                quote.Low[bar] = forexData[bar].Low
-                quote.Close[bar] = forexData[bar].Close
-                quote.HLC[bar] = (forexData[bar].High + forexData[bar].Low + forexData[bar].Close)/3
+                quote.Open[bar] = forexData[0].PriceData[bar].Open
+                quote.High[bar] = forexData[0].PriceData[bar].High
+                quote.Low[bar] = forexData[0].PriceData[bar].Low
+                quote.Close[bar] = forexData[0].PriceData[bar].Close
+                quote.HLC[bar] = (forexData[0].PriceData[bar].High + forexData[0].PriceData[bar].Low + forexData[0].PriceData[bar].Close)/3
                 quote.Volume[bar] = 1.0
             }
         }
