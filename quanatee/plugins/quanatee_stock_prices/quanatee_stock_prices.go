@@ -592,7 +592,7 @@ func (tiieq *IEXFetcher) Run() {
                 numrows := len(tdameritradeQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
                     // Test if they both have the same Epochs in the same bar (position)
-                    if len(tiingoQuote) > bar { // Check if tiingoQuote has enough length first
+                    if len(tiingoQuote.Epoch) > bar { // Check if tiingoQuote has enough length first
                         if quote.Epoch[bar] == tiingoQuote.Epoch[bar] {
                             quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar]) / 2
                             quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar]) / 2
