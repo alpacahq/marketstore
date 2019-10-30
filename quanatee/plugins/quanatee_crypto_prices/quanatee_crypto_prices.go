@@ -96,7 +96,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
                         "X:"+symbol,
                         resampleFreq,
-                        url.QueryEscape(from.Format("2006-01-02")),
+                        url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
                         url.QueryEscape(to.Format("2006-01-02")),
                         token)
     
