@@ -64,7 +64,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		log.Info("starting for IEX production")
 	}
 
-	return &IEXFetcher{
+	 return &IEXFetcher{
 		backfillM:        &sync.Map{},
 		config:           config,
 		queue:            make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
@@ -95,27 +95,27 @@ func (f *IEXFetcher) UpdateSymbolList() {
 
 func (f *IEXFetcher) Run() {
 	// batchify the symbols & queue the batches
-	f.UpdateSymbolList()
-	f.queue = make(chan []string, int(len(f.config.Symbols)/api.BatchSize)+1)
+		f.UpdateSymbolList()
+		f.queue = make(chan []string, int(len(f.config.Symbols)/api.BatchSize)+1)
 
-	log.Info("Launching backfill")
-	go f.workBackfill()
+		log.Info("Launching backfill")
+		go f.workBackfill()
 
-	go func() {
-		for { // loop forever adding batches of symbols to fetch
-			symbols := f.config.Symbols
-			for i := 0; i < len(symbols); i += api.BatchSize {
-				end := i + api.BatchSize
-				if end > len(symbols) {
-					end = len(symbols)
+		go func() {
+			for { // loop forever adding batches of symbols to fetch
+				symbols := f.config.Symbols
+				for i := 0; i < len(symbols); i += api.BatchSize {
+					end := i + api.BatchSize
+					if end > len(symbols) {
+						end = len(symbols)
+					}
+					f.queue <- symbols[i:end]
 				}
-				f.queue <- symbols[i:end]
-			}
 
-			// Put a marker in the queue so the loop can pause til the next minute
-			f.queue <- []string{"__EOL__"}
-		}
-	}()
+				// Put a marker in the queue so the loop can pause til the next minute
+				f.queue <- []string{"__EOL__"}
+			}
+		}()
 
 	runDaily := onceDaily(&f.lastDailyRunDate, 5, 10)
 	start := time.Now()
@@ -136,13 +136,13 @@ func (f *IEXFetcher) Run() {
 
 			delay := time.Minute - end.Sub(start)
 			log.Debug("Sleep for %s", delay.String())
-			<-time.After(delay)
+			<- time.After(delay)
 			start = time.Now()
 		} else {
 			iWorkers <- true
 			go func(wg *sync.WaitGroup) {
 				wg.Add(1)
-				defer wg.Done()
+				defer  wg.Done()
 				defer func() { <-iWorkers }()
 
 				f.pollIntraday(batch)
@@ -191,10 +191,10 @@ func (f *IEXFetcher) pollDaily(symbols []string) {
 		log.Error("failed to query daily bar batch (%v)", err)
 	}
 
-	if err = f.writeBars(resp, false, false); err != nil {
-		log.Error("failed to write daily bar batch (%v)", err)
+		if err = f.writeBars(resp, false, false); err != nil {
+			log.Error("failed to write daily bar batch (%v)", err)
+		}
 	}
-}
 
 func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill bool) error {
 	if resp == nil {
@@ -356,7 +356,7 @@ func (f *IEXFetcher) workBackfill() {
 			// make sure epoch value isn't nil (i.e. hasn't
 			// been backfilled already)
 			if value != nil {
-				log.Info("backfilling [%v|%v]", symbol, timeframe)
+			 log.Info("backfilling [%v|%v]", symbol, timeframe)
 				go func() {
 					count++
 

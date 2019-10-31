@@ -58,7 +58,7 @@ func Load(pluginName string) (pi *plugin.Plugin, err error) {
 			return pi, nil
 		}
 	}
-	log.Debug("failed to load module from GOPATHs. err=" + err.Error())
+	log.Debug("failed to load module from GOPATHs. err="+ err.Error())
 	/*
 		Check the local directory - helpful for testing
 	*/
