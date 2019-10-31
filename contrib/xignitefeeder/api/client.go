@@ -30,6 +30,12 @@ const (
 	ListIndexSymbolsURL = XigniteBaseURL + "/QUICKIndexHistorical.json/ListSymbols"
 	// GetQuotesRangeURL is the URL of Get Quotes Range endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityHistorical/Overview/GetQuotesRange)
+	// GetBarsURL is the URL of Get Bars endpoint
+	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetBars)
+	GetBarsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/GetBars"
+	// GetIndexBarsURL is the URL of QuickIndexRealTime/GetBars endpoint
+	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexRealTime/Overview/GetBars)
+	GetIndexBarsURL   = XigniteBaseURL + "/QUICKIndexRealTime.json/GetBars"
 	GetQuotesRangeURL = XigniteBaseURL + "/QUICKEquityHistorical.json/GetQuotesRange"
 	// GetIndexQuotesRangeURL is the URL of Get Index Quotes Range endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/GetQuotesRange)
@@ -41,6 +47,8 @@ type Client interface {
 	GetRealTimeQuotes(identifiers []string) (GetQuotesResponse, error)
 	ListSymbols(exchange string) (ListSymbolsResponse, error)
 	ListIndexSymbols(indexGroup string) (ListIndexSymbolsResponse, error)
+	GetRealTimeBars(identifier string, start, end time.Time) (response GetBarsResponse, err error)
+	GetIndexBars(identifier string, start, end time.Time) (response GetIndexBarsResponse, err error)
 	GetQuotesRange(identifier string, startDate, endDate time.Time) (response GetQuotesRangeResponse, err error)
 	GetIndexQuotesRange(identifier string, startDate, endDate time.Time) (response GetIndexQuotesRangeResponse, err error)
 }
@@ -127,6 +135,66 @@ func (c *DefaultClient) ListIndexSymbols(indexGroup string) (response ListIndexS
 	if response.Outcome != "Success" {
 		return response, errors.Errorf("error response is returned from Xignite. %v", response)
 	}
+
+	return response, nil
+}
+
+// GetRealTimeBars calls GetBars endpoint of Xignite API with a specified identifier, time period
+// and Precision=FiveMinutes, and returns the parsed API response
+// https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetBars
+func (c *DefaultClient) GetRealTimeBars(identifier string, start, end time.Time) (response GetBarsResponse, err error) {
+	form := url.Values{
+		"IdentifierType":   {"Symbol"},
+		"_token":           {c.token},
+		"Identifier":       {identifier},
+		"StartDateTime":    {start.Format(XigniteDateTimeLayout)},
+		"EndDateTime":      {end.Format(XigniteDateTimeLayout)},
+		"Precision":        {"FiveMinutes"},
+		"AdjustmentMethod": {"All"},
+		"Language":         {"Japanese"},
+	}
+	req, err := http.NewRequest("POST", GetBarsURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return response, errors.Wrap(err, "failed to create an http request.")
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	err = c.execute(req, &response)
+	if err != nil {
+		return response, err
+	}
+
+	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in GetBars response= %f", response.DelaySec))
+
+	return response, nil
+}
+
+// GetIndexBars calls QUICKIndex/GetBars endpoint of Xignite API with a specified identifier, time period
+// and Precision=FiveMinutes, and returns the parsed API response
+// https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexRealTime/Overview/GetBars
+func (c *DefaultClient) GetIndexBars(identifier string, start, end time.Time) (response GetIndexBarsResponse, err error) {
+	form := url.Values{
+		"IdentifierType":   {"Symbol"},
+		"_token":           {c.token},
+		"Identifier":       {identifier},
+		"StartDateTime":    {start.Format(XigniteDateTimeLayout)},
+		"EndDateTime":      {end.Format(XigniteDateTimeLayout)},
+		"Precision":        {"FiveMinutes"},
+		"AdjustmentMethod": {"All"},
+		"Language":         {"Japanese"},
+	}
+	req, err := http.NewRequest("POST", GetIndexBarsURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return response, errors.Wrap(err, "failed to create an http request.")
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	err = c.execute(req, &response)
+	if err != nil {
+		return response, err
+	}
+
+	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in QUICKIndexRealTime/GetBars response= %f", response.DelaySec))
 
 	return response, nil
 }

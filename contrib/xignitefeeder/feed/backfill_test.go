@@ -21,10 +21,18 @@ type MockErrorAPIClient struct {
 func (mac *MockErrorAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
 
 	if i == "XTKS.1301" {
-		return api.GetQuotesRangeResponse{Outcome: "RequestError"}, errors.New("error")
+		return api.GetQuotesRangeResponse{
+			Outcome:              "RequestError",
+			Security:             &api.Security{Symbol: "1301"},
+			ArrayOfEndOfDayQuote: []api.EndOfDayQuote{},
+		}, errors.New("error")
 	}
 
-	return api.GetQuotesRangeResponse{Outcome: "Success"}, nil
+	return api.GetQuotesRangeResponse{
+		Outcome:              "Success",
+		Security:             &api.Security{Symbol: "1301"},
+		ArrayOfEndOfDayQuote: []api.EndOfDayQuote{},
+	}, nil
 }
 
 type MockQuotesRangeWriter struct {
@@ -32,7 +40,7 @@ type MockQuotesRangeWriter struct {
 	WriteIndexCount int
 }
 
-func (mqrw *MockQuotesRangeWriter) Write(quotesRange api.GetQuotesRangeResponse) error {
+func (mqrw *MockQuotesRangeWriter) Write(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool) error {
 	// in order to assert the number of writes in the test
 	mqrw.WriteCount++
 	return nil

@@ -16,6 +16,11 @@ func (m *MockTimeChecker) IsOpen(t time.Time) bool {
 	return true
 }
 
+// Sub always returns the same date as the first argument
+func (m *MockTimeChecker) Sub(t time.Time, d int) (time.Time, error) {
+	return t, nil
+}
+
 // MockQuotesWriter is a no-op QuotesWriter
 type MockQuotesWriter struct {
 	WriteCount int

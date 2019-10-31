@@ -23,7 +23,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // marketstore's config file through bgworker extension.
 type DefaultConfig struct {
 	Exchanges           []string `json:"exchanges"`
-	IndexGroups			[]string `json:"index_groups"`
+	IndexGroups         []string `json:"index_groups"`
 	UpdatingHour        int      `json:"updatingHour"`
 	Timeframe           string   `json:"timeframe"`
 	APIToken            string   `json:"token"`
@@ -38,6 +38,13 @@ type DefaultConfig struct {
 		Since     CustomDay `json:"since"`
 		Timeframe string    `json:"timeframe"`
 	} `json:"backfill"`
+	// for the past X market-open days,
+	// Xignite Feeder can feed 5-minute chart data for the target symbols in addition to daily-chart data backfill.
+	RecentBackfill struct {
+		Enabled   bool   `json:"enabled"`
+		Days      int    `json:"days"`
+		Timeframe string `json:"timeframe"`
+	} `json:"recentBackfill"`
 }
 
 // NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal

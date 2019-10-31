@@ -122,7 +122,35 @@ type Index struct {
 }
 
 // --------------------------
+type GetBarsResponse struct {
+	Outcome    string    `json:"Outcome"`
+	DelaySec   float32   `json:"Delay"`
+	Message    string    `json:"Message"`
+	Security   *Security `json:"Security"`
+	ArrayOfBar []Bar     `json:"ArrayOfBar"`
+}
 
+type Bar struct {
+	StartDateTime XigniteDateTime `json:"StartDateTime,omitempty"`
+	EndDateTime   XigniteDateTime `json:"EndDateTime,omitempty"`
+	UTCOffSet     int             `json:"UTCOffSet"`
+	Open          float32         `json:"Open"`
+	High          float32         `json:"High"`
+	Low           float32         `json:"Low"`
+	Close         float32         `json:"Close"`
+	Volume        float32         `json:"Volume"` // Get Bars API returns a float value for Volume, not int
+}
+
+// --------------------------
+type GetIndexBarsResponse struct {
+	Outcome       string    `json:"Outcome"`
+	DelaySec      float32   `json:"Delay"`
+	Message       string    `json:"Message"`
+	IndexAndGroup *Security `json:"IndexAndGroup"`
+	ArrayOfBar    []Bar     `json:"ArrayOfBar"`
+}
+
+// --------------------------
 // GetQuotesRangeResponse is a response model for the QUICKEquityHistorical/GetQuotesRange endpoint
 type GetQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
