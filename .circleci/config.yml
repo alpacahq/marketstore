@@ -17,7 +17,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: make install test
+      - run: make install unittest
   
   deploy:
     docker:
