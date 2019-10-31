@@ -122,7 +122,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Warn(": Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Forex: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -601,12 +601,8 @@ func (tiifx *ForexFetcher) Run() {
                 continue
             }
             
-            if err != nil {
-                log.Info("Forex: %s returned error %s \n", quote.Symbol, err)
-                continue
-            } else if len(quote.Epoch) < 1 {
+            if len(quote.Epoch) < 1 {
                 // Check if there is data to add
-                log.Info("Forex: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data

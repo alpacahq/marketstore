@@ -58,9 +58,9 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
-
-	resampleFreq := "1"
+func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+    
+	resampleFreq := "5"
 	switch period.String {
 	case "1Min":
 		resampleFreq = "1"
@@ -71,103 +71,98 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
 	case "30Min":
 		resampleFreq = "30"
 	}
-
-	type priceData struct {
-		Timestamp      int64   `json:"datetime"` // "1567594800000"
-		Open           float64 `json:"open"`
-		High           float64 `json:"high"`
-		Low            float64 `json:"low"`
-		Close          float64 `json:"close"`
-		Volume         int64   `json:"volume"`
-	}
-
-	type tdameritradeData struct {
-		Ticker        string      `json:"symbol"`
-		Empty         bool        `json:"empty"`
-		PriceData     []priceData `json:"candles"`
-	}    
-	var tdaData tdameritradeData
-
-    // TD Ameritrade only retains historical intraday data up to 20 days from current date
-    if from.Unix() < time.Now().AddDate(0, 0, -20).Unix() {
- 		return NewQuote(symbol, 0), errors.New("Date requested too far back")
-    }
     
+	type priceData struct {
+        Ticker         string  `json:"T"`
+		Volume         float64 `json:"v"`
+		Open           float64 `json:"o"`
+		High           float64 `json:"h"`
+		Low            float64 `json:"l"`
+		Close          float64 `json:"c"`
+		Timestamp      int64   `json:"t"`
+		Items          int64   `json:"n"`
+	}
+    
+	type polygonData struct {
+        Symbol          string        `json:"ticker"`
+		Status          string        `json:"status"`
+		Adjusted        bool          `json:"adjusted"`
+		queryCount      int64         `json:"queryCount"`
+		resultsCount    int64         `json:"resultsCount"`
+        PriceData       []priceData   `json:"results"`
+	}
+    
+    var forexData polygonData
+    // https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/minute/2019-01-01/2019-02-01?unadjusted=true&apiKey=
     apiUrl := fmt.Sprintf(
-                        "https://api.tdameritrade.com/v1/marketdata/%s/pricehistory?apikey=%s&frequencyType=minute&frequency=%s&needExtendedHoursData=false&startDate=%s",
+                        "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
                         symbol,
-                        token,
                         resampleFreq,
-                        strconv.Itoa(int(from.Unix() * 1000)))
-                        
-    if !realTime {
-        apiUrl = apiUrl + "&endDate=" + strconv.Itoa(int(to.Unix() * 1000))
-    }
+                        url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
+                        url.QueryEscape(to.Format("2006-01-02")),
+                        token)
     
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", apiUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
     
     // Try again if fail
 	if err != nil {
-        time.Sleep(250 * time.Millisecond)
+        time.Sleep(1 * time.Second)    
         resp, err = client.Do(req)
     }
     
 	if err != nil {
-		log.Warn("Stock: TD Ameritrade symbol '%s' error: %s \n %s \n %s", symbol, err, apiUrl)
-        if err != nil {
-            return NewQuote(symbol, 0), err
-        }
+		log.Warn("Forex: Polygon symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(contents, &tdaData)
-    
+	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Warn("Stock: TD Ameritrade symbol '%s' error: %v \n contents: %s", symbol, err, contents)
-        if err != nil {
-            return NewQuote(symbol, 0), err
-        }
+		log.Warn("Forex: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		return NewQuote(symbol, 0), err
 	}
     
-    if len(tdaData.PriceData) < 1 {
-        // NYSE opening time from 13:30 to 21:00
-        if ( calendar.IsWorkday(from) && ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 15 ) && ( from.Hour() < 21 ) ) ) {
-            log.Warn("Stock: TD Ameritrade symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+	if len(forexData.PriceData) < 1 {
+        if ( calendar.IsWorkday(from.UTC()) && 
+           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
+            log.Warn("Forex: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
- 		return NewQuote(symbol, 0), err
+		return NewQuote(symbol, 0), err
 	}
     
-	numrows := len(tdaData.PriceData)
+	numrows := len(forexData.PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt := time.Unix(0, tdaData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds
+        dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds    
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if ( calendar.IsWorkday(from) && 
-        ( int(from.Weekday()) >= 1 && int(from.Weekday()) <= 5 && 
-        ( ( from.Hour() == 13 && from.Minute() >= 30 ) || from.Hour() >= 14 ) && 
-        ( from.Hour() < 21 ) ) ) {
-            if ( ( dt.UTC().Unix() > last.UTC().Unix() ) && 
-            ( dt.UTC().Unix() >= from.UTC().Unix() ) && 
-            ( dt.UTC().Unix() <= to.UTC().Unix() ) ) {
+        if ( calendar.IsWorkday(dt.UTC()) && 
+           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
+            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
                     startOfSlice = bar
                 }
                 endOfSlice = bar
                 quote.Epoch[bar] = dt.UTC().Unix()
-                quote.Open[bar] = tdaData.PriceData[bar].Open
-                quote.High[bar] = tdaData.PriceData[bar].High
-                quote.Low[bar] = tdaData.PriceData[bar].Low
-                quote.Close[bar] = tdaData.PriceData[bar].Close
-                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-                quote.Volume[bar] = float64(tdaData.PriceData[bar].Volume)
+                quote.Open[bar] = forexData.PriceData[bar].Open
+                quote.High[bar] = forexData.PriceData[bar].High
+                quote.Low[bar] = forexData.PriceData[bar].Low
+                quote.Close[bar] = forexData.PriceData[bar].Close
+                quote.HLC[bar] = (forexData.PriceData[bar].High + forexData.PriceData[bar].Low + forexData.PriceData[bar].Close)/3
+                quote.Volume[bar] = forexData.PriceData[bar].Volume
             }
         }
 	}
@@ -183,7 +178,20 @@ func GetTDAmeritradePrices(symbol string, from, to, last time.Time, realTime boo
     } else {
         quote = NewQuote(symbol, 0)
     }
-    
+    /*
+    // DEPRECATED BUT KEPT FOR REFERENCE
+    // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
+    for i, j := 0, len(quote.Epoch)-1; i < j; i, j = i+1, j-1 {
+        quote.Epoch[i], quote.Epoch[j] = quote.Epoch[j], quote.Epoch[i]
+        quote.Open[i], quote.Open[j] = quote.Open[j], quote.Open[i]
+        quote.High[i], quote.High[j] = quote.High[j], quote.High[i]
+        quote.Low[i], quote.Low[j] = quote.Low[j], quote.Low[i]
+        quote.Close[i], quote.Close[j] = quote.Close[j], quote.Close[i]
+        quote.HLC[i], quote.HLC[j] = quote.HLC[j], quote.HLC[i]
+        quote.Volume[i], quote.Volume[j] = quote.Volume[j], quote.Volume[i]
+    }
+    */
+
 	return quote, nil
 }
 
@@ -577,11 +585,11 @@ func (tiieq *IEXFetcher) Run() {
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
-            tdameritradeQuote, _ := GetTDAmeritradePrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
+            polygonQuote, err := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
             quote := NewQuote(symbol, 0)
-            if len(tdameritradeQuote.Epoch) == len(tiingoQuote.Epoch) {
-                quote = tdameritradeQuote
-                numrows := len(tdameritradeQuote.Epoch)
+            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
+                quote = polygonQuote
+                numrows := len(polygonQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
                     quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar]) / 2
                     quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar]) / 2
@@ -591,14 +599,14 @@ func (tiieq *IEXFetcher) Run() {
                     quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
                 }
                 dataProvider = "Even Aggregation"
-            } else if len(tdameritradeQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0 {
+            } else if len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0 {
                 quote2 := NewQuote(symbol, 0)
-                if len(tdameritradeQuote.Epoch) > len(tiingoQuote.Epoch) {
-                    quote = tdameritradeQuote
+                if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
+                    quote = polygonQuote
                     quote2 = tiingoQuote
                 } else {
                     quote = tiingoQuote
-                    quote2 = tdameritradeQuote
+                    quote2 = polygonQuote
                 }
                 for bar := 0; bar < len(quote.Epoch); bar++ {
                     // Test if they both have the same Epochs in the same bar (position)
@@ -627,14 +635,14 @@ func (tiieq *IEXFetcher) Run() {
                     }
                 }
                 dataProvider = "Odd Aggregation"
+            } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
+                quote = polygonQuote
+                dataProvider = "Polygon"
             } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
-            } else if len(tdameritradeQuote.Epoch) > 0 && tdameritradeQuote.Epoch[0] > 0 && tdameritradeQuote.Epoch[len(tdameritradeQuote.Epoch)-1] > 0 {
-                // Only one quote is valid
-                quote = tdameritradeQuote
-                dataProvider = "TD Ameritrade"
             } else {
                 dataProvider = "None"
                 continue

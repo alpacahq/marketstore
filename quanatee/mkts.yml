@@ -68,7 +68,7 @@ bgworkers:
   - module: quanatee_stock_prices.so
     config:
       api_key: "<tiingo_api_key>"
-      api_key2: "<tdameritrade_api_key>"
+      api_key2: "<polygon_api_key>"
       symbols:
         - SPY
         - GLD

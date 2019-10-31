@@ -609,12 +609,8 @@ func (tiicc *CryptoFetcher) Run() {
                 continue
             }
             
-            if err != nil {
-                log.Info("Crypto: %s returned error %s \n", quote.Symbol, err)
-                continue
-            } else if len(quote.Epoch) < 1 {
+            if len(quote.Epoch) < 1 {
                 // Check if there is data to add
-                log.Info("Crypto: %s returned no data between %v and %v \n", quote.Symbol, timeStart, timeEnd)
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
