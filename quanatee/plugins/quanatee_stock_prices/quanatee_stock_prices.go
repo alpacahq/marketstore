@@ -3,12 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-    "errors"
+    // "errors"
 	"math"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-    "strconv"
+    // "strconv"
     //"strings"
 	"time"
     "math/rand"
@@ -585,7 +585,7 @@ func (tiieq *IEXFetcher) Run() {
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
-            polygonQuote, err := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
+            polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
             quote := NewQuote(symbol, 0)
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
                 quote = polygonQuote
