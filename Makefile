@@ -4,8 +4,6 @@ GOFLAGS="-mod=vendor"
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
 UTIL_PATH := github.com/alpacahq/marketstore/utils
 
-all:
-	GOFLAGS=$(GOFLAGS) go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
 debug:
 	$(MAKE) debug -C contrib/ondiskagg
@@ -19,7 +17,8 @@ debug:
 	$(MAKE) debug -C contrib/xignitefeeder
 	GOFLAGS=$(GOFLAGS) go install -gcflags="all=-N -l" -ldflags "-X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
-install: all
+install:
+	GOFLAGS=$(GOFLAGS) go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
 generate:
 	make -C sqlparser
@@ -42,25 +41,45 @@ plugins:
 	$(MAKE) -C contrib/iex
 	$(MAKE) -C contrib/xignitefeeder
 
-unittest: install
+test:
 	GOFLAGS=$(GOFLAGS) go fmt ./...
-	$(MAKE) test
+	$(MAKE) unittest
 	$(MAKE) integration-test
 
-integration-test:
-	$(MAKE) -C tests/integ test
+# ------------ integration test ----------------
 
-test:
+start-marketstore:
+	# the background operator (&) will give us the PID at the command prompt.
+	nohup marketstore start --config tests/integ/bin/mkts.yml & echo $$! > save_pid.txt
+
+stop-marketstore:
+	# stop marketstore process
+	kill `cat save_pid.txt`
+	rm save_pid.txt
+
+integration-test: install
+	make -C tests/integ test_import_csv _get_data
+	exit
+	@echo "Starting a marketstore at localhost..."
+	make start-marketstore
+
+	@echo "Starting a pymarketstore container..."
+	make -C tests/integ/dockerfiles rm build run
+	$(MAKE) -C tests/integ _start_pyclient_container
+
+	$(MAKE) -C tests/integ connect
+#	TEST_FILENAME='/project/tests/$@.py'; \
+#    make -C tests/integ/dockerfiles/pyclient test
+
+	# stop marketstore process
+	make stop-marketstore
+
+
+unittest:
 	GOFLAGS=$(GOFLAGS) go test ./...
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)
-
-runimage:
-	make -C tests/integ run IMAGE_NAME=alpacamarkets/marketstore.test
-
-stopimage:
-	make -C tests/integ clean IMAGE_NAME=alpacamarkets/marketstore.test
 
 push:
 	docker build --build-arg tag=$(DOCKER_TAG) -t alpacamarkets/marketstore:$(DOCKER_TAG) -t alpacamarkets/marketstore:latest .

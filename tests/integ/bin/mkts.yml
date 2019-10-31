@@ -1,4 +1,4 @@
-root_directory: /tmp/data
+root_directory: /project/data/mktsdb
 listen_port: 5993
 polling_interval: 60
 log_level: info
