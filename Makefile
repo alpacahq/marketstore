@@ -42,19 +42,25 @@ plugins:
 	$(MAKE) -C contrib/iex
 	$(MAKE) -C contrib/xignitefeeder
 
-test:
+unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...
-	$(MAKE) unittest
+	$(MAKE) test
 	$(MAKE) integration-test
 
-integration-test: install
+integration-test:
 	$(MAKE) -C tests/integ test
 
-unittest:
+test:
 	GOFLAGS=$(GOFLAGS) go test ./...
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)
+
+runimage:
+	make -C tests/integ run IMAGE_NAME=alpacamarkets/marketstore.test
+
+stopimage:
+	make -C tests/integ clean IMAGE_NAME=alpacamarkets/marketstore.test
 
 push:
 	docker build --build-arg tag=$(DOCKER_TAG) -t alpacamarkets/marketstore:$(DOCKER_TAG) -t alpacamarkets/marketstore:latest .
