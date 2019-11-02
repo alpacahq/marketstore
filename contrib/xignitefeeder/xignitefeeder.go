@@ -42,6 +42,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	// 2. update index symbols in the target index groups
 	// every day
 	sm := symbols.NewManager(apiClient, config.Exchanges, config.IndexGroups)
+	sm.Update()
 	timer.RunEveryDayAt(config.UpdatingHour, sm.Update)
 
 	// init QuotesRangeWriter to backfill daily chart data every day
@@ -52,6 +53,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		}
 
 		bf := feed.NewBackfill(sm, apiClient, msqrw, time.Time(config.Backfill.Since))
+		bf.Update()
 		timer.RunEveryDayAt(config.UpdatingHour, bf.Update)
 	}
 
@@ -62,6 +64,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 			Timezone:          utils.InstanceConfig.Timezone,
 		}
 		rbf := feed.NewRecentBackfill(sm, timeChecker, apiClient, msbw, config.RecentBackfill.Days)
+		rbf.Update()
 		timer.RunEveryDayAt(config.UpdatingHour, rbf.Update)
 	}
 

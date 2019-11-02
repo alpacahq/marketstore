@@ -1,11 +1,32 @@
 package timer
 
-import "time"
+import (
+	"time"
+)
 
-// RunEveryDayAt updates the symbols every day at the specified hour
+// RunEveryDayAt runs a specified function every day at a specified hour
 func RunEveryDayAt(hour int, f func()) {
-	f()
-	time.AfterFunc(timeToNext(time.Now(), hour), f)
+	stopped := make(chan bool, 1)
+
+	go func() {
+		// run at a specified time on the next day
+		time.AfterFunc(timeToNext(time.Now(), hour), f)
+
+		// after that, ticker runs every 24 hour
+		ticker := time.NewTicker(24 * time.Hour)
+
+		for {
+			select {
+			case <-ticker.C:
+				f()
+			case <-stopped:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	return
 }
 
 // timeToNext returns the time duration from now to next {hour}:00:00
