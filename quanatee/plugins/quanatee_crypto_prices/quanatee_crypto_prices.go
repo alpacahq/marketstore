@@ -688,7 +688,7 @@ func (tiicc *CryptoFetcher) Run() {
         
         if realTime {
             for {
-                if time.Now().UTC().Sub(tiicc.baseTimeframe.Duration) > timeEnd && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                if time.Now().UTC() > timeEnd.Add(tiicc.baseTimeframe.Duration).UTC() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
                     break
                 } else {
                     time.Sleep(time.Second*1)
