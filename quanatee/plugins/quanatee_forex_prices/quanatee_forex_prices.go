@@ -677,22 +677,19 @@ func (tiifx *ForexFetcher) Run() {
                 lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
             }
         }
-		if realTime {
-			// Sleep till next :00 time
-            // This function ensures that we will always get full candles
-			waitTill = time.Now().UTC().Add(tiifx.baseTimeframe.Duration)
-            waitTill = time.Date(waitTill.Year(), waitTill.Month(), waitTill.Day(), waitTill.Hour(), waitTill.Minute(), 0, 0, time.UTC)
-            // Check if timeEnd is Closing, will return Opening if so
-            openTime := alignTimeToTradingHours(timeEnd, calendar)
-            if openTime != timeEnd {
-                // Set to wait till Opening
-                waitTill = openTime
+        
+        if realTime {
+            for {
+                if time.Now().UTC().Sub(tiifx.baseTimeframe.Duration) > timeEnd && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                    break
+                } else {
+                    time.Sleep(time.Second*1)
+                }
             }
-            log.Info("Forex: Next request at %v", waitTill)
-			time.Sleep(waitTill.Sub(time.Now().UTC()))
-		} else {
+        } else {
 			time.Sleep(time.Second*60)
-		}
+        }
+
 	}
 }
 
