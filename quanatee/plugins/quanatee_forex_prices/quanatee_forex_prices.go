@@ -493,7 +493,6 @@ func (tiifx *ForexFetcher) Run() {
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
-	var waitTill time.Time
 	firstLoop := true
     dataProvider := "None"
     
