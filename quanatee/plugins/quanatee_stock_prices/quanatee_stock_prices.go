@@ -683,7 +683,7 @@ func (tiieq *IEXFetcher) Run() {
 
         if realTime {
             for {
-                if time.Now().UTC() > timeEnd.Add(tiieq.baseTimeframe.Duration).UTC() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                if time.Now().UTC().Unix() > timeEnd.Add(tiieq.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
                     break
                 } else {
                     time.Sleep(time.Second*1)
