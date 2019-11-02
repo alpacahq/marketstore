@@ -686,7 +686,7 @@ func (tiieq *IEXFetcher) Run() {
                     break
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)
-                    oneMinuteAhead = time.Date(oneMinuteAhead.Year(), oneMinuteAhead.Month(), oneMinuteAhead.Day(), oneMinuteAhead.Hour(), oneMinuteAhead.Minute(), 0, 0, time.UTC())
+                    oneMinuteAhead = time.Date(oneMinuteAhead.Year(), oneMinuteAhead.Month(), oneMinuteAhead.Day(), oneMinuteAhead.Hour(), oneMinuteAhead.Minute(), 0, 0, time.UTC)
                     time.Sleep(oneMinuteAhead.Sub(time.Now().UTC()))
                 }
             }
