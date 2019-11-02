@@ -679,13 +679,15 @@ func (tiieq *IEXFetcher) Run() {
                 lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
             }
         }
-
+        
         if realTime {
             for {
                 if time.Now().UTC().Unix() > timeEnd.Add(tiieq.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
                     break
                 } else {
-                    time.Sleep(time.Second*1)
+                    oneMinuteAhead := time.Now().UTC().Add(time.Minute)
+                    oneMinuteAhead = time.Date(oneMinuteAhead.Year(), oneMinuteAhead.Month(), oneMinuteAhead.Day(), oneMinuteAhead.Hour(), oneMinuteAhead.Minute(), 0, 0, time.UTC())
+                    time.Sleep(oneMinuteAhead.Sub(time.Now().UTC()))
                 }
             }
         } else {

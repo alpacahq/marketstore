@@ -690,7 +690,9 @@ func (tiicc *CryptoFetcher) Run() {
                 if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
                     break
                 } else {
-                    time.Sleep(time.Second*1)
+                    oneMinuteAhead := time.Now().UTC().Add(time.Minute)
+                    oneMinuteAhead = time.Date(oneMinuteAhead.Year(), oneMinuteAhead.Month(), oneMinuteAhead.Day(), oneMinuteAhead.Hour(), oneMinuteAhead.Minute(), 0, 0, time.UTC())
+                    time.Sleep(oneMinuteAhead.Sub(time.Now().UTC()))
                 }
             }
         } else {
