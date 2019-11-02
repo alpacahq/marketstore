@@ -1,6 +1,6 @@
 root_directory: data
 listen_port: 5993
-log_level: info
+log_level: debug
 queryable: true
 stop_grace_period: 0
 wal_rotate_interval: 5
