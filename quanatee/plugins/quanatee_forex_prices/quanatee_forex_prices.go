@@ -539,7 +539,6 @@ func (tiifx *ForexFetcher) Run() {
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
             polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
-            /*
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
                 quote = polygonQuote
                 quote2 := NewQuote(symbol, 0)
@@ -577,7 +576,6 @@ func (tiifx *ForexFetcher) Run() {
                         }
                     }
                     // Test if they both have the same Epochs, but in different bars
-                    /*
                     for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
                         if quote.Epoch[bar] == quote2.Epoch[bar2] {
                             quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
@@ -591,9 +589,7 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
                 dataProvider = "Odd Aggregation"
-            } else 
-            */
-            if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
+            } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
                 // Only one quote is valid
                 quote = polygonQuote
                 dataProvider = "Polygon"
