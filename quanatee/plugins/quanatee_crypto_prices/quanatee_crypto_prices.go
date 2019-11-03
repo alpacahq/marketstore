@@ -502,7 +502,6 @@ func (tiicc *CryptoFetcher) Run() {
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	firstLoop := true
-    dataProvider := "None"
 
 	for {
         
@@ -538,7 +537,7 @@ func (tiicc *CryptoFetcher) Run() {
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
-        quotes := Quotes{}
+        var quotes []Quote
         symbols := tiicc.symbols
         rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
@@ -547,6 +546,7 @@ func (tiicc *CryptoFetcher) Run() {
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.apiKey)
             polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.apiKey2)
             quote := NewQuote(symbol, 0)
+            dataProvider := "None"
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
                 quote = polygonQuote
                 numrows := len(polygonQuote.Epoch)
@@ -601,9 +601,6 @@ func (tiicc *CryptoFetcher) Run() {
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
-            } else {
-                dataProvider = "None"
-                continue
             }
             
             if len(quote.Epoch) < 1 {
@@ -613,24 +610,26 @@ func (tiicc *CryptoFetcher) Run() {
                 // Check if realTime is adding the most recent data
                 log.Info("Crypto: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiicc.baseTimeframe.String)
                 continue
+            } else if dataProvider == "None" {
+                continue
+            } else {
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", quote.Epoch)
+                cs.AddColumn("Open", quote.Open)
+                cs.AddColumn("High", quote.High)
+                cs.AddColumn("Low", quote.Low)
+                cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("HLC", quote.HLC)
+                cs.AddColumn("Volume", quote.Volume)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+                
+                log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                quotes = append(quotes, quote)
             }
-            
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            cs.AddColumn("HLC", quote.HLC)
-            cs.AddColumn("Volume", quote.Volume)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
-            
-            log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
-            quotes = append(quotes, quote)
         }
         
         // Add reversed pairs

@@ -494,7 +494,6 @@ func (tiifx *ForexFetcher) Run() {
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	firstLoop := true
-    dataProvider := "None"
     
 	for {
         
@@ -530,7 +529,7 @@ func (tiifx *ForexFetcher) Run() {
         minute := timeEnd.Minute()
         timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
         
-        quotes := Quotes{}
+        var quotes []Quote
         symbols := tiifx.symbols
         rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
@@ -539,6 +538,7 @@ func (tiifx *ForexFetcher) Run() {
             tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
             polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
+            dataProvider := "None"
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
                 quote = polygonQuote
                 quote2 := NewQuote(symbol, 0)
@@ -553,6 +553,40 @@ func (tiifx *ForexFetcher) Run() {
                     quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
                 }
                 dataProvider = "Even Aggregation"
+            } else if len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0 {
+                quote2 := NewQuote(symbol, 0)
+                if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
+                    quote = polygonQuote
+                    quote2 = tiingoQuote
+                } else {
+                    quote = tiingoQuote
+                    quote2 = polygonQuote
+                }
+                for bar := 0; bar < len(quote.Epoch); bar++ {
+                    // Test if they both have the same Epochs in the same bar (position)
+                    if len(quote2.Epoch) > bar && quote.Epoch[bar] == quote2.Epoch[bar] {
+                            quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
+                            quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
+                            quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
+                            quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
+                            quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
+                            quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
+                    } else {
+                        // Test if they both have the same Epochs, but in different bars
+                        for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
+                            if quote.Epoch[bar] == quote2.Epoch[bar2] {
+                                quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
+                                quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
+                                quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar2]) / 2
+                                quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar2]) / 2
+                                quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar2]) / 2
+                                quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar2])
+                                break
+                            }
+                        }
+                    }
+                }
+                dataProvider = "Odd Aggregation"
             } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
                 // Only one quote is valid
                 quote = polygonQuote
@@ -561,9 +595,6 @@ func (tiifx *ForexFetcher) Run() {
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
-            } else {
-                dataProvider = "None"
-                continue
             }
             
             if len(quote.Epoch) < 1 {
@@ -573,24 +604,26 @@ func (tiifx *ForexFetcher) Run() {
                 // Check if realTime is adding the most recent data
                 log.Info("Forex: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
                 continue
+            } else if dataProvider == "None" {
+                continue
+            } else {
+                // write to csm
+                cs := io.NewColumnSeries()
+                cs.AddColumn("Epoch", quote.Epoch)
+                cs.AddColumn("Open", quote.Open)
+                cs.AddColumn("High", quote.High)
+                cs.AddColumn("Low", quote.Low)
+                cs.AddColumn("Close", quote.Close)
+                cs.AddColumn("HLC", quote.HLC)
+                cs.AddColumn("Volume", quote.Volume)
+                csm := io.NewColumnSeriesMap()
+                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
+                csm.AddColumnSeries(*tbk, cs)
+                executor.WriteCSM(csm, false)
+                
+                log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                quotes = append(quotes, quote)
             }
-
-            // write to csm
-            cs := io.NewColumnSeries()
-            cs.AddColumn("Epoch", quote.Epoch)
-            cs.AddColumn("Open", quote.Open)
-            cs.AddColumn("High", quote.High)
-            cs.AddColumn("Low", quote.Low)
-            cs.AddColumn("Close", quote.Close)
-            cs.AddColumn("HLC", quote.HLC)
-            cs.AddColumn("Volume", quote.Volume)
-            csm := io.NewColumnSeriesMap()
-            tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
-            csm.AddColumnSeries(*tbk, cs)
-            executor.WriteCSM(csm, false)
-            
-            log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
-            quotes = append(quotes, quote)
         }
         
         // Add reversed pairs
