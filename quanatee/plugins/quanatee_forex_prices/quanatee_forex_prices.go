@@ -633,7 +633,7 @@ func (tiifx *ForexFetcher) Run() {
             if strings.HasPrefix(quote.Symbol, "USD") {
                 revSymbol = strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
             } else if strings.HasSuffix(quote.Symbol, "USD") {
-                    revSymbol = "USD" + strings.Replace(quote.Symbol, "USD", "", -1)
+                revSymbol = "USD" + strings.Replace(quote.Symbol, "USD", "", -1)
             }
             if revSymbol != "" {
                 numrows := len(quote.Epoch)
