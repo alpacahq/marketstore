@@ -15,7 +15,6 @@ triggers:
     on: "*/5Min/Price"
     config:
       destinations:
-        - 10Min
         - 1H
         - 1D
 bgworkers:
