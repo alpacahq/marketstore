@@ -597,7 +597,7 @@ func (tiifx *ForexFetcher) Run() {
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
-            else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
+            } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
                 // Only one quote is valid
                 quote = polygonQuote
                 dataProvider = "Polygon"
