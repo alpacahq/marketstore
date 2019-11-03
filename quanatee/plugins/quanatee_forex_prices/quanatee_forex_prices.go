@@ -144,7 +144,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds    
+        dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(time.Millisecond)) //Timestamp is in milliseconds    
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( calendar.IsWorkday(dt.UTC()) && 
            (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
@@ -593,14 +593,14 @@ func (tiifx *ForexFetcher) Run() {
                 dataProvider = "Odd Aggregation"
             } else 
             */
-            if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
-                // Only one quote is valid
-                quote = tiingoQuote
-                dataProvider = "Tiingo"
-            } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
+            if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
                 // Only one quote is valid
                 quote = polygonQuote
                 dataProvider = "Polygon"
+            else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
+                quote = tiingoQuote
+                dataProvider = "Tiingo"
             } else {
                 dataProvider = "None"
                 continue
