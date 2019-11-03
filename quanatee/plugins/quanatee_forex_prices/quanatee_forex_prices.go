@@ -541,6 +541,7 @@ func (tiifx *ForexFetcher) Run() {
             quote := NewQuote(symbol, 0)
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
                 quote = polygonQuote
+                quote2 := NewQuote(symbol, 0)
                 quote2 = tiingoQuote
                 numrows := len(polygonQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
