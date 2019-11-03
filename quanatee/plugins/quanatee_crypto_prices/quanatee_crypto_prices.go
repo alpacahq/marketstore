@@ -638,10 +638,6 @@ func (tiicc *CryptoFetcher) Run() {
             revSymbol := ""
             if strings.HasPrefix(quote.Symbol, "USD") {
                 revSymbol = strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
-            } else if strings.HasSuffix(quote.Symbol, "USD") {
-                revSymbol = "USD" + strings.Replace(quote.Symbol, "USD", "", -1)
-            }
-            if revSymbol != "" {
                 numrows := len(quote.Epoch)
                 revQuote := NewQuote(revSymbol, numrows)
                 for bar := 0; bar < numrows; bar++ {
