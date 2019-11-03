@@ -541,14 +541,15 @@ func (tiifx *ForexFetcher) Run() {
             quote := NewQuote(symbol, 0)
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
                 quote = polygonQuote
+                quote2 = tiingoQuote
                 numrows := len(polygonQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
-                    quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar]) / 2
-                    quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar]) / 2
-                    quote.Low[bar] = (quote.Low[bar] + tiingoQuote.Low[bar]) / 2
-                    quote.Close[bar] = (quote.Close[bar] + tiingoQuote.Close[bar]) / 2
-                    quote.HLC[bar] = (quote.HLC[bar] + tiingoQuote.HLC[bar]) / 2
-                    quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
+                    quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
+                    quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
+                    quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
+                    quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
+                    quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
+                    quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
                 }
                 dataProvider = "Even Aggregation"
             } else if len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0 {
@@ -574,6 +575,7 @@ func (tiifx *ForexFetcher) Run() {
                         }
                     }
                     // Test if they both have the same Epochs, but in different bars
+                    /*
                     for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
                         if quote.Epoch[bar] == quote2.Epoch[bar2] {
                             quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
@@ -585,6 +587,7 @@ func (tiifx *ForexFetcher) Run() {
                             break
                         }
                     }
+                    */
                 }
                 dataProvider = "Odd Aggregation"
             } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
