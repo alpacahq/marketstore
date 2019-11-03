@@ -564,27 +564,25 @@ func (tiifx *ForexFetcher) Run() {
                 }
                 for bar := 0; bar < len(quote.Epoch); bar++ {
                     // Test if they both have the same Epochs in the same bar (position)
-                    if len(quote2.Epoch) > bar { // Check if quote2 has enough length first
-                        if quote.Epoch[bar] == quote2.Epoch[bar] {
+                    if len(quote2.Epoch) > bar && quote.Epoch[bar] == quote2.Epoch[bar] {
                             quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
                             quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
                             quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
                             quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
                             quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
                             quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
-                            continue
-                        }
-                    }
-                    // Test if they both have the same Epochs, but in different bars
-                    for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
-                        if quote.Epoch[bar] == quote2.Epoch[bar2] {
-                            quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
-                            quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
-                            quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar2]) / 2
-                            quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar2]) / 2
-                            quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar2]) / 2
-                            quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar2])
-                            break
+                    } else {
+                        // Test if they both have the same Epochs, but in different bars
+                        for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
+                            if quote.Epoch[bar] == quote2.Epoch[bar2] {
+                                quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
+                                quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
+                                quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar2]) / 2
+                                quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar2]) / 2
+                                quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar2]) / 2
+                                quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar2])
+                                break
+                            }
                         }
                     }
                 }
