@@ -11,6 +11,13 @@ timezone: "UTC"
 triggers:
   - module: stream.so
     on: "*/*/*"
+  - module: quanatee_ondiskagg.so
+    on: "*/5Min/Price"
+    config:
+      destinations:
+        - 10Min
+        - 1H
+        - 1D
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:

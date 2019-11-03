@@ -632,40 +632,6 @@ func (tiicc *CryptoFetcher) Run() {
             }
         }
         
-        // Add reversed pairs
-        for _, quote := range quotes {
-            if strings.HasPrefix(quote.Symbol, "USD") {
-                revSymbol := strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
-                numrows := len(quote.Epoch)
-                revQuote := NewQuote(revSymbol, numrows)
-                for bar := 0; bar < numrows; bar++ {
-                    revQuote.Epoch[bar] = quote.Epoch[bar]
-                    revQuote.Open[bar] = 1/quote.Open[bar]
-                    revQuote.High[bar] = 1/quote.High[bar]
-                    revQuote.Low[bar] = 1/quote.Low[bar]
-                    revQuote.Close[bar] = 1/quote.Close[bar]
-                    revQuote.HLC[bar] = 1/quote.HLC[bar]
-                    x := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
-                    z := new(big.Float).Quo(x, big.NewFloat(revQuote.HLC[bar]))
-                    revQuote.Volume[bar], _ = z.Float64()
-                }
-                // write to csm
-                cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", revQuote.Epoch)
-                cs.AddColumn("Open", revQuote.Open)
-                cs.AddColumn("High", revQuote.High)
-                cs.AddColumn("Low", revQuote.Low)
-                cs.AddColumn("Close", revQuote.Close)
-                cs.AddColumn("HLC", revQuote.HLC)
-                cs.AddColumn("Volume", revQuote.Volume)
-                csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
-                csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)
-                // log.Debug("Crypto: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiicc.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
-            }
-        }
-        
         // Save the latest timestamp written
         if len(quotes) > 0 {
             if len(quotes[0].Epoch) > 0{

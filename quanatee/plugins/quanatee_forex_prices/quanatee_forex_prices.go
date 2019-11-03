@@ -622,11 +622,12 @@ func (tiifx *ForexFetcher) Run() {
                 executor.WriteCSM(csm, false)
                 
                 log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
-                quotes = append(quotes, quote)
+                // quotes = append(quotes, quote)
             }
         }
         
         // Add reversed pairs
+        /*
         for _, quote := range quotes {
             if strings.HasPrefix(quote.Symbol, "USD") {
                 revSymbol := strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
@@ -659,6 +660,7 @@ func (tiifx *ForexFetcher) Run() {
                 // log.Debug("Forex: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
             }
         }
+        */
         
         // Save the latest timestamp written
         if len(quotes) > 0 {
