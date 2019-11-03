@@ -635,9 +635,8 @@ func (tiicc *CryptoFetcher) Run() {
         
         // Add reversed pairs
         for _, quote := range quotes {
-            revSymbol := ""
             if strings.HasPrefix(quote.Symbol, "USD") {
-                revSymbol = strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
+                revSymbol := strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
                 numrows := len(quote.Epoch)
                 revQuote := NewQuote(revSymbol, numrows)
                 for bar := 0; bar < numrows; bar++ {
