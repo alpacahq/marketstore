@@ -593,14 +593,14 @@ func (tiifx *ForexFetcher) Run() {
                 dataProvider = "Odd Aggregation"
             } else 
             */
-            if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
-                // Only one quote is valid
-                quote = polygonQuote
-                dataProvider = "Polygon"
-            } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
+            if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
+            else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
+                // Only one quote is valid
+                quote = polygonQuote
+                dataProvider = "Polygon"
             } else {
                 dataProvider = "None"
                 continue
