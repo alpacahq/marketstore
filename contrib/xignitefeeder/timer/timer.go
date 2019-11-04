@@ -1,30 +1,33 @@
 package timer
 
 import (
+	"context"
+	"github.com/alpacahq/marketstore/utils/log"
 	"time"
 )
 
 // RunEveryDayAt runs a specified function every day at a specified hour
-func RunEveryDayAt(hour int, f func()) {
-	stopped := make(chan bool, 1)
+func RunEveryDayAt(ctx context.Context, hour int, f func()) {
+	timeToNextRun := timeToNext(time.Now(), hour)
 
-	go func() {
-		// run at a specified time on the next day
-		time.AfterFunc(timeToNext(time.Now(), hour), f)
+	// run at a specified time on the next day
+	time.AfterFunc(timeToNextRun, f)
 
-		// after that, ticker runs every 24 hour
+	// at the same time, run  every 24 hour
+	time.AfterFunc(timeToNextRun, func() {
 		ticker := time.NewTicker(24 * time.Hour)
 
 		for {
 			select {
 			case <-ticker.C:
 				f()
-			case <-stopped:
+			case <-ctx.Done():
+				log.Debug("job stopped due to ctx.Done()")
 				ticker.Stop()
 				return
 			}
 		}
-	}()
+	})
 
 	return
 }
