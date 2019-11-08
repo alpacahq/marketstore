@@ -21,7 +21,7 @@ type ManagerImpl struct {
 	TargetExchanges   []string
 	TargetIndexGroups []string
 	// identifier = {symbol}.{exchange} (i.e. "7203.XTKS").
-	Identifiers      map[string][]string
+	Identifiers map[string][]string
 	// IndexIdentifiers are the identifiers for index symbols (ex. "151.INDXJPX" (=TOPIX))
 	IndexIdentifiers map[string][]string
 }

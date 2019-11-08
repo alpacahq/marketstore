@@ -48,7 +48,7 @@ func (b *Backfill) UpdateSymbols() {
 		}
 
 		// write the data to marketstore
-		err = b.writer.Write(resp)
+		err = b.writer.Write(resp.Security.Symbol, resp.ArrayOfEndOfDayQuote, false)
 		if err != nil {
 			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore. identifier=%v", identifier))
 		}
@@ -79,7 +79,7 @@ func (b *Backfill) UpdateIndexSymbols() {
 		}
 
 		// write the data to marketstore
-		err = b.writer.WriteIndex(resp)
+		err = b.writer.Write(resp.IndexAndGroup.Symbol, resp.ArrayOfEndOfDayQuote, true)
 		if err != nil {
 			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore. identifier=%v", identifier))
 		}
