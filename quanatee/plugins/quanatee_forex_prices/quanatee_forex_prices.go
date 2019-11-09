@@ -676,7 +676,7 @@ func (tiifx *ForexFetcher) Run() {
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)
                     oneMinuteAhead = time.Date(oneMinuteAhead.Year(), oneMinuteAhead.Month(), oneMinuteAhead.Day(), oneMinuteAhead.Hour(), oneMinuteAhead.Minute(), 0, 0, time.UTC)
-                    time.Sleep(oneMinuteAhead.UTC().Sub(time.Now().UTC()).Seconds())
+                    time.Sleep(oneMinuteAhead.UTC().Sub(time.Now().UTC()))
                 }
             }
         } else {
