@@ -616,7 +616,7 @@ func (tiifx *ForexFetcher) Run() {
                     cs.AddColumn("Low", []float64{quote.Low[len(quote.Epoch)-1]})
                     cs.AddColumn("Close", []float64{quote.Close[len(quote.Epoch)-1]})
                     cs.AddColumn("HLC", []float64{quote.HLC[len(quote.Epoch)-1]})
-                    cs.AddColumn("Volume", []float64{Volume.Epoch[len(quote.Epoch)-1]})
+                    cs.AddColumn("Volume", []float64{quote.Volume[len(quote.Epoch)-1]})
                     csm := io.NewColumnSeriesMap()
                     tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
                     csm.AddColumnSeries(*tbk, cs)
