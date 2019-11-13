@@ -98,8 +98,8 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
                         symbol,
                         resampleFreq,
-                        url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.Format("2006-01-02")),
+                        url.QueryEscape(from.Format("2006-01-02")),
+                        url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-01-02")),
                         token)
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -652,21 +652,37 @@ func (tiieq *IEXFetcher) Run() {
             } else if dataProvider == "None" {
                 continue
             } else {
-                // write to csm
-                cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", quote.Epoch)
-                cs.AddColumn("Open", quote.Open)
-                cs.AddColumn("High", quote.High)
-                cs.AddColumn("Low", quote.Low)
-                cs.AddColumn("Close", quote.Close)
-                cs.AddColumn("HLC", quote.HLC)
-                cs.AddColumn("Volume", quote.Volume)
-                csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
-                csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)
-                
-                log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                if realTime && len(quote.Epoch) > 1 {
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", []int64{quote.Epoch[len(quote.Epoch)-1]})
+                    cs.AddColumn("Open", []float64{quote.Open[len(quote.Epoch)-1]})
+                    cs.AddColumn("High", []float64{quote.High[len(quote.Epoch)-1]})
+                    cs.AddColumn("Low", []float64{quote.Low[len(quote.Epoch)-1]})
+                    cs.AddColumn("Close", []float64{quote.Close[len(quote.Epoch)-1]})
+                    cs.AddColumn("HLC", []float64{quote.HLC[len(quote.Epoch)-1]})
+                    cs.AddColumn("Volume", []float64{Volume.Epoch[len(quote.Epoch)-1]})
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    log.Info("Stock: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                } else {
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", quote.Epoch)
+                    cs.AddColumn("Open", quote.Open)
+                    cs.AddColumn("High", quote.High)
+                    cs.AddColumn("Low", quote.Low)
+                    cs.AddColumn("Close", quote.Close)
+                    cs.AddColumn("HLC", quote.HLC)
+                    cs.AddColumn("Volume", quote.Volume)
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                }
                 quotes = append(quotes, quote)
             }
         }

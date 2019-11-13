@@ -98,8 +98,8 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
                         "C:"+symbol,
                         resampleFreq,
-                        url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.Format("2006-01-02")),
+                        url.QueryEscape(from.Format("2006-01-02")),
+                        url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-01-02")),
                         token)
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -607,61 +607,40 @@ func (tiifx *ForexFetcher) Run() {
             } else if dataProvider == "None" {
                 continue
             } else {
-                // write to csm
-                cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", quote.Epoch)
-                cs.AddColumn("Open", quote.Open)
-                cs.AddColumn("High", quote.High)
-                cs.AddColumn("Low", quote.Low)
-                cs.AddColumn("Close", quote.Close)
-                cs.AddColumn("HLC", quote.HLC)
-                cs.AddColumn("Volume", quote.Volume)
-                csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
-                csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)
-                
-                log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
-                // quotes = append(quotes, quote)
-            }
-        }
-        
-        // Add reversed pairs
-        /*
-        for _, quote := range quotes {
-            if strings.HasPrefix(quote.Symbol, "USD") {
-                revSymbol := strings.Replace(quote.Symbol, "USD", "", -1) + "USD"
-                numrows := len(quote.Epoch)
-                revQuote := NewQuote(revSymbol, numrows)
-                for bar := 0; bar < numrows; bar++ {
-                    revQuote.Epoch[bar] = quote.Epoch[bar]
-                    revQuote.Open[bar] = 1/quote.Open[bar]
-                    revQuote.High[bar] = 1/quote.High[bar]
-                    revQuote.Low[bar] = 1/quote.Low[bar]
-                    revQuote.Close[bar] = 1/quote.Close[bar]
-                    revQuote.HLC[bar] = 1/quote.HLC[bar]
-                    x := new(big.Float).Mul(big.NewFloat(quote.HLC[bar]), big.NewFloat(quote.Volume[bar]))
-                    z := new(big.Float).Quo(x, big.NewFloat(revQuote.HLC[bar]))
-                    revQuote.Volume[bar], _ = z.Float64()
+                if realTime && len(quote.Epoch) > 1 {
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", []int64{quote.Epoch[len(quote.Epoch)-1]})
+                    cs.AddColumn("Open", []float64{quote.Open[len(quote.Epoch)-1]})
+                    cs.AddColumn("High", []float64{quote.High[len(quote.Epoch)-1]})
+                    cs.AddColumn("Low", []float64{quote.Low[len(quote.Epoch)-1]})
+                    cs.AddColumn("Close", []float64{quote.Close[len(quote.Epoch)-1]})
+                    cs.AddColumn("HLC", []float64{quote.HLC[len(quote.Epoch)-1]})
+                    cs.AddColumn("Volume", []float64{Volume.Epoch[len(quote.Epoch)-1]})
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    log.Info("Forex: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                } else {
+                    // write to csm
+                    cs := io.NewColumnSeries()
+                    cs.AddColumn("Epoch", quote.Epoch)
+                    cs.AddColumn("Open", quote.Open)
+                    cs.AddColumn("High", quote.High)
+                    cs.AddColumn("Low", quote.Low)
+                    cs.AddColumn("Close", quote.Close)
+                    cs.AddColumn("HLC", quote.HLC)
+                    cs.AddColumn("Volume", quote.Volume)
+                    csm := io.NewColumnSeriesMap()
+                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
+                    csm.AddColumnSeries(*tbk, cs)
+                    executor.WriteCSM(csm, false)
+                    log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 }
-                // write to csm
-                cs := io.NewColumnSeries()
-                cs.AddColumn("Epoch", revQuote.Epoch)
-                cs.AddColumn("Open", revQuote.Open)
-                cs.AddColumn("High", revQuote.High)
-                cs.AddColumn("Low", revQuote.Low)
-                cs.AddColumn("Close", revQuote.Close)
-                cs.AddColumn("HLC", revQuote.HLC)
-                cs.AddColumn("Volume", revQuote.Volume)
-                csm := io.NewColumnSeriesMap()
-                tbk := io.NewTimeBucketKey(revQuote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
-                csm.AddColumnSeries(*tbk, cs)
-                executor.WriteCSM(csm, false)
-                // log.Debug("Forex: %v inverted row(s) to %s/%s/Price from %v to %v", len(revQuote.Epoch), revQuote.Symbol, tiifx.baseTimeframe.String, time.Unix(revQuote.Epoch[0], 0).UTC(), time.Unix(revQuote.Epoch[len(revQuote.Epoch)-1], 0).UTC())
+                quotes = append(quotes, quote)
             }
         }
-        */
-        
         // Save the latest timestamp written
         if len(quotes) > 0 {
             if len(quotes[0].Epoch) > 0{
