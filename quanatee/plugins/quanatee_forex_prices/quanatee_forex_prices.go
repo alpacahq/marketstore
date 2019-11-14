@@ -64,6 +64,8 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	switch period.String {
 	case "1Min":
 		resampleFreq = "1"
+	case "3Min":
+		resampleFreq = "3"
 	case "5Min":
 		resampleFreq = "5"
 	case "15Min":
@@ -204,6 +206,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	switch period.String {
 	case "1Min":
 		resampleFreq = "1min"
+	case "3Min":
+		resampleFreq = "3min"
 	case "5Min":
 		resampleFreq = "5min"
 	case "15Min":
