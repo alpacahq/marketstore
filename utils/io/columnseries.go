@@ -2,6 +2,7 @@ package io
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/utils/log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -421,6 +422,26 @@ func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]Data
 		rsMap[key] = columns.ToRowSeries(key, alignData)
 	}
 	return rsMap
+}
+
+// FilterColumns removes columns other than the specified columns from all ColumnSeries in a ColumnSeriesMap.
+func (csm *ColumnSeriesMap) FilterColumns(columns []string) {
+	if len(columns) == 0 {
+		return
+	}
+
+	// index columns (=Epoch and Nanoseconds) are always necessary and Epoch should be the first column
+	keepColumns := []string{"Epoch"}
+	keepColumns = append(keepColumns, columns...)
+	keepColumns = append(keepColumns, "Nanoseconds")
+
+	for _, cs := range *csm {
+		// filter out unnecessary columns
+		err := cs.Project(keepColumns)
+		if err != nil {
+			log.Error("failed to filter out columns", keepColumns)
+		}
+	}
 }
 
 func GetNamesFromDSV(dataShapes []DataShape) (out []string) {
