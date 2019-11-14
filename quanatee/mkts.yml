@@ -12,9 +12,10 @@ triggers:
   - module: stream.so
     on: "*/*/*"
   - module: quanatee_ondiskagg.so
-    on: "*/3Min/Price"
+    on: "*/1Min/Price"
     config:
       destinations:
+        - 7Min
         - 1H
         - 1D
 bgworkers:
@@ -30,7 +31,7 @@ bgworkers:
         - XLMUSD
         - XRPUSD
       query_start: "2019-01-01 00:00"
-      base_timeframe: "3Min"
+      base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
       api_key: "<tiingo_api_key>"
@@ -63,7 +64,7 @@ bgworkers:
         - XAGUSD
         - XAUUSD
       query_start: "2019-01-01 00:00"
-      base_timeframe: "3Min"
+      base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
     config:
       api_key: "<tiingo_api_key>"
@@ -106,4 +107,4 @@ bgworkers:
         - BIL
         - SHY
       query_start: "2019-01-01 00:00"
-      base_timeframe: "3Min"
+      base_timeframe: "1Min"
