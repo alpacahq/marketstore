@@ -145,9 +145,6 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     
 	for bar := 0; bar < numrows; bar++ {
         dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds
-        // Tiingo calculates candles by the closing time. I.e. 1 Min from 13:00-13:01 = 13:01 Candle; 
-        // Whereas Polygon calculates candle by opening time. So we add up the difference to match up to Tiingo
-        // dt = dt.Add(period.Duration)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( calendar.IsWorkday(dt.UTC()) && 
            (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
@@ -664,7 +661,9 @@ func (tiicc *CryptoFetcher) Run() {
         
         if realTime {
             for {
-                if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                // Add a one minute delay because Polygon only releases candles 1 minute later
+                if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).Add(time.Minute).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                // if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
                     break
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)
