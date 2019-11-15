@@ -9,6 +9,22 @@ jobs:
       - checkout
       - run: make all plugins
 
+  reviewdog:
+    docker:
+      - image: circleci/golang:1.12.6
+
+    working_directory: ~/github.com/alpacahq/marketstore
+    steps:
+      - checkout
+      - run:
+          name: Install lint tools
+          command: |
+            make install-lint-tools
+      - run:
+          name: Run reviewdog
+          command: |
+            REVIEWDOG_ARG="-reporter=github-pr-review" make reviewdog
+
   test:
     docker:
       - image: circleci/golang:1.12.6
@@ -22,6 +38,7 @@ jobs:
           name: Upload coverages to codecov
           command: |
             bash <(curl -s https://codecov.io/bash)
+
   deploy:
     docker:
       - image: circleci/golang:1.12.6
