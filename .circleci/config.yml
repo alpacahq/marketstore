@@ -62,6 +62,11 @@ workflows:
             tags:
               only: /.*/
       - reviewdog:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /.*/
       - deploy:
           requires:
             - build
