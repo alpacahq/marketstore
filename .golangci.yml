@@ -45,7 +45,8 @@ run:
   # If invoked with -mod=vendor, the go command assumes that the vendor
   # directory holds the correct copies of dependencies and ignores
   # the dependency descriptions in go.mod.
-  modules-download-mode: readonly|release|vendor
+  #modules-download-mode: readonly|release|vendor
+  modules-download-mode: vendor
 
 
 # output configuration options
@@ -78,7 +79,8 @@ linters-settings:
 
     # path to a file containing a list of functions to exclude from checking
     # see https://github.com/kisielk/errcheck#excluding-functions for details
-    exclude: /path/to/file.txt
+    # exclude: /path/to/file.txt
+    exclude:
   govet:
     # report about shadowed variables
     check-shadowing: true
@@ -163,7 +165,7 @@ linters-settings:
     # To check which checks are enabled run `GL_DEBUG=gocritic golangci-lint run`
     # By default list of stable checks is used.
     enabled-checks:
-      - rangeValCopy
+    #- rangeValCopy
 
     # Which checks should be disabled; can't be combined with 'enabled-checks'; default is empty
     disabled-checks:
@@ -177,8 +179,8 @@ linters-settings:
     settings: # settings passed to gocritic
       captLocal: # must be valid enabled check name
         paramsOnly: true
-      rangeValCopy:
-        sizeThreshold: 32
+      # rangeValCopy:
+      #   sizeThreshold: 32
 
 linters:
   enable:
@@ -254,4 +256,5 @@ issues:
   new-from-rev: REV
 
   # Show only new issues created in git patch with set file path.
-  new-from-patch: path/to/patch/file
+  #new-from-patch: path/to/patch/file
+  new-from-patch:
