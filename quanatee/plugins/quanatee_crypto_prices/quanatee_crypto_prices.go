@@ -28,12 +28,12 @@ type Quote struct {
 	Symbol    string      `json:"symbol"`
 	Precision int64       `json:"-"`
 	Epoch     []int64     `json:"epoch"`
-	Open      []float64   `json:"open"`
-	High      []float64   `json:"high"`
-	Low       []float64   `json:"low"`
-	Close     []float64   `json:"close"`
-	HLC       []float64   `json:"HLC"`
-	Volume    []float64   `json:"volume"`
+	Open      []float32   `json:"open"`
+	High      []float32   `json:"high"`
+	Low       []float32   `json:"low"`
+	Close     []float32   `json:"close"`
+	HLC       []float32   `json:"HLC"`
+	Volume    []float32   `json:"volume"`
 }
 
 // Quotes - an array of historical price data
@@ -47,12 +47,12 @@ func NewQuote(symbol string, bars int) Quote {
 	return Quote{
 		Symbol: symbol,
 		Epoch:  make([]int64,   bars),
-		Open:   make([]float64, bars),
-		High:   make([]float64, bars),
-		Low:    make([]float64, bars),
-		Close:  make([]float64, bars),
-		HLC:    make([]float64, bars),
-		Volume: make([]float64, bars),
+		Open:   make([]float32, bars),
+		High:   make([]float32, bars),
+		Low:    make([]float32, bars),
+		Close:  make([]float32, bars),
+		HLC:    make([]float32, bars),
+		Volume: make([]float32, bars),
 	}
 }
 
@@ -74,11 +74,11 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     
 	type priceData struct {
         Ticker         string  `json:"T"`
-		Volume         float64 `json:"v"`
-		Open           float64 `json:"o"`
-		High           float64 `json:"h"`
-		Low            float64 `json:"l"`
-		Close          float64 `json:"c"`
+		Volume         float32 `json:"v"`
+		Open           float32 `json:"o"`
+		High           float32 `json:"h"`
+		Low            float32 `json:"l"`
+		Close          float32 `json:"c"`
 		Timestamp      int64   `json:"t"`
 		Items          int64   `json:"n"`
 	}
@@ -212,14 +212,14 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
 
 	type priceData struct {
-		TradesDone     float64 `json:"tradesDone"`
-		Close          float64 `json:"close"`
-		VolumeNotional float64 `json:"volumeNotional"`
-		Low            float64 `json:"low"`
-		Open           float64 `json:"open"`
+		TradesDone     float32 `json:"tradesDone"`
+		Close          float32 `json:"close"`
+		VolumeNotional float32 `json:"volumeNotional"`
+		Low            float32 `json:"low"`
+		Open           float32 `json:"open"`
 		Date           string  `json:"date"` // "2017-12-19T00:00:00Z"
-		High           float64 `json:"high"`
-		Volume         float64 `json:"volume"`
+		High           float32 `json:"high"`
+		Volume         float32 `json:"volume"`
 	}
 
 	type tiingoData struct {
@@ -301,7 +301,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
                 quote.Low[bar] = cryptoData[0].PriceData[bar].Low
                 quote.Close[bar] = cryptoData[0].PriceData[bar].Close
                 quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-                quote.Volume[bar] = float64(cryptoData[0].PriceData[bar].Volume)
+                quote.Volume[bar] = float32(cryptoData[0].PriceData[bar].Volume)
             }
         }
 	}
@@ -621,12 +621,12 @@ func (tiicc *CryptoFetcher) Run() {
                     // write to csm
                     cs := io.NewColumnSeries()
                     cs.AddColumn("Epoch", []int64{quote.Epoch[len(quote.Epoch)-1]})
-                    cs.AddColumn("Open", []float64{quote.Open[len(quote.Epoch)-1]})
-                    cs.AddColumn("High", []float64{quote.High[len(quote.Epoch)-1]})
-                    cs.AddColumn("Low", []float64{quote.Low[len(quote.Epoch)-1]})
-                    cs.AddColumn("Close", []float64{quote.Close[len(quote.Epoch)-1]})
-                    cs.AddColumn("HLC", []float64{quote.HLC[len(quote.Epoch)-1]})
-                    cs.AddColumn("Volume", []float64{quote.Volume[len(quote.Epoch)-1]})
+                    cs.AddColumn("Open", []float32{quote.Open[len(quote.Epoch)-1]})
+                    cs.AddColumn("High", []float32{quote.High[len(quote.Epoch)-1]})
+                    cs.AddColumn("Low", []float32{quote.Low[len(quote.Epoch)-1]})
+                    cs.AddColumn("Close", []float32{quote.Close[len(quote.Epoch)-1]})
+                    cs.AddColumn("HLC", []float32{quote.HLC[len(quote.Epoch)-1]})
+                    cs.AddColumn("Volume", []float32{quote.Volume[len(quote.Epoch)-1]})
                     csm := io.NewColumnSeriesMap()
                     tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
                     csm.AddColumnSeries(*tbk, cs)
