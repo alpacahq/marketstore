@@ -11,19 +11,19 @@ jobs:
 
   reviewdog:
     docker:
-      - image: circleci/golang:1.12.6
+      - image: golangci/golangci-lint:latest
 
     working_directory: ~/github.com/alpacahq/marketstore
     steps:
       - checkout
       - run:
-          name: Install lint tools
+          name: Install reviewdog
           command: |
-            make install-lint-tools
+            curl -fSL https://github.com/haya14busa/reviewdog/releases/download/0.9.11/reviewdog_linux_amd64 -o reviewdog && chmod +x ./reviewdog
       - run:
           name: Run reviewdog
           command: |
-            REVIEWDOG_ARG="-reporter=github-pr-review" make reviewdog
+            ./reviewdog -conf=.reviewdog.yml -diff="git diff master" -reporter=github-pr-review
 
   test:
     docker:

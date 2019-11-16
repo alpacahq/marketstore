@@ -53,9 +53,6 @@ integration-test:
 test:
 	GOFLAGS=$(GOFLAGS) go test ./...
 
-install-lint-tools:
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-
 lint:
 	golangci-lint run ./...
 
@@ -63,8 +60,7 @@ lint-fix:
 	golangci-lint run --fix ./...
 
 reviewdog:
-	go get github.com/reviewdog/reviewdog/cmd/reviewdog
-	reviewdog -conf=.reviewdog.yml $(REVIEWDOG_ARG)
+
 
 coverage:
 	# marketstore/contrib/stream/shelf/shelf_test.go fails if "-race" enabled...
