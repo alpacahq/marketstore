@@ -23,7 +23,7 @@ jobs:
       - run:
           name: Run reviewdog
           command: |
-            ./reviewdog -conf=.reviewdog.yml -diff="git diff master" -reporter=github-pr-review
+            ./reviewdog -conf=.reviewdog.yml -diff="git diff master" -reporter=local
 
   test:
     docker:
