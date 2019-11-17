@@ -9,6 +9,22 @@ jobs:
       - checkout
       - run: make all plugins
 
+  reviewdog:
+    docker:
+      - image: golangci/golangci-lint:latest
+
+    working_directory: ~/github.com/alpacahq/marketstore
+    steps:
+      - checkout
+      - run:
+          name: Install reviewdog
+          command: |
+            curl -fSL https://github.com/haya14busa/reviewdog/releases/download/0.9.11/reviewdog_linux_amd64 -o reviewdog && chmod +x ./reviewdog
+      - run:
+          name: Run reviewdog
+          command: |
+            ./reviewdog -conf=.reviewdog.yml -diff="git diff master" -reporter=github-pr-review
+
   test:
     docker:
       - image: circleci/golang:1.12.6
@@ -22,6 +38,7 @@ jobs:
           name: Upload coverages to codecov
           command: |
             bash <(curl -s https://codecov.io/bash)
+
   deploy:
     docker:
       - image: circleci/golang:1.12.6
@@ -41,6 +58,12 @@ workflows:
             tags:
               only: /.*/
       - test:
+          filters:
+            tags:
+              only: /.*/
+      - reviewdog:
+          requires:
+            - build
           filters:
             tags:
               only: /.*/
