@@ -28,11 +28,14 @@ type Security struct {
 type Quote struct {
 	DateTime    XigniteDateTime `json:"DateTime,omitempty"`
 	Ask         float32         `json:"Ask"`
+	AskSize     float32         `json:"AskSize"`
 	AskDateTime XigniteDateTime `json:"AskDateTime,omitempty"`
 	Bid         float32         `json:"Bid"`
+	BidSize     float32         `json:"BidSize"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
 	// price of the most recent deal
 	Last                           float32 `json:"Last"`
+	LastSize                       float32 `json:"LastSize"`
 	Open                           float32 `json:"Open"`
 	High                           float32 `json:"High"`
 	Low                            float32 `json:"Low"`
