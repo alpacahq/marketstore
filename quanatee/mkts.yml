@@ -25,11 +25,23 @@ bgworkers:
       api_key2: "<polygon_api_key>"
       symbols:
         - BTCUSD
+        - BNBUSD
         - ETHUSD
         - EOSUSD
         - LTCUSD
         - XLMUSD
         - XRPUSD
+        - ETHBTC
+        - BNBETH
+        - EOSETH
+        - LTCETH
+        - XLMETH
+        - XRPETH
+        - BTCBNB
+        - EOSBNB
+        - LTCBNB
+        - XLMBNB
+        - XRPBNB
       query_start: "2019-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
@@ -102,7 +114,6 @@ bgworkers:
         - VCSH
         - HYG
         - VCIT
-        - IMTB
         - SHV
         - BIL
         - SHY
