@@ -324,7 +324,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 	}
 	if err != nil {
         // Create new WAL File (Important for creating new datasets via pymarketstore)
-        w, _ := NewWALFile(wf.RootPath, keyPath)
+        w, _ := NewWALFile(fullPath)
         if !w.CanDeleteSafely() {
             log.Fatal("Unable to delete new walfile after replay")
         }
