@@ -330,9 +330,9 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
         }
         w.Delete()
         if recordType == io.FIXED && len(writes) >= batchThreshold {
-            fp, err2 = buffile.New(fullPath)
+            fp, err = buffile.New(fullPath)
         } else {
-            fp, err2 = os.OpenFile(fullPath, os.O_RDWR, 0700)
+            fp, err = os.OpenFile(fullPath, os.O_RDWR, 0700)
         }
 		// this is critical, in fact, since tx has been committed
 		log.Error("cannot open file %s for write: %v", fullPath, err)
