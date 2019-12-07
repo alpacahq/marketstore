@@ -18,7 +18,10 @@ jobs:
       - checkout
       - setup_remote_docker
       - run: make install unittest
-  
+      - run:
+          name: Upload coverages to codecov
+          command: |
+            bash <(curl -s https://codecov.io/bash)
   deploy:
     docker:
       - image: circleci/golang:1.12.6

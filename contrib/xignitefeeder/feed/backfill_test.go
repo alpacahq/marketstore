@@ -21,31 +21,48 @@ type MockErrorAPIClient struct {
 func (mac *MockErrorAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
 
 	if i == "XTKS.1301" {
-		return api.GetQuotesRangeResponse{Outcome: "RequestError"}, errors.New("error")
+		return api.GetQuotesRangeResponse{
+			Outcome:              "RequestError",
+			Security:             &api.Security{Symbol: "1301"},
+			ArrayOfEndOfDayQuote: []api.EndOfDayQuote{},
+		}, errors.New("error")
 	}
 
-	return api.GetQuotesRangeResponse{Outcome: "Success"}, nil
+	return api.GetQuotesRangeResponse{
+		Outcome:              "Success",
+		Security:             &api.Security{Symbol: "1301"},
+		ArrayOfEndOfDayQuote: []api.EndOfDayQuote{},
+	}, nil
 }
 
 type MockQuotesRangeWriter struct {
-	WriteCount int
+	WriteCount      int
+	WriteIndexCount int
 }
 
-func (mqrw *MockQuotesRangeWriter) Write(quotesRange api.GetQuotesRangeResponse) error {
+func (mqrw *MockQuotesRangeWriter) Write(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool) error {
 	// in order to assert the number of writes in the test
 	mqrw.WriteCount++
+	return nil
+}
+
+func (mqrw *MockQuotesRangeWriter) WriteIndex(quotesRange api.GetIndexQuotesRangeResponse) error {
+	// in order to assert the number of writes in the test
+	mqrw.WriteIndexCount++
 	return nil
 }
 
 // 3 writes should be successfully done with the 3 identifiers
 func TestBackfill_Update(t *testing.T) {
 	// --- given ---
-	var w writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
+	var rw writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
+	var w writer.QuotesWriter = &MockQuotesWriter{WriteCount: 0}
 
 	SUT := &Backfill{
 		symbolManager: internal.MockSymbolsManager{Identifiers: TestIdentifiers},
 		apiClient:     &internal.MockAPIClient{},
 		writer:        w,
+		rangeWriter:   rw,
 		since:         time.Now().UTC(),
 	}
 
@@ -53,9 +70,17 @@ func TestBackfill_Update(t *testing.T) {
 	SUT.Update()
 
 	// --- then ---
-	if mw, ok := w.(*MockQuotesRangeWriter); ok {
-		if mw.WriteCount != 3 {
-			t.Errorf("3 writes should be performed. got: WriteCount=%v", mw.WriteCount)
+	if mrw, ok := rw.(*MockQuotesRangeWriter); ok {
+		if mrw.WriteCount != 3 {
+			t.Errorf("3 writes should be performed (1 write for 1 symbol). got: WriteCount=%v", mrw.WriteCount)
+		}
+	} else {
+		t.Fatalf("type error")
+	}
+
+	if mw, ok := w.(*MockQuotesWriter); ok {
+		if mw.WriteCount != 1 {
+			t.Errorf("1 writes should be performed (1 write for 3 symbols). got: WriteCount=%v", mw.WriteCount)
 		}
 	} else {
 		t.Fatalf("type error")
@@ -65,12 +90,14 @@ func TestBackfill_Update(t *testing.T) {
 // Even if Xignite returns Outcome:"RequestError" to an identifier, Backfill writes data for the other identifiers
 func TestBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 	// --- given ---
-	var w writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
+	var rw writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
+	var w writer.QuotesWriter = &MockQuotesWriter{WriteCount: 0}
 
 	SUT := &Backfill{
 		symbolManager: internal.MockSymbolsManager{Identifiers: []string{"XTKS.1301", "XTKS.1305", "XJAS.1376"}},
 		apiClient:     &MockErrorAPIClient{},
 		writer:        w,
+		rangeWriter:   rw,
 		since:         time.Now().UTC(),
 	}
 
@@ -79,7 +106,7 @@ func TestBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 
 	// --- then ---
 	// write fails for 1 out of 3 identifiers
-	if mw, ok := w.(*MockQuotesRangeWriter); ok {
+	if mw, ok := rw.(*MockQuotesRangeWriter); ok {
 		if mw.WriteCount != 2 {
 			t.Errorf("2 writes should be performed. got: WriteCount=%v", mw.WriteCount)
 		}

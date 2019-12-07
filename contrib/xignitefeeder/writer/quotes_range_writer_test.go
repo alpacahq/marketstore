@@ -51,7 +51,7 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 	}
 
 	// --- when ---
-	err := SUT.Write(apiResponse)
+	err := SUT.Write(apiResponse.Security.Symbol, apiResponse.ArrayOfEndOfDayQuote, false)
 
 	// --- then ---
 	if err != nil {
@@ -69,6 +69,40 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 	if timeBucketKeyStr != "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema {
 		t.Errorf("TimeBucketKey name is invalid. got=%v, want = %v",
 			timeBucketKeyStr, "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema)
+	}
+}
+
+func TestQuotesRangeWriterImpl_noDataToWrite(t *testing.T) {
+	// --- given ---
+	m := &internal.MockMarketStoreWriter{}
+	SUT := QuotesRangeWriterImpl{
+		MarketStoreWriter: m,
+		Timeframe:         "1D",
+	}
+
+	// all data are Volume=0 and not necessary to be written
+	apiResponse := api.GetQuotesRangeResponse{
+		Security: &api.Security{Symbol: "1234"},
+		ArrayOfEndOfDayQuote: []api.EndOfDayQuote{
+			// When Volume is 0, xignite getQuotesRange API returns data with {open:0, close:0, high:0, low:0}.
+			// we don't write the zero data to marketstore.
+			{
+				Date:   api.XigniteDay(May3rd),
+				Open:   0.0,
+				Close:  0.0,
+				High:   0.0,
+				Low:    0.0,
+				Volume: 0,
+			},
+		},
+	}
+
+	// --- when ---
+	err := SUT.Write(apiResponse.Security.Symbol, apiResponse.ArrayOfEndOfDayQuote, false)
+
+	// --- then ---
+	if err != nil {
+		t.Fatalf("error should be nil. got=%v", err)
 	}
 }
 

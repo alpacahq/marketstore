@@ -1,5 +1,7 @@
 # MarketStore
 [![CircleCI](https://circleci.com/gh/alpacahq/marketstore.svg?style=shield)](https://circleci.com/gh/alpacahq/marketstore) [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/alpacahq/marketstore) [![chatroom icon](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/joinchat/HKxN3BGm6mE5YBt79CMM3Q)
+[![codecov](https://codecov.io/gh/alpacahq/marketstore/branch/master/graph/badge.svg)](https://codecov.io/gh/alpacahq/marketstore)
+
 
 Read this in [日本語(Japanese)](README.ja.md)
 
