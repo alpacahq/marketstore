@@ -1,11 +1,35 @@
 package timer
 
-import "time"
+import (
+	"context"
+	"github.com/alpacahq/marketstore/utils/log"
+	"time"
+)
 
-// RunEveryDayAt updates the symbols every day at the specified hour
-func RunEveryDayAt(hour int, f func()) {
-	f()
-	time.AfterFunc(timeToNext(time.Now(), hour), f)
+// RunEveryDayAt runs a specified function every day at a specified hour
+func RunEveryDayAt(ctx context.Context, hour int, f func()) {
+	timeToNextRun := timeToNext(time.Now(), hour)
+
+	// run at a specified time on the next day
+	time.AfterFunc(timeToNextRun, f)
+
+	// at the same time, run  every 24 hour
+	time.AfterFunc(timeToNextRun, func() {
+		ticker := time.NewTicker(24 * time.Hour)
+
+		for {
+			select {
+			case <-ticker.C:
+				f()
+			case <-ctx.Done():
+				log.Debug("job stopped due to ctx.Done()")
+				ticker.Stop()
+				return
+			}
+		}
+	})
+
+	return
 }
 
 // timeToNext returns the time duration from now to next {hour}:00:00

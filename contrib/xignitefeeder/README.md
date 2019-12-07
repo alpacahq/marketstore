@@ -21,9 +21,15 @@ bgworkers:
         #- XSAP # Sapporo Stock Exchange
         #- XFKA # Fukuoka Stock Exchange
         #- XTAM # Tokyo PRO Market
+      # Xignite feeder also retrieves data of Index Symbols (ex. ＴＯＰＩＸ（東証１部株価指数）) every day.
+      # To get target indices, index groups that the indices belong are necessary.
+      # (cf. https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols )
+      index_groups:
+        - INDXJPX # JAPAN EXCHANGE GROUP
+        - IND_NIKKEI # NIKKEI INDICES
       # time when target symbols in the exchanges are updated everyday.
       # this time is also used for the historical data backfill (UTC)
-      updatingHour: 21 #:00:00
+      updatingHour: 22 # (UTC). = every day at 07:00:00 (JST)
       # XigniteFeeder writes data to "{identifier}/{timeframe}/TICK" TimeBucketKey
       timeframe: "1Sec"
       # Auth token for Xignite API
@@ -33,7 +39,7 @@ bgworkers:
       # Interval [sec] to call Xignite API
       interval: 10
       # XigniteFeeder runs from openTime ~ closeTime (UTC)
-      openTime: "23:55:00" # 08:55 (JST)
+      openTime: "23:00:00" # 08:00 (JST)
       closeTime: "06:10:00" # 15:10 (JST)
       # XigniteFeeder doesn't run on the following days
       closedDaysOfTheWeek:
@@ -86,9 +92,15 @@ bgworkers:
       # if backfill is enabled, historical daily chart data for all symbols in the target exchanges
       # are aggregated using Xignite API (=GetQuotesRange endpoint) and stored to "{symbol}/{timeframe}/OHLCV" bucket.
       backfill:
-        enabled: false
-        since: "2008-04-01"
+        enabled: true
+        since: "2008-01-01"
         timeframe: "1D"
+      # In addition to the daily-chart backfill above,
+      # Xignite Feeder can feed 5-minute chart data of the target symbols for the past X business days. The data is stored to {symbol}/{timeframe}/OHLCV bucket (e.g. "1400/5Min/OHLCV" )
+      recentBackfill:
+        enabled: false
+        days: 7 # Xignite Feeder feeds the data for {days} business days
+        timeframe: "5Min"
 ```
 
 # Build

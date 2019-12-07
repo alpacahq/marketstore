@@ -28,19 +28,25 @@ type Security struct {
 type Quote struct {
 	DateTime    XigniteDateTime `json:"DateTime,omitempty"`
 	Ask         float32         `json:"Ask"`
+	AskSize     float32         `json:"AskSize"`
 	AskDateTime XigniteDateTime `json:"AskDateTime,omitempty"`
 	Bid         float32         `json:"Bid"`
+	BidSize     float32         `json:"BidSize"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
 	// price of the most recent deal
-	Last          float32 `json:"Last"`
-	Open          float32 `json:"Open"`
-	High          float32 `json:"High"`
-	Low           float32 `json:"Low"`
-	Close         float32 `json:"Close"`
-	PreviousClose float32 `json:"PreviousClose"`
-	Volume        int64   `json:"Volume"`
-	// Open/High/Low/Close/Volume/PreviousClose
-	UTCOffSet int `json:"UTCOffSet"`
+	Last                           float32 `json:"Last"`
+	LastSize                       float32 `json:"LastSize"`
+	Open                           float32 `json:"Open"`
+	High                           float32 `json:"High"`
+	Low                            float32 `json:"Low"`
+	Close                          float32 `json:"Close"`
+	PreviousClose                  float32 `json:"PreviousClose"`
+	Volume                         int64   `json:"Volume"`
+	ExchangeOfficialClose          float32 `json:"ExchangeOfficialClose"`
+	PreviousExchangeOfficialClose  float32 `json:"PreviousExchangeOfficialClose"`
+	ChangeFromPreviousClose        float32 `json:"ChangeFromPreviousClose"`
+	PercentChangeFromPreviousClose float32 `json:"PercentChangeFromPreviousClose"`
+	UTCOffSet                      int     `json:"UTCOffSet"`
 }
 
 // XigniteDateTime is a date time in XigniteDateTimeLayout format
@@ -93,7 +99,7 @@ func (cd *XigniteDay) UnmarshalJSON(input []byte) error {
 
 // --------------------------
 
-// ListSymbolsResponse is a response model for the List Symbols endpoint
+// ListSymbolsResponse is a response model for the /QUICKEquityRealTime.json/ListSymbols endpoint
 type ListSymbolsResponse struct {
 	Outcome                    string                `json:"Outcome"`
 	Message                    string                `json:"Message"`
@@ -106,8 +112,49 @@ type SecurityDescription struct {
 }
 
 // --------------------------
+// ListIndexSymbolsResponse is a response model for the /QUICKIndexHistorical.json/ListSymbols endpoint
+type ListIndexSymbolsResponse struct {
+	Outcome      string  `json:"Outcome"`
+	Message      string  `json:"Message"`
+	ArrayOfIndex []Index `json:"ArrayOfIndex"`
+}
 
-// GetQuotesRangeResponse is a response model for the Get Quotes Range endpoint
+// Index object in ListIndexSymbolsResponse
+type Index struct {
+	Symbol string `json:"Symbol"`
+}
+
+// --------------------------
+type GetBarsResponse struct {
+	Outcome    string    `json:"Outcome"`
+	DelaySec   float32   `json:"Delay"`
+	Message    string    `json:"Message"`
+	Security   *Security `json:"Security"`
+	ArrayOfBar []Bar     `json:"ArrayOfBar"`
+}
+
+type Bar struct {
+	StartDateTime XigniteDateTime `json:"StartDateTime,omitempty"`
+	EndDateTime   XigniteDateTime `json:"EndDateTime,omitempty"`
+	UTCOffSet     int             `json:"UTCOffSet"`
+	Open          float32         `json:"Open"`
+	High          float32         `json:"High"`
+	Low           float32         `json:"Low"`
+	Close         float32         `json:"Close"`
+	Volume        float32         `json:"Volume"` // Get Bars API returns a float value for Volume, not int
+}
+
+// --------------------------
+type GetIndexBarsResponse struct {
+	Outcome       string    `json:"Outcome"`
+	DelaySec      float32   `json:"Delay"`
+	Message       string    `json:"Message"`
+	IndexAndGroup *Security `json:"IndexAndGroup"`
+	ArrayOfBar    []Bar     `json:"ArrayOfBar"`
+}
+
+// --------------------------
+// GetQuotesRangeResponse is a response model for the QUICKEquityHistorical/GetQuotesRange endpoint
 type GetQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
 	Message              string          `json:"Message"`
@@ -117,12 +164,25 @@ type GetQuotesRangeResponse struct {
 
 // EndOfDayQuote object in GetQuotesRangeResponse
 type EndOfDayQuote struct {
-	Date                  XigniteDay `json:"Date"`
-	Open                  float32    `json:"Open"`
-	High                  float32    `json:"High"`
-	Low                   float32    `json:"Low"`
-	Close                 float32    `json:"Close"`
-	ExchangeOfficialClose float32    `json:"ExchangeOfficialClose"`
-	PreviousClose         float32    `json:"PreviousClose"`
-	Volume                int64      `json:"Volume"`
+	Date                           XigniteDay `json:"Date"`
+	Open                           float32    `json:"Open"`
+	High                           float32    `json:"High"`
+	Low                            float32    `json:"Low"`
+	Close                          float32    `json:"Close"`
+	ExchangeOfficialClose          float32    `json:"ExchangeOfficialClose"`
+	PreviousClose                  float32    `json:"PreviousClose"`
+	Volume                         int64      `json:"Volume"`
+	PreviousExchangeOfficialClose  float32    `json:"PreviousExchangeOfficialClose"`
+	ChangeFromPreviousClose        float32    `json:"ChangeFromPreviousClose"`
+	PercentChangeFromPreviousClose float32    `json:"PercentChangeFromPreviousClose"`
+}
+
+// --------------------------
+
+// GetQuotesRangeResponse is a response model for the QuickIndexHistorical/GetQuotesRange endpoint
+type GetIndexQuotesRangeResponse struct {
+	Outcome              string          `json:"Outcome"`
+	Message              string          `json:"Message"`
+	IndexAndGroup        *Security       `json:"IndexAndGroup"`
+	ArrayOfEndOfDayQuote []EndOfDayQuote `json:"ArrayOfEndOfDayQuote"`
 }

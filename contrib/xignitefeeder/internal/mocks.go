@@ -11,12 +11,18 @@ import (
 
 // MockSymbolsManager is a no-op SymbolsManager
 type MockSymbolsManager struct {
-	Identifiers []string
+	Identifiers      []string
+	IndexIdentifiers []string
 }
 
 // GetAllIdentifiers returns the static identifiers
 func (msm MockSymbolsManager) GetAllIdentifiers() []string {
 	return msm.Identifiers
+}
+
+// GetAllIdentifiers returns the static index identifiers
+func (msm MockSymbolsManager) GetAllIndexIdentifiers() []string {
+	return msm.IndexIdentifiers
 }
 
 // ----------------
@@ -34,9 +40,36 @@ func (mac *MockAPIClient) ListSymbols(exchange string) (api.ListSymbolsResponse,
 	return api.ListSymbolsResponse{}, nil
 }
 
+// ListSymbols returns an empty api response
+func (mac *MockAPIClient) ListIndexSymbols(indexGroup string) (api.ListIndexSymbolsResponse, error) {
+	return api.ListIndexSymbolsResponse{}, nil
+}
+
+// GetRealTimeBars returns an empty api response
+func (mac *MockAPIClient) GetRealTimeBars(identifier string, start, end time.Time) (response api.GetBarsResponse, err error) {
+	return api.GetBarsResponse{
+		Security:   &api.Security{Symbol: "123"},
+		ArrayOfBar: []api.Bar{},
+	}, nil
+}
+
+// GetIndexBars returns an empty api response
+func (mac *MockAPIClient) GetIndexBars(identifier string, start, end time.Time) (response api.GetIndexBarsResponse, err error) {
+	return api.GetIndexBarsResponse{}, nil
+}
+
 // GetQuotesRange returns an empty api response
 func (mac *MockAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
-	return api.GetQuotesRangeResponse{}, nil
+	return api.GetQuotesRangeResponse{
+		Security:             &api.Security{Symbol: "123"},
+		ArrayOfEndOfDayQuote: []api.EndOfDayQuote{},
+	}, nil
+}
+
+// GetQuotesRange returns an empty api response
+func (mac *MockAPIClient) GetIndexQuotesRange(i string, sd, ed time.Time,
+) (resp api.GetIndexQuotesRangeResponse, err error) {
+	return api.GetIndexQuotesRangeResponse{}, nil
 }
 
 // ----------------
@@ -47,6 +80,11 @@ type MockTimeChecker struct{}
 // IsOpen always returns Open
 func (m *MockTimeChecker) IsOpen(t time.Time) bool {
 	return true
+}
+
+// Sub always returns a date provided at the first argument
+func (m *MockTimeChecker) Sub(dateInJST time.Time, businessDay int) (time.Time, error) {
+	return dateInJST, nil
 }
 
 // ----------------

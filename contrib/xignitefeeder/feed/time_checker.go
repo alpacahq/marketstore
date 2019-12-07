@@ -2,6 +2,7 @@ package feed
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/alpacahq/marketstore/utils/log"
@@ -12,6 +13,8 @@ var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
 // MarketTimeChecker is an interface to check if the market is open at the specified time or not
 type MarketTimeChecker interface {
 	IsOpen(t time.Time) bool
+	// Sub returns a date after X business day (= day which market is open). businessDay can be a negative value.
+	Sub(date time.Time, businessDay int) (time.Time, error)
 }
 
 // DefaultMarketTimeChecker is an implementation for MarketTimeChecker object.
@@ -61,7 +64,7 @@ func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
 	}
 
 	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {
-		log.Debug(fmt.Sprintf("[Xignite Feeder] not running because the market is not open."+
+		log.Debug(fmt.Sprintf("[Xignite Feeder] the market is not open."+
 			"openTime=%v:%v, closeTime=%v:%v, now=%v",
 			m.OpenTime.Hour(), m.OpenTime.Minute(), m.CloseTime.Hour(), m.CloseTime.Minute(), t))
 		return false
@@ -74,7 +77,6 @@ func (m *DefaultMarketTimeChecker) isOpenWeekDay(t time.Time) bool {
 	w := t.Weekday()
 	for _, closedDay := range m.ClosedDaysOfTheWeek {
 		if w == closedDay {
-			log.Debug(fmt.Sprintf("[Xignite Feeder] not running because it's %v today.", w.String()))
 			return false
 		}
 	}
@@ -85,10 +87,30 @@ func (m *DefaultMarketTimeChecker) isOpenWeekDay(t time.Time) bool {
 func (m *DefaultMarketTimeChecker) isOpenDate(t time.Time) bool {
 	for _, c := range m.ClosedDays {
 		if c.Year() == t.Year() && c.Month() == t.Month() && c.Day() == t.Day() {
-			log.Debug(
-				fmt.Sprintf("[Xignite Feeder] not running because the market is not open today in JST. %v", t))
 			return false
 		}
 	}
 	return true
+}
+
+// Sub returns a date before X business days (= days which market is open). businessDay should be a positive value.
+func (m *DefaultMarketTimeChecker) Sub(dateInJST time.Time, businessDay int) (time.Time, error) {
+	if businessDay < 0 {
+		return time.Time{}, errors.New("businessDay argument should be a positive integer")
+	}
+
+	if businessDay == 0 {
+		return dateInJST, nil
+	}
+
+	count := businessDay
+	d := dateInJST
+	for count > 0 {
+		d = d.Add(-24 * time.Hour)
+		if m.isOpenDate(d) && m.isOpenWeekDay(d) {
+			count--
+		}
+	}
+
+	return d, nil
 }
