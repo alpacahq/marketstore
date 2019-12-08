@@ -457,20 +457,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 // If query_end is not set, it will run forever.
 func (tiicc *CryptoFetcher) Run() {
     
-	realTime := false    
-	timeStart := time.Time{}
-	lastTimestamp := time.Time{}
-	
-    // Get last timestamp collected
-	for _, symbol := range tiicc.symbols {
-        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/Price")
-        lastTimestamp = findLastTimestamp(tbk)
-        log.Info("Crypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
-        if timeStart.IsZero() || (!lastTimestamp.IsZero() && lastTimestamp.Before(timeStart)) {
-            timeStart = lastTimestamp.UTC()
-        }
-	}
-    
+	realTime := false
     calendar := cal.NewCalendar()
 
     // Add US and UK holidays
@@ -494,11 +481,17 @@ func (tiicc *CryptoFetcher) Run() {
 		cal.GBBoxingDay,
     )
     
-	// Set start time if not given.
-	if !tiicc.queryStart.IsZero() {
-		timeStart = tiicc.queryStart.UTC()
-	} else {
-		timeStart = time.Now().UTC()
+    timeStart = tiicc.queryStart.UTC()
+	lastTimestamp := time.Time{}
+	
+    // Get last timestamp collected
+	for _, symbol := range tiicc.symbols {
+        tbk := io.NewTimeBucketKey(symbol + "/" + tiicc.baseTimeframe.String + "/Price")
+        lastTimestamp = findLastTimestamp(tbk)
+        log.Info("Crypto: lastTimestamp for %s = %v", symbol, lastTimestamp)
+        if !lastTimestamp.IsZero() && lastTimestamp.After(timeStart) {
+            timeStart = lastTimestamp.UTC()
+        }
 	}
     
     timeStart = alignTimeToTradingHours(timeStart, calendar)
