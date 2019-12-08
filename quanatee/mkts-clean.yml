@@ -3,7 +3,7 @@ listen_port: 5993
 log_level: info
 queryable: true
 stop_grace_period: 0
-wal_rotate_interval: 5
+wal_rotate_interval: 10
 enable_add: true
 enable_remove: true
 enable_last_known: false
