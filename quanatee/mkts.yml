@@ -4,8 +4,8 @@ log_level: info
 queryable: true
 stop_grace_period: 0
 wal_rotate_interval: 5
-enable_add: true
-enable_remove: true
+enable_add: false
+enable_remove: false
 enable_last_known: false
 timezone: "UTC"
 triggers:
@@ -18,6 +18,7 @@ triggers:
         - 7Min
         - 1H
         - 1D
+        - 3D
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:
