@@ -20,7 +20,6 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
     
 	"gopkg.in/yaml.v2"
-	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_crypto_prices/calendar"
 )
 
 // Quote - stucture for historical price data
@@ -56,7 +55,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
     
 	resampleFreq := "5"
 	switch period.String {
@@ -127,13 +126,6 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	}
     
 	if len(forexData.PriceData) < 1 {
-        if ( calendar.IsWorkday(from.UTC()) && 
-           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
-            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
-            log.Debug("Crypto: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
-        }
 		return NewQuote(symbol, 0), err
 	}
     
@@ -146,24 +138,18 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	for bar := 0; bar < numrows; bar++ {
         dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if ( calendar.IsWorkday(dt.UTC()) && 
-           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
-            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
-            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
-            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
-            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-                if startOfSlice == -1 {
-                    startOfSlice = bar
-                }
-                endOfSlice = bar
-                quote.Epoch[bar] = dt.UTC().Unix()
-                quote.Open[bar] = forexData.PriceData[bar].Open
-                quote.High[bar] = forexData.PriceData[bar].High
-                quote.Low[bar] = forexData.PriceData[bar].Low
-                quote.Close[bar] = forexData.PriceData[bar].Close
-                quote.HLC[bar] = (forexData.PriceData[bar].High + forexData.PriceData[bar].Low + forexData.PriceData[bar].Close)/3
-                quote.Volume[bar] = forexData.PriceData[bar].Volume
+        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
             }
+            endOfSlice = bar
+            quote.Epoch[bar] = dt.UTC().Unix()
+            quote.Open[bar] = forexData.PriceData[bar].Open
+            quote.High[bar] = forexData.PriceData[bar].High
+            quote.Low[bar] = forexData.PriceData[bar].Low
+            quote.Close[bar] = forexData.PriceData[bar].Close
+            quote.HLC[bar] = (forexData.PriceData[bar].High + forexData.PriceData[bar].Low + forexData.PriceData[bar].Close)/3
+            quote.Volume[bar] = forexData.PriceData[bar].Volume
         }
 	}
     
@@ -195,7 +181,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	return quote, nil
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
 	switch period.String {
@@ -265,13 +251,6 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
-        if ( calendar.IsWorkday(from.UTC()) && 
-           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
-            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
-            log.Debug("Crypto: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
-        }
 		return NewQuote(symbol, 0), err
 	}
 
@@ -283,26 +262,19 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, cryptoData[0].PriceData[bar].Date)
-        // Only add data that falls into Crypto trading hours
-        if ( calendar.IsWorkday(dt.UTC()) && 
-            (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
-             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
-             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
-             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
-            // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-            if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
-                if startOfSlice == -1 {
-                    startOfSlice = bar
-                }
-                endOfSlice = bar
-                quote.Epoch[bar] = dt.UTC().Unix()
-                quote.Open[bar] = cryptoData[0].PriceData[bar].Open
-                quote.High[bar] = cryptoData[0].PriceData[bar].High
-                quote.Low[bar] = cryptoData[0].PriceData[bar].Low
-                quote.Close[bar] = cryptoData[0].PriceData[bar].Close
-                quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
-                quote.Volume[bar] = float32(cryptoData[0].PriceData[bar].Volume)
+        // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+        if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
+            if startOfSlice == -1 {
+                startOfSlice = bar
             }
+            endOfSlice = bar
+            quote.Epoch[bar] = dt.UTC().Unix()
+            quote.Open[bar] = cryptoData[0].PriceData[bar].Open
+            quote.High[bar] = cryptoData[0].PriceData[bar].High
+            quote.Low[bar] = cryptoData[0].PriceData[bar].Low
+            quote.Close[bar] = cryptoData[0].PriceData[bar].Close
+            quote.HLC[bar] = (quote.High[bar] + quote.Low[bar] + quote.Close[bar])/3
+            quote.Volume[bar] = float32(cryptoData[0].PriceData[bar].Volume)
         }
 	}
     
@@ -396,34 +368,6 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
-    
-    // We sync Crypto 24/5 market with Crypto, so we do not collect data outside of Crypto hours
-    // Crypto Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
-    // Crypto Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
-    // In the event of a holiday, we close at 2100 UTC and open at 0700 UTC
-    // NYSE DST varies the closing time from 20:00 to 21:00
-    // We only realign when it is in the outer closing period
-    // Europe does not impact since during DST Frankfurt Session opens at 0700 UTC (London Open shifts to 0800 UTC)
-    if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 21 ) {
-        // Current date is not a Work Day, or next day is not a Work Day and current Work Day in New York has ended
-        // Find the next Work Day and set to Germany Opening (Overlaps with Japan)
-        nextWorkday := false
-        days := 1
-        for nextWorkday == false {
-            if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
-                nextWorkday = true
-                break
-            } else {
-                days += 1
-            }
-        }
-        timeCheck = timeCheck.AddDate(0, 0, days)
-        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 7, 0, 0, 0, time.UTC)
-    }
-    return timeCheck
-}
-
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
@@ -458,30 +402,8 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 func (tiicc *CryptoFetcher) Run() {
     
 	realTime := false
-    calendar := cal.NewCalendar()
-
-    // Add US and UK holidays
-    calendar.AddHoliday(
-        cal.USNewYear,
-        cal.USMLK,
-        cal.USPresidents,
-        cal.GoodFriday,
-        cal.USMemorial,
-        cal.USIndependence,
-        cal.USLabor,
-        cal.USThanksgiving,
-        cal.USChristmas,
-		cal.GBNewYear,
-		cal.GBGoodFriday,
-		cal.GBEasterMonday,
-		cal.GBEarlyMay,
-		cal.GBSpringHoliday,
-		cal.GBSummerHoliday,
-		cal.GBChristmasDay,
-		cal.GBBoxingDay,
-    )
     
-    timeStart = tiicc.queryStart.UTC()
+    timeStart := tiicc.queryStart.UTC()
 	lastTimestamp := time.Time{}
 	
     // Get last timestamp collected
@@ -493,8 +415,6 @@ func (tiicc *CryptoFetcher) Run() {
             timeStart = lastTimestamp.UTC()
         }
 	}
-    
-    timeStart = alignTimeToTradingHours(timeStart, calendar)
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -540,8 +460,8 @@ func (tiicc *CryptoFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.apiKey)
-            polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.apiKey2)
+            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
+            polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey2)
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
@@ -655,8 +575,7 @@ func (tiicc *CryptoFetcher) Run() {
         if realTime {
             for {
                 // Add a one minute delay because Polygon only releases candles 1 minute later
-                if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).Add(time.Minute).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
-                // if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).Add(time.Minute).UTC().Unix() {
                     break
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)

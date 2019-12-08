@@ -649,7 +649,6 @@ func (tiifx *ForexFetcher) Run() {
             for {
                 // Add a one minute delay because Polygon only releases candles 1 minute later
                 if time.Now().UTC().Unix() > timeEnd.Add(tiifx.baseTimeframe.Duration).Add(time.Minute).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
-                // if time.Now().UTC().Unix() > timeEnd.Add(tiifx.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
                     break
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)
