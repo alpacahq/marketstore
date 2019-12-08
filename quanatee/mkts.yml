@@ -32,7 +32,12 @@ bgworkers:
         - LTCUSD
         - XLMUSD
         - XRPUSD
+        - BNBBTC
         - ETHBTC
+        - EOSBTC
+        - LTCBTC
+        - XLMBTC
+        - XRPBTC
         - BNBETH
         - EOSETH
         - LTCETH
@@ -43,7 +48,7 @@ bgworkers:
         - LTCBNB
         - XLMBNB
         - XRPBNB
-      query_start: "2019-11-01 00:00"
+      query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
@@ -76,12 +81,12 @@ bgworkers:
         - NZDUSD
         - XAGUSD
         - XAUUSD
-      query_start: "2019-11-01 00:00"
+      query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
     config:
       api_key: "<tiingo_api_key>"
-      api_key2: "<polygon_api_key>"
+      api_key2: ""
       symbols:
         - SPY
         - GLD
@@ -118,5 +123,5 @@ bgworkers:
         - SHV
         - BIL
         - SHY
-      query_start: "2019-11-01 00:00"
+      query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"

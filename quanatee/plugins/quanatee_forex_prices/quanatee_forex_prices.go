@@ -134,7 +134,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
-            log.Warn("Forex: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
+            log.Debug("Forex: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
 	}
@@ -264,7 +264,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
             ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
-            log.Warn("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
+            log.Debug("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
         }
 		return NewQuote(symbol, 0), err
 	}
