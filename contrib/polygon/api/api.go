@@ -176,7 +176,6 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 		resp   *http.Response
 		u      *url.URL
 		q      url.Values
-		trades = &HistoricTrades{}
 	)
 
 	for {
@@ -206,6 +205,7 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 			return nil, fmt.Errorf("status code %v", resp.StatusCode)
 		}
 
+		trades := &HistoricTrades{}
 		if err = unmarshal(resp, trades); err != nil {
 			return nil, err
 		}
