@@ -16,6 +16,8 @@ triggers:
     config:
       destinations:
         - 7Min
+        - 11Min
+        - 13Min
         - 1H
         - 1D
         - 3D
