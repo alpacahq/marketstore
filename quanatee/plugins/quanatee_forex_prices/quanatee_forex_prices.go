@@ -532,11 +532,11 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            tiingoQuote, _ := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
-            polygonQuote, _ := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
+            tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey)
+            polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.apiKey2)
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
-            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) {
+            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
                 quote = polygonQuote
                 quote2 := NewQuote(symbol, 0)
                 quote2 = tiingoQuote
@@ -550,7 +550,7 @@ func (tiifx *ForexFetcher) Run() {
                     quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
                 }
                 dataProvider = "Even Aggregation"
-            } else if len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0 {
+            } else if (len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0) && (tiingoErr == nil && polygonErr == nil) {
                 quote2 := NewQuote(symbol, 0)
                 if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
                     quote = polygonQuote
@@ -584,11 +584,11 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
                 dataProvider = "Odd Aggregation"
-            } else if len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0 {
+            } else if (len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0) || (tiingoErr != nil && polygonErr == nil) {
                 // Only one quote is valid
                 quote = polygonQuote
                 dataProvider = "Polygon"
-            } else if len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0 {
+            } else if (len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0) || (tiingoErr == nil && polygonErr != nil) {  
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
