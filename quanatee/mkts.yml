@@ -15,9 +15,9 @@ triggers:
     on: "*/1Min/Price"
     config:
       destinations:
-        - 7Min
-        - 11Min
-        - 13Min
+        - 6Min
+        - 10Min
+        - 15Min
         - 1H
         - 1D
         - 3D
