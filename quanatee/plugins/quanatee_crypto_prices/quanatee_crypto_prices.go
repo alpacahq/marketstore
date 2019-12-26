@@ -461,7 +461,6 @@ func (tiicc *CryptoFetcher) Run() {
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
             tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
-            log.Info("Cry")
             polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey2)
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
