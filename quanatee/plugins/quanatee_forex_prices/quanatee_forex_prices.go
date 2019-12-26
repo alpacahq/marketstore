@@ -589,6 +589,7 @@ func (tiifx *ForexFetcher) Run() {
                 log.Info("Crfasfasy")
                 quote = polygonQuote
                 dataProvider = "Polygon"
+                log.Info("This should print: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
             } else if (len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0) || (tiingoErr == nil && polygonErr != nil) {  
                 // Only one quote is valid
                 quote = tiingoQuote
