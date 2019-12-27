@@ -295,8 +295,8 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 
 type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
-    ApiKey         string   `yaml:"api_key"`
-    ApiKey2        string   `yaml:"api_key2"`
+    TiingoApiKey   string   `yaml:"tiingo_api_key"`
+    PolygonApiKey  string   `yaml:"polygon_api_key"`
 	QueryStart     string   `yaml:"query_start"`
 	BaseTimeframe  string   `yaml:"base_timeframe"`
 }
@@ -305,8 +305,8 @@ type FetcherConfig struct {
 type CryptoFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
-    apiKey         string
-    apiKey2        string
+    tiingoApiKey   string
+    polygonApiKey  string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
@@ -386,12 +386,20 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	}
+
+    if config.TiingoApiKey == "<tiingo_api_key>" {
+        config.TiingoApiKey = ""
+    }
+    
+    if config.PolygonApiKey == "<polygon_api_key>" {
+        config.PolygonApiKey = ""
+    }
     
 	return &CryptoFetcher{
 		config:         conf,
 		symbols:        symbols,
-        apiKey:         config.ApiKey,
-        apiKey2:        config.ApiKey2,
+        tiingoApiKey:   config.TiingoApiKey,
+        polygonApiKey:  config.PolygonApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
 	}, nil
@@ -460,8 +468,18 @@ func (tiicc *CryptoFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
-            tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey)
-            polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.apiKey2)
+            if tiicc.tiingoApiKey != "" {
+                tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.tiingoApiKey)
+            } else {
+                tiingoQuote := NewQuote(symbol, 0)
+                tiingoErr := "No api key"
+            }
+            if tiicc.polygonApiKey != "" {
+                polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.polygonApiKey)
+            } else {
+                polygonQuote := NewQuote(symbol, 0)
+                polygonErr := "No api key"
+            }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
             if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {

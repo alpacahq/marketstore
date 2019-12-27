@@ -371,18 +371,18 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 
 type FetcherConfig struct {
 	Symbols        []string `yaml:"symbols"`
-    ApiKey         string    `yaml:"api_key"`
-    ApiKey2        string    `yaml:"api_key2"`
-	QueryStart     string    `yaml:"query_start"`
-	BaseTimeframe  string    `yaml:"base_timeframe"`
+    TiingoApiKey   string   `yaml:"tiingo_api_key"`
+    PolygonApiKey  string   `yaml:"polygon_api_key"`
+	QueryStart     string   `yaml:"query_start"`
+	BaseTimeframe  string   `yaml:"base_timeframe"`
 }
 
 // IEXFetcher is the main worker for TiingoIEX
 type IEXFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
-    apiKey         string
-    apiKey2        string
+    tiingoApiKey   string
+    polygonApiKey  string
 	queryStart     time.Time
 	baseTimeframe  *utils.Timeframe
 }
@@ -489,22 +489,20 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	}
-    
-    apiKey := config.ApiKey
-    if strings.Contains(config.ApiKey, "<tiingo_api_key>") {
-        apiKey = ""
+
+    if config.TiingoApiKey == "<tiingo_api_key>" {
+        config.TiingoApiKey = ""
     }
     
-    apiKey2 := config.ApiKey2
-    if strings.Contains(config.ApiKey2, "<polygon_api_key>") {
-        apiKey2 = ""
+    if config.PolygonApiKey == "<polygon_api_key>" {
+        config.PolygonApiKey = ""
     }
     
 	return &IEXFetcher{
 		config:         conf,
 		symbols:        symbols,
-        apiKey:         apiKey,
-        apiKey2:        apiKey2,
+        tiingoApiKey:   config.TiingoApiKey,
+        polygonApiKey:  config.PolygonApiKey,
 		queryStart:     queryStart,
 		baseTimeframe:  utils.NewTimeframe(timeframeStr),
 	}, nil
@@ -589,69 +587,76 @@ func (tiieq *IEXFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
+            if tiieq.tiingoApiKey != "" {
+                tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
+            } else {
+                tiingoQuote := NewQuote(symbol, 0)
+                tiingoErr := "No api key"
+            }
+            if tiieq.polygonApiKey != "" {
+                polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.polygonApiKey)
+            } else {
+                polygonQuote := NewQuote(symbol, 0)
+                polygonErr := "No api key"
+            }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
-            tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey)
-            if tiieq.apiKey2 == "" {
-                quote = tiingoQuote
-                dataProvider = "Tiingo"
-            } else {
-                polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.apiKey2)
-                if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
+            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
+                quote = polygonQuote
+                quote2 := NewQuote(symbol, 0)
+                quote2 = tiingoQuote
+                numrows := len(polygonQuote.Epoch)
+                for bar := 0; bar < numrows; bar++ {
+                    quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
+                    quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
+                    quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
+                    quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
+                    quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
+                    quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
+                }
+                dataProvider = "Even Aggregation"
+            } else if (len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0) && (tiingoErr == nil && polygonErr == nil) {
+                quote2 := NewQuote(symbol, 0)
+                if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
                     quote = polygonQuote
-                    numrows := len(polygonQuote.Epoch)
-                    for bar := 0; bar < numrows; bar++ {
-                        quote.Open[bar] = (quote.Open[bar] + tiingoQuote.Open[bar]) / 2
-                        quote.High[bar] = (quote.High[bar] + tiingoQuote.High[bar]) / 2
-                        quote.Low[bar] = (quote.Low[bar] + tiingoQuote.Low[bar]) / 2
-                        quote.Close[bar] = (quote.Close[bar] + tiingoQuote.Close[bar]) / 2
-                        quote.HLC[bar] = (quote.HLC[bar] + tiingoQuote.HLC[bar]) / 2
-                        quote.Volume[bar] = (quote.Volume[bar] + tiingoQuote.Volume[bar])
-                    }
-                    dataProvider = "Even Aggregation"
-                } else if (len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0) && (tiingoErr == nil && polygonErr == nil) {
-                    quote2 := NewQuote(symbol, 0)
-                    if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
-                        quote = polygonQuote
-                        quote2 = tiingoQuote
+                    quote2 = tiingoQuote
+                } else {
+                    quote = tiingoQuote
+                    quote2 = polygonQuote
+                }
+                for bar := 0; bar < len(quote.Epoch); bar++ {
+                    // Test if they both have the same Epochs in the same bar (position)
+                    if len(quote2.Epoch) > bar && quote.Epoch[bar] == quote2.Epoch[bar] {
+                            quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
+                            quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
+                            quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
+                            quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
+                            quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
+                            quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
                     } else {
-                        quote = tiingoQuote
-                        quote2 = polygonQuote
-                    }
-                    for bar := 0; bar < len(quote.Epoch); bar++ {
-                        // Test if they both have the same Epochs in the same bar (position)
-                        if len(quote2.Epoch) > bar && quote.Epoch[bar] == quote2.Epoch[bar] {
-                                quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
-                                quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
-                                quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
-                                quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
-                                quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
-                                quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
-                        } else {
-                            // Test if they both have the same Epochs, but in different bars
-                            for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
-                                if quote.Epoch[bar] == quote2.Epoch[bar2] {
-                                    quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
-                                    quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
-                                    quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar2]) / 2
-                                    quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar2]) / 2
-                                    quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar2]) / 2
-                                    quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar2])
-                                    break
-                                }
+                        // Test if they both have the same Epochs, but in different bars
+                        for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
+                            if quote.Epoch[bar] == quote2.Epoch[bar2] {
+                                quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
+                                quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
+                                quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar2]) / 2
+                                quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar2]) / 2
+                                quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar2]) / 2
+                                quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar2])
+                                break
                             }
                         }
                     }
-                    dataProvider = "Odd Aggregation"
-                } else if (len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0) || (tiingoErr != nil && polygonErr == nil) {
-                    // Only one quote is valid
-                    quote = polygonQuote
-                    dataProvider = "Polygon"
-                } else if (len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0) || (tiingoErr == nil && polygonErr != nil) {  
-                    // Only one quote is valid
-                    quote = tiingoQuote
-                    dataProvider = "Tiingo"
                 }
+                dataProvider = "Odd Aggregation"
+            } else if (len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0) || (tiingoErr != nil && polygonErr == nil) {
+                // Only one quote is valid
+                quote = polygonQuote
+                dataProvider = "Polygon"
+            } else if (len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0) || (tiingoErr == nil && polygonErr != nil) {  
+                // Only one quote is valid
+                quote = tiingoQuote
+                dataProvider = "Tiingo"
             }
             
             if len(quote.Epoch) < 1 {
