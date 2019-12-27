@@ -24,7 +24,7 @@ triggers:
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:
-      tiingo_api_key: ""
+      tiingo_api_key: "<tiingo_api_key>"
       polygon_api_key: "<polygon_api_key>"
       symbols:
         - BTCUSD
@@ -54,7 +54,7 @@ bgworkers:
       base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
-      tiingo_api_key: ""
+      tiingo_api_key: "<tiingo_api_key>"
       polygon_api_key: "<polygon_api_key>"
       symbols:
         - USDCAD
@@ -87,7 +87,7 @@ bgworkers:
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
     config:
-      tiingo_api_key: ""
+      tiingo_api_key: "<tiingo_api_key>"
       polygon_api_key: "<polygon_api_key>"
       symbols:
         - SPY
