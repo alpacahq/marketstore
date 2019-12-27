@@ -542,14 +542,14 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
             tiingoQuote := NewQuote(symbol, 0)
-            tiingoErr := error
+            var tiingoErr error
             if tiifx.tiingoApiKey != "" {
                 tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.tiingoApiKey)
             } else {
                 tiingoErr = errors.New("No api key")
             }
             polygonQuote := NewQuote(symbol, 0)
-            polygonErr := error
+            var polygonErr error
             if tiifx.polygonApiKey != "" {
                 polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.polygonApiKey)
             } else {
