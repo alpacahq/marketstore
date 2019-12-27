@@ -587,17 +587,15 @@ func (tiieq *IEXFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
+            tiingoQuote := NewQuote(symbol, 0)
+            tiingoErr := "No api key"
             if tiieq.tiingoApiKey != "" {
-                tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
-            } else {
-                tiingoQuote := NewQuote(symbol, 0)
-                tiingoErr := "No api key"
+                tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
             }
+            polygonQuote := NewQuote(symbol, 0)
+            polygonErr := "No api key"
             if tiieq.polygonApiKey != "" {
-                polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.polygonApiKey)
-            } else {
-                polygonQuote := NewQuote(symbol, 0)
-                polygonErr := "No api key"
+                polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.polygonApiKey)
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"

@@ -540,17 +540,15 @@ func (tiifx *ForexFetcher) Run() {
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
+            tiingoQuote := NewQuote(symbol, 0)
+            tiingoErr := "No api key"
             if tiifx.tiingoApiKey != "" {
-                tiingoQuote, tiingoErr := GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.tiingoApiKey)
-            } else {
-                tiingoQuote := NewQuote(symbol, 0)
-                tiingoErr := "No api key"
+                tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.tiingoApiKey)
             }
+            polygonQuote := NewQuote(symbol, 0)
+            polygonErr := "No api key"
             if tiifx.polygonApiKey != "" {
-                polygonQuote, polygonErr := GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.polygonApiKey)
-            } else {
-                polygonQuote := NewQuote(symbol, 0)
-                polygonErr := "No api key"
+                polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.polygonApiKey)
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
