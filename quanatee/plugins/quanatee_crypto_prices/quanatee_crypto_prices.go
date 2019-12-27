@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
     // "strings"
+    "errors"
     "math/rand"
     // "math/big"
     

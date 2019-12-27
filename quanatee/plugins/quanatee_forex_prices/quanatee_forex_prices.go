@@ -11,6 +11,7 @@ import (
 	"time"
     // "strconv"
     // "strings"
+    "errors"
     "math/rand"
     // "math/big"
     
