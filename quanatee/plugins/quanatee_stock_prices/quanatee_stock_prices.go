@@ -591,11 +591,15 @@ func (tiieq *IEXFetcher) Run() {
             tiingoErr := "No api key"
             if tiieq.tiingoApiKey != "" {
                 tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
+            } else {
+                tiingoErr = errors.New("No api key")
             }
             polygonQuote := NewQuote(symbol, 0)
             polygonErr := "No api key"
             if tiieq.polygonApiKey != "" {
                 polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.polygonApiKey)
+            } else {
+                polygonErr = errors.New("No api key")
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"

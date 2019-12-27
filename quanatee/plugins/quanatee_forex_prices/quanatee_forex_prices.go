@@ -544,11 +544,15 @@ func (tiifx *ForexFetcher) Run() {
             tiingoErr := "No api key"
             if tiifx.tiingoApiKey != "" {
                 tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.tiingoApiKey)
+            } else {
+                tiingoErr = errors.New("No api key")
             }
             polygonQuote := NewQuote(symbol, 0)
             polygonErr := "No api key"
             if tiifx.polygonApiKey != "" {
                 polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.polygonApiKey)
+            } else {
+                polygonErr = errors.New("No api key")
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"

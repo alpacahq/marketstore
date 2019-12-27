@@ -469,14 +469,18 @@ func (tiicc *CryptoFetcher) Run() {
         // Data for symbols are written immediately for asynchronous-like processing
         for _, symbol := range symbols {
             tiingoQuote := NewQuote(symbol, 0)
-            tiingoErr := "No api key"
+            tiingoErr := error
             if tiicc.tiingoApiKey != "" {
                 tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.tiingoApiKey)
+            } else {
+                tiingoErr = errors.New("No api key")
             }
             polygonQuote := NewQuote(symbol, 0)
-            polygonErr := "No api key"
+            polygonErr := error
             if tiicc.polygonApiKey != "" {
                 polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, calendar, tiicc.polygonApiKey)
+            } else {
+                polygonErr = errors.New("No api key")
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
