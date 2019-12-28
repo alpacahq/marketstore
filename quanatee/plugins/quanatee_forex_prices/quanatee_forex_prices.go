@@ -678,7 +678,7 @@ func (tiifx *ForexFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Second*60)
+			time.Sleep(time.Second*20)
         }
 
 	}

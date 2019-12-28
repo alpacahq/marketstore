@@ -605,7 +605,7 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Second*60)
+			time.Sleep(time.Second*20)
         }
 
 	}
