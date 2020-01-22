@@ -122,6 +122,7 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []string) io
 		low := make([]float32, 1440)
 		close := make([]float32, 1440)
 		volume := make([]int32, 1440)
+		tickCnt := make([]int32, 1440)
 
 		barIdx := -1
 		lastBucketTimestamp := time.Time{}
@@ -143,6 +144,7 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []string) io
 				high[barIdx] = price
 				low[barIdx] = price
 				volume[barIdx] = 0
+				tickCnt[barIdx] = 0
 			}
 			if high[barIdx] < price {
 				high[barIdx] = price
@@ -152,6 +154,7 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []string) io
 			}
 			close[barIdx] = price
 			volume[barIdx] += int32(tick.Size)
+			tickCnt[barIdx] += 1
 		}
 
 		if barIdx == -1 {
@@ -168,6 +171,7 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []string) io
 		cs.AddColumn("Low", low[:barIdx])
 		cs.AddColumn("Close", close[:barIdx])
 		cs.AddColumn("Volume", volume[:barIdx])
+		cs.AddColumn("TickCnt", tickCnt[:barIdx])
 
 		csm = io.NewColumnSeriesMap()
 		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
