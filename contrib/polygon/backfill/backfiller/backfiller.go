@@ -25,6 +25,7 @@ var (
 	symbols              string
 	parallelism          int
 	apiKey               string
+	exchanges            string
 
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
@@ -35,6 +36,7 @@ func init() {
 	flag.StringVar(&dir, "dir", "/project/data", "mktsdb directory to backfill to")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD)")
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill from date (YYYY-MM-DD)")
+	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
 	flag.BoolVar(&trades, "trades", false, "backfill trades")
@@ -101,6 +103,11 @@ func main() {
 		symbolList = strings.Split(symbols, ",")
 	}
 
+	var exchangeIDs []string
+	if exchanges != "*" {
+		exchangeIDs = strings.Split(exchanges, ",")
+	}
+
 	sem := make(chan struct{}, parallelism)
 
 	if bars {
@@ -118,8 +125,14 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Bars(sym, t.Add(-24*time.Hour), t); err != nil {
-							log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
+						if len(exchangeIDs) == 0 {
+							if err = backfill.Bars(sym, t.Add(-24*time.Hour), t); err != nil {
+								log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
+							}
+						} else {
+							if err = backfill.BuildBarsFromTrades(sym, t.Add(-24*time.Hour), t, exchangeIDs); err != nil {
+								log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
+							}
 						}
 					}(e)
 				}

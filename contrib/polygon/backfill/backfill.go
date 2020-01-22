@@ -9,12 +9,14 @@ import (
 	"github.com/alpacahq/marketstore/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/utils/log"
 )
+
+const defaultFormat = "2006-01-02"
 
 var (
 	// NY timezone
 	NY, _     = time.LoadLocation("America/New_York")
-	format    = "2006-01-02"
 	ErrRetry  = fmt.Errorf("retry error")
 	BackfillM *sync.Map
 )
@@ -73,6 +75,108 @@ func Bars(symbol string, from, to time.Time) (err error) {
 	return executor.WriteCSM(csm, false)
 }
 
+func stringInSlice(s string, l []string) bool {
+	for _, item := range l {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+func BuildBarsFromTrades(symbol string, from, to time.Time, exchangeIDs []string) error {
+	if from.IsZero() {
+		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
+	}
+
+	if to.IsZero() {
+		to = time.Now()
+	}
+
+	for ; !from.After(to); from = from.AddDate(0, 0, 1) {
+		resp, err := api.GetHistoricTrades(symbol, from.Format(defaultFormat))
+		if err != nil {
+			return err
+		}
+
+		csm := tradesToBars(resp.Ticks, symbol, exchangeIDs)
+		if csm == nil {
+			continue
+		}
+
+		if err = executor.WriteCSM(csm, false); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []string) io.ColumnSeriesMap {
+	var csm io.ColumnSeriesMap
+
+	if len(ticks) > 0 {
+		epoch := make([]int64, 1440)
+		open := make([]float32, 1440)
+		high := make([]float32, 1440)
+		low := make([]float32, 1440)
+		close := make([]float32, 1440)
+		volume := make([]int32, 1440)
+
+		barIdx := -1
+		lastBucketTimestamp := time.Time{}
+
+		for _, tick := range ticks {
+			if !stringInSlice(tick.Exchange, exchangeIDs) {
+				continue
+			}
+
+			timestamp := time.Unix(0, 1000*1000*tick.Timestamp)
+			bucketTimestamp := timestamp.Truncate(time.Minute)
+			price := float32(tick.Price)
+
+			if !lastBucketTimestamp.Equal(bucketTimestamp) {
+				barIdx++
+				lastBucketTimestamp = bucketTimestamp
+				epoch[barIdx] = bucketTimestamp.Unix()
+				open[barIdx] = price
+				high[barIdx] = price
+				low[barIdx] = price
+				volume[barIdx] = 0
+			}
+			if high[barIdx] < price {
+				high[barIdx] = price
+			}
+			if low[barIdx] > price {
+				low[barIdx] = price
+			}
+			close[barIdx] = price
+			volume[barIdx] += int32(tick.Size)
+		}
+
+		if barIdx == -1 {
+			log.Info("[polyfeed] No matching exchages.")
+			return nil
+		}
+
+		barIdx++
+
+		cs := io.NewColumnSeries()
+		cs.AddColumn("Epoch", epoch[:barIdx])
+		cs.AddColumn("Open", open[:barIdx])
+		cs.AddColumn("High", high[:barIdx])
+		cs.AddColumn("Low", low[:barIdx])
+		cs.AddColumn("Close", close[:barIdx])
+		cs.AddColumn("Volume", volume[:barIdx])
+
+		csm = io.NewColumnSeriesMap()
+		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
+		csm.AddColumnSeries(*tbk, cs)
+	}
+
+	return csm
+}
+
 func Trades(symbol string, from, to time.Time) error {
 	if from.IsZero() {
 		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
@@ -83,7 +187,7 @@ func Trades(symbol string, from, to time.Time) error {
 	}
 
 	for {
-		resp, err := api.GetHistoricTrades(symbol, from.Format("2006-01-02"))
+		resp, err := api.GetHistoricTrades(symbol, from.Format(defaultFormat))
 		if err != nil {
 			if strings.Contains(err.Error(), "GOAWAY") {
 				<-time.After(5 * time.Second)
@@ -161,7 +265,7 @@ func Quotes(symbol string, from, to time.Time) error {
 	)
 
 	for {
-		if resp, err = api.GetHistoricQuotes(symbol, from.Format("2006-01-02")); err != nil {
+		if resp, err = api.GetHistoricQuotes(symbol, from.Format(defaultFormat)); err != nil {
 			if strings.Contains(err.Error(), "GOAWAY") {
 				<-time.After(5 * time.Second)
 				return Bars(symbol, from, to)
