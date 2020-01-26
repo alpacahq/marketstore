@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -21,6 +22,7 @@ import (
 var (
 	dir, from, to        string
 	bars, quotes, trades bool
+	symbols              string
 	parallelism          int
 	apiKey               string
 
@@ -36,6 +38,8 @@ func init() {
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
 	flag.BoolVar(&trades, "trades", false, "backfill trades")
+	flag.StringVar(&symbols, "symbols", "*",
+		"comma separated list of symbols to backfill, the default * means backfill all symbols")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
 
@@ -82,11 +86,19 @@ func main() {
 		log.Fatal("[polygon] failed to parse to timestamp (%v)", err)
 	}
 
-	log.Info("[polygon] listing symbols")
-
-	resp, err := api.ListSymbols()
-	if err != nil {
-		log.Fatal("[polygon] failed to list symbols (%v)", err)
+	var symbolList []string
+	if symbols == "*" {
+		log.Info("[polygon] listing symbols")
+		resp, err := api.ListSymbols()
+		if err != nil {
+			log.Fatal("[polygon] failed to list symbols (%v)", err)
+		}
+		symbolList = make([]string, len(resp.Symbols))
+		for i, s := range resp.Symbols {
+			symbolList[i] = s.Symbol
+		}
+	} else {
+		symbolList = strings.Split(symbols, ",")
 	}
 
 	sem := make(chan struct{}, parallelism)
@@ -94,11 +106,11 @@ func main() {
 	if bars {
 		log.Info("[polygon] backfilling bars from %v to %v", start, end)
 
-		for _, sym := range resp.Symbols {
+		for _, sym := range symbolList {
 			s := start
 			e := end
 
-			log.Info("[polygon] backfilling bars for %v", sym.Symbol)
+			log.Info("[polygon] backfilling bars for %v", sym)
 
 			for e.After(s) {
 				if calendar.Nasdaq.IsMarketDay(e) {
@@ -106,8 +118,8 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Bars(sym.Symbol, t.Add(-24*time.Hour), t); err != nil {
-							log.Warn("[polygon] failed to backfill trades for %v (%v)", sym.Symbol, err)
+						if err = backfill.Bars(sym, t.Add(-24*time.Hour), t); err != nil {
+							log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
 						}
 					}(e)
 				}
@@ -119,11 +131,11 @@ func main() {
 	if quotes {
 		log.Info("[polygon] backfilling quotes from %v to %v", start, end)
 
-		for _, sym := range resp.Symbols {
+		for _, sym := range symbolList {
 			s := start
 			e := end
 
-			log.Info("[polygon] backfilling quotes for %v", sym.Symbol)
+			log.Info("[polygon] backfilling quotes for %v", sym)
 
 			for e.After(s) {
 				if calendar.Nasdaq.IsMarketDay(e) {
@@ -131,8 +143,8 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Quotes(sym.Symbol, t.Add(-24*time.Hour), t); err != nil {
-							log.Warn("[polygon] failed to backfill quotes for %v (%v)", sym.Symbol, err)
+						if err = backfill.Quotes(sym, t.Add(-24*time.Hour), t); err != nil {
+							log.Warn("[polygon] failed to backfill quotes for %v (%v)", sym, err)
 						}
 					}(e)
 				}
@@ -144,11 +156,11 @@ func main() {
 	if trades {
 		log.Info("[polygon] backfilling trades from %v to %v", start, end)
 
-		for _, sym := range resp.Symbols {
+		for _, sym := range symbolList {
 			s := start
 			e := end
 
-			log.Info("[polygon] backfilling trades for %v", sym.Symbol)
+			log.Info("[polygon] backfilling trades for %v", sym)
 
 			for e.After(s) {
 				if calendar.Nasdaq.IsMarketDay(e) {
@@ -156,8 +168,8 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Trades(sym.Symbol, t.Add(-24*time.Hour), t); err != nil {
-							log.Warn("[polygon] failed to backfill trades for %v (%v)", sym.Symbol, err)
+						if err = backfill.Trades(sym, t.Add(-24*time.Hour), t); err != nil {
+							log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
 						}
 					}(e)
 				}
