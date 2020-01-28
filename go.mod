@@ -45,7 +45,7 @@ require (
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
-	github.com/stretchr/testify v1.3.0 // indirect
+	github.com/stretchr/testify v1.3.0
 	github.com/timpalpant/go-iex v0.0.0-20181027174710-0b8a5fdd2ec1
 	github.com/valyala/fasthttp v1.0.0
 	github.com/vmihailenco/msgpack v4.0.1+incompatible
@@ -59,3 +59,5 @@ require (
 	gopkg.in/matryer/try.v1 v1.0.0-20150601225556-312d2599e12e
 	gopkg.in/yaml.v2 v2.2.2
 )
+
+go 1.13
