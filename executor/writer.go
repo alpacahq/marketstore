@@ -2,23 +2,18 @@ package executor
 
 import (
 	"fmt"
-	stdio "io"
-	"os"
-	"strings"
-	"time"
-	"unsafe"
-
 	"github.com/alpacahq/marketstore/catalog"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
 	. "github.com/alpacahq/marketstore/utils/io"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/klauspost/compress/snappy"
+	stdio "io"
+	"os"
+	"sort"
+	"strings"
+	"time"
 )
-
-//#include "quickSort.h"
-//#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument
-import "C"
 
 type Writer struct {
 	root *catalog.Directory
@@ -228,11 +223,8 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	/*
 		Sort the data by the timestamp to maintain on-disk sorted order
 	*/
-	TimSortBufferUINT32(
-		unsafe.Pointer(&dataToBeWritten[0]),
-		uint64(dataLen),
-		uint64(varRecLen),
-	)
+	sort.Sort(NewByIntervalTicks(dataToBeWritten, int(dataLen)/int(varRecLen), int(varRecLen)))
+
 	/*
 		Write the data at the end of the file
 	*/
