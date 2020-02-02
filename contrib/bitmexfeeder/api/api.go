@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -102,7 +103,12 @@ func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string)
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("status code %v", res.StatusCode)
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("status code %v, response=%v", res.StatusCode, string(body))
 	}
 	err = json.NewDecoder(res.Body).Decode(&resp)
 	if err != nil {
