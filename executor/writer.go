@@ -223,7 +223,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	/*
 		Sort the data by the timestamp to maintain on-disk sorted order
 	*/
-	sort.Sort(NewByIntervalTicks(dataToBeWritten, int(dataLen)/int(varRecLen), int(varRecLen)))
+	sort.Stable(NewByIntervalTicks(dataToBeWritten, int(dataLen)/int(varRecLen), int(varRecLen)))
 
 	/*
 		Write the data at the end of the file

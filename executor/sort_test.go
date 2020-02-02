@@ -20,7 +20,7 @@ func TestSortBuffer(t *testing.T) {
 
 	// --- when ---
 	// sort by the last 4 byte (=
-	sort.Sort(NewByIntervalTicks(buffer, dataLen/recordLength, recordLength))
+	sort.Stable(NewByIntervalTicks(buffer, dataLen/recordLength, recordLength))
 
 	// --- then ---
 	expected := []byte{
