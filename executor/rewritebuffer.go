@@ -93,12 +93,13 @@ func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint3
 	//         = intervalTicks * 86400 * 10^9 / (2^32 * intervalsPerDay)
 	//         = intervalTicks * 20116.5676117 / intervalsPerDay
 
-	nanoseconds := uint32(math.Round(float64(intervalTicks) * 20116.5676117 / float64(intervalsPerDay)))
+	nanoseconds := uint64(math.Round(float64(intervalTicks) * 20116.5676117 / float64(intervalsPerDay)))
 
 	// if nanoseconds value is larger than 1 second
 	if nanoseconds >= 1000000000 {
-		nanoseconds -= 1000000000
-		return intervalStart + 1, nanoseconds
+		plusSec := nanoseconds / 1000000000
+		nanoseconds -= plusSec * 1000000000
+		return intervalStart + plusSec, uint32(nanoseconds)
 	}
-	return intervalStart, nanoseconds
+	return intervalStart, uint32(nanoseconds)
 }
