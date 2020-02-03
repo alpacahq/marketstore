@@ -26,7 +26,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to load config file. %v", conf))
 	}
-	log.Debug("loaded Xignite Feeder config...")
+	log.Info("loaded Xignite Feeder config...")
 
 	// init Xignite API client
 	apiClient := api.NewDefaultAPIClient(config.APIToken, config.Timeout)
@@ -46,6 +46,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	sm := symbols.NewManager(apiClient, config.Exchanges, config.IndexGroups)
 	sm.Update()
 	timer.RunEveryDayAt(ctx, config.UpdatingHour, sm.Update)
+	log.Info("updated symbols in the target exchanges")
 
 	// init Quotes Writer & QuotesRange Writer
 	var msqw writer.QuotesWriter = writer.QuotesWriterImpl{
@@ -63,6 +64,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		bf := feed.NewBackfill(sm, apiClient, msqw, msqrw, time.Time(config.Backfill.Since))
 		bf.Update()
 		timer.RunEveryDayAt(ctx, config.UpdatingHour, bf.Update)
+		log.Info("backfilled daily chart in the target exchanges")
 	}
 
 	if config.RecentBackfill.Enabled {
