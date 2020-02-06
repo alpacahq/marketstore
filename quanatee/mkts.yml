@@ -16,7 +16,7 @@ triggers:
     config:
       destinations:
         - 6Min
-        - 10Min
+        - 12Min
         - 15Min
         - 1H
         - 1D
@@ -81,6 +81,8 @@ bgworkers:
       polygon_api_key: "<polygon_api_key>"
       symbols:
         - SPY
+        - QQQ
+        - USO
         - GLD
         - SLV
         - EZU
@@ -109,11 +111,19 @@ bgworkers:
         - XLB
         - XLRE
         - XLU
+        - IGSB
         - VCSH
-        - HYG
+        - SPSB
+        - IGIB
         - VCIT
-        - SHV
-        - BIL
+        - SPIB
         - SHY
+        - VGSH
+        - SCHO
+        - IEF
+        - VGIT
+        - SCHR
+        - WTI
+        - ICE
       query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"

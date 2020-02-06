@@ -31,7 +31,7 @@ var Timeframes = []*Timeframe{
 	{"3Min", 3 * time.Minute},
 	{"5Min", 5 * time.Minute},
 	{"6Min", 6 * time.Minute},
-	{"10Min", 10 * time.Minute},
+	{"12Min", 12 * time.Minute},
 	{"15Min", 15 * time.Minute},
 	{"30Min", 30 * time.Minute},
 	{"1H", time.Hour},
