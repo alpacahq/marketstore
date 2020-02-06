@@ -59,7 +59,7 @@ func NewQuote(symbol string, bars int) Quote {
 	}
 }
 
-func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
     
 	resampleFreq := "5"
 	switch period.String {
@@ -130,8 +130,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	}
     
 	if len(forexData.PriceData) < 1 {
-        if ( calendar.IsWorkday(from.UTC()) && 
-           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+        if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
             ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
@@ -149,8 +148,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	for bar := 0; bar < numrows; bar++ {
         dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(time.Millisecond)) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if ( calendar.IsWorkday(dt.UTC()) && 
-           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+        if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
@@ -198,7 +196,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	return quote, nil
 }
 
-func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, calendar *cal.Calendar, token string) (Quote, error) {
+func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, period *utils.Timeframe, token string) (Quote, error) {
     
 	resampleFreq := "1hour"
 	switch period.String {
@@ -260,8 +258,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	}
     
 	if len(forexData) < 1 {
-        if ( calendar.IsWorkday(from.UTC()) && 
-           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+        if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
             ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
@@ -279,8 +276,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	for bar := 0; bar < numrows; bar++ {
         dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if ( calendar.IsWorkday(dt.UTC()) && 
-           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+        if ((( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
@@ -392,19 +388,15 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 
 func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
     
-    // Forex Opening = Monday 0700 UTC is the first data we will consume in a session (London Open)
+    // Forex Opening = Sunday 2000 UTC is the first data we will consume in a session (Sunday Open)
     // Forex Closing = Friday 2100 UTC is the last data we will consume in a session (New York Close)
-    // In the event of a holiday, we close at 2100 UTC and open at 0700 UTC
-    // NYSE DST varies the closing time from 20:00 to 21:00
-    // We only realign when it is in the outer closing period
-    // Europe does not impact since during DST Frankfurt Session opens at 0700 UTC (London Open shifts to 0800 UTC)
     if !calendar.IsWorkday(timeCheck) || ( !calendar.IsWorkday(timeCheck.AddDate(0, 0, 1)) && timeCheck.Hour() >= 21 ) {
         // Current date is not a Work Day, or next day is not a Work Day and current Work Day in New York has ended
         // Find the next Work Day and set to Germany Opening (Overlaps with Japan)
         nextWorkday := false
         days := 1
         for nextWorkday == false {
-            if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) {
+            if calendar.IsWorkday(timeCheck.AddDate(0, 0, days)) || timeCheck.AddDate(0, 0, days).Weekday() == 0 {
                 nextWorkday = true
                 break
             } else {
@@ -412,7 +404,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
             }
         }
         timeCheck = timeCheck.AddDate(0, 0, days)
-        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 7, 0, 0, 0, time.UTC)
+        timeCheck = time.Date(timeCheck.Year(), timeCheck.Month(), timeCheck.Day(), 20, 0, 0, 0, time.UTC)
     }
     return timeCheck
 }
@@ -462,6 +454,7 @@ func (tiifx *ForexFetcher) Run() {
     calendar := cal.NewCalendar()
 
     // Add US and UK holidays
+    /*
     calendar.AddHoliday(
         cal.USNewYear,
         cal.USMLK,
@@ -481,6 +474,7 @@ func (tiifx *ForexFetcher) Run() {
 		cal.GBChristmasDay,
 		cal.GBBoxingDay,
     )
+    */
     
     timeStart := tiifx.queryStart.UTC()
 	lastTimestamp := time.Time{}
@@ -544,14 +538,14 @@ func (tiifx *ForexFetcher) Run() {
             tiingoQuote := NewQuote(symbol, 0)
             var tiingoErr error
             if tiifx.tiingoApiKey != "" {
-                tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.tiingoApiKey)
+                tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.tiingoApiKey)
             } else {
                 tiingoErr = errors.New("No api key")
             }
             polygonQuote := NewQuote(symbol, 0)
             var polygonErr error
             if tiifx.polygonApiKey != "" {
-                polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, calendar, tiifx.polygonApiKey)
+                polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.polygonApiKey)
             } else {
                 polygonErr = errors.New("No api key")
             }
@@ -668,8 +662,7 @@ func (tiifx *ForexFetcher) Run() {
         
         if realTime {
             for {
-                // Add a one minute delay because Polygon only releases candles 1 minute later
-                if time.Now().UTC().Unix() > timeEnd.Add(tiifx.baseTimeframe.Duration).Add(time.Minute).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                if time.Now().UTC().Unix() > timeEnd.Add(tiifx.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
                     break
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)

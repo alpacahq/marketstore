@@ -595,8 +595,7 @@ func (tiicc *CryptoFetcher) Run() {
         
         if realTime {
             for {
-                // Add a one minute delay because Polygon only releases candles 1 minute later
-                if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).Add(time.Minute).UTC().Unix() {
+                if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).UTC().Unix() {
                     break
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)
