@@ -34,6 +34,8 @@ type QueryRequest struct {
 	LimitRecordCount *int `msgpack:"limit_record_count,omitempty"`
 	// Set to true if LimitRecordCount should be from the lower
 	LimitFromStart *bool `msgpack:"limit_from_start,omitempty"`
+	// Array of column names to be returned
+	Columns []string `msgpack:"columns,omitempty"`
 
 	// Support for functions is experimental and subject to change
 	Functions []string `msgpack:"functions,omitempty"`
@@ -162,6 +164,10 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			if req.LimitFromStart != nil {
 				limitFromStart = *req.LimitFromStart
 			}
+			columns := make([]string, 0)
+			if req.Columns != nil {
+				columns = req.Columns
+			}
 
 			start := io.ToSystemTimezone(time.Unix(epochStart, 0))
 			stop := io.ToSystemTimezone(time.Unix(epochEnd, 0))
@@ -169,6 +175,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 				dest,
 				start, stop,
 				limitRecordCount, limitFromStart,
+				columns,
 			)
 			if err != nil {
 				return err
@@ -241,7 +248,7 @@ Utility functions
 */
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
-	LimitFromStart bool) (io.ColumnSeriesMap, error) {
+	LimitFromStart bool, columns []string) (io.ColumnSeriesMap, error) {
 
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
@@ -291,6 +298,9 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		log.Error("Error returned from query scanner: %s\n", err)
 		return nil, err
 	}
+
+	csm.FilterColumns(columns)
+
 	return csm, err
 }
 

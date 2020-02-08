@@ -6,7 +6,7 @@ behind the MarketStore process and keeps writing to the disk.
 
 ## Configuration
 
-gdaxfeeder.so comes with the server by default, so you can simply configure it
+bitmexfeeder.so comes with the server by default, so you can simply configure it
 in MarketStore configuration file.
 
 ### Options
