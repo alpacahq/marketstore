@@ -57,6 +57,25 @@ Optionally, you can install the project's included plugins using
 make plugins
 ```
 
+### Homebrew on macOS
+
+You can also install marketstore using the [Homebrew](https://brew.sh)
+package manager for macOS.
+
+```sh
+$ brew tap zjhmale/marketstore
+$ brew install --HEAD marketstore
+```
+
+To upgrade marketstore in the future, use `upgrade` instead of `install`.
+
+Then you are equipped with marketstore service plist also
+
+```sh
+$ brew services start marketstore
+$ brew services stop marketstore
+```
+
 ## Usage
 You can list available commands by running
 ```
