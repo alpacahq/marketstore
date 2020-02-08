@@ -8,12 +8,6 @@ import (
 	. "github.com/alpacahq/marketstore/utils/io"
 )
 
-/*
-#include "rewriteBuffer.h"
-#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument -std=c99
-*/
-import "C"
-
 func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, direction DirectionEnum) (rb []byte, err error) {
 	/*
 		Here we use the bufFileMap which has index data for each file, then we read
@@ -90,7 +84,7 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 					numVarRecords = numberLeftToRead
 				}
 			}
-			rbTemp := RewriteBuffer_Go(buffer,
+			rbTemp := RewriteBuffer(buffer,
 				uint32(varRecLen), uint32(numVarRecords), uint32(md.Intervals), uint64(intervalStartEpoch))
 
 			//rb = append(rb, rbTemp...)

@@ -1,9 +1,5 @@
 package executor
 
-/*
-#include "rewriteBuffer.h"
-#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument -std=c99
-*/
 import "C"
 import (
 	"encoding/binary"
@@ -11,23 +7,7 @@ import (
 	_ "github.com/alpacahq/marketstore/utils/log"
 	_ "go.uber.org/zap"
 	"math"
-	"unsafe"
 )
-
-func RewriteBuffer_C(buffer []byte, varRecLen, numVarRecords, intervalsPerDay uint32, intervalStartEpoch uint64) []byte {
-	//// Variable records use the raw element sizes plus a 4-byte trailer for interval ticks
-	//f.variableRecordLength = int32(f.getFieldRecordLength()) + 4 // Variable records have a 4-byte trailer
-	// temporary result buffer
-	rbTemp := make([]byte, numVarRecords*(varRecLen+8)) // Add the extra space for epoch
-
-	arg1 := (*C.char)(unsafe.Pointer(&buffer[0]))
-	arg4 := (*C.char)(unsafe.Pointer(&rbTemp[0]))
-
-	C.rewriteBuffer(arg1, C.int(varRecLen), C.int(numVarRecords), arg4,
-		C.int64_t(intervalsPerDay), C.int64_t(intervalStartEpoch))
-
-	return rbTemp
-}
 
 // RewriteBuffer converts variable_length records to the result buffer.
 //
@@ -45,7 +25,7 @@ func RewriteBuffer_C(buffer []byte, varRecLen, numVarRecords, intervalsPerDay ui
 // +--------------------+--VarRecLen + 8 [byte]-----+-------------------+
 // + EpochSecond(8byte) | Actual Data(Ask,Bid, etc) | Nanosecond(4byte) |
 // +--------------------+----------------------------+------------------+
-func RewriteBuffer_Go(buffer []byte, varRecLen, numVarRecords uint32, intervalsPerDay uint32, intervalStartEpoch uint64) []byte {
+func RewriteBuffer(buffer []byte, varRecLen, numVarRecords uint32, intervalsPerDay uint32, intervalStartEpoch uint64) []byte {
 	// temporary result buffer
 	rbTemp := make([]byte, numVarRecords*(varRecLen+8)) // Add the extra space for epoch
 

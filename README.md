@@ -39,7 +39,7 @@ marketstore connect --url localhost:5993
 ```
 
 ### Source
-MarketStore is implemented in Go (with some CGO), so you can build it from
+MarketStore is implemented in Go, so you can build it from
 source pretty easily. You need Go 1.11+ as it uses `go mod` to manage dependencies.
 ``` sh
 go get -u github.com/alpacahq/marketstore
