@@ -66,20 +66,19 @@ func RewriteBuffer(buffer []byte, varRecLen, numVarRecords uint32, intervalsPerD
 // interval ticks to the timestamp and returns an epoch time (seconds) and
 // the number of nanoseconds of fractional time within the last second as a remainder
 func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint32) (sec uint64, nanosec uint32) {
-	// intervalsPerDay = 86400(sec) / timeframe(sec)
-	// nanosecPerIntervalTick = timeframe(sec) *10^9 / 2^32
-	//                        = (86400 / intervalsPerDay) * 10^9 / 2^32
-	// nanosec = intervalTicks * nanosecPerIntervalTick
-	//         = intervalTicks * 86400 * 10^9 / (2^32 * intervalsPerDay)
-	//         = intervalTicks * 20116.5676117 / intervalsPerDay
+	const ticksPerIntervalDivSecsPerDay float64 = 49710.269629629629629629629629629
 
-	nanoseconds := uint64(math.Round(float64(intervalTicks) * 20116.5676117 / float64(intervalsPerDay)))
-
-	// if nanoseconds value is larger than 1 second
-	if nanoseconds >= 1000000000 {
-		plusSec := nanoseconds / 1000000000
-		nanoseconds -= plusSec * 1000000000
-		return intervalStart + plusSec, uint32(nanoseconds)
+	var fractionalSeconds = float64(intervalTicks) / (float64(intervalsPerDay) * ticksPerIntervalDivSecsPerDay)
+	var subseconds = 1000000000 * (fractionalSeconds - math.Floor(fractionalSeconds))
+	if subseconds >= 1000000000 {
+		subseconds -= 1000000000
+		fractionalSeconds += 1
 	}
-	return intervalStart, uint32(nanoseconds)
+
+	sec = intervalStart + uint64(fractionalSeconds)
+	// round the subseconds after the decimal point to minimize the cancellation error of subseconds
+	// round( subseconds ) = (int32_t)(subseconds + 0.5)
+	nanosec = uint32(subseconds + 0.5)
+
+	return sec, nanosec
 }
