@@ -17,24 +17,6 @@ if [ $? -ne 0 ]; then \
 fi
 
 
-# import ticks-example-1.csv/yaml to TEST/1Min/TICK and check if the output of show commands match ticks-example-1-output.csv
-marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
-\create TEST/24H/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
-\getinfo TEST/24H/TICK
-\load TEST/24H/TICK bin/ticks-example-1.csv bin/ticks-example-1.yaml
-\o test_ticks.csv
-\show TEST/24H/TICK 1970-01-01
-EOF
-exit_if_failed $?
-
-diff bin/ticks-example-1-output-24H.csv test_ticks.csv
-diff -q bin/ticks-example-1-output-24H.csv test_ticks.csv && echo "Passed"
-exit_if_failed $?
-
-rm -f test_ticks.csv
-exit_if_failed $?
-
-
 # import ticks-example-2.csv/yaml to TEST2/1Min/TICK and check if the output of show commands match ticks-example-2-output.csv
 marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
 \create TEST2/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
