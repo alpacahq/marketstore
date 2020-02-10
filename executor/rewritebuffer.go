@@ -75,7 +75,9 @@ func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint3
 		fractionalSeconds += 1
 	}
 
-	sec = intervalStart + uint64(fractionalSeconds)
+	// in order to keep compatibility with the old rewriteBuffer implemented in C with some round error,
+	// fractionalSeconds should be rounded here.
+	sec = intervalStart + uint64(math.Round(fractionalSeconds*100000000)/100000000)
 	// round the subseconds after the decimal point to minimize the cancellation error of subseconds
 	// round( subseconds ) = (int32_t)(subseconds + 0.5)
 	nanosec = uint32(subseconds + 0.5)
