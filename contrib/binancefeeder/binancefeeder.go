@@ -179,7 +179,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	query.AddTargetKey(tbk)
 	start := time.Unix(0, 0).In(utils.InstanceConfig.Timezone)
 	end := time.Unix(math.MaxInt64, 0).In(utils.InstanceConfig.Timezone)
-	query.SetRange(start.Unix(), end.Unix())
+	query.SetRange(start, end)
 	query.SetRowLimit(io.LAST, 1)
 	parsed, err := query.Parse()
 	if err != nil {

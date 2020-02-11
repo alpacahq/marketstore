@@ -276,7 +276,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		)
 	}
 
-	query.SetRange(start.Unix(), end.Unix())
+	query.SetRange(start, end)
 	parseResult, err := query.Parse()
 	if err != nil {
 		// No results from query

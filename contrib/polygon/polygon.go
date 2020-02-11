@@ -128,7 +128,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 					defer wg.Done()
 
 					// backfill the symbol in parallel
-					pf.backfillBars(symbol, *value.(*int64))
+					pf.backfillBars(symbol, time.Unix(*value.(*int64),0))
 					backfill.BackfillM.Store(key, nil)
 				}()
 			}
@@ -144,7 +144,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 	}
 }
 
-func (pf *PolygonFetcher) backfillBars(symbol string, endEpoch int64) {
+func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time) {
 	var (
 		from time.Time
 		err  error
@@ -158,7 +158,7 @@ func (pf *PolygonFetcher) backfillBars(symbol string, endEpoch int64) {
 		q := planner.NewQuery(cDir)
 		q.AddTargetKey(tbk)
 		q.SetRowLimit(io.LAST, 1)
-		q.SetEnd(endEpoch - int64(time.Minute.Seconds()))
+		q.SetEnd(end.Add(-1 * time.Minute))
 
 		parsed, err := q.Parse()
 		if err != nil {

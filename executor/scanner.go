@@ -82,7 +82,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 				return nil, RecordLengthNotConsistent("NewIOPlan")
 			}
 		}
-		if file.File.Year < pr.Range.StartYear {
+		if file.File.Year < int16(pr.Range.Start.Year()) {
 			// Add the whole file to the previous files list for use in back scanning before the start
 			prevPaths = append(
 				prevPaths,
@@ -95,24 +95,24 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 					false,
 				},
 			)
-		} else if file.File.Year <= pr.Range.EndYear {
+		} else if file.File.Year <= int16(pr.Range.End.Year()) {
 			/*
 			 Calculate the number of bytes to be read for each file and the offset
 			*/
 			// Set the starting and ending indices based on the range
-			if file.File.Year == pr.Range.StartYear {
+			if file.File.Year == int16(pr.Range.Start.Year()) {
 				// log.Info("range start: %v", pr.Range.Start)
-				startOffset = EpochToOffset(
+				startOffset = TimeToOffset(
 					pr.Range.Start,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength(),
 				)
 				// log.Info("start offset: %v", startOffset)
 			}
-			if file.File.Year == pr.Range.EndYear {
+			if file.File.Year == int16(pr.Range.End.Year()) {
 				// log.Info("range end: %v", pr.Range.End)
 
-				endOffset = EpochToOffset(
+				endOffset = TimeToOffset(
 					pr.Range.End,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
@@ -142,7 +142,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			iop.FilePlan = append(iop.FilePlan, fp)
 			// in backward scan, tell the last known index for the later reader
 			// Add a previous file if we are at the beginning of the range
-			if file.File.Year == pr.Range.StartYear {
+			if file.File.Year == int16(pr.Range.Start.Year()) {
 				length := startOffset - int64(Headersize)
 				prevPaths = append(
 					prevPaths,
@@ -226,7 +226,7 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 			return nil, err
 		}
 		if rt == VARIABLE {
-			buffer = trimResultsToRange(r.pr.Range.Start, r.pr.Range.End, rlen, buffer)
+			buffer = trimResultsToRange(r.pr.Range, rlen, buffer)
 		}
 		rs := NewRowSeries(key, buffer, dsMap[key], rlen, cat, rt)
 		key, cs := rs.ToColumnSeries()
@@ -235,7 +235,7 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 	return csm, err
 }
 
-func trimResultsToRange(start, end int64, rowlen int, src []byte) (dest []byte) {
+func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []byte) {
 	// find the beginning of the range (sorted order)
 	rowLength := rowlen + 8
 	nrecords := len(src) / rowLength
@@ -245,7 +245,7 @@ func trimResultsToRange(start, end int64, rowlen int, src []byte) (dest []byte) 
 	cursor := 0
 	for i := 0; i < nrecords; i++ {
 		epoch := ToInt64(src[cursor : cursor+8])
-		if epoch >= start {
+		if epoch >= dr.Start.Unix() {
 			dest = src[cursor:]
 			break
 		}
@@ -259,7 +259,7 @@ func trimResultsToRange(start, end int64, rowlen int, src []byte) (dest []byte) 
 	for i := nrecords; i > 0; i-- {
 		cursor = (i - 1) * rowLength
 		epoch := ToInt64(dest[cursor : cursor+8])
-		if epoch <= end {
+		if epoch <= dr.Start.Unix() {
 			dest = dest[:cursor+rowLength]
 			break
 		}

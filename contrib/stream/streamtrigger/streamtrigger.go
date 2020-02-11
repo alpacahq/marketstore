@@ -87,7 +87,7 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 
 	q := planner.NewQuery(cDir)
 	q.AddTargetKey(tbk)
-	q.SetEnd(end.Unix())
+	q.SetEnd(end)
 	q.SetRowLimit(io.LAST, 1)
 
 	parsed, err := q.Parse()
