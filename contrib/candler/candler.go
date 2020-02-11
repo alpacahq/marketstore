@@ -202,8 +202,6 @@ func (ca *Candler) Output() *io.ColumnSeries {
 	}
 
 	rows := io.NewRows(dataShapes, dataBuf)
-	catt := io.CandleAttributes(io.OHLC)
-	rows.SetCandleAttributes(&catt)
 	return rows.ToColumnSeries()
 }
 

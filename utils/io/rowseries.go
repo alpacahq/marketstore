@@ -5,8 +5,6 @@ import (
 )
 
 type RowsInterface interface {
-	SetCandleAttributes(*CandleAttributes)
-	GetCandleAttributes() *CandleAttributes
 	GetRow(i int) []byte // Position to the i-th record
 	GetData() []byte     // Pointer to the beginning of the data
 	GetNumRows() int
@@ -24,12 +22,10 @@ type Rows struct {
 	dataShape        []DataShape
 	data             []byte
 	rowLen           int               // We allow for a rowLen that might differ from the sum of dataShape for alignment, etc
-	candleAttributes *CandleAttributes // Attributes of the rows, are they discrete (ticks) or continuous (candles)
 }
 
 func NewRows(dataShape []DataShape, data []byte) *Rows {
-	ca := CandleAttributes(0)
-	return &Rows{dataShape: dataShape, data: data, rowLen: 0, candleAttributes: &ca}
+	return &Rows{dataShape: dataShape, data: data, rowLen: 0}
 }
 
 func (rows *Rows) GetColumn(colname string) (col interface{}) {
@@ -90,14 +86,6 @@ func (rows *Rows) GetTime() []time.Time {
 	return ts
 }
 
-func (rows *Rows) SetCandleAttributes(ca *CandleAttributes) {
-	rows.candleAttributes = ca
-}
-
-func (rows *Rows) GetCandleAttributes() *CandleAttributes {
-	return rows.candleAttributes
-}
-
 func (rows *Rows) SetRowLen(rowLen int) {
 	/*
 		Call this to set a custom row length for this group of rows. This is needed when padding for alignment.
@@ -143,7 +131,6 @@ func (rows *Rows) ToColumnSeries() *ColumnSeries {
 		}
 		cs.AddColumn(ds.Name, rows.GetColumn(ds.Name))
 	}
-	cs.SetCandleAttributes(rows.GetCandleAttributes())
 	return cs
 }
 
@@ -159,7 +146,7 @@ func NewRowSeries(
 	key TimeBucketKey,
 	data []byte,
 	dataShape []DataShape,
-	rowLen int, cat *CandleAttributes,
+	rowLen int,
 	rowType EnumRecordType,
 ) *RowSeries {
 	/*
@@ -170,7 +157,6 @@ func NewRowSeries(
 		dataShape = append(dataShape, DataShape{"Nanoseconds", INT32})
 	}
 	rows := NewRows(dataShape, data)
-	rows.SetCandleAttributes(cat)
 	rows.SetRowLen(rowLen)
 	return &RowSeries{
 		metadataKey: key,
@@ -182,12 +168,6 @@ func (rs *RowSeries) GetMetadataKey() TimeBucketKey {
 	return rs.metadataKey
 }
 
-func (rs *RowSeries) SetCandleAttributes(ca *CandleAttributes) {
-	rs.rows.SetCandleAttributes(ca)
-}
-func (rs *RowSeries) GetCandleAttributes() *CandleAttributes {
-	return rs.rows.GetCandleAttributes()
-}
 func (rs *RowSeries) GetRow(i int) []byte {
 	return rs.rows.GetRow(i)
 }
@@ -230,6 +210,5 @@ func (rs *RowSeries) ToColumnSeries() (key TimeBucketKey, cs *ColumnSeries) {
 		}
 		cs.AddColumn(ds.Name, rs.GetColumn(ds.Name))
 	}
-	cs.SetCandleAttributes(rs.GetCandleAttributes())
 	return key, cs
 }

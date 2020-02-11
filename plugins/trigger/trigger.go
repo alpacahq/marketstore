@@ -85,7 +85,6 @@ func (r *Record) Payload() []byte {
 func RecordsToColumnSeries(
 	tbk io.TimeBucketKey,
 	ds []io.DataShape,
-	ca *io.CandleAttributes,
 	tf time.Duration,
 	year int16,
 	records []Record) *io.ColumnSeries {

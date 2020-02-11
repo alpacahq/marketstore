@@ -182,51 +182,6 @@ func GetElementType(datum interface{}) EnumElementType {
 	return NONE
 }
 
-type CandleAttributes uint8
-
-/*
-- if None, then there are no candle attributes - not a candle
-- if both HASFLOAT32 and HASFLOAT64 are set, the 64-bit versions of OHLC are named using a "64" after the column name
-- if only one of HASFLOAT32 and HASFLOAT64 are set, the OHLC have names: "open", "high", etc
-*/
-const (
-	None       CandleAttributes = 0x0       // Default - not a candle
-	ISCANDLE                    = 1 << iota // Is a candle - continuum data representation (not a tick)
-	OHLC                                    // Has "Open, High, Low, Close" data in the candle
-	OHLCV                                   // Has "Open, High, Low, Close" and "Volume" data in the candle
-	HASFLOAT32                              // 32-bit version available
-	HASFLOAT64                              // 64-bit version available
-)
-
-func (cat *CandleAttributes) AddOption(option CandleAttributes) {
-	*cat |= option
-}
-func (cat *CandleAttributes) DelOption(option CandleAttributes) {
-	*cat &= ^option
-}
-func (cat *CandleAttributes) IsSet(checkOption ...CandleAttributes) bool {
-	/*
-		Returns true if all supplied options are set
-	*/
-	for _, co := range checkOption {
-		if (*cat)&co != co {
-			return false
-		}
-	}
-	return true
-}
-func (cat *CandleAttributes) AnySet(checkOption ...CandleAttributes) bool {
-	/*
-		Returns true if any of the supplied options are set
-	*/
-	for _, co := range checkOption {
-		if (*cat)&co == co {
-			return true
-		}
-	}
-	return false
-}
-
 type DirectionEnum uint8
 
 const (

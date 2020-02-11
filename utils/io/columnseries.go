@@ -32,14 +32,12 @@ type ColumnSeries struct {
 
 	columns          map[string]interface{}
 	orderedNames     []string
-	candleAttributes *CandleAttributes
 	nameIncrement    map[string]int
 }
 
 func NewColumnSeries() *ColumnSeries {
 	cs := new(ColumnSeries)
 	cs.columns = make(map[string]interface{})
-	cs.candleAttributes = new(CandleAttributes)
 	cs.nameIncrement = make(map[string]int)
 	return cs
 }
@@ -84,14 +82,6 @@ func (cs *ColumnSeries) GetTime() []time.Time {
 
 func (cs *ColumnSeries) GetColumnNames() (columnNames []string) {
 	return cs.orderedNames
-}
-
-func (cs *ColumnSeries) GetCandleAttributes() (cat *CandleAttributes) {
-	return cs.candleAttributes
-}
-
-func (cs *ColumnSeries) SetCandleAttributes(cat *CandleAttributes) {
-	cs.candleAttributes = cat
 }
 
 func (cs *ColumnSeries) GetColumns() map[string]interface{} {
@@ -232,7 +222,7 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries) {
 	dsv := cs.GetDataShapes()
 	data, recordLen := SerializeColumnsToRows(cs, dsv, alignData)
-	rs = NewRowSeries(itemKey, data, dsv, recordLen, cs.GetCandleAttributes(), NOTYPE)
+	rs = NewRowSeries(itemKey, data, dsv, recordLen, NOTYPE)
 	return rs
 }
 
@@ -248,7 +238,6 @@ func (cs *ColumnSeries) ApplyTimeQual(tq func(epoch int64) bool) *ColumnSeries {
 
 	out := &ColumnSeries{
 		orderedNames:     cs.orderedNames,
-		candleAttributes: cs.candleAttributes,
 		nameIncrement:    cs.nameIncrement,
 		columns:          map[string]interface{}{},
 	}
@@ -281,7 +270,6 @@ func (cs *ColumnSeries) ApplyTimeQual(tq func(epoch int64) bool) *ColumnSeries {
 func SliceColumnSeriesByEpoch(cs ColumnSeries, start, end *int64) (slc ColumnSeries, err error) {
 	slc = ColumnSeries{
 		orderedNames:     cs.orderedNames,
-		candleAttributes: cs.candleAttributes,
 		nameIncrement:    cs.nameIncrement,
 		columns:          map[string]interface{}{},
 	}
@@ -334,7 +322,6 @@ func max(x, y int) int {
 func ColumnSeriesUnion(left, right *ColumnSeries) *ColumnSeries {
 	out := NewColumnSeries()
 
-	out.candleAttributes = left.candleAttributes
 	out.orderedNames = left.orderedNames
 	out.nameIncrement = make(map[string]int, len(left.nameIncrement))
 	for k, v := range left.nameIncrement {

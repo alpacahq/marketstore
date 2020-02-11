@@ -213,12 +213,10 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 	// down to several parts of small query and each one's Range.Start follow the last's
 	// Range.End with same other conditions.
 	csm = NewColumnSeriesMap()
-	catMap := r.pr.GetCandleAttributes()
 	rtMap := r.pr.GetRowType()
 	dsMap := r.pr.GetDataShapes()
 	rlMap := r.pr.GetRowLen()
 	for key, iop := range r.IOPMap {
-		cat := catMap[key]
 		rt := rtMap[key]
 		rlen := rlMap[key]
 		buffer, err := r.read(iop)
@@ -228,7 +226,7 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 		if rt == VARIABLE {
 			buffer = trimResultsToRange(r.pr.Range.Start, r.pr.Range.End, rlen, buffer)
 		}
-		rs := NewRowSeries(key, buffer, dsMap[key], rlen, cat, rt)
+		rs := NewRowSeries(key, buffer, dsMap[key], rlen, rt)
 		key, cs := rs.ToColumnSeries()
 		csm[key] = cs
 	}
