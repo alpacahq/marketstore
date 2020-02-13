@@ -102,7 +102,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         "C%3A"+symbol,
                         resampleFreq,
                         url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-01-02")),
+                        url.QueryEscape(to.Format("2006-01-02")),
                         token)
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -148,6 +148,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	for bar := 0; bar < numrows; bar++ {
         dt := time.Unix(int64(forexData.PriceData[bar].Timestamp/1000), 0) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+        log.Info("%v", dt.UTC())
         if dt.UTC().Unix() >= last.UTC().Unix() {
             log.Info("%v", dt.UTC())
         }
