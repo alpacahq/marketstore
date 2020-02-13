@@ -3,15 +3,16 @@ package frontend
 import (
 	"context"
 	"fmt"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/proto"
-	"github.com/alpacahq/marketstore/sqlparser"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
 	"math"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/proto"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var dataTypeMap = map[proto.DataType]io.EnumElementType{

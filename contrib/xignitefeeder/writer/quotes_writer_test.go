@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 )
 
 var (

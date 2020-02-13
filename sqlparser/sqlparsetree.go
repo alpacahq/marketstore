@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alpacahq/marketstore/sqlparser/parser"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/sqlparser/parser"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 

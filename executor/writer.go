@@ -2,17 +2,18 @@ package executor
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/catalog"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/klauspost/compress/snappy"
 	stdio "io"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	. "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/klauspost/compress/snappy"
 )
 
 type Writer struct {

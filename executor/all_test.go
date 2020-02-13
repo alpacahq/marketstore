@@ -14,11 +14,11 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	. "github.com/alpacahq/marketstore/catalog"
-	. "github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/test"
+	. "github.com/alpacahq/marketstore/v4/catalog"
+	. "github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils"
+	. "github.com/alpacahq/marketstore/v4/utils/io"
+	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 // Hook up gocheck into the "go test" runner.

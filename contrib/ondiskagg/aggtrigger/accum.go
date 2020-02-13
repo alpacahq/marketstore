@@ -3,8 +3,8 @@ package aggtrigger
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger/functions"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/contrib/ondiskagg/aggtrigger/functions"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 type accumParam struct {

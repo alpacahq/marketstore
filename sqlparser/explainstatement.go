@@ -3,7 +3,7 @@ package sqlparser
 import (
 	"encoding/json"
 
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 type ExplainStatement struct {

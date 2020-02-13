@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/alpacahq/marketstore/utils/pool"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/pool"
 )
 
 type Subscription struct {

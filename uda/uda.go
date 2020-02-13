@@ -3,7 +3,7 @@ package uda
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 func ColumnToFloat32(cols io.ColumnInterface, name string) (outCol []float32, err error) {

@@ -1,12 +1,12 @@
 package start
 
 import (
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/plugins"
-	"github.com/alpacahq/marketstore/plugins/bgworker"
-	"github.com/alpacahq/marketstore/plugins/trigger"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/plugins"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func InitializeTriggers() {

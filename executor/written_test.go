@@ -3,8 +3,8 @@ package executor
 import (
 	. "gopkg.in/check.v1"
 
-	"github.com/alpacahq/marketstore/plugins/trigger"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 type WrittenIndexesTests struct{}

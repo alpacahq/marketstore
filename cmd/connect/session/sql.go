@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/frontend"
-	"github.com/alpacahq/marketstore/sqlparser"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 // sql executes a sql statement against the current db.

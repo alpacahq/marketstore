@@ -3,12 +3,12 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/cmd/connect"
-	"github.com/alpacahq/marketstore/cmd/create"
-	"github.com/alpacahq/marketstore/cmd/estimate"
-	"github.com/alpacahq/marketstore/cmd/start"
-	"github.com/alpacahq/marketstore/cmd/tool"
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/cmd/connect"
+	"github.com/alpacahq/marketstore/v4/cmd/create"
+	"github.com/alpacahq/marketstore/v4/cmd/estimate"
+	"github.com/alpacahq/marketstore/v4/cmd/start"
+	"github.com/alpacahq/marketstore/v4/cmd/tool"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/spf13/cobra"
 )
 

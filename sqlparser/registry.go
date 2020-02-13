@@ -1,14 +1,14 @@
 package sqlparser
 
 import (
-	"github.com/alpacahq/marketstore/contrib/candler/candlecandler"
-	"github.com/alpacahq/marketstore/contrib/candler/tickcandler"
-	"github.com/alpacahq/marketstore/uda"
-	"github.com/alpacahq/marketstore/uda/avg"
-	"github.com/alpacahq/marketstore/uda/count"
-	"github.com/alpacahq/marketstore/uda/gap"
-	"github.com/alpacahq/marketstore/uda/max"
-	"github.com/alpacahq/marketstore/uda/min"
+	"github.com/alpacahq/marketstore/v4/contrib/candler/candlecandler"
+	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
+	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/uda/avg"
+	"github.com/alpacahq/marketstore/v4/uda/count"
+	"github.com/alpacahq/marketstore/v4/uda/gap"
+	"github.com/alpacahq/marketstore/v4/uda/max"
+	"github.com/alpacahq/marketstore/v4/uda/min"
 )
 
 var AggRegistry = map[string]uda.AggInterface{

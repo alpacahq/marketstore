@@ -3,17 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/configs"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/feed"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/symbols"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/timer"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
-	"github.com/alpacahq/marketstore/plugins/bgworker"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/configs"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/feed"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/symbols"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/timer"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
 )
 

@@ -3,8 +3,8 @@ package symbols
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // Manager manages symbols in the target stock exchanges.

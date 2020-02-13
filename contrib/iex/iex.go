@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/iex/api"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/plugins/bgworker"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/iex/api"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (

@@ -3,7 +3,7 @@ package sqlparser
 import (
 	"fmt"
 
-	. "github.com/alpacahq/marketstore/sqlparser/parser"
+	. "github.com/alpacahq/marketstore/v4/sqlparser/parser"
 	. "github.com/antlr/antlr4/runtime/Go/antlr"
 )
 

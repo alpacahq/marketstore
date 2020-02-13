@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/writer"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
 	"github.com/pkg/errors"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 )
 
 // GetRealTimeBars returns "Request Error" to certain identifier, but returns "Success" to other identifiers

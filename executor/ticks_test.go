@@ -5,8 +5,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "gopkg.in/check.v1"
 )
 

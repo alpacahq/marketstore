@@ -2,7 +2,7 @@ package io
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"reflect"
 	"sort"
 	"strconv"

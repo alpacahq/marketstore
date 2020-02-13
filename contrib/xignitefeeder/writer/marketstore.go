@@ -1,8 +1,8 @@
 package writer
 
 import (
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 // MarketStoreWriter is an interface to write data to marketstore.

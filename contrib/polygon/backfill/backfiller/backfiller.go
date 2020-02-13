@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
-	"github.com/alpacahq/marketstore/contrib/calendar"
-	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger"
-	"github.com/alpacahq/marketstore/contrib/polygon/api"
-	"github.com/alpacahq/marketstore/contrib/polygon/backfill"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/plugins/trigger"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/calendar"
+	"github.com/alpacahq/marketstore/v4/contrib/ondiskagg/aggtrigger"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var (

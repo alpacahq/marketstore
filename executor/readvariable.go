@@ -1,11 +1,12 @@
 package executor
 
 import (
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/klauspost/compress/snappy"
 	"os"
 
-	. "github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/klauspost/compress/snappy"
+
+	. "github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 func (r *reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
