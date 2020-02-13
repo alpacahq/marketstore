@@ -102,7 +102,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-01-02")),
+                        url.QueryEscape(to.Format("2006-01-02")),
                         token)
     
 	client := &http.Client{Timeout: ClientTimeout}

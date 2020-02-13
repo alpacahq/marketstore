@@ -99,7 +99,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     // https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/minute/2019-01-01/2019-02-01?unadjusted=true&apiKey=
     apiUrl := fmt.Sprintf(
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
-                        "C%3A"+symbol,
+                        "C:"+symbol,
                         resampleFreq,
                         url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
                         url.QueryEscape(to.Format("2006-01-02")),
@@ -139,7 +139,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 		return NewQuote(symbol, 0), err
 	}
     
-    numrows := len(forexData.PriceData)
+	numrows := len(forexData.PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
@@ -148,15 +148,10 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	for bar := 0; bar < numrows; bar++ {
         dt := time.Unix(int64(forexData.PriceData[bar].Timestamp/1000), 0) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        log.Info("%v", dt.UTC())
-        if dt.UTC().Unix() >= last.UTC().Unix() {
-            log.Info("%v", dt.UTC())
-        }
         if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
-
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
                     startOfSlice = bar
@@ -181,13 +176,9 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
         quote.HLC = quote.HLC[startOfSlice:endOfSlice+1]
         quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
-        
-        log.Info("Forex: len(%s): %v, quote_len: %v from:%v, to:%v, last:%v", symbol, numrows, len(quote.Epoch), from, to, last)
     } else {
         quote = NewQuote(symbol, 0)
-        log.Info("Forex: len(%s): %v, quote_len: %v. from:%v, to:%v, last:%v", symbol, numrows, 0, from, to, last)
     }
-    
     /*
     // DEPRECATED BUT KEPT FOR REFERENCE
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)

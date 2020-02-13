@@ -96,10 +96,10 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     // https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/minute/2019-01-01/2019-02-01?unadjusted=true&apiKey=
     apiUrl := fmt.Sprintf(
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
-                        "X%3A"+symbol,
+                        "X:"+symbol,
                         resampleFreq,
                         url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.AddDate(0, 0, 1).Format("2006-01-02")),
+                        url.QueryEscape(to.Format("2006-01-02")),
                         token)
     
 	client := &http.Client{Timeout: ClientTimeout}
