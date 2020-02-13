@@ -13,7 +13,6 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
 )
 
-type TimeQualFunc func(epoch int64) bool
 type RestrictionList map[string][]string                     //Key is category, items list is target
 func (r RestrictionList) GetRestrictionMap() RestrictionList { return r }
 func (r RestrictionList) AddRestriction(category string, item string) {
@@ -69,7 +68,6 @@ type ParseResult struct {
 	Range           *DateRange
 	IntervalsPerDay int64
 	RootDir         string
-	TimeQuals       []TimeQualFunc
 }
 
 func NewParseResult() *ParseResult {
@@ -169,7 +167,6 @@ type query struct {
 	Restriction RestrictionList
 	Limit       *RowLimit
 	DataDir     *Directory
-	TimeQuals   []TimeQualFunc
 }
 
 func NewQuery(d *Directory) *query {
@@ -224,10 +221,6 @@ func (q *query) AddTargetKey(key *TimeBucketKey) {
 			q.Restriction.AddRestriction(cat, item)
 		}
 	}
-}
-
-func (q *query) AddTimeQual(timeQual TimeQualFunc) {
-	q.TimeQuals = append(q.TimeQuals, timeQual)
 }
 
 func (q *query) Parse() (pr *ParseResult, err error) {
@@ -345,6 +338,5 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 			31, 23, 59, 59, 0,
 			utils.InstanceConfig.Timezone).Unix()
 	}
-	pr.TimeQuals = q.TimeQuals
 	return pr, nil
 }

@@ -44,7 +44,6 @@ type ioplan struct {
 	RecordType        EnumRecordType
 	VariableRecordLen int
 	Limit             *planner.RowLimit
-	TimeQuals         []planner.TimeQualFunc
 }
 
 func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err error) {
@@ -158,8 +157,6 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			}
 		}
 	}
-
-	iop.TimeQuals = pr.TimeQuals
 
 	return iop, nil
 }
@@ -457,9 +454,6 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 			if index != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
 				index = IndexToTime(index, fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
-				if !ex.checkTimeQuals(index) {
-					continue
-				}
 				idxpos := len(*packedBuffer)
 				*packedBuffer = append(*packedBuffer, buffer[curpos:curpos+int64(recordSize)]...)
 				b := *packedBuffer
@@ -618,17 +612,6 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 		return 0, curpos, err
 	}
 	return seekAmt, curpos, nil
-}
-
-func (ex *ioExec) checkTimeQuals(epoch int64) bool {
-	if len(ex.plan.TimeQuals) > 0 {
-		for _, timeQual := range ex.plan.TimeQuals {
-			if !timeQual(epoch) {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func newIoExec(iop *ioplan) *ioExec {
