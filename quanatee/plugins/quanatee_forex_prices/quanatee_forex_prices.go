@@ -146,7 +146,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(time.Millisecond)) //Timestamp is in milliseconds
+        dt := time.Unix(int64(forexData.PriceData[bar].Timestamp/1000), 0) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() >= last.UTC().Unix() {
             log.Info("%v", dt.UTC())
