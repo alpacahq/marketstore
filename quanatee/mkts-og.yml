@@ -3,7 +3,7 @@ listen_port: 5993
 log_level: info
 queryable: true
 stop_grace_period: 0
-wal_rotate_interval: 5
+wal_rotate_interval: 10
 enable_add: true
 enable_remove: true
 enable_last_known: false
@@ -12,56 +12,71 @@ triggers:
   - module: stream.so
     on: "*/*/*"
   - module: quanatee_ondiskagg.so
-    on: "*/15Min/Price"
+    on: "*/1Min/Price"
     config:
       destinations:
-        - 10Min
+        - 6Min
+        - 12Min
+        - 15Min
         - 1H
         - 1D
+        - 3D
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:
-      api_key: "<tiingo_api_key>"
+      tiingo_api_key: "<tiingo_api_key>"
+      polygon_api_key: "<polygon_api_key>"
       symbols:
         - BTCUSD
+        - BNBUSD
         - ETHUSD
         - EOSUSD
         - LTCUSD
         - XLMUSD
         - XRPUSD
-      query_start: "2019-07-01 00:00"
-      base_timeframe: "5Min"
+      query_start: "2017-01-01 00:00"
+      base_timeframe: "1Min"
   - module: quanatee_forex_prices.so
     config:
-      api_key: "<tiingo_api_key>"
+      tiingo_api_key: "<tiingo_api_key>"
+      polygon_api_key: "<polygon_api_key>"
       symbols:
-        - EURUSD
-        - USDJPY
-        - GBPUSD
-        - AUDUSD
-        - USDCHF
-        - NZDUSD
         - USDCAD
-        - USDCNH
-        - USDHKD
-        - USDINR
-        - USDRUB
-        - USDZAR
         - USDMXN
-        - USDTRY
+        - USDBRL
+        - EURUSD
+        - GBPUSD
+        - USDCHF
+        - USDDKK
         - USDNOK
         - USDSEK
+        - USDRUB
+        - USDTRY
+        - USDAED
+        - USDCNH
+        - USDINR
+        - KRWUSD
+        - USDJPY
+        - TWDUSD
+        - USDHKD
+        - THBUSD
+        - VNDUSD
+        - PHPUSD
         - USDSGD
+        - AUDUSD
+        - NZDUSD
         - XAGUSD
         - XAUUSD
-      query_start: "2019-07-01 00:00"
-      base_timeframe: "5Min"
+      query_start: "2017-01-01 00:00"
+      base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
     config:
-      api_key: "<tiingo_api_key>"
-      api_key2: "<tdameritrade_api_key>"
+      tiingo_api_key: "<tiingo_api_key>"
+      polygon_api_key: "<polygon_api_key>"
       symbols:
         - SPY
+        - QQQ
+        - USO
         - GLD
         - SLV
         - EZU
@@ -90,12 +105,19 @@ bgworkers:
         - XLB
         - XLRE
         - XLU
+        - IGSB
         - VCSH
-        - HYG
+        - SPSB
+        - IGIB
         - VCIT
-        - IMTB
-        - SHV
-        - BIL
+        - SPIB
         - SHY
-      query_start: "2019-07-01 00:00"
-      base_timeframe: "5Min"
+        - VGSH
+        - SCHO
+        - IEF
+        - VGIT
+        - SCHR
+        - WTI
+        - ICE
+      query_start: "2017-01-01 00:00"
+      base_timeframe: "1Min"

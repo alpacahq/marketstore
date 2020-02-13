@@ -139,7 +139,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 		return NewQuote(symbol, 0), err
 	}
     
-	numrows := len(forexData.PriceData)
+    numrows := len(forexData.PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
@@ -176,9 +176,13 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
         quote.Close = quote.Close[startOfSlice:endOfSlice+1]
         quote.HLC = quote.HLC[startOfSlice:endOfSlice+1]
         quote.Volume = quote.Volume[startOfSlice:endOfSlice+1]
+        
+        log.Info("Forex: len(%s): %v, quote_len: %v from:%v, to:%v, last:%v", symbol, numrows, len(quote.Epoch), from, to, last)
     } else {
         quote = NewQuote(symbol, 0)
+        log.Info("Forex: len(%s): %v, quote_len: %v. from:%v, to:%v, last:%v", symbol, numrows, 0, from, to, last)
     }
+    
     /*
     // DEPRECATED BUT KEPT FOR REFERENCE
     // Reverse the order of slice in Intrinio because data is returned in descending (latest to earliest) whereas Tiingo does it from ascending (earliest to latest)
