@@ -154,7 +154,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
             if dt.UTC().Unix() >= last.UTC().Unix()
                 log.Info("%v", dt.UTC())
-                
+
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
                     startOfSlice = bar
@@ -663,7 +663,7 @@ func (tiifx *ForexFetcher) Run() {
         // Save the latest timestamp written
         if len(quotes) > 0 {
             if len(quotes[0].Epoch) > 0{
-                lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
+                lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0).UTC()
             }
         }
         
