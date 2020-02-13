@@ -269,9 +269,9 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 					getFileList(subdir, f, itemKey+subdir.GetName()+"/", categoryKey)
 				}
 			}
-		} else {
+		} else if itemKey != "" && categoryKey != "" {
 			/*
-				If there are no subdirs, emit the category and item keys
+				If there are no subdirs and it's not the root directory, emit the category and item keys
 			*/
 			itemKey = itemKey[:len(itemKey)-1]
 			categoryKey = categoryKey[:len(categoryKey)-1]
