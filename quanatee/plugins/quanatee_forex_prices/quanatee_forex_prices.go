@@ -148,13 +148,13 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	for bar := 0; bar < numrows; bar++ {
         dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(time.Millisecond)) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
+        if dt.UTC().Unix() >= last.UTC().Unix() {
+            log.Info("%v", dt.UTC())
+        }
         if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
-            if dt.UTC().Unix() >= last.UTC().Unix() {
-                log.Info("%v", dt.UTC())
-            }
 
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
