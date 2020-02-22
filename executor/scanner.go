@@ -44,6 +44,7 @@ type ioplan struct {
 	RecordType        EnumRecordType
 	VariableRecordLen int
 	Limit             *planner.RowLimit
+	Range             *planner.DateRange
 	TimeQuals         []planner.TimeQualFunc
 }
 
@@ -51,6 +52,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 	iop = &ioplan{
 		FilePlan: make([]*ioFilePlan, 0),
 		Limit:    pr.Limit,
+		Range:    pr.Range,
 	}
 	/*
 		At this point we have a date unconstrained group of sorted files
@@ -227,6 +229,7 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 		}
 		if rt == VARIABLE {
 			buffer = trimResultsToRange(r.pr.Range, rlen, buffer)
+			buffer = trimResultsToLimit(r.pr.Limit, rlen, buffer)
 		}
 		rs := NewRowSeries(key, buffer, dsMap[key], rlen, cat, rt)
 		key, cs := rs.ToColumnSeries()
@@ -244,8 +247,8 @@ func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []b
 	}
 	cursor := 0
 	for i := 0; i < nrecords; i++ {
-		epoch := ToInt64(src[cursor : cursor+8])
-		if epoch >= dr.Start.Unix() {
+		t := TimeOfVariableRecord(src, cursor, rowLength)
+		if t.Equal(dr.Start) || t.After(dr.Start) {
 			dest = src[cursor:]
 			break
 		}
@@ -258,13 +261,36 @@ func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []b
 	}
 	for i := nrecords; i > 0; i-- {
 		cursor = (i - 1) * rowLength
-		epoch := ToInt64(dest[cursor : cursor+8])
-		if epoch <= dr.Start.Unix() {
+		t := TimeOfVariableRecord(dest, cursor, rowLength)
+		if t.Equal(dr.End) || t.After(dr.End) {
 			dest = dest[:cursor+rowLength]
 			break
 		}
 	}
+
 	return dest
+}
+
+func TimeOfVariableRecord(buf []byte, cursor int, rowLength int) time.Time {
+	epoch := ToInt64(buf[cursor : cursor+8])
+	nanos := ToInt32(buf[cursor+rowLength-4 : cursor+rowLength])
+	return time.Unix(epoch, int64(nanos))
+}
+
+func trimResultsToLimit(l *planner.RowLimit, rowlen int, src []byte) []byte {
+	rowLength := rowlen + 8
+
+	nrecords := len(src) / rowLength
+	limit := int(l.Number)
+
+	if nrecords > limit {
+		if l.Direction == FIRST {
+			return src[:limit*rowLength]
+		} else {
+			return src[len(src)-limit*rowLength:]
+		}
+	}
+	return src
 }
 
 /*
@@ -403,7 +429,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 		If this is a variable record type, we need a second stage of reading to get the data from the files
 	*/
 	if iop.RecordType == VARIABLE {
-		resultBuffer, err = r.readSecondStage(bufMeta, iop.Limit.Number, iop.Limit.Direction)
+		resultBuffer, err = r.readSecondStage(bufMeta, iop.Range, iop.Limit.Number, iop.Limit.Direction)
 		if err != nil {
 			return nil, err
 		}
