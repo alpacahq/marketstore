@@ -428,6 +428,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 	// ==> leftbytes <= 0
 
 	recordSize := ex.plan.RecordLen
+	recordSize64 := int64(recordSize)
 
 	var totalRead int64
 	for {
@@ -438,7 +439,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 		if nn == 0 {
 			// We are done reading
 			return nil
-		} else if nn < int64(recordSize) {
+		} else if nn < recordSize64 {
 			return fmt.Errorf("packingReader: Short read %d bytes, recordsize: %d bytes", n, recordSize)
 		}
 		// Calculate how many are left to read
@@ -449,10 +450,10 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 			nn += leftBytes
 		}
 
-		numToRead := nn / int64(recordSize)
+		numToRead := nn / recordSize64
 		var i int64
+		var curpos int64 = 0
 		for i = 0; i < numToRead; i++ {
-			curpos := i * int64(recordSize)
 			index := int64(binary.LittleEndian.Uint64(buffer[curpos:]))
 			if index != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
@@ -468,12 +469,14 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 				// Update lastKnown only once the first time
 				if fp.seekingLast {
 					if offset, err := f.Seek(0, os.SEEK_CUR); err == nil {
-						offset = offset - nn + i*int64(recordSize)
+						offset = offset - nn + i*recordSize64
 						readhint.SetLastKnown(fp.FullPath, offset)
 					}
 					fp.seekingLast = false
 				}
 			}
+
+			curpos += recordSize64
 		}
 		if leftBytes <= 0 {
 			return nil
