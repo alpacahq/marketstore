@@ -23,7 +23,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
     
 	"gopkg.in/yaml.v2"
-	"github.com/alpacahq/marketstore/quanatee/plugins/quanatee_forex_prices/calendar"
+	// "github.com/alpacahq/marketstore/quanatee/plugins/quanatee_forex_prices/calendar"
 )
 
 // Quote - stucture for historical price data
@@ -453,7 +453,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 func (tiifx *ForexFetcher) Run() {
     
 	realTime := false
-    calendar := cal.NewCalendar()
+    // calendar := cal.NewCalendar()
 
     // Add US and UK holidays
     /*
@@ -492,7 +492,7 @@ func (tiifx *ForexFetcher) Run() {
 	}
     
     // timeStart = alignTimeToTradingHours(timeStart, calendar)
-        
+
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	firstLoop := true
