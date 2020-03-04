@@ -545,7 +545,6 @@ func (tiieq *IEXFetcher) Run() {
 	}
     
     // timeStart = alignTimeToTradingHours(timeStart, calendar)
-    timeStart := tiieq.queryStart.UTC()
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time

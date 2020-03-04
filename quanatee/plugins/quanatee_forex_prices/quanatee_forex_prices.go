@@ -492,8 +492,7 @@ func (tiifx *ForexFetcher) Run() {
 	}
     
     // timeStart = alignTimeToTradingHours(timeStart, calendar)
-    timeStart := tiifx.queryStart.UTC()
-    
+        
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
 	firstLoop := true
