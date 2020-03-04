@@ -386,6 +386,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
+/*
 func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.Time {
     
     // Forex Opening = Sunday 2000 UTC is the first data we will consume in a session (Sunday Open)
@@ -408,6 +409,7 @@ func alignTimeToTradingHours(timeCheck time.Time, calendar *cal.Calendar) time.T
     }
     return timeCheck
 }
+*/
 
 // NewBgWorker registers a new background worker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
@@ -489,7 +491,8 @@ func (tiifx *ForexFetcher) Run() {
         }
 	}
     
-    timeStart = alignTimeToTradingHours(timeStart, calendar)
+    // timeStart = alignTimeToTradingHours(timeStart, calendar)
+    timeStart := tiifx.queryStart.UTC()
     
 	// For loop for collecting candlestick data forever
 	var timeEnd time.Time
@@ -662,7 +665,7 @@ func (tiifx *ForexFetcher) Run() {
         
         if realTime {
             for {
-                if time.Now().UTC().Unix() > timeEnd.Add(tiifx.baseTimeframe.Duration).UTC().Unix() && alignTimeToTradingHours(timeEnd, calendar) == timeEnd {
+                if time.Now().UTC().Unix() > timeEnd.Add(tiifx.baseTimeframe.Duration).UTC().Unix() {
                     break
                 } else {
                     oneMinuteAhead := time.Now().Add(time.Minute)
@@ -671,7 +674,7 @@ func (tiifx *ForexFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Second*20)
+			time.Sleep(time.Second*15)
         }
 
 	}
