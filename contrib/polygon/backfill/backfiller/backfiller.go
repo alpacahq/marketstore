@@ -91,13 +91,13 @@ func main() {
 	var symbolList []string
 	if symbols == "*" {
 		log.Info("[polygon] listing symbols")
-		resp, err := api.ListSymbols()
+		resp, err := api.ListTickers()
 		if err != nil {
 			log.Fatal("[polygon] failed to list symbols (%v)", err)
 		}
-		symbolList = make([]string, len(resp.Symbols))
-		for i, s := range resp.Symbols {
-			symbolList[i] = s.Symbol
+		symbolList = make([]string, len(resp.Tickers))
+		for i, s := range resp.Tickers {
+			symbolList[i] = s.Ticker
 		}
 	} else {
 		symbolList = strings.Split(symbols, ",")
