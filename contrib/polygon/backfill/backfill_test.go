@@ -24,26 +24,26 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 	// Given a set of TradeTicks from three exchanges, a symbol and limited set of exchanges
 	ticks := []api.TradeTick{
 		{
-			Timestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano() / 1e6,
-			Price:     300,
-			Size:      100,
-			Exchange:  "9",
+			ParticipantTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano(),
+			Price:                300,
+			Size:                 100,
+			Exchange:             9,
 		},
 		{
-			Timestamp: time.Date(2020, 1, 21, 9, 30, 1, 0, NY).UnixNano() / 1e6,
-			Price:     299.9,
-			Size:      50,
-			Exchange:  "8",
+			ParticipantTimestamp: time.Date(2020, 1, 21, 9, 30, 1, 0, NY).UnixNano(),
+			Price:                299.9,
+			Size:                 50,
+			Exchange:             8,
 		},
 		{
-			Timestamp: time.Date(2020, 1, 21, 9, 30, 3, 0, NY).UnixNano() / 1e6,
-			Price:     300.1,
-			Size:      80,
-			Exchange:  "17",
+			ParticipantTimestamp: time.Date(2020, 1, 21, 9, 30, 3, 0, NY).UnixNano(),
+			Price:                300.1,
+			Size:                 80,
+			Exchange:             17,
 		},
 	}
 	symbol := "AAPL"
-	exchangeIDs := []string{"9", "17"}
+	exchangeIDs := []int{9, 17}
 	key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
 
 	// When we call tradesToBars
@@ -60,7 +60,7 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 	c.Assert(csm[*key].GetColumn("TickCnt").([]int32), DeepEquals, []int32{2})
 
 	// And when we call tradesToBars with different set of exchanges
-	csm = tradesToBars(ticks, symbol, []string{"8", "9"})
+	csm = tradesToBars(ticks, symbol, []int{8, 9})
 
 	// Then the returned ColumnSeriesMarks should contain data from the two new
 	// specified exchanges, accumulated in minutes
