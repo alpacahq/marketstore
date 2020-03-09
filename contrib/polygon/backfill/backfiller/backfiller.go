@@ -95,6 +95,7 @@ func main() {
 		if err != nil {
 			log.Fatal("[polygon] failed to list symbols (%v)", err)
 		}
+		log.Info("[polygon] got %v symbols", len(resp.Tickers))
 		symbolList = make([]string, len(resp.Tickers))
 		for i, s := range resp.Tickers {
 			symbolList[i] = s.Ticker
