@@ -119,5 +119,9 @@ bgworkers:
         - SCHR
         - WTI
         - ICE
+        - VXX
+        - VXZ
+        - VIXY
+        - VIXM
       query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"
