@@ -90,7 +90,8 @@ type ListTickersResponse struct {
 func includeExchange(exchange string) bool {
 	// Polygon returns all tickers on all exchanges, which yields over 34k symbols
 	// If we leave out OTC markets it will still have over 11k symbols
-	if exchange == "GREY" || exchange == "OTO" || exchange == "OTCQB" || exchange == "OTCQ" || exchange == "CVEM" {
+	if exchange == "CVEM" || exchange == "GREY" || exchange == "OTO" ||
+		exchange == "OTC" || exchange == "OTCQB" || exchange == "OTCQ" {
 		return false
 	}
 	return true
