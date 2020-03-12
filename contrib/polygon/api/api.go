@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alpacahq/marketstore/utils/log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -17,7 +18,7 @@ const (
 	aggURL     = "%v/v1/historic/agg/%v/%v"
 	tradesURL  = "%v/v1/historic/trades/%v/%v"
 	quotesURL  = "%v/v1/historic/quotes/%v/%v"
-	symbolsURL = "%v/v1/meta/symbols"
+	tickersURL = "%v/v2/reference/tickers"
 )
 
 var (
@@ -60,33 +61,59 @@ func SetWSServers(serverList string) {
 	servers = serverList
 }
 
-type ListSymbolsResponse struct {
-	Symbols []struct {
-		Symbol          string `json:"symbol"`
-		Name            string `json:"name"`
-		Type            string `json:"type"`
-		Updated         string `json:"updated"`
-		IsOTC           bool   `json:"isOTC"`
-		PrimaryExchange int    `json:"primaryExchange"`
-		ExchSym         string `json:"exchSym"`
-		URL             string `json:"url"`
-	} `json:"symbols"`
+type ListTickersResponse struct {
+	Page    int    `json:"page"`
+	PerPage int    `json:"perPage"`
+	Count   int    `json:"count"`
+	Status  string `json:"status"`
+	Tickers []struct {
+		Ticker      string `json:"ticker"`
+		Name        string `json:"name"`
+		Market      string `json:"market"`
+		Locale      string `json:"locale"`
+		Type        string `json:"type"`
+		Currency    string `json:"currency"`
+		Active      bool   `json:"active"`
+		PrimaryExch string `json:"primaryExch"`
+		Updated     string `json:"updated"`
+		Codes       struct {
+			Cik     string `json:"cik"`
+			Figiuid string `json:"figiuid"`
+			Scfigi  string `json:"scfigi"`
+			Cfigi   string `json:"cfigi"`
+			Figi    string `json:"figi"`
+		} `json:"codes"`
+		URL string `json:"url"`
+	} `json:"tickers"`
 }
 
-func ListSymbols() (*ListSymbolsResponse, error) {
-	resp := ListSymbolsResponse{}
+func includeExchange(exchange string) bool {
+	// Polygon returns all tickers on all exchanges, which yields over 34k symbols
+	// If we leave out OTC markets it will still have over 11k symbols
+	if exchange == "CVEM" || exchange == "GREY" || exchange == "OTO" ||
+		exchange == "OTC" || exchange == "OTCQB" || exchange == "OTCQ" {
+		return false
+	}
+	return true
+}
+
+func ListTickers() (*ListTickersResponse, error) {
+	resp := ListTickersResponse{}
 	page := 0
 
 	for {
-		u, err := url.Parse(fmt.Sprintf(symbolsURL, baseURL))
+		u, err := url.Parse(fmt.Sprintf(tickersURL, baseURL))
 		if err != nil {
 			return nil, err
 		}
 
 		q := u.Query()
 		q.Set("apiKey", apiKey)
-		q.Set("sort", "symbol")
-		q.Set("perpage", "200")
+		q.Set("sort", "ticker")
+		q.Set("perpage", "50")
+		q.Set("market", "stocks")
+		q.Set("locale", "us")
+		q.Set("active", "true")
 		q.Set("page", strconv.FormatInt(int64(page), 10))
 
 		u.RawQuery = q.Encode()
@@ -100,7 +127,7 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 			return nil, fmt.Errorf("status code %v", code)
 		}
 
-		r := &ListSymbolsResponse{}
+		r := &ListTickersResponse{}
 
 		err = json.Unmarshal(body, r)
 
@@ -108,14 +135,20 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 			return nil, err
 		}
 
-		if len(r.Symbols) == 0 {
+		if len(r.Tickers) == 0 {
 			break
 		}
 
-		resp.Symbols = append(resp.Symbols, r.Symbols...)
+		for _, ticker := range r.Tickers {
+			if includeExchange(ticker.PrimaryExch) {
+				resp.Tickers = append(resp.Tickers, ticker)
+			}
+		}
 
 		page++
 	}
+
+	log.Info("[polygon] Returning %v symbols\n", len(resp.Tickers))
 
 	return &resp, nil
 }
