@@ -230,7 +230,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 
 		u.RawQuery = q.Encode()
 
-		resp, err := download(u.String(), 5)
+		resp, err := download(u.String(), 10)
 		if err != nil {
 			return nil, err
 		}
@@ -341,7 +341,7 @@ func download(url string, retryCount int) (*http.Response, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return nil, fmt.Errorf("status code %v", resp.StatusCode)
 	}
 

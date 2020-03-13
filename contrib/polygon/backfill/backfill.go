@@ -86,6 +86,11 @@ func intInSlice(s int, l []int) bool {
 func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
 	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
+		if strings.Contains(err.Error(), "GOAWAY") {
+			<-time.After(5 * time.Second)
+			return BuildBarsFromTrades(symbol, date, exchangeIDs, batchSize)
+		}
+
 		return err
 	}
 
