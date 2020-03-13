@@ -207,12 +207,11 @@ func GetHistoricAggregates(
 
 // GetHistoricTrades requests polygon's REST API for historic trades
 // on the provided date .
-func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err error) {
+func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *HistoricTrades, err error) {
 	var (
-		offset    = int64(0)
-		u         *url.URL
-		q         url.Values
-		batchSize = int64(50000)
+		offset = int64(0)
+		u      *url.URL
+		q      url.Values
 	)
 
 	for {
@@ -223,7 +222,7 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 
 		q = u.Query()
 		q.Set("apiKey", apiKey)
-		q.Set("limit", strconv.FormatInt(batchSize, 10))
+		q.Set("limit", strconv.Itoa(batchSize))
 
 		if offset > 0 {
 			q.Set("timestamp", strconv.FormatInt(offset, 10))
@@ -247,8 +246,11 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 			totalTrades.Results = append(totalTrades.Results, trades.Results...)
 		}
 
-		if int64(len(trades.Results)) == batchSize {
-			offset = trades.Results[len(trades.Results)-1].ParticipantTimestamp
+		if len(trades.Results) == batchSize {
+			offset = trades.Results[len(trades.Results)-1].SipTimestamp
+			if offset == 0 {
+				log.Fatal("Unable to paginate: Timestamp was empty for %v @ %v", symbol, date)
+			}
 		} else {
 			break
 		}
@@ -263,7 +265,7 @@ func GetHistoricTrades(symbol, date string) (totalTrades *HistoricTrades, err er
 
 // GetHistoricQuotes requests polygon's REST API for historic quotes
 // on the provided date.
-func GetHistoricQuotes(symbol, date string) (totalQuotes *HistoricQuotes, err error) {
+func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *HistoricQuotes, err error) {
 	// FIXME: Move this to Polygon API v2
 	var (
 		offset = int64(0)
@@ -281,7 +283,7 @@ func GetHistoricQuotes(symbol, date string) (totalQuotes *HistoricQuotes, err er
 
 		q = u.Query()
 		q.Set("apiKey", apiKey)
-		q.Set("limit", strconv.FormatInt(10000, 10))
+		q.Set("limit", strconv.Itoa(batchSize))
 
 		if offset > 0 {
 			q.Set("offset", strconv.FormatInt(offset, 10))
@@ -310,7 +312,7 @@ func GetHistoricQuotes(symbol, date string) (totalQuotes *HistoricQuotes, err er
 			totalQuotes.Ticks = append(totalQuotes.Ticks, quotes.Ticks...)
 		}
 
-		if len(quotes.Ticks) == 10000 {
+		if len(quotes.Ticks) == batchSize {
 			offset = quotes.Ticks[len(quotes.Ticks)-1].Timestamp
 		} else {
 			break

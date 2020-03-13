@@ -83,8 +83,8 @@ func intInSlice(s int, l []int) bool {
 	return false
 }
 
-func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int) error {
-	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat))
+func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
+	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
 		return err
 	}
@@ -169,8 +169,8 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 	return csm
 }
 
-func Trades(symbol string, date time.Time) error {
-	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat))
+func Trades(symbol string, date time.Time, batchSize int) error {
+	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func Trades(symbol string, date time.Time) error {
 	return nil
 }
 
-func Quotes(symbol string, from, to time.Time) error {
+func Quotes(symbol string, from, to time.Time, batchSize int) error {
 	// FIXME: This function is broken with the following problems:
 	//  - Callee (backfiller.go) wrongly checks the market day (checks for the day after)
 	//  - Callee always specifies one day worth of data, pointless to do a for loop
@@ -240,7 +240,7 @@ func Quotes(symbol string, from, to time.Time) error {
 	)
 
 	for {
-		if resp, err = api.GetHistoricQuotes(symbol, from.Format(defaultFormat)); err != nil {
+		if resp, err = api.GetHistoricQuotes(symbol, from.Format(defaultFormat), batchSize); err != nil {
 			if strings.Contains(err.Error(), "GOAWAY") {
 				<-time.After(5 * time.Second)
 				return Bars(symbol, from, to)

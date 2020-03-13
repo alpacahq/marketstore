@@ -27,6 +27,7 @@ var (
 	parallelism          int
 	apiKey               string
 	exchanges            string
+	batchSize            int
 
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
@@ -44,6 +45,7 @@ func init() {
 	flag.StringVar(&symbols, "symbols", "*",
 		"comma separated list of symbols to backfill, the default * means backfill all symbols")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
+	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades & quotes")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
 
 	flag.Parse()
@@ -139,7 +141,7 @@ func main() {
 								log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
 							}
 						} else {
-							if err = backfill.BuildBarsFromTrades(sym, t, exchangeIDs); err != nil {
+							if err = backfill.BuildBarsFromTrades(sym, t, exchangeIDs, batchSize); err != nil {
 								log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", sym, t, err)
 							}
 						}
@@ -165,7 +167,7 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Quotes(sym, t.Add(-24*time.Hour), t); err != nil {
+						if err = backfill.Quotes(sym, t.Add(-24*time.Hour), t, batchSize); err != nil {
 							log.Warn("[polygon] failed to backfill quotes for %v (%v)", sym, err)
 						}
 					}(e)
@@ -190,7 +192,7 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Trades(sym, t); err != nil {
+						if err = backfill.Trades(sym, t, batchSize); err != nil {
 							log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", sym, t, err)
 						}
 					}(e)
