@@ -329,11 +329,12 @@ func download(url string, retryCount int) (*http.Response, error) {
 	)
 
 	if err := try.Do(func(attempt int) (bool, error) {
-		req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return attempt < retryCount, err
 		}
-		req.Header.Add("Accept-encoding", "gzip")
+		// The returned JSON's size can be greatly reduced by enabling compression
+		req.Header.Add("Accept-Encoding", "gzip")
 		resp, err = client.Do(req)
 		return attempt < retryCount, err
 	}); err != nil {
