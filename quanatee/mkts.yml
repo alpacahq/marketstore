@@ -19,6 +19,7 @@ triggers:
         - 6Min
         - 12Min
         - 15Min
+        - 30Min
         - 1H
         - 2H
         - 4H
