@@ -15,12 +15,14 @@ triggers:
     on: "*/1Min/Price"
     config:
       destinations:
+        - 5Min
         - 6Min
         - 12Min
         - 15Min
         - 1H
+        - 2H
+        - 4H
         - 1D
-        - 3D
 bgworkers:
   - module: quanatee_crypto_prices.so
     config:
@@ -41,28 +43,33 @@ bgworkers:
       tiingo_api_key: "<tiingo_api_key>"
       polygon_api_key: "<polygon_api_key>"
       symbols:
+        - EURUSD
+        - GBPUSD
+        - USDJPY 
+        - AUDUSD
+        - NZDUSD
         - USDCAD
-        - USDMXN
+        - USDCHF
+        - USDCAD
+        - USDMXN 
         - USDBRL
         - EURUSD
         - GBPUSD
-        - USDCHF
-        - USDDKK
-        - USDNOK
+        - USDCHF 
+        - USDDKK 
+        - USDNOK 
         - USDSEK
-        - USDRUB
-        - USDTRY
-        - USDAED
-        - USDCNH
-        - USDINR
-        - KRWUSD
-        - USDJPY
-        - TWDUSD
+        - USDCNH 
         - USDHKD
+        - USDRUB
+        - USDJPY 
+        - KRWUSD
+        - TWDUSD
+        - USDSGD
+        - USDINR 
         - THBUSD
         - VNDUSD
         - PHPUSD
-        - USDSGD
         - AUDUSD
         - NZDUSD
         - XAGUSD
@@ -74,54 +81,105 @@ bgworkers:
       tiingo_api_key: "<tiingo_api_key>"
       polygon_api_key: "<polygon_api_key>"
       symbols:
-        - SPY
-        - QQQ
-        - VXX
-        - VXZ
-        - VIXY
+        - VXX 
+        - VIXY 
+        - VXZ 
         - VIXM
-        - USO
-        - GLD
-        - SLV
-        - EZU
-        - EWU
-        - EWA
-        - ENZL
-        - EWC
-        - MCHI
-        - INDA
-        - ERUS
-        - EWW
-        - TUR
-        - EWJ
-        - EWL
-        - ENOR
+        - USO 
+        - UNG 
+        - DBO 
+        - BNO 
+        - UGA
+        - IAU 
+        - SGOL
+        - SLV 
+        - SIVR
+        - EWC 
+        - FLCA 
+        - VCN 
+        - EWW 
+        - FLMX
+        - EWZ 
+        - FLBR
+        - EZU 
+        - VGK 
+        - EWL 
+        - FLSW 
+        - EDEN 
         - EWD
+        - ENOR
+        - MCHI 
+        - FXI 
+        - EWH 
+        - FLHK 
+        - ERUS 
+        - FLRU
+        - EWJ 
+        - FLJP 
+        - EWY 
+        - FLKR 
+        - EWT 
+        - FLTW
+        - EWA 
+        - FLAU 
+        - ENZL 
+        - EWS 
+        - INDA 
+        - FLIN
+        - EWC 
+        - FLCA 
+        - VCN
+        - EWW 
+        - FLMX
+        - EWZ 
+        - FLBR
+        - EZU 
+        - VGK
+        - EWL 
+        - FLSW
+        - EDEN
+        - EWD
+        - ENOR 
+        - NORW
+        - MCHI 
+        - FXI
+        - EWH 
+        - FLHK
+        - ERUS 
+        - FLRU
+        - EWJ 
+        - FLJP
+        - EWY 
+        - FLKR
+        - EWT 
+        - FLTW
+        - EWA 
+        - FLAU
+        - ENZL
         - EWS
-        - XLC
-        - XLY
-        - XLP
-        - XLE
-        - XLF
-        - XLV
-        - XLI
-        - XLK
+        - INDA 
+        - FLIN
+        - DIA 
+        - SPY 
+        - QQQ
+        - XLY 
+        - XLF 
+        - XLI 
+        - XLK 
+        - XLRE 
+        - XLE 
+        - XLC 
+        - XLU 
+        - XLV 
+        - XLP 
         - XLB
-        - XLRE
-        - XLU
-        - IGSB
-        - VCSH
-        - SPSB
-        - IGIB
+        - VCSH 
         - VCIT
-        - SPIB
-        - SHY
-        - VGSH
-        - SCHO
-        - IEF
-        - VGIT
+        - SHY 
+        - VGSH 
+        - SCHO 
+        - IEF 
+        - VGIT 
         - SCHR
-        - WTI
-        - ICE
       query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"
