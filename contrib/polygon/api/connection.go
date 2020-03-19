@@ -47,6 +47,9 @@ func (p *PolygonWebSocket) pongHandler(s string) (err error) {
 	pong := func() {
 		time.Sleep(p.pingPeriod)
 		log.Debug("ponging...")
+		if p.conn == nil || p.conn.UnderlyingConn() == nil {
+			return
+		}
 		_ = p.conn.SetReadDeadline(time.Now().Add(p.pingPeriod))
 		_ = p.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
 	}
