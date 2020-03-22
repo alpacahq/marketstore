@@ -166,6 +166,7 @@ func GetHistoricAggregates(
 	from, to time.Time,
 	limit *int) (*HistoricAggregates, error) {
 	// FIXME: Move this to Polygon API v2
+	// FIXME: This function does not handle pagination
 
 	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, resolution, symbol))
 	if err != nil {
