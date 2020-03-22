@@ -51,19 +51,14 @@ bgworkers:
         - NZDUSD
         - USDCAD
         - USDCHF
-        - USDCAD
         - USDMXN 
         - USDBRL
-        - EURUSD
-        - GBPUSD
-        - USDCHF 
         - USDDKK 
         - USDNOK 
         - USDSEK
         - USDCNH 
         - USDHKD
         - USDRUB
-        - USDJPY 
         - KRWUSD
         - TWDUSD
         - USDSGD
@@ -77,9 +72,9 @@ bgworkers:
         - XAUUSD
       query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"
-  - module: quanatee_stock_prices.so
+  - module: quanatee_etf_prices.so
     config:
-      tiingo_api_key: "<tiingo_api_key>"
+      tiingo_api_key: ""
       polygon_api_key: "<polygon_api_key>"
       symbols:
         - VXX 
@@ -97,7 +92,6 @@ bgworkers:
         - SIVR
         - EWC 
         - FLCA 
-        - VCN 
         - EWW 
         - FLMX
         - EWZ 
@@ -127,39 +121,7 @@ bgworkers:
         - EWS 
         - INDA 
         - FLIN
-        - EWC 
-        - FLCA 
-        - VCN
-        - EWW 
-        - FLMX
-        - EWZ 
-        - FLBR
-        - EZU 
-        - VGK
-        - EWL 
-        - FLSW
-        - EDEN
-        - EWD
-        - ENOR 
         - NORW
-        - MCHI 
-        - FXI
-        - EWH 
-        - FLHK
-        - ERUS 
-        - FLRU
-        - EWJ 
-        - FLJP
-        - EWY 
-        - FLKR
-        - EWT 
-        - FLTW
-        - EWA 
-        - FLAU
-        - ENZL
-        - EWS
-        - INDA 
-        - FLIN
         - DIA 
         - SPY 
         - QQQ
@@ -182,5 +144,261 @@ bgworkers:
         - IEF 
         - VGIT 
         - SCHR
+        # TOP 100 ETFs by Trading Volume and Market Cap
+        - EEM
+        - GDX
+        - UWT
+        - XOP
+        - SQQQ
+        - EFA
+        - HYG
+        - TQQQ
+        - IWM
+        - UVXY
+        - IEMG
+        - UWTI
+        - GDXJ
+        - VWO
+        - VEA
+        - SPXS
+        - DUST
+        - DWT
+        - NUGT
+        - TLT
+        - LQD
+        - IEFA
+        - SPXU
+        - GUSH
+        - SH
+        - SDS
+        - OIH
+        - TVIX
+        - SPXL
+        - JNUG
+        - BKLN
+        - RSX
+        - IYR
+        - JNK
+        - ASHR
+        - JDST
+        - GOVT
+        - UCO
+        - KRE
+        - OILU
+        - GASL
+        - AGG
+        - IVV
+        - VNQ
+        - PFF
+        - QID
+        - UPRO
+        - XBI
+        - SCHF
+        - PSQ
+        - VTI
+        - VOO
+        - BND
+        - ERX
+        - USMV
+        - SOXS
+        - IJR
+        - SPLV
+        - XRT
+        - VEU
+        - SMH
+        - BRZU
+        - PGX
+        - SJNK
+        - EMB
+        - VTV
+        - IWF
+        - VUG
+        - VIG
+        - IJH
+        - IWD
+        - BNDX
+        - BSV
+        - MBB
+        - VYM
+        - VO
+        - VGT
+        - TIP
+        - ITOT
+        - IVW
+        - VB
+        - IWB
+        - SCHX
+        - VXUS
+        - MUB
+        - IWR
+        - IXUS
+        - SDY
+        - QUAL
+        - MINT
+        - IGSB
+        - VV
+        - BIV
+        - DVY
+        - IVE
+        - SCHB
+        - VMBS
+        - IEI
+        - MDY
+        - VT
+        - JPST
+        - RSP
+        - EFAV
+        - XLY
+        - SCHD
+        - VBR
+        - SCHP
+        - FLOT
+        - ACWI
+        - IWP
+        - IGIB
+        - DGRO
+        - VHT
+        - SCHZ
+        - MTUM
+        - FVD
+        - IWS
+        - SCHG
+        - VTIP
+      query_start: "2017-01-01 00:00"
+      base_timeframe: "1Min"
+  - module: quanatee_stock_prices.so
+    config:
+      tiingo_api_key: ""
+      polygon_api_key: "<polygon_api_key>"
+      # DJI AND NASDAQ 100
+      symbols:
+        - AAPL
+        - UNH
+        - HD
+        - V
+        - MCD
+        - GS
+        - MSFT
+        - MMM
+        - JNJ
+        - WMT
+        - PG
+        - CAT
+        - IBM
+        - BA
+        - DIS
+        - TRV
+        - JPM
+        - UTX
+        - AXP
+        - MRK
+        - NKE
+        - CVX
+        - VZ
+        - WBA
+        - INTC
+        - KO
+        - CSCO
+        - XOM
+        - PFE
+        - DOW
+        - AMZN
+        - GOOG
+        - GOOGL
+        - FB
+        - CMCSA
+        - NFLX
+        - PEP
+        - ADBE
+        - COST
+        - NVDA
+        - AMGN
+        - PYPL
+        - GILD
+        - TXN
+        - CHTR
+        - TSLA
+        - AVGO
+        - QCOM
+        - SBUX
+        - TMUS
+        - MDLZ
+        - FISV
+        - VRTX
+        - INTU
+        - BIIB
+        - BKNG
+        - ADP
+        - REGN
+        - ISRG
+        - AMD
+        - ATVI
+        - MU
+        - CSX
+        - ILMN
+        - AMAT
+        - JD
+        - ADSK
+        - ADI
+        - EXC
+        - MNST
+        - LRCX
+        - KHC
+        - XEL
+        - EA
+        - BIDU
+        - MAR
+        - CTSH
+        - ROST
+        - MELI
+        - EBAY
+        - NTES
+        - NXPI
+        - WDAY
+        - LULU
+        - VRSK
+        - CSGP
+        - ORLY
+        - WLTW
+        - SIRI
+        - PAYX
+        - VRSN
+        - CTAS
+        - XLNX
+        - PCAR
+        - DLTR
+        - KLAC
+        - ANSS
+        - ALXN
+        - CERN
+        - SGEN
+        - SPLK
+        - SNPS
+        - FAST
+        - ASML
+        - IDXX
+        - CTXS
+        - CDNS
+        - INCY
+        - MCHP
+        - CPRT
+        - CHKP
+        - BMRN
+        - SWKS
+        - TCOM
+        - MXIM
+        - ALGN
+        - CDW
+        - TTWO
+        - WDC
+        - ULTA
+        - NTAP
+        - FOXA
+        - LBTYK
+        - EXPE
+        - UAL
+        - FOX
+        - AAL
+        - LBTYA
       query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"

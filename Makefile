@@ -45,6 +45,7 @@ plugins:
 	$(MAKE) -C quanatee/plugins/quanatee_crypto_prices
 	$(MAKE) -C quanatee/plugins/quanatee_forex_prices
 	$(MAKE) -C quanatee/plugins/quanatee_stock_prices
+	$(MAKE) -C quanatee/plugins/quanatee_etf_prices
 
 unittest: install
 	GOFLAGS=$(GOFLAGS) go fmt ./...
