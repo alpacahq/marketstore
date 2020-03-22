@@ -3,7 +3,6 @@ package backfill
 import (
 	"fmt"
 	"math"
-	"strings"
 	"sync"
 	"time"
 
@@ -100,11 +99,6 @@ func Bars(symbol string, from, to time.Time) (err error) {
 
 	resp, err := api.GetHistoricAggregates(symbol, "minute", from, to, nil)
 	if err != nil {
-		if strings.Contains(err.Error(), "GOAWAY") {
-			<-time.After(5 * time.Second)
-			return Bars(symbol, from, to)
-		}
-
 		return err
 	}
 
@@ -155,11 +149,6 @@ func intInSlice(s int, l []int) bool {
 func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
 	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
-		if strings.Contains(err.Error(), "GOAWAY") {
-			<-time.After(5 * time.Second)
-			return BuildBarsFromTrades(symbol, date, exchangeIDs, batchSize)
-		}
-
 		return err
 	}
 
@@ -329,7 +318,7 @@ func Trades(symbol string, date time.Time, batchSize int) error {
 		size := make([]int32, len(resp.Results))
 
 		for i, tick := range resp.Results {
-			timestamp := time.Unix(0, tick.ParticipantTimestamp)
+			timestamp := time.Unix(0, tick.SipTimestamp)
 			bucketTimestamp := timestamp.Truncate(time.Minute)
 
 			epoch[i] = bucketTimestamp.Unix()
@@ -384,11 +373,6 @@ func Quotes(symbol string, from, to time.Time, batchSize int) error {
 
 	for {
 		if resp, err = api.GetHistoricQuotes(symbol, from.Format(defaultFormat), batchSize); err != nil {
-			if strings.Contains(err.Error(), "GOAWAY") {
-				<-time.After(5 * time.Second)
-				return Bars(symbol, from, to)
-			}
-
 			return err
 		}
 

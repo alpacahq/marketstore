@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"net/http"
 	"net/url"
@@ -22,6 +23,7 @@ const (
 	tradesURL  = "%v/v2/ticks/stocks/trades/%v/%v"
 	quotesURL  = "%v/v1/historic/quotes/%v/%v"
 	tickersURL = "%v/v2/reference/tickers"
+	retryCount = 10
 )
 
 var (
@@ -187,18 +189,9 @@ func GetHistoricAggregates(
 
 	u.RawQuery = q.Encode()
 
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("status code %v", resp.StatusCode)
-	}
-
 	agg := &HistoricAggregates{}
-
-	if err = unmarshal(resp, agg); err != nil {
+	err = downloadAndUnmarshal(u.String(), retryCount, agg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -230,13 +223,9 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 
 		u.RawQuery = q.Encode()
 
-		resp, err := download(u.String(), 10)
-		if err != nil {
-			return nil, err
-		}
-
 		trades := &HistoricTrades{}
-		if err = unmarshal(resp, trades); err != nil {
+		err := downloadAndUnmarshal(u.String(), retryCount, trades)
+		if err != nil {
 			return nil, err
 		}
 
@@ -269,7 +258,6 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 	// FIXME: Move this to Polygon API v2
 	var (
 		offset = int64(0)
-		resp   *http.Response
 		u      *url.URL
 		q      url.Values
 		quotes = &HistoricQuotes{}
@@ -291,18 +279,8 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 
 		u.RawQuery = q.Encode()
 
-		if err = try.Do(func(attempt int) (bool, error) {
-			resp, err = http.Get(u.String())
-			return (attempt < 5), err
-		}); err != nil {
-			return nil, err
-		}
-
-		if resp.StatusCode >= http.StatusMultipleChoices {
-			return nil, fmt.Errorf("status code %v", resp.StatusCode)
-		}
-
-		if err = unmarshal(resp, quotes); err != nil {
+		err = downloadAndUnmarshal(u.String(), retryCount, quotes)
+		if err != nil {
 			return nil, err
 		}
 
@@ -322,22 +300,41 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 	return totalQuotes, nil
 }
 
+func downloadAndUnmarshal(url string, retryCount int, data interface{}) error {
+	// It is required to retry both the download() and unmarshal() calls
+	// as network errors (e.g. Unexpected EOF) can come also from unmarshal()
+	err := try.Do(func(attempt int) (bool, error) {
+		resp, err := download(url, retryCount)
+		if err == nil {
+			err = unmarshal(resp, data)
+		}
+
+		if err != nil && strings.Contains(err.Error(), "GOAWAY") {
+			// Polygon's way to tell that we are too fast
+			time.Sleep(5 * time.Second)
+		}
+
+		return attempt < retryCount, err
+	})
+
+	return err
+}
+
 func download(url string, retryCount int) (*http.Response, error) {
 	var (
 		client = &http.Client{}
 		resp   *http.Response
 	)
 
-	if err := try.Do(func(attempt int) (bool, error) {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			return attempt < retryCount, err
-		}
-		// The returned JSON's size can be greatly reduced by enabling compression
-		req.Header.Add("Accept-Encoding", "gzip")
-		resp, err = client.Do(req)
-		return attempt < retryCount, err
-	}); err != nil {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// The returned JSON's size can be greatly reduced by enabling compression
+	req.Header.Add("Accept-Encoding", "gzip")
+	resp, err = client.Do(req)
+	if err != nil {
 		return nil, err
 	}
 
