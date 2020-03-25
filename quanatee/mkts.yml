@@ -272,6 +272,9 @@ bgworkers:
       polygon_api_key: "<polygon_api_key>"
       # DJI AND NASDAQ 100
       symbols:
+        - WTI
+        - ICE
+        - NG
         - AAPL
         - UNH
         - HD
