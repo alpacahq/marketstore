@@ -103,7 +103,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         token)
     
     if !realTime {
-        time.Sleep(time.Milliseconds*rand.Intn(1000))
+        time.Sleep(time.Millisecond*rand.Intn(1000))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -142,7 +142,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt := time.Unix(0, cryptoData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds
+        dt := time.Unix(0, cryptoData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in Millisecond
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -231,7 +231,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-        time.Sleep(time.Milliseconds*rand.Intn(1000))
+        time.Sleep(time.Millisecond*rand.Intn(1000))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -347,7 +347,7 @@ func queryTime(query string) time.Time {
 	return time.Time{}
 }
 
-//Convert time from milliseconds to Unix
+//Convert time from Millisecond to Unix
 func convertMillToTime(originalTime int64) time.Time {
 	i := time.Unix(0, originalTime*int64(time.Millisecond))
 	return i
@@ -610,7 +610,7 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Milliseconds*rand.Intn(1000))
+			time.Sleep(time.Millisecond*rand.Intn(1000))
         }
 
 	}

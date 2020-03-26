@@ -39,7 +39,7 @@ type AggTick struct {
 	Low               float64 `json:"l"`
 	Close             float64 `json:"c"`
 	Volume            float64 `json:"v"`
-	EpochMilliseconds int64   `json:"t"`
+	EpochMillisecond int64   `json:"t"`
 	Items             int64   `json:"n"` // v2 response only
 }
 // AggType used in the HistoricAggregates response
@@ -261,7 +261,7 @@ func queryTime(query string) time.Time {
 	return time.Time{}
 }
 
-//Convert time from milliseconds to Unix
+//Convert time from Millisecond to Unix
 func convertMillToTime(originalTime int64) time.Time {
 	i := time.Unix(0, originalTime*int64(time.Millisecond))
 	return i
@@ -452,7 +452,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
                 
                 if err != nil {
 					log.Info("PolygonCrypto: %s-%s Response error: %v", symbol, baseCurrency, err)
-					time.Sleep(time.Milliseconds*rand.Intn(1000))
+					time.Sleep(time.Millisecond*rand.Intn(1000))
                     // Error at request level
                     if slowDown {
                         // slowDown means running in realtime, important to not exceed ratelimit
@@ -476,11 +476,11 @@ func (pgc *PolygonCryptoFetcher) Run() {
                         rates_err = true
                     } else {
                         for _, rate := range rates.Ticks {
-                            log.Info("%v %v %v %v %v %v", rate.EpochMilliseconds, rate.Open, rate.High, rate.Low, rate.Close, rate.Volume)
-                            if rate.EpochMilliseconds != 0 && rate.Open != 0 &&
+                            log.Info("%v %v %v %v %v %v", rate.EpochMillisecond, rate.Open, rate.High, rate.Low, rate.Close, rate.Volume)
+                            if rate.EpochMillisecond != 0 && rate.Open != 0 &&
                                 rate.High != 0 && rate.Low != 0 &&
                                 rate.Close != 0 && rate.Volume != 0 {
-                                epoch = append(epoch, rate.EpochMilliseconds/1000)
+                                epoch = append(epoch, rate.EpochMillisecond/1000)
                                 open = append(open, rate.Open)
                                 high = append(high, rate.High)
                                 low = append(low, rate.Low)
