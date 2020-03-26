@@ -122,7 +122,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		//log.Warn("Crypto: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		//log.Warn("Crypto: Polygon symbol '%s' error: %v", symbol, err)
 		log.Warn("Crypto: Polygon symbol '%s' error: %v", symbol, err)
 		return NewQuote(symbol, 0), err
     }
@@ -249,7 +249,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		log.Warn("Crypto: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Crypto: Tiingo symbol '%s' error: %v", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
 	if len(cryptoData) < 1 {
@@ -442,7 +442,7 @@ func (tiicc *CryptoFetcher) Run() {
             timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true

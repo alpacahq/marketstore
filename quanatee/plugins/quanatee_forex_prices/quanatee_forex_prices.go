@@ -125,7 +125,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		//log.Warn("Forex: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		//log.Warn("Forex: Polygon symbol '%s' error: %v", symbol, err)
 		log.Warn("Forex: Polygon symbol '%s' error: %v", symbol, err)
 		return NewQuote(symbol, 0), err
     }
@@ -254,7 +254,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Warn("Forex: Tiingo symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Forex: Tiingo symbol '%s' error: %v", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
     
@@ -510,7 +510,7 @@ func (tiifx *ForexFetcher) Run() {
             timeEnd = timeStart.Add(tiifx.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true

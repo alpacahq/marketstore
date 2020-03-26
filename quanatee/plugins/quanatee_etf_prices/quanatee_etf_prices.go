@@ -125,7 +125,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		//log.Warn("ETF: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		//log.Warn("ETF: Polygon symbol '%s' error: %v", symbol, err)
 		log.Warn("ETF: Polygon symbol '%s' error: %v", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
@@ -291,7 +291,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
 	err2 = json.Unmarshal(contents2, &iexDaily)
     
 	if err != nil || err2 != nil {
-		log.Warn("ETF: Tiingo symbol '%s' error: %v, error2: %v \n contents: %s", symbol, err, err2, contents)
+		log.Warn("ETF: Tiingo symbol '%s' error: %v, error2: %v", symbol, err, err2)
         if err != nil {
             return NewQuote(symbol, 0), err
         } else {
@@ -563,7 +563,7 @@ func (tiief *IEXFetcher) Run() {
             timeEnd = timeStart.Add(tiief.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
