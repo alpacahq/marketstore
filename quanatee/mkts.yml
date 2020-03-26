@@ -156,7 +156,7 @@ bgworkers:
         - IWM
         - UVXY
         - IEMG
-        - UWTI
+        # - UWTI # Not available on polygon
         - GDXJ
         - VWO
         - VEA
