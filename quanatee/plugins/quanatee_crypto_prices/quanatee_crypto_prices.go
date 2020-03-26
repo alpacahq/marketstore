@@ -92,7 +92,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
         PriceData       []priceData   `json:"results"`
 	}
     
-    var forexData polygonData
+    var cryptoData polygonData
     // https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/minute/2019-01-01/2019-02-01?unadjusted=true&apiKey=
     apiUrl := fmt.Sprintf(
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
@@ -109,35 +109,36 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     
     // Try again if fail
 	if err != nil {
-        time.Sleep(1 * time.Second)    
+        time.Sleep(3 * time.Second)    
         resp, err = client.Do(req)
     }
     
 	if err != nil {
-		log.Warn("Crypto: Polygon symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Crypto: Polygon symbol '%s' error: %s url: %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(contents, &forexData)
+	err = json.Unmarshal(contents, &cryptoData)
 	if err != nil {
-		log.Warn(": Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		//log.Warn("Crypto: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Crypto: Polygon symbol '%s' error: %v", symbol, err)
+		return NewQuote(symbol, 0), err
+    }
+    
+	if len(cryptoData.PriceData) < 1 {
 		return NewQuote(symbol, 0), err
 	}
     
-	if len(forexData.PriceData) < 1 {
-		return NewQuote(symbol, 0), err
-	}
-    
-	numrows := len(forexData.PriceData)
+	numrows := len(cryptoData.PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds
+        dt := time.Unix(0, cryptoData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in milliseconds
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
             if startOfSlice == -1 {
@@ -145,12 +146,12 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             }
             endOfSlice = bar
             quote.Epoch[bar] = dt.UTC().Unix()
-            quote.Open[bar] = forexData.PriceData[bar].Open
-            quote.High[bar] = forexData.PriceData[bar].High
-            quote.Low[bar] = forexData.PriceData[bar].Low
-            quote.Close[bar] = forexData.PriceData[bar].Close
-            quote.HLC[bar] = (forexData.PriceData[bar].High + forexData.PriceData[bar].Low + forexData.PriceData[bar].Close)/3
-            quote.Volume[bar] = forexData.PriceData[bar].Volume
+            quote.Open[bar] = cryptoData.PriceData[bar].Open
+            quote.High[bar] = cryptoData.PriceData[bar].High
+            quote.Low[bar] = cryptoData.PriceData[bar].Low
+            quote.Close[bar] = cryptoData.PriceData[bar].Close
+            quote.HLC[bar] = (cryptoData.PriceData[bar].High + cryptoData.PriceData[bar].Low + cryptoData.PriceData[bar].Close)/3
+            quote.Volume[bar] = cryptoData.PriceData[bar].Volume
         }
 	}
     
@@ -604,7 +605,7 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Second*5)
+			time.Sleep(time.Second*rand.Intn(15))
         }
 
 	}

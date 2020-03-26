@@ -112,12 +112,12 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
     
     // Try again if fail
 	if err != nil {
-        time.Sleep(1 * time.Second)    
+        time.Sleep(3 * time.Second)    
         resp, err = client.Do(req)
     }
     
 	if err != nil {
-		log.Warn("Forex: Polygon symbol '%s' error: %s \n %s", symbol, err, apiUrl)
+		log.Warn("Forex: Polygon symbol '%s' error: %s url: %s", symbol, err, apiUrl)
 		return NewQuote(symbol, 0), err
 	}
 	defer resp.Body.Close()
@@ -125,9 +125,10 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	contents, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(contents, &forexData)
 	if err != nil {
-		log.Warn("Forex: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		//log.Warn("Forex: Polygon symbol '%s' error: %v\n contents: %s", symbol, err, contents)
+		log.Warn("Forex: Polygon symbol '%s' error: %v", symbol, err)
 		return NewQuote(symbol, 0), err
-	}
+    }
     
 	if len(forexData.PriceData) < 1 {
         if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
@@ -673,7 +674,7 @@ func (tiifx *ForexFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Second*5)
+			time.Sleep(time.Second*rand.Intn(15))
         }
 
 	}
