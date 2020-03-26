@@ -105,6 +105,10 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         url.QueryEscape(to.Format("2006-01-02")),
                         token)
     
+    if !realTime {
+        time.Sleep(time.Milliseconds*rand.Intn(1000))
+    }
+    
 	client := &http.Client{Timeout: ClientTimeout}
 	req, _ := http.NewRequest("GET", apiUrl, nil)
 	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -256,6 +260,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
         apiUrl2 = apiUrl2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
+        time.Sleep(time.Milliseconds*rand.Intn(1000))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -728,7 +733,7 @@ func (tiieq *IEXFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Second*rand.Intn(15))
+			time.Sleep(time.Milliseconds*rand.Intn(1000))
         }
 
 	}
