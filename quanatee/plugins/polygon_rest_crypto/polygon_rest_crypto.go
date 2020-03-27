@@ -452,7 +452,7 @@ func (pgc *PolygonCryptoFetcher) Run() {
                 
                 if err != nil {
 					log.Info("PolygonCrypto: %s-%s Response error: %v", symbol, baseCurrency, err)
-					time.Sleep(time.Millisecond*time.Duration(rand.Intn(25)))
+					time.Sleep(time.Millisecond*time.Duration(rand.Intn(10)))
                     // Error at request level
                     if slowDown {
                         // slowDown means running in realtime, important to not exceed ratelimit
