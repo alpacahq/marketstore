@@ -542,6 +542,8 @@ func (tiifx *ForexFetcher) Run() {
         rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
         // Data for symbols are retrieved in random order for fairness
         // Data for symbols are written immediately for asynchronous-like processing
+        written := []string{}
+        unwritten := []string{}
         for _, symbol := range symbols {
             tiingoQuote := NewQuote(symbol, 0)
             var tiingoErr error
@@ -619,12 +621,15 @@ func (tiifx *ForexFetcher) Run() {
             
             if len(quote.Epoch) < 1 {
                 // Check if there is data to add
+                unwritten = append(unwritten, symbol)
                 continue
             } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
                 // Check if realTime is adding the most recent data
                 log.Info("Forex: Previous row dated %v is still the latest in %s/%s/Price \n", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiifx.baseTimeframe.String)
+                unwritten = append(unwritten, symbol)
                 continue
             } else if dataProvider == "None" {
+                unwritten = append(unwritten, symbol)
                 continue
             } else {
                 if realTime && len(quote.Epoch) > 1 {
@@ -659,8 +664,13 @@ func (tiifx *ForexFetcher) Run() {
                     log.Info("Forex: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 }
                 quotes = append(quotes, quote)
+                written = append(written, symbol)
             }
         }
+        
+        log.Info("Forex Written: %v", written)
+        log.Info("Forex Not Written: %v", unwritten)
+
         // Save the latest timestamp written
         if len(quotes) > 0 {
             if len(quotes[0].Epoch) > 0{
