@@ -147,6 +147,10 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             req, _ := http.NewRequest("GET", apiUrl, nil)
             //req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
             resp, err := client.Do(req)
+            if err != nil {
+                log.Warn("Forex: Polygon symbol '%s' error: %s url: %s", symbol, err, apiUrl)
+                return NewQuote(symbol, 0), err
+            }
             defer resp.Body.Close()
             contents, _ := ioutil.ReadAll(resp.Body)
             err = json.Unmarshal(contents, &forexData)
