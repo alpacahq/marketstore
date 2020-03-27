@@ -103,7 +103,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         token)
     
     if !realTime {
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(15)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -231,7 +231,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(15)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -447,7 +447,7 @@ func (tiicc *CryptoFetcher) Run() {
             timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 7)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -598,7 +598,7 @@ func (tiicc *CryptoFetcher) Run() {
             }
         }
         
-        log.Info("Crypto Written: %v", written)
+        // log.Info("Crypto Written: %v", written)
         log.Info("Crypto Not Written: %v", unwritten)
 
         // Save the latest timestamp written
@@ -619,7 +619,7 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Millisecond*time.Duration(rand.Intn(15)))
+			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
         }
 
 	}
