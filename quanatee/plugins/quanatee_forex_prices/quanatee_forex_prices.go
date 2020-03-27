@@ -698,6 +698,7 @@ func (tiifx *ForexFetcher) Run() {
         }
         
         if realTime {
+            log.Info("Forex written during realtime: %v", written)
             for {
                 if time.Now().UTC().Unix() > timeEnd.Add(tiifx.baseTimeframe.Duration).UTC().Unix() {
                     break

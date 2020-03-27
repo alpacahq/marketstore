@@ -751,6 +751,7 @@ func (tiieq *IEXFetcher) Run() {
         }
 
         if realTime {
+            log.Info("Stocks written during realtime: %v", written)
             for {
                 if time.Now().UTC().Unix() > timeEnd.Add(tiieq.baseTimeframe.Duration).UTC().Unix() {
                     break

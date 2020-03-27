@@ -751,6 +751,7 @@ func (tiief *IEXFetcher) Run() {
         }
 
         if realTime {
+            log.Info("ETFs written during realtime: %v", written)
             for {
                 if time.Now().UTC().Unix() > timeEnd.Add(tiief.baseTimeframe.Duration).UTC().Unix() {
                     break

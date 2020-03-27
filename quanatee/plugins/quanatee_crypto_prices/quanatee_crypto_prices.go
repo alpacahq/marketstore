@@ -628,6 +628,7 @@ func (tiicc *CryptoFetcher) Run() {
         }
         
         if realTime {
+            log.Info("Crypto written during realtime: %v", written)
             for {
                 if time.Now().UTC().Unix() > timeEnd.Add(tiicc.baseTimeframe.Duration).UTC().Unix() {
                     break
