@@ -144,6 +144,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                 url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
                 url.QueryEscape(to.Format("2006-01-02")),
                 token)
+            log.Info("Attempting to use 1D data for '%s', '%s'", symbol, apiUrl)
             client := &http.Client{Timeout: ClientTimeout}
             req, _ := http.NewRequest("GET", apiUrl, nil)
             //req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
