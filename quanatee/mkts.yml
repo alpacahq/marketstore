@@ -183,7 +183,7 @@ bgworkers:
         - GOVT
         - UCO
         - KRE
-        - OILU # Problematic from 2017-01-01
+        - OILU
         - GASL
         - AGG
         - IVV
@@ -254,7 +254,7 @@ bgworkers:
         - FLOT
         - ACWI
         - IWP
-        # - IGIB # Problematic from 2017-01-01
+        - IGIB
         - DGRO
         - VHT
         - SCHZ
