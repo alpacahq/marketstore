@@ -106,7 +106,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         token)
     
     if !realTime {
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -280,7 +280,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
         apiUrl2 = apiUrl2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -588,7 +588,7 @@ func (tiieq *IEXFetcher) Run() {
             timeEnd = timeStart.Add(tiieq.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 7)
+            timeEnd = timeStart.AddDate(0, 0, 1)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -764,7 +764,7 @@ func (tiieq *IEXFetcher) Run() {
         } else {
             // log.Info("Stocks written during backfill: %v", written)
             log.Info("Stocks not written during backfill: %v", unwritten)
-			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
+			time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
         }
 
 	}
