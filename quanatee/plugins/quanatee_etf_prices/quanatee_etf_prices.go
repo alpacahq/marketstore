@@ -134,16 +134,37 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 		return NewQuote(symbol, 0), err
 	}
     
+    // Attempt to write daily data instead if minute data not available
 	if len(etfData.PriceData) < 1 {
-        if ( calendar.IsWorkday(from.UTC()) && 
-           (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
-            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
-            log.Debug("ETF: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
+        if !realTime {
+            apiUrl := fmt.Sprintf(
+                "https://api.polygon.io/v2/aggs/ticker/%s/range/1/day/%s/%s?unadjusted=false&apiKey=%s",
+                symbol,
+                resampleFreq,
+                url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
+                url.QueryEscape(to.Format("2006-01-02")),
+                token)
+            client := &http.Client{Timeout: ClientTimeout}
+            req, _ := http.NewRequest("GET", apiUrl, nil)
+            //req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+            resp, err := client.Do(req)
+            defer resp.Body.Close()
+            contents, _ := ioutil.ReadAll(resp.Body)
+            err = json.Unmarshal(contents, &etfData)
+            if len(etfData.PriceData) < 1 {
+                return NewQuote(symbol, 0), err
+            }
+        } else {
+            if ( calendar.IsWorkday(from.UTC()) && 
+               (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+                ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+                ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+                ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
+                log.Debug("ETF: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
+            }
+            return NewQuote(symbol, 0), err
         }
-		return NewQuote(symbol, 0), err
-	}
+    }
     
 	numrows := len(etfData.PriceData)
 	quote := NewQuote(symbol, numrows)

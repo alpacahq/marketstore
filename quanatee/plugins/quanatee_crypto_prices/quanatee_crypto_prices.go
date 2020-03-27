@@ -131,8 +131,29 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 		return NewQuote(symbol, 0), err
     }
     
+    // Attempt to write daily data instead if minute data not available
 	if len(cryptoData.PriceData) < 1 {
-		return NewQuote(symbol, 0), err
+        if !realTime {
+            apiUrl := fmt.Sprintf(
+                "https://api.polygon.io/v2/aggs/ticker/%s/range/1/day/%s/%s?unadjusted=false&apiKey=%s",
+                "X:"+symbol,
+                resampleFreq,
+                url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
+                url.QueryEscape(to.Format("2006-01-02")),
+                token)
+            client := &http.Client{Timeout: ClientTimeout}
+            req, _ := http.NewRequest("GET", apiUrl, nil)
+            //req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+            resp, err := client.Do(req)
+            defer resp.Body.Close()
+            contents, _ := ioutil.ReadAll(resp.Body)
+            err = json.Unmarshal(contents, &cryptoData)
+            if len(cryptoData.PriceData) < 1 {
+                return NewQuote(symbol, 0), err
+            }
+        } else {
+            return NewQuote(symbol, 0), err
+        }
 	}
     
 	numrows := len(cryptoData.PriceData)
