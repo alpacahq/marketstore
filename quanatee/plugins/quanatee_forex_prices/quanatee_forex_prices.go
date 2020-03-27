@@ -548,13 +548,13 @@ func (tiifx *ForexFetcher) Run() {
             polygonQuote := NewQuote(symbol, 0)
             tiingoQuote := NewQuote(symbol, 0)
             var polygonErr error
+            var tiingoErr error
             if tiifx.polygonApiKey != "" {
                 polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.polygonApiKey)
             } else {
                 polygonErr = errors.New("No api key")
             }
             if (len(polygonQuote.Epoch) < 1) {
-                var tiingoErr error
                 if tiifx.tiingoApiKey != "" {
                     tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.tiingoApiKey)
                 } else {

@@ -601,13 +601,13 @@ func (tiieq *IEXFetcher) Run() {
             polygonQuote := NewQuote(symbol, 0)
             tiingoQuote := NewQuote(symbol, 0)
             var polygonErr error
+            var tiingoErr error
             if tiieq.polygonApiKey != "" {
                 polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.polygonApiKey)
             } else {
                 polygonErr = errors.New("No api key")
             }
             if (len(polygonQuote.Epoch) < 1) {
-                var tiingoErr error
                 if tiieq.tiingoApiKey != "" {
                     tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
                 } else {
