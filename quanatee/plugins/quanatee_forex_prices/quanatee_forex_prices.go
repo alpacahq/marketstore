@@ -139,12 +139,11 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
         if !realTime {
             apiUrl := fmt.Sprintf(
                 "https://api.polygon.io/v2/aggs/ticker/%s/range/1/day/%s/%s?unadjusted=false&apiKey=%s",
-                "C"+symbol,
+                "C:"+symbol,
                 resampleFreq,
                 url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
                 url.QueryEscape(to.Format("2006-01-02")),
                 token)
-            log.Info("Attempting to use 1D data for '%s', '%s'", symbol, apiUrl)
             client := &http.Client{Timeout: ClientTimeout}
             req, _ := http.NewRequest("GET", apiUrl, nil)
             //req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -152,6 +151,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             defer resp.Body.Close()
             contents, _ := ioutil.ReadAll(resp.Body)
             err = json.Unmarshal(contents, &forexData)
+            log.Info("Attempting to use 1D data for '%s', '%s', '%v'", symbol, apiUrl, len(forexData.PriceData))
             if len(forexData.PriceData) < 1 {
                 return NewQuote(symbol, 0), err
             }
