@@ -150,7 +150,6 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             defer resp.Body.Close()
             contents, _ := ioutil.ReadAll(resp.Body)
             err = json.Unmarshal(contents, &forexData)
-            log.Info("Attempting to use 1D data for '%s', '%s', '%v'", symbol, apiUrl, len(forexData.PriceData))
             if len(forexData.PriceData) < 1 {
                 return NewQuote(symbol, 0), err
             }
