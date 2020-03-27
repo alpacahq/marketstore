@@ -477,19 +477,21 @@ func (tiicc *CryptoFetcher) Run() {
         written := []string{}
         unwritten := []string{}
         for _, symbol := range symbols {
-            tiingoQuote := NewQuote(symbol, 0)
-            var tiingoErr error
-            if tiicc.tiingoApiKey != "" {
-                tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.tiingoApiKey)
-            } else {
-                tiingoErr = errors.New("No api key")
-            }
             polygonQuote := NewQuote(symbol, 0)
+            tiingoQuote := NewQuote(symbol, 0)
             var polygonErr error
             if tiicc.polygonApiKey != "" {
                 polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.polygonApiKey)
             } else {
                 polygonErr = errors.New("No api key")
+            }
+            if (len(polygonQuote.Epoch) < 1) {
+                var tiingoErr error
+                if tiicc.tiingoApiKey != "" {
+                    tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.tiingoApiKey)
+                } else {
+                    tiingoErr = errors.New("No api key")
+                }
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"

@@ -74,7 +74,7 @@ bgworkers:
       base_timeframe: "1Min"
   - module: quanatee_etf_prices.so
     config:
-      tiingo_api_key: ""
+      tiingo_api_key: "<tiingo_api_key>"
       polygon_api_key: "<polygon_api_key>"
       symbols:
         - VXX 
@@ -268,7 +268,7 @@ bgworkers:
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
     config:
-      tiingo_api_key: ""
+      tiingo_api_key: "<tiingo_api_key>"
       polygon_api_key: "<polygon_api_key>"
       # DJI AND NASDAQ 100
       symbols:
