@@ -576,7 +576,7 @@ func (tiicc *CryptoFetcher) Run() {
                     tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
-                    log.Info("Crypto: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                    // log.Info("Crypto: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 } else {
                     // write to csm
                     cs := io.NewColumnSeries()
@@ -591,7 +591,7 @@ func (tiicc *CryptoFetcher) Run() {
                     tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiicc.baseTimeframe.String + "/Price")
                     csm.AddColumnSeries(*tbk, cs)
                     executor.WriteCSM(csm, false)
-                    log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                    // log.Info("Crypto: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiicc.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                 }
                 quotes = append(quotes, quote)
                 written = append(written, symbol)
