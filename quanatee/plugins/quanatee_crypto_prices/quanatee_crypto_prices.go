@@ -103,7 +103,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         token)
     
     if !realTime {
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(500)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -251,7 +251,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(500)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -640,7 +640,7 @@ func (tiicc *CryptoFetcher) Run() {
         } else {
             // log.Info("Crypto written during backfill: %v", written)
             log.Info("Crypto not written during backfill: %v", unwritten)
-			time.Sleep(time.Millisecond*time.Duration(rand.Intn(500)))
+			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
         }
 
 	}
