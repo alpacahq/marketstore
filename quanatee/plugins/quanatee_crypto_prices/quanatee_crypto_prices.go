@@ -486,7 +486,7 @@ func (tiicc *CryptoFetcher) Run() {
             } else {
                 polygonErr = errors.New("No api key")
             }
-            if (len(polygonQuote.Epoch) < 1) || (!realtime && len(polygonQuote.Epoch) < 10) {
+            if (len(polygonQuote.Epoch) < 1) || (!realTime&& len(polygonQuote.Epoch) < 10) {
                 if tiicc.tiingoApiKey != "" {
                     tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.tiingoApiKey)
                 } else {
