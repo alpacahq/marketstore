@@ -106,7 +106,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         token)
     
     if !realTime {
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(25)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -236,7 +236,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(25)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -679,7 +679,7 @@ func (tiifx *ForexFetcher) Run() {
                 }
             }
         } else {
-			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
+			time.Sleep(time.Millisecond*time.Duration(rand.Intn(25)))
         }
 
 	}
