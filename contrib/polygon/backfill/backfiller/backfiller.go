@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ var (
 	parallelism          int
 	apiKey               string
 	exchanges            string
+	batchSize            int
 
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
@@ -43,6 +45,7 @@ func init() {
 	flag.StringVar(&symbols, "symbols", "*",
 		"comma separated list of symbols to backfill, the default * means backfill all symbols")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
+	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades & quotes")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
 
 	flag.Parse()
@@ -104,9 +107,16 @@ func main() {
 		symbolList = strings.Split(symbols, ",")
 	}
 
-	var exchangeIDs []string
+	var exchangeIDs []int
 	if exchanges != "*" {
-		exchangeIDs = strings.Split(exchanges, ",")
+		for _, exchangeIDStr := range strings.Split(exchanges, ",") {
+			exchangeIDInt, err := strconv.Atoi(exchangeIDStr)
+			if err != nil {
+				log.Fatal("Invalid exchange ID: %v", exchangeIDStr)
+			}
+
+			exchangeIDs = append(exchangeIDs, exchangeIDInt)
+		}
 	}
 
 	sem := make(chan struct{}, parallelism)
@@ -131,8 +141,8 @@ func main() {
 								log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
 							}
 						} else {
-							if err = backfill.BuildBarsFromTrades(sym, t.Add(-24*time.Hour), t, exchangeIDs); err != nil {
-								log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
+							if err = backfill.BuildBarsFromTrades(sym, t, exchangeIDs, batchSize); err != nil {
+								log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", sym, t, err)
 							}
 						}
 					}(e)
@@ -157,7 +167,7 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Quotes(sym, t.Add(-24*time.Hour), t); err != nil {
+						if err = backfill.Quotes(sym, t.Add(-24*time.Hour), t, batchSize); err != nil {
 							log.Warn("[polygon] failed to backfill quotes for %v (%v)", sym, err)
 						}
 					}(e)
@@ -182,8 +192,8 @@ func main() {
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Trades(sym, t.Add(-24*time.Hour), t); err != nil {
-							log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
+						if err = backfill.Trades(sym, t, batchSize); err != nil {
+							log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", sym, t, err)
 						}
 					}(e)
 				}

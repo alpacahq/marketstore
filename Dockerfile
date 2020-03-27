@@ -23,6 +23,7 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata libc6-compat
 WORKDIR /
 COPY --from=builder /go/bin/marketstore /bin/
+COPY --from=builder /go/bin/polygon_backfiller /bin/
 COPY --from=builder /go/bin/*.so /bin/
 ENV GOPATH=/
 

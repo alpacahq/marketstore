@@ -2,16 +2,6 @@ package api
 
 /*
 Streaming Schema from Polygon
-// Stocks TRADE:
-{
-    "ev": "T",              // Event Type
-    "sym": "MSFT",          // Symbol Ticker
-    "x": "4",               // Exchange ID
-    "p": 114.125,           // Price
-    "s": 100,               // Trade Size
-    "c": [0, 12],           // Trade Conditions
-    "t": 1536036818784      // Trade Timestamp ( Unix MS )
-}
 
 // Stocks QUOTE:
 {
@@ -119,35 +109,30 @@ type AggTick struct {
 // HistoricTrades is the structure that defines trade
 // data served through polygon's REST API.
 type HistoricTrades struct {
-	Day string `json:"day"`
-	Map struct {
-		C1 string `json:"c1"`
-		C2 string `json:"c2"`
-		C3 string `json:"c3"`
-		C4 string `json:"c4"`
-		E  string `json:"e"`
-		P  string `json:"p"`
-		S  string `json:"s"`
-		T  string `json:"t"`
-	} `json:"map"`
-	MsLatency int         `json:"msLatency"`
-	Status    string      `json:"status"`
-	Symbol    string      `json:"symbol"`
-	Ticks     []TradeTick `json:"ticks"`
-	Type      string      `json:"type"`
+	Ticker       string      `json:"ticker"`
+	Success      bool        `json:"success"`
+	ResultsCount int         `json:"results_count"`
+	Results      []TradeTick `json:"results"`
+	DbLatency    int         `json:"db_latency"`
+	// `map` is excluded as it only contains variable shortening info for ticks
 }
 
 // TradeTick is the structure that contains the actual
 // tick data included in a HistoricTrades response
 type TradeTick struct {
-	Timestamp  int64   `json:"t"`
-	Price      float64 `json:"p"`
-	Size       int     `json:"s"`
-	Exchange   string  `json:"e"`
-	Condition1 int     `json:"c1"`
-	Condition2 int     `json:"c2"`
-	Condition3 int     `json:"c3"`
-	Condition4 int     `json:"c4"`
+	ParticipantTimestamp int64   `json:"y"` // Participant/Exchange timestamp
+	TrfTimestamp         int64   `json:"f"`
+	SipTimestamp         int64   `json:"t"` // Optional
+	Price                float64 `json:"p"`
+	Size                 int     `json:"s"`
+	Exchange             int     `json:"x"`
+	Conditions           []int   `json:"c"`
+	Id                   string  `json:"i"`
+	Correction           int     `json:"e"`
+	SequenceNumber       int     `json:"q"`
+	TrfId                int     `json:"r"`
+	Tape                 int     `json:"z"`
+	OrigId               string  `string:"I"`
 }
 
 // HistoricQuotes is the structure that defines quote
