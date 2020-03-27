@@ -554,7 +554,7 @@ func (tiifx *ForexFetcher) Run() {
             } else {
                 polygonErr = errors.New("No api key")
             }
-            if (len(polygonQuote.Epoch) < 1) || (!realTime && len(polygonQuote.Epoch) < 10) {
+            if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
                 if tiifx.tiingoApiKey != "" {
                     tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.tiingoApiKey)
                 } else {
@@ -563,7 +563,7 @@ func (tiifx *ForexFetcher) Run() {
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
-            if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
+            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
                 quote = polygonQuote
                 quote2 := NewQuote(symbol, 0)
                 quote2 = tiingoQuote
@@ -688,8 +688,8 @@ func (tiifx *ForexFetcher) Run() {
                 }
             }
         } else {
-            // log.Info("Forex Written: %v", written)
-            log.Info("Forex Not Written: %v", unwritten)
+            // log.Info("Forex written during backfill: %v", written)
+            log.Info("Forex not written during backfill: %v", unwritten)
 			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
         }
 

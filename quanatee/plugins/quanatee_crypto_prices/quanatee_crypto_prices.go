@@ -486,7 +486,7 @@ func (tiicc *CryptoFetcher) Run() {
             } else {
                 polygonErr = errors.New("No api key")
             }
-            if (len(polygonQuote.Epoch) < 1) || (!realTime && len(polygonQuote.Epoch) < 10) {
+            if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
                 if tiicc.tiingoApiKey != "" {
                     tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.tiingoApiKey)
                 } else {
@@ -495,7 +495,7 @@ func (tiicc *CryptoFetcher) Run() {
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
-            if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
+            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
                 quote = polygonQuote
                 numrows := len(polygonQuote.Epoch)
                 for bar := 0; bar < numrows; bar++ {
@@ -618,8 +618,8 @@ func (tiicc *CryptoFetcher) Run() {
                 }
             }
         } else {
-            // log.Info("Crypto Written: %v", written)
-            log.Info("Crypto Not Written: %v", unwritten)
+            // log.Info("Crypto written during backfill: %v", written)
+            log.Info("Crypto not written during backfill: %v", unwritten)
 			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
         }
 

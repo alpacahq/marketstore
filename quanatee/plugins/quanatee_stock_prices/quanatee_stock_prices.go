@@ -741,8 +741,8 @@ func (tiieq *IEXFetcher) Run() {
                 }
             }
         } else {
-            // log.Info("Stocks Written: %v", written)
-            log.Info("Stocks Not Written: %v", unwritten)
+            // log.Info("Stocks written during backfill: %v", written)
+            log.Info("Stocks not written during backfill: %v", unwritten)
 			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
         }
 
