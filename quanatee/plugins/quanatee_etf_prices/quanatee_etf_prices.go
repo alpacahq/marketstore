@@ -95,7 +95,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
         PriceData       []priceData   `json:"results"`
 	}
     
-    var forexData polygonData
+    var etfData polygonData
     // https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/minute/2019-01-01/2019-02-01?unadjusted=true&apiKey=
     apiUrl := fmt.Sprintf(
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
@@ -127,14 +127,14 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	defer resp.Body.Close()
 
 	contents, _ := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(contents, &forexData)
+	err = json.Unmarshal(contents, &etfData)
 	if err != nil {
 		//log.Warn("ETF: Polygon symbol '%s' error: %v", symbol, err)
 		log.Warn("ETF: Polygon symbol '%s' error: %v", symbol, err)
 		return NewQuote(symbol, 0), err
 	}
     
-	if len(forexData.PriceData) < 1 {
+	if len(etfData.PriceData) < 1 {
         if ( calendar.IsWorkday(from.UTC()) && 
            (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
             ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
@@ -145,14 +145,14 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 		return NewQuote(symbol, 0), err
 	}
     
-	numrows := len(forexData.PriceData)
+	numrows := len(etfData.PriceData)
 	quote := NewQuote(symbol, numrows)
     // Pointers to help slice into just the relevent datas
     startOfSlice := -1
     endOfSlice := -1
     
 	for bar := 0; bar < numrows; bar++ {
-        dt := time.Unix(0, forexData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in Millisecond
+        dt := time.Unix(0, etfData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in Millisecond
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( calendar.IsWorkday(dt.UTC()) && 
            (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
@@ -165,12 +165,12 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                 }
                 endOfSlice = bar
                 quote.Epoch[bar] = dt.UTC().Unix()
-                quote.Open[bar] = forexData.PriceData[bar].Open
-                quote.High[bar] = forexData.PriceData[bar].High
-                quote.Low[bar] = forexData.PriceData[bar].Low
-                quote.Close[bar] = forexData.PriceData[bar].Close
-                quote.HLC[bar] = (forexData.PriceData[bar].High + forexData.PriceData[bar].Low + forexData.PriceData[bar].Close)/3
-                quote.Volume[bar] = forexData.PriceData[bar].Volume
+                quote.Open[bar] = etfData.PriceData[bar].Open
+                quote.High[bar] = etfData.PriceData[bar].High
+                quote.Low[bar] = etfData.PriceData[bar].Low
+                quote.Close[bar] = etfData.PriceData[bar].Close
+                quote.HLC[bar] = (etfData.PriceData[bar].High + etfData.PriceData[bar].Low + etfData.PriceData[bar].Close)/3
+                quote.Volume[bar] = etfData.PriceData[bar].Volume
             }
         }
 	}
@@ -607,7 +607,7 @@ func (tiief *IEXFetcher) Run() {
             } else {
                 polygonErr = errors.New("No api key")
             }
-            if (len(polygonQuote.Epoch) < 1) || (!realTime&& len(polygonQuote.Epoch) < 10) {
+            if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
                 if tiief.tiingoApiKey != "" {
                     tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiief.baseTimeframe, calendar, tiief.tiingoApiKey)
                 } else {
@@ -664,11 +664,11 @@ func (tiief *IEXFetcher) Run() {
                     }
                 }
                 dataProvider = "Odd Aggregation"
-            } else if (len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0) || (tiingoErr != nil && polygonErr == nil) {
+            } else if (len(polygonQuote.Epoch) > 0 && polygonErr == nil) {
                 // Only one quote is valid
                 quote = polygonQuote
                 dataProvider = "Polygon"
-            } else if (len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0) || (tiingoErr == nil && polygonErr != nil) {  
+            } else if (len(tiingoQuote.Epoch) > 0 && tiingoErr == nil) {  
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
@@ -723,9 +723,6 @@ func (tiief *IEXFetcher) Run() {
             }
         }
         
-        // log.Info("ETFs Written: %v", written)
-        log.Info("ETFs Not Written: %v", unwritten)
-        
         // Save the latest timestamp written
         if len(quotes) > 0 {
             if len(quotes[0].Epoch) > 0{
@@ -744,6 +741,8 @@ func (tiief *IEXFetcher) Run() {
                 }
             }
         } else {
+            // log.Info("ETFs Written: %v", written)
+            log.Info("ETFs Not Written: %v", unwritten)
 			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
         }
 

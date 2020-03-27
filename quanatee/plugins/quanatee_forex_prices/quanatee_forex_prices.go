@@ -554,7 +554,7 @@ func (tiifx *ForexFetcher) Run() {
             } else {
                 polygonErr = errors.New("No api key")
             }
-            if (len(polygonQuote.Epoch) < 1) || (!realTime&& len(polygonQuote.Epoch) < 10) {
+            if (len(polygonQuote.Epoch) < 1) || (!realTime && len(polygonQuote.Epoch) < 10) {
                 if tiifx.tiingoApiKey != "" {
                     tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiifx.baseTimeframe, tiifx.tiingoApiKey)
                 } else {
@@ -563,7 +563,7 @@ func (tiifx *ForexFetcher) Run() {
             }
             quote := NewQuote(symbol, 0)
             dataProvider := "None"
-            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
+            if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
                 quote = polygonQuote
                 quote2 := NewQuote(symbol, 0)
                 quote2 = tiingoQuote
@@ -611,11 +611,11 @@ func (tiifx *ForexFetcher) Run() {
                     }
                 }
                 dataProvider = "Odd Aggregation"
-            } else if (len(polygonQuote.Epoch) > 0 && polygonQuote.Epoch[0] > 0 && polygonQuote.Epoch[len(polygonQuote.Epoch)-1] > 0) || (tiingoErr != nil && polygonErr == nil) {
+            } else if (len(polygonQuote.Epoch) > 0 && polygonErr == nil) {
                 // Only one quote is valid
                 quote = polygonQuote
                 dataProvider = "Polygon"
-            } else if (len(tiingoQuote.Epoch) > 0 && tiingoQuote.Epoch[0] > 0 && tiingoQuote.Epoch[len(tiingoQuote.Epoch)-1] > 0) || (tiingoErr == nil && polygonErr != nil) {  
+            } else if (len(tiingoQuote.Epoch) > 0 && tiingoErr == nil) {  
                 // Only one quote is valid
                 quote = tiingoQuote
                 dataProvider = "Tiingo"
@@ -670,9 +670,6 @@ func (tiifx *ForexFetcher) Run() {
             }
         }
         
-        // log.Info("Forex Written: %v", written)
-        log.Info("Forex Not Written: %v", unwritten)
-
         // Save the latest timestamp written
         if len(quotes) > 0 {
             if len(quotes[0].Epoch) > 0{
@@ -691,6 +688,8 @@ func (tiifx *ForexFetcher) Run() {
                 }
             }
         } else {
+            // log.Info("Forex Written: %v", written)
+            log.Info("Forex Not Written: %v", unwritten)
 			time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
         }
 
