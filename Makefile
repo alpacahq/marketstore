@@ -42,7 +42,7 @@ plugins:
 	$(MAKE) -C contrib/iex
 	$(MAKE) -C contrib/xignitefeeder
 
-unittest: install
+unittest:
 	GOFLAGS=$(GOFLAGS) go fmt ./...
 	$(MAKE) coverage
 	$(MAKE) integration-test

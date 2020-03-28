@@ -18,7 +18,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: make install unittest
+      - run: make unittest
       - run:
           name: Upload coverages to codecov
           command: |
