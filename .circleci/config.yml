@@ -43,7 +43,7 @@ workflows:
                 root: ~/github.com/alpacahq/marketstore
                 paths:
                   # reuse the built binary at test job
-                  - ./marketstore
+                  - marketstore
       - test:
           pre-steps:
             - attach_workspace:
