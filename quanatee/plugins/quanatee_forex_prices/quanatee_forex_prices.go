@@ -547,10 +547,13 @@ func (tiifx *ForexFetcher) Run() {
             }
         }
         
-        if ( !realTime ) || ( ( realTime ) && ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
-            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
-            ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) ) {
+        symbols := tiifx.symbols
+        written := []string{}
+        unwritten := []string{}
+        if ( !realTime ) || ( ( realTime ) && ( (( int(timeStart.UTC().Weekday()) == 0 && timeStart.UTC().Hour() >= 22 ) || 
+            ( int(timeStart.UTC().Weekday()) >= 2 && int(timeStart.UTC().Weekday()) <= 4 ) || 
+            ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() < 21 )  || 
+            ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() == 21 && timeStart.UTC().Minute() == 0 )) ) ) {
             /*
             To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
             But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
@@ -566,12 +569,9 @@ func (tiifx *ForexFetcher) Run() {
             timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
             
             var quotes []Quote
-            symbols := tiifx.symbols
             rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
             // Data for symbols are retrieved in random order for fairness
             // Data for symbols are written immediately for asynchronous-like processing
-            written := []string{}
-            unwritten := []string{}
             for _, symbol := range symbols {
                 polygonQuote := NewQuote(symbol, 0)
                 tiingoQuote := NewQuote(symbol, 0)
