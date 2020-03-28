@@ -45,6 +45,8 @@ workflows:
                   # reuse the built binary at test job
                   - marketstore
       - test:
+          requires:
+            - build
           pre-steps:
             - attach_workspace:
                 at: ~/github.com/alpacahq/marketstore
