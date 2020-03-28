@@ -471,7 +471,7 @@ func (tiicc *CryptoFetcher) Run() {
             timeEnd = timeStart.Add(tiicc.baseTimeframe.Duration)
         } else {
             // Add timeEnd by a range
-            timeEnd = timeStart.AddDate(0, 0, 3)
+            timeEnd = timeStart.AddDate(0, 0, 5)
             if timeEnd.After(time.Now().UTC()) {
                 // timeEnd is after current time
                 realTime = true
@@ -645,7 +645,7 @@ func (tiicc *CryptoFetcher) Run() {
         } else {
             // log.Info("Crypto written during backfill: %v", written)
             log.Info("Crypto not written during backfill: %v", unwritten)
-            time.Sleep(time.Millisecond*time.Duration(int(15000/len(symbols))))
+            time.Sleep(time.Millisecond*time.Duration(int(30000/len(symbols))))
         }
 
 	}
