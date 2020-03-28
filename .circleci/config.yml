@@ -16,7 +16,6 @@ jobs:
   test:
     executor: golang
     steps:
-      - checkout
       - setup_remote_docker
       - run: make unittest
       - run:
@@ -48,6 +47,7 @@ workflows:
           requires:
             - build
           pre-steps:
+            - checkout
             - attach_workspace:
                 at: ~/github.com/alpacahq/marketstore
           filters:
