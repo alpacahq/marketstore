@@ -1,19 +1,20 @@
-version: 2
-jobs:
-  build:
+version: 2.1
+
+executors:
+  golang:
+    working_directory: ~/github.com/alpacahq/marketstore
     docker:
       - image: circleci/golang:1.12.6
 
-    working_directory: ~/github.com/alpacahq/marketstore
+jobs:
+  build:
+    executor: golang
     steps:
       - checkout
       - run: make all plugins
 
   test:
-    docker:
-      - image: circleci/golang:1.12.6
-
-    working_directory: ~/github.com/alpacahq/marketstore
+    executor: golang
     steps:
       - checkout
       - setup_remote_docker
@@ -23,10 +24,7 @@ jobs:
           command: |
             bash <(curl -s https://codecov.io/bash)
   deploy:
-    docker:
-      - image: circleci/golang:1.12.6
-
-    working_directory: ~/github.com/alpacahq/marketstore
+    executor: golang
     steps:
       - checkout
       - setup_remote_docker
