@@ -11,7 +11,7 @@ jobs:
     executor: golang
     steps:
       - checkout
-      - run: make all plugins
+      - run: make build plugins
 
   test:
     executor: golang
@@ -38,7 +38,16 @@ workflows:
           filters:
             tags:
               only: /.*/
+          post-steps:
+            - persist_to_workspace:
+                root: ~/github.com/alpacahq/marketstore
+                paths:
+                  # reuse the built binary at test job
+                  - ./marketstore
       - test:
+          pre-steps:
+            - attach_workspace:
+                at: ~/github.com/alpacahq/marketstore
           filters:
             tags:
               only: /.*/

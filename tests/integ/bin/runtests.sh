@@ -18,7 +18,7 @@ fi
 
 
 # import ticks-example-1.csv/yaml to TEST/1Min/TICK and check if the output of show commands match ticks-example-1-output.csv
-marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
+./marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
 \create TEST/24H/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
 \getinfo TEST/24H/TICK
 \load TEST/24H/TICK bin/ticks-example-1.csv bin/ticks-example-1.yaml
@@ -35,7 +35,7 @@ exit_if_failed $?
 
 
 # import ticks-example-2.csv/yaml to TEST2/1Min/TICK and check if the output of show commands match ticks-example-2-output.csv
-marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
+./marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
 \create TEST2/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
 \load TEST2/1Min/TICK bin/ticks-example-2.csv bin/ticks-example-2.yaml
 \o test_ticks.csv
@@ -52,7 +52,7 @@ exit_if_failed $?
 
 # import ticks-example-1.csv/yaml to TEST/1Min/TICK
 # and check if the output of show commands match ticks-example-1-output.csv + ticks-example-2-output.csv
-marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
+../../marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
 \load TEST2/1Min/TICK bin/ticks-example-1.csv bin/ticks-example-1.yaml
 \o test_ticks.csv
 \show TEST2/1Min/TICK 1970-01-01
@@ -69,7 +69,7 @@ exit_if_failed $?
 
 # import ticks-example-not-sorted-by-time.csv/yaml to TEST/1Min/TICK
 # and check if the output of show commands match ticks-example-not-sorted-by-time-output.csv
-marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
+../../marketstore connect -d `pwd`/testdata/mktsdb <<- EOF
 \create TEST3/1Min/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
 \getinfo TEST3/1Min/TICK
 \load TEST3/1Min/TICK bin/ticks-example-not-sorted-by-time.csv bin/ticks-example-not-sorted-by-time.yaml
