@@ -106,7 +106,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         token)
     
     if !realTime {
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(333)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -284,7 +284,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
         apiUrl2 = apiUrl2 + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
-        time.Sleep(time.Millisecond*time.Duration(rand.Intn(333)))
+        time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
     }
     
 	client := &http.Client{Timeout: ClientTimeout}
@@ -600,160 +600,165 @@ func (tiieq *IEXFetcher) Run() {
             }
         }
         
-        /*
-        To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
-        But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
-        If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
-        Main goal is to ensure it runs every 1 <time duration> at :00
-        Tiingo returns data by the day, regardless of granularity
-        */
-        year := timeEnd.Year()
-        month := timeEnd.Month()
-        day := timeEnd.Day()
-        hour := timeEnd.Hour()
-        minute := timeEnd.Minute()
-        timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-        
-        var quotes []Quote
-        symbols := tiieq.symbols
-        rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
-        // Data for symbols are retrieved in random order for fairness
-        // Data for symbols are written immediately for asynchronous-like processing
-        written := []string{}
-        unwritten := []string{}
-        for _, symbol := range symbols {
-            polygonQuote := NewQuote(symbol, 0)
-            tiingoQuote := NewQuote(symbol, 0)
-            var polygonErr error
-            var tiingoErr error
-            if tiieq.polygonApiKey != "" {
-                polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.polygonApiKey)
-            } else {
-                polygonErr = errors.New("No api key")
-            }
-            if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
-                if tiieq.tiingoApiKey != "" {
-                    tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
+        if ( !realTime ) || ( realTime && calendar.IsWorkday(from.UTC()) && 
+         (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+         ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+         ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
+         ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
+            /*
+            To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
+            But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
+            If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
+            Main goal is to ensure it runs every 1 <time duration> at :00
+            Tiingo returns data by the day, regardless of granularity
+            */
+            year := timeEnd.Year()
+            month := timeEnd.Month()
+            day := timeEnd.Day()
+            hour := timeEnd.Hour()
+            minute := timeEnd.Minute()
+            timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+            
+            var quotes []Quote
+            symbols := tiieq.symbols
+            rand.Shuffle(len(symbols), func(i, j int) { symbols[i], symbols[j] = symbols[j], symbols[i] })
+            // Data for symbols are retrieved in random order for fairness
+            // Data for symbols are written immediately for asynchronous-like processing
+            written := []string{}
+            unwritten := []string{}
+            for _, symbol := range symbols {
+                polygonQuote := NewQuote(symbol, 0)
+                tiingoQuote := NewQuote(symbol, 0)
+                var polygonErr error
+                var tiingoErr error
+                if tiieq.polygonApiKey != "" {
+                    polygonQuote, polygonErr = GetPolygonPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.polygonApiKey)
                 } else {
-                    tiingoErr = errors.New("No api key")
+                    polygonErr = errors.New("No api key")
                 }
-            }
-            quote := NewQuote(symbol, 0)
-            dataProvider := "None"
-            if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
-                quote = polygonQuote
-                quote2 := NewQuote(symbol, 0)
-                quote2 = tiingoQuote
-                numrows := len(polygonQuote.Epoch)
-                for bar := 0; bar < numrows; bar++ {
-                    quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
-                    quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
-                    quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
-                    quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
-                    quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
-                    quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
-                }
-                dataProvider = "Even Aggregation"
-            } else if (len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0) && (tiingoErr == nil && polygonErr == nil) {
-                quote2 := NewQuote(symbol, 0)
-                if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
-                    quote = polygonQuote
-                    quote2 = tiingoQuote
-                } else {
-                    quote = tiingoQuote
-                    quote2 = polygonQuote
-                }
-                for bar := 0; bar < len(quote.Epoch); bar++ {
-                    // Test if they both have the same Epochs in the same bar (position)
-                    if len(quote2.Epoch) > bar && quote.Epoch[bar] == quote2.Epoch[bar] {
-                            quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
-                            quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
-                            quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
-                            quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
-                            quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
-                            quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
+                if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
+                    if tiieq.tiingoApiKey != "" {
+                        tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
                     } else {
-                        // Test if they both have the same Epochs, but in different bars
-                        for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
-                            if quote.Epoch[bar] == quote2.Epoch[bar2] {
-                                quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
-                                quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
-                                quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar2]) / 2
-                                quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar2]) / 2
-                                quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar2]) / 2
-                                quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar2])
-                                break
+                        tiingoErr = errors.New("No api key")
+                    }
+                }
+                quote := NewQuote(symbol, 0)
+                dataProvider := "None"
+                if len(polygonQuote.Epoch) == len(tiingoQuote.Epoch) && (tiingoErr == nil && polygonErr == nil) {
+                    quote = polygonQuote
+                    quote2 := NewQuote(symbol, 0)
+                    quote2 = tiingoQuote
+                    numrows := len(polygonQuote.Epoch)
+                    for bar := 0; bar < numrows; bar++ {
+                        quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
+                        quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
+                        quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
+                        quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
+                        quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
+                        quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
+                    }
+                    dataProvider = "Even Aggregation"
+                } else if (len(polygonQuote.Epoch) > 0 && len(tiingoQuote.Epoch) > 0) && (tiingoErr == nil && polygonErr == nil) {
+                    quote2 := NewQuote(symbol, 0)
+                    if len(polygonQuote.Epoch) > len(tiingoQuote.Epoch) {
+                        quote = polygonQuote
+                        quote2 = tiingoQuote
+                    } else {
+                        quote = tiingoQuote
+                        quote2 = polygonQuote
+                    }
+                    for bar := 0; bar < len(quote.Epoch); bar++ {
+                        // Test if they both have the same Epochs in the same bar (position)
+                        if len(quote2.Epoch) > bar && quote.Epoch[bar] == quote2.Epoch[bar] {
+                                quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar]) / 2
+                                quote.High[bar] = (quote.High[bar] + quote2.High[bar]) / 2
+                                quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar]) / 2
+                                quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar]) / 2
+                                quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar]) / 2
+                                quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar])
+                        } else {
+                            // Test if they both have the same Epochs, but in different bars
+                            for bar2 := 0; bar2 < len(quote2.Epoch); bar2++ {
+                                if quote.Epoch[bar] == quote2.Epoch[bar2] {
+                                    quote.Open[bar] = (quote.Open[bar] + quote2.Open[bar2]) / 2
+                                    quote.High[bar] = (quote.High[bar] + quote2.High[bar2]) / 2
+                                    quote.Low[bar] = (quote.Low[bar] + quote2.Low[bar2]) / 2
+                                    quote.Close[bar] = (quote.Close[bar] + quote2.Close[bar2]) / 2
+                                    quote.HLC[bar] = (quote.HLC[bar] + quote2.HLC[bar2]) / 2
+                                    quote.Volume[bar] = (quote.Volume[bar] + quote2.Volume[bar2])
+                                    break
+                                }
                             }
                         }
                     }
+                    dataProvider = "Odd Aggregation"
+                } else if (len(polygonQuote.Epoch) > 0 && polygonErr == nil) {
+                    // Only one quote is valid
+                    quote = polygonQuote
+                    dataProvider = "Polygon"
+                } else if (len(tiingoQuote.Epoch) > 0 && tiingoErr == nil) {  
+                    // Only one quote is valid
+                    quote = tiingoQuote
+                    dataProvider = "Tiingo"
                 }
-                dataProvider = "Odd Aggregation"
-            } else if (len(polygonQuote.Epoch) > 0 && polygonErr == nil) {
-                // Only one quote is valid
-                quote = polygonQuote
-                dataProvider = "Polygon"
-            } else if (len(tiingoQuote.Epoch) > 0 && tiingoErr == nil) {  
-                // Only one quote is valid
-                quote = tiingoQuote
-                dataProvider = "Tiingo"
-            }
-            
-            if len(quote.Epoch) < 1 {
-                // Check if there is data to add
-                unwritten = append(unwritten, symbol)
-                continue
-            } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
-                // Check if realTime is adding the most recent data
-                log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
-                unwritten = append(unwritten, symbol)
-                continue
-            } else if dataProvider == "None" {
-                unwritten = append(unwritten, symbol)
-                continue
-            } else {
-                if realTime && len(quote.Epoch) > 1 {
-                    // write to csm
-                    cs := io.NewColumnSeries()
-                    cs.AddColumn("Epoch", []int64{quote.Epoch[len(quote.Epoch)-1]})
-                    cs.AddColumn("Open", []float32{quote.Open[len(quote.Epoch)-1]})
-                    cs.AddColumn("High", []float32{quote.High[len(quote.Epoch)-1]})
-                    cs.AddColumn("Low", []float32{quote.Low[len(quote.Epoch)-1]})
-                    cs.AddColumn("Close", []float32{quote.Close[len(quote.Epoch)-1]})
-                    cs.AddColumn("HLC", []float32{quote.HLC[len(quote.Epoch)-1]})
-                    cs.AddColumn("Volume", []float32{quote.Volume[len(quote.Epoch)-1]})
-                    csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
-                    csm.AddColumnSeries(*tbk, cs)
-                    executor.WriteCSM(csm, false)
-                    // log.Info("Stock: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                
+                if len(quote.Epoch) < 1 {
+                    // Check if there is data to add
+                    unwritten = append(unwritten, symbol)
+                    continue
+                } else if realTime && lastTimestamp.Unix() >= quote.Epoch[0] && lastTimestamp.Unix() >= quote.Epoch[len(quote.Epoch)-1] {
+                    // Check if realTime is adding the most recent data
+                    log.Warn("Stock: Previous row dated %v is still the latest in %s/%s/Price", time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), quote.Symbol, tiieq.baseTimeframe.String)
+                    unwritten = append(unwritten, symbol)
+                    continue
+                } else if dataProvider == "None" {
+                    unwritten = append(unwritten, symbol)
+                    continue
                 } else {
-                    // write to csm
-                    cs := io.NewColumnSeries()
-                    cs.AddColumn("Epoch", quote.Epoch)
-                    cs.AddColumn("Open", quote.Open)
-                    cs.AddColumn("High", quote.High)
-                    cs.AddColumn("Low", quote.Low)
-                    cs.AddColumn("Close", quote.Close)
-                    cs.AddColumn("HLC", quote.HLC)
-                    cs.AddColumn("Volume", quote.Volume)
-                    csm := io.NewColumnSeriesMap()
-                    tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
-                    csm.AddColumnSeries(*tbk, cs)
-                    executor.WriteCSM(csm, false)
-                    // log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                    if realTime && len(quote.Epoch) > 1 {
+                        // write to csm
+                        cs := io.NewColumnSeries()
+                        cs.AddColumn("Epoch", []int64{quote.Epoch[len(quote.Epoch)-1]})
+                        cs.AddColumn("Open", []float32{quote.Open[len(quote.Epoch)-1]})
+                        cs.AddColumn("High", []float32{quote.High[len(quote.Epoch)-1]})
+                        cs.AddColumn("Low", []float32{quote.Low[len(quote.Epoch)-1]})
+                        cs.AddColumn("Close", []float32{quote.Close[len(quote.Epoch)-1]})
+                        cs.AddColumn("HLC", []float32{quote.HLC[len(quote.Epoch)-1]})
+                        cs.AddColumn("Volume", []float32{quote.Volume[len(quote.Epoch)-1]})
+                        csm := io.NewColumnSeriesMap()
+                        tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
+                        csm.AddColumnSeries(*tbk, cs)
+                        executor.WriteCSM(csm, false)
+                        // log.Info("Stock: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                    } else {
+                        // write to csm
+                        cs := io.NewColumnSeries()
+                        cs.AddColumn("Epoch", quote.Epoch)
+                        cs.AddColumn("Open", quote.Open)
+                        cs.AddColumn("High", quote.High)
+                        cs.AddColumn("Low", quote.Low)
+                        cs.AddColumn("Close", quote.Close)
+                        cs.AddColumn("HLC", quote.HLC)
+                        cs.AddColumn("Volume", quote.Volume)
+                        csm := io.NewColumnSeriesMap()
+                        tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiieq.baseTimeframe.String + "/Price")
+                        csm.AddColumnSeries(*tbk, cs)
+                        executor.WriteCSM(csm, false)
+                        // log.Info("Stock: %v row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiieq.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                    }
+                    written = append(written, symbol)
+                    quotes = append(quotes, quote)
                 }
-                written = append(written, symbol)
-                quotes = append(quotes, quote)
+            }
+
+            // Save the latest timestamp written
+            if len(quotes) > 0 {
+                if len(quotes[0].Epoch) > 0{
+                    lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
+                }
             }
         }
-
-        // Save the latest timestamp written
-        if len(quotes) > 0 {
-            if len(quotes[0].Epoch) > 0{
-                lastTimestamp = time.Unix(quotes[0].Epoch[len(quotes[0].Epoch)-1], 0)
-            }
-        }
-
         if realTime {
             log.Info("Stocks written during realtime: %v", written)
             for {
@@ -768,7 +773,7 @@ func (tiieq *IEXFetcher) Run() {
         } else {
             // log.Info("Stocks written during backfill: %v", written)
             log.Info("Stocks not written during backfill: %v", unwritten)
-			time.Sleep(time.Millisecond*time.Duration(rand.Intn(333)))
+            time.Sleep(time.Millisecond*time.Duration(int(15000/len(symbols))))
         }
 
 	}

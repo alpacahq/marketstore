@@ -96,7 +96,8 @@ bgworkers:
         - EWZ 
         - FLBR
         - EZU 
-        - VGK 
+        - VGK
+        - EWU
         - EWL 
         - FLSW 
         - EDEN 
@@ -137,12 +138,14 @@ bgworkers:
         - XLB
         - VCSH 
         - VCIT
+        - VCLT
         - SHY 
         - VGSH 
         - SCHO 
         - IEF 
         - VGIT 
         - SCHR
+        - VGLT
         # TOP 100 ETFs by Trading Volume and Market Cap
         - EEM
         - GDX
@@ -263,6 +266,8 @@ bgworkers:
         - IWS
         - SCHG
         - VTIP
+        - IAGG
+        - ICSH
       query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"
   - module: quanatee_stock_prices.so
