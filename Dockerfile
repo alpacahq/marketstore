@@ -11,7 +11,7 @@ ENV GOPATH=/go
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
 RUN make vendor
-RUN make install plugins
+RUN make build plugins
 
 #
 # STAGE 2
@@ -22,7 +22,7 @@ RUN make install plugins
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata libc6-compat
 WORKDIR /
-COPY --from=builder /go/bin/marketstore /bin/
+COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
 COPY --from=builder /go/bin/polygon_backfiller /bin/
 COPY --from=builder /go/bin/*.so /bin/
 ENV GOPATH=/

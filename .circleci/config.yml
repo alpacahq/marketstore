@@ -11,14 +11,13 @@ jobs:
     executor: golang
     steps:
       - checkout
-      - run: make all plugins
+      - run: make build plugins
 
   test:
     executor: golang
     steps:
-      - checkout
       - setup_remote_docker
-      - run: make install unittest
+      - run: make unittest
       - run:
           name: Upload coverages to codecov
           command: |
@@ -38,7 +37,19 @@ workflows:
           filters:
             tags:
               only: /.*/
+          post-steps:
+            - persist_to_workspace:
+                root: ~/github.com/alpacahq/marketstore
+                paths:
+                  # reuse the built binary at test job
+                  - marketstore
       - test:
+          requires:
+            - build
+          pre-steps:
+            - checkout
+            - attach_workspace:
+                at: ~/github.com/alpacahq/marketstore
           filters:
             tags:
               only: /.*/
