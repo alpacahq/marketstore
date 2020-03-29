@@ -68,7 +68,8 @@ workflows:
       - deploy:
           requires:
             - build
-            - test
+            - unit-test
+            - integration-test
           filters:
             tags:
               only: /.*/
