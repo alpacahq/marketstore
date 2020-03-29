@@ -77,7 +77,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			case syscall.SIGINT:
 				fallthrough
 			case syscall.SIGTERM:
-				log.Info("initiating graceful shutdown due to %v request", s)
+				log.Info("initiating graceful shutdown due to '%v' request", s)
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)
@@ -85,8 +85,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}()
-	signal.Notify(signalChan, syscall.SIGUSR1)
-	signal.Notify(signalChan, syscall.SIGINT)
+	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGINT, syscall.SIGTERM)
 
 	// Initialize marketstore services.
 	// --------------------------------
