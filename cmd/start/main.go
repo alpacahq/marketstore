@@ -75,7 +75,9 @@ func executeStart(cmd *cobra.Command, args []string) error {
 				log.Info("dumping stack traces due to SIGUSR1 request")
 				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
 			case syscall.SIGINT:
-				log.Info("initiating graceful shutdown due to SIGINT request")
+				fallthrough
+			case syscall.SIGTERM:
+				log.Info("initiating graceful shutdown due to %v request", s)
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)
