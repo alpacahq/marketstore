@@ -11,7 +11,13 @@ jobs:
     executor: golang
     steps:
       - checkout
-      - run: make build plugins
+      - run: make build
+
+  plugins:
+    executor: golang
+    steps:
+      - checkout
+      - run: make plugins
 
   unit-test:
     executor: golang
@@ -49,6 +55,10 @@ workflows:
                 paths:
                   # reuse the built binary at test job
                   - marketstore
+      - plugins:
+          filters:
+            tags:
+              only: /.*/
       - unit-test:
           pre-steps:
             - checkout
