@@ -40,9 +40,13 @@ plugins:
 	$(MAKE) -C contrib/iex
 	$(MAKE) -C contrib/xignitefeeder
 
-unit-test:
+fmt:
 	GOFLAGS=$(GOFLAGS) go fmt ./...
-	$(MAKE) coverage
+
+unit-test:
+	# marketstore/contrib/stream/shelf/shelf_test.go fails if "-race" enabled...
+	# GOFLAGS=$(GOFLAGS) go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+	GOFLAGS=$(GOFLAGS) go test -coverprofile=coverage.txt -covermode=atomic ./...
 
 integration-test:
 	$(MAKE) -C tests/integ test
@@ -50,11 +54,6 @@ integration-test:
 test: build
 	$(MAKE) unit-test
 	$(MAKE) integration-test
-
-coverage:
-	# marketstore/contrib/stream/shelf/shelf_test.go fails if "-race" enabled...
-	# GOFLAGS=$(GOFLAGS) go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-	GOFLAGS=$(GOFLAGS) go test -coverprofile=coverage.txt -covermode=atomic ./...
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)
