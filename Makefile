@@ -40,16 +40,16 @@ plugins:
 	$(MAKE) -C contrib/iex
 	$(MAKE) -C contrib/xignitefeeder
 
-unittest:
+unit-test:
 	GOFLAGS=$(GOFLAGS) go fmt ./...
 	$(MAKE) coverage
-	$(MAKE) integration-test
 
 integration-test:
 	$(MAKE) -C tests/integ test
 
-test:
-	GOFLAGS=$(GOFLAGS) go test ./...
+test: build
+	$(MAKE) unit-test
+	$(MAKE) integration-test
 
 coverage:
 	# marketstore/contrib/stream/shelf/shelf_test.go fails if "-race" enabled...
