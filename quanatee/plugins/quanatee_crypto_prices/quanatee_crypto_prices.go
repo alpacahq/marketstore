@@ -645,7 +645,7 @@ func (tiicc *CryptoFetcher) Run() {
         } else {
             // log.Info("Crypto written during backfill: %v", written)
             log.Info("Crypto not written during backfill: %v", unwritten)
-            time.Sleep(time.Millisecond*time.Duration(int(30000/len(symbols))))
+            time.Sleep(time.Millisecond*time.Duration(int(60000/len(symbols))))
         }
 
 	}

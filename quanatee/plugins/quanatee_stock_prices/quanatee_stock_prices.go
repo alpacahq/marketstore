@@ -159,7 +159,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             }
         } else {
             if ( calendar.IsWorkday(from.UTC()) && 
-               (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 7 ) || 
+               (( int(from.UTC().Weekday()) == 1 && from.UTC().Hour() >= 13 ) || 
                 ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
                 ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
                 ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
@@ -179,7 +179,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
         dt := time.Unix(0, stockData.PriceData[bar].Timestamp * int64(1000000)) //Timestamp is in Millisecond
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( calendar.IsWorkday(dt.UTC()) && 
-           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 7 ) || 
+           (( int(dt.UTC().Weekday()) == 1 && dt.UTC().Hour() >= 13 ) || 
             ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
@@ -604,7 +604,7 @@ func (tiieq *IEXFetcher) Run() {
         written := []string{}
         unwritten := []string{}
         if ( !realTime ) || ( realTime && calendar.IsWorkday(timeStart.UTC()) && 
-         (( int(timeStart.UTC().Weekday()) == 1 && timeStart.UTC().Hour() >= 7 ) || 
+         (( int(timeStart.UTC().Weekday()) == 1 && timeStart.UTC().Hour() >= 13 ) || 
          ( int(timeStart.UTC().Weekday()) >= 2 && int(timeStart.UTC().Weekday()) <= 4 ) || 
          ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() < 21 )  || 
          ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() == 21 && timeStart.UTC().Minute() == 0 )) ) {
@@ -773,7 +773,7 @@ func (tiieq *IEXFetcher) Run() {
         } else {
             // log.Info("Stocks written during backfill: %v", written)
             log.Info("Stocks not written during backfill: %v", unwritten)
-            time.Sleep(time.Millisecond*time.Duration(int(30000/len(symbols))))
+            time.Sleep(time.Millisecond*time.Duration(int(60000/len(symbols))))
         }
 
 	}

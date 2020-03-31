@@ -159,7 +159,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             }
         } else {
             if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
-                ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+                ( int(from.UTC().Weekday()) >= 1 && int(from.UTC().Weekday()) <= 4 ) || 
                 ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
                 ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
                 log.Debug("Forex: Polygon symbol '%s' No data returned from %v-%v, \n %s", symbol, from, to, apiUrl)
@@ -178,7 +178,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
         dt := time.Unix(int64(forexData.PriceData[bar].Timestamp/1000), 0) //Timestamp is in Millisecond
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
-            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+            ( int(dt.UTC().Weekday()) >= 1 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
@@ -289,7 +289,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     
 	if len(forexData) < 1 {
         if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
-            ( int(from.UTC().Weekday()) >= 2 && int(from.UTC().Weekday()) <= 4 ) || 
+            ( int(from.UTC().Weekday()) >= 1 && int(from.UTC().Weekday()) <= 4 ) || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() < 21 )  || 
             ( int(from.UTC().Weekday()) == 5 && from.UTC().Hour() == 21 && from.UTC().Minute() == 0 )) ) {
             log.Debug("Forex: Tiingo symbol '%s' No data returned from %v-%v, url %s", symbol, from, to, apiUrl)
@@ -307,7 +307,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
         dt, _ := time.Parse(time.RFC3339, forexData[bar].Date)
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
         if ((( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
-            ( int(dt.UTC().Weekday()) >= 2 && int(dt.UTC().Weekday()) <= 4 ) || 
+            ( int(dt.UTC().Weekday()) >= 1 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
@@ -551,7 +551,7 @@ func (tiifx *ForexFetcher) Run() {
         written := []string{}
         unwritten := []string{}
         if ( !realTime ) || ( ( realTime ) && ( (( int(timeStart.UTC().Weekday()) == 0 && timeStart.UTC().Hour() >= 22 ) || 
-            ( int(timeStart.UTC().Weekday()) >= 2 && int(timeStart.UTC().Weekday()) <= 4 ) || 
+            ( int(timeStart.UTC().Weekday()) >= 1 && int(timeStart.UTC().Weekday()) <= 4 ) || 
             ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() < 21 )  || 
             ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() == 21 && timeStart.UTC().Minute() == 0 )) ) ) {
             /*
@@ -720,7 +720,7 @@ func (tiifx *ForexFetcher) Run() {
         } else {
             // log.Info("Forex written during backfill: %v", written)
             log.Info("Forex not written during backfill: %v", unwritten)
-            time.Sleep(time.Millisecond*time.Duration(int(30000/len(symbols))))
+            time.Sleep(time.Millisecond*time.Duration(int(60000/len(symbols))))
         }
 
 	}
