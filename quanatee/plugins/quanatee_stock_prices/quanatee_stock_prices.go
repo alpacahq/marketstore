@@ -636,7 +636,8 @@ func (tiieq *IEXFetcher) Run() {
                 } else {
                     polygonErr = errors.New("No api key")
                 }
-                if (len(polygonQuote.Epoch) < 1) || (polygonErr != nil) || (!realTime && len(polygonQuote.Epoch) < 10) {
+                // Only use Tiingo for backfilling
+                if (!realTime && len(polygonQuote.Epoch) < 10) || (polygonErr != nil) {
                     if tiieq.tiingoApiKey != "" {
                         tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiieq.baseTimeframe, calendar, tiieq.tiingoApiKey)
                     } else {
