@@ -102,7 +102,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         symbol,
                         resampleFreq,
                         url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.Format("2006-01-02")),
+                        url.QueryEscape(to.AddDate(0, 0,    1).Format("2006-01-02")),
                         token)
     
     if !realTime {
@@ -774,7 +774,7 @@ func (tiieq *IEXFetcher) Run() {
         } else {
             // log.Info("Stocks written during backfill: %v", written)
             log.Info("Stocks not written during backfill: %v", unwritten)
-            time.Sleep(time.Millisecond*time.Duration(int(60000/len(symbols))))
+            time.Sleep(time.Millisecond*time.Duration(int(10000/len(symbols))))
         }
 
 	}

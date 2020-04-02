@@ -102,7 +102,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         "C:"+symbol,
                         resampleFreq,
                         url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.Format("2006-01-02")),
+                        url.QueryEscape(to.AddDate(0, 0,    1).Format("2006-01-02")),
                         token)
     
     if !realTime {
@@ -677,7 +677,7 @@ func (tiifx *ForexFetcher) Run() {
                         tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
                         csm.AddColumnSeries(*tbk, cs)
                         executor.WriteCSM(csm, false)
-                        // log.Info("Forex: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                        log.Info("Forex: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                     } else {
                         // write to csm
                         cs := io.NewColumnSeries()
@@ -721,7 +721,7 @@ func (tiifx *ForexFetcher) Run() {
         } else {
             // log.Info("Forex written during backfill: %v", written)
             log.Info("Forex not written during backfill: %v", unwritten)
-            time.Sleep(time.Millisecond*time.Duration(int(60000/len(symbols))))
+            time.Sleep(time.Millisecond*time.Duration(int(10000/len(symbols))))
         }
 
 	}
