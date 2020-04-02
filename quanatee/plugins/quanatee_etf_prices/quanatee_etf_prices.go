@@ -101,8 +101,8 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
                         symbol,
                         resampleFreq,
-                        url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.AddDate(0, 0,    1).Format("2006-01-02")),
+                        url.QueryEscape(from.UTC().AddDate(0, 0, -1).Format("2006-01-02")),
+                        url.QueryEscape(to.UTC().AddDate(0, 0,    1).Format("2006-01-02")),
                         token)
 
     if !realTime {
@@ -140,7 +140,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             apiUrl := fmt.Sprintf(
                 "https://api.polygon.io/v2/aggs/ticker/%s/range/1/day/%s/%s?unadjusted=false&apiKey=%s",
                 symbol,
-                url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
+                url.QueryEscape(from.UTC().AddDate(0, 0, -1).Format("2006-01-02")),
                 url.QueryEscape(to.Format("2006-01-02")),
                 token)
             client := &http.Client{Timeout: ClientTimeout}
@@ -279,7 +279,7 @@ func GetTiingoPrices(symbol string, from, to, last time.Time, realTime bool, per
     apiUrl2 := fmt.Sprintf(
                         "https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s",
                         symbol,
-                        url.QueryEscape(from.AddDate(0, 0, -7).Format("2006-1-2")))
+                        url.QueryEscape(from.UTC().AddDate(0, 0, -7).Format("2006-1-2")))
     
     if !realTime {
         apiUrl = apiUrl + "&endDate=" + url.QueryEscape(to.Format("2006-1-2"))
@@ -604,10 +604,10 @@ func (tiief *IEXFetcher) Run() {
         written := []string{}
         unwritten := []string{}
         if ( !realTime ) || ( realTime && calendar.IsWorkday(timeStart.UTC()) && 
-         (( int(timeStart.UTC().Weekday()) == 1 && timeStart.UTC().Hour() >= 13 ) || 
+         ( int(timeStart.UTC().Weekday()) == 1 && timeStart.UTC().Hour() >= 13 ) || 
          ( int(timeStart.UTC().Weekday()) >= 2 && int(timeStart.UTC().Weekday()) <= 4 ) || 
          ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() < 21 )  || 
-         ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() == 21 && timeStart.UTC().Minute() == 0 )) ) {
+         ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() == 21 && timeStart.UTC().Minute() == 0 )) {
             /*
             To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
             But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))

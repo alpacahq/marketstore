@@ -101,8 +101,8 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
                         "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
                         "C:"+symbol,
                         resampleFreq,
-                        url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
-                        url.QueryEscape(to.AddDate(0, 0,    1).Format("2006-01-02")),
+                        url.QueryEscape(from.UTC().AddDate(0, 0, -1).Format("2006-01-02")),
+                        url.QueryEscape(to.UTC().AddDate(0, 0,    1).Format("2006-01-02")),
                         token)
     
     if !realTime {
@@ -140,7 +140,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
             apiUrl := fmt.Sprintf(
                 "https://api.polygon.io/v2/aggs/ticker/%s/range/1/day/%s/%s?unadjusted=false&apiKey=%s",
                 "C:"+symbol,
-                url.QueryEscape(from.AddDate(0, 0, -1).Format("2006-01-02")),
+                url.QueryEscape(from.UTC().AddDate(0, 0, -1).Format("2006-01-02")),
                 url.QueryEscape(to.Format("2006-01-02")),
                 token)
             client := &http.Client{Timeout: ClientTimeout}
@@ -177,10 +177,10 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	for bar := 0; bar < numrows; bar++ {
         dt := time.Unix(int64(forexData.PriceData[bar].Timestamp/1000), 0) //Timestamp is in Millisecond
         // Only add data collected between from (timeStart) and to (timeEnd) range to prevent overwriting or confusion when aggregating data
-        if ( (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
+        if (( int(from.UTC().Weekday()) == 0 && from.UTC().Hour() >= 22 ) || 
             ( int(dt.UTC().Weekday()) >= 1 && int(dt.UTC().Weekday()) <= 4 ) || 
             ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() < 21 )  || 
-            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) ) {
+            ( int(dt.UTC().Weekday()) == 5 && dt.UTC().Hour() == 21 && dt.UTC().Minute() == 0 )) {
             if dt.UTC().Unix() > last.UTC().Unix() && dt.UTC().Unix() >= from.UTC().Unix() && dt.UTC().Unix() <= to.UTC().Unix() {
                 if startOfSlice == -1 {
                     startOfSlice = bar
@@ -550,10 +550,10 @@ func (tiifx *ForexFetcher) Run() {
         symbols := tiifx.symbols
         written := []string{}
         unwritten := []string{}
-        if ( !realTime ) || ( ( realTime ) && ( (( int(timeStart.UTC().Weekday()) == 0 && timeStart.UTC().Hour() >= 22 ) || 
+        if ( !realTime ) || ( ( realTime ) && ( ( int(timeStart.UTC().Weekday()) == 0 && timeStart.UTC().Hour() >= 22 ) || 
             ( int(timeStart.UTC().Weekday()) >= 1 && int(timeStart.UTC().Weekday()) <= 4 ) || 
             ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() < 21 )  || 
-            ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() == 21 && timeStart.UTC().Minute() == 0 )) ) ) {
+            ( int(timeStart.UTC().Weekday()) == 5 && timeStart.UTC().Hour() == 21 && timeStart.UTC().Minute() == 0 ) ) ) {
             /*
             To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
             But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
@@ -677,7 +677,7 @@ func (tiifx *ForexFetcher) Run() {
                         tbk := io.NewTimeBucketKey(quote.Symbol + "/" + tiifx.baseTimeframe.String + "/Price")
                         csm.AddColumnSeries(*tbk, cs)
                         executor.WriteCSM(csm, false)
-                        log.Info("Forex: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
+                        // log.Info("Forex: 1 (%v) row(s) to %s/%s/Price from %v to %v by %s ", len(quote.Epoch), quote.Symbol, tiifx.baseTimeframe.String, time.Unix(quote.Epoch[0], 0).UTC(), time.Unix(quote.Epoch[len(quote.Epoch)-1], 0).UTC(), dataProvider)
                     } else {
                         // write to csm
                         cs := io.NewColumnSeries()
