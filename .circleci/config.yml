@@ -28,10 +28,16 @@ jobs:
           command: |
             bash <(curl -s https://codecov.io/bash)
 
+  import-csv-test:
+    executor: golang
+    steps:
+      - run: make import-csv-test
+
   integration-test:
     executor: golang
     steps:
       - setup_remote_docker
+          docker_layer_caching: true
       - run: make integration-test
 
   deploy:
@@ -65,13 +71,19 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - integration-test:
+      - import-csv-test:
           requires:
             - build
           pre-steps:
             - checkout
             - attach_workspace:
                 at: ~/github.com/alpacahq/marketstore
+          filters:
+            tags:
+              only: /.*/
+      - integration-test:
+          pre-steps:
+            - checkout
           filters:
             tags:
               only: /.*/
