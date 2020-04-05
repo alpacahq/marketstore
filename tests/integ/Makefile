@@ -10,7 +10,7 @@ CONTAINER_NAME = integration_tests_mstore
 
 # build marketstore docker container for integration test
 build_mstore:
-	docker build -t ${IMAGE_NAME} ../..
+	docker build -t ${IMAGE_NAME} --build-arg INCLUDE_PLUGINS=false ../..
 
 # start a marketstore docker container and check if ListSymbols API can be consumed
 .PHONY: connect
