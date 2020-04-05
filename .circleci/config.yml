@@ -6,6 +6,13 @@ executors:
     docker:
       - image: circleci/golang:1.12.6
 
+variables:
+  - filters: &all
+      branches:
+        only: /.*/
+      tags:
+        only: /.*/
+
 jobs:
   build:
     executor: golang
@@ -28,6 +35,11 @@ jobs:
           command: |
             bash <(curl -s https://codecov.io/bash)
 
+  import-csv-test:
+    executor: golang
+    steps:
+      - run: make import-csv-test
+
   integration-test:
     executor: golang
     steps:
@@ -46,9 +58,7 @@ workflows:
   build_test_deploy:
     jobs:
       - build:
-          filters:
-            tags:
-              only: /.*/
+          filters: *all
           post-steps:
             - persist_to_workspace:
                 root: ~/github.com/alpacahq/marketstore
@@ -56,25 +66,23 @@ workflows:
                   # reuse the built binary at test job
                   - marketstore
       - plugins:
-          filters:
-            tags:
-              only: /.*/
+          filters: *all
       - unit-test:
           pre-steps:
             - checkout
-          filters:
-            tags:
-              only: /.*/
-      - integration-test:
+          filters: *all
+      - import-csv-test:
           requires:
             - build
           pre-steps:
             - checkout
             - attach_workspace:
                 at: ~/github.com/alpacahq/marketstore
-          filters:
-            tags:
-              only: /.*/
+          filters: *all
+      - integration-test:
+          pre-steps:
+            - checkout
+          filters: *all
       - deploy:
           requires:
             - build

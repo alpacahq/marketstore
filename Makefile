@@ -48,11 +48,15 @@ unit-test:
 	# GOFLAGS=$(GOFLAGS) go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 	GOFLAGS=$(GOFLAGS) go test -coverprofile=coverage.txt -covermode=atomic ./...
 
+import-csv-test:
+	@tests/integ/bin/runtests.sh
+
 integration-test:
 	$(MAKE) -C tests/integ test
 
 test: build
 	$(MAKE) unit-test
+	$(MAKE) import-csv-test
 	$(MAKE) integration-test
 
 image:
