@@ -282,13 +282,14 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		wf.FilePtr.Write(TG_Serialized)
 		cksum := hash.Sum(nil)
 		wf.FilePtr.Write(cksum) // Checksum
-		wf.FilePtr.Sync()       // Flush the OS buffer
 
 		// WAL Transaction Commit Complete Message
 		TGID := tgc.TGID()
 		wf.WriteTransactionInfo(TGID, WAL, COMMITCOMPLETE)
 		wf.lastCommittedTGID = TGID
 		tgc.NewTGID()
+
+		wf.FilePtr.Sync()       // Flush the OS buffer
 	}
 
 	/*
@@ -537,7 +538,6 @@ func (wf *WALFileType) WriteStatus(FileStatus FileStatusEnum, ReplayState Replay
 }
 func (wf *WALFileType) write(buffer []byte) {
 	wf.FilePtr.Write(buffer)
-	wf.FilePtr.Sync()
 }
 func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus TxnStatusEnum) {
 	buffer := wf.initMessage(TXNINFO)
