@@ -16,7 +16,7 @@ import (
 	"github.com/alpacahq/marketstore/utils/log"
 )
 
-const RecordsPerRead = 2000
+const RecordsPerRead = 8192
 
 type SortedFileList []planner.QualifiedFile
 
@@ -428,6 +428,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 	// ==> leftbytes <= 0
 
 	recordSize := ex.plan.RecordLen
+	recordSize64 := int64(recordSize)
 
 	var totalRead int64
 	for {
@@ -438,7 +439,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 		if nn == 0 {
 			// We are done reading
 			return nil
-		} else if nn < int64(recordSize) {
+		} else if nn < recordSize64 {
 			return fmt.Errorf("packingReader: Short read %d bytes, recordsize: %d bytes", n, recordSize)
 		}
 		// Calculate how many are left to read
@@ -449,31 +450,36 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 			nn += leftBytes
 		}
 
-		numToRead := nn / int64(recordSize)
-		var i int64
+		numToRead := int32(nn) / recordSize
+		var i int32
+		var indexuint64 uint64
+
+		buf := buffer
 		for i = 0; i < numToRead; i++ {
-			curpos := i * int64(recordSize)
-			index := int64(binary.LittleEndian.Uint64(buffer[curpos:]))
-			if index != 0 {
+			indexuint64 = binary.LittleEndian.Uint64(buf)
+
+			if indexuint64 != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
-				index = IndexToTime(index, fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
+				index := IndexToTime(int64(indexuint64), fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
 				if !ex.checkTimeQuals(index) {
 					continue
 				}
 				idxpos := len(*packedBuffer)
-				*packedBuffer = append(*packedBuffer, buffer[curpos:curpos+int64(recordSize)]...)
+				*packedBuffer = append(*packedBuffer, buf[:int64(recordSize)]...)
 				b := *packedBuffer
 				binary.LittleEndian.PutUint64(b[idxpos:], uint64(index))
 
 				// Update lastKnown only once the first time
 				if fp.seekingLast {
 					if offset, err := f.Seek(0, os.SEEK_CUR); err == nil {
-						offset = offset - nn + i*int64(recordSize)
+						offset = offset - nn + int64(i)*recordSize64
 						readhint.SetLastKnown(fp.FullPath, offset)
 					}
 					fp.seekingLast = false
 				}
 			}
+
+			buf = buf[recordSize:]
 		}
 		if leftBytes <= 0 {
 			return nil
