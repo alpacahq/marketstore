@@ -5,13 +5,14 @@
 #
 FROM golang:1.13.0-buster as builder
 ARG tag=latest
+ARG INCLUDE_PLUGINS=true
 ENV DOCKER_TAG=$tag
 ENV GOPATH=/go
 
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
 RUN make vendor
-RUN make install plugins
+RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make build ; fi
 
 #
 # STAGE 2
@@ -22,8 +23,9 @@ RUN make install plugins
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata libc6-compat
 WORKDIR /
-COPY --from=builder /go/bin/marketstore /bin/
-COPY --from=builder /go/bin/*.so /bin/
+COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
+# copy plugins if any
+COPY --from=builder /go/bin /bin/
 ENV GOPATH=/
 
 RUN ["marketstore", "init"]
