@@ -1,20 +1,12 @@
 package executor
 
 import (
-	"os"
-	"unsafe"
-
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/klauspost/compress/snappy"
+	"os"
 
 	. "github.com/alpacahq/marketstore/utils/io"
 )
-
-/*
-#include "rewriteBuffer.h"
-#cgo CFLAGS: -O3 -Wno-ignored-optimization-argument -std=c99
-*/
-import "C"
 
 func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, direction DirectionEnum) (rb []byte, err error) {
 	/*
@@ -92,12 +84,8 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 					numVarRecords = numberLeftToRead
 				}
 			}
-			rbTemp := make([]byte, numVarRecords*(varRecLen+8)) // Add the extra space for epoch
-
-			arg1 := (*C.char)(unsafe.Pointer(&buffer[0]))
-			arg4 := (*C.char)(unsafe.Pointer(&rbTemp[0]))
-			C.rewriteBuffer(arg1, C.int(varRecLen), C.int(numVarRecords), arg4,
-				C.int64_t(md.Intervals), C.int64_t(intervalStartEpoch))
+			rbTemp := RewriteBuffer(buffer,
+				uint32(varRecLen), uint32(numVarRecords), uint32(md.Intervals), uint64(intervalStartEpoch))
 
 			//rb = append(rb, rbTemp...)
 			if (rbCursor + len(rbTemp)) > totalDatalen {

@@ -39,7 +39,7 @@ marketstore connect --url localhost:5993
 ```
 
 ### Source
-MarketStoreはGo (一部CGO)を用いて実装されているので、ソースコードからビルドすることも簡単です。Go `1.11` 以上のバージョンを使用し、また依存管理には`go mod` を使用しています。
+MarketStoreはGoを用いて実装されているので、ソースコードからビルドすることも簡単です。Go `1.11` 以上のバージョンを使用し、また依存管理には`go mod` を使用しています。
 ``` sh
 go get -u github.com/alpacahq/marketstore
 ```

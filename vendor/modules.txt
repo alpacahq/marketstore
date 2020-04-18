@@ -32,6 +32,8 @@ github.com/bitly/go-simplejson
 github.com/buger/jsonparser
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 github.com/chzyer/readline
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
 # github.com/eapache/channels v1.1.0
 github.com/eapache/channels
 # github.com/eapache/queue v1.1.0
@@ -127,6 +129,8 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/pkg/errors v0.8.0
 github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/preichenberger/go-gdax v0.0.0-20181027225743-eb74ba719d9a
 github.com/preichenberger/go-gdax
 # github.com/ryanuber/columnize v2.1.0+incompatible
@@ -139,6 +143,8 @@ github.com/shurcooL/sanitized_anchor_name
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
+# github.com/stretchr/testify v1.3.0
+github.com/stretchr/testify/assert
 # github.com/timpalpant/go-iex v0.0.0-20181027174710-0b8a5fdd2ec1
 github.com/timpalpant/go-iex
 github.com/timpalpant/go-iex/consolidator
