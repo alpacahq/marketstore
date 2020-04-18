@@ -1,5 +1,0 @@
-language: go
-go:
-  - tip
-script:
-  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && go test ./...'
