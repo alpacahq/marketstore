@@ -59,3 +59,7 @@ require (
 	gopkg.in/matryer/try.v1 v1.0.0-20150601225556-312d2599e12e
 	gopkg.in/yaml.v2 v2.2.2
 )
+
+// to avoid "github.com/go-check/check@v1.0.0-20180628173108-788fd7840127:
+// invalid pseudo-version: major version without preceding tag must be v0, not v1" error
+replace github.com/go-check/check v1.0.0-20180628173108-788fd7840127 => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
