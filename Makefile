@@ -1,6 +1,6 @@
 .PHONY: plugins
 
-GOFLAGS="-mod=vendor"
+#GOFLAGS="-mod=vendor"
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
 UTIL_PATH := github.com/alpacahq/marketstore/utils
 
