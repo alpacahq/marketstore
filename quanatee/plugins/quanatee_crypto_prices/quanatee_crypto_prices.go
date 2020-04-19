@@ -93,9 +93,8 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	}
     
     var cryptoData polygonData
-    // https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/minute/2019-01-01/2019-02-01?unadjusted=true&apiKey=
     apiUrl := fmt.Sprintf(
-                        "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=false&apiKey=%s",
+                        "https://api.polygon.io/v2/aggs/ticker/%s/range/%s/minute/%s/%s?unadjusted=true&apiKey=%s",
                         "X:"+symbol,
                         resampleFreq,
                         url.QueryEscape(from.UTC().AddDate(0, 0, -1).Format("2006-01-02")),
@@ -135,7 +134,7 @@ func GetPolygonPrices(symbol string, from, to, last time.Time, realTime bool, pe
 	if len(cryptoData.PriceData) < 1 {
         if !realTime {
             apiUrl := fmt.Sprintf(
-                "https://api.polygon.io/v2/aggs/ticker/%s/range/1/day/%s/%s?unadjusted=false&apiKey=%s",
+                "https://api.polygon.io/v2/aggs/ticker/%s/range/1/day/%s/%s?unadjusted=true&apiKey=%s",
                 "X:"+symbol,
                 url.QueryEscape(from.UTC().AddDate(0, 0, -1).Format("2006-01-02")),
                 url.QueryEscape(to.Format("2006-01-02")),
@@ -513,7 +512,11 @@ func (tiicc *CryptoFetcher) Run() {
             // Only use Tiingo for backfilling
             if (!realTime && len(polygonQuote.Epoch) < 10) || (polygonErr != nil) {
                 if tiicc.tiingoApiKey != "" {
-                    tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.tiingoApiKey)
+                    if strings.HasSuffix(symbol, "USD") {
+                        tiingoQuote, tiingoErr = GetTiingoPrices(symbol+"T", timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.tiingoApiKey)
+                    } else {
+                        tiingoQuote, tiingoErr = GetTiingoPrices(symbol, timeStart, timeEnd, lastTimestamp, realTime, tiicc.baseTimeframe, tiicc.tiingoApiKey)
+                    }
                 } else {
                     tiingoErr = errors.New("No api key")
                 }

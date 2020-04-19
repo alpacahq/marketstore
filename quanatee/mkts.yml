@@ -32,10 +32,12 @@ bgworkers:
       symbols:
         - BTCUSD
         - BNBUSD
+        - DASHUSD
         - ETHUSD
         - EOSUSD
         - LTCUSD
         - XLMUSD
+        - XMRUSD
         - XRPUSD
       query_start: "2017-01-01 00:00"
       base_timeframe: "1Min"
