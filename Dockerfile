@@ -3,7 +3,7 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.13.0-buster as builder
+FROM golang:1.14.2-buster as builder
 ARG tag=latest
 ARG INCLUDE_PLUGINS=true
 ENV DOCKER_TAG=$tag
@@ -17,11 +17,9 @@ RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make bui
 #
 # STAGE 2
 #
-# Use a tiny base image (alpine) and copy in the release target. This produces
-# a very small output image for deployment.
+# Create final image
 #
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata libc6-compat
+FROM debian:10.3
 WORKDIR /
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
 # copy plugins if any
