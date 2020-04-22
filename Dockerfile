@@ -3,7 +3,7 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.14.0-buster as builder
+FROM golang:1.14.2-buster as builder
 ARG tag=latest
 ARG INCLUDE_PLUGINS=true
 ENV DOCKER_TAG=$tag
@@ -19,7 +19,7 @@ RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make bui
 #
 # Create final image
 #
-FROM debian:buster
+FROM debian:10.3
 WORKDIR /
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
 # copy plugins if any
