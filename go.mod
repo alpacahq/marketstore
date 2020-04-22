@@ -1,5 +1,7 @@
 module github.com/alpacahq/marketstore
 
+go 1.14
+
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20180906201452-2aa6f33b730c
 	github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398 // indirect
