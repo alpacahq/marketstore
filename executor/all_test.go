@@ -28,7 +28,6 @@ var (
 	_ = Suite(&TestSuite{nil, "", nil, nil})
 	_ = Suite(&DestructiveWALTests{nil, "", nil, nil})
 	_ = Suite(&DestructiveWALTest2{nil, "", nil, nil})
-	_ = Suite(&CGOTests{})
 )
 
 type TestSuite struct {
@@ -54,8 +53,6 @@ type DestructiveWALTest2 struct {
 	ItemsWritten map[string]int
 	WALFile      *WALFileType
 }
-
-type CGOTests struct{}
 
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()

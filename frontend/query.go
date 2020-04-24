@@ -260,7 +260,6 @@ Utility functions
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
 	LimitFromStart bool, columns []string) (io.ColumnSeriesMap, error) {
-
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
 	/*

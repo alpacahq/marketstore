@@ -15,6 +15,7 @@ require (
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/eapache/channels v1.1.0
 	github.com/flosch/pongo2 v0.0.0-20181225140029-79872a7b2769 // indirect
 	github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424 // indirect
@@ -45,7 +46,7 @@ require (
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
-	github.com/stretchr/testify v1.3.0 // indirect
+	github.com/stretchr/testify v1.3.0
 	github.com/timpalpant/go-iex v0.0.0-20181027174710-0b8a5fdd2ec1
 	github.com/valyala/fasthttp v1.0.0
 	github.com/vmihailenco/msgpack v4.0.1+incompatible
@@ -60,3 +61,8 @@ require (
 	gopkg.in/yaml.v2 v2.2.2
 )
 
+// to avoid "github.com/go-check/check@v1.0.0-20180628173108-788fd7840127:
+// invalid pseudo-version: major version without preceding tag must be v0, not v1" error
+replace github.com/go-check/check v1.0.0-20180628173108-788fd7840127 => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
+
+go 1.13

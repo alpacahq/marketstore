@@ -149,7 +149,6 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 		c := v.(*cachedAgg)
 
 		if !c.Valid(tail, head) {
-			log.Debug("invalidating cache for: %v\n", tbk.String())
 			s.aggCache.Delete(tbk.String())
 
 			goto Query

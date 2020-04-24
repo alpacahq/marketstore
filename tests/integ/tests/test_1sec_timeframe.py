@@ -50,7 +50,6 @@ def test_1sec_tf_tick(symbol, data):
 ])
 def test_1sec_tf_candle(symbol, data):
     # ---- given ----
-    print("aaaa")
     print(client.write(np.array(data, dtype=DATA_TYPE_CANDLE), "{}/1Sec/OHLCV".format(symbol), isvariablelength=False))
 
     # ---- when ----

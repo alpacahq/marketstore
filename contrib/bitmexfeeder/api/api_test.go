@@ -29,7 +29,7 @@ func TestGetInstruments(t *testing.T) {
 
 func TestGetBucket(t *testing.T) {
 	symbol := "XBTUSD"
-	startTime := time.Date(2017,1,0,0,0,0,0,time.UTC)
+	startTime := time.Date(2017, 1, 0, 0, 0, 0, 0, time.UTC)
 	trades, err := client.GetBuckets(symbol, startTime, "1H")
 	if err != nil {
 		t.Error(err)
