@@ -133,6 +133,7 @@ func BarsHandler(msg []byte) {
 		cs.AddColumn("Low", []float32{float32(bar.Low)})
 		cs.AddColumn("Close", []float32{float32(bar.Close)})
 		cs.AddColumn("Volume", []int32{int32(bar.Volume)})
+		cs.AddColumn("TickCnt", []int32{int32(0)})
 		csm.AddColumnSeries(*tbk, cs)
 
 		if err := executor.WriteCSM(csm, false); err != nil {
