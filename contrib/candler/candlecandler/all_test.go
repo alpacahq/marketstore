@@ -64,7 +64,7 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	q.AddRestriction("Timeframe", "1Min")
 	startDate := time.Date(2001, time.October, 15, 12, 0, 0, 0, time.UTC)
 	endDate := time.Date(2001, time.October, 15, 12, 15, 0, 0, time.UTC)
-	q.SetRange(startDate.Unix(), endDate.Unix())
+	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
 	scanner, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)

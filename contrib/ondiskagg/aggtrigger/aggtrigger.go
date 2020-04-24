@@ -331,7 +331,7 @@ func (s *OnDiskAggTrigger) query(
 	// Scan
 	q := planner.NewQuery(cDir)
 	q.AddTargetKey(tbk)
-	q.SetRange(start.Unix(), end.Unix())
+	q.SetRange(start, end)
 
 	parsed, err := q.Parse()
 	if err != nil {

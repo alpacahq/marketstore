@@ -83,10 +83,10 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.Colu
 	if start == nil && end == nil {
 		fmt.Println("No suitable date range supplied...")
 		return
-	} else if start != nil && end != nil {
-		query.SetRange(start.Unix(), end.Unix())
+	} else if start == nil {
+		query.SetRange(planner.MinTime, *end)
 	} else if end == nil {
-		query.SetRange(start.Unix(), planner.MaxEpoch)
+		query.SetRange(*start, planner.MaxTime)
 	}
 
 	fmt.Printf("Query range: %v to %v\n", start, end)
@@ -114,7 +114,7 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.Colu
 
 func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
 	if end == nil {
-		t := time.Unix(planner.MaxEpoch, 0)
+		t := planner.MaxTime
 		end = &t
 	}
 	epochStart := start.UTC().Unix()

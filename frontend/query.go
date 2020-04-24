@@ -28,8 +28,12 @@ type QueryRequest struct {
 	KeyCategory string `msgpack:"key_category,omitempty"`
 	// Lower time predicate (i.e. index >= start) in unix epoch second
 	EpochStart *int64 `msgpack:"epoch_start,omitempty"`
+	// Nanosecond of the lower time predicate
+	EpochStartNanos *int64 `msgpack:"epoch_start_nanos,omitempty"`
 	// Upper time predicate (i.e. index <= end) in unix epoch second
 	EpochEnd *int64 `msgpack:"epoch_end,omitempty"`
+	// Nanosecond of the upper time predicate
+	EpochEndNanos *int64 `msgpack:"epoch_end_nanos,omitempty"`
 	// Number of max returned rows from lower/upper bound
 	LimitRecordCount *int `msgpack:"limit_record_count,omitempty"`
 	// Set to true if LimitRecordCount should be from the lower
@@ -150,11 +154,18 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 
 			epochStart := int64(0)
 			epochEnd := int64(math.MaxInt64)
+			var epochStartNanos, epochEndNanos int64
 			if req.EpochStart != nil {
 				epochStart = *req.EpochStart
+				if req.EpochStartNanos != nil {
+					epochStartNanos = *req.EpochStartNanos
+				}
 			}
 			if req.EpochEnd != nil {
 				epochEnd = *req.EpochEnd
+				if req.EpochEndNanos != nil {
+					epochEndNanos = *req.EpochEndNanos
+				}
 			}
 			limitRecordCount := 0
 			if req.LimitRecordCount != nil {
@@ -169,11 +180,11 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 				columns = req.Columns
 			}
 
-			start := io.ToSystemTimezone(time.Unix(epochStart, 0))
-			stop := io.ToSystemTimezone(time.Unix(epochEnd, 0))
+			start := io.ToSystemTimezone(time.Unix(epochStart, epochStartNanos))
+			end := io.ToSystemTimezone(time.Unix(epochEnd, epochEndNanos))
 			csm, err := executeQuery(
 				dest,
-				start, stop,
+				start, end,
 				limitRecordCount, limitFromStart,
 				columns,
 			)
@@ -249,7 +260,6 @@ Utility functions
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
 	LimitFromStart bool, columns []string) (io.ColumnSeriesMap, error) {
-
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
 	/*
@@ -276,7 +286,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		)
 	}
 
-	query.SetRange(start.Unix(), end.Unix())
+	query.SetRange(start, end)
 	parseResult, err := query.Parse()
 	if err != nil {
 		// No results from query

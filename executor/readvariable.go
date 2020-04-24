@@ -8,7 +8,7 @@ import (
 	. "github.com/alpacahq/marketstore/utils/io"
 )
 
-func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, direction DirectionEnum) (rb []byte, err error) {
+func (r *reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 	/*
 		Here we use the bufFileMap which has index data for each file, then we read
 		the target data into the resultBuffer up to the limitCount number of records
@@ -32,18 +32,11 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 		var totalDatalen int
 		// Without compression we have the exact size of the output buffer
 		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
-		numberLeftToRead := int(limitCount)
 		if utils.InstanceConfig.DisableVariableCompression {
 			for i := 0; i < numIndexRecords; i++ {
 				datalen := int(ToInt64(indexBuffer[i*24+16:]))
 				numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
-				if direction == FIRST {
-					if numVarRecords >= numberLeftToRead {
-						numVarRecords = numberLeftToRead
-					}
-				}
 				totalDatalen += numVarRecords * (varRecLen + 8)
-				numberLeftToRead -= numVarRecords
 			}
 		} else {
 			// With compression, the size is approximate, multiply by estimated ratio to get close
@@ -54,7 +47,6 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 		}
 
 		numIndexRecords = len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
-		numberLeftToRead = int(limitCount)
 		//rb = make([]byte, 0)
 		rb = make([]byte, totalDatalen)
 		var rbCursor int
@@ -79,11 +71,6 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 
 			// Loop over the variable records and prepend the index time to each
 			numVarRecords := len(buffer) / varRecLen
-			if direction == FIRST {
-				if numVarRecords >= numberLeftToRead {
-					numVarRecords = numberLeftToRead
-				}
-			}
 			rbTemp := RewriteBuffer(buffer,
 				uint32(varRecLen), uint32(numVarRecords), uint32(md.Intervals), uint64(intervalStartEpoch))
 
@@ -97,25 +84,11 @@ func (r *reader) readSecondStage(bufMeta []bufferMeta, limitCount int32, directi
 			copy(rb[rbCursor:], rbTemp)
 			rbCursor += len(rbTemp)
 
-			numberLeftToRead -= numVarRecords
-			if direction == FIRST {
-				if numberLeftToRead == 0 {
-					break
-				}
-			}
 		}
 		rb = rb[:rbCursor]
 		fp.Close()
 
 		totalBuf = append(totalBuf, rb...)
-	}
-	if direction == LAST {
-		// Chop the last N records out of the results
-		numVarRecords := len(totalBuf) / (varRecLen + 8)
-		if int(limitCount) < numVarRecords {
-			offset := (varRecLen + 8) * (numVarRecords - int(limitCount))
-			totalBuf = totalBuf[offset:]
-		}
 	}
 	return totalBuf, nil
 }

@@ -144,7 +144,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if sp.ContentsEnum.IsSet(INCLUSIVEMIN) {
 					val += 1
 				}
-				q.SetStart(val)
+				q.SetStart(time.Unix(val, 0))
 			}
 			if sp.ContentsEnum.IsSet(MAXBOUND) {
 				val, err := io.GetValueAsInt64(sp.max)
@@ -154,7 +154,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
 					val -= 1
 				}
-				q.SetEnd(val)
+				q.SetEnd(time.Unix(val, 0))
 			}
 		}
 
