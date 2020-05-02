@@ -17,12 +17,13 @@ require (
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
-	github.com/davecgh/go-spew v1.1.1
 	github.com/eapache/channels v1.1.0
 	github.com/flosch/pongo2 v0.0.0-20181225140029-79872a7b2769 // indirect
 	github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424 // indirect
 	github.com/gobwas/glob v0.2.3
+	github.com/golang/protobuf v1.3.3
 	github.com/gorilla/websocket v1.4.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/blackfriday v2.0.0+incompatible // indirect
 	github.com/iris-contrib/formBinder v0.0.0-20190104093907-fbd5963f41e1 // indirect
@@ -39,7 +40,7 @@ require (
 	github.com/moul/http2curl v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
-	github.com/pkg/errors v0.8.0
+	github.com/pkg/errors v0.8.1
 	github.com/preichenberger/go-gdax v0.0.0-20181027225743-eb74ba719d9a
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
@@ -47,22 +48,18 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/stretchr/objx v0.1.1 // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/timpalpant/go-iex v0.0.0-20181027174710-0b8a5fdd2ec1
 	github.com/valyala/fasthttp v1.0.0
 	github.com/vmihailenco/msgpack v4.0.1+incompatible
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190809123943-df4f5c81cb3b // indirect
-	go.uber.org/atomic v1.3.2 // indirect
-	go.uber.org/multierr v1.1.0 // indirect
-	go.uber.org/zap v1.9.1
+	go.uber.org/zap v1.10.0
 	gonum.org/v1/gonum v0.0.0-20190618015908-5dc218f86579
-	google.golang.org/appengine v1.3.0 // indirect
+	google.golang.org/grpc v1.28.0
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/matryer/try.v1 v1.0.0-20150601225556-312d2599e12e
 	gopkg.in/yaml.v2 v2.2.2
 )
 
-// to avoid "github.com/go-check/check@v1.0.0-20180628173108-788fd7840127:
-// invalid pseudo-version: major version without preceding tag must be v0, not v1" error
+// to avoid "invalid pseudo-version: major version without preceding tag must be v0, not v1" error
 replace github.com/go-check/check v1.0.0-20180628173108-788fd7840127 => github.com/go-check/check v0.0.0-20180628173108-788fd7840127

@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package proto;
+
+enum DataType {
+    /*
+    NOTE: The ordering of this enum must match the File Format order
+
+    We define our own types here instead of using the (excellent!) built-in Go type system for the primary reason
+    that we are serializing data to files and so need to have a (very!) stable on-disk representation that matches
+    the processing we do internally.
+    */
+    UNKNOWN = 0;
+    FLOAT32 = 1;
+    INT32 = 2;
+    FLOAT64 = 3;
+    INT64 = 4;
+    EPOCH = 5;
+    BYTE = 6;
+    BOOL = 7;
+    NONE = 8;
+    STRING = 9;
+    INT16 = 10;
+    UINT8 = 11;
+    UINT16 = 12;
+    UINT32 = 13;
+    UINT64 = 14;
+}
+
+message DataShape {
+    string name = 1;
+    DataType type = 2;
+}
+
+message NumpyMultiDataset {
+    NumpyDataset data = 1;
+    map<string, int32> start_index = 2;
+    map<string, int32> lengths = 3;
+}
+
+message NumpyDataset {
+    // a list of type strings such as i4 and f8
+    repeated string column_types = 1;
+    // a list of column names
+    repeated string column_names = 2;
+    // two dimentional byte arrays holding the column data
+    repeated bytes column_data = 3;
+    int32 length = 4;
+    // hidden
+    repeated DataShape data_shapes = 5;
+}
+
+message MultiQueryRequest {
+    /*
+        A multi-request allows for different Timeframes and record formats for each request
+    */
+    repeated QueryRequest requests = 1;
+}
+message QueryRequest {
+    // Note: SQL is not fully supported
+    bool is_sql_statement = 1; // If this is a SQL request, Only SQLStatement is relevant
+    string sql_statement = 2;
+    // Destination is <symbol>/<timeframe>/<attributegroup>
+    string destination = 3;
+    // This is not usually set, defaults to Symbol/Timeframe/AttributeGroup
+    string key_category = 4;
+    // Lower time predicate (i.e. index >= start) in unix epoch second
+    int64 epoch_start = 5;
+    // fractional part (nano second) of epoch_start
+    int64 epoch_start_nanos = 6;
+    // Upper time predicate (i.e. index <= end) in unix epoch second
+    int64 epoch_end = 7;
+    // fractional part (nano second) of epoch_end
+    int64 epoch_end_nanos = 8;
+    // Number of max returned rows from lower/upper bound
+    int32 limit_record_count = 9;
+    // Set to true if LimitRecordCount should be from the lower
+    bool limit_from_start = 10;
+    // Array of column names to be returned
+    repeated string columns = 11;
+
+    // Support for functions is experimental and subject to change
+    repeated string functions = 12;
+}
+
+message MultiQueryResponse {
+    repeated QueryResponse responses = 1;
+    string version = 2; // Server Version
+    string timezone = 3;
+}
+
+message QueryResponse {
+    NumpyMultiDataset result = 1;
+}
+
+message MultiWriteRequest {
+    /*
+    A multi-request allows for different Timeframes and record formats for each request
+*/
+    repeated WriteRequest requests = 1;
+}
+
+message WriteRequest {
+    NumpyMultiDataset data = 1;
+    bool is_variable_length = 2;
+}
+
+message MultiServerResponse {
+    repeated ServerResponse responses = 1;
+}
+
+message ServerResponse {
+    string error = 1;
+    string version = 2; // Server Version
+}
+
+message MultiKeyRequest {
+    repeated KeyRequest requests = 1;
+}
+
+message KeyRequest {
+    string key = 1;
+}
+
+message ListSymbolsRequest {
+    repeated string results = 1;
+}
+
+message ListSymbolsResponse {
+    repeated string results = 1;
+}
+
+message ServerVersionRequest {
+    string version = 1;
+}
+
+message ServerVersionResponse {
+    string version = 1;
+}
+
+service Marketstore {
+    rpc Query (MultiQueryRequest) returns (MultiQueryResponse);
+    rpc Write (MultiWriteRequest) returns (MultiServerResponse);
+    rpc Destroy (MultiKeyRequest) returns (MultiServerResponse);
+    rpc ListSymbols (ListSymbolsRequest) returns (ListSymbolsResponse);
+    rpc ServerVersion (ServerVersionRequest) returns (ServerVersionResponse);
+}
