@@ -2,14 +2,12 @@ package frontend
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/proto"
 	"github.com/alpacahq/marketstore/sqlparser"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
 	"math"
 	"strings"
 	"sync/atomic"
@@ -43,7 +41,7 @@ func reverseDataTypeMap(m map[proto.DataType]io.EnumElementType) map[io.EnumElem
 	return n
 }
 
-func ToProtoDataType(elemType io.EnumElementType) proto.DataType {
+func toProtoDataType(elemType io.EnumElementType) proto.DataType {
 	return reverseMap[elemType]
 }
 
@@ -70,18 +68,18 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			if err != nil {
 				return nil, err
 			}
-			nds, err := NewNumpyDataset(cs)
+			nds, err := io.NewNumpyDataset(cs)
 			if err != nil {
 				return nil, err
 			}
 			tbk := io.NewTimeBucketKeyFromString(req.SqlStatement + ":SQL")
-			nmds, err := NewNumpyMultiDataset(nds, *tbk)
+			nmds, err := io.NewNumpyMultiDataset(nds, *tbk)
 			if err != nil {
 				return nil, err
 			}
 			response.Responses = append(response.Responses,
 				&proto.QueryResponse{
-					Result: nmds,
+					Result: ToProtoNumpyMultiDataSet(nmds),
 				})
 
 		case false:
@@ -158,19 +156,19 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			/*
 				Separate each TimeBucket from the result and compose a NumpyMultiDataset
 			*/
-			var nmds *proto.NumpyMultiDataset
+			var nmds *io.NumpyMultiDataset
 			for tbk, cs := range csm {
-				nds, err := NewNumpyDataset(cs)
+				nds, err := io.NewNumpyDataset(cs)
 				if err != nil {
 					return nil, err
 				}
 				if nmds == nil {
-					nmds, err = NewNumpyMultiDataset(nds, tbk)
+					nmds, err = io.NewNumpyMultiDataset(nds, tbk)
 					if err != nil {
 						return nil, err
 					}
 				} else {
-					Append(nmds, cs, tbk)
+					nmds.Append(cs, tbk)
 				}
 			}
 
@@ -180,7 +178,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 
 			response.Responses = append(response.Responses,
 				&proto.QueryResponse{
-					Result: nmds,
+					Result: ToProtoNumpyMultiDataSet(nmds),
 				})
 
 		}
@@ -188,67 +186,10 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 	return &response, nil
 }
 
-func NewNumpyDataset(cs *io.ColumnSeries) (nds *proto.NumpyDataset, err error) {
-	nds = new(proto.NumpyDataset)
-	nds.Length = int32(cs.Len())
-	nds.DataShapes = GetProtoDataShapes(cs)
-	for i, name := range cs.GetColumnNames() {
-		nds.ColumnNames = append(nds.ColumnNames, name)
-		colBytes := io.CastToByteSlice(cs.GetColumn(name))
-		nds.ColumnData = append(nds.ColumnData, colBytes)
-		if typeStr, ok := io.ToTypeStr(dataTypeMap[nds.DataShapes[i].Type]); !ok {
-			log.Error("unsupported type %v", nds.DataShapes[i].String())
-			return nil, fmt.Errorf("unsupported type")
-		} else {
-			nds.ColumnTypes = append(nds.ColumnTypes, typeStr)
-		}
-	}
-	return nds, nil
-}
-
-func NewNumpyMultiDataset(nds *proto.NumpyDataset, tbk io.TimeBucketKey) (nmds *proto.NumpyMultiDataset, err error) {
-	nmds = &proto.NumpyMultiDataset{
-		Data: &proto.NumpyDataset{
-			ColumnTypes: nds.ColumnTypes,
-			ColumnNames: nds.ColumnNames,
-			ColumnData:  nds.ColumnData,
-			Length:      int32(nds.Length),
-			DataShapes:  nds.DataShapes,
-		},
-	}
-	nmds.StartIndex = make(map[string]int32)
-	nmds.Lengths = make(map[string]int32)
-	nmds.StartIndex[tbk.String()] = 0
-	nmds.Lengths[tbk.String()] = int32(nds.Length)
-	return nmds, nil
-}
-
-func Append(nmds *proto.NumpyMultiDataset, cs *io.ColumnSeries, tbk io.TimeBucketKey) (err error) {
-	if int(nmds.Data.Length) != cs.GetNumColumns() {
-		err = errors.New("Length of columns mismatch with NumpyMultiDataset")
-		return
-	}
-	colSeriesNames := cs.GetColumnNames()
-	for idx, name := range nmds.Data.ColumnNames {
-		if name != colSeriesNames[idx] {
-			err = errors.New("Data shape mismatch of ColumnSeries and NumpyMultiDataset")
-			return
-		}
-	}
-	nmds.StartIndex[tbk.String()] = nmds.Data.Length
-	nmds.Lengths[tbk.String()] = int32(cs.Len())
-	nmds.Data.Length += int32(cs.Len())
-	for idx, col := range colSeriesNames {
-		newBuffer := io.CastToByteSlice(cs.GetColumn(col))
-		nmds.Data.ColumnData[idx] = append(nmds.Data.ColumnData[idx], newBuffer...)
-	}
-	return nil
-}
-
 func (s GRPCService) Write(ctx context.Context, reqs *proto.MultiWriteRequest) (*proto.MultiServerResponse, error) {
 	response := proto.MultiServerResponse{}
 	for _, req := range reqs.Requests {
-		csm, err := ToColumnSeriesMap(req.Data)
+		csm, err := ToNumpyMultiDataSet(req.Data).ToColumnSeriesMap()
 		if err != nil {
 			appendResponse(&response, err)
 			continue
@@ -263,90 +204,53 @@ func (s GRPCService) Write(ctx context.Context, reqs *proto.MultiWriteRequest) (
 	return &response, nil
 }
 
-func ToColumnSeriesMap(nmds *proto.NumpyMultiDataset) (csm io.ColumnSeriesMap, err error) {
-	csm = io.NewColumnSeriesMap()
-	for tbkStr, idx := range nmds.StartIndex {
-		length := nmds.Lengths[tbkStr]
-		var cs *io.ColumnSeries
-		if length > 0 {
-			cs, err = ToColumnSeries(nmds.Data, idx, length)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			cs = io.NewColumnSeries()
-		}
-		tbk := io.NewTimeBucketKeyFromString(tbkStr)
-		csm.AddColumnSeries(*tbk, cs)
+func ToNumpyMultiDataSet(p *proto.NumpyMultiDataset) *io.NumpyMultiDataset {
+	return &io.NumpyMultiDataset{
+		NumpyDataset: io.NumpyDataset{
+			ColumnTypes: p.Data.ColumnTypes,
+			ColumnNames: p.Data.ColumnNames,
+			ColumnData:  p.Data.ColumnData,
+			Length:      int(p.Data.Length),
+		},
+		StartIndex: convertInt32Map(p.StartIndex),
+		Lengths:    convertInt32Map(p.Lengths),
 	}
-	return csm, nil
 }
 
-func ToColumnSeries(nds *proto.NumpyDataset, options ...int32) (cs *io.ColumnSeries, err error) {
-	var startIndex, length int32
-	if len(options) != 0 {
-		if len(options) != 2 {
-			return nil, fmt.Errorf("incorrect number of arguments")
-		}
-		startIndex, length = options[0], options[1]
-	} else {
-		startIndex, length = 0, nds.Length
+func ToProtoNumpyMultiDataSet(nmds *io.NumpyMultiDataset) *proto.NumpyMultiDataset {
+	return &proto.NumpyMultiDataset{
+		Data: &proto.NumpyDataset{
+			ColumnTypes: nmds.ColumnTypes,
+			ColumnNames: nmds.ColumnNames,
+			ColumnData:  nmds.ColumnData,
+			Length:      int32(nmds.Length),
+		},
+		StartIndex: convertIntMap(nmds.StartIndex),
+		Lengths:    convertIntMap(nmds.Lengths),
 	}
-
-	cs = io.NewColumnSeries()
-	if len(nds.ColumnData[0]) == 0 {
-		return cs, nil
-	}
-	/*
-		Coerce the []byte for each column into it's native pointer type
-	*/
-	if nds.DataShapes == nil {
-		nds.DataShapes, err = buildDataShapes(nds)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for i, shape := range nds.DataShapes {
-		size := dataTypeMap[shape.Type].Size()
-		start := int(startIndex) * size
-		end := start + int(length)*size
-		newColData := dataTypeMap[shape.Type].ConvertByteSliceInto(nds.ColumnData[i][start:end])
-		cs.AddColumn(shape.Name, newColData)
-	}
-	return cs, nil
 }
 
-func buildDataShapes(nds *proto.NumpyDataset) ([]*proto.DataShape, error) {
-	etypes := []io.EnumElementType{}
-	for _, typeStr := range nds.ColumnTypes {
-		if typ, ok := io.TypeStrToElemType(typeStr); !ok {
-			return nil, fmt.Errorf("unsupported type string %s", typeStr)
-		} else {
-			etypes = append(etypes, typ)
-		}
+func convertInt32Map(m map[string]int32) map[string]int {
+	ret := make(map[string]int, len(m))
+	for k, v := range m {
+		ret[k] = int(v)
 	}
-	return NewDataShapeVector(nds.ColumnNames, etypes), nil
+	return ret
 }
 
-func GetProtoDataShapes(cs *io.ColumnSeries) (ds []*proto.DataShape) {
-	var et []io.EnumElementType
-	for _, name := range cs.GetColumnNames() {
-		et = append(et, io.GetElementType(cs.GetColumns()[name]))
+func convertIntMap(m map[string]int) map[string]int32 {
+	ret := make(map[string]int32, len(m))
+	for k, v := range m {
+		ret[k] = int32(v)
 	}
-
-	dsv := make([]*proto.DataShape, len(cs.GetColumnNames()))
-	for i, name := range cs.GetColumnNames() {
-		dsv[i] = &proto.DataShape{Name: name, Type: ToProtoDataType(et[i])}
-	}
-
-	return dsv
+	return ret
 }
 
 // NewDataShapeVector returns a new array of DataShapes for the given array of
 // names and element types
 func NewDataShapeVector(names []string, etypes []io.EnumElementType) (dsv []*proto.DataShape) {
 	for i, name := range names {
-		dsv = append(dsv, &proto.DataShape{Name: name, Type: ToProtoDataType(etypes[i])})
+		dsv = append(dsv, &proto.DataShape{Name: name, Type: toProtoDataType(etypes[i])})
 	}
 	return dsv
 }

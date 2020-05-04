@@ -2,7 +2,6 @@ package start
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/proto"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/frontend/stream"
+	"github.com/alpacahq/marketstore/proto"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"

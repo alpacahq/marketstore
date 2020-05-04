@@ -96,7 +96,7 @@ message QueryResponse {
 message MultiWriteRequest {
     /*
     A multi-request allows for different Timeframes and record formats for each request
-*/
+    */
     repeated WriteRequest requests = 1;
 }
 
@@ -131,7 +131,6 @@ message ListSymbolsResponse {
 }
 
 message ServerVersionRequest {
-    string version = 1;
 }
 
 message ServerVersionResponse {
