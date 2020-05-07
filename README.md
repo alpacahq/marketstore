@@ -123,7 +123,8 @@ In order to run MarketStore, a YAML config file is needed. A default file (mkts.
 Var | Type | Description
 --- | --- | ---
 root_directory | string | Allows the user to specify the directory in which the MarketStore database resides
-listen_port | int | Port that MarketStore will serve through
+listen_port | int | Port that MarketStore will serve through for JSON-RPC API
+grpc_listen_port | int | Port that MarketStore will serve through for GRPC API
 timezone | string | System timezone by name of TZ database (e.g. America/New_York)
 log_level | string  | Allows the user to specify the log level (info | warning | error)
 queryable | bool | Allows the user to run MarketStore in polling-only mode, where it will not respond to query
@@ -140,6 +141,7 @@ bgworkers | slice | List of background worker plugins
 ```yml
 root_directory: data
 listen_port: 5993
+grpc_listen_port: 5995
 log_level: info
 queryable: true
 stop_grace_period: 0

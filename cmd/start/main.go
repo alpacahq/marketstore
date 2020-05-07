@@ -3,6 +3,7 @@ package start
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,9 +15,12 @@ import (
 	"github.com/alpacahq/marketstore/executor"
 	"github.com/alpacahq/marketstore/frontend"
 	"github.com/alpacahq/marketstore/frontend/stream"
+	"github.com/alpacahq/marketstore/proto"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
+
+	"google.golang.org/grpc"
 )
 
 const (
@@ -100,6 +104,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		utils.InstanceConfig.WALBypass)
 
 	// New server.
+	// Add grpc middleware for logging and metrics collection.
+	grpcServer := grpc.NewServer()
+	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
+
 	server, _ := frontend.NewServer()
 
 	// Set rpc handler.
@@ -126,6 +134,19 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// Serve.
 	log.Info("launching tcp listener for all services...")
+	if utils.InstanceConfig.GRPCListenURL != "" {
+		grpcLn, err := net.Listen("tcp", utils.InstanceConfig.GRPCListenURL)
+		if err != nil {
+			return fmt.Errorf("failed to start GRPC server - error: %s", err.Error())
+		}
+		go func() {
+			err := grpcServer.Serve(grpcLn)
+			if err != nil {
+				grpcServer.GracefulStop()
+			}
+		}()
+	}
+
 	if err := http.ListenAndServe(utils.InstanceConfig.ListenURL, nil); err != nil {
 		return fmt.Errorf("failed to start server - error: %s", err.Error())
 	}

@@ -31,6 +31,18 @@ var typeStrMap = func() map[string]EnumElementType {
 	return m
 }()
 
+// TypeStrToElemType converts a numpy type string (e.g. "i8", "f4") to an element type
+// ok=false is returned when unknown string is specified
+func TypeStrToElemType(typeStr string) (elemType EnumElementType, ok bool) {
+	elemType, ok = typeStrMap[typeStr]
+	return elemType, ok
+}
+
+func ToTypeStr(elemType EnumElementType) (typeStr string, ok bool) {
+	typeStr, ok = typeMap[elemType]
+	return typeStr, ok
+}
+
 type NumpyDataset struct {
 	// a list of type strings such as i4 and f8
 	ColumnTypes []string `msgpack:"types"`

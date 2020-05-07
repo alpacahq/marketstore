@@ -32,6 +32,7 @@ type BgWorkerSetting struct {
 type MktsConfig struct {
 	RootDirectory              string
 	ListenURL                  string
+	GRPCListenURL              string
 	UtilitiesURL               string
 	Timezone                   *time.Location
 	Queryable                  bool
@@ -58,6 +59,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 			RootDirectory              string `yaml:"root_directory"`
 			ListenHost                 string `yaml:"listen_host"`
 			ListenPort                 string `yaml:"listen_port"`
+			GRPCListenPort             string `yaml:"grpc_listen_port"`
 			UtilitiesURL               string `yaml:"utilities_url"`
 			Timezone                   string `yaml:"timezone"`
 			LogLevel                   string `yaml:"log_level"`
@@ -99,6 +101,12 @@ func (m *MktsConfig) Parse(data []byte) error {
 		log.Fatal("Invalid listen port.")
 		return errors.New("Invalid listen port.")
 	}
+
+	// GRPC is optional for now
+	// if aux.GRPCListenPort == "" {
+	// 	log.Fatal("Invalid GRPC listen port.")
+	// 	return errors.New("Invalid GRPC listen port.")
+	// }
 
 	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
 	m.Timezone, err = time.LoadLocation(aux.Timezone)
@@ -223,6 +231,9 @@ func (m *MktsConfig) Parse(data []byte) error {
 
 	m.RootDirectory = aux.RootDirectory
 	m.ListenURL = fmt.Sprintf("%v:%v", aux.ListenHost, aux.ListenPort)
+	if aux.GRPCListenPort != "" {
+		m.GRPCListenURL = fmt.Sprintf("%v:%v", aux.ListenHost, aux.GRPCListenPort)
+	}
 	m.UtilitiesURL = fmt.Sprintf("%v", aux.UtilitiesURL)
 
 	for _, trig := range aux.Triggers {
