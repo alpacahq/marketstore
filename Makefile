@@ -10,7 +10,6 @@ build:
 debug:
 	$(MAKE) debug -C contrib/ondiskagg
 	$(MAKE) debug -C contrib/gdaxfeeder
-	$(MAKE) debug -C contrib/slait
 	$(MAKE) debug -C contrib/stream
 	$(MAKE) debug -C contrib/polygon
 	$(MAKE) debug -C contrib/bitmexfeeder
@@ -32,7 +31,6 @@ update:
 plugins:
 	$(MAKE) -C contrib/ondiskagg
 	$(MAKE) -C contrib/gdaxfeeder
-	$(MAKE) -C contrib/slait
 	$(MAKE) -C contrib/stream
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/bitmexfeeder

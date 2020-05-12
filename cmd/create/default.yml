@@ -54,25 +54,6 @@ enable_last_known: false
 #     name: GdaxFetcher
 #     config:
 #       query_start: "2017-09-01 00:00"
-#   - module: slait.so
-#       name: SlaitSubscriber
-#       config:
-#           endpoint: localhost:5000
-#           topic: bars_gdax
-#           attribute_group: OHLCV
-#           shape:
-#           - - Epoch
-#             - int64
-#           - - Open
-#             - float64
-#           - - High
-#             - float64
-#           - - Low
-#             - float64
-#           - - Close
-#             - float64
-#           - - Volume
-#             - float64
 #   - module: polygon.so
 #         name: Polygon
 #         config:
