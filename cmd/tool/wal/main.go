@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/slait/utils/log"
+	"github.com/alpacahq/marketstore/utils/log"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +38,7 @@ func init() {
 }
 
 func executeWAL(cmd *cobra.Command, args []string) error {
-	log.SetLogLevel(log.INFO)
+	log.SetLevel(log.INFO)
 
 	// Read in WALFile.
 	wf := &executor.WALFileType{

@@ -46,7 +46,6 @@ bgworkers:
 ```
 
 ### Included
-* [Slait](https://github.com/alpacahq/marketstore/tree/master/contrib/slait) - subscribes to Slait (https://github.com/alpacahq/slait) and writes the data pushed through the websocket connection to the MarketStore database on disk.
 * [GDAXFeeder](https://github.com/alpacahq/marketstore/tree/master/contrib/gdaxfeeder) - fetches historical price data of cryptocurrencies from GDAX public API.
 * [Polygon](https://github.com/alpacahq/marketstore/tree/master/contrib/polygon) - fetches historical
 price data of US stocks from [Polygon's API](https://polygon.io/).
