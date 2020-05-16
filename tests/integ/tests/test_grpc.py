@@ -129,10 +129,6 @@ def test_grpc_query_all_symbols():
     tbk2 = "{}/{}/{}".format(symbol2, timeframe, attribute)
     tbk3 = "{}/{}/{}".format(symbol3, timeframe, attribute)
 
-    client.destroy(tbk)
-    client.destroy(tbk2)
-    client.destroy(tbk3)
-
     # --- write ---
     data = np.array([(pd.Timestamp('2017-01-01 00:00:00').value / 10 ** 9, 10.0, 20.0), ],
                     dtype=[('Epoch', 'i8'), ('High', 'f4'), ('Low', 'f4')]
