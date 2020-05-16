@@ -33,7 +33,10 @@ def timestamp(datestr):
 ])
 def test_1sec_tf_tick(symbol, data):
     # ---- given ----
-    client.write(np.array(data, dtype=DATA_TYPE_TICK), "{}/1Sec/TICK".format(symbol), isvariablelength=True)
+    tbk = "{}/1Sec/TICK".format(symbol)
+    client.destroy(tbk) # setup
+
+    client.write(np.array(data, dtype=DATA_TYPE_TICK), tbk, isvariablelength=True)
 
     # ---- when ----
     reply = client.query(pymkts.Params(symbol, '1Sec', 'TICK', limit=10))
@@ -50,7 +53,10 @@ def test_1sec_tf_tick(symbol, data):
 ])
 def test_1sec_tf_candle(symbol, data):
     # ---- given ----
-    print(client.write(np.array(data, dtype=DATA_TYPE_CANDLE), "{}/1Sec/OHLCV".format(symbol), isvariablelength=False))
+    tbk = "{}/1Sec/OHLCV".format(symbol)
+    client.destroy(tbk) # setup
+
+    print(client.write(np.array(data, dtype=DATA_TYPE_CANDLE), tbk, isvariablelength=False))
 
     # ---- when ----
     reply = client.query(pymkts.Params(symbol, '1Sec', 'OHLCV', limit=10))
