@@ -128,7 +128,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 					defer wg.Done()
 
 					// backfill the symbol in parallel
-					pf.backfillBars(symbol, time.Unix(*value.(*int64),0))
+					pf.backfillBars(symbol, time.Unix(*value.(*int64), 0))
 					backfill.BackfillM.Store(key, nil)
 				}()
 			}
