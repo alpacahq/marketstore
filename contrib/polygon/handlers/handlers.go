@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/contrib/polygon/backfill"
+	"github.com/alpacahq/marketstore/contrib/polygon/metrics"
 
 	"github.com/alpacahq/marketstore/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/executor"
@@ -68,6 +69,8 @@ func TradeHandler(msg []byte) {
 		_ = lagOnReceipt
 	}
 	Write(writeMap)
+
+	metrics.PolygonStreamLastUpdate.WithLabelValues("trade").SetToCurrentTime()
 }
 
 // QuoteHandler handles a Polygon WS quote
@@ -101,6 +104,8 @@ func QuoteHandler(msg []byte) {
 		_ = lagOnReceipt
 	}
 	Write(writeMap)
+
+	metrics.PolygonStreamLastUpdate.WithLabelValues("quote").SetToCurrentTime()
 }
 
 func BarsHandler(msg []byte) {
@@ -142,6 +147,8 @@ func BarsHandler(msg []byte) {
 
 		_ = lagOnReceipt
 	}
+
+	metrics.PolygonStreamLastUpdate.WithLabelValues("bar").SetToCurrentTime()
 }
 
 func appendItem(writeMap map[io.TimeBucketKey]interface{}, tbkp *io.TimeBucketKey, item interface{}) {

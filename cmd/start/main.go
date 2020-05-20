@@ -18,6 +18,7 @@ import (
 	"github.com/alpacahq/marketstore/proto"
 	"github.com/alpacahq/marketstore/utils"
 	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 
 	"google.golang.org/grpc"
@@ -112,12 +113,16 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// Set rpc handler.
 	log.Info("launching rpc data server...")
-	go http.Handle("/rpc", server)
+	http.Handle("/rpc", server)
 
 	// Set websocket handler.
 	log.Info("initializing websocket...")
 	stream.Initialize()
-	go http.HandleFunc("/ws", stream.Handler)
+	http.HandleFunc("/ws", stream.Handler)
+
+	// Set monitoring handler.
+	log.Info("launching prometheus metrics server...")
+	http.Handle("/metrics", promhttp.Handler())
 
 	// Initialize any provided plugins.
 	InitializeTriggers()
