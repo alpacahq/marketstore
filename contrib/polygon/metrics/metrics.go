@@ -11,8 +11,8 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "alpaca",
 			Subsystem: "marketstore",
-			Name:      "polyfeed_last_update",
-			Help:      "Last update time of Polygon streams partitioned by type",
+			Name:      "polygon_last_update_time",
+			Help:      "Last update time of Polygon streams, partitioned by type",
 		},
 		[]string{
 			"type",
