@@ -11,6 +11,13 @@ fullnameOverride: ""
 mktsConfig: |-
   root_directory: /data
   listen_port: 5993
+  # grpc_listen_port: 5995
+  timezone: UTC
+  disable_variable_compression: true
+
+service:
+  type: ClusterIP
+  port: 5993  # Change to 5995 when running with grpc
 
 replicaCount: 1
 
@@ -46,10 +53,6 @@ securityContext: {}
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
-
-service:
-  type: ClusterIP
-  port: 5993
 
 ingress:
   enabled: false
