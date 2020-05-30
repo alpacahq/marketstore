@@ -289,7 +289,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		wf.lastCommittedTGID = TGID
 		tgc.NewTGID()
 
-		wf.FilePtr.Sync()       // Flush the OS buffer
+		wf.FilePtr.Sync() // Flush the OS buffer
 	}
 
 	/*
