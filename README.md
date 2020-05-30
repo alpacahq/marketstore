@@ -46,6 +46,29 @@ docker run --mount type=bind,source="/full/path/to/ms_etc/",target="/etc" \
 ```
 This allows you to easily test out the image [included
 plugins](https://github.com/alpacahq/marketstore/tree/master/plugins#included) with ease.
+**Note that** this will override the container's `/etc/` related
+networking files (such as `hosts`, `hostname` and `resolv.conf`) with
+your host's local directory which may cause problems if deploying
+`marketstore` in the wild in which case use the copying method from above.
+
+By default the container will not persist any written data to your
+container's host storage. To accomplish this, bind the `data` directory to
+a local location:
+```sh
+docker run -i -p 5993:5993 alpacamarkets/marketstore:latest \
+  --mount type=bind,source="/<path_to_data>/marketstore",target="/data"
+```
+Once data is written to the server you should see a file tree layout
+like the following that will persist across container runs:
+```sh
+>>> tree /<path_to_data>/marketstore
+/<path_to_data>/marketstore
+├── category_name
+├── WALFile.1590868038674814776.walfile
+├── SYMBOL_1
+├── SYMBOL_2
+├── SYMBOL_3
+```
 
 If you have built the
 [cmd](https://github.com/alpacahq/marketstore/tree/master/cmd) package
