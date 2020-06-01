@@ -51,7 +51,7 @@ _startup: stop
 	# copy the test config and data to the container and start it after the container is created
 	# because mounting folders from docker executor is not supported in Circle CI2.0.
 	# https://discuss.circleci.com/t/why-circleci-2-0-does-not-support-mounting-folders/11605
-	docker create --name ${CONTAINER_NAME} -p 5993:5993 -w /project  $(IMAGE_NAME) start --config /project/bin/mkts.yml
+	docker create --name ${CONTAINER_NAME} -p 5993:5993 -p 5995:5995 -w /project  $(IMAGE_NAME) start --config /project/bin/mkts.yml
 	docker cp $(CURDIR)/bin ${CONTAINER_NAME}:/project/
 	@rm -rf data && mkdir -p data/mktsdb
 	docker cp $(CURDIR)/data ${CONTAINER_NAME}:/project/

@@ -66,7 +66,10 @@ def timestamp(datestr):
 ])
 def test_nanosec_range(symbol, data, start, end, limit, limit_from_start, response):
     # ---- given ----
-    print(client.write(np.array(data, dtype=DATA_TYPE_NANOSEC), "{}/1Sec/TICK".format(symbol), isvariablelength=True))
+    tbk = "{}/1Sec/TICK".format(symbol)
+    client.destroy(tbk) # setup
+
+    print(client.write(np.array(data, dtype=DATA_TYPE_NANOSEC), tbk, isvariablelength=True))
 
     # ---- when ----
     reply = client.query(pymkts.Params(symbol, '1Sec', 'TICK',
@@ -75,8 +78,6 @@ def test_nanosec_range(symbol, data, start, end, limit, limit_from_start, respon
                                        limit=limit,
                                        limit_from_start=limit_from_start,
                                        ))
-
-    client.destroy("{}/1Sec/TICK".format(symbol))
 
     # ---- then ----
     ret_df = reply.first().df()
