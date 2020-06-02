@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "marketstore.fullname" . }}
+  labels:
+    {{- include "marketstore.labels" . | nindent 4 }}
+data:
+  mkts.yml: |
+{{ printf .Values.mktsConfig | indent 4 }}
