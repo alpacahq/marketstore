@@ -35,28 +35,19 @@ docker start -i mktsdb
 ```
 
 You can also [bind mount](https://docs.docker.com/storage/bind-mounts/)
-the container to a local host directory where you've placed your custom
-`mkts.yml`:
-
+the container to a local host config file: a custom `mkts.yml`:
 ```sh
-mkdir ms_etc/
-mv /path/to/mkts.yml ./ms_etc/
-docker run --mount type=bind,source="/full/path/to/ms_etc/",target="/etc" \
-  -i -p 5993:5993 alpacamarkets/marketstore:latest
+docker run -v /full/path/to/mkts.yml:/etc/mkts.yml -i -p 5993:5993 alpacamarkets/marketstore:latest
 ```
-This allows you to easily test out the image [included
-plugins](https://github.com/alpacahq/marketstore/tree/master/plugins#included) with ease.
-**Note that** this will override the container's `/etc/` related
-networking files (such as `hosts`, `hostname` and `resolv.conf`) with
-your host's local directory which may cause problems if deploying
-`marketstore` in the wild in which case use the copying method from above.
+This allows you to test out the image [included
+plugins](https://github.com/alpacahq/marketstore/tree/master/plugins#included)
+with ease if you prefer to skip the copying step suggested above.
 
 By default the container will not persist any written data to your
 container's host storage. To accomplish this, bind the `data` directory to
 a local location:
 ```sh
-docker run -i -p 5993:5993 alpacamarkets/marketstore:latest \
-  --mount type=bind,source="/<path_to_data>/marketstore",target="/data"
+docker run -v "/path/to/store/data:/data" -i -p 5993:5993 alpacamarkets/marketstore:latest
 ```
 Once data is written to the server you should see a file tree layout
 like the following that will persist across container runs:
