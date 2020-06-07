@@ -71,6 +71,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
 
+	// Add grpc middleware for logging and metrics collection.
+	grpcServer := grpc.NewServer()
+	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
+
 	// Spawn a goroutine and listen for a signal.
 	signalChan := make(chan os.Signal)
 	go func() {
@@ -83,6 +87,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 				fallthrough
 			case syscall.SIGTERM:
 				log.Info("initiating graceful shutdown due to '%v' request", s)
+				grpcServer.GracefulStop()
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)
@@ -105,10 +110,6 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		utils.InstanceConfig.WALBypass)
 
 	// New server.
-	// Add grpc middleware for logging and metrics collection.
-	grpcServer := grpc.NewServer()
-	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
-
 	server, _ := frontend.NewServer()
 
 	// Set rpc handler.
