@@ -71,7 +71,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
 
-	// Add grpc middleware for logging and metrics collection.
+	// New grpc server.
 	grpcServer := grpc.NewServer()
 	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
 
