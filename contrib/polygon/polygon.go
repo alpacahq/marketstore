@@ -24,6 +24,8 @@ type PolygonFetcher struct {
 }
 
 type FetcherConfig struct {
+	// AddTickCountToBars controls if TickCnt is added to the schema for Bars or not
+	AddTickCountToBars bool `json:"add_bar_tick_count,omitempty"`
 	// polygon API key for authenticating with their APIs
 	APIKey string `json:"api_key"`
 	// polygon API base URL in case it is being proxied
@@ -94,7 +96,7 @@ func (pf *PolygonFetcher) Run() {
 		switch t {
 		case "bars":
 			prefix = api.Agg
-			handler = handlers.BarsHandler
+			handler = handlers.BarsHandlerWrapper(pf.config.AddTickCountToBars)
 		case "quotes":
 			prefix = api.Quote
 			handler = handlers.QuoteHandler
