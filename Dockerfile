@@ -21,6 +21,11 @@ RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make bui
 #
 FROM debian:10.3
 WORKDIR /
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
 # copy plugins if any
 COPY --from=builder /go/bin /bin/
