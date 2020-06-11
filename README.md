@@ -74,10 +74,6 @@ source pretty easily. You need Go 1.11+ as it uses `go mod` to manage dependenci
 ``` sh
 go get -u github.com/alpacahq/marketstore
 ```
-and then in the repo directory, install dependencies using
-``` sh
-make vendor
-```
 then compile and install the project binaries using
 ``` sh
 make install
