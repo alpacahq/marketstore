@@ -2,6 +2,7 @@
 Integration Test for GRPC client
 """
 import pytest
+import time
 
 import numpy as np
 import pandas as pd
@@ -142,6 +143,8 @@ def test_grpc_query_all_symbols():
     client.write(data, tbk)
     client.write(data2, tbk2)
     client.write(data3, tbk3)
+
+    time.sleep(0.5)
 
     # --- query all symbols using * ---
     resp = client.query(pymkts.Params("*", timeframe, attribute, limit=2, ))
