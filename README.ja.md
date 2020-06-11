@@ -43,10 +43,6 @@ MarketStoreはGoを用いて実装されているので、ソースコードか�
 ``` sh
 go get -u github.com/alpacahq/marketstore
 ```
-依存を解決するためには以下をリポジトリのディレクトリ内で実行します。
-``` sh
-make vendor
-```
 以下でバイナリをコンパイル＆インストールしてください。
 ``` sh
 make install

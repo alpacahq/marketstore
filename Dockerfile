@@ -11,7 +11,6 @@ ENV GOPATH=/go
 
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
-RUN make vendor
 RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make build ; fi
 
 #

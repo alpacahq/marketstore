@@ -22,9 +22,6 @@ generate:
 	make -C sqlparser
 	GOFLAGS=$(GOFLAGS) go generate $(shell find . -path ./vendor -prune -o -name \*.go -exec grep -q go:generate {} \; -print | while read file; do echo `dirname $$file`; done | xargs)
 
-vendor:
-	GOFLAGS=$(GOFLAGS) go mod vendor
-
 update:
 	GOFLAGS=$(GOFLAGS) go mod tidy
 
