@@ -2,7 +2,7 @@
 
 GOFLAGS=""
 GOPATH0 := $(firstword $(subst :, ,$(GOPATH)))
-UTIL_PATH := github.com/alpacahq/marketstore/utils
+UTIL_PATH := github.com/alpacahq/marketstore/v4/utils
 
 build:
 	GOFLAGS=$(GOFLAGS) go build -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" .
