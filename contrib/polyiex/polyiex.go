@@ -10,10 +10,10 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/alpacahq/marketstore/contrib/polyiex/api"
-	"github.com/alpacahq/marketstore/contrib/polyiex/handlers"
-	"github.com/alpacahq/marketstore/plugins/bgworker"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/polyiex/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polyiex/handlers"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type PolyIEXFetcher struct {

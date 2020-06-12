@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	bitmex "github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
-	"github.com/alpacahq/marketstore/plugins/bgworker"
+	bitmex "github.com/alpacahq/marketstore/v4/contrib/bitmexfeeder/api"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 	. "gopkg.in/check.v1"
 )
 

@@ -6,8 +6,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	. "github.com/alpacahq/marketstore/catalog"
-	. "github.com/alpacahq/marketstore/utils/test"
+	. "github.com/alpacahq/marketstore/v4/catalog"
+	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 // Hook up gocheck into the "go test" runner.

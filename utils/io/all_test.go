@@ -9,7 +9,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/utils"
 	. "gopkg.in/check.v1"
 )
 

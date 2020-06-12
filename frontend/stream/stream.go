@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/eapache/channels"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/websocket"

@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var jst = time.FixedZone("Asia/Tokyo", 9*60*60)

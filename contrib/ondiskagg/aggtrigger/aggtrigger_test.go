@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "gopkg.in/check.v1"
 )
 

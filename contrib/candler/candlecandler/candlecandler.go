@@ -3,10 +3,10 @@ package candlecandler
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/contrib/candler"
-	"github.com/alpacahq/marketstore/uda"
-	"github.com/alpacahq/marketstore/utils/functions"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/contrib/candler"
+	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var (

@@ -18,11 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/frontend/client"
-	"github.com/alpacahq/marketstore/sqlparser"
-	"github.com/alpacahq/marketstore/utils"
-	dbio "github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/frontend/client"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+	"github.com/alpacahq/marketstore/v4/utils"
+	dbio "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/chzyer/readline"
 )
 

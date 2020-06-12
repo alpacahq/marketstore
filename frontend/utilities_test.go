@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/utils"
 	. "gopkg.in/check.v1"
 )
 

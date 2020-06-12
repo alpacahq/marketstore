@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/alpacahq/marketstore/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 	. "gopkg.in/check.v1"
 )
 

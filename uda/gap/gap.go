@@ -18,11 +18,11 @@ import (
 	"math"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/utils"
 
-	"github.com/alpacahq/marketstore/uda"
-	"github.com/alpacahq/marketstore/utils/functions"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 )

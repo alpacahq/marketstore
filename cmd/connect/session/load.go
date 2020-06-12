@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alpacahq/marketstore/frontend"
+	"github.com/alpacahq/marketstore/v4/frontend"
 
-	"github.com/alpacahq/marketstore/cmd/connect/loader"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/cmd/connect/loader"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 /*

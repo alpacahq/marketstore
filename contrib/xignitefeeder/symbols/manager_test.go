@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/internal"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
 )
 
 type MockListSymbolsAPIClient struct {

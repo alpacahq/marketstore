@@ -7,16 +7,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/alpacahq/marketstore/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
 	"sort"
 
-	"github.com/alpacahq/marketstore/executor/buffile"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/executor/buffile"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 /*

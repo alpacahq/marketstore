@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 type DMap map[string]*Directory              // General purpose map for storing directories

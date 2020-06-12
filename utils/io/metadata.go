@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const Headersize = 37024

@@ -15,7 +15,7 @@ package main
 import (
 	"os"
 
-	"github.com/alpacahq/marketstore/cmd"
+	"github.com/alpacahq/marketstore/v4/cmd"
 )
 
 // Builds the command hierarchy and parses statements.

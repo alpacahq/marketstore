@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/catalog"
+	"github.com/alpacahq/marketstore/v4/catalog"
 
-	"github.com/alpacahq/marketstore/executor"
+	"github.com/alpacahq/marketstore/v4/executor"
 
-	"github.com/alpacahq/marketstore/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	. "gopkg.in/check.v1"
 )
 

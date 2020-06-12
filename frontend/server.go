@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/alpacahq/marketstore/utils/rpc/msgpack2"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 	rpc "github.com/alpacahq/rpc/rpc2"
 	"github.com/alpacahq/rpc/rpc2/json2"
 )

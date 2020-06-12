@@ -3,8 +3,8 @@ package internal
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/xignitefeeder/api"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 // ----------------

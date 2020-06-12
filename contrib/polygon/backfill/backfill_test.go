@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/polygon/api"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 
 	. "gopkg.in/check.v1"
 )
