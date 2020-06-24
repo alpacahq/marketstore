@@ -27,10 +27,11 @@ const (
 )
 
 var (
-	baseURL = "https://api.polygon.io"
-	servers = "ws://socket.polygon.io:30328" // default
-	apiKey  string
-	NY, _   = time.LoadLocation("America/New_York")
+	baseURL      = "https://api.polygon.io"
+	servers      = "wss://socket.polygon.io"
+	apiKey       string
+	NY, _        = time.LoadLocation("America/New_York")
+	completeDate = "2006-01-02"
 )
 
 type GetAggregatesResponse struct {
@@ -168,7 +169,7 @@ func GetHistoricAggregates(
 	limit *int) (*HistoricAggregates, error) {
 	// FIXME: This function does not handle pagination
 
-	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan, from.Format(time.CompleteDate), to.Format(time.CompleteDate)))
+	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan, from.Format(completeDate), to.Format(completeDate)))
 	if err != nil {
 		return nil, err
 	}
