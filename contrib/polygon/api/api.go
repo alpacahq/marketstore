@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	aggURL     = "%v/v1/historic/agg/%v/%v"
+	aggURL     = "%v/v2/aggs/ticker/%v/range/%v/%v/%v/%v"
 	tradesURL  = "%v/v2/ticks/stocks/trades/%v/%v"
 	quotesURL  = "%v/v1/historic/quotes/%v/%v"
 	tickersURL = "%v/v2/reference/tickers"
@@ -158,31 +158,23 @@ func ListTickers() (*ListTickersResponse, error) {
 	return &resp, nil
 }
 
-// GetHistoricAggregates requests polygon's REST API for historic aggregates
-// for the provided resolution based on the provided query parameters.
+// GetHistoricAggregates requests polygon's REST API for aggregates
+// for the provided resolution based on the provided parameters.
 func GetHistoricAggregates(
-	symbol,
-	resolution string,
+	ticker,
+	timespan string,
+	multiplier int,
 	from, to time.Time,
 	limit *int) (*HistoricAggregates, error) {
-	// FIXME: Move this to Polygon API v2
 	// FIXME: This function does not handle pagination
 
-	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, resolution, symbol))
+	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan, from.Format(time.CompleteDate), to.Format(time.CompleteDate)))
 	if err != nil {
 		return nil, err
 	}
 
 	q := u.Query()
 	q.Set("apiKey", apiKey)
-
-	if !from.IsZero() {
-		q.Set("from", from.Format(time.RFC3339))
-	}
-
-	if !to.IsZero() {
-		q.Set("to", to.Format(time.RFC3339))
-	}
 
 	if limit != nil {
 		q.Set("limit", strconv.FormatInt(int64(*limit), 10))

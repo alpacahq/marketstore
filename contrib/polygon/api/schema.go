@@ -82,28 +82,24 @@ Historical data
 // HistoricAggregates is the structure that defines
 // aggregate data served through polygon's REST API.
 type HistoricAggregates struct {
-	Symbol        string `json:"symbol"`
-	AggregateType string `json:"aggType"`
-	Map           struct {
-		O string `json:"o"`
-		C string `json:"c"`
-		H string `json:"h"`
-		L string `json:"l"`
-		V string `json:"v"`
-		D string `json:"d"`
-	} `json:"map"`
-	Ticks []AggTick `json:"ticks"`
+	Ticker      string      `json:"ticker"`
+	Status      string      `json:"status"`
+	Adjusted    bool        `json:"adjusted"`
+	QueryCount  int         `json:"queryCount"`
+	ResultCount int         `json:"resultCount"`
+	Results     []AggResult `json:"results"`
 }
 
-// AggTick is the structure that contains the actual
-// tick data included in a HistoricAggregates response
-type AggTick struct {
-	EpochMilliseconds int64   `json:"d"`
+// AggResult is the structure that defines the actual Aggregate result
+type AggResult struct {
+	// Volume should be int but json.Decode fails with: "cannot unmarshal number 1.70888e+06 into Go struct"
+	Volume            float64 `json:"v"`
 	Open              float64 `json:"o"`
+	Close             float64 `json:"c"`
 	High              float64 `json:"h"`
 	Low               float64 `json:"l"`
-	Close             float64 `json:"c"`
-	Volume            int     `json:"v"`
+	EpochMilliseconds int64   `json:"t"`
+	NumberOfItems     int     `json:"n"`
 }
 
 // HistoricTrades is the structure that defines trade
