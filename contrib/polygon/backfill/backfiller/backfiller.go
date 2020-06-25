@@ -131,8 +131,9 @@ func main() {
 			log.Info("[polygon] backfilling bars for %v", sym)
 
 			for e.After(s) {
-				log.Info("Checking %v", s)
-				if calendar.Nasdaq.IsMarketDay(e) {
+				if calendar.Nasdaq.IsMarketDay(s) {
+					log.Info("[polygon] backfilling bars for %v on %v", sym, s)
+
 					sem <- struct{}{}
 					go func(t time.Time) {
 						defer func() { <-sem }()
@@ -163,8 +164,9 @@ func main() {
 			log.Info("[polygon] backfilling quotes for %v", sym)
 
 			for e.After(s) {
-				log.Info("Checking %v", s)
-				if calendar.Nasdaq.IsMarketDay(e) {
+				if calendar.Nasdaq.IsMarketDay(s) {
+					log.Info("[polygon] backfilling quotes for %v on %v", sym, s)
+
 					sem <- struct{}{}
 					go func(t time.Time) {
 						defer func() { <-sem }()
@@ -190,7 +192,9 @@ func main() {
 
 			for e.After(s) {
 				log.Info("Checking %v", s)
-				if calendar.Nasdaq.IsMarketDay(e) {
+				if calendar.Nasdaq.IsMarketDay(s) {
+					log.Info("[polygon] backfilling trades for %v on %v", sym, s)
+
 					sem <- struct{}{}
 					go func(t time.Time) {
 						defer func() { <-sem }()
@@ -211,6 +215,9 @@ func main() {
 	}
 
 	log.Info("[polygon] backfilling complete")
+
+	log.Info("[polygon] waiting for 10 more seconds for ondiskagg triggers to complete")
+	time.Sleep(10 * time.Second)
 }
 
 func initWriter() {
