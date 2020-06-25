@@ -36,8 +36,8 @@ var (
 
 func init() {
 	flag.StringVar(&dir, "dir", "/project/data", "mktsdb directory to backfill to")
-	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD)")
-	flag.StringVar(&to, "to", time.Now().Format(format), "backfill from date (YYYY-MM-DD)")
+	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD) [included]")
+	flag.StringVar(&to, "to", time.Now().Format(format), "backfill to date (YYYY-MM-DD) [not included]")
 	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
@@ -131,23 +131,25 @@ func main() {
 			log.Info("[polygon] backfilling bars for %v", sym)
 
 			for e.After(s) {
-				if calendar.Nasdaq.IsMarketDay(e) {
+				if calendar.Nasdaq.IsMarketDay(s) {
+					log.Info("[polygon] backfilling bars for %v on %v", sym, s)
+
 					sem <- struct{}{}
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
 						if len(exchangeIDs) == 0 {
-							if err = backfill.Bars(sym, t.Add(-24*time.Hour), t); err != nil {
-								log.Warn("[polygon] failed to backfill trades for %v (%v)", sym, err)
+							if err = backfill.Bars(sym, t, t.Add(24*time.Hour)); err != nil {
+								log.Warn("[polygon] failed to backfill bars for %v (%v)", sym, err)
 							}
 						} else {
 							if err = backfill.BuildBarsFromTrades(sym, t, exchangeIDs, batchSize); err != nil {
 								log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", sym, t, err)
 							}
 						}
-					}(e)
+					}(s)
 				}
-				e = e.Add(-24 * time.Hour)
+				s = s.Add(24 * time.Hour)
 			}
 		}
 	}
@@ -162,17 +164,19 @@ func main() {
 			log.Info("[polygon] backfilling quotes for %v", sym)
 
 			for e.After(s) {
-				if calendar.Nasdaq.IsMarketDay(e) {
+				if calendar.Nasdaq.IsMarketDay(s) {
+					log.Info("[polygon] backfilling quotes for %v on %v", sym, s)
+
 					sem <- struct{}{}
 					go func(t time.Time) {
 						defer func() { <-sem }()
 
-						if err = backfill.Quotes(sym, t.Add(-24*time.Hour), t, batchSize); err != nil {
+						if err = backfill.Quotes(sym, t, t.Add(24*time.Hour), batchSize); err != nil {
 							log.Warn("[polygon] failed to backfill quotes for %v (%v)", sym, err)
 						}
-					}(e)
+					}(s)
 				}
-				e = e.Add(-24 * time.Hour)
+				s = s.Add(24 * time.Hour)
 			}
 		}
 	}
@@ -187,7 +191,10 @@ func main() {
 			log.Info("[polygon] backfilling trades for %v", sym)
 
 			for e.After(s) {
-				if calendar.Nasdaq.IsMarketDay(e) {
+				log.Info("Checking %v", s)
+				if calendar.Nasdaq.IsMarketDay(s) {
+					log.Info("[polygon] backfilling trades for %v on %v", sym, s)
+
 					sem <- struct{}{}
 					go func(t time.Time) {
 						defer func() { <-sem }()
@@ -197,7 +204,7 @@ func main() {
 						}
 					}(e)
 				}
-				e = e.Add(-24 * time.Hour)
+				s = s.Add(24 * time.Hour)
 			}
 		}
 	}
@@ -208,6 +215,9 @@ func main() {
 	}
 
 	log.Info("[polygon] backfilling complete")
+
+	log.Info("[polygon] waiting for 10 more seconds for ondiskagg triggers to complete")
+	time.Sleep(10 * time.Second)
 }
 
 func initWriter() {

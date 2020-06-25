@@ -144,7 +144,7 @@ def test_grpc_query_all_symbols():
     client.write(data2, tbk2)
     client.write(data3, tbk3)
 
-    time.sleep(0.5)
+    time.sleep(5)
 
     # --- query all symbols using * ---
     resp = client.query(pymkts.Params("*", timeframe, attribute, limit=2, ))

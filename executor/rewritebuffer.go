@@ -1,6 +1,5 @@
 package executor
 
-import "C"
 import (
 	"encoding/binary"
 	"math"

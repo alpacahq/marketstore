@@ -97,26 +97,26 @@ func Bars(symbol string, from, to time.Time) (err error) {
 		to = time.Now()
 	}
 
-	resp, err := api.GetHistoricAggregates(symbol, "minute", from, to, nil)
+	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, nil)
 	if err != nil {
 		return err
 	}
 
-	if len(resp.Ticks) == 0 {
+	if len(resp.Results) == 0 {
 		return
 	}
 
 	tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
 	csm := io.NewColumnSeriesMap()
 
-	epoch := make([]int64, len(resp.Ticks))
-	open := make([]float32, len(resp.Ticks))
-	high := make([]float32, len(resp.Ticks))
-	low := make([]float32, len(resp.Ticks))
-	close := make([]float32, len(resp.Ticks))
-	volume := make([]int32, len(resp.Ticks))
+	epoch := make([]int64, len(resp.Results))
+	open := make([]float32, len(resp.Results))
+	high := make([]float32, len(resp.Results))
+	low := make([]float32, len(resp.Results))
+	close := make([]float32, len(resp.Results))
+	volume := make([]int32, len(resp.Results))
 
-	for i, bar := range resp.Ticks {
+	for i, bar := range resp.Results {
 		epoch[i] = bar.EpochMilliseconds / 1000
 		open[i] = float32(bar.Open)
 		high[i] = float32(bar.High)
