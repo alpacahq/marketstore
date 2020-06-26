@@ -31,7 +31,7 @@ type FetcherConfig struct {
 	// polygon API base URL in case it is being proxied
 	// (defaults to https://api.polygon.io/)
 	BaseURL string `json:"base_url"`
-	// websocket servers for Polygon, default is: "ws://socket.polygon.io:30328"
+	// websocket servers for Polygon, default is: "wss://socket.polygon.io"
 	WSServers string `json:"ws_servers"`
 	// list of data types to subscribe to (one of bars, quotes, trades)
 	DataTypes []string `json:"data_types"`
