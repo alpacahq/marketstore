@@ -117,6 +117,7 @@ func BarsHandler(msg []byte, addTickCount bool) {
 	if msg == nil {
 		return
 	}
+
 	am := make([]api.PolyAggregate, 0)
 	err := json.Unmarshal(msg, &am)
 	if err != nil {
@@ -125,7 +126,14 @@ func BarsHandler(msg []byte, addTickCount bool) {
 			"error", err.Error())
 		return
 	}
+
 	for _, bar := range am {
+		// TODO: do additional checks on bar fields?
+		if bar.Symbol == "" {
+			log.Warn("[polygon] symbol name of bar is empty: %v", bar)
+			continue
+		}
+
 		timestamp := time.Unix(0, int64(1000*1000*float64(bar.EpochMillis)))
 		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
 
