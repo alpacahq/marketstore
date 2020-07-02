@@ -3,6 +3,7 @@ package executor
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/alpacahq/marketstore/replication"
 	goio "io"
 	"os"
 	"time"
@@ -30,15 +31,17 @@ type WALFileType struct {
 	ReplayState      ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath          string   // Path to the root directory, base of FileName
-	FilePath          string   // WAL file full path
-	lastCommittedTGID int64    // TGID to be checkpointed
-	FilePtr           *os.File // Active file pointer to FileName
+	RootPath          string             // Path to the root directory, base of FileName
+	FilePath          string             // WAL file full path
+	lastCommittedTGID int64              // TGID to be checkpointed
+	FilePtr           *os.File           // Active file pointer to FileName
+	ReplicationSender replication.Sender // send messages to replica servers
 }
 
-func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
+func NewWALFile(rootDir string, existingFilePath string, rs replication.Sender) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
+	wf.ReplicationSender = rs
 
 	if len(existingFilePath) == 0 {
 		if err = wf.createFile(rootDir); err != nil {
@@ -53,6 +56,7 @@ func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err e
 		fileStatus, replayState, _ := wf.readStatus()
 		wf.WriteStatus(fileStatus, replayState)
 	}
+
 	return wf, nil
 }
 func (wf *WALFileType) createFile(rootDir string) error {
@@ -152,21 +156,21 @@ func (wf *WALFileType) WALKeyToFullPath(keyPath string) (fullPath string) {
 	return filepath.Join(wf.RootPath, keyPath)
 }
 
-type offsetIndexBuffer []byte
+type OffsetIndexBuffer []byte
 
-func (b offsetIndexBuffer) Offset() int64 {
+func (b OffsetIndexBuffer) Offset() int64 {
 	return io.ToInt64(b[:8])
 }
 
-func (b offsetIndexBuffer) Index() int64 {
+func (b OffsetIndexBuffer) Index() int64 {
 	return io.ToInt64(b[8:16])
 }
 
-func (b offsetIndexBuffer) IndexAndPayload() []byte {
+func (b OffsetIndexBuffer) IndexAndPayload() []byte {
 	return b[8:]
 }
 
-func (b offsetIndexBuffer) Payload() []byte {
+func (b OffsetIndexBuffer) Payload() []byte {
 	return b[16:]
 }
 
@@ -221,7 +225,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	WTCount := len(tgc.writeChannel)
 	if WTCount == 0 {
 		// refresh TGID so requester can confirm it went through even if nothing is written
-		tgc.NewTGID()
+		tgc.IncrementTGID()
 		return nil
 	}
 
@@ -238,7 +242,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	var TG_Serialized, TGLen_Serialized []byte
 	TG_Serialized, _ = io.Serialize(TG_Serialized, tgc.TGID())
 	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
-	writesPerFile := map[string][]offsetIndexBuffer{}
+	writesPerFile := map[string][]OffsetIndexBuffer{}
 	fileRecordTypes := map[string]io.EnumRecordType{}
 	varRecLens := map[string]int32{}
 	/*
@@ -259,7 +263,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		keyPath := command.WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
 		writesPerFile[keyPath] = append(writesPerFile[keyPath],
-			offsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
+			OffsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
 		if _, ok := fileRecordTypes[keyPath]; !ok {
 			fileRecordTypes[keyPath] = command.RecordType
 		}
@@ -287,9 +291,12 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		TGID := tgc.TGID()
 		wf.WriteTransactionInfo(TGID, WAL, COMMITCOMPLETE)
 		wf.lastCommittedTGID = TGID
-		tgc.NewTGID()
+		tgc.IncrementTGID()
 
 		wf.FilePtr.Sync() // Flush the OS buffer
+
+		// send transaction to replicas
+		wf.ReplicationChannel <- TG_Serialized
 	}
 
 	/*
@@ -310,7 +317,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 	return nil
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType, varRecLen int32) (err error) {
+func (wf *WALFileType) writePrimary(keyPath string, writes []OffsetIndexBuffer, recordType io.EnumRecordType, varRecLen int32) (err error) {
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
@@ -544,6 +551,7 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 	buffer, _ = io.Serialize(buffer, tid)
 	buffer, _ = io.Serialize(buffer, did)
 	buffer, _ = io.Serialize(buffer, txnStatus)
+	buffer, _ = io.Serialize(buffer, txnStatus)
 	wf.write(buffer)
 }
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
@@ -696,6 +704,8 @@ func (wf *WALFileType) syncStatusRead() {
 	}
 	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = wf.readStatus()
 }
+
+// readStatus
 func (wf *WALFileType) readStatus() (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, owningInstanceID int64) {
 	// Read from beginning of file +1 to skip over the MID
 	wf.FilePtr.Seek(1, os.SEEK_SET)
@@ -751,7 +761,7 @@ func (wf *WALFileType) sanityCheckValue(value int64) (isSane bool) {
 	sanityLen := 1000 * fstat.Size()
 	return value < sanityLen
 }
-func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
+func (wf *WALFileType) cleanupOldWALFiles(rootDir string, rs replication.Sender) {
 	rootDir = filepath.Clean(rootDir)
 	files, err := ioutil.ReadDir(rootDir)
 	if err != nil {
@@ -771,7 +781,7 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 						log.Info("WALFILE: %s is empty, removing it...", filename)
 						os.Remove(filePath)
 					} else {
-						w, err := NewWALFile(rootDir, filePath)
+						w, err := NewWALFile(rootDir, filePath, rs)
 						if err != nil {
 							log.Fatal("Opening %s\n%s", filename, err)
 						}
@@ -789,13 +799,13 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	}
 }
 
-func StartupCacheAndWAL(rootDir string) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, "")
+func StartupCacheAndWAL(rootDir string, rs replication.Sender) (tgc *TransactionPipe, wf *WALFileType, err error) {
+	wf, err = NewWALFile(rootDir, "", rs)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err
 	}
-	wf.cleanupOldWALFiles(rootDir)
+	wf.cleanupOldWALFiles(rootDir, rs)
 	return NewTransactionPipe(), wf, nil
 }
 

@@ -7,22 +7,24 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/replication"
 )
 
 var ThisInstance *InstanceMetadata
 
 type InstanceMetadata struct {
-	InstanceID      int64
-	RootDir         string
-	CatalogDir      *catalog.Directory
-	TXNPipe         *TransactionPipe
-	WALFile         *WALFileType
-	WALWg           sync.WaitGroup
-	ShutdownPending bool
-	WALBypass       bool
-	TriggerMatchers []*trigger.TriggerMatcher
+	InstanceID         int64
+	RootDir            string
+	CatalogDir         *catalog.Directory
+	TXNPipe            *TransactionPipe
+	WALFile            *WALFileType
+	WALWg              sync.WaitGroup
+	ShutdownPending    bool
+	WALBypass          bool
+	ReplicationChannel chan []byte
+	Replicator         replication.Sender
+	TriggerMatchers    []*trigger.TriggerMatcher
 }
 
 func NewInstanceSetup(relRootDir string, options ...bool) {
@@ -68,14 +70,19 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 			ThisInstance.TXNPipe = NewTransactionPipe()
 			ThisInstance.WALFile = &WALFileType{RootPath: ThisInstance.RootDir}
 		} else {
-			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir)
+			replicationSender := replication.NewSender(
+				replication.NewGRPCReplicationService())
+
+			walReceiver := replication.NewReceiver()
+
+			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, replicationChannel)
 			if err != nil {
 				log.Fatal("Unable to startup Cache and WAL")
 			}
 		}
 		if backgroundSync {
 			// Startup the WAL and Primary cache flushers
-			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, utils.InstanceConfig.WALRotateInterval)
+			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 1*time.Minute, 1)
 			ThisInstance.WALWg.Add(1)
 		}
 	}

@@ -43,14 +43,19 @@ func NewTransactionPipe() *TransactionPipe {
 	// Allocate the write channel with enough depth to allow all conceivable writers concurrent access
 	tgc.writeChannel = make(chan *WriteCommand, WriteChannelCommandDepth)
 	tgc.flushChannel = make(chan chan struct{}, WriteChannelCommandDepth)
-	tgc.NewTGID()
+	tgc.newTGID()
 	return tgc
 }
 
 // NewTGID monotonically increases the transaction group ID using
 // the current unix epoch nanosecond timestamp
-func (tgc *TransactionPipe) NewTGID() int64 {
+func (tgc *TransactionPipe) newTGID() int64 {
 	return atomic.AddInt64(&tgc.tgID, time.Now().UTC().UnixNano()-tgc.tgID)
+}
+
+// IncrementTGID increments the transaction group ID and returns the new value
+func (tgc *TransactionPipe) IncrementTGID() int64 {
+	return atomic.AddInt64(&tgc.tgID, 1)
 }
 
 // TGID returns the latest transaction group ID

@@ -87,6 +87,8 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			case syscall.SIGTERM:
 				log.Info("initiating graceful shutdown due to '%v' request", s)
 				grpcServer.GracefulStop()
+				// grpcReplicationServer.GracefulStop()
+				// grpcReplicationClient.GracefulStop()
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)

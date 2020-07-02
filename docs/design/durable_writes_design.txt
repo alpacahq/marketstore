@@ -84,7 +84,7 @@ New data to be written is composed as a "Write Transaction Set" or WTSet. Each W
 
 A WTSet has the following on-disk structure:
                 type WTSet struct {
-		    RecordType  int8				//Direct or Indirect IO (for variable or fixed length records)
+		            RecordType  int8				//Direct or Indirect IO (for variable or fixed length records)
                     FPLen       int16                           //Length of FilePath string
                     FilePath    string                          //FilePath is relative to the root directory, string is ASCII encoded without a trailing null
                     Year        int16                           //Year associated with this file
