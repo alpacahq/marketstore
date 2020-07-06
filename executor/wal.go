@@ -36,6 +36,29 @@ type WALFileType struct {
 	FilePtr           *os.File // Active file pointer to FileName
 }
 
+type TransactionGroup struct {
+	// A "locally unique" transaction group identifier, can be a clock value
+	ID int64
+	//The contents of the WTSets
+	WTGroup []WTSet
+	//MD5 checksum of the TG contents prior to the checksum
+	Checksum [16]byte
+}
+
+type WTSet struct {
+	// Direct or Indirect IO (for variable or fixed length records)
+	RecordType int
+	// FilePath is an absolute path of the WAL file. The string is ASCII encoded without a trailing null
+	FilePath string
+	// Length of each data element in this set in bytes, excluding the index
+	DataLen int
+	// Used only in case of variable recordType.
+	// (The sum of field lengths in elementTypes) + 4 bytes(for intervalTicks)
+	VarRecLen int32
+	// Data bytes
+	Buffer offsetIndexBuffer
+}
+
 func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
@@ -505,8 +528,9 @@ func (wf *WALFileType) Replay(writeData bool) error {
 		if TG_Serialized != nil {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
 			if writeData {
-				log.Info("Replaying TGID: %d, data length is: %d bytes", tgid, len(TG_Serialized))
-				if err := wf.replayTGData(TG_Serialized); err != nil {
+				tgID, wtSets := parseTGData(TG_Serialized, wf.RootPath)
+				log.Info("Replaying TGID: %d, WTSet count is: %d bytes", tgID, len(wtSets))
+				if err := wf.replayTGData(tgID, wtSets); err != nil {
 					return err
 				}
 			} else {
@@ -626,55 +650,79 @@ func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error
 
 	return TGID, TG_Serialized, nil
 }
-func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
-	TGID := io.ToInt64(TG_Serialized[0:8])
+
+func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WTSet) {
+	TGID = io.ToInt64(TG_Serialized[0:8])
 	WTCount := io.ToInt64(TG_Serialized[8:16])
+
 	cursor := 16
-	if int(WTCount) != 0 {
-		cfp := NewCachedFP() // Cached open file pointer
-		defer cfp.Close()
-		for i := 0; i < int(WTCount); i++ {
-			RecordType := int(io.ToInt8(TG_Serialized[cursor : cursor+1]))
-			cursor += 1
-			FPLen := int(io.ToInt16(TG_Serialized[cursor : cursor+2]))
-			cursor += 2
-			WALKeyPath := bytes.NewBuffer(TG_Serialized[cursor : cursor+FPLen]).String()
-			cursor += FPLen
-			dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
-			cursor += 4
-			varRecLen := io.ToInt32(TG_Serialized[cursor : cursor+4])
-			cursor += 4
-			fullPath := walKeyToFullPath(wf.RootPath, WALKeyPath)
-			fp, err := cfp.GetFP(fullPath)
-			if err != nil {
+	wtSets = make([]WTSet, WTCount)
+
+	for i := 0; i < int(WTCount); i++ {
+		RecordType := int(io.ToInt8(TG_Serialized[cursor : cursor+1]))
+		cursor += 1
+		FPLen := int(io.ToInt16(TG_Serialized[cursor : cursor+2]))
+		cursor += 2
+		WALKeyPath := bytes.NewBuffer(TG_Serialized[cursor : cursor+FPLen]).String()
+		cursor += FPLen
+		dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
+		cursor += 4
+		varRecLen := io.ToInt32(TG_Serialized[cursor : cursor+4])
+		cursor += 4
+		fullPath := walKeyToFullPath(rootPath, WALKeyPath)
+		data := TG_Serialized[cursor : cursor+8+8+dataLen]
+		cursor += 8 + 8 + dataLen
+
+		wtSets[i] = WTSet{
+			RecordType: RecordType,
+			FilePath:   fullPath,
+			DataLen:    dataLen,
+			VarRecLen:  varRecLen,
+			Buffer:     data,
+		}
+	}
+
+	return TGID, wtSets
+}
+
+func (wf *WALFileType) replayTGData(tgID int64, wtSets []WTSet) (err error) {
+	if len(wtSets) == 0 {
+		return nil
+	}
+
+	cfp := NewCachedFP() // Cached open file pointer
+	defer cfp.Close()
+
+	for _, wtSet := range wtSets {
+		fp, err := cfp.GetFP(wtSet.FilePath)
+		if err != nil {
+			return err
+		}
+		switch io.EnumRecordType(wtSet.RecordType) {
+		case io.FIXED:
+			if err = WriteBufferToFile(fp, wtSet.Buffer); err != nil {
 				return err
 			}
-			switch io.EnumRecordType(RecordType) {
-			case io.FIXED:
-				if err = WriteBufferToFile(fp, TG_Serialized[cursor:cursor+8+8+dataLen]); err != nil {
-					return err
-				}
-			case io.VARIABLE:
-				// Find the record length - we need it to use the time column as a sort key later
-				if err = WriteBufferToFileIndirect(fp,
-					TG_Serialized[cursor:cursor+8+8+dataLen],
-					varRecLen,
-				); err != nil {
-					return err
-				}
-			default:
-				return fmt.Errorf("Error: Record Type is incorrect from WALFile, invalid/outdated WAL file?")
+		case io.VARIABLE:
+			// Find the record length - we need it to use the time column as a sort key later
+			if err = WriteBufferToFileIndirect(fp,
+				wtSet.Buffer,
+				wtSet.VarRecLen,
+			); err != nil {
+				return err
 			}
-			cursor += 8 + 8 + dataLen
+		default:
+			return fmt.Errorf("Error: Record Type is incorrect from WALFile, invalid/outdated WAL file?")
 		}
-		wf.lastCommittedTGID = TGID
-		wf.createCheckpoint()
 	}
+	wf.lastCommittedTGID = tgID
+	wf.createCheckpoint()
+
 	return nil
 }
 func (wf *WALFileType) ReadStatus() (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, OwningInstanceID int64, err error) {
 	var buffer [10]byte
-	buf, _, err := read(wf.FilePtr,-1, buffer[:])
+	buf, _, err := read(wf.FilePtr, -1, buffer[:])
 	return FileStatusEnum(buf[0]), ReplayStateEnum(buf[1]), io.ToInt64(buf[2:]), err
 }
 func (wf *WALFileType) IsOpen() bool {
