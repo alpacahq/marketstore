@@ -632,23 +632,32 @@ func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error
 	}
 	TGID = io.ToInt64(TG_Serialized[:7])
 
-	// Compute the checksum
-	hash := md5.New()
-	hash.Write(TGLen_Serialized)
-	hash.Write(TG_Serialized)
-	cksum := hash.Sum(nil)
-
 	// Read the checksum
 	checkBuf := make([]byte, 16)
 	n, err = wf.FilePtr.Read(checkBuf)
 	if n != 16 || err != nil {
 		return 0, nil, ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
 	}
-	if !bytes.Equal(cksum, checkBuf) {
-		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
+
+	if err := validateCheckSum(TGLen_Serialized, TG_Serialized, checkBuf); err != nil {
+		return 0, nil, err
 	}
 
 	return TGID, TG_Serialized, nil
+}
+
+func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
+	// compute the checksum
+	hash := md5.New()
+	hash.Write(tgLenSerialized)
+	hash.Write(tgSerialized)
+	cksum := hash.Sum(nil)
+
+	if !bytes.Equal(cksum, checkBuf) {
+		return fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
+	}
+
+	return nil
 }
 
 func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WTSet) {
