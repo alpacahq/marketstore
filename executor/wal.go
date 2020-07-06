@@ -138,18 +138,18 @@ func read(fp *os.File, targetOffset int64, buffer []byte) (result []byte, newOff
 	}
 	return buffer, offset + int64(n), err
 }
-func (wf *WALFileType) FullPathToWALKey(fullPath string) (keyPath string) {
+func FullPathToWALKey(rootPath, fullPath string) (keyPath string) {
 	/*
 		NOTE: This key includes the year filename at the end of the metadata key
 	*/
 	// Chops rootPath from fullPath to produce a WAL Key
-	keyPath, _ = filepath.Rel(wf.RootPath, fullPath)
+	keyPath, _ = filepath.Rel(rootPath, fullPath)
 	return keyPath
 }
 
-func (wf *WALFileType) WALKeyToFullPath(keyPath string) (fullPath string) {
+func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 	// Adds rootPath to keyPath to produce a fullPath
-	return filepath.Join(wf.RootPath, keyPath)
+	return filepath.Join(rootPath, keyPath)
 }
 
 type offsetIndexBuffer []byte
@@ -317,7 +317,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, 
 	}
 	const batchThreshold = 100
 	var fp WriteAtCloser
-	fullPath := wf.WALKeyToFullPath(keyPath)
+	fullPath := walKeyToFullPath(wf.RootPath, keyPath)
 	if recordType == io.FIXED && len(writes) >= batchThreshold {
 		fp, err = buffile.New(fullPath)
 	} else {
@@ -596,7 +596,7 @@ func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error
 	}
 	TGLen := io.ToInt64(TGLen_Serialized)
 
-	if !wf.sanityCheckValue(TGLen) {
+	if !sanityCheckValue(wf.FilePtr, TGLen) {
 		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", TGLen))
 	}
 
@@ -644,7 +644,7 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 			cursor += 4
 			varRecLen := io.ToInt32(TG_Serialized[cursor : cursor+4])
 			cursor += 4
-			fullPath := wf.WALKeyToFullPath(WALKeyPath)
+			fullPath := walKeyToFullPath(wf.RootPath, WALKeyPath)
 			fp, err := cfp.GetFP(fullPath)
 			if err != nil {
 				return err
@@ -745,9 +745,9 @@ func (wf *WALFileType) CanDeleteSafely() bool {
 	}
 	return true
 }
-func (wf *WALFileType) sanityCheckValue(value int64) (isSane bool) {
+func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 	// As a sanity check, get the file size to ensure that TGLen is reasonable prior to buffer allocations
-	fstat, _ := wf.FilePtr.Stat()
+	fstat, _ := fp.Stat()
 	sanityLen := 1000 * fstat.Size()
 	return value < sanityLen
 }
