@@ -114,22 +114,22 @@ func (wf *WALFileType) Delete() (err error) {
 
 	return nil
 }
-func (wf *WALFileType) read(targetOffset int64, buffer []byte) (result []byte, newOffset int64, err error) {
+func read(fp *os.File, targetOffset int64, buffer []byte) (result []byte, newOffset int64, err error) {
 	/*
 		Read from the WAL file
 			targetOffset: -1 will read from current position
 	*/
-	offset, err := wf.FilePtr.Seek(0, os.SEEK_CUR)
+	offset, err := fp.Seek(0, os.SEEK_CUR)
 	if err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": Unable to seek in WALFile")
 	}
 	if targetOffset != -1 {
 		if offset != targetOffset {
-			wf.FilePtr.Seek(targetOffset, os.SEEK_SET)
+			fp.Seek(targetOffset, os.SEEK_SET)
 		}
 	}
 	numToRead := len(buffer)
-	n, err := wf.FilePtr.Read(buffer)
+	n, err := fp.Read(buffer)
 	if n != numToRead {
 		msg := fmt.Sprintf("Read: Expected: %d Got: %d", numToRead, n)
 		err = ShortReadError(msg)
@@ -548,7 +548,7 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 }
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
 	var buffer [10]byte
-	buf, _, err := wf.read(-1, buffer[:])
+	buf, _, err := read(wf.FilePtr, -1, buffer[:])
 	if err != nil {
 		return 0, 0, 0, ShortReadError("WALFileType.readTransactionInfo")
 	}
@@ -577,7 +577,7 @@ func (wf *WALFileType) writeMessageID(mid MIDEnum) {
 }
 func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	var buffer [1]byte
-	buf, _, err := wf.read(-1, buffer[:])
+	buf, _, err := read(wf.FilePtr, -1, buffer[:])
 	if err != nil {
 		return 0, ShortReadError("WALFileType.ReadMessageID")
 	}
@@ -590,7 +590,7 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 }
 func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error) {
 	TGLen_Serialized := make([]byte, 8)
-	TGLen_Serialized, _, err = wf.read(-1, TGLen_Serialized)
+	TGLen_Serialized, _, err = read(wf.FilePtr, -1, TGLen_Serialized)
 	if err != nil {
 		return 0, nil, ShortReadError(io.GetCallerFileContext(0))
 	}
@@ -674,7 +674,7 @@ func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
 }
 func (wf *WALFileType) ReadStatus() (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, OwningInstanceID int64, err error) {
 	var buffer [10]byte
-	buf, _, err := wf.read(-1, buffer[:])
+	buf, _, err := read(wf.FilePtr,-1, buffer[:])
 	return FileStatusEnum(buf[0]), ReplayStateEnum(buf[1]), io.ToInt64(buf[2:]), err
 }
 func (wf *WALFileType) IsOpen() bool {
