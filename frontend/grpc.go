@@ -129,11 +129,11 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				columns = req.Columns
 			}
 
-			start := io.ToSystemTimezone(time.Unix(epochStart, 0))
-			stop := io.ToSystemTimezone(time.Unix(epochEnd, 0))
+			start := io.ToSystemTimezone(time.Unix(epochStart, req.EpochStartNanos))
+			end := io.ToSystemTimezone(time.Unix(epochEnd, req.EpochEndNanos))
 			csm, err := executeQuery(
 				dest,
-				start, stop,
+				start, end,
 				limitRecordCount, limitFromStart,
 				columns,
 			)
