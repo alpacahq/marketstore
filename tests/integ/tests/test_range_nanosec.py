@@ -2,6 +2,7 @@
 Integration Test for nanosecond support for start/end query parameters
 """
 import pytest
+import os
 
 import numpy as np
 import pandas as pd
@@ -11,9 +12,9 @@ import pymarketstore as pymkts
 # Constants
 DATA_TYPE_NANOSEC = [('Epoch', 'i8'), ('Bid', 'f4'), ('Ask', 'f4'), ('Nanoseconds', 'i4')]
 MARKETSTORE_HOST = "localhost"
-MARKETSTORE_PORT = 5993
 
-client = pymkts.Client('http://localhost:5993/rpc')
+client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/rpc",
+                       grpc=(os.getenv("USE_GRPC", "false") == "true"))
 
 
 def timestamp(datestr):
@@ -67,7 +68,7 @@ def timestamp(datestr):
 def test_nanosec_range(symbol, data, start, end, limit, limit_from_start, response):
     # ---- given ----
     tbk = "{}/1Sec/TICK".format(symbol)
-    client.destroy(tbk) # setup
+    client.destroy(tbk)  # setup
 
     print(client.write(np.array(data, dtype=DATA_TYPE_NANOSEC), tbk, isvariablelength=True))
 
@@ -82,3 +83,5 @@ def test_nanosec_range(symbol, data, start, end, limit, limit_from_start, respon
     # ---- then ----
     ret_df = reply.first().df()
     assert (response == ret_df.values).all()
+
+    client.destroy(tbk)
