@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -48,8 +49,22 @@ func TradeHandler(msg []byte) {
 			"error", err.Error())
 		return
 	}
+
+	if len(tt) == 0 {
+		log.Warn("error parsing upstream message",
+			"message", string(msg),
+			"error", "len(tt)=0")
+	}
+
 	writeMap := make(map[io.TimeBucketKey]interface{})
-	for _, rt := range tt {
+	for i, rt := range tt {
+		if reflect.DeepEqual(rt, api.PolyTrade{}) {
+			log.Warn("error parsing upstream message",
+				"message", string(msg),
+				"trade", rt,
+				"i", i,
+				"error", "parsed(msg)=PolyTrade{}")
+		}
 		switch {
 		case conditionsPresent(rt.Conditions), rt.Size <= 0, rt.Price <= 0:
 			continue
@@ -86,8 +101,23 @@ func QuoteHandler(msg []byte) {
 			"error", err.Error())
 		return
 	}
+
+	if len(qq) == 0 {
+		log.Warn("error parsing upstream message",
+			"message", string(msg),
+			"error", "len(qq)=0")
+	}
+
 	writeMap := make(map[io.TimeBucketKey]interface{})
-	for _, rq := range qq {
+	for i, rq := range qq {
+		if reflect.DeepEqual(rq, api.PolyQuote{}) {
+			log.Warn("error parsing upstream message",
+				"message", string(msg),
+				"quote", rq,
+				"i", i,
+				"error", "parsed(msg)=PolyQuote{}")
+		}
+
 		timestamp := time.Unix(0, int64(1000*1000*float64(rq.Timestamp)))
 		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
 		q := quote{
@@ -125,7 +155,22 @@ func BarsHandler(msg []byte, addTickCount bool) {
 			"error", err.Error())
 		return
 	}
-	for _, bar := range am {
+
+	if len(am) == 0 {
+		log.Warn("error parsing upstream message",
+			"message", string(msg),
+			"error", "len(am)=0")
+	}
+
+	for i, bar := range am {
+		if reflect.DeepEqual(bar, api.PolyAggregate{}) {
+			log.Warn("error parsing upstream message",
+				"message", string(msg),
+				"bar", bar,
+				"i", i,
+				"error", "parsed(msg)=PolyAggregate{}")
+		}
+
 		timestamp := time.Unix(0, int64(1000*1000*float64(bar.EpochMillis)))
 		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
 
