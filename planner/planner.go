@@ -73,7 +73,7 @@ func NewParseResult() *ParseResult {
 	return new(ParseResult)
 }
 
-func (pr *ParseResult) GetRowType() (rt map[TimeBucketKey]EnumRecordType) {
+func (pr *ParseResult) GetRecordType() (rt map[TimeBucketKey]EnumRecordType) {
 	rt = make(map[TimeBucketKey]EnumRecordType)
 	for _, qf := range pr.QualifiedFiles {
 		rt[qf.Key] = qf.File.GetRecordType()
