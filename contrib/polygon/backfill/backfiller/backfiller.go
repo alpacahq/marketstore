@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gobwas/glob"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -92,19 +93,23 @@ func main() {
 	}
 
 	var symbolList []string
-	if symbols == "*" {
+	if strings.Contains(symbols, ",") && !strings.Contains(symbols, "{") {
+		symbolList = strings.Split(symbols, ",")
+	} else {
 		log.Info("[polygon] listing symbols")
 		resp, err := api.ListTickers()
 		if err != nil {
 			log.Fatal("[polygon] failed to list symbols (%v)", err)
 		}
-		log.Info("[polygon] got %v symbols", len(resp.Tickers))
-		symbolList = make([]string, len(resp.Tickers))
-		for i, s := range resp.Tickers {
-			symbolList[i] = s.Ticker
+		log.Info("[polygon] %v symbols available", len(resp.Tickers))
+		symbolList = make([]string, 1)
+		pattern := glob.MustCompile(symbols)
+		for _, s := range resp.Tickers {
+			if pattern.Match(s.Ticker) {
+				symbolList = append(symbolList, s.Ticker)
+			}
 		}
-	} else {
-		symbolList = strings.Split(symbols, ",")
+		log.Info("[polygon] selected %v symbols", len(symbolList))
 	}
 
 	var exchangeIDs []int
