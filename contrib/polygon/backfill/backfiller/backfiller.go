@@ -44,7 +44,7 @@ func init() {
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
 	flag.BoolVar(&trades, "trades", false, "backfill trades")
 	flag.StringVar(&symbols, "symbols", "*",
-		"comma separated list of symbols to backfill, the default * means backfill all symbols")
+		"glob pattern of symbols to backfill, the default * means backfill all symbols")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
 	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades & quotes")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
@@ -93,24 +93,20 @@ func main() {
 	}
 
 	var symbolList []string
-	if strings.Contains(symbols, ",") && !strings.Contains(symbols, "{") {
-		symbolList = strings.Split(symbols, ",")
-	} else {
-		log.Info("[polygon] listing symbols")
-		resp, err := api.ListTickers()
-		if err != nil {
-			log.Fatal("[polygon] failed to list symbols (%v)", err)
-		}
-		log.Info("[polygon] %v symbols available", len(resp.Tickers))
-		symbolList = make([]string, 1)
-		pattern := glob.MustCompile(symbols)
-		for _, s := range resp.Tickers {
-			if pattern.Match(s.Ticker) {
-				symbolList = append(symbolList, s.Ticker)
-			}
-		}
-		log.Info("[polygon] selected %v symbols", len(symbolList))
+	log.Info("[polygon] listing symbols for pattern: %v", symbols)
+	resp, err := api.ListTickers()
+	if err != nil {
+		log.Fatal("[polygon] failed to list symbols (%v)", err)
 	}
+	log.Info("[polygon] %v symbols available", len(resp.Tickers))
+	symbolList = make([]string, 1)
+	pattern := glob.MustCompile(symbols)
+	for _, s := range resp.Tickers {
+		if pattern.Match(s.Ticker) {
+			symbolList = append(symbolList, s.Ticker)
+		}
+	}
+	log.Info("[polygon] selected %v symbols", len(symbolList))
 
 	var exchangeIDs []int
 	if exchanges != "*" {
