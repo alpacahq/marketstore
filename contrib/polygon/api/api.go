@@ -116,7 +116,7 @@ func ListTickers() (*ListTickersResponse, error) {
 		q := u.Query()
 		q.Set("apiKey", apiKey)
 		q.Set("sort", "ticker")
-		q.Set("perpage", "50")
+		q.Set("perpage", "2000")
 		q.Set("market", "stocks")
 		q.Set("locale", "us")
 		q.Set("active", "true")
