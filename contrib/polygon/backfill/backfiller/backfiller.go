@@ -94,13 +94,13 @@ func main() {
 
 	var symbolList []string
 	log.Info("[polygon] listing symbols for pattern: %v", symbols)
+	pattern := glob.MustCompile(symbols)
 	resp, err := api.ListTickers()
 	if err != nil {
 		log.Fatal("[polygon] failed to list symbols (%v)", err)
 	}
 	log.Info("[polygon] %v symbols available", len(resp.Tickers))
 	symbolList = make([]string, 1)
-	pattern := glob.MustCompile(symbols)
 	for _, s := range resp.Tickers {
 		if pattern.Match(s.Ticker) {
 			symbolList = append(symbolList, s.Ticker)
