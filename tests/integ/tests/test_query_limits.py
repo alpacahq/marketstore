@@ -13,18 +13,18 @@ import pymarketstore as pymkts
 from datetime import datetime, timezone
 import os
 
-import utils
 
 client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/rpc",
                        grpc=(os.getenv("USE_GRPC", "false") == "true"))
+
 
 @pytest.mark.parametrize(
     "symbol, isvariablelength, timeframe",
     [
         ("TEDG_1", True, "1Min"),
-        # ("TEDG_2", False, "1Min"),
-        # ("TEDG_3", True, "1Sec"),
-        # ("TEDG_4", False, "1Sec"),
+        ("TEDG_2", False, "1Min"),
+        ("TEDG_3", True, "1Sec"),
+        ("TEDG_4", False, "1Sec"),
     ],
 )
 def test_query_edges(symbol, isvariablelength, timeframe):
@@ -63,6 +63,8 @@ def test_query_edges(symbol, isvariablelength, timeframe):
     ],
 )
 def test_query_edges_on_multiple_years(symbol, isvariablelength, timeframe):
+    client.destroy(tbk=f"{symbol}/{timeframe}/TICK")
+
     # original bug fixed by https://github.com/alpacahq/marketstore/pull/249
     data = np.array(
         [
