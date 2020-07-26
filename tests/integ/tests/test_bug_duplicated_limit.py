@@ -8,8 +8,8 @@ import pandas as pd
 import pymarketstore as pymkts
 import pytest
 
-client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5995)}/rpc",
-                       grpc=(os.getenv("USE_GRPC", "true") == "true"))
+client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/rpc",
+                       grpc=(os.getenv("USE_GRPC", "false") == "true"))
 
 
 # limit_from_startによってこれがバグらないことも確認したほうが良さそう

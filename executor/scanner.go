@@ -389,12 +389,15 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 			if iop.RecordType == VARIABLE {
 				// If we've added data to the buffer from this file, record it for possible later use
 				if bytesRead > 0 {
+					bufMetaLen := bytesRead
+					// read enough amount of records
 					if bytesLeftToFill < 0 {
 						bytesLeftToFill = 0
+						bufMetaLen = int32(len(resultBuffer))
 					}
 					bufMeta = append(bufMeta, bufferMeta{
 						FullPath:  fp[i].FullPath,
-						Data:      resultBuffer[bytesLeftToFill:bytesLeftToFill+bytesRead],
+						Data:      resultBuffer[bytesLeftToFill : bytesLeftToFill+bufMetaLen],
 						VarRecLen: iop.VariableRecordLen,
 						Intervals: fp[i].tbi.GetIntervals(),
 					})
