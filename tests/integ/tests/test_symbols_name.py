@@ -17,19 +17,19 @@ client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/r
 @pytest.mark.parametrize(
     "symbol, column_name",
     [
-        # ('TEST_SYMBOLS_NAME_1', 'Ask'),
-        # ('TEST_SYMBOLS_NAME_2', '_ask'),
-        # ('TEST_SYMBOLS_NAME_3', '_Ask'),
-        # ('TEST_SYMBOLS_NAME_4', 'L1Ask'),
+        ('TEST_SYMBOLS_NAME_1', 'Ask'),
+        ('TEST_SYMBOLS_NAME_2', '_ask'),
+        ('TEST_SYMBOLS_NAME_3', '_Ask'),
+        ('TEST_SYMBOLS_NAME_4', 'L1Ask'),
         ('TEST_SYMBOLS_NAME_5', 'l1Ask'),
-        # ('TEST_SYMBOLS_NAME_6', 'L1ask'),
-        # ('TEST_SYMBOLS_NAME_7', 'l1ask'),
-        # ('TEST_SYMBOLS_NAME_8', 'L1-Ask'),
-        # ('TEST_SYMBOLS_NAME_9', 'l1-Ask'),
-        # ('TEST_SYMBOLS_NAME_10', 'L1-ask'),
-        # ('TEST_SYMBOLS_NAME_11', 'l1-ask'),
-        # ('TEST_SYMBOLS_NAME_12', 'L1_ask'),
-        # ('TEST_SYMBOLS_NAME_13', 'l1_ask'),
+        ('TEST_SYMBOLS_NAME_6', 'L1ask'),
+        ('TEST_SYMBOLS_NAME_7', 'l1ask'),
+        ('TEST_SYMBOLS_NAME_8', 'L1-Ask'),
+        ('TEST_SYMBOLS_NAME_9', 'l1-Ask'),
+        ('TEST_SYMBOLS_NAME_10', 'L1-ask'),
+        ('TEST_SYMBOLS_NAME_11', 'l1-ask'),
+        ('TEST_SYMBOLS_NAME_12', 'L1_ask'),
+        ('TEST_SYMBOLS_NAME_13', 'l1_ask'),
     ]
 )
 def test_symbols_name(symbol, column_name):
