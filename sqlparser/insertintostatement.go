@@ -95,7 +95,7 @@ func (is *InsertIntoStatement) Materialize() (outputColumnSeries *io.ColumnSerie
 	}
 
 	// Get the time with nanoseconds included if available, prior to projection
-	indexTime := inputColumnSeries.GetTime()
+	indexTime, err := inputColumnSeries.GetTime()
 
 	// Columns are matched - Now project out all but the target column names
 	inputColumnSeries.Project(targetColumnNames)

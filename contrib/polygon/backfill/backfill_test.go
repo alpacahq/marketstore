@@ -55,7 +55,8 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		// Then the returned ColumnSeriesMarks should contain data from the two
 		// specified exchanges, accumulated to minutes
 		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetTime(), DeepEquals, []time.Time{
+		t, _ := csm[*key].GetTime()
+		c.Assert(t, DeepEquals, []time.Time{
 			time.Date(2020, 1, 21, 9, 30, 0, 0, NY).In(time.UTC),
 		})
 		c.Assert(csm[*key].GetColumn("Open").([]float32), DeepEquals, []float32{300})
@@ -71,7 +72,8 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		// Then the returned ColumnSeriesMarks should contain data from the two new
 		// specified exchanges, accumulated in minutes
 		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetTime(), DeepEquals, []time.Time{
+		t, _ = csm[*key].GetTime()
+		c.Assert(t, DeepEquals, []time.Time{
 			time.Date(2020, 1, 21, 9, 30, 0, 0, NY).In(time.UTC),
 		})
 		c.Assert(csm[*key].GetColumn("Open").([]float32), DeepEquals, []float32{300})
