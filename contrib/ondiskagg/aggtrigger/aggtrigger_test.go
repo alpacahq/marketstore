@@ -156,7 +156,7 @@ func (t *TestSuite) TestFire(c *C) {
 
 	rs := cs.ToRowSeries(*tbk, true)
 	rowData := rs.GetData()
-	times := rs.GetTime()
+	times, err := rs.GetTime()
 	numRows := len(times)
 	rowLen := len(rowData) / numRows
 

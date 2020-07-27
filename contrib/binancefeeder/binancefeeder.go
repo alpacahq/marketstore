@@ -191,7 +191,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
 	}
-	ts := cs.GetTime()
+	ts, err := cs.GetTime()
 	return ts[0]
 }
 

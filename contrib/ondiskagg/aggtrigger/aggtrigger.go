@@ -289,7 +289,7 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	}
 	accumGroup := newAccumGroup(cs, params)
 
-	ts := cs.GetTime()
+	ts, _ := cs.GetTime()
 	outEpoch := make([]int64, 0)
 
 	groupKey := timeWindow.Truncate(ts[0])

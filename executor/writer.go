@@ -272,7 +272,10 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			Prepare data for writing
 		*/
 		var alignData bool
-		times := cs.GetTime()
+		times, err := cs.GetTime()
+		if err != nil {
+			return err
+		}
 		if isVariableLength {
 			cs.Remove("Nanoseconds")
 			alignData = false
@@ -292,10 +295,15 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 				recordType = io.FIXED
 			}
 
-			if len(cs.GetTime()) == 0 {
+			t, err := cs.GetTime()
+			if err != nil {
+				return err
+			}
+			if len(t) == 0 {
 				continue
 			}
-			year := int16(cs.GetTime()[0].Year())
+
+			year := int16(t[0].Year())
 			tbi = io.NewTimeBucketInfo(
 				*tf,
 				tbk.GetPathToYearFiles(cDir.GetPath()),
