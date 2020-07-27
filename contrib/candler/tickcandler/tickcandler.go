@@ -67,7 +67,7 @@ func (ca *TickCandler) Accum(cols io.ColumnInterface) error {
 	/*
 		Get the time column
 	*/
-	ts := cols.GetTime()
+	ts, err := cols.GetTime()
 	/*
 		Update each candle
 		Prepare a consolidated map of columns for use in updating sums

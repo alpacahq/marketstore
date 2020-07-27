@@ -85,7 +85,10 @@ func (ca *CandleCandler) Accum(cols io.ColumnInterface) error {
 	/*
 		Get the time column
 	*/
-	ts := cols.GetTime()
+	ts, err := cols.GetTime()
+	if err != nil {
+		return err
+	}
 	/*
 		Update each candle
 		Prepare a consolidated map of columns for use in updating sums
