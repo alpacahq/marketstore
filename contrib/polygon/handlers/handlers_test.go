@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/gopaca/streaming/polygon"
 	"github.com/alpacahq/marketstore/v4/catalog"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	. "gopkg.in/check.v1"
 )
 
@@ -32,43 +32,39 @@ func (s *HandlersTestSuite) SetUpSuite(c *C) {
 
 func (s *HandlersTestSuite) TearDownSuite(c *C) {}
 
-func getTestTradeArray() []api.PolyTrade {
-	return []api.PolyTrade{
-		{
-			Symbol:     "AAPL",
-			Price:      100.11,
-			Size:       10,
-			Timestamp:  time.Now().Unix() * 1000,
-			Conditions: []int{},
-		},
+func getTestTrade() polygon.Trade {
+	return polygon.Trade{
+		Symbol:     "AAPL",
+		Price:      100.11,
+		Size:       10,
+		Timestamp:  time.Now().Unix() * 1000,
+		Conditions: []int32{},
 	}
 }
-func getTestQuoteArray() []api.PolyQuote {
-	return []api.PolyQuote{
-		{
-			Symbol:    "AAPL",
-			BidPrice:  100.11,
-			BidSize:   20,
-			AskPrice:  100.12,
-			AskSize:   10,
-			Timestamp: time.Now().Unix() * 1000,
-		},
+func getTestQuote() polygon.Quote {
+	return polygon.Quote{
+		Symbol:    "AAPL",
+		BidPrice:  100.11,
+		BidSize:   20,
+		AskPrice:  100.12,
+		AskSize:   10,
+		Timestamp: time.Now().Unix() * 1000,
 	}
 }
 func (s *HandlersTestSuite) TestHandlers(c *C) {
 	// trade
 	{
-		buf, _ := json.Marshal(getTestTradeArray())
+		buf, _ := json.Marshal(getTestTrade())
 		TradeHandler(buf)
 
-		a := getTestTradeArray()
-		a[0].Conditions = []int{ConditionExchangeSummary}
+		a := getTestTrade()
+		a.Conditions = []int32{ConditionExchangeSummary}
 		buf, _ = json.Marshal(a)
 		TradeHandler(buf)
 	}
 	// quote
 	{
-		buf, _ := json.Marshal(getTestQuoteArray())
+		buf, _ := json.Marshal(getTestQuote())
 		QuoteHandler(buf)
 	}
 }
