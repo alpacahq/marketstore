@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/alpacahq/gopaca/streaming/polygon"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
@@ -90,25 +93,23 @@ func (pf *PolygonFetcher) Run() {
 		api.SetWSServers(pf.config.WSServers)
 	}
 
+	var subscription []string
 	for t := range pf.types {
-		var prefix api.Prefix
-		var handler func([]byte)
 		switch t {
 		case "bars":
-			prefix = api.Agg
-			handler = handlers.BarsHandlerWrapper(pf.config.AddTickCountToBars)
+			subscription = append(subscription, "AM.*")
 		case "quotes":
-			prefix = api.Quote
-			handler = handlers.QuoteHandler
+			subscription = append(subscription, "Q.*")
 		case "trades":
-			prefix = api.Trade
-			handler = handlers.TradeHandler
+			subscription = append(subscription, "T.*")
 		}
-		s := api.NewSubscription(prefix, pf.config.Symbols)
-		s.Subscribe(handler)
 	}
 
-	select {}
+	ws := polygon.NewClient(pf.config.WSServers+"/stocks", pf.config.APIKey, strings.Join(subscription, ","))
+	ws.TradeHandler = handlers.TradeHandler
+	ws.QuoteHandler = handlers.QuoteHandler
+	ws.AggregateHandler = handlers.BarsHandlerWrapper(pf.config.AddTickCountToBars)
+	ws.Listen(context.Background())
 }
 
 func (pf *PolygonFetcher) workBackfillBars() {
