@@ -14,8 +14,8 @@ import requests
 import os
 import pymarketstore as pymkts
 
-use_grpc = os.getenv("USE_GRPC", "true") == "true"
-client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5995)}/rpc",
+use_grpc = os.getenv("USE_GRPC", "false") == "true"
+client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/rpc",
                        grpc=use_grpc)
 
 
@@ -74,19 +74,19 @@ def test_ticks_fields(
     "symbol, timeframe, epoch_dtype, nanosecond_dtype, nanosecond, "
     "attribute_group, is_variable_length, status",
     [
-        # # success
-        # ("TEST_1", "1Sec", "i8", None, None, "TICK", True, "SUCCESS"),
-        # ("TEST_2", "1Sec", "i8", None, None, "TICK", False, "SUCCESS"),
-        # ("TEST_1", "1Sec", "i8", "i4", 0, "TICK", True, "SUCCESS"),
-        # ("TEST_2", "1Sec", "i8", "i4", 0, "TICK", False, "SUCCESS"),
-        # # failures: wrong epoch dtype
-        # ("TEST_1", "1Sec", "i4", None, None, "TICK", True, "FAILURE"),
-        # ("TEST_2", "1Sec", "i4", None, None, "TICK", False, "FAILURE"),
-        # ("TEST_1", "1Sec", "i4", "i4", 0, "TICK", True, "FAILURE"),
-        # ("TEST_2", "1Sec", "i4", "i4", 0, "TICK", False, "FAILURE"),
+        # success
+        ("TEST_1", "1Sec", "i8", None, None, "TICK", True, "SUCCESS"),
+        ("TEST_2", "1Sec", "i8", None, None, "TICK", False, "SUCCESS"),
+        ("TEST_1", "1Sec", "i8", "i4", 0, "TICK", True, "SUCCESS"),
+        ("TEST_2", "1Sec", "i8", "i4", 0, "TICK", False, "SUCCESS"),
+        # failures: wrong epoch dtype
+        ("TEST_1", "1Sec", "i4", None, None, "TICK", True, "FAILURE"),
+        ("TEST_2", "1Sec", "i4", None, None, "TICK", False, "FAILURE"),
+        ("TEST_1", "1Sec", "i4", "i4", 0, "TICK", True, "FAILURE"),
+        ("TEST_2", "1Sec", "i4", "i4", 0, "TICK", False, "FAILURE"),
         # # failures: wrong nanoseconds dtype
         ("TEST_1", "1Sec", "i8", "i8", 0, "TICK", True, "FAILURE"),
-        # ("TEST_2", "1Sec", "i8", "i8", 0, "TICK", False, "FAILURE"),
+        ("TEST_2", "1Sec", "i8", "i8", 0, "TICK", False, "FAILURE"),
     ],
 )
 def test_ticks_types(
@@ -117,26 +117,17 @@ def test_ticks_types(
         )
 
     if status == "FAILURE":
-        with pytest.raises((requests.exceptions.ConnectionError, grpc.RpcError)) as exc_info:
-            # With jsonrpc:
-            # uninformative exception is raised:
-            # * exception raised on python side:
-            # requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))  # noqa
-            # With grpc:
-            # raise _InactiveRpcError(state)
-            #  grpc._channel._InactiveRpcError: <_InactiveRpcError of RPC that terminated with:
-            #   status = StatusCode.UNAVAILABLE
-            #   details = "failed to connect to all addresses"
-            #   debug_error_string = "{"created":"@1594022914.472163378","description":"Failed to pick subchannel","file":"src/core/ext/filters/client_channel/client_channel.cc","file_line":3948,"referenced_errors":[{"created":"@1594022914.143041824","description":"failed to connect to all addresses","file":"src/co
-            # re/ext/filters/client_channel/lb_policy/pick_first/pick_first.cc","file_line":394,"grpc_status":14}]}"
-            ret = client.write(
-                data,
-                f"{symbol}/{timeframe}/{attribute_group}",
-                isvariablelength=is_variable_length,
-            )
+
+        ret = client.write(
+            data,
+            f"{symbol}/{timeframe}/{attribute_group}",
+            isvariablelength=is_variable_length,
+        )
 
         if use_grpc:
-            assert exc_info.value.code() == grpc.StatusCode.UNAVAILABLE
+            # "unexpected data type for Nanoseconds column." or
+            # "unexpected data type for Epoch column."
+            assert ret.responses[0].error != ""
 
     else:
         ret = client.write(
