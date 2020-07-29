@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/gopaca/streaming/polygon"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/streaming"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
@@ -89,10 +89,6 @@ func (pf *PolygonFetcher) Run() {
 		api.SetBaseURL(pf.config.BaseURL)
 	}
 
-	if pf.config.WSServers != "" {
-		api.SetWSServers(pf.config.WSServers)
-	}
-
 	var subscription []string
 	for t := range pf.types {
 		switch t {
@@ -105,7 +101,7 @@ func (pf *PolygonFetcher) Run() {
 		}
 	}
 
-	ws := polygon.NewClient(pf.config.WSServers+"/stocks", pf.config.APIKey, strings.Join(subscription, ","))
+	ws := streaming.NewClient(pf.config.WSServers+"/stocks", pf.config.APIKey, strings.Join(subscription, ","))
 	ws.TradeHandler = handlers.TradeHandler
 	ws.QuoteHandler = handlers.QuoteHandler
 	ws.AggregateHandler = handlers.BarsHandlerWrapper(pf.config.AddTickCountToBars)

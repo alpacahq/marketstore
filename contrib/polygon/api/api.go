@@ -28,7 +28,6 @@ const (
 
 var (
 	baseURL      = "https://api.polygon.io"
-	servers      = "wss://socket.polygon.io"
 	apiKey       string
 	NY, _        = time.LoadLocation("America/New_York")
 	completeDate = "2006-01-02"
@@ -61,10 +60,6 @@ func SetAPIKey(key string) {
 
 func SetBaseURL(url string) {
 	baseURL = url
-}
-
-func SetWSServers(serverList string) {
-	servers = serverList
 }
 
 type ListTickersResponse struct {

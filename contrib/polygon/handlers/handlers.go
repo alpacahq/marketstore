@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/gopaca/streaming/polygon"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/metrics"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/streaming"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -41,7 +41,7 @@ func TradeHandler(msg []byte) {
 		return
 	}
 
-	rt := polygon.Trade{}
+	rt := streaming.Trade{}
 	err := json.Unmarshal(msg, &rt)
 	if err != nil {
 		log.Warn("error processing upstream message",
@@ -79,7 +79,7 @@ func QuoteHandler(msg []byte) {
 		return
 	}
 
-	rq := polygon.Quote{}
+	rq := streaming.Quote{}
 	err := json.Unmarshal(msg, &rq)
 	if err != nil {
 		log.Warn("error processing upstream message",
@@ -116,7 +116,7 @@ func BarsHandler(msg []byte, addTickCount bool) {
 	if msg == nil {
 		return
 	}
-	bar := polygon.Aggregate{}
+	bar := streaming.Aggregate{}
 	err := json.Unmarshal(msg, &bar)
 	if err != nil {
 		log.Warn("error processing upstream message",

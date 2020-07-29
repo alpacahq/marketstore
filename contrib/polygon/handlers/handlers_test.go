@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/gopaca/streaming/polygon"
 	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/streaming"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 
@@ -32,8 +32,8 @@ func (s *HandlersTestSuite) SetUpSuite(c *C) {
 
 func (s *HandlersTestSuite) TearDownSuite(c *C) {}
 
-func getTestTrade() polygon.Trade {
-	return polygon.Trade{
+func getTestTrade() streaming.Trade {
+	return streaming.Trade{
 		Symbol:     "AAPL",
 		Price:      100.11,
 		Size:       10,
@@ -41,8 +41,8 @@ func getTestTrade() polygon.Trade {
 		Conditions: []int32{},
 	}
 }
-func getTestQuote() polygon.Quote {
-	return polygon.Quote{
+func getTestQuote() streaming.Quote {
+	return streaming.Quote{
 		Symbol:    "AAPL",
 		BidPrice:  100.11,
 		BidSize:   20,
