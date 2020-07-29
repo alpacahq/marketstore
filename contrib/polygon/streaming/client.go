@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/gopaca/streaming/polygon"
+	"github.com/marketstore/v4/contrib/polygon/streaming"
 	"github.com/mailru/easyjson"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +40,7 @@ func infoHandler(msg []byte) {
 }
 
 func tradeHandler(msg []byte) {
-	trade := polygon.Trade{}
+	trade := streaming.Trade{}
 	if err := easyjson.Unmarshal(msg, &trade); err != nil {
 		panic("unmarshal trade error")
 	}
@@ -48,7 +48,7 @@ func tradeHandler(msg []byte) {
 }
 
 func main() {
-	ws := polygon.NewClient(endpoint, apiKey, subscription)
+	ws := streaming.NewClient(endpoint, apiKey, subscription)
 	ws.TradeHandler = tradeHandler
 	ws.QuoteHandler = infoHandler
 	ws.AggregateHandler = infoHandler
@@ -69,7 +69,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/gorilla/websocket"
 
-	"github.com/alpacahq/gopaca/log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (
