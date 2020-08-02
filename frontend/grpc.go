@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/proto"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
@@ -276,9 +277,18 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 	if atomic.LoadUint32(&Queryable) == 0 {
 		return nil, queryableError
 	}
-	for symbol := range executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"] {
-		response.Results = append(response.Results, symbol)
+
+	switch req.Format {
+	case proto.ListSymbolsRequest_SYMBOL:
+		for symbol := range executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"] {
+			response.Results = append(response.Results, symbol)
+		}
+	case proto.ListSymbolsRequest_TIME_BUCKET_KEY:
+		fallthrough
+	default:
+		response.Results = catalog.ListTimeBucketKeyNames(executor.ThisInstance.CatalogDir)
 	}
+
 	return &response, nil
 }
 
