@@ -223,7 +223,10 @@ def assert_query_result(df, symbol, size, timeframe, start, end):
             pd.testing.assert_frame_equal(
                 rm_ns_from_idx(df),
                 rm_ns_from_idx(processed_out_df),
-                check_less_precise=True,
+                # check_less_precise=True,
+                # commented out as the warning shown:
+                # FutureWarning: The 'check_less_precise' keyword in testing.assert_*_equal is deprecated and will be removed
+                # in a future version. You can stop passing 'check_less_precise' to silence this warning. check_less_precise=True,
             )
 
     except AssertionError:

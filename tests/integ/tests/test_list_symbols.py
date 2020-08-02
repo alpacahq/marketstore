@@ -39,6 +39,7 @@ def clean_db():
 
             except Exception as e:
                 logger.exception("Caught an error when tearing down marketstore")
+                print(e)
                 error_symbols.append((tf, symbol))
                 continue
 

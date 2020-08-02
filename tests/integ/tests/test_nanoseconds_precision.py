@@ -55,28 +55,30 @@ def process_query_result(df: pd.DataFrame, inplace: bool = True) -> pd.DataFrame
 @pytest.mark.parametrize(
     "symbol, timeframe, data, index, nanoseconds, start, end",
     [
-        (
-                # this is a knwown BUG with 1Min timeframe
-                # even if no nanoseconds field is not explicitly written, it is
-                # implied by the isvariablelength=True when writing
-                "BUG_1MIN_1",
-                "1Min",
-                dict(Bid=np.arange(3), Ask=np.arange(3)),
-                ["2016-01-01 10:01:00", "2016-01-01 10:01:30", "2016-01-01 10:01:59"],
-                None,
-                "2016-01-01 00:00:00",
-                "2016-01-01 23:59:59",
+        pytest.param(
+            # this is a knwown BUG with 1Min timeframe
+            # even if no nanoseconds field is not explicitly written, it is
+            # implied by the isvariablelength=True when writing
+            "BUG_1MIN_1",
+            "1Min",
+            dict(Bid=np.arange(3), Ask=np.arange(3)),
+            ["2016-01-01 10:01:00", "2016-01-01 10:01:30", "2016-01-01 10:01:59"],
+            None,
+            "2016-01-01 00:00:00",
+            "2016-01-01 23:59:59",
+            marks=pytest.mark.xfail(reason="Known issue with 1Min timeframe."),
         ),
-        (
-                # this is a knwown BUG with 1Min timeframe
-                # same as above but here we explicitly write the nanoseconds
-                "BUG_1MIN_WITH_NANOSECONDS",
-                "1Min",
-                dict(Bid=np.arange(3), Ask=np.arange(3)),
-                ["2016-01-01 10:01:00", "2016-01-01 10:01:30", "2016-01-01 10:01:59"],
-                [0, 0, 999_999_999],
-                "2016-01-01 00:00:00",
-                "2016-01-01 23:59:59",
+        pytest.param(
+            # this is a knwown BUG with 1Min timeframe
+            # same as above but here we explicitly write the nanoseconds
+            "BUG_1MIN_WITH_NANOSECONDS",
+            "1Min",
+            dict(Bid=np.arange(3), Ask=np.arange(3)),
+            ["2016-01-01 10:01:00", "2016-01-01 10:01:30", "2016-01-01 10:01:59"],
+            [0, 0, 999_999_999],
+            "2016-01-01 00:00:00",
+            "2016-01-01 23:59:59",
+            marks=pytest.mark.xfail(reason="Known issue with 1Min timeframe."),
         ),
     ],
 )
@@ -108,31 +110,33 @@ def test_nanoseconds_precision_with_1Min_timeframe(
 @pytest.mark.parametrize(
     "symbol, timeframe, data, index, nanoseconds, start, end",
     [
-        (
-                # BUG
-                # * Minimal test to reproduce second flipping at extreme edge of second
-                # * It shows that the second flipping occurs when nanoseconds
-                # value is > 999999880
-                "TEST_SHOWING_SECOND_FLIP",
-                "1Sec",
-                dict(Bid=np.arange(300), Ask=np.arange(300)),
-                ["2016-01-01 00:00:03"] * 300,
-                np.arange(999_999_699, 999_999_999),
-                "2016-01-01 00:00:00",
-                "2016-01-01 23:59:59",
+        pytest.param(
+            # BUG
+            # * Minimal test to reproduce second flipping at extreme edge of second
+            # * It shows that the second flipping occurs when nanoseconds
+            # value is > 999999880
+            "TEST_SHOWING_SECOND_FLIP",
+            "1Sec",
+            dict(Bid=np.arange(300), Ask=np.arange(300)),
+            ["2016-01-01 00:00:03"] * 300,
+            np.arange(999_999_699, 999_999_999),
+            "2016-01-01 00:00:00",
+            "2016-01-01 23:59:59",
+            marks=pytest.mark.xfail(reason="Known issue with 1Min timeframe."),
         ),
-        (
-                # BUG (same as above)
-                # * here showing that when restricting the query parameters, the data is
-                #  filtered upstream according to the value of the second (so the shape
-                # will be different)
-                "TEST_SHOWING_WRONG_IDX_IS_FILTERED_UPSTREAM",
-                "1Sec",
-                dict(Bid=np.arange(300), Ask=np.arange(300)),
-                ["2016-01-01 00:00:03"] * 300,
-                np.arange(999_999_699, 999_999_999),
-                "2016-01-01 00:00:03",
-                "2016-01-01 00:00:03",
+        pytest.param(
+            # BUG (same as above)
+            # * here showing that when restricting the query parameters, the data is
+            #  filtered upstream according to the value of the second (so the shape
+            # will be different)
+            "TEST_SHOWING_WRONG_IDX_IS_FILTERED_UPSTREAM",
+            "1Sec",
+            dict(Bid=np.arange(300), Ask=np.arange(300)),
+            ["2016-01-01 00:00:03"] * 300,
+            np.arange(999_999_699, 999_999_999),
+            "2016-01-01 00:00:03",
+            "2016-01-01 00:00:03",
+            marks=pytest.mark.xfail(reason="Known issue with 1Min timeframe."),
         ),
     ],
 )

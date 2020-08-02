@@ -376,7 +376,10 @@ def test_ticks_multiple_writes(symbol, tuples, expected_index):
     pd.testing.assert_frame_equal(
         total_input_df.sort_index(kind="merge"),
         processed_out_df,
-        check_less_precise=True,
+    #    check_less_precise=True,
+    # commented out as the warning shown:
+    # FutureWarning: The 'check_less_precise' keyword in testing.assert_*_equal is deprecated and will be removed
+    # in a future version. You can stop passing 'check_less_precise' to silence this warning. check_less_precise=True,
     )
 
 
@@ -453,7 +456,11 @@ def test_write_unsorted_ticks_returns_sorted_ticks(symbol, data, index, nanoseco
     print(out_df)
 
     pd.testing.assert_frame_equal(
-        in_df.sort_index(kind="merge"), processed_out_df, check_less_precise=True
+        in_df.sort_index(kind="merge"), processed_out_df,
+    #    check_less_precise=True,
+    # commented out as the warning shown:
+    # FutureWarning: The 'check_less_precise' keyword in testing.assert_*_equal is deprecated and will be removed
+    # in a future version. You can stop passing 'check_less_precise' to silence this warning. check_less_precise=True,
     )
 
 
@@ -512,5 +519,9 @@ def test_write_unsorted_random_data(symbol, size, start, window):
     print(out_df)
 
     pd.testing.assert_frame_equal(
-        in_df.sort_index(kind="merge"), processed_out_df, check_less_precise=True
+        in_df.sort_index(kind="merge"), processed_out_df,
+    #    check_less_precise=True,
+    # commented out as the warning shown:
+    # FutureWarning: The 'check_less_precise' keyword in testing.assert_*_equal is deprecated and will be removed
+    # in a future version. You can stop passing 'check_less_precise' to silence this warning. check_less_precise=True,
     )

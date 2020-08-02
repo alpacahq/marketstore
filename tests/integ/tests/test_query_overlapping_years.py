@@ -122,6 +122,7 @@ def build_test(in_df, symbol, timeframe, start, end):
 )
 def test_query_edges_on_overlapping_years(symbol, isvariablelength, timeframe):
     # original bug fixed by https://github.com/alpacahq/marketstore/pull/249
+    client.destroy(tbk=f"{symbol}/{timeframe}/TICK")
 
     data = np.array(
         [
@@ -131,8 +132,7 @@ def test_query_edges_on_overlapping_years(symbol, isvariablelength, timeframe):
         dtype=[("Epoch", "i8"), ("Ask", "f4")],
     )
 
-    cli = utils.get_pymkts_client()
-    cli.write(data, f"{symbol}/{timeframe}/TICK", isvariablelength=isvariablelength)
+    client.write(data, f"{symbol}/{timeframe}/TICK", isvariablelength=isvariablelength)
 
     params = pymkts.Params(
         symbol,
@@ -141,9 +141,9 @@ def test_query_edges_on_overlapping_years(symbol, isvariablelength, timeframe):
         start=pd.Timestamp("2017-01-01 00:00"),
         end=pd.Timestamp("2018-01-02 00:00"),
     )
-    d_all = cli.query(params).first().df()
+    d_all = client.query(params).first().df()
 
-    display(d_all)
+    print(d_all)
     assert d_all.shape[0] == 2
     assert datetime(2017, 1, 1, 0, 0, 0, tzinfo=timezone.utc) == d_all.index[0]
     assert datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc) == d_all.index[-1]
