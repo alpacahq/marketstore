@@ -95,13 +95,13 @@ def process_query_result(df: pd.DataFrame, inplace: bool = True) -> pd.DataFrame
         df.index.name = "Epoch"
         df.drop("Nanoseconds", axis=1, inplace=True)
 
-    #df.sort_index(axis=1, inplace=True)
+    # df.sort_index(axis=1, inplace=True)
 
     return df
 
 
 def generate_dataframe(
-        size: int, start, end, random_data: bool = True, sort_index: bool = True
+        size: int, start: pd.Timestamp, end: pd.Timestamp, random_data: bool = True, sort_index: bool = True
 ) -> pd.DataFrame:
     """Generate dataframe for testing purposes.
 
