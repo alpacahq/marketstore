@@ -44,9 +44,9 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 	csm := io.NewColumnSeriesMap()
 
 	for _, eq := range response.ArrayOfEquityQuote {
-		// skip the symbol which Ask/Bid time is empty string and cannot be parsed,
-		// which means the symbols have never been executed
-		if eq.Outcome != "Success" || time.Time(eq.Quote.AskDateTime) == (time.Time{}) || time.Time(eq.Quote.BidDateTime) == (time.Time{}) {
+		// skip the symbol which LastMarketDate is empty
+		// which means the symbols are not listed yet
+		if eq.Outcome != "Success" || time.Time(eq.Quote.LastMarketDate) == (time.Time{}) {
 			continue
 		}
 
