@@ -123,7 +123,13 @@ message KeyRequest {
 }
 
 message ListSymbolsRequest {
-    repeated string results = 1;
+    enum Format {
+        // symbol names (e.g. ["AAPL", "AMZN", ....])
+        SYMBOL = 0;
+        // {symbol/timeframe/attributeGroup} names (e.g. ["AAPL/1Min/TICK", "AAPL/1Sec/OHLCV", "Amazon/1D/Tick",...])
+        TIME_BUCKET_KEY = 1;
+    }
+    Format format = 1;
 }
 
 message ListSymbolsResponse {

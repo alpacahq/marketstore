@@ -15,38 +15,20 @@ logger = logging.getLogger(__name__)
 
 def clean_db():
     """
-    Destroy symbols for timeframes=[1Sec, 1Min] and AttributeGroup=[TICK].
+    Destroy all symbols stored in pymarketstore
     """
-    symbols = client.list_symbols()
 
-    if not symbols:
+    # only grpc Client has a functionality to list all symbols in {symbol/timeframe/attributeGroup} format,
+    # which is necessary for destroying the symbols.
+    grpc_client = pymkts.Client(f"127.0.0.1:5995", grpc=True)
+    tbks = grpc_client.list_symbols()
+
+    if not tbks:
         logger.info("No symbols to clean in the marketstore.")
         return
 
-    destroyed_symbols = []
-    error_symbols = []
-    for symbol in set(symbols):
-        for tf in ['1Sec', '1Min']:
-            try:
-
-                tbk = "{symbol}/{tf}/TICK".format(symbol=symbol, tf=tf)
-                ret = client.destroy(tbk)
-                responses = ret["responses"]
-
-                if responses is not None:
-                    if len(responses) != 1 or responses[0].get('error', None):
-                        raise Exception("Some error:{}".format(responses))
-
-            except Exception as e:
-                logger.exception("Caught an error when tearing down marketstore")
-                print(e)
-                error_symbols.append((tf, symbol))
-                continue
-
-            destroyed_symbols.append((tf, symbol))
-
-    logger.info("Failed to destroy:{}".format(error_symbols))
-    logger.info("Destroyed:{}".format(destroyed_symbols))
+    for tbk in set(tbks):
+        grpc_client.destroy(tbk)
 
 
 def test_type_list_symbols_with_empty_database():
