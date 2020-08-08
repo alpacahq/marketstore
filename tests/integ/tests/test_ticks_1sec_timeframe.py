@@ -116,7 +116,7 @@ def test_ticks_simple_cases(symbol, data, index, nanoseconds):
     print("\noutput df, raw")
     print(out_df)
 
-    pd.testing.assert_frame_equal(in_df, processed_out_df, check_less_precise=True)
+    pd.testing.assert_frame_equal(in_df, processed_out_df)
 
 
 @pytest.mark.parametrize(
