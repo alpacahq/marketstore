@@ -3,6 +3,7 @@ package start
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -71,7 +72,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	}
 
 	// New grpc server.
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(math.MaxInt32),
+		grpc.MaxSendMsgSize(math.MaxInt32),
+	)
 	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
 
 	// Spawn a goroutine and listen for a signal.
