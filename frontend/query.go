@@ -254,7 +254,7 @@ func (s *DataService) ListSymbols(r *http.Request, req *ListSymbolsRequest, resp
 	}
 
 	// TBK format (e.g. ["AMZN/1Min/TICK", "AAPL/1Sec/OHLCV", ...])
-	if req.Format == "tbk" {
+	if req != nil && req.Format == "tbk" {
 		response.Results = catalog.ListTimeBucketKeyNames(executor.ThisInstance.CatalogDir)
 		return nil
 	}
