@@ -97,7 +97,8 @@ workflows:
           requires:
             - build
             - unit-test
-            - integration-test
+            - integration-test-jsonrpc
+            - integration-test-grpc
           filters:
             tags:
               only: /.*/
