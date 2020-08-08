@@ -40,11 +40,17 @@ jobs:
     steps:
       - run: make import-csv-test
 
-  integration-test:
+  integration-test-jsonrpc:
     executor: golang
     steps:
       - setup_remote_docker
-      - run: make integration-test
+      - run: make integration-test-jsonrpc
+
+  integration-test-grpc:
+    executor: golang
+    steps:
+      - setup_remote_docker
+      - run: make integration-test-grpc
 
   deploy:
     executor: golang
@@ -79,7 +85,11 @@ workflows:
             - attach_workspace:
                 at: ~/github.com/alpacahq/marketstore
           filters: *all
-      - integration-test:
+      - integration-test-jsonrpc:
+          pre-steps:
+            - checkout
+          filters: *all
+      - integration-test-grpc:
           pre-steps:
             - checkout
           filters: *all
