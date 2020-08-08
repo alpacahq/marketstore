@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
@@ -242,16 +243,31 @@ type ListSymbolsResponse struct {
 	Results []string
 }
 
-type ListSymbolsArgs struct{}
+type ListSymbolsRequest struct {
+	// "symbol", or "tbk"
+	Format string `msgpack:"format,omitempty"`
+}
 
-func (s *DataService) ListSymbols(r *http.Request, args *ListSymbolsArgs, response *ListSymbolsResponse) (err error) {
+func (s *DataService) ListSymbols(r *http.Request, req *ListSymbolsRequest, response *ListSymbolsResponse) (err error) {
 	if atomic.LoadUint32(&Queryable) == 0 {
 		return queryableError
 	}
-	for symbol := range executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"] {
-		response.Results = append(response.Results, symbol)
+
+	// TBK format (e.g. ["AMZN/1Min/TICK", "AAPL/1Sec/OHLCV", ...])
+	if req.Format == "tbk" {
+		response.Results = catalog.ListTimeBucketKeyNames(executor.ThisInstance.CatalogDir)
+		return nil
 	}
-	return err
+
+	// Symbol format (e.g. ["AMZN", "AAPL", ...])
+	symbols := executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"]
+	response.Results = make([]string, len(symbols))
+	cnt := 0
+	for symbol := range symbols {
+		response.Results[cnt] = symbol
+		cnt++
+	}
+	return nil
 }
 
 /*
