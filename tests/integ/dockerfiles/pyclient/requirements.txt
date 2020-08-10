@@ -1,2 +1,2 @@
 pytest==3.6.1
-git+https://github.com/alpacahq/pymarketstore.git@60039645770fc7d6950e070c80de9de2581a292d#egg=pymarketstore
+git+https://github.com/alpacahq/pymarketstore.git@ac37134474946da69c6ca3e38cd027ee0c4aac36#egg=pymarketstore
