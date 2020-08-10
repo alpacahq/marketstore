@@ -33,6 +33,8 @@ type MktsConfig struct {
 	RootDirectory              string
 	ListenURL                  string
 	GRPCListenURL              string
+	GRPCMaxSendMsgSize         int // in bytes
+	GRPCMaxRecvMsgSize         int // in bytes
 	UtilitiesURL               string
 	Timezone                   *time.Location
 	Queryable                  bool
@@ -60,6 +62,8 @@ func (m *MktsConfig) Parse(data []byte) error {
 			ListenHost                 string `yaml:"listen_host"`
 			ListenPort                 string `yaml:"listen_port"`
 			GRPCListenPort             string `yaml:"grpc_listen_port"`
+			GRPCMaxSendMsgSize         int    `yaml:"grpc_max_send_msg_size"` // in MB
+			GRPCMaxRecvMsgSize         int    `yaml:"grpc_max_recv_msg_size"` // in MB
 			UtilitiesURL               string `yaml:"utilities_url"`
 			Timezone                   string `yaml:"timezone"`
 			LogLevel                   string `yaml:"log_level"`
@@ -107,6 +111,19 @@ func (m *MktsConfig) Parse(data []byte) error {
 	// 	log.Fatal("Invalid GRPC listen port.")
 	// 	return errors.New("Invalid GRPC listen port.")
 	// }
+	if aux.GRPCMaxSendMsgSize == 0 {
+		aux.GRPCMaxSendMsgSize = 1024
+	} else if aux.GRPCMaxSendMsgSize < 64 {
+		log.Warn("WARNING: Low grpc_max_send_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxSendMsgSize)
+	}
+	m.GRPCMaxSendMsgSize = aux.GRPCMaxSendMsgSize * (1 << 20)
+
+	if aux.GRPCMaxRecvMsgSize == 0 {
+		aux.GRPCMaxRecvMsgSize = 1024
+	} else if aux.GRPCMaxRecvMsgSize < 64 {
+		log.Warn("WARNING: Low grpc_max_recv_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxRecvMsgSize)
+	}
+	m.GRPCMaxRecvMsgSize = aux.GRPCMaxRecvMsgSize * (1 << 20)
 
 	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
 	m.Timezone, err = time.LoadLocation(aux.Timezone)

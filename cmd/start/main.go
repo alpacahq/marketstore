@@ -3,7 +3,6 @@ package start
 import (
 	"fmt"
 	"io/ioutil"
-	"math"
 	"net"
 	"net/http"
 	"os"
@@ -73,8 +72,8 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// New grpc server.
 	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(math.MaxInt32),
-		grpc.MaxSendMsgSize(math.MaxInt32),
+		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
 	)
 	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
 
