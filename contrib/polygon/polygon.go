@@ -12,16 +12,16 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygon_config"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type PolygonFetcher struct {
-	config FetcherConfig
+	config polygon_config.FetcherConfig
 	types  map[string]struct{} // Bars, Quotes, Trades
 }
 
@@ -43,15 +43,11 @@ type FetcherConfig struct {
 	QueryStart string `json:"query_start"`
 }
 
-var (
-	minute = utils.NewTimeframe("1Min")
-)
-
 // NewBgWorker returns a new instances of PolygonFetcher. See FetcherConfig
 // for more details about configuring PolygonFetcher.
 func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	data, _ := json.Marshal(conf)
-	config := FetcherConfig{}
+	config := polygon_config.FetcherConfig{}
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		return
