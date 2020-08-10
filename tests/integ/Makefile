@@ -70,8 +70,15 @@ _startup: stop
 _start_pyclient_container:
 	make -C dockerfiles/pyclient rm build run
 
-# run all tests including CSV Import
-.PHONY: test
-test: clean run _start_pyclient_container connect
+# run all integration tests by json-rpc client
+.PHONY: test-jsonrpc
+test-jsonrpc: clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
-	make -C dockerfiles/pyclient test
+	make -C dockerfiles/pyclient test-jsonrpc
+
+# run all integration tests by grpc client
+.PHONY: test-grpc
+test-grpc: clean run _start_pyclient_container connect
+	TEST_FILENAME='/project/tests/$@.py'; \
+	make -C dockerfiles/pyclient test-grpc
+

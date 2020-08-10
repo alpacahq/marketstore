@@ -46,8 +46,11 @@ unit-test:
 import-csv-test:
 	@tests/integ/bin/runtests.sh
 
-integration-test:
-	$(MAKE) -C tests/integ test
+integration-test-jsonrpc:
+	$(MAKE) -C tests/integ test-jsonrpc
+
+integration-test-grpc:
+	$(MAKE) -C tests/integ test-grpc
 
 test: build
 	$(MAKE) unit-test
