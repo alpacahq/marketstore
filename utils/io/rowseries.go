@@ -73,7 +73,7 @@ func (rows *Rows) GetDataShapes() []DataShape {
 func (rows *Rows) Len() int {
 	return rows.GetNumRows()
 }
-func (rows *Rows) GetTime() []time.Time {
+func (rows *Rows) GetTime() ([]time.Time, error) {
 	ep := rows.GetColumn("Epoch").([]int64)
 	ts := make([]time.Time, len(ep))
 	nsi := rows.GetColumn("Nanoseconds")
@@ -87,7 +87,7 @@ func (rows *Rows) GetTime() []time.Time {
 			ts[i] = ToSystemTimezone(time.Unix(secs, int64(ns[i])))
 		}
 	}
-	return ts
+	return ts, nil
 }
 
 func (rows *Rows) SetCandleAttributes(ca *CandleAttributes) {
@@ -212,7 +212,7 @@ func (rs *RowSeries) GetDataShapes() (ds []DataShape) {
 func (rs *RowSeries) Len() int {
 	return rs.GetNumRows()
 }
-func (rs *RowSeries) GetTime() []time.Time {
+func (rs *RowSeries) GetTime() ([]time.Time, error) {
 	return rs.rows.GetTime()
 }
 

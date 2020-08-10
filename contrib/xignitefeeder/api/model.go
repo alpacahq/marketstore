@@ -33,6 +33,9 @@ type Quote struct {
 	Bid         float32         `json:"Bid"`
 	BidSize     float32         `json:"BidSize"`
 	BidDateTime XigniteDateTime `json:"BidDateTime,omitempty"`
+	// Stocks to be listed => LastMarketDate is "",
+	// Stocks that are listed but don't have Ask/Bid data => LastMarketDate is a normal datetime string
+	LastMarketDate XigniteDay `json:"LastMarketDate"`
 	// price of the most recent deal
 	Last                           float32 `json:"Last"`
 	LastSize                       float32 `json:"LastSize"`

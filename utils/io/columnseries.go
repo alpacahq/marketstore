@@ -3,6 +3,7 @@ package io
 import (
 	"fmt"
 	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/pkg/errors"
 	"reflect"
 	"sort"
 	"strconv"
@@ -24,7 +25,7 @@ type ColumnInterface interface {
 	GetColumn(string) interface{}
 	GetDataShapes() []DataShape
 	Len() int
-	GetTime() []time.Time
+	GetTime() ([]time.Time, error)
 }
 
 type ColumnSeries struct {
@@ -65,8 +66,12 @@ func (cs *ColumnSeries) Len() int {
 	return reflect.ValueOf(i_col).Len()
 }
 
-func (cs *ColumnSeries) GetTime() []time.Time {
-	ep := cs.GetColumn("Epoch").([]int64)
+func (cs *ColumnSeries) GetTime() ([]time.Time, error) {
+	ep, ok := cs.GetColumn("Epoch").([]int64)
+	if !ok {
+		return nil, errors.New("unexpected data type for Epoch column.")
+	}
+
 	ts := make([]time.Time, len(ep))
 	nsi := cs.GetColumn("Nanoseconds")
 	if nsi == nil {
@@ -74,12 +79,15 @@ func (cs *ColumnSeries) GetTime() []time.Time {
 			ts[i] = ToSystemTimezone(time.Unix(secs, 0))
 		}
 	} else {
-		ns := nsi.([]int32)
+		ns, ok := nsi.([]int32)
+		if !ok {
+			return nil, errors.New("unexpected data type for Nanoseconds column.")
+		}
 		for i, secs := range ep {
 			ts[i] = ToSystemTimezone(time.Unix(secs, int64(ns[i])))
 		}
 	}
-	return ts
+	return ts, nil
 }
 
 func (cs *ColumnSeries) GetColumnNames() (columnNames []string) {

@@ -88,7 +88,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		return record
 	}
 
-	wkp := ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path)
+	wkp := FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path)
 	vrl := w.tbi.GetVariableRecordLength()
 	rt := w.tbi.GetRecordType()
 	for i := 0; i < numRows; i++ {
@@ -100,7 +100,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			if err := w.AddNewYearFile(year); err != nil {
 				panic(err)
 			}
-			wkp = ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path)
+			wkp = FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path)
 		}
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
@@ -136,7 +136,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals())
 			cc = &WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
-				WALKeyPath: ThisInstance.WALFile.FullPathToWALKey(w.tbi.Path),
+				WALKeyPath: FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path),
 				VarRecLen:  w.tbi.GetVariableRecordLength(),
 				Offset:     offset,
 				Index:      index,
@@ -272,7 +272,10 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			Prepare data for writing
 		*/
 		var alignData bool
-		times := cs.GetTime()
+		times, err := cs.GetTime()
+		if err != nil {
+			return err
+		}
 		if isVariableLength {
 			cs.Remove("Nanoseconds")
 			alignData = false
@@ -292,10 +295,15 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 				recordType = io.FIXED
 			}
 
-			if len(cs.GetTime()) == 0 {
+			t, err := cs.GetTime()
+			if err != nil {
+				return err
+			}
+			if len(t) == 0 {
 				continue
 			}
-			year := int16(cs.GetTime()[0].Year())
+
+			year := int16(t[0].Year())
 			tbi = io.NewTimeBucketInfo(
 				*tf,
 				tbk.GetPathToYearFiles(cDir.GetPath()),

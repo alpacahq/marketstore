@@ -277,9 +277,9 @@ func (s *ServerTestSuite) TestListSymbols(c *C) {
 
 	var resp ListSymbolsResponse
 
-	args := &ListSymbolsArgs{}
+	req := &ListSymbolsRequest{}
 
-	if err := service.ListSymbols(nil, args, &resp); err != nil {
+	if err := service.ListSymbols(nil, req, &resp); err != nil {
 		c.Fatalf("error returned: %s", err)
 	}
 

@@ -223,6 +223,8 @@ func (cat *CandleAttributes) AnySet(checkOption ...CandleAttributes) bool {
 type DirectionEnum uint8
 
 const (
+	// limit_from_start=true -> FIRST
+	// limit_from_start=false -> LAST (default)
 	FIRST DirectionEnum = iota
 	LAST
 )

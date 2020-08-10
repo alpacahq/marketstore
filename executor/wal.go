@@ -38,7 +38,30 @@ type WALFileType struct {
 	ReplicationSender replication.Sender // send messages to replica servers
 }
 
-func NewWALFile(rootDir string, existingFilePath string, rs replication.Sender) (wf *WALFileType, err error) {
+type TransactionGroup struct {
+	// A "locally unique" transaction group identifier, can be a clock value
+	ID int64
+	//The contents of the WTSets
+	WTGroup []WTSet
+	//MD5 checksum of the TG contents prior to the checksum
+	Checksum [16]byte
+}
+
+type WTSet struct {
+	// Direct or Indirect IO (for variable or fixed length records)
+	RecordType int
+	// FilePath is an absolute path of the WAL file. The string is ASCII encoded without a trailing null
+	FilePath string
+	// Length of each data element in this set in bytes, excluding the index
+	DataLen int
+	// Used only in case of variable recordType.
+	// (The sum of field lengths in elementTypes) + 4 bytes(for intervalTicks)
+	VarRecLen int32
+	// Data bytes
+	Buffer offsetIndexBuffer
+}
+
+func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
 	wf.ReplicationSender = rs
@@ -118,22 +141,22 @@ func (wf *WALFileType) Delete() (err error) {
 
 	return nil
 }
-func (wf *WALFileType) read(targetOffset int64, buffer []byte) (result []byte, newOffset int64, err error) {
+func read(fp *os.File, targetOffset int64, buffer []byte) (result []byte, newOffset int64, err error) {
 	/*
 		Read from the WAL file
 			targetOffset: -1 will read from current position
 	*/
-	offset, err := wf.FilePtr.Seek(0, os.SEEK_CUR)
+	offset, err := fp.Seek(0, os.SEEK_CUR)
 	if err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": Unable to seek in WALFile")
 	}
 	if targetOffset != -1 {
 		if offset != targetOffset {
-			wf.FilePtr.Seek(targetOffset, os.SEEK_SET)
+			fp.Seek(targetOffset, os.SEEK_SET)
 		}
 	}
 	numToRead := len(buffer)
-	n, err := wf.FilePtr.Read(buffer)
+	n, err := fp.Read(buffer)
 	if n != numToRead {
 		msg := fmt.Sprintf("Read: Expected: %d Got: %d", numToRead, n)
 		err = ShortReadError(msg)
@@ -142,18 +165,18 @@ func (wf *WALFileType) read(targetOffset int64, buffer []byte) (result []byte, n
 	}
 	return buffer, offset + int64(n), err
 }
-func (wf *WALFileType) FullPathToWALKey(fullPath string) (keyPath string) {
+func FullPathToWALKey(rootPath, fullPath string) (keyPath string) {
 	/*
 		NOTE: This key includes the year filename at the end of the metadata key
 	*/
 	// Chops rootPath from fullPath to produce a WAL Key
-	keyPath, _ = filepath.Rel(wf.RootPath, fullPath)
+	keyPath, _ = filepath.Rel(rootPath, fullPath)
 	return keyPath
 }
 
-func (wf *WALFileType) WALKeyToFullPath(keyPath string) (fullPath string) {
+func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 	// Adds rootPath to keyPath to produce a fullPath
-	return filepath.Join(wf.RootPath, keyPath)
+	return filepath.Join(rootPath, keyPath)
 }
 
 type OffsetIndexBuffer []byte
@@ -324,7 +347,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []OffsetIndexBuffer, 
 	}
 	const batchThreshold = 100
 	var fp WriteAtCloser
-	fullPath := wf.WALKeyToFullPath(keyPath)
+	fullPath := walKeyToFullPath(wf.RootPath, keyPath)
 	if recordType == io.FIXED && len(writes) >= batchThreshold {
 		fp, err = buffile.New(fullPath)
 	} else {
@@ -512,8 +535,9 @@ func (wf *WALFileType) Replay(writeData bool) error {
 		if TG_Serialized != nil {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
 			if writeData {
-				log.Info("Replaying TGID: %d, data length is: %d bytes", tgid, len(TG_Serialized))
-				if err := wf.replayTGData(TG_Serialized); err != nil {
+				tgID, wtSets := parseTGData(TG_Serialized, wf.RootPath)
+				log.Info("Replaying TGID: %d, WTSet count is: %d bytes", tgID, len(wtSets))
+				if err := wf.replayTGData(tgID, wtSets); err != nil {
 					return err
 				}
 			} else {
@@ -556,7 +580,7 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 }
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
 	var buffer [10]byte
-	buf, _, err := wf.read(-1, buffer[:])
+	buf, _, err := read(wf.FilePtr, -1, buffer[:])
 	if err != nil {
 		return 0, 0, 0, ShortReadError("WALFileType.readTransactionInfo")
 	}
@@ -585,7 +609,7 @@ func (wf *WALFileType) writeMessageID(mid MIDEnum) {
 }
 func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	var buffer [1]byte
-	buf, _, err := wf.read(-1, buffer[:])
+	buf, _, err := read(wf.FilePtr, -1, buffer[:])
 	if err != nil {
 		return 0, ShortReadError("WALFileType.ReadMessageID")
 	}
@@ -598,13 +622,13 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 }
 func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error) {
 	TGLen_Serialized := make([]byte, 8)
-	TGLen_Serialized, _, err = wf.read(-1, TGLen_Serialized)
+	TGLen_Serialized, _, err = read(wf.FilePtr, -1, TGLen_Serialized)
 	if err != nil {
 		return 0, nil, ShortReadError(io.GetCallerFileContext(0))
 	}
 	TGLen := io.ToInt64(TGLen_Serialized)
 
-	if !wf.sanityCheckValue(TGLen) {
+	if !sanityCheckValue(wf.FilePtr, TGLen) {
 		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", TGLen))
 	}
 
@@ -616,73 +640,106 @@ func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error
 	}
 	TGID = io.ToInt64(TG_Serialized[:7])
 
-	// Compute the checksum
-	hash := md5.New()
-	hash.Write(TGLen_Serialized)
-	hash.Write(TG_Serialized)
-	cksum := hash.Sum(nil)
-
 	// Read the checksum
 	checkBuf := make([]byte, 16)
 	n, err = wf.FilePtr.Read(checkBuf)
 	if n != 16 || err != nil {
 		return 0, nil, ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
 	}
-	if !bytes.Equal(cksum, checkBuf) {
-		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
+
+	if err := validateCheckSum(TGLen_Serialized, TG_Serialized, checkBuf); err != nil {
+		return 0, nil, err
 	}
 
 	return TGID, TG_Serialized, nil
 }
-func (wf *WALFileType) replayTGData(TG_Serialized []byte) (err error) {
-	TGID := io.ToInt64(TG_Serialized[0:8])
+
+func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
+	// compute the checksum
+	hash := md5.New()
+	hash.Write(tgLenSerialized)
+	hash.Write(tgSerialized)
+	cksum := hash.Sum(nil)
+
+	if !bytes.Equal(cksum, checkBuf) {
+		return fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
+	}
+
+	return nil
+}
+
+func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WTSet) {
+	TGID = io.ToInt64(TG_Serialized[0:8])
 	WTCount := io.ToInt64(TG_Serialized[8:16])
+
 	cursor := 16
-	if int(WTCount) != 0 {
-		cfp := NewCachedFP() // Cached open file pointer
-		defer cfp.Close()
-		for i := 0; i < int(WTCount); i++ {
-			RecordType := int(io.ToInt8(TG_Serialized[cursor : cursor+1]))
-			cursor += 1
-			FPLen := int(io.ToInt16(TG_Serialized[cursor : cursor+2]))
-			cursor += 2
-			WALKeyPath := bytes.NewBuffer(TG_Serialized[cursor : cursor+FPLen]).String()
-			cursor += FPLen
-			dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
-			cursor += 4
-			varRecLen := io.ToInt32(TG_Serialized[cursor : cursor+4])
-			cursor += 4
-			fullPath := wf.WALKeyToFullPath(WALKeyPath)
-			fp, err := cfp.GetFP(fullPath)
-			if err != nil {
+	wtSets = make([]WTSet, WTCount)
+
+	for i := 0; i < int(WTCount); i++ {
+		RecordType := int(io.ToInt8(TG_Serialized[cursor : cursor+1]))
+		cursor += 1
+		FPLen := int(io.ToInt16(TG_Serialized[cursor : cursor+2]))
+		cursor += 2
+		WALKeyPath := bytes.NewBuffer(TG_Serialized[cursor : cursor+FPLen]).String()
+		cursor += FPLen
+		dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
+		cursor += 4
+		varRecLen := io.ToInt32(TG_Serialized[cursor : cursor+4])
+		cursor += 4
+		fullPath := walKeyToFullPath(rootPath, WALKeyPath)
+		data := TG_Serialized[cursor : cursor+8+8+dataLen]
+		cursor += 8 + 8 + dataLen
+
+		wtSets[i] = WTSet{
+			RecordType: RecordType,
+			FilePath:   fullPath,
+			DataLen:    dataLen,
+			VarRecLen:  varRecLen,
+			Buffer:     data,
+		}
+	}
+
+	return TGID, wtSets
+}
+
+func (wf *WALFileType) replayTGData(tgID int64, wtSets []WTSet) (err error) {
+	if len(wtSets) == 0 {
+		return nil
+	}
+
+	cfp := NewCachedFP() // Cached open file pointer
+	defer cfp.Close()
+
+	for _, wtSet := range wtSets {
+		fp, err := cfp.GetFP(wtSet.FilePath)
+		if err != nil {
+			return err
+		}
+		switch io.EnumRecordType(wtSet.RecordType) {
+		case io.FIXED:
+			if err = WriteBufferToFile(fp, wtSet.Buffer); err != nil {
 				return err
 			}
-			switch io.EnumRecordType(RecordType) {
-			case io.FIXED:
-				if err = WriteBufferToFile(fp, TG_Serialized[cursor:cursor+8+8+dataLen]); err != nil {
-					return err
-				}
-			case io.VARIABLE:
-				// Find the record length - we need it to use the time column as a sort key later
-				if err = WriteBufferToFileIndirect(fp,
-					TG_Serialized[cursor:cursor+8+8+dataLen],
-					varRecLen,
-				); err != nil {
-					return err
-				}
-			default:
-				return fmt.Errorf("Error: Record Type is incorrect from WALFile, invalid/outdated WAL file?")
+		case io.VARIABLE:
+			// Find the record length - we need it to use the time column as a sort key later
+			if err = WriteBufferToFileIndirect(fp,
+				wtSet.Buffer,
+				wtSet.VarRecLen,
+			); err != nil {
+				return err
 			}
-			cursor += 8 + 8 + dataLen
+		default:
+			return fmt.Errorf("Error: Record Type is incorrect from WALFile, invalid/outdated WAL file?")
 		}
-		wf.lastCommittedTGID = TGID
-		wf.createCheckpoint()
 	}
+	wf.lastCommittedTGID = tgID
+	wf.createCheckpoint()
+
 	return nil
 }
 func (wf *WALFileType) ReadStatus() (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, OwningInstanceID int64, err error) {
 	var buffer [10]byte
-	buf, _, err := wf.read(-1, buffer[:])
+	buf, _, err := read(wf.FilePtr, -1, buffer[:])
 	return FileStatusEnum(buf[0]), ReplayStateEnum(buf[1]), io.ToInt64(buf[2:]), err
 }
 func (wf *WALFileType) IsOpen() bool {
@@ -755,9 +812,9 @@ func (wf *WALFileType) CanDeleteSafely() bool {
 	}
 	return true
 }
-func (wf *WALFileType) sanityCheckValue(value int64) (isSane bool) {
+func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 	// As a sanity check, get the file size to ensure that TGLen is reasonable prior to buffer allocations
-	fstat, _ := wf.FilePtr.Stat()
+	fstat, _ := fp.Stat()
 	sanityLen := 1000 * fstat.Size()
 	return value < sanityLen
 }

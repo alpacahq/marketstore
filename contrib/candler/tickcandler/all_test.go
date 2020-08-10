@@ -87,7 +87,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	}
 	rows := cdl.Output()
 	c.Assert(rows.Len(), Equals, 4)
-	tsa := rows.GetTime()
+	tsa, err := rows.GetTime()
 	tbase := time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
 	c.Assert(tsa[0] == tbase, Equals, true)
 	c.Assert(reflect.DeepEqual(rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200}), Equals, true)
@@ -109,7 +109,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	}
 	rows = cdl.Output()
 	c.Assert(rows.Len(), Equals, 4)
-	tsa = rows.GetTime()
+	tsa, err = rows.GetTime()
 	tbase = time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
 	c.Assert(tsa[0] == tbase, Equals, true)
 	c.Assert(reflect.DeepEqual(rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200}), Equals, true)

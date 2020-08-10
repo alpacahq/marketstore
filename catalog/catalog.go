@@ -423,6 +423,40 @@ func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
 	return catList
 }
 
+// ListTimeBucketKeyNames returns the list of TimeBucket keys
+// in "{symbol}/{timeframe}/{atrributeGroup}" format.
+func ListTimeBucketKeyNames(d *Directory) []string {
+	tbkMap := map[string]struct{}{}
+
+	d.RLock()
+	defer d.RUnlock()
+	// look up symbol->timeframe->attributeGroup directory recursively
+	// (e.g. "AAPL" -> "1Min" -> "Tick",  and store "AAPL/1Min/Tick" )
+	for symbol, symbolDir := range d.subDirs {
+		if symbolDir == nil {
+			continue
+		}
+		for timeframe, timeframeDir := range symbolDir.subDirs {
+			if timeframeDir == nil {
+				continue
+			}
+			for attributeGroup, _ := range timeframeDir.subDirs {
+				tbkMap[fmt.Sprintf("%s/%s/%s", symbol, timeframe, attributeGroup)] = struct{}{}
+			}
+		}
+	}
+
+	// convert Map keys to a string slice
+	i := 0
+	result := make([]string, len(tbkMap))
+	for tbk := range tbkMap {
+		result[i] = tbk
+		i++
+	}
+
+	return result
+}
+
 func (d *Directory) String() string {
 	// Must be thread-safe for READ access
 	printstring := "Node: " + d.itemName

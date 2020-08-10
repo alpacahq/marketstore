@@ -216,7 +216,7 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 	// Range.End with same other conditions.
 	csm = NewColumnSeriesMap()
 	catMap := r.pr.GetCandleAttributes()
-	rtMap := r.pr.GetRowType()
+	rtMap := r.pr.GetRecordType()
 	dsMap := r.pr.GetDataShapes()
 	rlMap := r.pr.GetRowLen()
 	for key, iop := range r.IOPMap {
@@ -389,12 +389,15 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 			if iop.RecordType == VARIABLE {
 				// If we've added data to the buffer from this file, record it for possible later use
 				if bytesRead > 0 {
+					bufMetaLen := bytesRead
+					// read enough amount of records
 					if bytesLeftToFill < 0 {
 						bytesLeftToFill = 0
+						bufMetaLen = int32(len(resultBuffer))
 					}
 					bufMeta = append(bufMeta, bufferMeta{
 						FullPath:  fp[i].FullPath,
-						Data:      resultBuffer[bytesLeftToFill:],
+						Data:      resultBuffer[bytesLeftToFill : bytesLeftToFill+bufMetaLen],
 						VarRecLen: iop.VariableRecordLen,
 						Intervals: fp[i].tbi.GetIntervals(),
 					})
@@ -420,7 +423,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 		if iop.RecordType == VARIABLE {
 			lenOF := len(bufMeta)
 			for i := 0; i < lenOF/2; i++ {
-				bufMeta[(lenOF-1)-i] = bufMeta[i]
+				bufMeta[(lenOF-1)-i], bufMeta[i] = bufMeta[i], bufMeta[(lenOF-1)-i]
 			}
 		}
 	}

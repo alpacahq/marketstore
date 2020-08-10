@@ -71,7 +71,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	}
 
 	// New grpc server.
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
+	)
 	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
 
 	// Spawn a goroutine and listen for a signal.

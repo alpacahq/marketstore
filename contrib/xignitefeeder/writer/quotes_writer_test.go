@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	May1st = time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC)
-	May2nd = time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)
-	May3rd = time.Date(2019, 5, 3, 0, 0, 0, 0, time.UTC)
+	May1st         = time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC)
+	May2nd         = time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)
+	May3rd         = time.Date(2019, 5, 3, 0, 0, 0, 0, time.UTC)
+	LastMarketDate = time.Date(2019, 5, 4, 0, 0, 0, 0, time.UTC)
 )
 
 func TestQuotesWriterImpl_Write(t *testing.T) {
@@ -33,30 +34,33 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 				Outcome:  "Success",
 				Security: &api.Security{Symbol: "1234"},
 				Quote: &api.Quote{
-					Ask:         123.4,
-					Bid:         567.8,
-					AskDateTime: api.XigniteDateTime(May1st),
-					BidDateTime: api.XigniteDateTime(May2nd),
+					Ask:            123.4,
+					Bid:            567.8,
+					AskDateTime:    api.XigniteDateTime(May1st),
+					BidDateTime:    api.XigniteDateTime(May2nd),
+					LastMarketDate: api.XigniteDay(LastMarketDate),
 				},
 			},
 			{
 				Outcome:  "Success",
 				Security: &api.Security{Symbol: "5678"},
 				Quote: &api.Quote{
-					Ask:         90.1,
-					Bid:         23.4,
-					AskDateTime: api.XigniteDateTime(May2nd),
-					BidDateTime: api.XigniteDateTime(May1st),
+					Ask:            90.1,
+					Bid:            23.4,
+					AskDateTime:    api.XigniteDateTime(May2nd),
+					BidDateTime:    api.XigniteDateTime(May1st),
+					LastMarketDate: api.XigniteDay(LastMarketDate),
 				},
 			},
 			{
 				Outcome:  "RequestError",
 				Security: &api.Security{Symbol: "9012"},
 				Quote: &api.Quote{
-					Ask:         123.4,
-					Bid:         567.8,
-					AskDateTime: api.XigniteDateTime(time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC)),
-					BidDateTime: api.XigniteDateTime(time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)),
+					Ask:            123.4,
+					Bid:            567.8,
+					AskDateTime:    api.XigniteDateTime(time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC)),
+					BidDateTime:    api.XigniteDateTime(time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)),
+					LastMarketDate: api.XigniteDay(LastMarketDate),
 				},
 			}},
 	}
@@ -112,11 +116,12 @@ func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
 				Outcome:  "Success",
 				Security: &api.Security{Symbol: "1234"},
 				Quote: &api.Quote{
-					Ask:         123.4,
-					Bid:         567.8,
-					AskDateTime: api.XigniteDateTime(May1st),
-					BidDateTime: api.XigniteDateTime(May1st),
-					UTCOffSet:   3, // which means the datetime is UTC+3:00
+					Ask:            123.4,
+					Bid:            567.8,
+					AskDateTime:    api.XigniteDateTime(May1st),
+					BidDateTime:    api.XigniteDateTime(May1st),
+					UTCOffSet:      3, // which means the datetime is UTC+3:00
+					LastMarketDate: api.XigniteDay(LastMarketDate),
 				},
 			},
 		},
