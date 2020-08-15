@@ -166,7 +166,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 	return iop, nil
 }
 
-type reader struct {
+type Reader struct {
 	pr     planner.ParseResult
 	IOPMap map[TimeBucketKey]*ioplan
 	// for packingReader to avoid redundant allocation.
@@ -175,8 +175,8 @@ type reader struct {
 	fileBuffer []byte
 }
 
-func NewReader(pr *planner.ParseResult) (r *reader, err error) {
-	r = new(reader)
+func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
+	r = new(Reader)
 	r.pr = *pr
 	if pr.Range == nil {
 		pr.Range = planner.NewDateRange()
@@ -207,7 +207,7 @@ func NewReader(pr *planner.ParseResult) (r *reader, err error) {
 	return r, nil
 }
 
-func (r *reader) Read() (csm ColumnSeriesMap, err error) {
+func (r *Reader) Read() (csm ColumnSeriesMap, err error) {
 	// TODO: Need to consider the huge buffer which use loooong time gap to query.
 	// Which probably cause out of memory issue and need new mechanism to handle
 	// those data and not just simply return one ColumnSeriesMap.
@@ -305,7 +305,7 @@ type bufferMeta struct {
 
 // Reads the data from files, removing holes. The resulting buffer will be packed
 // Uses the index that prepends each row to identify filled rows versus holes
-func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
+func (r *Reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 	// Number of bytes to buffer, some multiple of record length
 	// This should be at least bigger than 4096 and be better multiple of 4KB,
 	// which is the common io size on most of the storage/filesystem.
