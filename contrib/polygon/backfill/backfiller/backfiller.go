@@ -73,9 +73,9 @@ func main() {
 			log.Fatal("[polygon] failed to list symbols (%v)", err)
 		}
 
-		symbolList := make([]string, 1)
-		for _, s := range resp.Tickers {
-			symbolList = append(symbolList, s.Ticker)
+		symbolList = make([]string, len(resp.Tickers))
+		for i, s := range resp.Tickers {
+			symbolList[i] = s.Ticker
 		}
 	}
 	log.Info("[polygon] selected %v symbols", len(symbolList))
