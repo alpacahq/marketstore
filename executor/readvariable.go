@@ -9,7 +9,7 @@ import (
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-func (r *reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
+func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 	/*
 		Here we use the bufFileMap which has index data for each file, then we read
 		the target data into the resultBuffer up to the limitCount number of records

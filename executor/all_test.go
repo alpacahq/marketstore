@@ -121,8 +121,8 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	q := NewQuery(s.DataDirectory)
 	q.AddRestriction("Timeframe", "1Min")
@@ -174,8 +174,8 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	/*
 		Read the data back
@@ -211,8 +211,8 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	csm, err = reader.Read()
 	c.Assert(err == nil, Equals, true)
@@ -242,8 +242,8 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		writer.WriteRecords([]time.Time{ts}, buffer)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	q = NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "TEST-WV")
@@ -360,8 +360,8 @@ func (s *TestSuite) TestDelete(c *C) {
 	}
 	writer.WriteRecords(tsA, buffer)
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	endTime := tsA[len(tsA)-1]
 
@@ -667,7 +667,7 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	buffer, _ := Serialize([]byte{}, row)
 	w.WriteRecords([]time.Time{ts}, buffer)
 	c.Assert(err == nil, Equals, true)
-	err = ThisInstance.WALFile.flushToWAL(ThisInstance.TXNPipe)
+	err = ThisInstance.WALFile.FlushToWAL(ThisInstance.TXNPipe)
 	c.Assert(err == nil, Equals, true)
 
 	q = NewQuery(d)
@@ -705,8 +705,8 @@ func (s *TestSuite) TestWriter(c *C) {
 	buffer, _ := Serialize([]byte{}, row)
 	writer.WriteRecords([]time.Time{ts}, buffer)
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 }
 
 func (s *DestructiveWALTests) SetUpSuite(c *C) {
@@ -739,14 +739,14 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
 	originalFileContents := createBufferFromFiles(queryFiles, c)
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
 	// Verify that the file contents have not changed
 	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, true)
 
-	err = s.WALFile.createCheckpoint()
+	err = s.WALFile.CreateCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -760,7 +760,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 		c.Fail()
 	}
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -796,7 +796,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	// Note that at this point the files are unmodified
 	//	originalFileContents := createBufferFromFiles(tgc, c)
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -808,7 +808,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
 	c.Assert(int64(n), Equals, fsize)
 
-	err = s.WALFile.createCheckpoint()
+	err = s.WALFile.CreateCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -886,7 +886,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 		}
 	}
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -898,7 +898,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
 	c.Assert(int64(n) == fsize, Equals, true)
 
-	err = s.WALFile.createCheckpoint()
+	err = s.WALFile.CreateCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 		c.FailNow()
