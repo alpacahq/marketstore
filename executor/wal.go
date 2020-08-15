@@ -3,12 +3,9 @@ package executor
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/alpacahq/marketstore/replication"
 	goio "io"
 	"os"
 	"time"
-
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
 	"bytes"
 	"io/ioutil"
@@ -16,6 +13,8 @@ import (
 	"sort"
 
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -31,11 +30,11 @@ type WALFileType struct {
 	ReplayState      ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath          string             // Path to the root directory, base of FileName
-	FilePath          string             // WAL file full path
-	lastCommittedTGID int64              // TGID to be checkpointed
-	FilePtr           *os.File           // Active file pointer to FileName
-	ReplicationSender replication.Sender // send messages to replica servers
+	RootPath          string              // Path to the root directory, base of FileName
+	FilePath          string              // WAL file full path
+	lastCommittedTGID int64               // TGID to be checkpointed
+	FilePtr           *os.File            // Active file pointer to FileName
+	ReplicationSender *replication.Sender // send messages to replica servers
 }
 
 type TransactionGroup struct {
@@ -58,10 +57,10 @@ type WTSet struct {
 	// (The sum of field lengths in elementTypes) + 4 bytes(for intervalTicks)
 	VarRecLen int32
 	// Data bytes
-	Buffer offsetIndexBuffer
+	Buffer OffsetIndexBuffer
 }
 
-func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
+func NewWALFile(rootDir string, existingFilePath string, rs *replication.Sender) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
 	wf.ReplicationSender = rs
@@ -319,7 +318,7 @@ func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
 		wf.FilePtr.Sync() // Flush the OS buffer
 
 		// send transaction to replicas
-		wf.ReplicationChannel <- TG_Serialized
+		wf.ReplicationSender.Send(TG_Serialized)
 	}
 
 	/*
@@ -818,7 +817,7 @@ func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 	sanityLen := 1000 * fstat.Size()
 	return value < sanityLen
 }
-func (wf *WALFileType) cleanupOldWALFiles(rootDir string, rs replication.Sender) {
+func (wf *WALFileType) cleanupOldWALFiles(rootDir string, rs *replication.Sender) {
 	rootDir = filepath.Clean(rootDir)
 	files, err := ioutil.ReadDir(rootDir)
 	if err != nil {
@@ -856,7 +855,7 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string, rs replication.Sender)
 	}
 }
 
-func StartupCacheAndWAL(rootDir string, rs replication.Sender) (tgc *TransactionPipe, wf *WALFileType, err error) {
+func StartupCacheAndWAL(rootDir string, rs *replication.Sender) (tgc *TransactionPipe, wf *WALFileType, err error) {
 	wf, err = NewWALFile(rootDir, "", rs)
 	if err != nil {
 		log.Error("%s", err.Error())

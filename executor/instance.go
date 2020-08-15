@@ -1,14 +1,16 @@
 package executor
 
 import (
+	"github.com/alpacahq/marketstore/v4/utils"
+	"google.golang.org/grpc"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/alpacahq/marketstore/v4/replication"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var ThisInstance *InstanceMetadata
@@ -27,7 +29,7 @@ type InstanceMetadata struct {
 	TriggerMatchers    []*trigger.TriggerMatcher
 }
 
-func NewInstanceSetup(relRootDir string, options ...bool) {
+func NewInstanceSetup(relRootDir string, grpcServer *grpc.Server, options ...bool) {
 	/*
 		Defaults
 	*/
@@ -70,12 +72,19 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 			ThisInstance.TXNPipe = NewTransactionPipe()
 			ThisInstance.WALFile = &WALFileType{RootPath: ThisInstance.RootDir}
 		} else {
-			replicationSender := replication.NewSender(
-				replication.NewGRPCReplicationService())
+			// initialize grpc server for replication
+			grpcReplicationServer, err := replication.NewGRPCReplicationService(
+				grpcServer,
+				utils.InstanceConfig.Replication.Port,
+			)
+			if err != nil {
+				log.Fatal("Unable to startup gRPC server for replication")
+			}
+			replicationSender := replication.NewSender(grpcReplicationServer)
 
-			walReceiver := replication.NewReceiver()
+			//walReceiver := replication.NewReceiver()
 
-			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, replicationChannel)
+			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, replicationSender)
 			if err != nil {
 				log.Fatal("Unable to startup Cache and WAL")
 			}

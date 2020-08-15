@@ -2,9 +2,9 @@ package replication
 
 import (
 	"context"
+	"fmt"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 )
 
 type Receiver struct {
@@ -29,15 +29,17 @@ func (r *Receiver) Run(ctx context.Context) error {
 	go func(ctx context.Context) {
 		for {
 			// block until receive a new wal message
-			wal,err := r.GRPCClient.Recv()
+			serializedTransactionGroup, err := r.GRPCClient.Recv()
 			if err != nil {
 				log.Error("an error occurred while receiving a wal message from master instance")
 				break
 			}
 
-			replay(wal)
+			replay(serializedTransactionGroup)
 		}
 	}(ctx)
+
+	return nil
 }
 
 //func (r *Receiver) GetMessage() error {
@@ -52,4 +54,7 @@ func (r *Receiver) Run(ctx context.Context) error {
 //	return nil
 //}
 
-func Replay()
+func replay(serializedTransactionGroup []byte) {
+	fmt.Println("受信しました！")
+	println(serializedTransactionGroup)
+}

@@ -1,39 +1,40 @@
 package replication
 
 import (
-	"github.com/pkg/errors"
 	"log"
+)
+
+const (
+	defaultSenderChannelSize = 500
 )
 
 type ReplicationService interface {
 }
 
 type Sender struct {
-	ReplService  *GRPCReplicationServer
+	ReplService *GRPCReplicationServer
 	//ReplicaHosts []string
-	Port         int
-	Channel      chan []byte
+	channel chan []byte
 }
 
-func NewSender(service *GRPCReplicationServer, port int) *Sender {
-	c := make(chan []byte)
+func NewSender(service *GRPCReplicationServer) *Sender {
+	c := make(chan []byte, defaultSenderChannelSize)
 
 	return &Sender{
-		ReplService:  service,
-		Port:         port,
-		Channel: c,
+		ReplService: service,
+		channel:     c,
 	}
 }
 
-func (s *Sender) initialize() error {
+//func (s *Sender) initialize() error {
+//
+//	return nil
+//}
 
-	return nil
-}
-
-func (s *Sender) Run(resc chan []byte) error {
-	if err := s.initialize(); err != nil {
-		return errors.Wrap(err, "an error occurred while serving replication service")
-	}
+func (s *Sender) Run() error {
+	//if err := s.initialize(); err != nil {
+	//	return errors.Wrap(err, "an error occurred while serving replication service")
+	//}
 
 	go func(resc chan []byte) {
 		for {
@@ -43,7 +44,7 @@ func (s *Sender) Run(resc chan []byte) error {
 				println(transactionGroup)
 			}
 		}
-	}(resc)
+	}(s.channel)
 
 	return nil
 }
@@ -52,6 +53,6 @@ func (s *Sender) replicate() {
 
 }
 
-func (s *Sender) Send(walMessage []byte) {
-	s.ReplService.SendMessage()
+func (s *Sender) Send(serializedTransactionGroup []byte) {
+	s.channel <- serializedTransactionGroup
 }

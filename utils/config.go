@@ -17,6 +17,10 @@ func init() {
 	InstanceConfig.Timezone = time.UTC
 }
 
+type ReplicationSetting struct {
+	Port int
+}
+
 type TriggerSetting struct {
 	Module string
 	On     string
@@ -50,6 +54,7 @@ type MktsConfig struct {
 	WALBypass                  bool
 	ClusterMode                bool
 	StartTime                  time.Time
+	Replication                ReplicationSetting
 	Triggers                   []*TriggerSetting
 	BgWorkers                  []*BgWorkerSetting
 }
@@ -79,7 +84,11 @@ func (m *MktsConfig) Parse(data []byte) error {
 			BackgroundSync             string `yaml:"background_sync"`
 			WALBypass                  string `yaml:"wal_bypass"`
 			ClusterMode                string `yaml:"cluster_mode"`
-			Triggers                   []struct {
+			Replication                struct {
+				// Port is the listen port for replication master
+				Port int `yaml:"port"`
+			} `yaml:"replication"`
+			Triggers []struct {
 				Module string                 `yaml:"module"`
 				On     string                 `yaml:"on"`
 				Config map[string]interface{} `yaml:"config"`
@@ -244,6 +253,14 @@ func (m *MktsConfig) Parse(data []byte) error {
 		if err != nil {
 			log.Error("Invalid value for ClusterMode")
 		}
+	}
+
+	m.Replication = ReplicationSetting{
+		Port: 5996, // default listen port for Replication master
+	}
+
+	if aux.Replication.Port != 0 {
+		m.Replication.Port = aux.Replication.Port
 	}
 
 	m.RootDirectory = aux.RootDirectory

@@ -159,17 +159,17 @@ message MessagesRequest {
     string id = 1;
 }
 
-message Message {
-    string id = 1;
-    string name = 2;
-    string content = 3;
-}
+//message Message {
+//    string id = 1;
+//    string name = 2;
+//    string content = 3;
+//}
 
 service Replication {
     rpc GetWALStream (GetWALStreamRequest) returns (stream WALMessage);
 //    rpc GetWALStream (GetWALStreamRequest) returns (stream WALMessage);
-    // Client-side streamingを用いてメッセージを交換する
-    rpc SendMessage (stream SendRequest) returns (SendResult);
-    // Server-side streamingを用いてメッセージを交換する
-    rpc GetMessages (MessagesRequest) returns (stream Message);
+//    // Client-side streamingを用いてメッセージを交換する
+//    rpc SendMessage (stream SendRequest) returns (SendResult);
+//    // Server-side streamingを用いてメッセージを交換する
+//    rpc GetMessages (MessagesRequest) returns (stream Message);
 }

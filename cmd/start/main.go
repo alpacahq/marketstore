@@ -70,12 +70,18 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
 
-	// New grpc server.
+	// New grpc server for marketstore API.
 	grpcServer := grpc.NewServer(
 		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
 		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
 	)
 	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
+
+	// New gRPC stream server for replication.
+	grpcReplicationServer := grpc.NewServer(
+		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
+	)
 
 	// Spawn a goroutine and listen for a signal.
 	signalChan := make(chan os.Signal)
@@ -90,7 +96,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			case syscall.SIGTERM:
 				log.Info("initiating graceful shutdown due to '%v' request", s)
 				grpcServer.GracefulStop()
-				// grpcReplicationServer.GracefulStop()
+				grpcReplicationServer.GracefulStop()
 				// grpcReplicationClient.GracefulStop()
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
@@ -108,10 +114,12 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	//
 	executor.NewInstanceSetup(
 		utils.InstanceConfig.RootDirectory,
+		grpcReplicationServer,
 		utils.InstanceConfig.InitCatalog,
 		utils.InstanceConfig.InitWALCache,
 		utils.InstanceConfig.BackgroundSync,
-		utils.InstanceConfig.WALBypass)
+		utils.InstanceConfig.WALBypass,
+	)
 
 	// New server.
 	server, _ := frontend.NewServer()

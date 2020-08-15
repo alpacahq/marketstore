@@ -57,7 +57,7 @@ func NewLocalClient(dir string) (c *Client, err error) {
 	// Configure db settings.
 	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	utils.InstanceConfig.WALRotateInterval = 5
-	executor.NewInstanceSetup(dir, initCatalog, initWALCache, backgroundSync, WALBypass)
+	executor.NewInstanceSetup(dir, nil,initCatalog, initWALCache, backgroundSync, WALBypass)
 	return &Client{dir: dir, mode: local}, nil
 }
 
