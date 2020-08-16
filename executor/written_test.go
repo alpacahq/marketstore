@@ -58,6 +58,4 @@ func (s *WrittenIndexesTests) TestWrittenIndexes(c *C) {
 	t.toPanic = true
 	dispatchRecords()
 	c.Check(len(t.calledWith), Equals, 0)
-
-	FinishAndWait()
 }
