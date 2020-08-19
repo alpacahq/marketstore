@@ -89,7 +89,7 @@ func (wf *WALFileType) createFile(rootDir string) error {
 	wf.FilePath = fmt.Sprintf("%s.%d", wf.FilePath, nowNano)
 	wf.FilePath = wf.FilePath + ".walfile"
 	// Try to open the file for writing, creating it in the process
-	err := wf.Open()
+	err := wf.open()
 	if err != nil {
 		return WALCreateError("CreateFile" + err.Error())
 	}
@@ -98,7 +98,7 @@ func (wf *WALFileType) createFile(rootDir string) error {
 func (wf *WALFileType) takeOverFile(rootDir string, existingPath string) error {
 	wf.RootPath = rootDir
 	wf.FilePath = existingPath
-	err := wf.Open()
+	err := wf.open()
 	if err != nil {
 		return WALTakeOverError("TakeOverFile" + err.Error())
 	}
@@ -107,7 +107,7 @@ func (wf *WALFileType) takeOverFile(rootDir string, existingPath string) error {
 	}
 	return nil
 }
-func (wf *WALFileType) Open() error {
+func (wf *WALFileType) open() error {
 	var err error
 	wf.FilePtr, err = os.OpenFile(wf.FilePath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
@@ -115,7 +115,7 @@ func (wf *WALFileType) Open() error {
 	}
 	return nil
 }
-func (wf *WALFileType) Close(ReplayStatus ReplayStateEnum) {
+func (wf *WALFileType) close(ReplayStatus ReplayStateEnum) {
 	wf.WriteStatus(CLOSED, ReplayStatus)
 	wf.FilePtr.Close()
 }
@@ -133,7 +133,7 @@ func (wf *WALFileType) Delete() (err error) {
 		return fmt.Errorf("WAL File needs replay")
 	}
 
-	wf.Close(REPLAYED)
+	wf.close(REPLAYED)
 	if err = os.Remove(wf.FilePath); err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": Can not remove WALFile")
 	}
@@ -196,38 +196,8 @@ func (b OffsetIndexBuffer) Payload() []byte {
 	return b[16:]
 }
 
-type CachedFP struct {
-	fileName string
-	fp       *os.File
-}
-
-func NewCachedFP() *CachedFP {
-	return new(CachedFP)
-}
-
-func (cfp *CachedFP) GetFP(fileName string) (fp *os.File, err error) {
-	if fileName == cfp.fileName {
-		return cfp.fp, nil
-	} else if len(cfp.fileName) != 0 {
-		cfp.fp.Close()
-	}
-	cfp.fp, err = os.OpenFile(fileName, os.O_RDWR, 0700)
-	if err != nil {
-		return nil, err
-	}
-	cfp.fileName = fileName
-	return cfp.fp, nil
-}
-
-func (cfp *CachedFP) Close() error {
-	if cfp.fp != nil {
-		return cfp.fp.Close()
-	}
-	return nil
-}
-
 // A.k.a. Commit transaction
-func (wf *WALFileType) flushToWAL(tgc *TransactionPipe) (err error) {
+func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	/*
 		Here we flush the contents of the write cache to:
 		- Primary storage via the OS write cache - data is visible to readers
@@ -378,11 +348,11 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []OffsetIndexBuffer, 
 	return nil
 }
 
-// createCheckpoint flushes all primary dirty pages to disk, and
+// CreateCheckpoint flushes all primary dirty pages to disk, and
 // so closes out the previous WAL state to end.  Note, this is
-// not goroutine-safe with flushToWAL and caller should make sure
+// not goroutine-safe with FlushToWAL and caller should make sure
 // it is streamlined.
-func (wf *WALFileType) createCheckpoint() error {
+func (wf *WALFileType) CreateCheckpoint() error {
 	if wf.lastCommittedTGID == 0 {
 		return nil
 	}
@@ -732,7 +702,7 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []WTSet) (err error) {
 		}
 	}
 	wf.lastCommittedTGID = tgID
-	wf.createCheckpoint()
+	wf.CreateCheckpoint()
 
 	return nil
 }
@@ -882,23 +852,23 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 		if !ThisInstance.ShutdownPending {
 			select {
 			case <-tickerWAL.C:
-				if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
+				if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {
 					log.Fatal(err.Error())
 				}
 			case f := <-ThisInstance.TXNPipe.flushChannel:
-				if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
+				if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {
 					log.Fatal(err.Error())
 				}
 				f <- struct{}{}
 			case <-tickerCheck.C:
 				queued := len(ThisInstance.TXNPipe.writeChannel)
 				if float64(queued)/float64(chanCap) >= 0.8 {
-					if err := wf.flushToWAL(ThisInstance.TXNPipe); err != nil {
+					if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {
 						log.Fatal(err.Error())
 					}
 				}
 			case <-tickerPrimary.C:
-				wf.createCheckpoint()
+				wf.CreateCheckpoint()
 				primaryFlushCounter++
 				if primaryFlushCounter%walRotateInterval == 0 {
 					log.Info("Truncating WAL file...")
@@ -910,9 +880,9 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 		} else {
 			haveWALWriter = false
 			log.Info("Flushing to WAL...")
-			wf.flushToWAL(ThisInstance.TXNPipe)
+			wf.FlushToWAL(ThisInstance.TXNPipe)
 			log.Info("Flushing to disk...")
-			wf.createCheckpoint()
+			wf.CreateCheckpoint()
 			ThisInstance.WALWg.Done()
 			return
 		}
@@ -926,7 +896,7 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 // present in the write channel, as it will flush as soon as possible.
 func (wf *WALFileType) RequestFlush() {
 	if !haveWALWriter {
-		wf.flushToWAL(ThisInstance.TXNPipe)
+		wf.FlushToWAL(ThisInstance.TXNPipe)
 		return
 	}
 	// if there's already a queued flush, no need to queue another
