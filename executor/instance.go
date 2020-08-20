@@ -14,7 +14,6 @@ import (
 var ThisInstance *InstanceMetadata
 
 type InstanceMetadata struct {
-	InstanceID      int64
 	RootDir         string
 	CatalogDir      *catalog.Directory
 	TXNPipe         *TransactionPipe
@@ -55,7 +54,7 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 	if err != nil {
 		log.Error("Cannot take absolute path of root directory %s", err.Error())
 	}
-	ThisInstance.InstanceID = time.Now().UTC().UnixNano()
+	instanceID := time.Now().UTC().UnixNano()
 	ThisInstance.RootDir = rootDir
 	// Initialize a global catalog
 	if initCatalog {
@@ -66,9 +65,12 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile = &WALFileType{RootPath: ThisInstance.RootDir}
+			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID)
+			if err != nil {
+				log.Fatal("Unable to create WAL")
+			}
 		} else {
-			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir)
+			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID)
 			if err != nil {
 				log.Fatal("Unable to startup Cache and WAL")
 			}

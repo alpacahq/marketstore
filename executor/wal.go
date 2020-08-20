@@ -7,14 +7,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
 	"sort"
 
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -26,8 +26,8 @@ import (
 
 type WALFileType struct {
 	// These three fields plus the MID form the WAL Header, written at the beginning of the WAL File
-	FileStatus       FileStatusEnum
-	ReplayState      ReplayStateEnum
+	FileStatus       wal.FileStatusEnum
+	ReplayState      wal.ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
 	RootPath          string   // Path to the root directory, base of FileName
@@ -59,25 +59,45 @@ type WTSet struct {
 	Buffer offsetIndexBuffer
 }
 
-func NewWALFile(rootDir string, existingFilePath string) (wf *WALFileType, err error) {
+func NewWALFile(rootDir string, owningInstanceID int64) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
+	wf.OwningInstanceID = owningInstanceID
 
-	if len(existingFilePath) == 0 {
-		if err = wf.createFile(rootDir); err != nil {
-			log.Fatal("%v: Can not create new WALFile - Error: %v", io.GetCallerFileContext(0), err)
-		}
-		wf.WriteStatus(OPEN, NOTREPLAYED)
-	} else {
-		if err = wf.takeOverFile(rootDir, existingFilePath); err != nil {
-			log.Fatal("%v: Can not take over existing WALFile - Error: %v", io.GetCallerFileContext(0), err)
-		}
-		// We call this to take over the file by writing our PID to it
-		fileStatus, replayState, _ := wf.readStatus()
-		wf.WriteStatus(fileStatus, replayState)
+	if err = wf.createFile(rootDir); err != nil {
+		log.Fatal("%v: Can not create new WALFile - Error: %v", io.GetCallerFileContext(0), err)
 	}
+	wf.WriteStatus(wal.OPEN, wal.NOTREPLAYED)
+
 	return wf, nil
 }
+
+// TakeOverWALFile opens an existing wal file and returns WALFileType for it.
+func TakeOverWALFile(rootDir, fileName string) (wf *WALFileType, err error) {
+	wf = new(WALFileType)
+	wf.lastCommittedTGID = 0
+	wf.RootPath = rootDir
+	wf.FilePath = filepath.Join(rootDir, fileName)
+
+	err = wf.open()
+	if err != nil {
+		return nil, WALTakeOverError("TakeOverFile" + err.Error())
+	}
+
+	fileStatus, replayState, owningInstanceID := readStatus(wf.FilePtr)
+	if wf.callerOwnsFile(owningInstanceID) {
+		return nil, WALTakeOverError("TakeOver: File file is owned by calling process")
+	}
+	wf.OwningInstanceID = owningInstanceID
+
+	// We call this to take over the file by writing our PID to it
+	wf.WriteStatus(fileStatus, replayState)
+
+	return wf, nil
+}
+
+// createFile creates a WAL file in "{rootDir}/WALFile.{currentEpochNanoSecondInUTC}.walfile" format.
+// it doesn't return an error even if another WAL file has already been created.
 func (wf *WALFileType) createFile(rootDir string) error {
 	wf.RootPath = rootDir
 	now := time.Now().UTC()
@@ -85,25 +105,14 @@ func (wf *WALFileType) createFile(rootDir string) error {
 	wf.FilePath = filepath.Join(rootDir, "WALFile")
 	wf.FilePath = fmt.Sprintf("%s.%d", wf.FilePath, nowNano)
 	wf.FilePath = wf.FilePath + ".walfile"
-	// Try to open the file for writing, creating it in the process
+	// Try to open the file for writing, creating it in the process if it doesn't exist
 	err := wf.open()
 	if err != nil {
 		return WALCreateError("CreateFile" + err.Error())
 	}
 	return nil
 }
-func (wf *WALFileType) takeOverFile(rootDir string, existingPath string) error {
-	wf.RootPath = rootDir
-	wf.FilePath = existingPath
-	err := wf.open()
-	if err != nil {
-		return WALTakeOverError("TakeOverFile" + err.Error())
-	}
-	if wf.callerOwnsFile() {
-		return WALTakeOverError("TakeOver: File file is owned by calling process")
-	}
-	return nil
-}
+
 func (wf *WALFileType) open() error {
 	var err error
 	wf.FilePtr, err = os.OpenFile(wf.FilePath, os.O_CREATE|os.O_RDWR, 0600)
@@ -112,16 +121,20 @@ func (wf *WALFileType) open() error {
 	}
 	return nil
 }
-func (wf *WALFileType) close(ReplayStatus ReplayStateEnum) {
-	wf.WriteStatus(CLOSED, ReplayStatus)
+func (wf *WALFileType) close(ReplayStatus wal.ReplayStateEnum) {
+	wf.WriteStatus(wal.CLOSED, ReplayStatus)
 	wf.FilePtr.Close()
 }
-func (wf *WALFileType) Delete() (err error) {
+func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
+	if !wf.canDeleteSafely(callersInstanceID) {
+		log.Fatal("BUG: cannot delete the current instance's WALfile: %s", wf.FilePath)
+	}
+
 	if !wf.IsOpen() {
 		log.Warn(io.GetCallerFileContext(0) + ": Can not delete open WALFile")
 		return fmt.Errorf("WAL File is open")
 	}
-	if wf.isActive() {
+	if wf.isActive(callersInstanceID) {
 		log.Warn(io.GetCallerFileContext(0) + ": Can not delete active WALFile")
 		return fmt.Errorf("WAL File is active")
 	}
@@ -130,37 +143,14 @@ func (wf *WALFileType) Delete() (err error) {
 		return fmt.Errorf("WAL File needs replay")
 	}
 
-	wf.close(REPLAYED)
+	wf.close(wal.REPLAYED)
 	if err = os.Remove(wf.FilePath); err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": Can not remove WALFile")
 	}
 
 	return nil
 }
-func read(fp *os.File, targetOffset int64, buffer []byte) (result []byte, newOffset int64, err error) {
-	/*
-		Read from the WAL file
-			targetOffset: -1 will read from current position
-	*/
-	offset, err := fp.Seek(0, os.SEEK_CUR)
-	if err != nil {
-		log.Fatal(io.GetCallerFileContext(0) + ": Unable to seek in WALFile")
-	}
-	if targetOffset != -1 {
-		if offset != targetOffset {
-			fp.Seek(targetOffset, os.SEEK_SET)
-		}
-	}
-	numToRead := len(buffer)
-	n, err := fp.Read(buffer)
-	if n != numToRead {
-		msg := fmt.Sprintf("Read: Expected: %d Got: %d", numToRead, n)
-		err = ShortReadError(msg)
-	} else if err != nil {
-		log.Fatal(io.GetCallerFileContext(0) + ": Unable to read WALFile")
-	}
-	return buffer, offset + int64(n), err
-}
+
 func FullPathToWALKey(rootPath, fullPath string) (keyPath string) {
 	/*
 		NOTE: This key includes the year filename at the end of the metadata key
@@ -249,7 +239,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	}
 
 	if !WALBypass {
-		if !wf.CanWrite("WriteTG") {
+		if !wf.CanWrite("WriteTG", wf.OwningInstanceID) {
 			panic("Failed attempt to write to WAL")
 		}
 
@@ -426,7 +416,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 
 	// Take control of this file and set the status
 	if writeData {
-		wf.WriteStatus(OPEN, REPLAYINPROCESS)
+		wf.WriteStatus(wal.OPEN, wal.REPLAYINPROCESS)
 	}
 
 	// First pass of WAL Replay: determine transaction states and record locations of TG data
@@ -437,7 +427,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	fullRead := func(err error) bool {
 		// Check to see if we have read only partial data
 		if err != nil {
-			if _, ok := err.(ShortReadError); ok {
+			if _, ok := err.(wal.ShortReadError); ok {
 				log.Info("Partial Read")
 				return false
 			} else {
@@ -501,7 +491,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			}
 		case STATUS:
 			// Read the status - note that this message should only be at the file beginning
-			_, _, _, err := wf.ReadStatus()
+			_, _, _, err := wal.ReadStatus(wf.FilePtr)
 			if continueRead = fullRead(err); !continueRead {
 				break // Break out of switch
 			}
@@ -540,21 +530,20 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	}
 	log.Info("Replay of WAL file %s finished", wf.FilePath)
 	if writeData {
-		wf.WriteStatus(OPEN, REPLAYED)
+		wf.WriteStatus(wal.OPEN, wal.REPLAYED)
 	}
 
 	log.Info("Finished replay of TGData")
 	return nil
 }
-func (wf *WALFileType) WriteStatus(FileStatus FileStatusEnum, ReplayState ReplayStateEnum) {
+func (wf *WALFileType) WriteStatus(FileStatus wal.FileStatusEnum, ReplayState wal.ReplayStateEnum) {
 	wf.FileStatus = FileStatus
 	wf.ReplayState = ReplayState
 	// This process now owns this file
-	wf.OwningInstanceID = ThisInstance.InstanceID
 	buffer := wf.initMessage(STATUS)
 	buffer, _ = io.Serialize(buffer, int8(wf.FileStatus))
 	buffer, _ = io.Serialize(buffer, int8(wf.ReplayState))
-	buffer, _ = io.Serialize(buffer, int64(wf.OwningInstanceID))
+	buffer, _ = io.Serialize(buffer, wf.OwningInstanceID)
 	wf.FilePtr.Seek(0, os.SEEK_SET)
 	wf.FilePtr.Write(buffer)
 	wf.FilePtr.Sync()
@@ -572,9 +561,9 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 }
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
 	var buffer [10]byte
-	buf, _, err := read(wf.FilePtr, -1, buffer[:])
+	buf, _, err := wal.Read(wf.FilePtr, -1, buffer[:])
 	if err != nil {
-		return 0, 0, 0, ShortReadError("WALFileType.readTransactionInfo")
+		return 0, 0, 0, wal.ShortReadError("WALFileType.readTransactionInfo")
 	}
 	tgid, destination, txnStatus = io.ToInt64(buf), DestEnum(buf[8]), TxnStatusEnum(buf[9])
 	switch destination {
@@ -601,9 +590,9 @@ func (wf *WALFileType) writeMessageID(mid MIDEnum) {
 }
 func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	var buffer [1]byte
-	buf, _, err := read(wf.FilePtr, -1, buffer[:])
+	buf, _, err := wal.Read(wf.FilePtr, -1, buffer[:])
 	if err != nil {
-		return 0, ShortReadError("WALFileType.ReadMessageID")
+		return 0, wal.ShortReadError("WALFileType.ReadMessageID")
 	}
 	MID := MIDEnum(buf[0])
 	switch MID {
@@ -614,9 +603,9 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 }
 func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error) {
 	TGLen_Serialized := make([]byte, 8)
-	TGLen_Serialized, _, err = read(wf.FilePtr, -1, TGLen_Serialized)
+	TGLen_Serialized, _, err = wal.Read(wf.FilePtr, -1, TGLen_Serialized)
 	if err != nil {
-		return 0, nil, ShortReadError(io.GetCallerFileContext(0))
+		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0))
 	}
 	TGLen := io.ToInt64(TGLen_Serialized)
 
@@ -628,7 +617,7 @@ func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error
 	TG_Serialized = make([]byte, TGLen)
 	n, err := wf.FilePtr.Read(TG_Serialized)
 	if int64(n) != TGLen || err != nil {
-		return 0, nil, ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
+		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
 	}
 	TGID = io.ToInt64(TG_Serialized[:7])
 
@@ -636,7 +625,7 @@ func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error
 	checkBuf := make([]byte, 16)
 	n, err = wf.FilePtr.Read(checkBuf)
 	if n != 16 || err != nil {
-		return 0, nil, ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
+		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
 	}
 
 	if err := validateCheckSum(TGLen_Serialized, TG_Serialized, checkBuf); err != nil {
@@ -729,18 +718,14 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []WTSet) (err error) {
 
 	return nil
 }
-func (wf *WALFileType) ReadStatus() (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, OwningInstanceID int64, err error) {
-	var buffer [10]byte
-	buf, _, err := read(wf.FilePtr, -1, buffer[:])
-	return FileStatusEnum(buf[0]), ReplayStateEnum(buf[1]), io.ToInt64(buf[2:]), err
-}
+
 func (wf *WALFileType) IsOpen() bool {
 	_, err := wf.FilePtr.Stat()
 	if err != nil {
 		log.Info(io.GetCallerFileContext(0) + ": File stat failed, file probably deleted: " + err.Error())
 		return false
 	}
-	if wf.FileStatus != OPEN {
+	if wf.FileStatus != wal.OPEN {
 		log.Info(io.GetCallerFileContext(0) + ": File not opened")
 		return false
 	}
@@ -751,48 +736,49 @@ func (wf *WALFileType) syncStatusRead() {
 	if err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": File stat failed")
 	}
-	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = wf.readStatus()
+	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = readStatus(wf.FilePtr)
 }
-func (wf *WALFileType) readStatus() (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, owningInstanceID int64) {
+func readStatus(filePtr *os.File) (fileStatus wal.FileStatusEnum, replayStatus wal.ReplayStateEnum, owningInstanceID int64) {
 	// Read from beginning of file +1 to skip over the MID
-	wf.FilePtr.Seek(1, os.SEEK_SET)
+	filePtr.Seek(1, os.SEEK_SET)
 	var err error
-	fileStatus, replayStatus, owningInstanceID, err = wf.ReadStatus()
+	fileStatus, replayStatus, owningInstanceID, err = wal.ReadStatus(filePtr)
 	if err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": Unable to ReadStatus()")
 	}
 	//	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = fileStatus, replayStatus, owningInstanceID
 	// Reset the file pointer to the end of the file
-	wf.FilePtr.Seek(0, os.SEEK_END)
+	filePtr.Seek(0, os.SEEK_END)
 	return fileStatus, replayStatus, owningInstanceID
 }
-func (wf *WALFileType) callerOwnsFile() bool {
+
+func (wf *WALFileType) callerOwnsFile(callersInstanceID int64) bool {
 	// syncStatus() should be called prior to this
-	return ThisInstance.InstanceID == wf.OwningInstanceID
+	return callersInstanceID == wf.OwningInstanceID
 }
-func (wf *WALFileType) isActive() bool {
+func (wf *WALFileType) isActive(callersInstanceID int64) bool {
 	// syncStatus() should be called prior to this
 	rState := wf.ReplayState
-	return wf.IsOpen() && wf.callerOwnsFile() && rState == NOTREPLAYED
+	return wf.IsOpen() && wf.callerOwnsFile(callersInstanceID) && rState == wal.NOTREPLAYED
 }
 func (wf *WALFileType) NeedsReplay() bool {
 	wf.syncStatusRead()
-	if wf.ReplayState == NOTREPLAYED || wf.ReplayState == REPLAYINPROCESS {
+	if wf.ReplayState == wal.NOTREPLAYED || wf.ReplayState == wal.REPLAYINPROCESS {
 		return true
 	}
 	return false
 }
-func (wf *WALFileType) CanWrite(msg string) bool {
+func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) bool {
 	wf.syncStatusRead()
-	if !wf.isActive() {
+	if !wf.isActive(callersInstanceID) {
 		log.Warn(io.GetCallerFileContext(0) + ": Inactive WALFile")
 		return false
 	}
 	return true
 }
-func (wf *WALFileType) CanDeleteSafely() bool {
+func (wf *WALFileType) canDeleteSafely(callersInstanceID int64) bool {
 	wf.syncStatusRead()
-	if wf.isActive() {
+	if wf.isActive(callersInstanceID) {
 		log.Warn(io.GetCallerFileContext(0) + ": WALFile is active, can not delete")
 		return false
 	}
@@ -828,17 +814,15 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 						log.Info("WALFILE: %s is empty, removing it...", filename)
 						os.Remove(filePath)
 					} else {
-						w, err := NewWALFile(rootDir, filePath)
+						w, err := TakeOverWALFile(rootDir, filename)
 						if err != nil {
 							log.Fatal("Opening %s\n%s", filename, err)
 						}
 						if err = w.Replay(true); err != nil {
 							log.Fatal("Unable to replay %s\n%s", filename, err)
 						}
-						if !w.CanDeleteSafely() {
-							log.Fatal("Unable to delete %s after replay", filename)
-						}
-						w.Delete()
+
+						w.Delete(wf.OwningInstanceID)
 					}
 				}
 			}
@@ -846,8 +830,8 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	}
 }
 
-func StartupCacheAndWAL(rootDir string) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, "")
+func StartupCacheAndWAL(rootDir string, owningInstanceID int64) (tgc *TransactionPipe, wf *WALFileType, err error) {
+	wf, err = NewWALFile(rootDir, owningInstanceID)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err
@@ -894,7 +878,7 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 				if primaryFlushCounter%walRotateInterval == 0 {
 					log.Info("Truncating WAL file...")
 					wf.FilePtr.Truncate(0)
-					wf.WriteStatus(OPEN, NOTREPLAYED)
+					wf.WriteStatus(wal.OPEN, wal.NOTREPLAYED)
 					primaryFlushCounter = 0
 				}
 			}

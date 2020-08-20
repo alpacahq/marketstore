@@ -27,19 +27,4 @@ const (
 	COMMITCOMPLETE
 )
 
-type FileStatusEnum int8
 
-const (
-	Invalid FileStatusEnum = iota
-	OPEN
-	CLOSED
-)
-
-type ReplayStateEnum int8
-
-const (
-	Invalid2 ReplayStateEnum = iota
-	NOTREPLAYED
-	REPLAYED
-	REPLAYINPROCESS
-)
