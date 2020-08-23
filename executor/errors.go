@@ -62,12 +62,6 @@ func (msg WALWriteError) Error() string {
 	return errReport("%s: Error Writing to WAL", string(msg))
 }
 
-type ShortReadError string
-
-func (msg ShortReadError) Error() string {
-	return errReport("%s: Unexpectedly short read", string(msg))
-}
-
 func errReport(base string, msg string) string {
 	base = io.GetCallerFileContext(2) + ":" + base
 	log.Error(base, msg)

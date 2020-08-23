@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils"
 	"google.golang.org/grpc"
 	"path/filepath"
 	"sync"
@@ -10,13 +9,13 @@ import (
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/replication"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var ThisInstance *InstanceMetadata
 
 type InstanceMetadata struct {
-	InstanceID         int64
 	RootDir            string
 	CatalogDir         *catalog.Directory
 	TXNPipe            *TransactionPipe
@@ -24,9 +23,8 @@ type InstanceMetadata struct {
 	WALWg              sync.WaitGroup
 	ShutdownPending    bool
 	WALBypass          bool
-	ReplicationChannel chan []byte
-	Replicator         replication.Sender
 	TriggerMatchers    []*trigger.TriggerMatcher
+	Replicator         replication.Sender
 }
 
 func NewInstanceSetup(relRootDir string, grpcServer *grpc.Server, options ...bool) {
@@ -59,7 +57,7 @@ func NewInstanceSetup(relRootDir string, grpcServer *grpc.Server, options ...boo
 	if err != nil {
 		log.Error("Cannot take absolute path of root directory %s", err.Error())
 	}
-	ThisInstance.InstanceID = time.Now().UTC().UnixNano()
+	instanceID := time.Now().UTC().UnixNano()
 	ThisInstance.RootDir = rootDir
 	// Initialize a global catalog
 	if initCatalog {
@@ -70,7 +68,10 @@ func NewInstanceSetup(relRootDir string, grpcServer *grpc.Server, options ...boo
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile = &WALFileType{RootPath: ThisInstance.RootDir}
+			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID, nil)
+			if err != nil {
+				log.Fatal("Unable to create WAL")
+			}
 		} else {
 			// initialize grpc server for replication
 			grpcReplicationServer, err := replication.NewGRPCReplicationService(
@@ -85,6 +86,7 @@ func NewInstanceSetup(relRootDir string, grpcServer *grpc.Server, options ...boo
 			//walReceiver := replication.NewReceiver()
 
 			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, replicationSender)
+
 			if err != nil {
 				log.Fatal("Unable to startup Cache and WAL")
 			}

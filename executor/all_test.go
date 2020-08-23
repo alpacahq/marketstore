@@ -3,6 +3,7 @@ package executor_test
 import (
 	"bytes"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"io/ioutil"
 	"math"
 	"os"
@@ -724,7 +725,8 @@ func (s *DestructiveWALTests) TearDownSuite(c *C) {
 
 func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
-	s.WALFile, err = executor.NewWALFile(s.Rootdir, "")
+	mockInstanceID := time.Now().UTC().UnixNano()
+	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -771,12 +773,11 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, false)
 
 	c.Assert(s.WALFile.IsOpen(), Equals, true)
-	c.Assert(s.WALFile.CanWrite("WALTest"), Equals, true)
-	s.WALFile.WriteStatus(executor.OPEN, executor.REPLAYED)
+	c.Assert(s.WALFile.CanWrite("WALTest", mockInstanceID), Equals, true)
+	s.WALFile.WriteStatus(wal.OPEN, wal.REPLAYED)
 
-	if s.WALFile.CanDeleteSafely() {
-		s.WALFile.Delete()
-	}
+	s.WALFile.Delete(mockInstanceID)
+
 	c.Assert(s.WALFile.IsOpen(), Equals, false)
 
 }
@@ -828,7 +829,9 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	}
 	BrokenWAL := WALBuffer[:(3 * len(WALBuffer) / 4)]
 	//BrokenWAL := WALBuffer[:]
-	BrokenWALFilePath := s.Rootdir + "/BrokenWAL"
+	BrokenWALFileName := "BrokenWAL"
+	BrokenWALFilePath := s.Rootdir + "/" + BrokenWALFileName
+
 	os.Remove(BrokenWALFilePath)
 	fp, err := os.OpenFile(BrokenWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
 	c.Assert(err == nil, Equals, true)
@@ -838,11 +841,11 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	fp.Close()
 
 	// Take over the broken WALFile and replay it
-	WALFile, err := executor.NewWALFile(s.Rootdir, BrokenWALFilePath)
+	WALFile, err := executor.TakeOverWALFile(s.Rootdir, BrokenWALFileName)
 	newTGC := executor.NewTransactionPipe()
 	c.Assert(newTGC != nil, Equals, true)
 	c.Assert(WALFile.Replay(true) == nil, Equals, true)
-	c.Assert(WALFile.Delete() == nil, Equals, true)
+	c.Assert(WALFile.Delete(WALFile.OwningInstanceID) == nil, Equals, true)
 }
 
 func (s *DestructiveWALTest2) SetUpSuite(c *C) {
@@ -921,7 +924,8 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	c.Assert(compareFileToBuf(fileContentsOriginal2002, queryFiles2002, c), Equals, true)
 
 	// Write a WAL file with the pre-flushed state - we will replay this to get the modified files
-	newWALFilePath := s.Rootdir + "/ReplayWAL"
+	newWALFileName := "ReplayWAL"
+	newWALFilePath := s.Rootdir + "/" + newWALFileName
 	os.Remove(newWALFilePath) // Remove it if it exists
 	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
 	// Replace PID with a bogus PID
@@ -933,7 +937,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	Syncfs()
 
 	// Take over the new WALFile and replay it into a new TG cache
-	WALFile, err := executor.NewWALFile(s.Rootdir, newWALFilePath)
+	WALFile, err := executor.TakeOverWALFile(s.Rootdir, newWALFileName)
 	data, _ := ioutil.ReadFile(newWALFilePath)
 	ioutil.WriteFile("/tmp/wal", data, 0644)
 	newTGC := executor.NewTransactionPipe()
@@ -965,7 +969,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	}
 	// Final verify after replay
 	c.Assert(compareFileToBuf(modifiedFileContents, queryFiles2002, c), Equals, true)
-	c.Assert(WALFile.Delete() == nil, Equals, true)
+	c.Assert(WALFile.Delete(WALFile.OwningInstanceID) == nil, Equals, true)
 }
 
 /*
