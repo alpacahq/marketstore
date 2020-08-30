@@ -195,8 +195,6 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/
 
-	defer dispatchRecords()
-
 	WALBypass := ThisInstance.WALBypass
 	//WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
@@ -227,6 +225,12 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		writeCommands[i] = <-tgc.writeChannel
 	}
 
+	return wf.FlushCommandsToWAL(tgc, writeCommands, WALBypass)
+}
+
+func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*WriteCommand, walBypass bool) (err error) {
+	defer dispatchRecords()
+
 	fileRecordTypes := map[string]io.EnumRecordType{}
 	varRecLens := map[string]int32{}
 	for i := 0; i < len(writeCommands); i++ {
@@ -239,9 +243,9 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		}
 	}
 
-	TG_Serialized, writesPerFile := serializeTG(tgc.TGID(), writeCommands)
+	TG_Serialized, writesPerFile := serializeTG(tgc.tgID, writeCommands)
 
-	if !WALBypass {
+	if !walBypass {
 		// Serialize the size of the buffer into another buffer
 		TGLen_Serialized, _ := io.Serialize(nil, int64(len(TG_Serialized)))
 
