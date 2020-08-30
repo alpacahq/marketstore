@@ -8,9 +8,9 @@ message WriteAheadLog {
 
 // decided not to use the protobuf definition of WAL as currently WAL message is serialized to an original binary in marketstore
 // and it's easier to directly send it without using protobuf
-message WALMessage {
-    bytes message = 1;
-}
+//message WALMessage {
+//    bytes message = 1;
+//}
 
 //message WALMessage {
 //    MessageID mid = 1;
@@ -118,58 +118,22 @@ enum ReplayState {
 message GetWALStreamRequest {
 }
 
-// ----
-
-// 空のmessage
-message Null {
+message GetWALStreamResponse {
+    repeated WriteCommand write_commands = 1;
 }
 
-message GreetRequest {
-    string name = 1;
+message WriteCommand {
+    // Direct or Indirect IO (for variable or fixed length records)
+    RecordType record_type = 1;
+    string wal_key_path = 2;
+    int32 variable_record_length = 3;
+    int64 offset = 4;
+    int64 index = 5;
+    bytes data = 6;
 }
 
-message GreetMessage {
-    string msg = 1;
-}
-
-message RoomRequest {
-    string id = 1;
-}
-
-message RoomInfo {
-    string id = 1;
-    int32 messageCount = 2;
-}
-
-message RoomList {
-    repeated RoomInfo rooms = 1;
-}
-
-message SendRequest {
-    string id = 1;
-    string name = 2;
-    string content = 3;
-}
-
-message SendResult {
-    bool result = 1;
-}
-
-message MessagesRequest {
-    string id = 1;
-}
-
-//message Message {
-//    string id = 1;
-//    string name = 2;
-//    string content = 3;
-//}
 
 service Replication {
-    rpc GetWALStream (GetWALStreamRequest) returns (stream WALMessage);
-//    rpc GetWALStream (GetWALStreamRequest) returns (stream WALMessage);
-//    // Client-side streamingを用いてメッセージを交換する
-//    rpc SendMessage (stream SendRequest) returns (SendResult);
-//    // Server-side streamingを用いてメッセージを交換する
-//    rpc GetMessages (MessagesRequest) returns (stream Message);
+    // rpc GetWALStream (GetWALStreamRequest) returns (stream WALMessage);
+    rpc GetWALStream (GetWALStreamRequest) returns (stream GetWALStreamResponse);
 }

@@ -40,18 +40,18 @@ func (rc GRPCReplicationClient) Connect(ctx context.Context) (pb.Replication_Get
 	return stream, nil
 }
 
-func (rc GRPCReplicationClient) Recv() ([]byte, error) {
-	wal, err := rc.streamClient.Recv()
+func (rc GRPCReplicationClient) Recv() ([]*pb.WriteCommand, error) {
+	resp, err := rc.streamClient.Recv()
 	if err == io.EOF {
 		return nil, err
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get wal message from gRPC stream")
 	}
-	if wal == nil {
+	if resp == nil {
 		return nil, errors.New("nil message received from gRPC stream")
 	}
-	return wal.Message, nil
+	return resp.WriteCommands, nil
 }
 
 func (rc GRPCReplicationClient) CloseSend() {

@@ -1,11 +1,10 @@
 package executor
 
 import (
-	"fmt"
 	"sync/atomic"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 )
 
 /*
@@ -15,24 +14,11 @@ import (
 */
 const WriteChannelCommandDepth = 1000000
 
-type WriteCommand struct {
-	RecordType    io.EnumRecordType
-	WALKeyPath    string
-	VarRecLen     int32
-	Offset, Index int64
-	Data          []byte
-}
-
-// Convert WriteCommand to string for debuging/presentation
-func (wc *WriteCommand) toString() string {
-	return fmt.Sprintf("WC[%v] WALKeyPath:%s (len:%d, off:%d, idx:%d, dsize:%d)", wc.RecordType, wc.WALKeyPath, wc.VarRecLen, wc.Offset, wc.Index, len(wc.Data))
-}
-
 // TransactionPipe stores the contents of the current pending Transaction Group
 // and writes it to WAL when flush() is called
 type TransactionPipe struct {
 	tgID         int64              // Current transaction group ID
-	writeChannel chan *WriteCommand // Channel for write commands
+	writeChannel chan *wal.WriteCommand // Channel for write commands
 	flushChannel chan chan struct{} // Channel for flush request
 }
 
@@ -41,7 +27,7 @@ type TransactionPipe struct {
 func NewTransactionPipe() *TransactionPipe {
 	tgc := new(TransactionPipe)
 	// Allocate the write channel with enough depth to allow all conceivable writers concurrent access
-	tgc.writeChannel = make(chan *WriteCommand, WriteChannelCommandDepth)
+	tgc.writeChannel = make(chan *wal.WriteCommand, WriteChannelCommandDepth)
 	tgc.flushChannel = make(chan chan struct{}, WriteChannelCommandDepth)
 	tgc.newTGID()
 	return tgc

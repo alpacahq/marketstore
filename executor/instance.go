@@ -1,17 +1,12 @@
 package executor
 
 import (
-	"context"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-	"github.com/alpacahq/marketstore/v4/replication"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -26,10 +21,9 @@ type InstanceMetadata struct {
 	ShutdownPending bool
 	WALBypass       bool
 	TriggerMatchers []*trigger.TriggerMatcher
-	Replicator      replication.Sender
 }
 
-func NewInstanceSetup(ctx context.Context, relRootDir string, grpcServer *grpc.Server, options ...bool) {
+func NewInstanceSetup(relRootDir string, rs ReplicationSender, options ...bool) {
 	/*
 		Defaults
 	*/
@@ -75,21 +69,6 @@ func NewInstanceSetup(ctx context.Context, relRootDir string, grpcServer *grpc.S
 				log.Fatal("Unable to create WAL")
 			}
 		} else {
-			// initialize replication master or client
-			var rs *replication.Sender
-			if utils.InstanceConfig.Replication.Enabled {
-				rs = initReplicationMaster(ctx, grpcServer)
-				log.Info("initialized replication master")
-			} else if utils.InstanceConfig.Replication.MasterHost != "" {
-				err = initReplicationClient(ctx)
-				if err != nil {
-					log.Fatal("Unable to startup Replication", err)
-				}
-				log.Info("initialized replication client")
-			}
-
-			//walReceiver := replication.NewReceiver()
-
 			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID, rs)
 
 			if err != nil {
@@ -102,34 +81,4 @@ func NewInstanceSetup(ctx context.Context, relRootDir string, grpcServer *grpc.S
 			ThisInstance.WALWg.Add(1)
 		}
 	}
-}
-
-func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server) *replication.Sender {
-	grpcReplicationServer, err := replication.NewGRPCReplicationService(
-		grpcServer,
-		utils.InstanceConfig.Replication.ListenPort,
-	)
-	if err != nil {
-		log.Fatal("Unable to startup gRPC server for replication")
-	}
-	replicationSender := replication.NewSender(grpcReplicationServer)
-	replicationSender.Run(ctx)
-
-	return replicationSender
-}
-
-func initReplicationClient(ctx context.Context) error {
-	c, err := replication.NewGRPCReplicationClient(utils.InstanceConfig.Replication.MasterHost, false)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize gRPC client for replication")
-	}
-
-	// TODO: implement TLS between master and replica
-	replicationReceiver := replication.NewReceiver(c)
-	err = replicationReceiver.Run(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to connect Master instance from Replica")
-	}
-
-	return nil
 }

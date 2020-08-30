@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	stdio "io"
 	"os"
 	"sort"
@@ -67,7 +68,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 	var (
 		prevIndex int64
 		prevYear  int16
-		cc        *WriteCommand
+		cc        *wal.WriteCommand
 		outBuf    []byte
 		rowLen    = len(data) / numRows
 	)
@@ -108,7 +109,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 		if i == 0 {
 			prevIndex = index
 			prevYear = year
-			cc = &WriteCommand{
+			cc = &wal.WriteCommand{
 				RecordType: rt,
 				WALKeyPath: wkp,
 				VarRecLen:  vrl,
@@ -134,7 +135,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 			// Setup next command
 			prevIndex = index
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals())
-			cc = &WriteCommand{
+			cc = &wal.WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path),
 				VarRecLen:  w.tbi.GetVariableRecordLength(),
@@ -342,7 +343,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 
 		w.WriteRecords(times, rowdata)
 	}
-	wal := ThisInstance.WALFile
-	wal.RequestFlush()
+	walfile := ThisInstance.WALFile
+	walfile.RequestFlush()
 	return nil
 }

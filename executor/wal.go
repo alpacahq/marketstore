@@ -15,7 +15,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -31,11 +30,15 @@ type WALFileType struct {
 	ReplayState      wal.ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath          string              // Path to the root directory, base of FileName
-	FilePath          string              // WAL file full path
-	lastCommittedTGID int64               // TGID to be checkpointed
-	FilePtr           *os.File            // Active file pointer to FileName
-	ReplicationSender *replication.Sender // send messages to replica servers
+	RootPath          string            // Path to the root directory, base of FileName
+	FilePath          string            // WAL file full path
+	lastCommittedTGID int64             // TGID to be checkpointed
+	FilePtr           *os.File          // Active file pointer to FileName
+	ReplicationSender ReplicationSender // send messages to replica servers
+}
+
+type ReplicationSender interface {
+	Send(writeCommands []*wal.WriteCommand)
 }
 
 type TransactionGroup struct {
@@ -61,7 +64,7 @@ type WTSet struct {
 	Buffer OffsetIndexBuffer
 }
 
-func NewWALFile(rootDir string, owningInstanceID int64, rs *replication.Sender) (wf *WALFileType, err error) {
+func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
 	wf.OwningInstanceID = owningInstanceID
@@ -220,7 +223,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	}
 
 	// Serialize all data to be written except for the size of this buffer
-	writeCommands := make([]*WriteCommand, WTCount)
+	writeCommands := make([]*wal.WriteCommand, WTCount)
 	for i := 0; i < WTCount; i++ {
 		writeCommands[i] = <-tgc.writeChannel
 	}
@@ -228,7 +231,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	return wf.FlushCommandsToWAL(tgc, writeCommands, WALBypass)
 }
 
-func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*WriteCommand, walBypass bool) (err error) {
+func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*wal.WriteCommand, walBypass bool) (err error) {
 	defer dispatchRecords()
 
 	fileRecordTypes := map[string]io.EnumRecordType{}
@@ -271,7 +274,7 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 
 		// send transaction to replicas
 		if wf.ReplicationSender != nil {
-			wf.ReplicationSender.Send(TG_Serialized)
+			wf.ReplicationSender.Send(writeCommands)
 		}
 	}
 
@@ -293,7 +296,7 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 	return nil
 }
 
-func serializeTG(tgID int64, commands []*WriteCommand,
+func serializeTG(tgID int64, commands []*wal.WriteCommand,
 ) (tgSerialized []byte, writesPerFile map[string][]OffsetIndexBuffer) {
 	WTCount := len(commands)
 
@@ -800,7 +803,7 @@ func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 	sanityLen := 1000 * fstat.Size()
 	return value < sanityLen
 }
-func (wf *WALFileType) cleanupOldWALFiles(rootDir string, rs *replication.Sender) {
+func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	rootDir = filepath.Clean(rootDir)
 	files, err := ioutil.ReadDir(rootDir)
 	if err != nil {
@@ -836,13 +839,13 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string, rs *replication.Sender
 	}
 }
 
-func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs *replication.Sender) (tgc *TransactionPipe, wf *WALFileType, err error) {
+func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender) (tgc *TransactionPipe, wf *WALFileType, err error) {
 	wf, err = NewWALFile(rootDir, owningInstanceID, rs)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err
 	}
-	wf.cleanupOldWALFiles(rootDir, rs)
+	wf.cleanupOldWALFiles(rootDir)
 	return NewTransactionPipe(), wf, nil
 }
 

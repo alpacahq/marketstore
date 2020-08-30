@@ -2,6 +2,7 @@ package replication
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	pb "github.com/alpacahq/marketstore/v4/proto"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
@@ -19,13 +20,13 @@ type GRPCReplicationServer struct {
 	CertKeyFile string
 	grpcServer  *grpc.Server
 	// Key: IPAddr (e.g. "192.125.18.1:25"), Value: channel for messages sent to each gRPC stream
-	StreamChannels map[string]chan []byte
+	StreamChannels map[string]chan []*wal.WriteCommand
 }
 
 func NewGRPCReplicationService(grpcServer *grpc.Server, port int) (*GRPCReplicationServer, error) {
 	r := GRPCReplicationServer{
 		grpcServer:     grpcServer,
-		StreamChannels: map[string]chan []byte{},
+		StreamChannels: map[string]chan []*wal.WriteCommand{},
 	}
 
 	pb.RegisterReplicationServer(grpcServer, &r)
@@ -63,20 +64,20 @@ func (rs *GRPCReplicationServer) GetWALStream(req *pb.GetWALStreamRequest, strea
 	}
 	log.Info(fmt.Sprintf("new replica connection from:%s", clientAddr))
 
-	streamChannel := make(chan []byte, defaultReplicationStreamChannelSize)
+	streamChannel := make(chan []*wal.WriteCommand, defaultReplicationStreamChannelSize)
 	rs.StreamChannels[clientAddr] = streamChannel
 
 	// infinite loop
 	for {
 		log.Debug("[master] waiting for write requests...")
-		serializedTransactionGroup := <-streamChannel
-		if serializedTransactionGroup == nil {
+		writeCommands := <-streamChannel
+		if writeCommands == nil {
 			log.Info("streamChannel for replication is closed.")
 			break
 		}
 
 		log.Debug("sending a replication message...")
-		err := stream.Send(&pb.WALMessage{Message: serializedTransactionGroup})
+		err := stream.Send(&pb.GetWALStreamResponse{WriteCommands: wal.WriteCommandsToProto(writeCommands)})
 		if err != nil {
 			log.Error(fmt.Sprintf("an error occurred while sending replication message:%s", err))
 		}
@@ -86,11 +87,11 @@ func (rs *GRPCReplicationServer) GetWALStream(req *pb.GetWALStreamRequest, strea
 	return nil
 }
 
-func (rs *GRPCReplicationServer) SendTG(transactionGroup []byte) {
+func (rs *GRPCReplicationServer) SendWriteCommands(writeCommands []*wal.WriteCommand) {
 	// send a replication message to each replica
 	for ip, channel := range rs.StreamChannels {
 		log.Info("sending a replication message to %s", ip)
-		channel <- transactionGroup
+		channel <- writeCommands
 	}
 }
 

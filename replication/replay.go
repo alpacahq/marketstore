@@ -2,28 +2,46 @@ package replication
 
 import (
 	"fmt"
-	stdio "io"
-	"os"
-
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/pkg/errors"
+	"strings"
 )
 
-// Writer is the intereface to decouple WAL Replayer from executor package
-type Writer interface {
-	WriteBufferToFile(fp stdio.WriterAt, offsetIndexBuffer []byte) error
-	// for variable length record
-	WriteBufferToFileIndirect(fp *os.File, offsetIndexBuffer []byte, varRecLen int32) (err error)
-}
+//// Writer is the intereface to decouple WAL Replayer from executor package
+//type Writer interface {
+//	WriteBufferToFile(fp stdio.WriterAt, offsetIndexBuffer []byte) error
+//	// for variable length record
+//	WriteBufferToFileIndirect(fp *os.File, offsetIndexBuffer []byte, varRecLen int32) (err error)
+//}
+//
+//type WALReplayer struct {
+//	Writer Writer
+//}
 
-type WALReplayer struct {
-	Writer Writer
-}
-
-func replay(serializedTransactionGroup []byte) {
+func replay(writeCommands []*wal.WriteCommand) error {
 	fmt.Println("received!")
-	println(serializedTransactionGroup)
+	println(writeCommands)
 
-	executor.ThisInstance.WALFile.RequestFlush()
+	// レコードの中に新しい年が入っていた場合はその年のフォルダを追加する
+	if err := w.AddNewYearFile(year); err != nil {
+		panic(err)
+	}
+
+	// まだバケット用のファイルができていない場合は作る
+	if err := cDir.AddTimeBucket(&tbk, tbi); err != nil {
+		// If File Exists error, ignore it, otherwise return the error
+		if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
+			return err
+		}
+	}
+
+	err := executor.ThisInstance.WALFile.FlushCommandsToWAL(executor.ThisInstance.TXNPipe, writeCommands, executor.ThisInstance.WALBypass)
+	if err != nil {
+		return errors.Wrap(err, "[replica] failed to flush WriteCommands to WAL and primary store.")
+	}
+
+	return nil
 }
 
 //

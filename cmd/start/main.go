@@ -3,6 +3,8 @@ package start
 import (
 	"context"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/replication"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -116,11 +118,22 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	// --------------------------------
 	log.Info("initializing marketstore...")
 
-	//
+	// initialize replication master or client
+	var rs executor.ReplicationSender
+	if utils.InstanceConfig.Replication.Enabled {
+		rs = initReplicationMaster(globalCtx, grpcServer)
+		log.Info("initialized replication master")
+	} else if utils.InstanceConfig.Replication.MasterHost != "" {
+		err = initReplicationClient(globalCtx)
+		if err != nil {
+			log.Fatal("Unable to startup Replication", err)
+		}
+		log.Info("initialized replication client")
+	}
+
 	executor.NewInstanceSetup(
-		globalCtx,
 		utils.InstanceConfig.RootDirectory,
-		grpcReplicationServer,
+		rs,
 		utils.InstanceConfig.InitCatalog,
 		utils.InstanceConfig.InitWALCache,
 		utils.InstanceConfig.BackgroundSync,
@@ -183,4 +196,34 @@ func shutdown() {
 	executor.ThisInstance.WALWg.Wait()
 	log.Info("exiting...")
 	os.Exit(0)
+}
+
+func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server) *replication.Sender {
+	grpcReplicationServer, err := replication.NewGRPCReplicationService(
+		grpcServer,
+		utils.InstanceConfig.Replication.ListenPort,
+	)
+	if err != nil {
+		log.Fatal("Unable to startup gRPC server for replication")
+	}
+	replicationSender := replication.NewSender(grpcReplicationServer)
+	replicationSender.Run(ctx)
+
+	return replicationSender
+}
+
+func initReplicationClient(ctx context.Context) error {
+	c, err := replication.NewGRPCReplicationClient(utils.InstanceConfig.Replication.MasterHost, false)
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize gRPC client for replication")
+	}
+
+	// TODO: implement TLS between master and replica
+	replicationReceiver := replication.NewReceiver(c)
+	err = replicationReceiver.Run(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to connect Master instance from Replica")
+	}
+
+	return nil
 }
