@@ -5,56 +5,47 @@ import (
 	"fmt"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
+	"io"
 )
 
 type Receiver struct {
-	GRPCClient GRPCReplicationClient
-	MasterHost string
+	GRPCClient *GRPCReplicationClient
 }
 
-func NewReceiver(masterHost string, grpcClient GRPCReplicationClient) *Receiver {
+func NewReceiver(grpcClient *GRPCReplicationClient) *Receiver {
 	return &Receiver{
 		GRPCClient: grpcClient,
-		MasterHost: masterHost,
 	}
 }
 
 func (r *Receiver) Run(ctx context.Context) error {
 
-	err := r.GRPCClient.Connect(ctx)
+	stream, err := r.GRPCClient.Connect(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to master instance")
 	}
 
+	r.GRPCClient.streamClient = stream
+
 	go func(ctx context.Context) {
 		for {
+			log.Debug("waiting for replication messages from master...")
 			// block until receive a new wal message
 			serializedTransactionGroup, err := r.GRPCClient.Recv()
+			if err == io.EOF {
+				log.Info("received EOF from master server")
+				break
+			}
 			if err != nil {
-				log.Error("an error occurred while receiving a wal message from master instance")
+				log.Error(fmt.Sprintf("an error occurred while receiving a wal message from master instance."+
+					"There will be data inconsistency between master and replica:%s", err.Error()))
 				break
 			}
 
 			replay(serializedTransactionGroup)
 		}
+
 	}(ctx)
 
 	return nil
-}
-
-//func (r *Receiver) GetMessage() error {
-//	conn, err := grpc.Dial(r.MasterHost, grpc.WithInsecure())
-//	if err != nil {
-//		return errors.Wrap(err, "failed to connect Master server")
-//	}
-//	defer conn.Close()
-//
-//	//c := pb.NewReplicationClient(conn)
-//	//c.GetMessages()
-//	return nil
-//}
-
-func replay(serializedTransactionGroup []byte) {
-	fmt.Println("受信しました！")
-	println(serializedTransactionGroup)
 }

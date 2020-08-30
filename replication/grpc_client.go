@@ -5,6 +5,7 @@ import (
 	pb "github.com/alpacahq/marketstore/v4/proto"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
+	"io"
 )
 
 type GRPCReplicationClient struct {
@@ -30,18 +31,20 @@ func NewGRPCReplicationClient(masterHost string, enableSSL bool) (*GRPCReplicati
 	}, nil
 }
 
-func (rc GRPCReplicationClient) Connect(ctx context.Context) error {
+func (rc GRPCReplicationClient) Connect(ctx context.Context) (pb.Replication_GetWALStreamClient, error) {
 	stream, err := rc.Client.GetWALStream(ctx, &pb.GetWALStreamRequest{})
 	if err != nil {
-		return errors.Wrap(err, "failed to get wal message stream")
+		return nil, errors.Wrap(err, "failed to get wal message stream")
 	}
 
-	rc.streamClient = stream
-	return nil
+	return stream, nil
 }
 
 func (rc GRPCReplicationClient) Recv() ([]byte, error) {
 	wal, err := rc.streamClient.Recv()
+	if err == io.EOF {
+		return nil, err
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get wal message from gRPC stream")
 	}
@@ -49,6 +52,10 @@ func (rc GRPCReplicationClient) Recv() ([]byte, error) {
 		return nil, errors.New("nil message received from gRPC stream")
 	}
 	return wal.Message, nil
+}
+
+func (rc GRPCReplicationClient) CloseSend() {
+	rc.streamClient.CloseSend()
 }
 
 func (rc GRPCReplicationClient) Close() error {

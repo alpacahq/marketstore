@@ -1,7 +1,8 @@
 package replication
 
 import (
-	"log"
+	"context"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (
@@ -26,33 +27,24 @@ func NewSender(service *GRPCReplicationServer) *Sender {
 	}
 }
 
-//func (s *Sender) initialize() error {
-//
-//	return nil
-//}
 
-func (s *Sender) Run() error {
-	//if err := s.initialize(); err != nil {
-	//	return errors.Wrap(err, "an error occurred while serving replication service")
-	//}
-
-	go func(resc chan []byte) {
+func (s *Sender) Run(ctx context.Context) {
+	go func(ctx context.Context, resc chan []byte) {
 		for {
 			select {
+			case <-ctx.Done():
+				log.Info("shutdown replication sender...")
+				return
 			case transactionGroup := <-resc:
-				log.Println("another goroutine receives a request")
-				println(transactionGroup)
+				log.Debug("send a transaction group message to replicas")
+				s.ReplService.SendTG(transactionGroup)
 			}
 		}
-	}(s.channel)
-
-	return nil
-}
-
-func (s *Sender) replicate() {
-
+	}(ctx, s.channel)
 }
 
 func (s *Sender) Send(serializedTransactionGroup []byte) {
 	s.channel <- serializedTransactionGroup
 }
+
+

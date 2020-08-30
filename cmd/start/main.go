@@ -1,6 +1,7 @@
 package start
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -54,6 +55,8 @@ func init() {
 
 // executeStart implements the start command.
 func executeStart(cmd *cobra.Command, args []string) error {
+	ctx := context.Background()
+	globalCtx, globalCancel := context.WithCancel(ctx)
 
 	// Attempt to read config file.
 	data, err := ioutil.ReadFile(configFilePath)
@@ -96,8 +99,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			case syscall.SIGTERM:
 				log.Info("initiating graceful shutdown due to '%v' request", s)
 				grpcServer.GracefulStop()
-				grpcReplicationServer.GracefulStop()
-				// grpcReplicationClient.GracefulStop()
+				// gRPC stream connection cannot be closed by GracefulStop()
+				grpcReplicationServer.Stop()
+				globalCancel()
+				// grpcReplicationClient.GracefulStop()?
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)
@@ -113,6 +118,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	//
 	executor.NewInstanceSetup(
+		globalCtx,
 		utils.InstanceConfig.RootDirectory,
 		grpcReplicationServer,
 		utils.InstanceConfig.InitCatalog,

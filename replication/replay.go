@@ -1,14 +1,11 @@
 package replication
 
 import (
-	//"fmt"
+	"fmt"
 	stdio "io"
 	"os"
-	//"sort"
 
-	//"github.com/alpacahq/marketstore/v4/executor"
-	//"github.com/alpacahq/marketstore/v4/utils/io"
-	//"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/executor"
 )
 
 // Writer is the intereface to decouple WAL Replayer from executor package
@@ -22,6 +19,14 @@ type WALReplayer struct {
 	Writer Writer
 }
 
+func replay(serializedTransactionGroup []byte) {
+	fmt.Println("received!")
+	println(serializedTransactionGroup)
+
+	executor.ThisInstance.WALFile.RequestFlush()
+}
+
+//
 //func (wr *WALReplayer) ReplayMessage(druRun bool) {
 //	/*
 //		Replay this WAL File's unwritten transactions.
@@ -37,13 +42,6 @@ type WALReplayer struct {
 //		Note that the TG Data for any given TGID should appear in the WAL only once. We verify it in the first
 //		pass.
 //	*/
-//
-//	// Make sure this file needs replay
-//	if !wf.NeedsReplay() {
-//		err := fmt.Errorf("WALFileType.NeedsReplay No Replay Needed")
-//		log.Info(err.Error())
-//		return err
-//	}
 //
 //	// Take control of this file and set the status
 //	if writeData {

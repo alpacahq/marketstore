@@ -10,6 +10,10 @@ import (
 	"net"
 )
 
+const (
+	defaultReplicationStreamChannelSize = 500
+)
+
 type GRPCReplicationServer struct {
 	CertFile    string
 	CertKeyFile string
@@ -26,7 +30,7 @@ func NewGRPCReplicationService(grpcServer *grpc.Server, port int) (*GRPCReplicat
 
 	pb.RegisterReplicationServer(grpcServer, &r)
 
-	// start gRPC connection
+	// start gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to listen a port for replication")
@@ -40,36 +44,6 @@ func NewGRPCReplicationService(grpcServer *grpc.Server, port int) (*GRPCReplicat
 
 	return &r, nil
 }
-
-//// チャットルームの新着メッセージをstreamを使い配信する
-//func (rs *GRPCReplicationServer) GetMessages(p *pb.MessagesRequest, stream pb.Replication_GetWALStreamServer) error {
-//	// prepare a channel to send messages
-//	ctx := stream.Context()
-//	var clientAddr string
-//	pr, ok := peer.FromContext(ctx)
-//	if !ok {
-//		return errors.New("failed to get client IP address.")
-//	}
-//
-//	clientAddr = pr.Addr.String()
-//	rs.StreamChannels[clientAddr] = make(chan []byte)
-//
-//	// 無限ループ
-//	for {
-//		// クライアントへメッセージ送信
-//		if err := stream.Send(&pb.Message{Id: "fff", Name: "a", Content: "sss"}); err != nil {
-//			return err
-//		}
-//		println("fffff")
-//		time.Sleep(3 * time.Second)
-//	}
-//}
-
-//
-//// チャットルームへstreamを使いメッセージを送信する
-//func (rs *GRPCReplicationServer) Send(*pb.WALMessage) error {
-//
-//}
 
 func getClientAddr(stream grpc.ServerStream) (string, error) {
 	ctx := stream.Context()
@@ -87,52 +61,41 @@ func (rs *GRPCReplicationServer) GetWALStream(req *pb.GetWALStreamRequest, strea
 	if err != nil {
 		return errors.New("failed to get client IP address.")
 	}
+	log.Info(fmt.Sprintf("new replica connection from:%s", clientAddr))
 
-	streamChannel := make(chan []byte)
+	streamChannel := make(chan []byte, defaultReplicationStreamChannelSize)
 	rs.StreamChannels[clientAddr] = streamChannel
 
 	// infinite loop
-	//var serializedTransactionGroup []byte
 	for {
+		log.Debug("[master] waiting for write requests...")
 		serializedTransactionGroup := <-streamChannel
-		println("送信する！")
-		println(serializedTransactionGroup)
+		if serializedTransactionGroup == nil {
+			log.Info("streamChannel for replication is closed.")
+			break
+		}
+
+		log.Debug("sending a replication message...")
+		err := stream.Send(&pb.WALMessage{Message: serializedTransactionGroup})
+		if err != nil {
+			log.Error(fmt.Sprintf("an error occurred while sending replication message:%s", err))
+		}
+		log.Debug("successfully sent a replication message")
 	}
-	//
-	//// 無限ループ
-	//for {
-	//	// クライアントへメッセージ送信
-	//	//if err := stream.Send(&pb.Message{Id: "fff", Name: "a", Content: "sss"}); err != nil {
-	//	if err := stream.Send(&pb.WALMessage{Message: []byte{123}}); err != nil {
-	//		return err
-	//	}
-	//	println("fffff")
-	//	time.Sleep(3 * time.Second)
-	//}
+
+	return nil
 }
 
-//func (rs *GRPCReplicationServer) SendMessage(stream pb.Replication_SendMessageServer) error {
-//	// 無限ループ
-//	for {
-//		// クライアントからメッセージ受信
-//		m, err := stream.Recv()
-//		log.Debug("Receive message>> [%s] %s", m.Name, m.Content)
-//		// EOF、エラーなら終了
-//		if err == io.EOF {
-//			// EOFなら接続終了処理
-//			return stream.SendAndClose(&pb.SendResult{
-//				Result: true,
-//			})
-//		}
-//		if err != nil {
-//			return err
-//		}
-//		// 終了コマンド
-//		if m.Content == "/exit" {
-//			return stream.SendAndClose(&pb.SendResult{
-//				Result: true,
-//			})
-//		}
-//		time.Sleep(5 * time.Second)
-//	}
-//}
+func (rs *GRPCReplicationServer) SendTG(transactionGroup []byte) {
+	// send a replication message to each replica
+	for ip, channel := range rs.StreamChannels {
+		log.Info("sending a replication message to %s", ip)
+		channel <- transactionGroup
+	}
+}
+
+func (rs *GRPCReplicationServer) Shutdown() {
+	for _, channel := range rs.StreamChannels {
+		close(channel)
+	}
+}

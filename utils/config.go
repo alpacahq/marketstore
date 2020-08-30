@@ -18,7 +18,9 @@ func init() {
 }
 
 type ReplicationSetting struct {
-	Port int
+	Enabled    bool
+	ListenPort int
+	MasterHost string
 }
 
 type TriggerSetting struct {
@@ -85,8 +87,10 @@ func (m *MktsConfig) Parse(data []byte) error {
 			WALBypass                  string `yaml:"wal_bypass"`
 			ClusterMode                string `yaml:"cluster_mode"`
 			Replication                struct {
-				// Port is the listen port for replication master
-				Port int `yaml:"port"`
+				Enabled bool `yaml:"enabled"`
+				// ListenPort is used for the replication protocol by the master instance
+				ListenPort int    `yaml:"listen_port"`
+				MasterHost string `yaml:"master_host"`
 			} `yaml:"replication"`
 			Triggers []struct {
 				Module string                 `yaml:"module"`
@@ -256,11 +260,19 @@ func (m *MktsConfig) Parse(data []byte) error {
 	}
 
 	m.Replication = ReplicationSetting{
-		Port: 5996, // default listen port for Replication master
+		Enabled:    false,
+		ListenPort: 5996, // default listen port for Replication master
+		MasterHost: "",
 	}
 
-	if aux.Replication.Port != 0 {
-		m.Replication.Port = aux.Replication.Port
+	if aux.Replication.ListenPort != 0 {
+		m.Replication.ListenPort = aux.Replication.ListenPort
+	}
+	if aux.Replication.Enabled != false {
+		m.Replication.Enabled = true
+	}
+	if aux.Replication.MasterHost != "" {
+		m.Replication.MasterHost = aux.Replication.MasterHost
 	}
 
 	m.RootDirectory = aux.RootDirectory
