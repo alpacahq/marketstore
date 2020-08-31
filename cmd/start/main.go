@@ -101,10 +101,11 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			case syscall.SIGTERM:
 				log.Info("initiating graceful shutdown due to '%v' request", s)
 				grpcServer.GracefulStop()
-				// gRPC stream connection cannot be closed by GracefulStop()
-				grpcReplicationServer.Stop()
+				log.Info("shutdown grpc API server...")
 				globalCancel()
-				// grpcReplicationClient.GracefulStop()?
+				grpcReplicationServer.Stop() // gRPC stream connection cannot be closed by GracefulStop()
+				log.Info("shutdown grpc Replication server...")
+
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)
@@ -121,7 +122,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	// initialize replication master or client
 	var rs executor.ReplicationSender
 	if utils.InstanceConfig.Replication.Enabled {
-		rs = initReplicationMaster(globalCtx, grpcServer)
+		rs = initReplicationMaster(globalCtx, grpcReplicationServer)
 		log.Info("initialized replication master")
 	} else if utils.InstanceConfig.Replication.MasterHost != "" {
 		err = initReplicationClient(globalCtx)
