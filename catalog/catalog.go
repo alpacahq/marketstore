@@ -44,6 +44,43 @@ func NewDirectory(rootpath string) *Directory {
 	return d
 }
 
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func writeCategoryNameFile(catName, dirName string) error {
+	catNameFile := filepath.Join(dirName, "category_name")
+
+	if fileExists(catNameFile) {
+		buffer, err := ioutil.ReadFile(catNameFile)
+		if err != nil {
+			return err
+		}
+		catNameFromFile := string(buffer)
+		if catNameFromFile != catName {
+			return fmt.Errorf("Category name does not match on-disk name")
+		}
+		return nil
+	}
+
+	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0770)
+	defer fp.Close()
+	if err != nil {
+		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+	}
+	if _, err = fp.WriteString(catName); err != nil {
+		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+	}
+	return nil
+}
+
 func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInfo) (err error) {
 	/*
 		Adds a (possibly) new data item to a rootpath. Takes an existing catalog directory and
@@ -51,39 +88,6 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	*/
 	dRoot.Lock()
 	defer dRoot.Unlock()
-	exists := func(path string) bool {
-		_, err := os.Stat(path)
-		if err == nil {
-			return true
-		}
-		if os.IsNotExist(err) {
-			return false
-		}
-		return true
-	}
-	writeCatName := func(catName, dirName string) error {
-		catNameFile := filepath.Join(dirName, "category_name")
-		if !exists(catNameFile) {
-			fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0770)
-			defer fp.Close()
-			if err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-			}
-			if _, err = fp.WriteString(catName); err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-			}
-		} else {
-			buffer, err := ioutil.ReadFile(catNameFile)
-			if err != nil {
-				return err
-			}
-			catNameFromFile := string(buffer)
-			if catNameFromFile != catName {
-				return fmt.Errorf("Category name does not match on-disk name")
-			}
-		}
-		return nil
-	}
 
 	catkeySplit := tbk.GetCategories()
 	datakeySplit := tbk.GetItems()
@@ -91,18 +95,18 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	dirname := dRoot.GetPath()
 	for i, dataDirName := range datakeySplit {
 		subdirname := filepath.Join(dirname, dataDirName)
-		if !exists(subdirname) {
+		if !fileExists(subdirname) {
 			if err = os.Mkdir(subdirname, 0770); err != nil {
 				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 			}
 		}
-		if err = writeCatName(catkeySplit[i], dirname); err != nil {
+		if err = writeCategoryNameFile(catkeySplit[i], dirname); err != nil {
 			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 		}
 		dirname = subdirname
 	}
 	// Write the last implied catName "Year"
-	if err = writeCatName("Year", dirname); err != nil {
+	if err = writeCategoryNameFile("Year", dirname); err != nil {
 		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 	}
 
@@ -675,7 +679,13 @@ func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err er
 	if err = io.WriteHeader(fp, newTimeBucketInfo); err != nil {
 		return UnableToWriteHeader(err.Error())
 	}
-	if err = fp.Truncate(io.FileSize(newTimeBucketInfo.GetTimeframe(), int(newTimeBucketInfo.Year), int(newTimeBucketInfo.GetRecordLength()))); err != nil {
+
+	fileSize := io.FileSize(
+		newTimeBucketInfo.GetTimeframe(),
+		int(newTimeBucketInfo.Year),
+		int(newTimeBucketInfo.GetRecordLength()),
+	)
+	if err = fp.Truncate(fileSize); err != nil {
 		return UnableToCreateFile(err.Error())
 	}
 
