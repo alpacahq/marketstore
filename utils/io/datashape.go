@@ -3,6 +3,8 @@ package io
 import (
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type DataShape struct {
@@ -58,4 +60,88 @@ func DataShapesFromInputString(inputStr string) (dsa []DataShape, err error) {
 		}
 	}
 	return dsa, nil
+}
+
+func (ds *DataShape) toBytes() ([]byte, error) {
+	buffer := make([]byte, 0)
+
+	nameLen := uint8(len(ds.Name))
+
+	// byte length of the data shape name
+	buffer, err := Serialize(buffer, nameLen)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to serialize length of data shape name:"+ds.Name)
+	}
+
+	// data shape name
+	buffer, err = Serialize(buffer, ds.Name)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to serialize column name:"+ds.Name)
+	}
+
+	// data type
+	buffer, err = Serialize(buffer, byte(ds.Type))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to serialize data type:"+string(ds.Type))
+	}
+	return buffer, nil
+}
+
+// dsFromBytes deserializes bytes into a DataShape and return it with its byte length
+func dsFromBytes(buf []byte) (DataShape, int) {
+	cursor := 0
+	dsNameLen := int(ToUint8(buf[cursor : cursor+1]))
+	cursor += 1
+	dsName := ToString(buf[cursor : cursor+dsNameLen])
+	cursor += dsNameLen
+	dsType := EnumElementType(buf[cursor])
+	cursor++
+
+	return DataShape{Name: dsName, Type: dsType}, cursor
+}
+
+// DSVFromBytes deserializes bytes into an array of datashape (=Data Shape Vector)
+func DSVFromBytes(buf []byte) []DataShape {
+	if buf == nil {
+		return nil
+	}
+
+	cursor := 0
+	dsLen := int(ToUint8(buf[cursor : cursor+1]))
+	ret := make([]DataShape, dsLen)
+
+	// deserializes each data shape
+	cursor += 1
+	for i := 0; i < dsLen; i++ {
+		ds, l := dsFromBytes(buf[cursor:])
+		ret[i] = ds
+		cursor += l
+	}
+	return ret
+}
+
+// DSVToBytes serializes an array of DataShape (=Data Shape Vector) into []byte
+func DSVToBytes(dss []DataShape) ([]byte, error) {
+	var dsLen = uint8(len(dss))
+	if dsLen == 0 {
+		return nil, nil
+	}
+
+	buffer := make([]byte, 0)
+	// Length of the data shapes
+	buffer, err := Serialize(buffer, dsLen)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to serialize data shape length: "+string(dsLen))
+	}
+
+	// append each serialized data shape
+	for _, ds := range dss {
+		b, err := ds.toBytes()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to serialize data shape: "+ds.String())
+		}
+		buffer = append(buffer, b...)
+	}
+
+	return buffer, nil
 }
