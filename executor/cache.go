@@ -21,6 +21,7 @@ type WriteCommand struct {
 	VarRecLen     int32
 	Offset, Index int64
 	Data          []byte
+	DataShapes    []io.DataShape
 }
 
 // Convert WriteCommand to string for debuging/presentation

@@ -120,7 +120,7 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	for ii := 0; ii < 10; ii++ {
 		ts = ts.Add(time.Minute)
 		row.Epoch = ts.Unix()
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
 	s.WALFile.FlushToWAL(tgc)
@@ -173,7 +173,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
 	s.WALFile.FlushToWAL(tgc)
@@ -210,7 +210,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
 	s.WALFile.FlushToWAL(tgc)
@@ -241,7 +241,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
 	s.WALFile.FlushToWAL(tgc)
@@ -360,7 +360,7 @@ func (s *TestSuite) TestDelete(c *C) {
 		tsA = append(tsA, ts)
 		buffer, _ = Serialize(buffer, row)
 	}
-	writer.WriteRecords(tsA, buffer)
+	writer.WriteRecords(tsA, buffer, dsv)
 	c.Assert(err == nil, Equals, true)
 	s.WALFile.FlushToWAL(tgc)
 	s.WALFile.CreateCheckpoint()
@@ -667,7 +667,7 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
 	buffer, _ := Serialize([]byte{}, row)
-	w.WriteRecords([]time.Time{ts}, buffer)
+	w.WriteRecords([]time.Time{ts}, buffer, dsv)
 	c.Assert(err == nil, Equals, true)
 	err = executor.ThisInstance.WALFile.FlushToWAL(executor.ThisInstance.TXNPipe)
 	c.Assert(err == nil, Equals, true)
@@ -705,7 +705,7 @@ func (s *TestSuite) TestWriter(c *C) {
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
-	writer.WriteRecords([]time.Time{ts}, buffer)
+	writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes())
 	c.Assert(err == nil, Equals, true)
 	s.WALFile.FlushToWAL(tgc)
 	s.WALFile.CreateCheckpoint()
@@ -1102,6 +1102,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 
 	// Create some data via a query
 	symbols := []string{"NZDUSD", "USDJPY", "EURUSD"}
+	tbiByKey := make(map[TimeBucketKey]*TimeBucketInfo, 0)
 	writerByKey := make(map[TimeBucketKey]*executor.Writer, 0)
 	csm := NewColumnSeriesMap()
 	queryFiles = make([]string, 0)
@@ -1129,6 +1130,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 			// Add this result data to the overall
 			csm[key] = cs
 			tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(&key)
+			tbiByKey[key] = tbi
 			writerByKey[key], err = executor.NewWriter(tbi, tgc, root)
 			if err != nil {
 				fmt.Printf("Failed to create a new writer")
@@ -1173,7 +1175,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 			buffer = append(buffer, DataToByteSlice(low[i])...)
 			buffer = append(buffer, DataToByteSlice(close[i])...)
 		}
-		writerByKey[key].WriteRecords(timestamps, buffer)
+		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapes())
 	}
 
 	return queryFiles, nil

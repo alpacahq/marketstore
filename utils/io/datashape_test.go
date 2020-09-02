@@ -41,7 +41,7 @@ func TestDSVSerialize(t *testing.T) {
 				t.Fatalf("failed to serialize DSV: " + err.Error())
 			}
 
-			deserialized := io.DSVFromBytes(serialized)
+			deserialized, _ := io.DSVFromBytes(serialized)
 			if diff := cmp.Diff(dsv, deserialized); diff != "" {
 				t.Errorf("Original DSV/Serialized->Deserialized DSV mismatch (-want +got):\n%s", diff)
 			}
