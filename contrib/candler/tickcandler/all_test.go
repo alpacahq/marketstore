@@ -149,7 +149,7 @@ func createTickBucket(symbol string) {
 		ts = ts.Add(time.Second)
 		row.Epoch = ts.Unix()
 		buffer, _ := io.Serialize([]byte{}, row)
-		w.WriteRecords([]time.Time{ts}, buffer)
+		w.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	wf.RequestFlush()
 }

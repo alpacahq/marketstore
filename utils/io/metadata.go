@@ -29,6 +29,7 @@ func nanosecondsInYear(year int) int64 {
 	return int64(end.Sub(start).Nanoseconds())
 }
 
+// FileSize returns the necessary size for a data file
 func FileSize(tf time.Duration, year int, recordSize int) int64 {
 	return Headersize + (nanosecondsInYear(year)/int64(tf.Nanoseconds()))*int64(recordSize)
 }

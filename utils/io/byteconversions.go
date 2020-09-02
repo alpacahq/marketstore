@@ -84,6 +84,9 @@ func ToFloat32(b []byte) float32 {
 func ToFloat64(b []byte) float64 {
 	return *(*float64)(unsafe.Pointer(&b[0]))
 }
+func ToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
 
 func SwapSliceData(src_slice interface{}, target_type interface{}) interface{} {
 	leftValue := reflect.ValueOf(src_slice)
