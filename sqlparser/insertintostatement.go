@@ -121,7 +121,7 @@ func (is *InsertIntoStatement) Materialize() (outputColumnSeries *io.ColumnSerie
 		return nil, fmt.Errorf("Unable to pre-process data for insertion")
 	}
 
-	writer.WriteRecords(indexTime, data)
+	writer.WriteRecords(indexTime, data, targetDSV)
 	wal.RequestFlush()
 
 	outputColumnSeries = io.NewColumnSeries()

@@ -101,9 +101,10 @@ func dsFromBytes(buf []byte) (DataShape, int) {
 }
 
 // DSVFromBytes deserializes bytes into an array of datashape (=Data Shape Vector)
-func DSVFromBytes(buf []byte) []DataShape {
+// and return it with its byte length
+func DSVFromBytes(buf []byte) ([]DataShape, int) {
 	if buf == nil {
-		return nil
+		return nil, 0
 	}
 
 	cursor := 0
@@ -117,7 +118,7 @@ func DSVFromBytes(buf []byte) []DataShape {
 		ret[i] = ds
 		cursor += l
 	}
-	return ret
+	return ret, cursor
 }
 
 // DSVToBytes serializes an array of DataShape (=Data Shape Vector) into []byte

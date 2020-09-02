@@ -57,6 +57,8 @@ type WTSet struct {
 	VarRecLen int32
 	// Data bytes
 	Buffer offsetIndexBuffer
+	// Data Shape without Epoch Column
+	DataShapes []io.DataShape
 }
 
 func NewWALFile(rootDir string, owningInstanceID int64) (wf *WALFileType, err error) {
@@ -333,6 +335,11 @@ func serializeTG(tgID int64, commands []*WriteCommand,
 		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].Offset)
 		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].Index)
 		TG_Serialized = append(TG_Serialized, commands[i].Data...)
+		// include DataShape information in TG because it's necessary for creating a new bucket from WAL
+		dsvBytes, err := io.DSVToBytes(commands[i].DataShapes)
+		if err == nil {
+			TG_Serialized = append(TG_Serialized, dsvBytes...)
+		}
 
 		keyPath := commands[i].WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
@@ -691,6 +698,8 @@ func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WT
 		fullPath := walKeyToFullPath(rootPath, WALKeyPath)
 		data := TG_Serialized[cursor : cursor+8+8+dataLen]
 		cursor += 8 + 8 + dataLen
+		dataShapes, l := io.DSVFromBytes(TG_Serialized[cursor:])
+		cursor += l
 
 		wtSets[i] = WTSet{
 			RecordType: RecordType,
@@ -698,6 +707,7 @@ func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WT
 			DataLen:    dataLen,
 			VarRecLen:  varRecLen,
 			Buffer:     data,
+			DataShapes: dataShapes,
 		}
 	}
 

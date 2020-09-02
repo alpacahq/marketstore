@@ -55,7 +55,7 @@ func (w *Writer) AddNewYearFile(year int16) (err error) {
 // The caller should assume that by calling WriteRecords directly, the data will be written
 // to the file regardless if it satisfies the on-disk data shape, possible corrupting
 // the data files. It is recommended to call WriteCSM() for any writes as it is safer.
-func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
+func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
@@ -114,7 +114,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 				VarRecLen:  vrl,
 				Offset:     offset,
 				Index:      index,
-				Data:       nil}
+				Data:       nil,
+				DataShapes: ds,
+			}
 		}
 		// Because index is relative time from the beginning of the year
 		// To confirm that the next data is a different data, both index and year should be checked.
@@ -140,7 +142,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte) {
 				VarRecLen:  w.tbi.GetVariableRecordLength(),
 				Offset:     offset,
 				Index:      index,
-				Data:       outBuf}
+				Data:       outBuf,
+				DataShapes: ds,
+			}
 		}
 		if i == (numRows - 1) {
 			/*
@@ -340,7 +344,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			return err
 		}
 
-		w.WriteRecords(times, rowdata)
+		w.WriteRecords(times, rowdata, dbDSV)
 	}
 	wal := ThisInstance.WALFile
 	wal.RequestFlush()
