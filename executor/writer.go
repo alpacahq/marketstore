@@ -166,7 +166,7 @@ func AppendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) 
 	return outBuf
 }
 
-func WriteBufferToFile(fp stdio.WriterAt, buffer OffsetIndexBuffer) error {
+func WriteBufferToFile(fp stdio.WriterAt, buffer wal.OffsetIndexBuffer) error {
 	offset := buffer.Offset()
 	data := buffer.IndexAndPayload()
 	_, err := fp.WriteAt(data, offset)
@@ -177,7 +177,7 @@ type IndirectRecordInfo struct {
 	Index, Offset, Len int64
 }
 
-func WriteBufferToFileIndirect(fp *os.File, buffer OffsetIndexBuffer, varRecLen int32) (err error) {
+func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRecLen int32) (err error) {
 	/*
 		Here we write the data payload of the buffer to the end of the data file
 		Prior to writing the new data, we fetch any previously written data and

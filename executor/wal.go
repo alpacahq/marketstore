@@ -61,7 +61,7 @@ type WTSet struct {
 	// (The sum of field lengths in elementTypes) + 4 bytes(for intervalTicks)
 	VarRecLen int32
 	// Data bytes
-	Buffer OffsetIndexBuffer
+	Buffer wal.OffsetIndexBuffer
 	// Data Shape without Epoch Column
 	DataShapes []io.DataShape
 }
@@ -174,24 +174,6 @@ func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 	return filepath.Join(rootPath, keyPath)
 }
 
-type OffsetIndexBuffer []byte
-
-func (b OffsetIndexBuffer) Offset() int64 {
-	return io.ToInt64(b[:8])
-}
-
-func (b OffsetIndexBuffer) Index() int64 {
-	return io.ToInt64(b[8:16])
-}
-
-func (b OffsetIndexBuffer) IndexAndPayload() []byte {
-	return b[8:]
-}
-
-func (b OffsetIndexBuffer) Payload() []byte {
-	return b[16:]
-}
-
 // A.k.a. Commit transaction
 func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	/*
@@ -299,14 +281,14 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 }
 
 func serializeTG(tgID int64, commands []*wal.WriteCommand,
-) (tgSerialized []byte, writesPerFile map[string][]OffsetIndexBuffer) {
+) (tgSerialized []byte, writesPerFile map[string][]wal.OffsetIndexBuffer) {
 	WTCount := len(commands)
 
 	// Serialize all data to be written except for the size of this buffer
 	var TG_Serialized []byte
 	TG_Serialized, _ = io.Serialize(TG_Serialized, tgID)
 	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
-	writesPerFile = map[string][]OffsetIndexBuffer{}
+	writesPerFile = map[string][]wal.OffsetIndexBuffer{}
 	/*
 		This loop serializes write transactions from the channel for writing to disk
 	*/
@@ -330,14 +312,14 @@ func serializeTG(tgID int64, commands []*wal.WriteCommand,
 		keyPath := commands[i].WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
 		writesPerFile[keyPath] = append(writesPerFile[keyPath],
-			OffsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
+			wal.OffsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
 
 	}
 
 	return TG_Serialized, writesPerFile
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []OffsetIndexBuffer, recordType io.EnumRecordType, varRecLen int32) (err error) {
+func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType, varRecLen int32) (err error) {
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
