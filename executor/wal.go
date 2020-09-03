@@ -36,31 +36,6 @@ type WALFileType struct {
 	FilePtr           *os.File // Active file pointer to FileName
 }
 
-type TransactionGroup struct {
-	// A "locally unique" transaction group identifier, can be a clock value
-	ID int64
-	//The contents of the WTSets
-	WTGroup []WTSet
-	//MD5 checksum of the TG contents prior to the checksum
-	Checksum [16]byte
-}
-
-type WTSet struct {
-	// Direct or Indirect IO (for variable or fixed length records)
-	RecordType int
-	// FilePath is an absolute path of the WAL file. The string is ASCII encoded without a trailing null
-	FilePath string
-	// Length of each data element in this set in bytes, excluding the index
-	DataLen int
-	// Used only in case of variable recordType.
-	// (The sum of field lengths in elementTypes) + 4 bytes(for intervalTicks)
-	VarRecLen int32
-	// Data bytes
-	Buffer offsetIndexBuffer
-	// Data Shape without Epoch Column
-	DataShapes []io.DataShape
-}
-
 func NewWALFile(rootDir string, owningInstanceID int64) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
@@ -167,24 +142,6 @@ func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 	return filepath.Join(rootPath, keyPath)
 }
 
-type offsetIndexBuffer []byte
-
-func (b offsetIndexBuffer) Offset() int64 {
-	return io.ToInt64(b[:8])
-}
-
-func (b offsetIndexBuffer) Index() int64 {
-	return io.ToInt64(b[8:16])
-}
-
-func (b offsetIndexBuffer) IndexAndPayload() []byte {
-	return b[8:]
-}
-
-func (b offsetIndexBuffer) Payload() []byte {
-	return b[16:]
-}
-
 type CachedFP struct {
 	fileName string
 	fp       *os.File
@@ -256,7 +213,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	}
 
 	fileRecordTypes := map[string]io.EnumRecordType{}
-	varRecLens := map[string]int32{}
+	varRecLens := map[string]int{}
 	for i := 0; i < len(writeCommands); i++ {
 		keyPath := writeCommands[i].WALKeyPath
 		if _, ok := fileRecordTypes[keyPath]; !ok {
@@ -313,14 +270,14 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 }
 
 func serializeTG(tgID int64, commands []*WriteCommand,
-) (tgSerialized []byte, writesPerFile map[string][]offsetIndexBuffer) {
+) (tgSerialized []byte, writesPerFile map[string][]wal.OffsetIndexBuffer) {
 	WTCount := len(commands)
 
 	// Serialize all data to be written except for the size of this buffer
 	var TG_Serialized []byte
 	TG_Serialized, _ = io.Serialize(TG_Serialized, tgID)
 	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
-	writesPerFile = map[string][]offsetIndexBuffer{}
+	writesPerFile = map[string][]wal.OffsetIndexBuffer{}
 	/*
 		This loop serializes write transactions from the channel for writing to disk
 	*/
@@ -344,14 +301,14 @@ func serializeTG(tgID int64, commands []*WriteCommand,
 		keyPath := commands[i].WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
 		writesPerFile[keyPath] = append(writesPerFile[keyPath],
-			offsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
+			wal.OffsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
 
 	}
 
 	return TG_Serialized, writesPerFile
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []offsetIndexBuffer, recordType io.EnumRecordType, varRecLen int32) (err error) {
+func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType, varRecLen int) (err error) {
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
@@ -677,15 +634,15 @@ func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	return nil
 }
 
-func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WTSet) {
+func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
 	TGID = io.ToInt64(TG_Serialized[0:8])
 	WTCount := io.ToInt64(TG_Serialized[8:16])
 
 	cursor := 16
-	wtSets = make([]WTSet, WTCount)
+	wtSets = make([]wal.WTSet, WTCount)
 
 	for i := 0; i < int(WTCount); i++ {
-		RecordType := int(io.ToInt8(TG_Serialized[cursor : cursor+1]))
+		RecordType := io.ToInt8(TG_Serialized[cursor : cursor+1])
 		cursor += 1
 		FPLen := int(io.ToInt16(TG_Serialized[cursor : cursor+2]))
 		cursor += 2
@@ -693,7 +650,7 @@ func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WT
 		cursor += FPLen
 		dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
 		cursor += 4
-		varRecLen := io.ToInt32(TG_Serialized[cursor : cursor+4])
+		varRecLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
 		cursor += 4
 		fullPath := walKeyToFullPath(rootPath, WALKeyPath)
 		data := TG_Serialized[cursor : cursor+8+8+dataLen]
@@ -701,20 +658,20 @@ func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []WT
 		dataShapes, l := io.DSVFromBytes(TG_Serialized[cursor:])
 		cursor += l
 
-		wtSets[i] = WTSet{
-			RecordType: RecordType,
-			FilePath:   fullPath,
-			DataLen:    dataLen,
-			VarRecLen:  varRecLen,
-			Buffer:     data,
-			DataShapes: dataShapes,
-		}
+		wtSets[i] = wal.NewWTSet(
+			RecordType,
+			fullPath,
+			dataLen,
+			varRecLen,
+			data,
+			dataShapes,
+		)
 	}
 
 	return TGID, wtSets
 }
 
-func (wf *WALFileType) replayTGData(tgID int64, wtSets []WTSet) (err error) {
+func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) {
 	if len(wtSets) == 0 {
 		return nil
 	}

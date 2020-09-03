@@ -3,6 +3,7 @@ package executor
 import (
 	. "gopkg.in/check.v1"
 
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -46,8 +47,8 @@ func (s *WrittenIndexesTests) TestWrittenIndexes(c *C) {
 	s.SetTrigger(t, "AAPL/1Min/OHLCV")
 
 	buffer := io.SwapSliceData([]int64{0, 5}, byte(0)).([]byte)
-	appendRecord("AAPL/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).IndexAndPayload())
-	appendRecord("TSLA/1Min/OHLCV/2017.bin", offsetIndexBuffer(buffer).IndexAndPayload())
+	appendRecord("AAPL/1Min/OHLCV/2017.bin", wal.OffsetIndexBuffer(buffer).IndexAndPayload())
+	appendRecord("TSLA/1Min/OHLCV/2017.bin", wal.OffsetIndexBuffer(buffer).IndexAndPayload())
 	dispatchRecords()
 
 	<-t.fireC
