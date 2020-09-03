@@ -18,7 +18,7 @@ const WriteChannelCommandDepth = 1000000
 type WriteCommand struct {
 	RecordType    io.EnumRecordType
 	WALKeyPath    string
-	VarRecLen     int32
+	VarRecLen     int
 	Offset, Index int64
 	Data          []byte
 	DataShapes    []io.DataShape

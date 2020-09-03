@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	"github.com/klauspost/compress/snappy"
 )
 
@@ -111,7 +113,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 			cc = &WriteCommand{
 				RecordType: rt,
 				WALKeyPath: wkp,
-				VarRecLen:  vrl,
+				VarRecLen:  int(vrl),
 				Offset:     offset,
 				Index:      index,
 				Data:       nil,
@@ -139,7 +141,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 			cc = &WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path),
-				VarRecLen:  w.tbi.GetVariableRecordLength(),
+				VarRecLen:  int(w.tbi.GetVariableRecordLength()),
 				Offset:     offset,
 				Index:      index,
 				Data:       outBuf,
@@ -165,7 +167,7 @@ func AppendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) 
 	return outBuf
 }
 
-func WriteBufferToFile(fp stdio.WriterAt, buffer offsetIndexBuffer) error {
+func WriteBufferToFile(fp stdio.WriterAt, buffer wal.OffsetIndexBuffer) error {
 	offset := buffer.Offset()
 	data := buffer.IndexAndPayload()
 	_, err := fp.WriteAt(data, offset)
@@ -176,7 +178,7 @@ type IndirectRecordInfo struct {
 	Index, Offset, Len int64
 }
 
-func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen int32) (err error) {
+func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRecLen int) (err error) {
 	/*
 		Here we write the data payload of the buffer to the end of the data file
 		Prior to writing the new data, we fetch any previously written data and
@@ -228,7 +230,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer offsetIndexBuffer, varRecLen 
 	/*
 		Sort the data by the timestamp to maintain on-disk sorted order
 	*/
-	sort.Stable(NewByIntervalTicks(dataToBeWritten, int(dataLen)/int(varRecLen), int(varRecLen)))
+	sort.Stable(NewByIntervalTicks(dataToBeWritten, int(dataLen)/varRecLen, varRecLen))
 
 	/*
 		Write the data at the end of the file
