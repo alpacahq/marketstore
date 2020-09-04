@@ -22,12 +22,13 @@ FROM debian:10.3
 WORKDIR /
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
-# copy plugins if any
 COPY --from=builder /go/bin /bin/
+COPY --from=builder /go/src/github.com/alpacahq/marketstore/contrib/polygon/polygon-backfill-*.sh /bin/
+
 ENV GOPATH=/
 
 RUN ["marketstore", "init"]
