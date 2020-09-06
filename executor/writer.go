@@ -2,7 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/executor/wal"
 	stdio "io"
 	"os"
 	"sort"
@@ -288,7 +287,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			alignData = false
 		}
 		rs := cs.ToRowSeries(tbk, alignData)
-		rowdata := rs.GetData()
+		rowsdata := rs.GetData()
 
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
 		if err != nil {
@@ -347,7 +346,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			return err
 		}
 
-		w.WriteRecords(times, rowdata, dbDSV)
+		w.WriteRecords(times, rowsdata, dbDSV)
 	}
 	walfile := ThisInstance.WALFile
 	walfile.RequestFlush()

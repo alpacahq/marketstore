@@ -2,7 +2,6 @@ package replication
 
 import (
 	"context"
-	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -16,11 +15,11 @@ type ReplicationService interface {
 type Sender struct {
 	ReplService *GRPCReplicationServer
 	//ReplicaHosts []string
-	channel chan []*wal.WriteCommand
+	channel chan []byte
 }
 
 func NewSender(service *GRPCReplicationServer) *Sender {
-	c := make(chan []*wal.WriteCommand, defaultSenderChannelSize)
+	c := make(chan []byte, defaultSenderChannelSize)
 
 	return &Sender{
 		ReplService: service,
@@ -28,24 +27,21 @@ func NewSender(service *GRPCReplicationServer) *Sender {
 	}
 }
 
-
 func (s *Sender) Run(ctx context.Context) {
-	go func(ctx context.Context, resc chan []*wal.WriteCommand) {
+	go func(ctx context.Context, resc chan []byte) {
 		for {
 			select {
 			case <-ctx.Done():
 				log.Info("shutdown replication sender...")
 				return
-			case writeCommands := <-resc:
+			case transactionGroup := <-resc:
 				log.Debug("send a replication message to replicas")
-				s.ReplService.SendWriteCommands(writeCommands)
+				s.ReplService.SendReplicationMessage(transactionGroup)
 			}
 		}
 	}(ctx, s.channel)
 }
 
-func (s *Sender) Send(writeCommands []*wal.WriteCommand) {
-	s.channel <- writeCommands
+func (s *Sender) Send(transactionGroup []byte) {
+	s.channel <- transactionGroup
 }
-
-

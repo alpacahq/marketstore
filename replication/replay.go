@@ -3,7 +3,6 @@ package replication
 import (
 	"fmt"
 	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/pkg/errors"
 	"regexp"
@@ -22,33 +21,42 @@ import (
 //	Writer Writer
 //}
 
-// e.g. "AMZN/1Min/TICK/2017.bin"
-var WkpRegex = regexp.MustCompile(`^(.+)/(.+)/(.+)/([0-9]+)\.bin$`)
+// e.g. "/Users/dakimura/marketstore/data/AMZN/1Min/TICK/2017.bin" -> (AMZN), (1Min), (TICK), (2017)
+var WkpRegex = regexp.MustCompile(`([^/]+)/([^/]+)/([^/]+)/([0-9]+)\.bin$`)
 
-func replay(writeCommands []*wal.WriteCommand) error {
+func replay(transactionGroup []byte) error {
+	// TODO: replay order by transactionGroupID
 	fmt.Println("received!")
-	println(writeCommands)
+	println(transactionGroup)
 
-	rootDir := executor.ThisInstance.RootDir
-	for _, wc := range writeCommands {
-		tbk, year, err := walKeyToTBKInfo(wc.WALKeyPath)
-		if err != nil {
-			return err
-		}
-
-		tf, err := tbk.GetTimeFrame()
-
-		rt := io.EnumRecordTypeByName(rowType)
-
-		fmt.Println(wc)
+	tgID, wtsets := executor.ParseTGData(transactionGroup, executor.ThisInstance.RootDir)
+	fmt.Println(tgID)
+	fmt.Println(wtsets)
+	for _, wtSet := range wtsets {
+		isVariableLength := io.EnumRecordType(wtSet.RecordType) == io.VARIABLE
+		csm := io.NewColumnSeriesMap()
+		csm.AddColumnSeries()
+		err := executor.WriteCSM(csm, isVariableLength)
 	}
+	//for _, wc := range writeCommands {
+	//	tbk, year, err := walKeyToTBKInfo(wc.WALKeyPath)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	tf, err := tbk.GetTimeFrame()
+	//
+	//	rt := io.EnumRecordTypeByName(rowType)
+	//
+	//	fmt.Println(wc)
+	//}
 
-	io.NewTimeBucketKey()
-	if err != nil {
-		return err
-	}
-	rt := io.EnumRecordTypeByName(rowType)
-	tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, rt)
+	//io.NewTimeBucketKey()
+	//if err != nil {
+	//	return err
+	//}
+	//rt := io.EnumRecordTypeByName(rowType)
+	//tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, rt)
 
 	// レコードの中に新しい年が入っていた場合はその年のフォルダを追加する
 	//if err := w.AddNewYearFile(year); err != nil {
@@ -71,7 +79,53 @@ func replay(writeCommands []*wal.WriteCommand) error {
 	return nil
 }
 
-func walKeyToTBKInfo(walKeyPath string) (tbk *io.TimeBucketKey, year int, err error) {
+func CSMFromWTSets(wtSet executor.WTSet) (io.ColumnSeriesMap, error) {
+	tbk, year, err := walKeyPathToTBKInfo(wtSet.FilePath)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse walKeyPath to bucket info. wkp:"+wtSet.FilePath)
+	}
+	tf, err := tbk.GetTimeFrame()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get TimeFrame from TimeBucketKey. tbk:"+tbk.String())
+	}
+
+	csm := io.NewColumnSeriesMap()
+
+	cs := io.NewColumnSeries()
+	epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
+
+	ca := io.None
+	rs := io.NewRowSeries(*tbk, wtSet.Buffer.Payload(), wtSet.DataShapes, wtSet.DataLen, &ca, io.EnumRecordType(wtSet.RecordType))
+	cs.AddColumn("Epoch", epoch)
+	cs.AddColumn()
+		cs.AddColumn("Open", opens)
+		cs.AddColumn("Close", closes)
+		cs.AddColumn("High", highs)
+		cs.AddColumn("Low", lows)
+		cs.AddColumn("Volume", volumes)
+
+		return cs
+	}
+
+	csm.AddColumnSeries(tbk, cs)
+
+	for tbkStr, idx := range nmds.StartIndex {
+		length := nmds.Lengths[tbkStr]
+		var cs *ColumnSeries
+		if length > 0 {
+			cs, err = nmds.ToColumnSeries(idx, length)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			cs = NewColumnSeries()
+		}
+		tbk := NewTimeBucketKeyFromString(tbkStr)
+		csm.AddColumnSeries(*tbk, cs)
+	}
+}
+
+func walKeyPathToTBKInfo(walKeyPath string) (tbk *io.TimeBucketKey, year int, err error) {
 	group := WkpRegex.FindStringSubmatch(walKeyPath)
 	if len(group) != 4 {
 		return nil, 0, errors.New("failed to extract TBK info from WalKeyPath")

@@ -120,7 +120,7 @@ message GetWALStreamRequest {
 
 message GetWALStreamResponse {
     //repeated WriteCommand write_commands = 1;
-    bytes tg_message = 1;
+    bytes transaction_group = 1;
 }
 
 message WriteCommand {

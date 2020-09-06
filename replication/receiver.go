@@ -3,7 +3,6 @@ package replication
 import (
 	"context"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
 	"io"
@@ -32,18 +31,18 @@ func (r *Receiver) Run(ctx context.Context) error {
 		for {
 			log.Debug("waiting for replication messages from master...")
 			// block until receive a new replication message
-			writeCommands, err := r.GRPCClient.Recv()
+			transactionGroup, err := r.GRPCClient.Recv()
 			if err == io.EOF {
 				log.Info("received EOF from master server")
 				break
 			}
 			if err != nil {
-				log.Error(fmt.Sprintf("an error occurred while receiving a wal message from master instance."+
+				log.Error(fmt.Sprintf("an error occurred while receiving a replication message from master instance."+
 					"There will be data inconsistency between master and replica:%s", err.Error()))
 				break
 			}
 
-			err = replay(wal.WriteCommandsFromProto(writeCommands))
+			err = replay(transactionGroup)
 			if err != nil {
 				log.Error(fmt.Sprintf("an error occurred while replaying. "+
 					"There will be data inconsistency between master and replica:%s", err.Error()))

@@ -38,7 +38,7 @@ type WALFileType struct {
 }
 
 type ReplicationSender interface {
-	Send(writeCommands []*wal.WriteCommand)
+	Send(transactionGroup []byte)
 }
 
 type TransactionGroup struct {
@@ -62,7 +62,7 @@ type WTSet struct {
 	VarRecLen int32
 	// Data bytes
 	Buffer wal.OffsetIndexBuffer
-	// Data Shape without Epoch Column
+	// Data Shape including Epoch Column
 	DataShapes []io.DataShape
 }
 
@@ -258,7 +258,7 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 
 		// send transaction to replicas
 		if wf.ReplicationSender != nil {
-			wf.ReplicationSender.Send(writeCommands)
+			wf.ReplicationSender.Send(TG_Serialized)
 		}
 	}
 
@@ -514,7 +514,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 		if TG_Serialized != nil {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
 			if writeData {
-				tgID, wtSets := parseTGData(TG_Serialized, wf.RootPath)
+				tgID, wtSets := ParseTGData(TG_Serialized, wf.RootPath)
 				log.Info("Replaying TGID: %d, WTSet count is: %d bytes", tgID, len(wtSets))
 				if err := wf.replayTGData(tgID, wtSets); err != nil {
 					return err
@@ -646,7 +646,7 @@ func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	return nil
 }
 
-func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
+func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
 	TGID = io.ToInt64(TG_Serialized[0:8])
 	WTCount := io.ToInt64(TG_Serialized[8:16])
 
