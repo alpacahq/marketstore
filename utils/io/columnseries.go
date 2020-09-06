@@ -555,16 +555,13 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	/*
 		Generate an ordered array from the map of columns, ordered by the data shapes
 	*/
-	//columnList := make([]interface{}, 0, len(dataShapes))
 	colInBytesList := make([][]byte, 0, len(dataShapes))
 	for _, shape := range dataShapes {
 		colName := shape.Name
 		if strings.EqualFold(colName, "Epoch") {
 			shapesContainsEpoch = true
 		}
-		// columnData =
 		columnData := cs.columns[colName]
-		//columnList = append(columnList, columnData)
 		colInBytes := SwapSliceData(columnData, byte(0)).([]byte)
 		colInBytesList = append(colInBytesList, colInBytes)
 	}

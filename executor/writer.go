@@ -52,6 +52,24 @@ func (w *Writer) AddNewYearFile(year int16) (err error) {
 	return nil
 }
 
+func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, isVariable bool) []byte {
+	/*
+		Incoming data records ALWAYS have the 8-byte Epoch column first
+	*/
+	row = row[8:] // Chop off the Epoch column
+	if !isVariable {
+		return row
+	}
+	/*
+		[VariableLength record] append IntervalTicks since bucket time instead of Epoch
+	*/
+	var outBuf []byte
+	outBuf = append(buf, row...)
+	outBuf = AppendIntervalTicks(outBuf, t, index, intervalsPerDay)
+	return outBuf
+
+}
+
 // WriteRecords creates a WriteCommand from the supplied timestamp and data buffer,
 // and sends it over the write channel to be flushed to disk in the WAL sync subroutine.
 // The caller should assume that by calling WriteRecords directly, the data will be written
@@ -73,22 +91,6 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 		outBuf    []byte
 		rowLen    = len(data) / numRows
 	)
-
-	formatRecord := func(buf, record []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
-		/*
-			Incoming data records ALWAYS have the 8-byte Epoch column first
-		*/
-		record = record[8:] // Chop off the Epoch column
-		if w.tbi.GetRecordType() == VARIABLE {
-			/*
-				Trim the Epoch column off and replace it with ticks since bucket time
-			*/
-			outBuf = append(buf, record...)
-			outBuf = AppendIntervalTicks(outBuf, t, index, intervalsPerDay)
-			return outBuf
-		}
-		return record
-	}
 
 	wkp := FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path)
 	vrl := w.tbi.GetVariableRecordLength()
@@ -120,14 +122,14 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 				DataShapes: ds,
 			}
 		}
-		// Because index is relative time from the beginning of the year
+		// Because index is relative time from the beginning of the year,
 		// To confirm that the next data is a different data, both index and year should be checked.
 		// (ex. when writing "2017-02-03 04:05:06" and "2018-02-03 04:05:06", index (02-03 04:05:06) is the same)
 		if index == prevIndex && year == prevYear {
 			/*
 				This is the interior of a multi-row write buffer
 			*/
-			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals())
+			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
 			cc.Data = outBuf
 		}
 		if index != prevIndex || year != prevYear {
@@ -137,7 +139,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 			w.tgc.writeChannel <- cc
 			// Setup next command
 			prevIndex = index
-			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals())
+			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
 			cc = &wal.WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path),
@@ -148,16 +150,10 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 				DataShapes: ds,
 			}
 		}
-		if i == (numRows - 1) {
-			/*
-				The last iteration must output it's command buffer
-			*/
-			w.tgc.writeChannel <- cc
-		}
-		// if cc != nil {
-		// 	log.Info(cc.toString())
-		// }
 	}
+
+	// output to WAL
+	w.tgc.writeChannel <- cc
 }
 
 func AppendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
