@@ -48,7 +48,10 @@ type NumpyDataset struct {
 	ColumnTypes []string `msgpack:"types"`
 	// a list of column names
 	ColumnNames []string `msgpack:"names"`
-	// two dimentional byte arrays holding the column data
+	// two dimentional byte arrays holding the column data.
+	// if there are mulitple rows in DataSet, ColumnData[columnIndex] is concatenation of the byte representation of each row.
+	// (e.g. row1 of columnA = "\x01\x02\x03\x04", row2 of columnA = "\x05\x06\x07\x08"
+	// => ColumnData[index of columnA] = "\x01\x02\x03\x04\x05\x06\x07\x08"
 	ColumnData [][]byte `msgpack:"data"`
 	Length     int      `msgpack:"length"`
 	// hidden
