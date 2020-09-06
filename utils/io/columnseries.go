@@ -555,15 +555,14 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	/*
 		Generate an ordered array from the map of columns, ordered by the data shapes
 	*/
-	columnList := make([]interface{}, 0, len(dataShapes))
 	colInBytesList := make([][]byte, 0, len(dataShapes))
 	for _, shape := range dataShapes {
 		colName := shape.Name
 		if strings.EqualFold(colName, "Epoch") {
 			shapesContainsEpoch = true
 		}
+		// columnData =
 		columnData := cs.columns[colName]
-		columnList = append(columnList, columnData)
 		colInBytes := SwapSliceData(columnData, byte(0)).([]byte)
 		colInBytesList = append(colInBytesList, colInBytes)
 	}
@@ -604,5 +603,12 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		}
 	}
 
+	// data is a concatenation of the byte representation of each row, including Epoch column.
+	// e.g. the records are ([
+	//	(\x01\x02\x03\x04\x05\x06\x07\x08, \x09\x0A\x0B\x0C\x0D\x0E\x0F\x10), // 2 Epochs
+	//  (\x11\x12, \x13\x14)												  // 2 Asks
+	//  ], ("Epoch", "Ask")),
+	// => data = \x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x13\x14
+	// (Epoch1-Ask1-Epoch2-Ask2)
 	return data, recordLen
 }
