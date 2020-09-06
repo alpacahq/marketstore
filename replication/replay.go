@@ -32,6 +32,9 @@ func replay(transactionGroup []byte) error {
 	tgID, wtsets := executor.ParseTGData(transactionGroup, executor.ThisInstance.RootDir)
 	fmt.Println(tgID)
 	fmt.Println(wtsets)
+
+	csm := WTSetsToCSM(wtSets)
+
 	for _, wtSet := range wtsets {
 		isVariableLength := io.EnumRecordType(wtSet.RecordType) == io.VARIABLE
 		csm := io.NewColumnSeriesMap()
@@ -79,25 +82,26 @@ func replay(transactionGroup []byte) error {
 	return nil
 }
 
-func CSMFromWTSets(wtSet executor.WTSet) (io.ColumnSeriesMap, error) {
-	tbk, year, err := walKeyPathToTBKInfo(wtSet.FilePath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse walKeyPath to bucket info. wkp:"+wtSet.FilePath)
-	}
-	tf, err := tbk.GetTimeFrame()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get TimeFrame from TimeBucketKey. tbk:"+tbk.String())
-	}
-
+func WTSetsToCSM(wtSets []executor.WTSet) (io.ColumnSeriesMap, error) {
 	csm := io.NewColumnSeriesMap()
 
-	cs := io.NewColumnSeries()
-	epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
+	for _,wtSet := range wtSets {
+		tbk, year, err := walKeyPathToTBKInfo(wtSet.FilePath)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse walKeyPath to bucket info. wkp:"+wtSet.FilePath)
+		}
+		tf, err := tbk.GetTimeFrame()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get TimeFrame from TimeBucketKey. tbk:"+tbk.String())
+		}
 
-	ca := io.None
-	rs := io.NewRowSeries(*tbk, wtSet.Buffer.Payload(), wtSet.DataShapes, wtSet.DataLen, &ca, io.EnumRecordType(wtSet.RecordType))
-	cs.AddColumn("Epoch", epoch)
-	cs.AddColumn()
+		cs := io.NewColumnSeries()
+		epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
+
+		ca := io.None
+		rs := io.NewRowSeries(*tbk, wtSet.Buffer.Payload(), wtSet.DataShapes, wtSet.DataLen, &ca, io.EnumRecordType(wtSet.RecordType))
+		cs.AddColumn("Epoch", epoch)
+		cs.AddColumn()
 		cs.AddColumn("Open", opens)
 		cs.AddColumn("Close", closes)
 		cs.AddColumn("High", highs)
@@ -106,6 +110,7 @@ func CSMFromWTSets(wtSet executor.WTSet) (io.ColumnSeriesMap, error) {
 
 		return cs
 	}
+
 
 	csm.AddColumnSeries(tbk, cs)
 
