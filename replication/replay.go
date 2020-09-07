@@ -3,11 +3,13 @@ package replication
 import (
 	"fmt"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
 	"regexp"
 	"strconv"
-	"time"
 )
 
 //// Writer is the intereface to decouple WAL Replayer from executor package
@@ -30,17 +32,23 @@ func replay(transactionGroup []byte) error {
 	println(transactionGroup)
 
 	tgID, wtsets := executor.ParseTGData(transactionGroup, executor.ThisInstance.RootDir)
+	if len(wtsets) == 0 {
+		log.Info("[replica] received empty WTset")
+		return nil
+	}
 	fmt.Println(tgID)
 	fmt.Println(wtsets)
 
-	csm := WTSetsToCSM(wtSets)
-
-	for _, wtSet := range wtsets {
-		isVariableLength := io.EnumRecordType(wtSet.RecordType) == io.VARIABLE
-		csm := io.NewColumnSeriesMap()
-		csm.AddColumnSeries()
-		err := executor.WriteCSM(csm, isVariableLength)
+	csm, err := WTSetsToCSM(wtsets)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert WTSet to CSM")
 	}
+
+	err = executor.WriteCSM(csm, io.EnumRecordType(wtsets[0].RecordType) == io.VARIABLE)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to WriteCSM. csm:%v", csm))
+	}
+
 	//for _, wc := range writeCommands {
 	//	tbk, year, err := walKeyToTBKInfo(wc.WALKeyPath)
 	//	if err != nil {
@@ -79,13 +87,14 @@ func replay(transactionGroup []byte) error {
 	//	return errors.Wrap(err, "[replica] failed to flush WriteCommands to WAL and primary store.")
 	//}
 
+	log.Debug("[replica] successfully replayed the WAL message")
 	return nil
 }
 
-func WTSetsToCSM(wtSets []executor.WTSet) (io.ColumnSeriesMap, error) {
+func WTSetsToCSM(wtSets []wal.WTSet) (io.ColumnSeriesMap, error) {
 	csm := io.NewColumnSeriesMap()
 
-	for _,wtSet := range wtSets {
+	for _, wtSet := range wtSets {
 		tbk, year, err := walKeyPathToTBKInfo(wtSet.FilePath)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse walKeyPath to bucket info. wkp:"+wtSet.FilePath)
@@ -95,51 +104,60 @@ func WTSetsToCSM(wtSets []executor.WTSet) (io.ColumnSeriesMap, error) {
 			return nil, errors.Wrap(err, "failed to get TimeFrame from TimeBucketKey. tbk:"+tbk.String())
 		}
 
-		cs := io.NewColumnSeries()
 		epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
+		dsv := wtSet.DataShapes
+
+		var buf []byte
+		buf, err = io.Serialize(buf, epoch.Unix())
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
+		}
+
+		buf, err = io.Serialize(buf, wtSet.Buffer.Payload())
+		if io.EnumRecordType(wtSet.RecordType) == io.VARIABLE {
+			intervalTicks := io.ToUInt32(buf[len(buf)-4:])
+
+			// Expand ticks (32-bit) into epoch and nanos
+			intervalsPerDay := uint32(utils.Day.Seconds() / tf.Duration.Seconds())
+			_, nanosecond := executor.GetTimeFromTicks(uint64(epoch.Unix()), intervalsPerDay, intervalTicks)
+			buf, err = io.Serialize(buf, nanosecond)
+			dsv = append(dsv, io.DataShape{Name: "Nanoseconds", Type: io.INT32})
+		}
 
 		ca := io.None
-		rs := io.NewRowSeries(*tbk, wtSet.Buffer.Payload(), wtSet.DataShapes, wtSet.DataLen, &ca, io.EnumRecordType(wtSet.RecordType))
-		cs.AddColumn("Epoch", epoch)
-		cs.AddColumn()
-		cs.AddColumn("Open", opens)
-		cs.AddColumn("Close", closes)
-		cs.AddColumn("High", highs)
-		cs.AddColumn("Low", lows)
-		cs.AddColumn("Volume", volumes)
-
-		return cs
+		rs := io.NewRowSeries(*tbk, buf, wtSet.DataShapes, wtSet.DataLen, &ca, io.EnumRecordType(wtSet.RecordType))
+		key, cs := rs.ToColumnSeries()
+		csm.AddColumnSeries(key, cs)
 	}
 
-
-	csm.AddColumnSeries(tbk, cs)
-
-	for tbkStr, idx := range nmds.StartIndex {
-		length := nmds.Lengths[tbkStr]
-		var cs *ColumnSeries
-		if length > 0 {
-			cs, err = nmds.ToColumnSeries(idx, length)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			cs = NewColumnSeries()
-		}
-		tbk := NewTimeBucketKeyFromString(tbkStr)
-		csm.AddColumnSeries(*tbk, cs)
-	}
+	//for tbkStr, idx := range nmds.StartIndex {
+	//	length := nmds.Lengths[tbkStr]
+	//	var cs *ColumnSeries
+	//	if length > 0 {
+	//		cs, err = nmds.ToColumnSeries(idx, length)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//	} else {
+	//		cs = NewColumnSeries()
+	//	}
+	//	tbk := NewTimeBucketKeyFromString(tbkStr)
+	//	csm.AddColumnSeries(*tbk, cs)
+	//}
+	return csm, nil
 }
 
 func walKeyPathToTBKInfo(walKeyPath string) (tbk *io.TimeBucketKey, year int, err error) {
 	group := WkpRegex.FindStringSubmatch(walKeyPath)
-	if len(group) != 4 {
-		return nil, 0, errors.New("failed to extract TBK info from WalKeyPath")
+	// group should be like {"AAPL/1Min/Tick/2020.bin","AAPL","1Min","Tick","2017"} (len:5, cap:5)
+	if len(group) != 5 {
+		return nil, 0, errors.New(fmt.Sprintf("failed to extract TBK info from WalKeyPath:%v", walKeyPath))
 	}
 
-	year, err = strconv.Atoi(group[3])
+	year, err = strconv.Atoi(group[4])
 	if err != nil {
 		return nil, 0, errors.New(fmt.Sprintf("failed to extract year from WalKeyPath:%s", group[3]))
 	}
 
-	return io.NewTimeBucketKey(fmt.Sprintf("%s/%s/%s", group[0], group[1], group[2])), year, nil
+	return io.NewTimeBucketKey(fmt.Sprintf("%s/%s/%s", group[1], group[2], group[3])), year, nil
 }

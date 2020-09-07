@@ -45,26 +45,26 @@ type TransactionGroup struct {
 	// A "locally unique" transaction group identifier, can be a clock value
 	ID int64
 	//The contents of the WTSets
-	WTGroup []WTSet
+	WTGroup []wal.WTSet
 	//MD5 checksum of the TG contents prior to the checksum
 	Checksum [16]byte
 }
-
-type WTSet struct {
-	// Direct or Indirect IO (for variable or fixed length records)
-	RecordType int
-	// FilePath is an absolute path of the WAL file. The string is ASCII encoded without a trailing null
-	FilePath string
-	// Length of each data element in this set in bytes, excluding the index
-	DataLen int
-	// Used only in case of variable recordType.
-	// (The sum of field lengths in elementTypes) + 4 bytes(for intervalTicks)
-	VarRecLen int32
-	// Data bytes
-	Buffer wal.OffsetIndexBuffer
-	// Data Shape including Epoch Column
-	DataShapes []io.DataShape
-}
+//
+//type WTSet struct {
+//	// Direct or Indirect IO (for variable or fixed length records)
+//	RecordType int
+//	// FilePath is an absolute path of the WAL file. The string is ASCII encoded without a trailing null
+//	FilePath string
+//	// Length of each data element in this set in bytes, excluding the index
+//	DataLen int
+//	// Used only in case of variable recordType.
+//	// (The sum of field lengths in elementTypes) + 4 bytes(for intervalTicks)
+//	VarRecLen int32
+//	// Data bytes
+//	Buffer wal.OffsetIndexBuffer
+//	// Data Shape including Epoch Column
+//	DataShapes []io.DataShape
+//}
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
