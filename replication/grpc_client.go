@@ -71,37 +71,3 @@ func (rc GRPCReplicationClient) Close() error {
 
 	return nil
 }
-
-//// Server-side streamingを用いてメッセージを交換する
-//func (rc *GRPCReplicationClient) GetMessages(ctx context.Context, in *pb.MessagesRequest, opts ...grpc.CallOption) error {
-//	stream, err := rc.Client.GetMessages(context.Background(), &pb.MessagesRequest{Id: "123",}, )
-//	if err != nil {
-//		return errors.Wrap(err, "failed to get wal message stream")
-//	}
-//
-//	for {
-//		// サーバからメッセージ受信
-//		m, err := stream.Recv()
-//		//stream.CloseSend()
-//		if m != nil {
-//			log.Debug("Receive message>> [%s] %s", m.Name, m.Content)
-//		}
-//		// EOF、エラーなら終了
-//		if err == io.EOF {
-//			// EOFなら終了
-//			log.Info(fmt.Sprintf("stream received:%v", err))
-//			break
-//		}
-//		if err != nil {
-//			log.Error(err.Error())
-//			break
-//		}
-//		time.Sleep(1 * time.Second)
-//	}
-//
-//	return nil
-//}
-
-//func (rc *GRPCReplicationClient) Close() error {
-//	return rc.clientConn.Close()
-//}

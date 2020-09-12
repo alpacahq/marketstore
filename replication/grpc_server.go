@@ -75,13 +75,18 @@ func (rs *GRPCReplicationServer) GetWALStream(req *pb.GetWALStreamRequest, strea
 			break
 		}
 
-		log.Debug("sending a replication message...")
 		err := stream.Send(&pb.GetWALStreamResponse{TransactionGroup: transactionGroup})
 		if err != nil {
 			log.Error(fmt.Sprintf("an error occurred while sending replication message:%s", err))
+			break
 		}
 		log.Debug("successfully sent a replication message")
 	}
+
+	// when an error occurred / client connection is closed, close the channel
+	delete(rs.StreamChannels, clientAddr)
+	close(streamChannel)
+	log.Info(fmt.Sprintf("[master] closed replication connection: %v", clientAddr))
 
 	return nil
 }
@@ -89,7 +94,7 @@ func (rs *GRPCReplicationServer) GetWALStream(req *pb.GetWALStreamRequest, strea
 func (rs *GRPCReplicationServer) SendReplicationMessage(transactionGroup []byte) {
 	// send a replication message to each replica
 	for ip, channel := range rs.StreamChannels {
-		log.Info("sending a replication message to %s", ip)
+		log.Debug("sending a replication message to %s", ip)
 		channel <- transactionGroup
 	}
 }

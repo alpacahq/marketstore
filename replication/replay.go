@@ -12,32 +12,19 @@ import (
 	"strconv"
 )
 
-//// Writer is the intereface to decouple WAL Replayer from executor package
-//type Writer interface {
-//	WriteBufferToFile(fp stdio.WriterAt, offsetIndexBuffer []byte) error
-//	// for variable length record
-//	WriteBufferToFileIndirect(fp *os.File, offsetIndexBuffer []byte, varRecLen int32) (err error)
-//}
-//
-//type WALReplayer struct {
-//	Writer Writer
-//}
-
 // e.g. "/Users/dakimura/marketstore/data/AMZN/1Min/TICK/2017.bin" -> (AMZN), (1Min), (TICK), (2017)
 var WkpRegex = regexp.MustCompile(`([^/]+)/([^/]+)/([^/]+)/([0-9]+)\.bin$`)
 
 func replay(transactionGroup []byte) error {
-	// TODO: replay order by transactionGroupID
-	fmt.Println("received!")
-	println(transactionGroup)
+	// TODO: replay ordered by transactionGroupID
+	log.Debug(fmt.Sprintf("[replica] received a replication message. size=%v", len(transactionGroup)))
 
 	tgID, wtsets := executor.ParseTGData(transactionGroup, executor.ThisInstance.RootDir)
 	if len(wtsets) == 0 {
 		log.Info("[replica] received empty WTset")
 		return nil
 	}
-	fmt.Println(tgID)
-	fmt.Println(wtsets)
+	log.Debug(fmt.Sprintf("[replica] transactionGroupID=%v", tgID))
 
 	csm, err := WTSetsToCSM(wtsets)
 	if err != nil {
@@ -48,44 +35,6 @@ func replay(transactionGroup []byte) error {
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to WriteCSM. csm:%v", csm))
 	}
-
-	//for _, wc := range writeCommands {
-	//	tbk, year, err := walKeyToTBKInfo(wc.WALKeyPath)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	tf, err := tbk.GetTimeFrame()
-	//
-	//	rt := io.EnumRecordTypeByName(rowType)
-	//
-	//	fmt.Println(wc)
-	//}
-
-	//io.NewTimeBucketKey()
-	//if err != nil {
-	//	return err
-	//}
-	//rt := io.EnumRecordTypeByName(rowType)
-	//tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, rt)
-
-	// レコードの中に新しい年が入っていた場合はその年のフォルダを追加する
-	//if err := w.AddNewYearFile(year); err != nil {
-	//	panic(err)
-	//}
-
-	//// まだバケット用のファイルができていない場合は作る
-	//if err := cDir.AddTimeBucket(&tbk, tbi); err != nil {
-	//	// If File Exists error, ignore it, otherwise return the error
-	//	if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
-	//		return err
-	//	}
-	//}
-
-	//err := executor.ThisInstance.WALFile.FlushCommandsToWAL(executor.ThisInstance.TXNPipe, writeCommands, executor.ThisInstance.WALBypass)
-	//if err != nil {
-	//	return errors.Wrap(err, "[replica] failed to flush WriteCommands to WAL and primary store.")
-	//}
 
 	log.Debug("[replica] successfully replayed the WAL message")
 	return nil
@@ -120,7 +69,7 @@ func WTSetsToCSM(wtSets []wal.WTSet) (io.ColumnSeriesMap, error) {
 			// Expand ticks (32-bit) into epoch and nanos
 			intervalsPerDay := uint32(utils.Day.Seconds() / tf.Duration.Seconds())
 			_, nanosecond := executor.GetTimeFromTicks(uint64(epoch.Unix()), intervalsPerDay, intervalTicks)
-			buf, err = io.Serialize(buf, nanosecond)
+			buf, err = io.Serialize(buf[:len(buf)-4], int32(nanosecond)) // chop off interval ticks and append nanosec
 			dsv = append(dsv, io.DataShape{Name: "Nanoseconds", Type: io.INT32})
 		}
 
@@ -130,20 +79,6 @@ func WTSetsToCSM(wtSets []wal.WTSet) (io.ColumnSeriesMap, error) {
 		csm.AddColumnSeries(key, cs)
 	}
 
-	//for tbkStr, idx := range nmds.StartIndex {
-	//	length := nmds.Lengths[tbkStr]
-	//	var cs *ColumnSeries
-	//	if length > 0 {
-	//		cs, err = nmds.ToColumnSeries(idx, length)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//	} else {
-	//		cs = NewColumnSeries()
-	//	}
-	//	tbk := NewTimeBucketKeyFromString(tbkStr)
-	//	csm.AddColumnSeries(*tbk, cs)
-	//}
 	return csm, nil
 }
 

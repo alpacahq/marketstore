@@ -262,6 +262,33 @@ This plugin allows you to only worry about writing tick/minute level data. This 
 on disk. For more, see [the package](./contrib/ondiskagg/)
 
 
+## Replication
+You can replicate data from a master instance to other marketstore instances. 
+In `mkts.yml` config file, please set the below config:
+
+- master instance
+```
+replication:
+  # when enabled=true, this instance works as master instance and accept connections from replicas
+  enabled: true
+  # port to be used for the replication protocol
+  listen_port: 5996
+```
+
+- replica instance(s)
+```
+replication:
+  # when master_host is set, this instance works as a replica instance
+  master_host: "127.0.0.1:5995"
+```
+
+### limitations
+- Currently, the replication connection is initialized only when the marketstore (on the replica instance) is started.
+Please start the master instance first when you want to replicate data.
+
+- Currently, only `write` API result is supported. `delete` API result won't be reflected to replica instances.
+
+
 ## Development
 If you are interested in improving MarketStore, you are more than welcome! Just file issues or requests in github or contact oss@alpaca.markets. Before opening a PR please be sure tests pass-
 

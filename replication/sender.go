@@ -35,7 +35,7 @@ func (s *Sender) Run(ctx context.Context) {
 				log.Info("shutdown replication sender...")
 				return
 			case transactionGroup := <-resc:
-				log.Debug("send a replication message to replicas")
+				// log.Debug("send a replication message to replicas")
 				s.ReplService.SendReplicationMessage(transactionGroup)
 			}
 		}
