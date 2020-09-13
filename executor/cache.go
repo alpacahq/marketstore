@@ -17,9 +17,9 @@ const WriteChannelCommandDepth = 1000000
 // TransactionPipe stores the contents of the current pending Transaction Group
 // and writes it to WAL when flush() is called
 type TransactionPipe struct {
-	tgID         int64              // Current transaction group ID
+	tgID         int64                  // Current transaction group ID
 	writeChannel chan *wal.WriteCommand // Channel for write commands
-	flushChannel chan chan struct{} // Channel for flush request
+	flushChannel chan chan struct{}     // Channel for flush request
 }
 
 // NewTransactionPipe creates a new transaction pipe that channels all

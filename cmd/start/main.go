@@ -103,7 +103,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 				grpcServer.GracefulStop()
 				log.Info("shutdown grpc API server...")
 				globalCancel()
-				grpcReplicationServer.Stop() // gRPC stream connection cannot be closed by GracefulStop()
+				grpcReplicationServer.Stop() // gRPC stream connection doesn't close by GracefulStop()
 				log.Info("shutdown grpc Replication server...")
 
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))

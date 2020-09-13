@@ -12,7 +12,7 @@ type WriteCommand struct {
 	Offset, Index int64
 	Data          []byte
 	// DataShapes with Epoch column
-	DataShapes    []io.DataShape
+	DataShapes []io.DataShape
 }
 
 // Convert WriteCommand to string for debuging/presentation

@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"github.com/alpacahq/marketstore/v4/utils"
 	"path/filepath"
 	"sync"
 	"time"
@@ -77,7 +78,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, options ...bool) 
 		}
 		if backgroundSync {
 			// Startup the WAL and Primary cache flushers
-			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 1*time.Minute, 1)
+			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, utils.InstanceConfig.WALRotateInterval)
 			ThisInstance.WALWg.Add(1)
 		}
 	}
