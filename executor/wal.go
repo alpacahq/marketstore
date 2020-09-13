@@ -537,7 +537,6 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 	buffer, _ = io.Serialize(buffer, tid)
 	buffer, _ = io.Serialize(buffer, did)
 	buffer, _ = io.Serialize(buffer, txnStatus)
-	buffer, _ = io.Serialize(buffer, txnStatus)
 	wf.write(buffer)
 }
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
