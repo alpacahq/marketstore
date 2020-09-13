@@ -14,7 +14,7 @@ type WTSet struct {
 	VarRecLen int
 	// Data bytes
 	Buffer OffsetIndexBuffer
-	// Data Shape without Epoch Column
+	// Data Shape with Epoch Column
 	DataShapes []io.DataShape
 }
 

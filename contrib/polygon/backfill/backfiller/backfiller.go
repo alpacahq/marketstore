@@ -226,7 +226,7 @@ func initWriter() {
 	utils.InstanceConfig.WALRotateInterval = 5
 
 	executor.NewInstanceSetup(
-		fmt.Sprintf("%v/mktsdb", dir),
+		fmt.Sprintf("%v/mktsdb", dir), nil,
 		true, true, true, true)
 
 	config := map[string]interface{}{

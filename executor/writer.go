@@ -75,7 +75,7 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 // The caller should assume that by calling WriteRecords directly, the data will be written
 // to the file regardless if it satisfies the on-disk data shape, possible corrupting
 // the data files. It is recommended to call WriteCSM() for any writes as it is safer.
-func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
+func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape) {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
@@ -119,7 +119,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 				Offset:     offset,
 				Index:      index,
 				Data:       nil,
-				DataShapes: ds,
+				DataShapes: dsWithEpoch,
 			}
 		}
 		// Because index is relative time from the beginning of the year,
@@ -147,7 +147,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 				Offset:     offset,
 				Index:      index,
 				Data:       outBuf,
-				DataShapes: ds,
+				DataShapes: dsWithEpoch,
 			}
 		}
 	}

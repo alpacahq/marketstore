@@ -241,7 +241,7 @@ func initWriter() {
 	instanceID := time.Now().UTC().UnixNano()
 
 	executor.NewInstanceSetup(
-		fmt.Sprintf("%v/mktsdb", dir),
+		fmt.Sprintf("%v/mktsdb", dir), nil,
 		true, true, true, true)
 
 	log.Info(

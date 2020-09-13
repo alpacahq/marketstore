@@ -107,7 +107,7 @@ func (t *TestSuite) TestFire(c *C) {
 	rootDir := filepath.Join(c.MkDir(), "mktsdb")
 	os.MkdirAll(rootDir, 0777)
 	executor.NewInstanceSetup(
-		rootDir,
+		rootDir, nil,
 		true, true, false, false)
 
 	ts := utils.TriggerSetting{

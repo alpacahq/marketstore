@@ -11,6 +11,7 @@ type WriteCommand struct {
 	VarRecLen     int
 	Offset, Index int64
 	Data          []byte
+	// DataShapes with Epoch column
 	DataShapes    []io.DataShape
 }
 
