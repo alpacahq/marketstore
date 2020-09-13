@@ -142,36 +142,6 @@ func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 	return filepath.Join(rootPath, keyPath)
 }
 
-type CachedFP struct {
-	fileName string
-	fp       *os.File
-}
-
-func NewCachedFP() *CachedFP {
-	return new(CachedFP)
-}
-
-func (cfp *CachedFP) GetFP(fileName string) (fp *os.File, err error) {
-	if fileName == cfp.fileName {
-		return cfp.fp, nil
-	} else if len(cfp.fileName) != 0 {
-		cfp.fp.Close()
-	}
-	cfp.fp, err = os.OpenFile(fileName, os.O_RDWR, 0700)
-	if err != nil {
-		return nil, err
-	}
-	cfp.fileName = fileName
-	return cfp.fp, nil
-}
-
-func (cfp *CachedFP) Close() error {
-	if cfp.fp != nil {
-		return cfp.fp.Close()
-	}
-	return nil
-}
-
 // A.k.a. Commit transaction
 func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	/*
@@ -207,7 +177,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	}
 
 	// Serialize all data to be written except for the size of this buffer
-	writeCommands := make([]*WriteCommand, WTCount)
+	writeCommands := make([]*wal.WriteCommand, WTCount)
 	for i := 0; i < WTCount; i++ {
 		writeCommands[i] = <-tgc.writeChannel
 	}
@@ -269,7 +239,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	return nil
 }
 
-func serializeTG(tgID int64, commands []*WriteCommand,
+func serializeTG(tgID int64, commands []*wal.WriteCommand,
 ) (tgSerialized []byte, writesPerFile map[string][]wal.OffsetIndexBuffer) {
 	WTCount := len(commands)
 

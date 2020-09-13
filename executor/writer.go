@@ -87,7 +87,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 	var (
 		prevIndex int64
 		prevYear  int16
-		cc        *WriteCommand
+		cc        *wal.WriteCommand
 		outBuf    []byte
 		rowLen    = len(data) / numRows
 	)
@@ -112,7 +112,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 		if i == 0 {
 			prevIndex = index
 			prevYear = year
-			cc = &WriteCommand{
+			cc = &wal.WriteCommand{
 				RecordType: rt,
 				WALKeyPath: wkp,
 				VarRecLen:  int(vrl),
@@ -140,7 +140,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 			// Setup next command
 			prevIndex = index
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
-			cc = &WriteCommand{
+			cc = &wal.WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
 				WALKeyPath: FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path),
 				VarRecLen:  int(w.tbi.GetVariableRecordLength()),
