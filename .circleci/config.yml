@@ -52,6 +52,12 @@ jobs:
       - setup_remote_docker
       - run: make integration-test-grpc
 
+  replication-test:
+    executor: golang
+    steps:
+      - setup_remote_docker
+      - run: make replication-test
+
   deploy:
     executor: golang
     steps:
@@ -90,6 +96,10 @@ workflows:
             - checkout
           filters: *all
       - integration-test-grpc:
+          pre-steps:
+            - checkout
+          filters: *all
+      - replication-test:
           pre-steps:
             - checkout
           filters: *all

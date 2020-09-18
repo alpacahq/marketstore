@@ -1,0 +1,14 @@
+root_directory: /project/data/mktsdb
+listen_port: 5996
+grpc_listen_port: 5997
+polling_interval: 60
+# log level (debug|info|warn|error)
+log_level: debug
+queryable: true
+stop_grace_period: 0
+wal_rotate_interval: 5
+start_time: 2016-09-15 13:45
+replication:
+  # when enabled=true, this instance works as the master instance and listens from replicas
+  enabled: true
+  listen_port: 5998

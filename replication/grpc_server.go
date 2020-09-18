@@ -31,7 +31,7 @@ func NewGRPCReplicationService(grpcServer *grpc.Server, port int) (*GRPCReplicat
 	pb.RegisterReplicationServer(grpcServer, &r)
 
 	// start gRPC server
-	lis, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to listen a port for replication")
 	}
@@ -59,7 +59,7 @@ func (rs *GRPCReplicationServer) GetWALStream(req *pb.GetWALStreamRequest, strea
 	// prepare a channel to send messages
 	clientAddr, err := getClientAddr(stream)
 	if err != nil {
-		return errors.New("failed to get client IP address.")
+		return errors.Wrap(err,"failed to get client IP address.")
 	}
 	log.Info(fmt.Sprintf("new replica connection from:%s", clientAddr))
 

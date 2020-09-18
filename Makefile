@@ -57,6 +57,9 @@ integration-test-jsonrpc:
 integration-test-grpc:
 	$(MAKE) -C tests/integ test-grpc
 
+replication-test:
+	$(MAKE) -C tests/replication test-replication
+
 test: build
 	$(MAKE) unit-test
 	$(MAKE) import-csv-test
