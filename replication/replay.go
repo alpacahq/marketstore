@@ -31,7 +31,7 @@ func replay(transactionGroup []byte) error {
 		return errors.Wrap(err, "failed to convert WTSet to CSM")
 	}
 
-	err = executor.WriteCSM(csm, io.EnumRecordType(wtsets[0].RecordType) == io.VARIABLE)
+	err = executor.WriteCSM(csm, wtsets[0].RecordType == io.VARIABLE)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to WriteCSM. csm:%v", csm))
 	}
@@ -41,6 +41,12 @@ func replay(transactionGroup []byte) error {
 }
 
 func WTSetsToCSM(wtSets []wal.WTSet) (io.ColumnSeriesMap, error) {
+	const (
+		EpochBytes         = 8
+		NanosecBytes       = 4
+		IntervalTicksBytes = 4
+	)
+
 	csm := io.NewColumnSeriesMap()
 
 	for _, wtSet := range wtSets {
@@ -56,26 +62,58 @@ func WTSetsToCSM(wtSets []wal.WTSet) (io.ColumnSeriesMap, error) {
 		epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
 		dsv := wtSet.DataShapes
 
+		intervalsPerDay := uint32(utils.Day.Seconds() / tf.Duration.Seconds())
+		ca := io.None
+
 		var buf []byte
-		buf, err = io.Serialize(buf, epoch.Unix())
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
-		}
+		switch wtSet.RecordType {
+		case io.FIXED: // only 1 record in WTset in case of FIXED
+			buf, err = io.Serialize(buf, epoch.Unix())
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
+			}
 
-		buf, err = io.Serialize(buf, wtSet.Buffer.Payload())
-		if io.EnumRecordType(wtSet.RecordType) == io.VARIABLE {
-			intervalTicks := io.ToUInt32(buf[len(buf)-4:])
+			buf, err = io.Serialize(buf, wtSet.Buffer.Payload())
 
-			// Expand ticks (32-bit) into epoch and nanos
-			intervalsPerDay := uint32(utils.Day.Seconds() / tf.Duration.Seconds())
-			_, nanosecond := executor.GetTimeFromTicks(uint64(epoch.Unix()), intervalsPerDay, intervalTicks)
-			buf, err = io.Serialize(buf[:len(buf)-4], int32(nanosecond)) // chop off interval ticks and append nanosec
+		case io.VARIABLE: // can have multiple records that have the same Epoch
+			if wtSet.VarRecLen == 0 {
+				return nil, errors.New("[bug] variableRecordLength=0")
+			}
+
+			payload := wtSet.Buffer.Payload()
+			numRows := len(payload) / wtSet.VarRecLen
+
+			// Epoch*numRows + Payload(intervalTicks(4byte) are replaced by Nanoseconds(4byte))
+			buf = make([]byte, numRows*EpochBytes+len(wtSet.Buffer.Payload()))
+			cursor := 0
+			for i := 0; i < numRows; i++ {
+				// serialize Epoch (variable length records in a WriteSet have the same Epoch value)
+				buf, err = io.Serialize(buf[:cursor], epoch.Unix())
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
+				}
+				cursor += EpochBytes
+
+				// append the payload (columns + intervalTicks) for a record
+				buf, err = io.Serialize(buf[:cursor], payload[i*wtSet.VarRecLen:(i+1)*wtSet.VarRecLen])
+				cursor += wtSet.VarRecLen
+
+				// last 4 byte of each record is an intervalTick
+				intervalTicks := io.ToUInt32(buf[len(buf)-IntervalTicksBytes:])
+				// expand intervalTicks(32bit) to Epoch and Nanosecond
+				_, nanosecond := executor.GetTimeFromTicks(uint64(epoch.Unix()), intervalsPerDay, intervalTicks)
+				// chop off the intervalTicks and append nanosec
+				buf, err = io.Serialize(buf[:len(buf)-IntervalTicksBytes], int32(nanosecond))
+			}
+
+			// add Nanoseconds column to the data shape vector
 			dsv = append(dsv, io.DataShape{Name: "Nanoseconds", Type: io.INT32})
 		}
 
-		ca := io.None
-		rs := io.NewRowSeries(*tbk, buf, wtSet.DataShapes, wtSet.DataLen, &ca, io.EnumRecordType(wtSet.RecordType))
+		// when rowLen = 0 is specified, the rowLength is calculated automatically from DataShapes
+		rs := io.NewRowSeries(*tbk, buf, wtSet.DataShapes, 0, &ca, wtSet.RecordType)
 		key, cs := rs.ToColumnSeries()
+
 		csm.AddColumnSeries(key, cs)
 	}
 

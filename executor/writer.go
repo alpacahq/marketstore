@@ -52,6 +52,8 @@ func (w *Writer) AddNewYearFile(year int16) (err error) {
 	return nil
 }
 
+// formatRecord chops off the Epoch column(first 8bytes).
+// If the record type is VARIABLE, append IntervalTicks(4byte) after that.
 func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, isVariable bool) []byte {
 	/*
 		Incoming data records ALWAYS have the 8-byte Epoch column first
@@ -109,18 +111,21 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
 
+		// first row
 		if i == 0 {
 			prevIndex = index
 			prevYear = year
+			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
 			cc = &wal.WriteCommand{
 				RecordType: rt,
 				WALKeyPath: wkp,
 				VarRecLen:  int(vrl),
 				Offset:     offset,
 				Index:      index,
-				Data:       nil,
+				Data:       outBuf,
 				DataShapes: dsWithEpoch,
 			}
+			continue
 		}
 		// Because index is relative time from the beginning of the year,
 		// To confirm that the next data is a different data, both index and year should be checked.
@@ -131,6 +136,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			*/
 			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
 			cc.Data = outBuf
+			continue
 		}
 		if index != prevIndex || year != prevYear {
 			/*

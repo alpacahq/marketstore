@@ -16,6 +16,7 @@ func (b OffsetIndexBuffer) IndexAndPayload() []byte {
 	return b[8:]
 }
 
+// Payload can be multiple rows data that have the same index, in case of VariableLength record type.
 func (b OffsetIndexBuffer) Payload() []byte {
 	return b[16:]
 }

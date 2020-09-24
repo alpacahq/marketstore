@@ -5,12 +5,15 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
+// WriteCommand is a write request for WriteAheadLog (WAL).
+// One WriteCommand can have multiple row records that have the same index, in case of VariableLength record type.
 type WriteCommand struct {
 	RecordType    io.EnumRecordType
 	WALKeyPath    string
 	VarRecLen     int
 	Offset, Index int64
-	Data          []byte
+	// Data can be for multiple row records.
+	Data []byte
 	// DataShapes with Epoch column
 	DataShapes []io.DataShape
 }

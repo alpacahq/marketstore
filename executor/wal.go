@@ -654,7 +654,7 @@ func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wa
 		cursor += l
 
 		wtSets[i] = wal.NewWTSet(
-			RecordType,
+			io.EnumRecordType(RecordType),
 			fullPath,
 			dataLen,
 			varRecLen,
@@ -679,7 +679,7 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 		if err != nil {
 			return err
 		}
-		switch io.EnumRecordType(wtSet.RecordType) {
+		switch wtSet.RecordType {
 		case io.FIXED:
 			if err = WriteBufferToFile(fp, wtSet.Buffer); err != nil {
 				return err
