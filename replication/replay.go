@@ -31,7 +31,7 @@ func replay(transactionGroup []byte) error {
 		return errors.Wrap(err, "failed to convert WTSet to CSM")
 	}
 
-	err = executor.WriteCSM(csm, wtsets[0].RecordType == io.VARIABLE)
+	err = executor.WriteCSMInner(csm, wtsets[0].RecordType == io.VARIABLE)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to WriteCSM. csm:%v", csm))
 	}

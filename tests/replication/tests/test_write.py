@@ -17,7 +17,7 @@ replica_client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',
 
 
 def test_write():
-    # write -> query -> list_symbols -> destroy
+    # write -> query -> destroy
 
     # --- init ---
     destroy("TEST/1Min/Tick")
@@ -73,3 +73,23 @@ def test_tick():
 
     # --- tearDown ---
     destroy("{}/{}/{}".format(symbol, timeframe, attribute))
+
+
+def test_write_not_allowed_on_replica():
+    # --- init ---
+    destroy("REPL/1Min/OHLCV")
+
+    # --- try to write to replica ---
+    data = np.array([(pd.Timestamp('2017-01-01 00:00').value / 10 ** 9, 10.0, 20.0)],
+                    dtype=[('Epoch', 'i8'), ('High', 'f4'), ('Low', 'f4')])
+    replica_client.write(data, 'REPL/1Min/OHLCV')
+
+    # --- query and assert "No files returned..." error is returned ---
+    with pytest.raises(Exception) as excinfo:
+        # resp = {'error': {'code': -32000, 'data': None, 'message': 'No files returned from query parse'}, 'id': '1', 'jsonrpc': '2.0'} # noqa
+        # pymarketstore/jsonrpc.py:48: Exception
+        replica_client.query(pymkts.Params('REPL', '1Min', 'OHLCV'))
+    assert "No files returned from query parse" in str(excinfo.value)
+
+    # --- destroy ---
+    destroy("REPL/1Min/OHLCV")

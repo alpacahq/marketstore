@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils"
@@ -269,6 +271,15 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 // DataShapeVector defined by the file header. WriteCSM will create any files if they do
 // not already exist for the given ColumnSeriesMap based on its TimeBucketKey.
 func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
+	// WRITE is not allowed on a replica
+	if utils.InstanceConfig.Replication.MasterHost != "" {
+		return errors.New("write is not allowed on replica")
+	}
+
+	return WriteCSMInner(csm, isVariableLength)
+}
+
+func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	cDir := ThisInstance.CatalogDir
 	for tbk, cs := range csm {
 		tf, err := tbk.GetTimeFrame()
