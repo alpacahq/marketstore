@@ -2,7 +2,7 @@
 
 set -eEuo pipefail
 
-from=$(date -d "$BACKFILL_INTERVAL" "+%Y-%m-%d")
+from=$(date -d "-${BACKFILL_INTERVAL}" "+%Y-%m-%d")
 now=$(date +%Y%m%d_%H%M%S)
 log_file="${BACKFILL_MKTSDB_PATH}/ingest-${now}.log"
 

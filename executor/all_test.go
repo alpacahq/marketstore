@@ -1150,7 +1150,6 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 			for i := 0; i < asize/2; i++ {
 				ii := (asize - 1) - i
 				epoch[i], epoch[ii] = epoch[ii], epoch[i]
-
 				open[i] = float32(-1 * i)
 				high[i] = float32(-2 * ii)
 				low[i] = -3
