@@ -163,7 +163,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	WTCount := len(tgc.writeChannel)
 	if WTCount == 0 {
 		// refresh TGID so requester can confirm it went through even if nothing is written
-		tgc.NewTGID()
+		tgc.IncrementTGID()
 		return nil
 	}
 
@@ -216,7 +216,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		TGID := tgc.TGID()
 		wf.WriteTransactionInfo(TGID, WAL, COMMITCOMPLETE)
 		wf.lastCommittedTGID = TGID
-		tgc.NewTGID()
+		tgc.IncrementTGID()
 
 		wf.FilePtr.Sync() // Flush the OS buffer
 	}
