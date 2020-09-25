@@ -899,8 +899,8 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	fstat, _ := s.WALFile.FilePtr.Stat()
 	fsize := fstat.Size()
 	WALFileAfterWALFlush := make([]byte, fsize)
-	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
-	c.Assert(int64(n) == fsize, Equals, true)
+	bytesWritten, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
+	c.Assert(int64(bytesWritten) == fsize, Equals, true)
 
 	err = s.WALFile.CreateCheckpoint()
 	if err != nil {
@@ -932,8 +932,8 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	for i, val := range [8]byte{1, 1, 1, 1, 1, 1, 1, 1} {
 		WALFileAfterWALFlush[3+i] = val
 	}
-	n, err = fp.WriteAt(WALFileAfterWALFlush, 0)
-	c.Assert(err == nil && n == len(WALFileAfterWALFlush), Equals, true)
+	bytesWritten, err = fp.WriteAt(WALFileAfterWALFlush, 0)
+	c.Assert(err == nil && bytesWritten == len(WALFileAfterWALFlush), Equals, true)
 	Syncfs()
 
 	// Take over the new WALFile and replay it into a new TG cache
@@ -1094,12 +1094,6 @@ func isEqual(left, right *ColumnSeries) bool {
 }
 
 func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup bool) (queryFiles []string, err error) {
-	// Need a local version of this to avoid an import cycle
-	type CurrencyData struct {
-		Epoch                  int64
-		Open, High, Low, Close float32
-	}
-
 	// Create some data via a query
 	symbols := []string{"NZDUSD", "USDJPY", "EURUSD"}
 	tbiByKey := make(map[TimeBucketKey]*TimeBucketInfo, 0)
@@ -1156,9 +1150,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 			asize := len(epoch)
 			for i := 0; i < asize/2; i++ {
 				ii := (asize - 1) - i
-				time1 := epoch[i]
-				epoch[i] = epoch[ii]
-				epoch[ii] = time1
+				epoch[i], epoch[ii] = epoch[ii], epoch[i]
 				open[i] = float32(-1 * i)
 				high[i] = float32(-2 * ii)
 				low[i] = -3
@@ -1175,7 +1167,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 			buffer = append(buffer, DataToByteSlice(low[i])...)
 			buffer = append(buffer, DataToByteSlice(close[i])...)
 		}
-		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapes())
+		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapesWithEpoch())
 	}
 
 	return queryFiles, nil

@@ -52,6 +52,8 @@ func (w *Writer) AddNewYearFile(year int16) (err error) {
 	return nil
 }
 
+// formatRecord chops off the Epoch column(first 8bytes).
+// If the record type is VARIABLE, append IntervalTicks(4byte) after that.
 func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, isVariable bool) []byte {
 	/*
 		Incoming data records ALWAYS have the 8-byte Epoch column first
@@ -283,7 +285,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			alignData = false
 		}
 		rs := cs.ToRowSeries(tbk, alignData)
-		rowdata := rs.GetData()
+		rowsdata := rs.GetData()
 
 		tbi, err := cDir.GetLatestTimeBucketInfoFromKey(&tbk)
 		if err != nil {
@@ -342,9 +344,9 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 			return err
 		}
 
-		w.WriteRecords(times, rowdata, dbDSV)
+		w.WriteRecords(times, rowsdata, dbDSV)
 	}
-	wal := ThisInstance.WALFile
-	wal.RequestFlush()
+	walfile := ThisInstance.WALFile
+	walfile.RequestFlush()
 	return nil
 }

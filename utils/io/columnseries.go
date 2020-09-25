@@ -561,7 +561,6 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		if strings.EqualFold(colName, "Epoch") {
 			shapesContainsEpoch = true
 		}
-		// columnData =
 		columnData := cs.columns[colName]
 		colInBytes := SwapSliceData(columnData, byte(0)).([]byte)
 		colInBytesList = append(colInBytesList, colInBytes)
