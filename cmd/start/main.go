@@ -2,9 +2,11 @@ package start
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/credentials"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -83,10 +85,23 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
 
 	// New gRPC stream server for replication.
-	grpcReplicationServer := grpc.NewServer(
+	opts := []grpc.ServerOption{
 		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
 		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
-	)
+	}
+	// Enable TLS for all incoming connections if enabled.s
+	if utils.InstanceConfig.Replication.TLSEnabled {
+		cert, err := tls.LoadX509KeyPair(
+			utils.InstanceConfig.Replication.CertFile,
+			utils.InstanceConfig.Replication.KeyFile,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to load server certificates for replication: %v", err.Error())
+		}
+		opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
+	}
+
+	grpcReplicationServer := grpc.NewServer(opts...)
 
 	// Spawn a goroutine and listen for a signal.
 	signalChan := make(chan os.Signal)

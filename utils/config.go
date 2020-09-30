@@ -19,6 +19,9 @@ func init() {
 
 type ReplicationSetting struct {
 	Enabled    bool
+	TLSEnabled bool
+	CertFile   string
+	KeyFile    string
 	ListenPort int
 	MasterHost string
 }
@@ -87,7 +90,10 @@ func (m *MktsConfig) Parse(data []byte) error {
 			WALBypass                  string `yaml:"wal_bypass"`
 			ClusterMode                string `yaml:"cluster_mode"`
 			Replication                struct {
-				Enabled bool `yaml:"enabled"`
+				Enabled    bool   `yaml:"enabled"`
+				TLSEnabled bool   `yaml:"tls_enabled"`
+				CertFile   string `yaml:"cert_file"`
+				KeyFile    string `yaml:"key_file"`
 				// ListenPort is used for the replication protocol by the master instance
 				ListenPort int    `yaml:"listen_port"`
 				MasterHost string `yaml:"master_host"`
@@ -261,6 +267,9 @@ func (m *MktsConfig) Parse(data []byte) error {
 
 	m.Replication = ReplicationSetting{
 		Enabled:    false,
+		TLSEnabled: false,
+		CertFile:   "",
+		KeyFile:    "",
 		ListenPort: 5996, // default listen port for Replication master
 		MasterHost: "",
 	}
@@ -270,6 +279,15 @@ func (m *MktsConfig) Parse(data []byte) error {
 	}
 	if aux.Replication.Enabled != false {
 		m.Replication.Enabled = true
+	}
+	if aux.Replication.TLSEnabled != false {
+		m.Replication.Enabled = true
+	}
+	if aux.Replication.CertFile != "" {
+		m.Replication.CertFile = aux.Replication.CertFile
+	}
+	if aux.Replication.KeyFile != "" {
+		m.Replication.KeyFile = aux.Replication.KeyFile
 	}
 	if aux.Replication.MasterHost != "" {
 		m.Replication.MasterHost = aux.Replication.MasterHost
