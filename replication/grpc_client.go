@@ -31,22 +31,29 @@ func NewGRPCReplicationClient(masterHost string, enableSSL bool) (*GRPCReplicati
 	}, nil
 }
 
-func (rc GRPCReplicationClient) Connect(ctx context.Context) (pb.Replication_GetWALStreamClient, error) {
+func (rc *GRPCReplicationClient) Connect(ctx context.Context) error {
 	stream, err := rc.Client.GetWALStream(ctx, &pb.GetWALStreamRequest{})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get wal message stream")
+		return errors.Wrap(err, "failed to get wal message stream")
 	}
 
-	return stream, nil
+	rc.streamClient = stream
+
+	return nil
 }
 
-func (rc GRPCReplicationClient) Recv() ([]byte, error) {
+func (rc *GRPCReplicationClient) Recv() ([]byte, error) {
+	if rc.streamClient == nil {
+		return nil, errors.New("no stream connection to master")
+	}
+
+	// the following line blocks until receive a new message
 	resp, err := rc.streamClient.Recv()
 	if err == io.EOF {
 		return nil, err
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get wal message from gRPC stream")
+		return nil, errors.Wrap(err, "failed to get a message from gRPC stream")
 	}
 	if resp == nil {
 		return nil, errors.New("nil message received from gRPC stream")
@@ -54,11 +61,7 @@ func (rc GRPCReplicationClient) Recv() ([]byte, error) {
 	return resp.TransactionGroup, nil
 }
 
-func (rc GRPCReplicationClient) CloseSend() {
-	rc.streamClient.CloseSend()
-}
-
-func (rc GRPCReplicationClient) Close() error {
+func (rc *GRPCReplicationClient) Close() error {
 	err := rc.streamClient.CloseSend()
 	if err != nil {
 		return errors.Wrap(err, "failed to close gRPC stream connection")
