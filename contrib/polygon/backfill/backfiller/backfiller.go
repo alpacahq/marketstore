@@ -22,13 +22,13 @@ import (
 )
 
 var (
-	dir, from, to        string
-	bars, quotes, trades bool
-	symbols              string
-	parallelism          int
-	apiKey               string
-	exchanges            string
-	batchSize            int
+	dir, from, to, barPeriod string
+	bars, quotes, trades     bool
+	symbols                  string
+	parallelism              int
+	apiKey                   string
+	exchanges                string
+	batchSize                int
 
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
@@ -41,6 +41,7 @@ func init() {
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill to date (YYYY-MM-DD) [not included]")
 	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
+	flag.StringVar(&barPeriod, "bar-period", (time.Hour * 24).String(), "backfill bar period")
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
 	flag.BoolVar(&trades, "trades", false, "backfill trades")
 	flag.StringVar(&symbols, "symbols", "*",
@@ -92,6 +93,17 @@ func main() {
 		log.Fatal("[polygon] failed to parse to timestamp (%v)", err)
 	}
 
+	barPeriodDuration, err := time.ParseDuration(barPeriod)
+	if err != nil {
+		log.Fatal("[polygon] failed to parse bar-period duration (%v)", err)
+	}
+	if barPeriodDuration < 24*time.Hour {
+		barPeriodDuration = 24 * time.Hour
+	}
+	if barPeriodDuration > 60*24*time.Hour {
+		barPeriodDuration = 60 * 24 * time.Hour
+	}
+
 	var symbolList []string
 	log.Info("[polygon] listing symbols for pattern: %v", symbols)
 	pattern := glob.MustCompile(symbols)
@@ -106,6 +118,7 @@ func main() {
 			symbolList = append(symbolList, s.Ticker)
 		}
 	}
+	symbolList = unique(symbolList)
 	log.Info("[polygon] selected %v symbols", len(symbolList))
 
 	var exchangeIDs []int
@@ -122,36 +135,48 @@ func main() {
 
 	sem := make(chan struct{}, parallelism)
 
+	tt := time.Now()
 	if bars {
 		log.Info("[polygon] backfilling bars from %v to %v", start, end)
 
 		for _, sym := range symbolList {
-			s := start
-			e := end
+			if sym == "" {
+				continue
+			}
+			sem <- struct{}{}
+			go func(currentSymbol string) {
+				defer func() { <-sem }()
 
-			log.Info("[polygon] backfilling bars for %v", sym)
+				s := start
+				e := end
+				addPeriod := barPeriodDuration
+				if len(exchangeIDs) != 0 && addPeriod != 24*time.Hour {
+					log.Warn("[polygon] bar period not adjustable when exchange filtered")
+					addPeriod = 24 * time.Hour
+				}
+				log.Info("[polygon] backfilling bars for %v", currentSymbol)
+				for e.After(s) {
+					if calendar.Nasdaq.IsMarketDay(s) {
+						log.Info("[polygon] backfilling bars for %v on %v", currentSymbol, s)
 
-			for e.After(s) {
-				if calendar.Nasdaq.IsMarketDay(s) {
-					log.Info("[polygon] backfilling bars for %v on %v", sym, s)
-
-					sem <- struct{}{}
-					go func(t time.Time) {
-						defer func() { <-sem }()
+						if s.Add(addPeriod).After(e) {
+							addPeriod = e.Sub(s)
+						}
 
 						if len(exchangeIDs) == 0 {
-							if err = backfill.Bars(sym, t, t.Add(24*time.Hour)); err != nil {
-								log.Warn("[polygon] failed to backfill bars for %v (%v)", sym, err)
+							if err = backfill.Bars(currentSymbol, s, s.Add(addPeriod)); err != nil {
+								log.Warn("[polygon] failed to backfill bars for %v (%v)", currentSymbol, err)
 							}
 						} else {
-							if err = backfill.BuildBarsFromTrades(sym, t, exchangeIDs, batchSize); err != nil {
-								log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", sym, t, err)
+							if err = backfill.BuildBarsFromTrades(currentSymbol, s, exchangeIDs, batchSize); err != nil {
+								log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", currentSymbol, s, err)
 							}
 						}
-					}(s)
+
+					}
+					s = s.Add(addPeriod)
 				}
-				s = s.Add(24 * time.Hour)
-			}
+			}(sym)
 		}
 	}
 
@@ -215,8 +240,8 @@ func main() {
 		sem <- struct{}{}
 	}
 
-	log.Info("[polygon] backfilling complete")
-
+	log.Info("[polygon] api call duration %s", backfill.ApiCallDuration)
+	log.Info("[polygon] backfilling complete %s", time.Now().Sub(tt).String())
 	log.Info("[polygon] waiting for 10 more seconds for ondiskagg triggers to complete")
 	time.Sleep(10 * time.Second)
 }
@@ -242,4 +267,16 @@ func initWriter() {
 	executor.ThisInstance.TriggerMatchers = []*trigger.TriggerMatcher{
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
+}
+
+func unique(stringSlice []string) []string {
+	var list []string
+	keys := make(map[string]bool)
+	for _, entry := range stringSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }

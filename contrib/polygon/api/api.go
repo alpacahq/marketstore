@@ -32,7 +32,18 @@ var (
 	apiKey       string
 	NY, _        = time.LoadLocation("America/New_York")
 	completeDate = "2006-01-02"
+	client       *http.Client
 )
+
+func init() {
+	client = &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: 100,
+			MaxConnsPerHost:     100,
+		},
+		Timeout: 10 * time.Second,
+	}
+}
 
 type GetAggregatesResponse struct {
 	Symbol  string `json:"symbol"`
@@ -315,10 +326,7 @@ func downloadAndUnmarshal(url string, retryCount int, data interface{}) error {
 }
 
 func download(url string, retryCount int) (*http.Response, error) {
-	var (
-		client = &http.Client{}
-		resp   *http.Response
-	)
+	var resp *http.Response
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {

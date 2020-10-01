@@ -20,6 +20,8 @@ type ConsolidatedUpdateInfo struct {
 	UpdateVolume  bool
 }
 
+var ApiCallDuration time.Duration
+
 // https://polygon.io/glossary/us/stocks/conditions-indicators
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 	0: {true, true, true},   // Regular Sale
@@ -97,13 +99,20 @@ func Bars(symbol string, from, to time.Time) (err error) {
 		to = time.Now()
 	}
 
+	t := time.Now()
 	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, nil)
 	if err != nil {
 		return err
 	}
 
+	elapsedTime := time.Now().Sub(t)
+	ApiCallDuration += elapsedTime
+	if elapsedTime > 5*time.Second {
+		log.Info("api call takes longer than expected for %s: %s", symbol, elapsedTime.String())
+	}
+
 	if len(resp.Results) == 0 {
-		return
+		return nil
 	}
 
 	tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
@@ -134,7 +143,14 @@ func Bars(symbol string, from, to time.Time) (err error) {
 	cs.AddColumn("Volume", volume)
 	csm.AddColumnSeries(*tbk, cs)
 
-	return executor.WriteCSM(csm, false)
+	go func(c io.ColumnSeriesMap) {
+		err = executor.WriteCSM(csm, false)
+		if err != nil {
+			log.Warn("[polygon] failed to backfill bars for %v (%v) %s - %s", symbol, err, from, to)
+		}
+	}(csm)
+
+	return nil
 }
 
 func intInSlice(s int, l []int) bool {
