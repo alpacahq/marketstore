@@ -126,7 +126,12 @@ func Bars(symbol string, from, to time.Time) (err error) {
 	volume := make([]int32, len(resp.Results))
 
 	for i, bar := range resp.Results {
-		epoch[i] = bar.EpochMilliseconds / 1000
+		timestamp := bar.EpochMilliseconds / 1000
+		if time.Unix(timestamp, 0).After(to) || time.Unix(timestamp, 0).Before(from) {
+			// polygon sometime returns inconsistent data
+			continue
+		}
+		epoch[i] = timestamp
 		open[i] = float32(bar.Open)
 		high[i] = float32(bar.High)
 		low[i] = float32(bar.Low)

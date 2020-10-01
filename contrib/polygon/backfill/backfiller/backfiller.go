@@ -156,23 +156,23 @@ func main() {
 				}
 				log.Info("[polygon] backfilling bars for %v", currentSymbol)
 				for e.After(s) {
-					if calendar.Nasdaq.IsMarketDay(s) {
-						log.Info("[polygon] backfilling bars for %v on %v", currentSymbol, s)
 
-						if s.Add(addPeriod).After(e) {
-							addPeriod = e.Sub(s)
+					log.Info("[polygon] backfilling bars for %v between %s and %s", currentSymbol, s, s.Add(addPeriod))
+
+					if s.Add(addPeriod).After(e) {
+						addPeriod = e.Sub(s)
+					}
+
+					if len(exchangeIDs) == 0 {
+						if err = backfill.Bars(currentSymbol, s, s.Add(addPeriod)); err != nil {
+							log.Warn("[polygon] failed to backfill bars for %v (%v)", currentSymbol, err)
 						}
-
-						if len(exchangeIDs) == 0 {
-							if err = backfill.Bars(currentSymbol, s, s.Add(addPeriod)); err != nil {
-								log.Warn("[polygon] failed to backfill bars for %v (%v)", currentSymbol, err)
-							}
-						} else {
+					} else {
+						if calendar.Nasdaq.IsMarketDay(s) {
 							if err = backfill.BuildBarsFromTrades(currentSymbol, s, exchangeIDs, batchSize); err != nil {
 								log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", currentSymbol, s, err)
 							}
 						}
-
 					}
 					s = s.Add(addPeriod)
 				}
