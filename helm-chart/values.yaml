@@ -30,7 +30,7 @@ persistence:
 
   ## If undefined (the default) or set to null, no storageClassName spec is
   ## set, choosing the default provisioner.
-  # storageClass: ""
+  # storageClassName: ""
   accessModes:
     - ReadWriteOnce
   size: 8Gi
