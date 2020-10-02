@@ -157,11 +157,11 @@ func main() {
 				log.Info("[polygon] backfilling bars for %v", currentSymbol)
 				for e.After(s) {
 
-					log.Info("[polygon] backfilling bars for %v between %s and %s", currentSymbol, s, s.Add(addPeriod))
-
 					if s.Add(addPeriod).After(e) {
 						addPeriod = e.Sub(s)
 					}
+
+					log.Info("[polygon] backfilling bars for %v between %s and %s", currentSymbol, s, s.Add(addPeriod))
 
 					if len(exchangeIDs) == 0 {
 						if err = backfill.Bars(currentSymbol, s, s.Add(addPeriod)); err != nil {
