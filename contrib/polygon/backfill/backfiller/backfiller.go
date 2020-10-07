@@ -274,7 +274,6 @@ func main() {
 		sem <- struct{}{}
 	}
 
-	log.Info("[polygon] api call duration %s", backfill.ApiCallDuration)
 	log.Info("[polygon] backfilling complete %s", time.Now().Sub(tt).String())
 	log.Info("[polygon] waiting for 10 more seconds for ondiskagg triggers to complete")
 	time.Sleep(10 * time.Second)

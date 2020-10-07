@@ -20,8 +20,6 @@ type ConsolidatedUpdateInfo struct {
 	UpdateVolume  bool
 }
 
-var ApiCallDuration time.Duration
-
 // https://polygon.io/glossary/us/stocks/conditions-indicators
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 	0: {true, true, true},   // Regular Sale
@@ -99,16 +97,9 @@ func Bars(symbol string, from, to time.Time) (err error) {
 		to = time.Now()
 	}
 
-	t := time.Now()
 	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, nil)
 	if err != nil {
 		return err
-	}
-
-	elapsedTime := time.Now().Sub(t)
-	ApiCallDuration += elapsedTime
-	if elapsedTime > 5*time.Second {
-		log.Warn("api call takes longer than expected for %s: %s", symbol, elapsedTime.String())
 	}
 
 	if len(resp.Results) == 0 {
@@ -330,7 +321,7 @@ func Trades(symbol string, date time.Time, batchSize int) error {
 
 	if len(resp.Results) > 0 {
 		csm := io.NewColumnSeriesMap()
-		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/TRADE")
+		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Sec/TRADE")
 		cs := io.NewColumnSeries()
 
 		epoch := make([]int64, len(resp.Results))
@@ -340,8 +331,7 @@ func Trades(symbol string, date time.Time, batchSize int) error {
 
 		for i, tick := range resp.Results {
 			timestamp := time.Unix(0, tick.SipTimestamp)
-			bucketTimestamp := timestamp.Truncate(time.Minute)
-
+			bucketTimestamp := timestamp.Truncate(time.Second)
 			epoch[i] = bucketTimestamp.Unix()
 			nanos[i] = int32(timestamp.UnixNano() - bucketTimestamp.UnixNano())
 			price[i] = float32(tick.Price)
@@ -354,9 +344,12 @@ func Trades(symbol string, date time.Time, batchSize int) error {
 		cs.AddColumn("Size", size)
 		csm.AddColumnSeries(*tbk, cs)
 
-		if err = executor.WriteCSM(csm, true); err != nil {
-			return err
-		}
+		go func(c io.ColumnSeriesMap) {
+			err = executor.WriteCSM(csm, true)
+			if err != nil {
+				log.Warn("[polygon] failed to backfill trades for %v (%v) %s ", symbol, err, date.String())
+			}
+		}(csm)
 	}
 
 	return nil
