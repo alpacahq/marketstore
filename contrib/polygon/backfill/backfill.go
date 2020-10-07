@@ -108,7 +108,7 @@ func Bars(symbol string, from, to time.Time) (err error) {
 	elapsedTime := time.Now().Sub(t)
 	ApiCallDuration += elapsedTime
 	if elapsedTime > 5*time.Second {
-		log.Info("api call takes longer than expected for %s: %s", symbol, elapsedTime.String())
+		log.Warn("api call takes longer than expected for %s: %s", symbol, elapsedTime.String())
 	}
 
 	if len(resp.Results) == 0 {

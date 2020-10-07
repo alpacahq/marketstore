@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/gobwas/glob"
 	"runtime"
 	"runtime/debug"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -41,7 +42,7 @@ func init() {
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill to date (YYYY-MM-DD) [not included]")
 	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
-	flag.StringVar(&barPeriod, "bar-period", (time.Hour * 24).String(), "backfill bar period")
+	flag.StringVar(&barPeriod, "bar-period", (60 * 24 * time.Hour).String(), "backfill bar period")
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
 	flag.BoolVar(&trades, "trades", false, "backfill trades")
 	flag.StringVar(&symbols, "symbols", "*",
@@ -104,21 +105,59 @@ func main() {
 		barPeriodDuration = 60 * 24 * time.Hour
 	}
 
-	var symbolList []string
-	log.Info("[polygon] listing symbols for pattern: %v", symbols)
 	pattern := glob.MustCompile(symbols)
-	resp, err := api.ListTickers()
-	if err != nil {
-		log.Fatal("[polygon] failed to list symbols (%v)", err)
+
+	log.Info("[polygon] listing symbols for pattern: %v", symbols)
+
+	tt := time.Now()
+
+	symbolList := make([]string, 0)
+	var SymbolListMux sync.Mutex
+
+	sem := make(chan struct{}, parallelism)
+
+	page := 0
+	tickerListRunning := true
+
+	for tickerListRunning {
+		sem <- struct{}{}
+		go func(currentPage int) {
+			defer func() { <-sem }()
+			currentTickers, err := api.ListTickersPerPage(currentPage)
+			if err != nil {
+				log.Warn("[polygon] failed to list symbols (%v)", err)
+			}
+
+			if len(currentTickers) == 0 {
+				tickerListRunning = false
+			}
+
+			SymbolListMux.Lock()
+			for _, s := range currentTickers {
+				if pattern.Match(s.Ticker) && s.Ticker != "" {
+					symbolList = append(symbolList, s.Ticker)
+				}
+			}
+			SymbolListMux.Unlock()
+
+		}(page)
+		page++
 	}
-	log.Info("[polygon] %v symbols available", len(resp.Tickers))
-	symbolList = make([]string, 1)
-	for _, s := range resp.Tickers {
-		if pattern.Match(s.Ticker) {
-			symbolList = append(symbolList, s.Ticker)
+
+	// make sure all goroutines finish
+	for i := 0; true; i++ {
+		if len(sem) == 0 {
+			break
 		}
+		if i >= 100 {
+			log.Error("some goroutine did not ended")
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
+
 	symbolList = unique(symbolList)
+	sort.Strings(symbolList)
 	log.Info("[polygon] selected %v symbols", len(symbolList))
 
 	var exchangeIDs []int
@@ -133,16 +172,11 @@ func main() {
 		}
 	}
 
-	sem := make(chan struct{}, parallelism)
-
-	tt := time.Now()
 	if bars {
 		log.Info("[polygon] backfilling bars from %v to %v", start, end)
 
 		for _, sym := range symbolList {
-			if sym == "" {
-				continue
-			}
+
 			sem <- struct{}{}
 			go func(currentSymbol string) {
 				defer func() { <-sem }()
@@ -211,27 +245,27 @@ func main() {
 		log.Info("[polygon] backfilling trades from %v to %v", start, end)
 
 		for _, sym := range symbolList {
-			s := start
-			e := end
 
-			log.Info("[polygon] backfilling trades for %v", sym)
+			sem <- struct{}{}
+			go func(currentSymbol string) {
+				defer func() { <-sem }()
 
-			for e.After(s) {
-				log.Info("Checking %v", s)
-				if calendar.Nasdaq.IsMarketDay(s) {
-					log.Info("[polygon] backfilling trades for %v on %v", sym, s)
+				s := start
+				e := end
 
-					sem <- struct{}{}
-					go func(t time.Time) {
-						defer func() { <-sem }()
+				log.Info("[polygon] backfilling trades for %v", currentSymbol)
 
-						if err = backfill.Trades(sym, t, batchSize); err != nil {
-							log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", sym, t, err)
+				for e.After(s) {
+					log.Info("Checking %v", s)
+					if calendar.Nasdaq.IsMarketDay(s) {
+						log.Info("[polygon] backfilling trades for %v on %v", currentSymbol, s)
+						if err = backfill.Trades(currentSymbol, s, batchSize); err != nil {
+							log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", currentSymbol, s, err)
 						}
-					}(e)
+					}
+					s = s.Add(24 * time.Hour)
 				}
-				s = s.Add(24 * time.Hour)
-			}
+			}(sym)
 		}
 	}
 
@@ -250,9 +284,7 @@ func initWriter() {
 	utils.InstanceConfig.Timezone = NY
 	utils.InstanceConfig.WALRotateInterval = 5
 
-	executor.NewInstanceSetup(
-		fmt.Sprintf("%v/mktsdb", dir),
-		true, true, true, true)
+	executor.NewInstanceSetup(dir, true, true, true, true)
 
 	config := map[string]interface{}{
 		"filter":       "nasdaq",
