@@ -93,5 +93,5 @@ spec:
         resources:
           requests:
             storage: {{ .Values.persistence.size | quote }}
-        storageClass: {{ .Values.persistence.storageClass | quote }}
+        storageClassName: {{ .Values.persistence.storageClassName | quote }}
 {{- end }}
