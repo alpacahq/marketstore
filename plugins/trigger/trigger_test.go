@@ -85,7 +85,6 @@ func (s *TestSuite) TestRecordsToColumnSeries(c *C) {
 
 	testCS := RecordsToColumnSeries(
 		*tbk, cs.GetDataShapes(),
-		cs.GetCandleAttributes(),
 		time.Minute, int16(2017),
 		records)
 
