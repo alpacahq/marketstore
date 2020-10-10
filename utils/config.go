@@ -281,7 +281,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 		m.Replication.Enabled = true
 	}
 	if aux.Replication.TLSEnabled != false {
-		m.Replication.Enabled = true
+		m.Replication.TLSEnabled = true
 	}
 	if aux.Replication.CertFile != "" {
 		m.Replication.CertFile = aux.Replication.CertFile

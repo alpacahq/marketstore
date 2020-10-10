@@ -9,9 +9,6 @@ github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuy
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
-github.com/alpacahq/marketstore v1.0.2 h1:0Z/LUQVN0QU0v6UOAamK+CiGARJ6UQRlzU42Y+ajZaQ=
-github.com/alpacahq/marketstore v2.3.8+incompatible h1:m2+YHe7Yx4J+gAG2GuTeLQcO0QQKGYZ97Bl0NdqXMIc=
-github.com/alpacahq/marketstore v2.3.8+incompatible/go.mod h1:oFjB8NfxhxTwtYxgPd7R8iWUd4Pwy5YHsipCVwmePw8=
 github.com/alpacahq/rpc v1.3.0 h1:lB7T3oTSq0b4pFsntmAq4Be0ngJDrJcbD1KtGIc9P1s=
 github.com/alpacahq/rpc v1.3.0/go.mod h1:UfzqdExg1VFMZA6aiQTyBhgBxHBpWzCi5OknSby/wmQ=
 github.com/antlr/antlr4 v0.0.0-20181031000400-73836edf1f84 h1:c4ZppOrw9VXa9s4i6cnxC7YQUEZ5RbmVKfEY5g4yAow=

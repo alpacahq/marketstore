@@ -63,7 +63,8 @@ replication-test:
 test: build
 	$(MAKE) unit-test
 	$(MAKE) import-csv-test
-	$(MAKE) integration-test
+	$(MAKE) integration-test-jsonrpc
+	$(MAKE) integration-test-grpc
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)

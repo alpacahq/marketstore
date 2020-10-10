@@ -9,23 +9,15 @@ import (
 )
 
 type GRPCReplicationClient struct {
-	EnableSSL    bool
 	Client       pb.ReplicationClient
 	clientConn   *grpc.ClientConn
 	streamClient pb.Replication_GetWALStreamClient
 }
 
-func NewGRPCReplicationClient(masterHost string, enableSSL bool) (*GRPCReplicationClient, error) {
-	// TODO: implement SSL option
-	conn, err := grpc.Dial(masterHost, grpc.WithInsecure())
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect Master server")
-	}
-
+func NewGRPCReplicationClient(conn *grpc.ClientConn) (*GRPCReplicationClient, error) {
 	c := pb.NewReplicationClient(conn)
 
 	return &GRPCReplicationClient{
-		EnableSSL:  enableSSL,
 		Client:     c,
 		clientConn: conn,
 	}, nil
@@ -42,6 +34,7 @@ func (rc *GRPCReplicationClient) Connect(ctx context.Context) error {
 	return nil
 }
 
+// Recv blocks until it receives a response from gRPC stream connection.
 func (rc *GRPCReplicationClient) Recv() ([]byte, error) {
 	if rc.streamClient == nil {
 		return nil, errors.New("no stream connection to master")
@@ -61,6 +54,7 @@ func (rc *GRPCReplicationClient) Recv() ([]byte, error) {
 	return resp.TransactionGroup, nil
 }
 
+// Close closes gRPC stream client and its connection.
 func (rc *GRPCReplicationClient) Close() error {
 	err := rc.streamClient.CloseSend()
 	if err != nil {

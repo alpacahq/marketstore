@@ -89,46 +89,6 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
 		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
 	}
-	// Enable TLS for all incoming connections if enabled.s
-	if utils.InstanceConfig.Replication.TLSEnabled {
-		cert, err := tls.LoadX509KeyPair(
-			utils.InstanceConfig.Replication.CertFile,
-			utils.InstanceConfig.Replication.KeyFile,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to load server certificates for replication: %v", err.Error())
-		}
-		opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
-	}
-
-	grpcReplicationServer := grpc.NewServer(opts...)
-
-	// Spawn a goroutine and listen for a signal.
-	signalChan := make(chan os.Signal)
-	go func() {
-		for s := range signalChan {
-			switch s {
-			case syscall.SIGUSR1:
-				log.Info("dumping stack traces due to SIGUSR1 request")
-				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
-			case syscall.SIGINT:
-				fallthrough
-			case syscall.SIGTERM:
-				log.Info("initiating graceful shutdown due to '%v' request", s)
-				grpcServer.GracefulStop()
-				log.Info("shutdown grpc API server...")
-				globalCancel()
-				grpcReplicationServer.Stop() // gRPC stream connection doesn't close by GracefulStop()
-				log.Info("shutdown grpc Replication server...")
-
-				atomic.StoreUint32(&frontend.Queryable, uint32(0))
-				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
-				time.Sleep(utils.InstanceConfig.StopGracePeriod)
-				shutdown()
-			}
-		}
-	}()
-	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGINT, syscall.SIGTERM)
 
 	// Initialize marketstore services.
 	// --------------------------------
@@ -136,11 +96,34 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// initialize replication master or client
 	var rs executor.ReplicationSender
+	var grpcReplicationServer *grpc.Server
 	if utils.InstanceConfig.Replication.Enabled {
+		// Enable TLS for all incoming connections if configured
+		if utils.InstanceConfig.Replication.TLSEnabled {
+			cert, err := tls.LoadX509KeyPair(
+				utils.InstanceConfig.Replication.CertFile,
+				utils.InstanceConfig.Replication.KeyFile,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to load server certificates for replication:"+
+					" certFile:%v, keyFile:%v, err:%v",
+					utils.InstanceConfig.Replication.CertFile,
+					utils.InstanceConfig.Replication.KeyFile,
+					err.Error(),
+				)
+			}
+			opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
+			log.Debug("transport security is enabled on gRPC server for replication")
+		}
+
+		grpcReplicationServer = grpc.NewServer(opts...)
 		rs = initReplicationMaster(globalCtx, grpcReplicationServer)
 		log.Info("initialized replication master")
 	} else if utils.InstanceConfig.Replication.MasterHost != "" {
-		err = initReplicationClient(globalCtx)
+		err = initReplicationClient(
+			globalCtx,
+			utils.InstanceConfig.Replication.TLSEnabled,
+			utils.InstanceConfig.Replication.CertFile)
 		if err != nil {
 			log.Fatal("Unable to startup Replication", err)
 		}
@@ -200,6 +183,35 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
+	// Spawn a goroutine and listen for a signal.
+	signalChan := make(chan os.Signal)
+	go func() {
+		for s := range signalChan {
+			switch s {
+			case syscall.SIGUSR1:
+				log.Info("dumping stack traces due to SIGUSR1 request")
+				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+			case syscall.SIGINT:
+				fallthrough
+			case syscall.SIGTERM:
+				log.Info("initiating graceful shutdown due to '%v' request", s)
+				grpcServer.GracefulStop()
+				log.Info("shutdown grpc API server...")
+				globalCancel()
+				if grpcReplicationServer != nil {
+					grpcReplicationServer.Stop() // gRPC stream connection doesn't close by GracefulStop()
+				}
+				log.Info("shutdown grpc Replication server...")
+
+				atomic.StoreUint32(&frontend.Queryable, uint32(0))
+				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
+				time.Sleep(utils.InstanceConfig.StopGracePeriod)
+				shutdown()
+			}
+		}
+	}()
+	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGINT, syscall.SIGTERM)
+
 	if err := http.ListenAndServe(utils.InstanceConfig.ListenURL, nil); err != nil {
 		return fmt.Errorf("failed to start server - error: %s", err.Error())
 	}
@@ -228,13 +240,34 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server) *replic
 	return replicationSender
 }
 
-func initReplicationClient(ctx context.Context) error {
-	c, err := replication.NewGRPCReplicationClient(utils.InstanceConfig.Replication.MasterHost, false)
+func initReplicationClient(ctx context.Context, tlsEnabled bool, certFile string) error {
+	opts := []grpc.DialOption{
+		// grpc.WithBlock(),
+	}
+
+	if tlsEnabled {
+		creds, err := credentials.NewClientTLSFromFile(certFile, "")
+		if err != nil {
+			return errors.Wrap(err, "failed to load certFile for replication")
+		}
+
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+		log.Debug("transport security is enabled on gRPC client for replication")
+	} else {
+		// transport security is disabled
+		opts = append(opts, grpc.WithInsecure())
+	}
+
+	conn, err := grpc.Dial(utils.InstanceConfig.Replication.MasterHost, opts...)
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize gRPC client connection for replication")
+	}
+
+	c, err := replication.NewGRPCReplicationClient(conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize gRPC client for replication")
 	}
 
-	// TODO: implement TLS between master and replica
 	replicationReceiver := replication.NewReceiver(c)
 	err = replicationReceiver.Run(ctx)
 	if err != nil {

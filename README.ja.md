@@ -207,6 +207,35 @@ data pollerを設定してGDAXからデータを取得しはじめましょう�
 このプラグインを使うと、 tick/分 レベルのデータだけを気にすればよくなります。時系列ベースでディスク上のデータのアグリゲーションをしてくれるプラグインです。詳しくは
 [the package](./contrib/ondiskagg/)をご参照ください。
 
+## Replication
+marketstoreはmasterからreplicaへのレプリケーションをサポートしています。
+`mkts.yml` に以下の設定を追記することで、データのレプリケーションを有効化できます。
+
+- master instance
+```
+replication:
+  # when enabled=true, this instance works as master instance and accept connections from replicas
+  enabled: true
+  # when tls_enabled=true, transport security between master and replica is enabled.
+  # tls_enabled: true # both master and replica should have tls_enabled=true to enable TLS
+  # public/private key pair from a pair of files. The files must contain PEM encoded data.
+  # The cert file may contain intermediate certificates following the leaf certificate to form a certificate chain.
+  # cert_file: "/absolute/path/to/server.crt" # both master and replica should have this config to enable TLS
+  # key_file: "/absolute/path/to/server.key"
+  # port to be used for the replication protocol
+  listen_port: 5996
+```
+
+- replica instance(s)
+```
+replication:
+  # when master_host is set, this instance works as a replica instance
+  master_host: "127.0.0.1:5995"
+  # when tls_enabled=true on master server, GRPC communication between master and replica is encrypted by SSL.
+  # tls_enabled: true
+  # cert_file: "/absolute/path/to/server.crt" # both master and replica should have this config to enable TLS
+
+```
 
 ## 開発に協力していただける方へ
 興味がある方はぜひMarketStoreの開発にご協力ください！

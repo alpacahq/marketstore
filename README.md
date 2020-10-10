@@ -263,14 +263,20 @@ on disk. For more, see [the package](./contrib/ondiskagg/)
 
 
 ## Replication
-You can replicate data from a master instance to other marketstore instances. 
-In `mkts.yml` config file, please set the below config:
+You can replicate data from a master marketstore instance to other marketstore instances. 
+In `mkts.yml` config file, please set the config as the following:
 
 - master instance
 ```
 replication:
   # when enabled=true, this instance works as master instance and accept connections from replicas
   enabled: true
+  # when tls_enabled=true, transport security between master and replica is enabled.
+  # tls_enabled: true # both master and replica should have tls_enabled=true to enable TLS
+  # public/private key pair from a pair of files. The files must contain PEM encoded data.
+  # The cert file may contain intermediate certificates following the leaf certificate to form a certificate chain.
+  # cert_file: "/Users/dakimura/projects/misks/tmpcert/server.crt" # both master and replica should have this config to enable TLS
+  # key_file: "/Users/dakimura/projects/misks/tmpcert/server.key"
   # port to be used for the replication protocol
   listen_port: 5996
 ```
@@ -280,6 +286,10 @@ replication:
 replication:
   # when master_host is set, this instance works as a replica instance
   master_host: "127.0.0.1:5995"
+  # when tls_enabled=true on master server, GRPC communication between master and replica is encrypted by SSL.
+  # tls_enabled: true
+  # cert_file: "/Users/dakimura/projects/misks/tmpcert/server.crt" # both master and replica should have this config to enable TLS
+
 ```
 
 ### limitations
