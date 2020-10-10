@@ -9,11 +9,10 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const Headersize = 37024
@@ -30,6 +29,7 @@ func nanosecondsInYear(year int) int64 {
 	return int64(end.Sub(start).Nanoseconds())
 }
 
+// FileSize returns the necessary size for a data file
 func FileSize(tf time.Duration, year int, recordSize int) int64 {
 	return Headersize + (nanosecondsInYear(year)/int64(tf.Nanoseconds()))*int64(recordSize)
 }
@@ -305,7 +305,7 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	f.elementTypes = nil
 	for i := 0; i < int(f.nElements); i++ {
 		baseName := string(bytes.Trim(hp.ElementNames[i][:], "\x00"))
-		f.elementNames = append(f.elementNames, strings.Title(baseName)) // Convert to title case
+		f.elementNames = append(f.elementNames, baseName)
 		f.elementTypes = append(f.elementTypes, EnumElementType(hp.ElementTypes[i]))
 	}
 }

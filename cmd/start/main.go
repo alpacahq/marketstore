@@ -3,6 +3,7 @@ package start
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,12 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/frontend"
-	"github.com/alpacahq/marketstore/frontend/stream"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/frontend/stream"
+	"github.com/alpacahq/marketstore/v4/proto"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -66,6 +70,13 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
 
+	// New grpc server.
+	grpcServer := grpc.NewServer(
+		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
+	)
+	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
+
 	// Spawn a goroutine and listen for a signal.
 	signalChan := make(chan os.Signal)
 	go func() {
@@ -75,7 +86,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 				log.Info("dumping stack traces due to SIGUSR1 request")
 				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
 			case syscall.SIGINT:
-				log.Info("initiating graceful shutdown due to SIGINT request")
+				fallthrough
+			case syscall.SIGTERM:
+				log.Info("initiating graceful shutdown due to '%v' request", s)
+				grpcServer.GracefulStop()
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
 				time.Sleep(utils.InstanceConfig.StopGracePeriod)
@@ -83,8 +97,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}()
-	signal.Notify(signalChan, syscall.SIGUSR1)
-	signal.Notify(signalChan, syscall.SIGINT)
+	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGINT, syscall.SIGTERM)
 
 	// Initialize marketstore services.
 	// --------------------------------
@@ -103,12 +116,16 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// Set rpc handler.
 	log.Info("launching rpc data server...")
-	go http.Handle("/rpc", server)
+	http.Handle("/rpc", server)
 
 	// Set websocket handler.
 	log.Info("initializing websocket...")
 	stream.Initialize()
-	go http.HandleFunc("/ws", stream.Handler)
+	http.HandleFunc("/ws", stream.Handler)
+
+	// Set monitoring handler.
+	log.Info("launching prometheus metrics server...")
+	http.Handle("/metrics", promhttp.Handler())
 
 	// Initialize any provided plugins.
 	InitializeTriggers()
@@ -125,6 +142,19 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// Serve.
 	log.Info("launching tcp listener for all services...")
+	if utils.InstanceConfig.GRPCListenURL != "" {
+		grpcLn, err := net.Listen("tcp", utils.InstanceConfig.GRPCListenURL)
+		if err != nil {
+			return fmt.Errorf("failed to start GRPC server - error: %s", err.Error())
+		}
+		go func() {
+			err := grpcServer.Serve(grpcLn)
+			if err != nil {
+				grpcServer.GracefulStop()
+			}
+		}()
+	}
+
 	if err := http.ListenAndServe(utils.InstanceConfig.ListenURL, nil); err != nil {
 		return fmt.Errorf("failed to start server - error: %s", err.Error())
 	}

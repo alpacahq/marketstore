@@ -3,7 +3,7 @@ package io
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/utils"
 )
 
 // IndexToTime returns the time.Time represented by the given index

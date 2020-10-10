@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"io/ioutil"
 	"net/http"
 	"net/url"

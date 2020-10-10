@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/calendar"
-	"github.com/alpacahq/marketstore/contrib/ondiskagg/aggtrigger"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/plugins/trigger"
-	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/calendar"
+	"github.com/alpacahq/marketstore/v4/contrib/ondiskagg/aggtrigger"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils"
+	. "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	iex "github.com/timpalpant/go-iex"
 	"github.com/timpalpant/go-iex/consolidator"
 	"github.com/timpalpant/go-iex/iextp/tops"
@@ -238,6 +238,7 @@ func nextBatch(bars []*consolidator.Bar, index int) ([]*consolidator.Bar, int) {
 func initWriter() {
 	utils.InstanceConfig.Timezone = NY
 	utils.InstanceConfig.WALRotateInterval = 5
+	instanceID := time.Now().UTC().UnixNano()
 
 	executor.NewInstanceSetup(
 		fmt.Sprintf("%v/mktsdb", dir),
@@ -245,7 +246,7 @@ func initWriter() {
 
 	log.Info(
 		"Initialized writer with InstanceID: %v - RootDir: %v\n",
-		executor.ThisInstance.InstanceID,
+		instanceID,
 		executor.ThisInstance.RootDir,
 	)
 

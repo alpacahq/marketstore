@@ -2,7 +2,8 @@ package io
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/pkg/errors"
 	"reflect"
 	"sort"
 	"strconv"
@@ -24,7 +25,7 @@ type ColumnInterface interface {
 	GetColumn(string) interface{}
 	GetDataShapes() []DataShape
 	Len() int
-	GetTime() []time.Time
+	GetTime() ([]time.Time, error)
 }
 
 type ColumnSeries struct {
@@ -63,8 +64,12 @@ func (cs *ColumnSeries) Len() int {
 	return reflect.ValueOf(i_col).Len()
 }
 
-func (cs *ColumnSeries) GetTime() []time.Time {
-	ep := cs.GetColumn("Epoch").([]int64)
+func (cs *ColumnSeries) GetTime() ([]time.Time, error) {
+	ep, ok := cs.GetColumn("Epoch").([]int64)
+	if !ok {
+		return nil, errors.New("unexpected data type for Epoch column.")
+	}
+
 	ts := make([]time.Time, len(ep))
 	nsi := cs.GetColumn("Nanoseconds")
 	if nsi == nil {
@@ -72,12 +77,15 @@ func (cs *ColumnSeries) GetTime() []time.Time {
 			ts[i] = ToSystemTimezone(time.Unix(secs, 0))
 		}
 	} else {
-		ns := nsi.([]int32)
+		ns, ok := nsi.([]int32)
+		if !ok {
+			return nil, errors.New("unexpected data type for Nanoseconds column.")
+		}
 		for i, secs := range ep {
 			ts[i] = ToSystemTimezone(time.Unix(secs, int64(ns[i])))
 		}
 	}
-	return ts
+	return ts, nil
 }
 
 func (cs *ColumnSeries) GetColumnNames() (columnNames []string) {
@@ -534,7 +542,6 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	/*
 		Generate an ordered array from the map of columns, ordered by the data shapes
 	*/
-	columnList := make([]interface{}, 0, len(dataShapes))
 	colInBytesList := make([][]byte, 0, len(dataShapes))
 	for _, shape := range dataShapes {
 		colName := shape.Name
@@ -542,7 +549,6 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 			shapesContainsEpoch = true
 		}
 		columnData := cs.columns[colName]
-		columnList = append(columnList, columnData)
 		colInBytes := SwapSliceData(columnData, byte(0)).([]byte)
 		colInBytesList = append(colInBytesList, colInBytes)
 	}
@@ -583,5 +589,12 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		}
 	}
 
+	// data is a concatenation of the byte representation of each row, including Epoch column.
+	// e.g. the records are ([
+	//	(\x01\x02\x03\x04\x05\x06\x07\x08, \x09\x0A\x0B\x0C\x0D\x0E\x0F\x10), // 2 Epochs
+	//  (\x11\x12, \x13\x14)												  // 2 Asks
+	//  ], ("Epoch", "Ask")),
+	// => data = \x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x13\x14
+	// (Epoch1-Ask1-Epoch2-Ask2)
 	return data, recordLen
 }

@@ -1,32 +1,59 @@
-version: 2
+version: 2.1
+
+executors:
+  golang:
+    working_directory: ~/github.com/alpacahq/marketstore
+    docker:
+      - image: circleci/golang:1.14.1
+
+variables:
+  - filters: &all
+      branches:
+        only: /.*/
+      tags:
+        only: /.*/
+
 jobs:
   build:
-    docker:
-      - image: circleci/golang:1.12.6
-
-    working_directory: ~/github.com/alpacahq/marketstore
+    executor: golang
     steps:
       - checkout
-      - run: make all plugins
+      - run: make build
 
-  test:
-    docker:
-      - image: circleci/golang:1.12.6
-
-    working_directory: ~/github.com/alpacahq/marketstore
+  plugins:
+    executor: golang
     steps:
       - checkout
-      - setup_remote_docker
-      - run: make install unittest
+      - run: make plugins
+
+  unit-test:
+    executor: golang
+    steps:
+      - run: make unit-test
       - run:
           name: Upload coverages to codecov
           command: |
             bash <(curl -s https://codecov.io/bash)
-  deploy:
-    docker:
-      - image: circleci/golang:1.12.6
 
-    working_directory: ~/github.com/alpacahq/marketstore
+  import-csv-test:
+    executor: golang
+    steps:
+      - run: make import-csv-test
+
+  integration-test-jsonrpc:
+    executor: golang
+    steps:
+      - setup_remote_docker
+      - run: make integration-test-jsonrpc
+
+  integration-test-grpc:
+    executor: golang
+    steps:
+      - setup_remote_docker
+      - run: make integration-test-grpc
+
+  deploy:
+    executor: golang
     steps:
       - checkout
       - setup_remote_docker
@@ -37,17 +64,41 @@ workflows:
   build_test_deploy:
     jobs:
       - build:
-          filters:
-            tags:
-              only: /.*/
-      - test:
-          filters:
-            tags:
-              only: /.*/
+          filters: *all
+          post-steps:
+            - persist_to_workspace:
+                root: ~/github.com/alpacahq/marketstore
+                paths:
+                  # reuse the built binary at test job
+                  - marketstore
+      - plugins:
+          filters: *all
+      - unit-test:
+          pre-steps:
+            - checkout
+          filters: *all
+      - import-csv-test:
+          requires:
+            - build
+          pre-steps:
+            - checkout
+            - attach_workspace:
+                at: ~/github.com/alpacahq/marketstore
+          filters: *all
+      - integration-test-jsonrpc:
+          pre-steps:
+            - checkout
+          filters: *all
+      - integration-test-grpc:
+          pre-steps:
+            - checkout
+          filters: *all
       - deploy:
           requires:
             - build
-            - test
+            - unit-test
+            - integration-test-jsonrpc
+            - integration-test-grpc
           filters:
             tags:
               only: /.*/

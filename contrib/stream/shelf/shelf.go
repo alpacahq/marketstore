@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 // ShelfHandler gets executed by a shelf on its packages

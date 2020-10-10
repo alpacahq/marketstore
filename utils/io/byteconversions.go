@@ -63,6 +63,9 @@ func ToInt8(b []byte) int8 {
 func ToInt16(b []byte) int16 {
 	return *(*int16)(unsafe.Pointer(&b[0]))
 }
+func ToUInt16(b []byte) uint16 {
+	return *(*uint16)(unsafe.Pointer(&b[0]))
+}
 func ToInt32(b []byte) int32 {
 	return *(*int32)(unsafe.Pointer(&b[0]))
 }
@@ -72,11 +75,17 @@ func ToUInt32(b []byte) uint32 {
 func ToInt64(b []byte) int64 {
 	return *(*int64)(unsafe.Pointer(&b[0]))
 }
+func ToUInt64(b []byte) uint64 {
+	return *(*uint64)(unsafe.Pointer(&b[0]))
+}
 func ToFloat32(b []byte) float32 {
 	return *(*float32)(unsafe.Pointer(&b[0]))
 }
 func ToFloat64(b []byte) float64 {
 	return *(*float64)(unsafe.Pointer(&b[0]))
+}
+func ToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }
 
 func SwapSliceData(src_slice interface{}, target_type interface{}) interface{} {

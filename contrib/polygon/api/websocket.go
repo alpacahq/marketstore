@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/alpacahq/marketstore/utils/pool"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/pool"
 )
 
 type Subscription struct {
@@ -99,7 +99,7 @@ func (s *Subscription) Subscribe(handler func(msg []byte)) {
 		}
 	}()
 	go func() {
-		tickInfo := time.NewTicker(10 * time.Second)
+		tickInfo := time.NewTicker(1 * time.Minute)
 		for range tickInfo.C {
 			log.Info("{%s:%v,%s:%v,%s:%v}",
 				"subscription", s.pConn.scope.GetSubScope(),

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var (
@@ -31,12 +31,27 @@ var typeStrMap = func() map[string]EnumElementType {
 	return m
 }()
 
+// TypeStrToElemType converts a numpy type string (e.g. "i8", "f4") to an element type
+// ok=false is returned when unknown string is specified
+func TypeStrToElemType(typeStr string) (elemType EnumElementType, ok bool) {
+	elemType, ok = typeStrMap[typeStr]
+	return elemType, ok
+}
+
+func ToTypeStr(elemType EnumElementType) (typeStr string, ok bool) {
+	typeStr, ok = typeMap[elemType]
+	return typeStr, ok
+}
+
 type NumpyDataset struct {
 	// a list of type strings such as i4 and f8
 	ColumnTypes []string `msgpack:"types"`
 	// a list of column names
 	ColumnNames []string `msgpack:"names"`
-	// two dimentional byte arrays holding the column data
+	// two dimentional byte arrays holding the column data.
+	// if there are mulitple rows in DataSet, ColumnData[columnIndex] is concatenation of the byte representation of each row.
+	// (e.g. row1 of columnA = "\x01\x02\x03\x04", row2 of columnA = "\x05\x06\x07\x08"
+	// => ColumnData[index of columnA] = "\x01\x02\x03\x04\x05\x06\x07\x08"
 	ColumnData [][]byte `msgpack:"data"`
 	Length     int      `msgpack:"length"`
 	// hidden

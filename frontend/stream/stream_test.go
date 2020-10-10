@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/gorilla/websocket"
 	"github.com/vmihailenco/msgpack"
 	. "gopkg.in/check.v1"

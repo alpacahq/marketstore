@@ -7,10 +7,10 @@ import (
 
 	"strings"
 
-	. "github.com/alpacahq/marketstore/catalog"
-	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	. "github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/utils"
+	. "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type TimeQualFunc func(epoch int64) bool
@@ -31,20 +31,17 @@ func NewRestrictionList() RestrictionList {
 }
 
 type DateRange struct {
-	Start, End         int64
-	StartYear, EndYear int16
+	Start, End time.Time
 }
 
-var MaxEpoch = time.Unix(1<<63-62135596801, 999999999).Unix()
-var MinEpoch = int64(0)
+var MinTime = time.Unix(0, 0)
+var MaxTime = time.Unix(1<<63-62135596801, 999999999)
 
 func NewDateRange() *DateRange {
-	dr := new(DateRange)
-	dr.Start = MinEpoch
-	dr.StartYear = int16(ToSystemTimezone(time.Unix(dr.Start, 0)).Year())
-	dr.End = MaxEpoch
-	dr.EndYear = int16(ToSystemTimezone(time.Unix(dr.End, 0)).Year())
-	return dr
+	return &DateRange{
+		Start: MinTime,
+		End:   MaxTime,
+	}
 }
 
 type RowLimit struct {
@@ -76,7 +73,7 @@ func NewParseResult() *ParseResult {
 	return new(ParseResult)
 }
 
-func (pr *ParseResult) GetRowType() (rt map[TimeBucketKey]EnumRecordType) {
+func (pr *ParseResult) GetRecordType() (rt map[TimeBucketKey]EnumRecordType) {
 	rt = make(map[TimeBucketKey]EnumRecordType)
 	for _, qf := range pr.QualifiedFiles {
 		rt[qf.Key] = qf.File.GetRecordType()
@@ -169,26 +166,24 @@ func (q *query) SetRowLimit(direction DirectionEnum, rowLimit int) {
 	q.Limit.Direction = direction
 }
 
-func (q *query) SetRange(start, end int64) {
+func (q *query) SetRange(start, end time.Time) {
 	q.Range = new(DateRange)
 	q.SetStart(start)
 	q.SetEnd(end)
 }
 
-func (q *query) SetStart(start int64) {
+func (q *query) SetStart(start time.Time) {
 	if q.Range == nil {
 		q.Range = NewDateRange()
 	}
 	q.Range.Start = start
-	q.Range.StartYear = int16(ToSystemTimezone(time.Unix(start, 0)).Year())
 }
 
-func (q *query) SetEnd(end int64) {
+func (q *query) SetEnd(end time.Time) {
 	if q.Range == nil {
 		q.Range = NewDateRange()
 	}
 	q.Range.End = end
-	q.Range.EndYear = int16(ToSystemTimezone(time.Unix(end, 0)).Year())
 }
 
 func (q *query) AddRestriction(category string, item string) {
@@ -247,9 +242,9 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 					getFileList(subdir, f, itemKey+subdir.GetName()+"/", categoryKey)
 				}
 			}
-		} else {
+		} else if itemKey != "" && categoryKey != "" {
 			/*
-				If there are no subdirs, emit the category and item keys
+				If there are no subdirs and it's not the root directory, emit the category and item keys
 			*/
 			itemKey = itemKey[:len(itemKey)-1]
 			categoryKey = categoryKey[:len(categoryKey)-1]
@@ -298,30 +293,32 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	pr.Limit = q.Limit
 	// If the query expressed no time range, set the parsed result to include all years in the qualified files
 	//timeRange := (q.Range.Start != time.Time{} && q.Range.End != MaxTime)
-	timeRange := (q.Range.Start != MinEpoch || q.Range.End != MaxEpoch)
+	timeRange := q.Range.Start != MinTime || q.Range.End != MaxTime
 	if !timeRange {
+		var startYear, endYear int16
 		for i, qf := range pr.QualifiedFiles {
 			if i == 0 {
-				pr.Range.StartYear = qf.File.Year
-				pr.Range.EndYear = qf.File.Year
+				startYear = qf.File.Year
+				endYear = qf.File.Year
+				continue
 			}
-			if qf.File.Year < pr.Range.StartYear {
-				pr.Range.StartYear = qf.File.Year
+			if qf.File.Year < startYear {
+				startYear = qf.File.Year
 			}
-			if qf.File.Year > pr.Range.EndYear {
-				pr.Range.EndYear = qf.File.Year
+			if qf.File.Year > endYear {
+				endYear = qf.File.Year
 			}
 		}
 		pr.Range.Start = time.Date(
-			int(pr.Range.StartYear),
+			int(startYear),
 			time.January,
 			1, 0, 0, 0, 0,
-			utils.InstanceConfig.Timezone).Unix()
+			utils.InstanceConfig.Timezone)
 		pr.Range.End = time.Date(
-			int(pr.Range.EndYear),
+			int(pr.Range.End.Year()),
 			time.December,
-			31, 23, 59, 59, 0,
-			utils.InstanceConfig.Timezone).Unix()
+			31, 23, 59, 59, 999999999,
+			utils.InstanceConfig.Timezone)
 	}
 	pr.TimeQuals = q.TimeQuals
 	return pr, nil

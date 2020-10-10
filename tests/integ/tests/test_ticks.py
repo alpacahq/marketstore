@@ -1,11 +1,13 @@
 import pytest
+import os
 
 import numpy as np
 import pandas as pd
 
 import pymarketstore as pymkts
 
-client = pymkts.Client('http://localhost:5993/rpc')
+client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/rpc",
+                       grpc=(os.getenv("USE_GRPC", "false") == "true"))
 
 TIMEFRAME = '1Min'
 ATTRGROUP = 'TICK'
@@ -102,6 +104,7 @@ def db():
         v.index = pd.to_datetime(v.index, format=fmt).tz_localize('utc')
     return db
 
+
 @pytest.mark.parametrize('symbol, with_nanoseconds', [
     ('TEST_SIMPLE_TICK', False),
     ('TEST_DUPLICATED_INDEX', False),
@@ -111,10 +114,11 @@ def db():
 ])
 def test_integrity_ticks(db, symbol, with_nanoseconds):
     # ---- given ----
+    tbk = get_tbk(symbol, TIMEFRAME, ATTRGROUP)
+    client.destroy(tbk=tbk)
     data = db[symbol]
 
     records = convert(data, with_nanoseconds=with_nanoseconds)
-    tbk = get_tbk(symbol, TIMEFRAME, ATTRGROUP)
 
     # ---- when ----
     ret = client.write(records, tbk, isvariablelength=True)

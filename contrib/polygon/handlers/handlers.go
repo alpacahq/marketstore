@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/polygon/backfill"
-
-	"github.com/alpacahq/marketstore/contrib/polygon/api"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/metrics"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (
@@ -68,6 +68,8 @@ func TradeHandler(msg []byte) {
 		_ = lagOnReceipt
 	}
 	Write(writeMap)
+
+	metrics.PolygonStreamLastUpdate.WithLabelValues("trade").SetToCurrentTime()
 }
 
 // QuoteHandler handles a Polygon WS quote
@@ -101,9 +103,17 @@ func QuoteHandler(msg []byte) {
 		_ = lagOnReceipt
 	}
 	Write(writeMap)
+
+	metrics.PolygonStreamLastUpdate.WithLabelValues("quote").SetToCurrentTime()
 }
 
-func BarsHandler(msg []byte) {
+func BarsHandlerWrapper(addTickCount bool) func([]byte) {
+	return func(msg []byte) {
+		BarsHandler(msg, addTickCount)
+	}
+}
+
+func BarsHandler(msg []byte, addTickCount bool) {
 	if msg == nil {
 		return
 	}
@@ -133,6 +143,9 @@ func BarsHandler(msg []byte) {
 		cs.AddColumn("Low", []float32{float32(bar.Low)})
 		cs.AddColumn("Close", []float32{float32(bar.Close)})
 		cs.AddColumn("Volume", []int32{int32(bar.Volume)})
+		if addTickCount {
+			cs.AddColumn("TickCnt", []int32{int32(0)})
+		}
 		csm.AddColumnSeries(*tbk, cs)
 
 		if err := executor.WriteCSM(csm, false); err != nil {
@@ -141,6 +154,8 @@ func BarsHandler(msg []byte) {
 
 		_ = lagOnReceipt
 	}
+
+	metrics.PolygonStreamLastUpdate.WithLabelValues("bar").SetToCurrentTime()
 }
 
 func appendItem(writeMap map[io.TimeBucketKey]interface{}, tbkp *io.TimeBucketKey, item interface{}) {

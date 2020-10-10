@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 type WriteRequest struct {

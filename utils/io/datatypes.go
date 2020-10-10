@@ -4,16 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"unsafe"
 )
 
 //go:generate stringer -type=EnumElementType,EnumRecordType datatypes.go byteconversions.go
-
-/*
-#include "utilityfuncs.h"
-#cgo CFLAGS: -O3 -std=c99
-*/
-import "C"
 
 type EnumRecordType int8
 
@@ -185,6 +178,8 @@ func GetElementType(datum interface{}) EnumElementType {
 type DirectionEnum uint8
 
 const (
+	// limit_from_start=true -> FIRST
+	// limit_from_start=false -> LAST (default)
 	FIRST DirectionEnum = iota
 	LAST
 )
@@ -196,14 +191,16 @@ Utility functions
 */
 
 func getFloat32Column(offset, reclen, nrecs int, data []byte) (col []float32) {
-	//	fmt.Println("offset, reclen, nrecs: ", offset, reclen, nrecs)
 	col = make([]float32, nrecs)
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.float)(unsafe.Pointer(&col[0]))
-	C.wordCopyFloat32(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToFloat32(data[cursor : cursor+4])
+		cursor += reclen
+	}
 	return col
 }
 func getFloat64Column(offset, reclen, nrecs int, data []byte) (col []float64) {
@@ -211,19 +208,12 @@ func getFloat64Column(offset, reclen, nrecs int, data []byte) (col []float64) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.double)(unsafe.Pointer(&col[0]))
-	C.wordCopyFloat64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
-	return col
-}
-func getInt8Column(offset, reclen, nrecs int, data []byte) (col []int8) {
-	col = make([]int8, nrecs)
-	if nrecs == 0 {
-		return col
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToFloat64(data[cursor : cursor+8])
+		cursor += reclen
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.int8_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyInt8(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
 	return col
 }
 
@@ -232,9 +222,12 @@ func getInt16Column(offset, reclen, nrecs int, data []byte) (col []int16) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.int16_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyInt16(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToInt16(data[cursor : cursor+2])
+		cursor += reclen
+	}
 	return col
 }
 
@@ -243,9 +236,12 @@ func getInt32Column(offset, reclen, nrecs int, data []byte) (col []int32) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.int32_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyInt32(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToInt32(data[cursor : cursor+4])
+		cursor += reclen
+	}
 	return col
 }
 func getInt64Column(offset, reclen, nrecs int, data []byte) (col []int64) {
@@ -253,9 +249,12 @@ func getInt64Column(offset, reclen, nrecs int, data []byte) (col []int64) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.int64_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyInt64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToInt64(data[cursor : cursor+8])
+		cursor += reclen
+	}
 	return col
 }
 func getUInt8Column(offset, reclen, nrecs int, data []byte) (col []uint8) {
@@ -263,9 +262,12 @@ func getUInt8Column(offset, reclen, nrecs int, data []byte) (col []uint8) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.uint8_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyUInt8(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = data[cursor]
+		cursor += reclen
+	}
 	return col
 }
 
@@ -274,9 +276,12 @@ func getUInt16Column(offset, reclen, nrecs int, data []byte) (col []uint16) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.uint16_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyUInt16(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToUInt16(data[cursor : cursor+2])
+		cursor += reclen
+	}
 	return col
 }
 
@@ -285,9 +290,12 @@ func getUInt32Column(offset, reclen, nrecs int, data []byte) (col []uint32) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.uint32_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyUInt32(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToUInt32(data[cursor : cursor+4])
+		cursor += reclen
+	}
 	return col
 }
 func getUInt64Column(offset, reclen, nrecs int, data []byte) (col []uint64) {
@@ -295,9 +303,12 @@ func getUInt64Column(offset, reclen, nrecs int, data []byte) (col []uint64) {
 	if nrecs == 0 {
 		return col
 	}
-	arg1 := (*C.char)(unsafe.Pointer(&data[0]))
-	arg6 := (*C.uint64_t)(unsafe.Pointer(&col[0]))
-	C.wordCopyUInt64(arg1, C.int(offset), C.int(reclen), C.int(nrecs), arg6)
+
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		col[i] = ToUInt64(data[cursor : cursor+8])
+		cursor += reclen
+	}
 	return col
 }
 
@@ -306,8 +317,11 @@ func getByteColumn(offset, reclen, nrecs int, data []byte) (col []byte) {
 	if nrecs == 0 {
 		return col
 	}
+
+	cursor := offset
 	for i := 0; i < nrecs; i++ {
-		col[i] = data[i*reclen+offset]
+		col[i] = data[cursor]
+		cursor += reclen
 	}
 	return col
 }

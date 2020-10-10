@@ -1,8 +1,9 @@
-package executor
+package executor_test
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"io/ioutil"
 	"math"
 	"os"
@@ -14,11 +15,12 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	. "github.com/alpacahq/marketstore/catalog"
-	. "github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/test"
+	. "github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/executor"
+	. "github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils"
+	. "github.com/alpacahq/marketstore/v4/utils/io"
+	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -28,7 +30,6 @@ var (
 	_ = Suite(&TestSuite{nil, "", nil, nil})
 	_ = Suite(&DestructiveWALTests{nil, "", nil, nil})
 	_ = Suite(&DestructiveWALTest2{nil, "", nil, nil})
-	_ = Suite(&CGOTests{})
 )
 
 type TestSuite struct {
@@ -36,7 +37,7 @@ type TestSuite struct {
 	Rootdir       string
 	// Number of items written in sample data (non-zero index)
 	ItemsWritten map[string]int
-	WALFile      *WALFileType
+	WALFile      *executor.WALFileType
 }
 
 type DestructiveWALTests struct {
@@ -44,7 +45,7 @@ type DestructiveWALTests struct {
 	Rootdir       string
 	// Number of items written in sample data (non-zero index)
 	ItemsWritten map[string]int
-	WALFile      *WALFileType
+	WALFile      *executor.WALFileType
 }
 
 type DestructiveWALTest2 struct {
@@ -52,17 +53,15 @@ type DestructiveWALTest2 struct {
 	Rootdir       string
 	// Number of items written in sample data (non-zero index)
 	ItemsWritten map[string]int
-	WALFile      *WALFileType
+	WALFile      *executor.WALFileType
 }
-
-type CGOTests struct{}
 
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	NewInstanceSetup(s.Rootdir, true, true, false)
-	s.DataDirectory = ThisInstance.CatalogDir
-	s.WALFile = ThisInstance.WALFile
+	executor.NewInstanceSetup(s.Rootdir, true, true, false)
+	s.DataDirectory = executor.ThisInstance.CatalogDir
+	s.WALFile = executor.ThisInstance.WALFile
 }
 
 func (s *TestSuite) TearDownSuite(c *C) {
@@ -101,15 +100,15 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	eNames := []string{"Open", "High", "Low", "Close", "Volume"}
 	dsv := NewDataShapeVector(eNames, eTypes)
 	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, FIXED)
-	err := ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	err := executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, IsNil)
-	tgc := ThisInstance.TXNPipe
+	tgc := executor.ThisInstance.TXNPipe
 	/*
 		Write some data
 	*/
-	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
 	row := struct {
 		Epoch                  int64
@@ -121,17 +120,17 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	for ii := 0; ii < 10; ii++ {
 		ts = ts.Add(time.Minute)
 		row.Epoch = ts.Unix()
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	q := NewQuery(s.DataDirectory)
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRowLimit(LAST, 5)
 	parsed, _ := q.Parse()
-	reader, _ := NewReader(parsed)
+	reader, _ := executor.NewReader(parsed)
 	csm, _ := reader.Read()
 	c.Assert(len(csm) >= 4, Equals, true)
 	for _, cs := range csm {
@@ -146,9 +145,9 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	eNames := []string{"Bid", "Ask"}
 	dsv := NewDataShapeVector(eNames, eTypes)
 	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, VARIABLE)
-	err := ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	err := executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, IsNil)
-	tgc := ThisInstance.TXNPipe
+	tgc := executor.ThisInstance.TXNPipe
 
 	/*
 		Write some data
@@ -157,11 +156,11 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	q.AddRestriction("Symbol", "TEST-WV")
 	q.AddRestriction("AttributeGroup", "TICK-BIDASK")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC).Unix())
+	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
-	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
 	row := struct {
 		Epoch    int64
@@ -174,16 +173,16 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	/*
 		Read the data back
 	*/
-	reader, err := NewReader(parsed)
+	reader, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err := reader.Read()
 	c.Assert(err == nil, Equals, true)
@@ -211,11 +210,11 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	csm, err = reader.Read()
 	c.Assert(err == nil, Equals, true)
@@ -242,11 +241,11 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer)
+		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	q = NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "TEST-WV")
@@ -256,7 +255,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 
 	// Test last N query
 	parsed, _ = q.Parse()
-	reader, err = NewReader(parsed)
+	reader, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err = reader.Read()
 	for _, cs := range csm {
@@ -271,7 +270,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	// Test first N query
 	q.SetRowLimit(FIRST, 10)
 	parsed, _ = q.Parse()
-	reader, err = NewReader(parsed)
+	reader, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err = reader.Read()
 	for _, cs := range csm {
@@ -290,14 +289,14 @@ func (s *TestSuite) TestFileRead(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRange(
-		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC).Unix(),
+		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC),
 	)
 	parsed, err := q.Parse()
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
 	}
-	scanner, err := NewReader(parsed)
+	scanner, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	// Sum up the total number of items in the query set for validation
 	var nitems, recordlen int
@@ -333,8 +332,8 @@ func (s *TestSuite) TestFileRead(c *C) {
 func (s *TestSuite) TestDelete(c *C) {
 	NY, _ := time.LoadLocation("America/New_York")
 	// First write some data we can delete
-	d := ThisInstance.CatalogDir
-	tgc := ThisInstance.TXNPipe
+	d := executor.ThisInstance.CatalogDir
+	tgc := executor.ThisInstance.TXNPipe
 	dataItemKey := "TEST-DELETE/OHLCV/1Min"
 	dataItemPath := filepath.Join(d.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
@@ -347,7 +346,7 @@ func (s *TestSuite) TestDelete(c *C) {
 	err := d.AddTimeBucket(tbk, tbi)
 	c.Assert(err, Equals, nil)
 
-	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
 
 	row := OHLCtest{0, 100., 200., 300., 400.}
@@ -361,23 +360,23 @@ func (s *TestSuite) TestDelete(c *C) {
 		tsA = append(tsA, ts)
 		buffer, _ = Serialize(buffer, row)
 	}
-	writer.WriteRecords(tsA, buffer)
+	writer.WriteRecords(tsA, buffer, dsv)
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 
 	endTime := tsA[len(tsA)-1]
 
 	q := NewQuery(s.DataDirectory)
 	q.AddTargetKey(tbk)
-	q.SetRange(startTime.UTC().Unix(), endTime.UTC().Unix())
+	q.SetRange(startTime.UTC(), endTime.UTC())
 	parsed, err := q.Parse()
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
 	}
 
 	// Read the data before delete
-	r, err := NewReader(parsed)
+	r, err := executor.NewReader(parsed)
 	csm, err := r.Read()
 	for _, cs := range csm {
 		if cs.Len() != 1000 {
@@ -388,7 +387,7 @@ func (s *TestSuite) TestDelete(c *C) {
 		break
 	}
 
-	de, err := NewDeleter(parsed)
+	de, err := executor.NewDeleter(parsed)
 	err = de.Delete()
 	asserter(c, err, true)
 	err = de.Delete()
@@ -420,20 +419,20 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	//	q.AddRestriction("Symbol", "USDJPY")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRange(
-		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2003, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2003, time.January, 1, 0, 0, 0, 0, time.UTC),
 	)
 	parsed, err := q.Parse()
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
-	scanner, err := NewReader(parsed)
+	scanner, err := executor.NewReader(parsed)
 	if err != nil {
 		fmt.Println(err)
 	}
 	c.Assert(err == nil, Equals, true)
 	// Sum up the total number of items in the query set for validation
-	sortedFiles := SortedFileList(parsed.QualifiedFiles)
+	sortedFiles := executor.SortedFileList(parsed.QualifiedFiles)
 	sort.Sort(sortedFiles)
 	var nitems int
 	for _, qf := range sortedFiles {
@@ -463,7 +462,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
-	scanner, err = NewReader(parsed)
+	scanner, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
@@ -488,7 +487,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
-	scanner, err = NewReader(parsed)
+	scanner, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
@@ -502,11 +501,11 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "5Min")
 	q.SetRange(
-		time.Date(2001, time.January, 15, 12, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2001, time.January, 15, 12, 5, 0, 0, time.UTC).Unix(),
+		time.Date(2001, time.January, 15, 12, 0, 0, 0, time.UTC),
+		time.Date(2001, time.January, 15, 12, 5, 0, 0, time.UTC),
 	)
 	parsed, err = q.Parse()
-	scanner, err = NewReader(parsed)
+	scanner, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
@@ -524,9 +523,9 @@ func (s *TestSuite) TestCrossYear(c *C) {
 	q.AddRestriction("Timeframe", "5Min")
 	startDate := time.Date(2001, time.October, 15, 12, 0, 0, 0, time.UTC)
 	endDate := time.Date(2002, time.October, 15, 12, 5, 0, 0, time.UTC)
-	q.SetRange(startDate.Unix(), endDate.Unix())
+	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
-	scanner, err := NewReader(parsed)
+	scanner, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
@@ -546,12 +545,12 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRange(
-		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC).Unix(),
+		time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2001, time.December, 31, 23, 59, 59, 0, time.UTC),
 	)
 	q.SetRowLimit(LAST, 100)
 	parsed, _ := q.Parse()
-	scanner, err := NewReader(parsed)
+	scanner, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
@@ -586,12 +585,12 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRange(
-		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
+		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
-	scanner, err = NewReader(parsed)
+	scanner, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, _ = scanner.Read()
 	for _, cs := range csm {
@@ -606,12 +605,12 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRange(
-		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
-		time.Date(1999, time.December, 23, 59, 0, 0, 0, time.UTC).Unix(),
+		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(1999, time.December, 23, 59, 0, 0, 0, time.UTC),
 	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
-	scanner, err = NewReader(parsed)
+	scanner, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, _ = scanner.Read()
 	for _, cs := range csm {
@@ -626,12 +625,12 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRange(
-		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2000, time.January, 1, 0, 1, 0, 0, time.UTC).Unix(),
+		time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2000, time.January, 1, 0, 1, 0, 0, time.UTC),
 	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
-	scanner, err = NewReader(parsed)
+	scanner, err = executor.NewReader(parsed)
 	c.Assert(err, IsNil)
 	csm, err = scanner.Read()
 	c.Assert(err, IsNil)
@@ -645,7 +644,7 @@ func (s *TestSuite) TestLastN(c *C) {
 }
 
 func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
-	d := ThisInstance.CatalogDir
+	d := executor.ThisInstance.CatalogDir
 	dataItemKey := "TEST/1Min/OHLCV"
 	dataItemPath := filepath.Join(d.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
@@ -661,22 +660,22 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	q := NewQuery(d)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ := q.Parse()
-	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	w, err := NewWriter(tbi, ThisInstance.TXNPipe, d)
+	w, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, d)
 	c.Assert(err, Equals, nil)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
 	buffer, _ := Serialize([]byte{}, row)
-	w.WriteRecords([]time.Time{ts}, buffer)
+	w.WriteRecords([]time.Time{ts}, buffer, dsv)
 	c.Assert(err == nil, Equals, true)
-	err = ThisInstance.WALFile.flushToWAL(ThisInstance.TXNPipe)
+	err = executor.ThisInstance.WALFile.FlushToWAL(executor.ThisInstance.TXNPipe)
 	c.Assert(err == nil, Equals, true)
 
 	q = NewQuery(d)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ = q.Parse()
-	rd, err := NewReader(pr)
+	rd, err := executor.NewReader(pr)
 	c.Assert(err == nil, Equals, true)
 	columnSeries, err := rd.Read()
 	c.Assert(err == nil, Equals, true)
@@ -696,28 +695,28 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 }
 
 func (s *TestSuite) TestWriter(c *C) {
-	tgc := ThisInstance.TXNPipe
+	tgc := executor.ThisInstance.TXNPipe
 	dataItemKey := "TEST/1Min/OHLCV"
 	tbk := NewTimeBucketKey(dataItemKey)
-	tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	writer, err := NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
-	writer.WriteRecords([]time.Time{ts}, buffer)
+	writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes())
 	c.Assert(err == nil, Equals, true)
-	s.WALFile.flushToWAL(tgc)
-	s.WALFile.createCheckpoint()
+	s.WALFile.FlushToWAL(tgc)
+	s.WALFile.CreateCheckpoint()
 }
 
 func (s *DestructiveWALTests) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	NewInstanceSetup(s.Rootdir, true, true, false)
-	s.DataDirectory = ThisInstance.CatalogDir
-	s.WALFile = ThisInstance.WALFile
+	executor.NewInstanceSetup(s.Rootdir, true, true, false)
+	s.DataDirectory = executor.ThisInstance.CatalogDir
+	s.WALFile = executor.ThisInstance.WALFile
 }
 
 func (s *DestructiveWALTests) TearDownSuite(c *C) {
@@ -726,12 +725,13 @@ func (s *DestructiveWALTests) TearDownSuite(c *C) {
 
 func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
-	s.WALFile, err = NewWALFile(s.Rootdir, "")
+	mockInstanceID := time.Now().UTC().UnixNano()
+	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
 	}
-	tgc := NewTransactionPipe()
+	tgc := executor.NewTransactionPipe()
 
 	queryFiles, err := addTGData(s.DataDirectory, tgc, 1000, false)
 	if err != nil {
@@ -742,14 +742,14 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
 	originalFileContents := createBufferFromFiles(queryFiles, c)
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
 	// Verify that the file contents have not changed
 	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, true)
 
-	err = s.WALFile.createCheckpoint()
+	err = s.WALFile.CreateCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -763,7 +763,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 		c.Fail()
 	}
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -773,12 +773,11 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, false)
 
 	c.Assert(s.WALFile.IsOpen(), Equals, true)
-	c.Assert(s.WALFile.CanWrite("WALTest"), Equals, true)
-	s.WALFile.WriteStatus(OPEN, REPLAYED)
+	c.Assert(s.WALFile.CanWrite("WALTest", mockInstanceID), Equals, true)
+	s.WALFile.WriteStatus(wal.OPEN, wal.REPLAYED)
 
-	if s.WALFile.CanDeleteSafely() {
-		s.WALFile.Delete()
-	}
+	s.WALFile.Delete(mockInstanceID)
+
 	c.Assert(s.WALFile.IsOpen(), Equals, false)
 
 }
@@ -786,7 +785,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	var err error
 
-	tgc := NewTransactionPipe()
+	tgc := executor.NewTransactionPipe()
 
 	// Add some mixed up data to the cache
 	_, err = addTGData(s.DataDirectory, tgc, 1000, true)
@@ -799,7 +798,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	// Note that at this point the files are unmodified
 	//	originalFileContents := createBufferFromFiles(tgc, c)
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -811,7 +810,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
 	c.Assert(int64(n), Equals, fsize)
 
-	err = s.WALFile.createCheckpoint()
+	err = s.WALFile.CreateCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -830,7 +829,9 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	}
 	BrokenWAL := WALBuffer[:(3 * len(WALBuffer) / 4)]
 	//BrokenWAL := WALBuffer[:]
-	BrokenWALFilePath := s.Rootdir + "/BrokenWAL"
+	BrokenWALFileName := "BrokenWAL"
+	BrokenWALFilePath := s.Rootdir + "/" + BrokenWALFileName
+
 	os.Remove(BrokenWALFilePath)
 	fp, err := os.OpenFile(BrokenWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
 	c.Assert(err == nil, Equals, true)
@@ -840,19 +841,19 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	fp.Close()
 
 	// Take over the broken WALFile and replay it
-	WALFile, err := NewWALFile(s.Rootdir, BrokenWALFilePath)
-	newTGC := NewTransactionPipe()
+	WALFile, err := executor.TakeOverWALFile(s.Rootdir, BrokenWALFileName)
+	newTGC := executor.NewTransactionPipe()
 	c.Assert(newTGC != nil, Equals, true)
 	c.Assert(WALFile.Replay(true) == nil, Equals, true)
-	c.Assert(WALFile.Delete() == nil, Equals, true)
+	c.Assert(WALFile.Delete(WALFile.OwningInstanceID) == nil, Equals, true)
 }
 
 func (s *DestructiveWALTest2) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	NewInstanceSetup(s.Rootdir, true, true, false)
-	s.DataDirectory = ThisInstance.CatalogDir
-	s.WALFile = ThisInstance.WALFile
+	executor.NewInstanceSetup(s.Rootdir, true, true, false)
+	s.DataDirectory = executor.ThisInstance.CatalogDir
+	s.WALFile = executor.ThisInstance.WALFile
 }
 
 func (s *DestructiveWALTest2) TearDownSuite(c *C) {
@@ -863,7 +864,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	var err error
 
 	// Add some mixed up data to the cache
-	tgc := NewTransactionPipe()
+	tgc := executor.NewTransactionPipe()
 
 	allQueryFiles, err := addTGData(s.DataDirectory, tgc, 1000, true)
 	if err != nil {
@@ -889,7 +890,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 		}
 	}
 
-	err = s.WALFile.flushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(tgc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -898,10 +899,10 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	fstat, _ := s.WALFile.FilePtr.Stat()
 	fsize := fstat.Size()
 	WALFileAfterWALFlush := make([]byte, fsize)
-	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
-	c.Assert(int64(n) == fsize, Equals, true)
+	bytesWritten, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
+	c.Assert(int64(bytesWritten) == fsize, Equals, true)
 
-	err = s.WALFile.createCheckpoint()
+	err = s.WALFile.CreateCheckpoint()
 	if err != nil {
 		fmt.Println(err)
 		c.FailNow()
@@ -923,22 +924,23 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	c.Assert(compareFileToBuf(fileContentsOriginal2002, queryFiles2002, c), Equals, true)
 
 	// Write a WAL file with the pre-flushed state - we will replay this to get the modified files
-	newWALFilePath := s.Rootdir + "/ReplayWAL"
+	newWALFileName := "ReplayWAL"
+	newWALFilePath := s.Rootdir + "/" + newWALFileName
 	os.Remove(newWALFilePath) // Remove it if it exists
 	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
 	// Replace PID with a bogus PID
 	for i, val := range [8]byte{1, 1, 1, 1, 1, 1, 1, 1} {
 		WALFileAfterWALFlush[3+i] = val
 	}
-	n, err = fp.WriteAt(WALFileAfterWALFlush, 0)
-	c.Assert(err == nil && n == len(WALFileAfterWALFlush), Equals, true)
+	bytesWritten, err = fp.WriteAt(WALFileAfterWALFlush, 0)
+	c.Assert(err == nil && bytesWritten == len(WALFileAfterWALFlush), Equals, true)
 	Syncfs()
 
 	// Take over the new WALFile and replay it into a new TG cache
-	WALFile, err := NewWALFile(s.Rootdir, newWALFilePath)
+	WALFile, err := executor.TakeOverWALFile(s.Rootdir, newWALFileName)
 	data, _ := ioutil.ReadFile(newWALFilePath)
 	ioutil.WriteFile("/tmp/wal", data, 0644)
-	newTGC := NewTransactionPipe()
+	newTGC := executor.NewTransactionPipe()
 	c.Assert(newTGC != nil, Equals, true)
 	// Verify that our files are in original state prior to replay
 	c.Assert(compareFileToBuf(fileContentsOriginal2002, queryFiles2002, c), Equals, true)
@@ -967,7 +969,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	}
 	// Final verify after replay
 	c.Assert(compareFileToBuf(modifiedFileContents, queryFiles2002, c), Equals, true)
-	c.Assert(WALFile.Delete() == nil, Equals, true)
+	c.Assert(WALFile.Delete(WALFile.OwningInstanceID) == nil, Equals, true)
 }
 
 /*
@@ -1033,10 +1035,10 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Symbol", "USDJPY")
 	q.AddRestriction("Timeframe", "1D")
-	q.SetRange(startDate.Unix(), endDate.Unix())
+	q.SetRange(startDate, endDate)
 	q.SetRowLimit(FIRST, numRecs)
 	parsed, _ := q.Parse()
-	scanner, err := NewReader(parsed)
+	scanner, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err := scanner.Read()
 	for key, cs := range csm {
@@ -1058,7 +1060,7 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	*/
 	q.SetRowLimit(LAST, numRecs)
 	parsed, _ = q.Parse()
-	scanner, err = NewReader(parsed)
+	scanner, err = executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for key, cs := range csm {
@@ -1091,16 +1093,11 @@ func isEqual(left, right *ColumnSeries) bool {
 	return true
 }
 
-func addTGData(root *Directory, tgc *TransactionPipe, number int, mixup bool) (queryFiles []string, err error) {
-	// Need a local version of this to avoid an import cycle
-	type CurrencyData struct {
-		Epoch                  int64
-		Open, High, Low, Close float32
-	}
-
+func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup bool) (queryFiles []string, err error) {
 	// Create some data via a query
 	symbols := []string{"NZDUSD", "USDJPY", "EURUSD"}
-	writerByKey := make(map[TimeBucketKey]*Writer, 0)
+	tbiByKey := make(map[TimeBucketKey]*TimeBucketInfo, 0)
+	writerByKey := make(map[TimeBucketKey]*executor.Writer, 0)
 	csm := NewColumnSeriesMap()
 	queryFiles = make([]string, 0)
 
@@ -1111,7 +1108,7 @@ func addTGData(root *Directory, tgc *TransactionPipe, number int, mixup bool) (q
 		q.AddRestriction("Timeframe", "1Min")
 		q.SetRowLimit(LAST, number)
 		parsed, _ := q.Parse()
-		scanner, err := NewReader(parsed)
+		scanner, err := executor.NewReader(parsed)
 		if err != nil {
 			fmt.Printf("Failed to create a new reader")
 			return nil, err
@@ -1126,8 +1123,9 @@ func addTGData(root *Directory, tgc *TransactionPipe, number int, mixup bool) (q
 		for key, cs := range csmSym {
 			// Add this result data to the overall
 			csm[key] = cs
-			tbi, err := ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(&key)
-			writerByKey[key], err = NewWriter(tbi, tgc, root)
+			tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(&key)
+			tbiByKey[key] = tbi
+			writerByKey[key], err = executor.NewWriter(tbi, tgc, root)
 			if err != nil {
 				fmt.Printf("Failed to create a new writer")
 				return nil, err
@@ -1152,9 +1150,7 @@ func addTGData(root *Directory, tgc *TransactionPipe, number int, mixup bool) (q
 			asize := len(epoch)
 			for i := 0; i < asize/2; i++ {
 				ii := (asize - 1) - i
-				time1 := epoch[i]
-				epoch[i] = epoch[ii]
-				epoch[ii] = time1
+				epoch[i], epoch[ii] = epoch[ii], epoch[i]
 				open[i] = float32(-1 * i)
 				high[i] = float32(-2 * ii)
 				low[i] = -3
@@ -1171,7 +1167,7 @@ func addTGData(root *Directory, tgc *TransactionPipe, number int, mixup bool) (q
 			buffer = append(buffer, DataToByteSlice(low[i])...)
 			buffer = append(buffer, DataToByteSlice(close[i])...)
 		}
-		writerByKey[key].WriteRecords(timestamps, buffer)
+		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapesWithEpoch())
 	}
 
 	return queryFiles, nil

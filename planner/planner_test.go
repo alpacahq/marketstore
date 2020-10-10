@@ -6,8 +6,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	. "github.com/alpacahq/marketstore/catalog"
-	. "github.com/alpacahq/marketstore/utils/test"
+	. "github.com/alpacahq/marketstore/v4/catalog"
+	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -37,8 +37,8 @@ func (s *TestSuite) TestQuery(c *C) {
 	q.AddRestriction("Symbol", "USDJPY")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRange(
-		time.Date(2001, 1, 1, 12, 0, 0, 0, time.UTC).Unix(),
-		time.Date(2002, 12, 20, 12, 0, 0, 0, time.UTC).Unix(),
+		time.Date(2001, 1, 1, 12, 0, 0, 0, time.UTC),
+		time.Date(2002, 12, 20, 12, 0, 0, 0, time.UTC),
 	)
 	pr, _ := q.Parse()
 	c.Assert(len(pr.QualifiedFiles), Equals, 6)

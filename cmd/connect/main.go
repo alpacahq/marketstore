@@ -3,9 +3,9 @@ package connect
 import (
 	"errors"
 
-	"github.com/alpacahq/marketstore/cmd/connect/session"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/spf13/cobra"
 )
 

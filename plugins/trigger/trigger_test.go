@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "gopkg.in/check.v1"
 )
 
@@ -66,7 +66,7 @@ func (s *TestSuite) TestRecordsToColumnSeries(c *C) {
 
 	rs := cs.ToRowSeries(*tbk, true)
 	rowData := rs.GetData()
-	times := rs.GetTime()
+	times, _ := rs.GetTime()
 	numRows := len(times)
 	rowLen := len(rowData) / numRows
 

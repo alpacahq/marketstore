@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 type DMap map[string]*Directory              // General purpose map for storing directories
@@ -44,6 +44,43 @@ func NewDirectory(rootpath string) *Directory {
 	return d
 }
 
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func writeCategoryNameFile(catName, dirName string) error {
+	catNameFile := filepath.Join(dirName, "category_name")
+
+	if fileExists(catNameFile) {
+		buffer, err := ioutil.ReadFile(catNameFile)
+		if err != nil {
+			return err
+		}
+		catNameFromFile := string(buffer)
+		if catNameFromFile != catName {
+			return fmt.Errorf("Category name does not match on-disk name")
+		}
+		return nil
+	}
+
+	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0770)
+	defer fp.Close()
+	if err != nil {
+		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+	}
+	if _, err = fp.WriteString(catName); err != nil {
+		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+	}
+	return nil
+}
+
 func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInfo) (err error) {
 	/*
 		Adds a (possibly) new data item to a rootpath. Takes an existing catalog directory and
@@ -51,39 +88,6 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	*/
 	dRoot.Lock()
 	defer dRoot.Unlock()
-	exists := func(path string) bool {
-		_, err := os.Stat(path)
-		if err == nil {
-			return true
-		}
-		if os.IsNotExist(err) {
-			return false
-		}
-		return true
-	}
-	writeCatName := func(catName, dirName string) error {
-		catNameFile := filepath.Join(dirName, "category_name")
-		if !exists(catNameFile) {
-			fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0770)
-			defer fp.Close()
-			if err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-			}
-			if _, err = fp.WriteString(catName); err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-			}
-		} else {
-			buffer, err := ioutil.ReadFile(catNameFile)
-			if err != nil {
-				return err
-			}
-			catNameFromFile := string(buffer)
-			if catNameFromFile != catName {
-				return fmt.Errorf("Category name does not match on-disk name")
-			}
-		}
-		return nil
-	}
 
 	catkeySplit := tbk.GetCategories()
 	datakeySplit := tbk.GetItems()
@@ -91,18 +95,18 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	dirname := dRoot.GetPath()
 	for i, dataDirName := range datakeySplit {
 		subdirname := filepath.Join(dirname, dataDirName)
-		if !exists(subdirname) {
+		if !fileExists(subdirname) {
 			if err = os.Mkdir(subdirname, 0770); err != nil {
 				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 			}
 		}
-		if err = writeCatName(catkeySplit[i], dirname); err != nil {
+		if err = writeCategoryNameFile(catkeySplit[i], dirname); err != nil {
 			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 		}
 		dirname = subdirname
 	}
 	// Write the last implied catName "Year"
-	if err = writeCatName("Year", dirname); err != nil {
+	if err = writeCategoryNameFile("Year", dirname); err != nil {
 		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 	}
 
@@ -423,6 +427,40 @@ func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
 	return catList
 }
 
+// ListTimeBucketKeyNames returns the list of TimeBucket keys
+// in "{symbol}/{timeframe}/{atrributeGroup}" format.
+func ListTimeBucketKeyNames(d *Directory) []string {
+	tbkMap := map[string]struct{}{}
+
+	d.RLock()
+	defer d.RUnlock()
+	// look up symbol->timeframe->attributeGroup directory recursively
+	// (e.g. "AAPL" -> "1Min" -> "Tick",  and store "AAPL/1Min/Tick" )
+	for symbol, symbolDir := range d.subDirs {
+		if symbolDir == nil {
+			continue
+		}
+		for timeframe, timeframeDir := range symbolDir.subDirs {
+			if timeframeDir == nil {
+				continue
+			}
+			for attributeGroup, _ := range timeframeDir.subDirs {
+				tbkMap[fmt.Sprintf("%s/%s/%s", symbol, timeframe, attributeGroup)] = struct{}{}
+			}
+		}
+	}
+
+	// convert Map keys to a string slice
+	i := 0
+	result := make([]string, len(tbkMap))
+	for tbk := range tbkMap {
+		result[i] = tbk
+		i++
+	}
+
+	return result
+}
+
 func (d *Directory) String() string {
 	// Must be thread-safe for READ access
 	printstring := "Node: " + d.itemName
@@ -641,7 +679,13 @@ func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err er
 	if err = io.WriteHeader(fp, newTimeBucketInfo); err != nil {
 		return UnableToWriteHeader(err.Error())
 	}
-	if err = fp.Truncate(io.FileSize(newTimeBucketInfo.GetTimeframe(), int(newTimeBucketInfo.Year), int(newTimeBucketInfo.GetRecordLength()))); err != nil {
+
+	fileSize := io.FileSize(
+		newTimeBucketInfo.GetTimeframe(),
+		int(newTimeBucketInfo.Year),
+		int(newTimeBucketInfo.GetRecordLength()),
+	)
+	if err = fp.Truncate(fileSize); err != nil {
 		return UnableToCreateFile(err.Error())
 	}
 

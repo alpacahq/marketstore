@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 type InsertIntoStatement struct {
@@ -95,7 +95,7 @@ func (is *InsertIntoStatement) Materialize() (outputColumnSeries *io.ColumnSerie
 	}
 
 	// Get the time with nanoseconds included if available, prior to projection
-	indexTime := inputColumnSeries.GetTime()
+	indexTime, err := inputColumnSeries.GetTime()
 
 	// Columns are matched - Now project out all but the target column names
 	inputColumnSeries.Project(targetColumnNames)
@@ -121,7 +121,7 @@ func (is *InsertIntoStatement) Materialize() (outputColumnSeries *io.ColumnSerie
 		return nil, fmt.Errorf("Unable to pre-process data for insertion")
 	}
 
-	writer.WriteRecords(indexTime, data)
+	writer.WriteRecords(indexTime, data, targetDSV)
 	wal.RequestFlush()
 
 	outputColumnSeries = io.NewColumnSeries()

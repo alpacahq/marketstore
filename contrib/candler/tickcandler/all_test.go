@@ -8,12 +8,12 @@ import (
 	"reflect"
 	"time"
 
-	. "github.com/alpacahq/marketstore/catalog"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/test"
+	. "github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -73,7 +73,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	q.AddRestriction("Symbol", "TEST")
 	q.AddRestriction("AttributeGroup", "TICK")
 	q.AddRestriction("Timeframe", "1Min")
-	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC).Unix())
+	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
 	reader, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)
@@ -87,7 +87,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	}
 	rows := cdl.Output()
 	c.Assert(rows.Len(), Equals, 4)
-	tsa := rows.GetTime()
+	tsa, err := rows.GetTime()
 	tbase := time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
 	c.Assert(tsa[0] == tbase, Equals, true)
 	c.Assert(reflect.DeepEqual(rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200}), Equals, true)
@@ -109,7 +109,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	}
 	rows = cdl.Output()
 	c.Assert(rows.Len(), Equals, 4)
-	tsa = rows.GetTime()
+	tsa, err = rows.GetTime()
 	tbase = time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
 	c.Assert(tsa[0] == tbase, Equals, true)
 	c.Assert(reflect.DeepEqual(rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200}), Equals, true)
@@ -149,7 +149,7 @@ func createTickBucket(symbol string) {
 		ts = ts.Add(time.Second)
 		row.Epoch = ts.Unix()
 		buffer, _ := io.Serialize([]byte{}, row)
-		w.WriteRecords([]time.Time{ts}, buffer)
+		w.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	wf.RequestFlush()
 }

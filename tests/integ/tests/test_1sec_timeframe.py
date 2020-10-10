@@ -1,8 +1,8 @@
-
 """
 Integration Test for 1Sec timeframe
 """
 import pytest
+import os
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,8 @@ DATA_TYPE_CANDLE = [('Epoch', 'i8'), ('Open', 'f8'), ('High', 'f8'), ('Low', 'f8
 MARKETSTORE_HOST = "localhost"
 MARKETSTORE_PORT = 5993
 
-client = pymkts.Client('http://localhost:5993/rpc')
+client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/rpc",
+                       grpc=(os.getenv("USE_GRPC", "false") == "true"))
 
 
 def timestamp(datestr):
@@ -33,7 +34,10 @@ def timestamp(datestr):
 ])
 def test_1sec_tf_tick(symbol, data):
     # ---- given ----
-    client.write(np.array(data, dtype=DATA_TYPE_TICK), "{}/1Sec/TICK".format(symbol), isvariablelength=True)
+    tbk = "{}/1Sec/TICK".format(symbol)
+    client.destroy(tbk) # setup
+
+    client.write(np.array(data, dtype=DATA_TYPE_TICK), tbk, isvariablelength=True)
 
     # ---- when ----
     reply = client.query(pymkts.Params(symbol, '1Sec', 'TICK', limit=10))
@@ -50,8 +54,10 @@ def test_1sec_tf_tick(symbol, data):
 ])
 def test_1sec_tf_candle(symbol, data):
     # ---- given ----
-    print("aaaa")
-    print(client.write(np.array(data, dtype=DATA_TYPE_CANDLE), "{}/1Sec/OHLCV".format(symbol), isvariablelength=False))
+    tbk = "{}/1Sec/OHLCV".format(symbol)
+    client.destroy(tbk) # setup
+
+    print(client.write(np.array(data, dtype=DATA_TYPE_CANDLE), tbk, isvariablelength=False))
 
     # ---- when ----
     reply = client.query(pymkts.Params(symbol, '1Sec', 'OHLCV', limit=10))

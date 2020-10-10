@@ -5,7 +5,9 @@ import (
 	. "reflect"
 )
 
-//Serializes various primitive types into a byte representation, useful for output to files
+// Serialize serializes various primitive types into a byte representation,
+// appends it to the specified buffer and return it.
+// Useful for output to files.
 func Serialize(buffer []byte, datum interface{}) ([]byte, error) {
 	if buffer == nil {
 		buffer = make([]byte, 0)

@@ -22,31 +22,57 @@ MarketStore is production ready! At [Alpaca](https://alpaca.markets) it has been
 
 ### Docker
 If you want to get started right away, you can bootstrap a marketstore db instance using our latest [docker image](https://hub.docker.com/r/alpacamarkets/marketstore/tags/). The image comes pre-loaded with the default mkts.yml file and declares the VOLUME `/data`, as its root directory. To run the container with the defaults:
-``` sh
+```sh
 docker run -i -p 5993:5993 alpacamarkets/marketstore:latest
 ```
 
-If you want to run a custom `mkts.yml` with your instance, you can create a new container, load your mkts.yml file into it, then run it.
-``` sh
+If you want to run a custom `mkts.yml` you can create a new container
+and load your mkts.yml file into it:
+```sh
 docker create --name mktsdb -p 5993:5993 alpacamarkets/marketstore:latest
 docker cp mkts.yml mktsdb:/etc/mkts.yml
 docker start -i mktsdb
 ```
 
-Open a session with your running docker instance using
-``` sh
+You can also [bind mount](https://docs.docker.com/storage/bind-mounts/)
+the container to a local host config file: a custom `mkts.yml`:
+```sh
+docker run -v /full/path/to/mkts.yml:/etc/mkts.yml -i -p 5993:5993 alpacamarkets/marketstore:latest
+```
+This allows you to test out the image [included
+plugins](https://github.com/alpacahq/marketstore/tree/master/plugins#included)
+with ease if you prefer to skip the copying step suggested above.
+
+By default the container will not persist any written data to your
+container's host storage. To accomplish this, bind the `data` directory to
+a local location:
+```sh
+docker run -v "/path/to/store/data:/data" -i -p 5993:5993 alpacamarkets/marketstore:latest
+```
+Once data is written to the server you should see a file tree layout
+like the following that will persist across container runs:
+```sh
+>>> tree /<path_to_data>/marketstore
+/<path_to_data>/marketstore
+├── category_name
+├── WALFile.1590868038674814776.walfile
+├── SYMBOL_1
+├── SYMBOL_2
+├── SYMBOL_3
+```
+
+If you have built the
+[cmd](https://github.com/alpacahq/marketstore/tree/master/cmd) package
+locally, you can open a session with your running docker instance using:
+```sh
 marketstore connect --url localhost:5993
 ```
 
 ### Source
-MarketStore is implemented in Go (with some CGO), so you can build it from
+MarketStore is implemented in Go, so you can build it from
 source pretty easily. You need Go 1.11+ as it uses `go mod` to manage dependencies.
 ``` sh
 go get -u github.com/alpacahq/marketstore
-```
-and then in the repo directory, install dependencies using
-``` sh
-make vendor
 ```
 then compile and install the project binaries using
 ``` sh
@@ -123,7 +149,8 @@ In order to run MarketStore, a YAML config file is needed. A default file (mkts.
 Var | Type | Description
 --- | --- | ---
 root_directory | string | Allows the user to specify the directory in which the MarketStore database resides
-listen_port | int | Port that MarketStore will serve through
+listen_port | int | Port that MarketStore will serve through for JSON-RPC API
+grpc_listen_port | int | Port that MarketStore will serve through for GRPC API
 timezone | string | System timezone by name of TZ database (e.g. America/New_York)
 log_level | string  | Allows the user to specify the log level (info | warning | error)
 queryable | bool | Allows the user to run MarketStore in polling-only mode, where it will not respond to query
@@ -140,6 +167,7 @@ bgworkers | slice | List of background worker plugins
 ```yml
 root_directory: data
 listen_port: 5993
+grpc_listen_port: 5995
 log_level: info
 queryable: true
 stop_grace_period: 0
@@ -157,7 +185,7 @@ After starting up a MarketStore instance on your machine, you're all set to be a
 [pymarketstore](https://github.com/alpacahq/pymarketstore) is the standard
 python client. Make sure that in another terminal, you have marketstore running
 * query data
-```py
+```python
 import pymarketstore as pymkts
 param = pymkts.Params('BTC', '1Min', 'OHLCV', limit=10)
 cli = pymkts.Client()
@@ -165,7 +193,7 @@ reply = cli.query(param)
 reply.first().df()
 ```
 shows
-```
+```python
 Out[5]:
                                Open      High       Low     Close     Volume
 Epoch
@@ -181,7 +209,7 @@ Epoch
 2018-01-17 17:28:00+00:00  10124.95  10142.39  10124.94  10142.39   2.262249
 ```
 * write data
-```py
+```python
 import numpy as np
 import pandas as pd
 data = np.array([(pd.Timestamp('2017-01-01 00:00').value / 10**9, 10.0)], dtype=[('Epoch', 'i8'), ('Ask', 'f4')])
@@ -191,7 +219,7 @@ cli.write(data, 'TEST/1Min/Tick')
 cli.query(pymkts.Params('TEST', '1Min', 'Tick')).first().df()
 ```
 shows
-```
+```python
                             Ask
 Epoch
 2017-01-01 00:00:00+00:00  10.0

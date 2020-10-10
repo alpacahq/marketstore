@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/utils"
 )
 
 type TimeBucketKey struct {

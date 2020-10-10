@@ -3,8 +3,8 @@ package executor
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type RecordLengthNotConsistent string
@@ -60,12 +60,6 @@ type WALWriteError string
 
 func (msg WALWriteError) Error() string {
 	return errReport("%s: Error Writing to WAL", string(msg))
-}
-
-type ShortReadError string
-
-func (msg ShortReadError) Error() string {
-	return errReport("%s: Unexpectedly short read", string(msg))
 }
 
 func errReport(base string, msg string) string {

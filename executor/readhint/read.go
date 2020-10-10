@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/alpacahq/marketstore/utils"
+	"github.com/alpacahq/marketstore/v4/utils"
 )
 
 type fileOffsetMap struct {

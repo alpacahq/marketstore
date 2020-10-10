@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/frontend"
-	"github.com/alpacahq/marketstore/frontend/stream"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
-	"github.com/alpacahq/marketstore/utils/rpc/msgpack2"
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/frontend/stream"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 	"github.com/gorilla/websocket"
 	"github.com/vmihailenco/msgpack"
 )

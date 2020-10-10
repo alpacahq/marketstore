@@ -3,27 +3,32 @@
 #
 # Uses a Go image to build a release binary.
 #
-FROM golang:1.13.0-buster as builder
+FROM golang:1.14.2-buster as builder
 ARG tag=latest
+ARG INCLUDE_PLUGINS=true
 ENV DOCKER_TAG=$tag
 ENV GOPATH=/go
 
 WORKDIR /go/src/github.com/alpacahq/marketstore/
 ADD ./ ./
-RUN make vendor
-RUN make install plugins
+RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make build ; fi
 
 #
 # STAGE 2
 #
-# Use a tiny base image (alpine) and copy in the release target. This produces
-# a very small output image for deployment.
+# Create final image
 #
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata libc6-compat
+FROM debian:10.3
 WORKDIR /
-COPY --from=builder /go/bin/marketstore /bin/
-COPY --from=builder /go/bin/*.so /bin/
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
+COPY --from=builder /go/bin /bin/
+COPY --from=builder /go/src/github.com/alpacahq/marketstore/contrib/polygon/polygon-backfill-*.sh /bin/
+
 ENV GOPATH=/
 
 RUN ["marketstore", "init"]

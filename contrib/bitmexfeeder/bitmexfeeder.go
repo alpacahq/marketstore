@@ -6,13 +6,13 @@ import (
 	"math"
 	"time"
 
-	bitmex "github.com/alpacahq/marketstore/contrib/bitmexfeeder/api"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/plugins/bgworker"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	bitmex "github.com/alpacahq/marketstore/v4/contrib/bitmexfeeder/api"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // FetcherConfig is the configuration for BitmexFetcher you can define in
@@ -95,7 +95,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	query.AddTargetKey(tbk)
 	start := time.Unix(0, 0).In(utils.InstanceConfig.Timezone)
 	end := time.Unix(math.MaxInt64, 0).In(utils.InstanceConfig.Timezone)
-	query.SetRange(start.Unix(), end.Unix())
+	query.SetRange(start, end)
 	query.SetRowLimit(io.LAST, 1)
 	parsed, err := query.Parse()
 	if err != nil {
@@ -107,7 +107,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
 	}
-	ts := cs.GetTime()
+	ts, err := cs.GetTime()
 	return ts[0]
 }
 

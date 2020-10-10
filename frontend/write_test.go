@@ -1,7 +1,7 @@
 package frontend
 
 import (
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 
 	"fmt"
 

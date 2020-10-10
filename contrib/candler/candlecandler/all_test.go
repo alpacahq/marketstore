@@ -9,11 +9,11 @@ import (
 	"reflect"
 	"time"
 
-	. "github.com/alpacahq/marketstore/catalog"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils/io"
-	. "github.com/alpacahq/marketstore/utils/test"
+	. "github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -64,7 +64,7 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	q.AddRestriction("Timeframe", "1Min")
 	startDate := time.Date(2001, time.October, 15, 12, 0, 0, 0, time.UTC)
 	endDate := time.Date(2001, time.October, 15, 12, 15, 0, 0, time.UTC)
-	q.SetRange(startDate.Unix(), endDate.Unix())
+	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
 	scanner, err := executor.NewReader(parsed)
 	c.Assert(err == nil, Equals, true)

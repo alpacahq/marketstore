@@ -32,13 +32,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/calendar"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/plugins/trigger"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/calendar"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // AggTriggerConfig is the configuration for OnDiskAggTrigger you can define in
@@ -149,7 +149,6 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 		c := v.(*cachedAgg)
 
 		if !c.Valid(tail, head) {
-			log.Debug("invalidating cache for: %v\n", tbk.String())
 			s.aggCache.Delete(tbk.String())
 
 			goto Query
@@ -289,7 +288,7 @@ func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
 	}
 	accumGroup := newAccumGroup(cs, params)
 
-	ts := cs.GetTime()
+	ts, _ := cs.GetTime()
 	outEpoch := make([]int64, 0)
 
 	groupKey := timeWindow.Truncate(ts[0])
@@ -331,7 +330,7 @@ func (s *OnDiskAggTrigger) query(
 	// Scan
 	q := planner.NewQuery(cDir)
 	q.AddTargetKey(tbk)
-	q.SetRange(start.Unix(), end.Unix())
+	q.SetRange(start, end)
 
 	parsed, err := q.Parse()
 	if err != nil {

@@ -9,14 +9,14 @@ import (
 	"sort"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor/readhint"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
-	. "github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/executor/readhint"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils"
+	. "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const RecordsPerRead = 2000
+const RecordsPerRead = 8192
 
 type SortedFileList []planner.QualifiedFile
 
@@ -44,6 +44,7 @@ type ioplan struct {
 	RecordType        EnumRecordType
 	VariableRecordLen int
 	Limit             *planner.RowLimit
+	Range             *planner.DateRange
 	TimeQuals         []planner.TimeQualFunc
 }
 
@@ -51,6 +52,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 	iop = &ioplan{
 		FilePlan: make([]*ioFilePlan, 0),
 		Limit:    pr.Limit,
+		Range:    pr.Range,
 	}
 	/*
 		At this point we have a date unconstrained group of sorted files
@@ -82,7 +84,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 				return nil, RecordLengthNotConsistent("NewIOPlan")
 			}
 		}
-		if file.File.Year < pr.Range.StartYear {
+		if file.File.Year < int16(pr.Range.Start.Year()) {
 			// Add the whole file to the previous files list for use in back scanning before the start
 			prevPaths = append(
 				prevPaths,
@@ -95,24 +97,24 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 					false,
 				},
 			)
-		} else if file.File.Year <= pr.Range.EndYear {
+		} else if file.File.Year <= int16(pr.Range.End.Year()) {
 			/*
 			 Calculate the number of bytes to be read for each file and the offset
 			*/
 			// Set the starting and ending indices based on the range
-			if file.File.Year == pr.Range.StartYear {
+			if file.File.Year == int16(pr.Range.Start.Year()) {
 				// log.Info("range start: %v", pr.Range.Start)
-				startOffset = EpochToOffset(
+				startOffset = TimeToOffset(
 					pr.Range.Start,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength(),
 				)
 				// log.Info("start offset: %v", startOffset)
 			}
-			if file.File.Year == pr.Range.EndYear {
+			if file.File.Year == int16(pr.Range.End.Year()) {
 				// log.Info("range end: %v", pr.Range.End)
 
-				endOffset = EpochToOffset(
+				endOffset = TimeToOffset(
 					pr.Range.End,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
@@ -142,7 +144,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			iop.FilePlan = append(iop.FilePlan, fp)
 			// in backward scan, tell the last known index for the later reader
 			// Add a previous file if we are at the beginning of the range
-			if file.File.Year == pr.Range.StartYear {
+			if file.File.Year == int16(pr.Range.Start.Year()) {
 				length := startOffset - int64(Headersize)
 				prevPaths = append(
 					prevPaths,
@@ -164,7 +166,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 	return iop, nil
 }
 
-type reader struct {
+type Reader struct {
 	pr     planner.ParseResult
 	IOPMap map[TimeBucketKey]*ioplan
 	// for packingReader to avoid redundant allocation.
@@ -173,8 +175,8 @@ type reader struct {
 	fileBuffer []byte
 }
 
-func NewReader(pr *planner.ParseResult) (r *reader, err error) {
-	r = new(reader)
+func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
+	r = new(Reader)
 	r.pr = *pr
 	if pr.Range == nil {
 		pr.Range = planner.NewDateRange()
@@ -205,7 +207,7 @@ func NewReader(pr *planner.ParseResult) (r *reader, err error) {
 	return r, nil
 }
 
-func (r *reader) Read() (csm ColumnSeriesMap, err error) {
+func (r *Reader) Read() (csm ColumnSeriesMap, err error) {
 	// TODO: Need to consider the huge buffer which use loooong time gap to query.
 	// Which probably cause out of memory issue and need new mechanism to handle
 	// those data and not just simply return one ColumnSeriesMap.
@@ -224,7 +226,8 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 			return nil, err
 		}
 		if rt == VARIABLE {
-			buffer = trimResultsToRange(r.pr.Range.Start, r.pr.Range.End, rlen, buffer)
+			buffer = trimResultsToRange(r.pr.Range, rlen, buffer)
+			buffer = trimResultsToLimit(r.pr.Limit, rlen, buffer)
 		}
 		rs := NewRowSeries(key, buffer, dsMap[key], rlen, rt)
 		key, cs := rs.ToColumnSeries()
@@ -233,7 +236,7 @@ func (r *reader) Read() (csm ColumnSeriesMap, err error) {
 	return csm, err
 }
 
-func trimResultsToRange(start, end int64, rowlen int, src []byte) (dest []byte) {
+func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []byte) {
 	// find the beginning of the range (sorted order)
 	rowLength := rowlen + 8
 	nrecords := len(src) / rowLength
@@ -242,8 +245,8 @@ func trimResultsToRange(start, end int64, rowlen int, src []byte) (dest []byte) 
 	}
 	cursor := 0
 	for i := 0; i < nrecords; i++ {
-		epoch := ToInt64(src[cursor : cursor+8])
-		if epoch >= start {
+		t := TimeOfVariableRecord(src, cursor, rowLength)
+		if t.Equal(dr.Start) || t.After(dr.Start) {
 			dest = src[cursor:]
 			break
 		}
@@ -251,18 +254,41 @@ func trimResultsToRange(start, end int64, rowlen int, src []byte) (dest []byte) 
 	}
 
 	nrecords = len(dest) / rowLength
-	if nrecords == 1 {
+	if nrecords <= 1 {
 		return dest
 	}
 	for i := nrecords; i > 0; i-- {
 		cursor = (i - 1) * rowLength
-		epoch := ToInt64(dest[cursor : cursor+8])
-		if epoch <= end {
+		t := TimeOfVariableRecord(dest, cursor, rowLength)
+		if t.Equal(dr.End) || t.Before(dr.End) {
 			dest = dest[:cursor+rowLength]
 			break
 		}
 	}
+
 	return dest
+}
+
+func TimeOfVariableRecord(buf []byte, cursor int, rowLength int) time.Time {
+	epoch := ToInt64(buf[cursor : cursor+8])
+	nanos := ToInt32(buf[cursor+rowLength-4 : cursor+rowLength])
+	return ToSystemTimezone(time.Unix(epoch, int64(nanos)))
+}
+
+func trimResultsToLimit(l *planner.RowLimit, rowlen int, src []byte) []byte {
+	rowLength := rowlen + 8
+
+	nrecords := len(src) / rowLength
+	limit := int(l.Number)
+
+	if nrecords > limit {
+		if l.Direction == FIRST {
+			return src[:limit*rowLength]
+		} else {
+			return src[len(src)-limit*rowLength:]
+		}
+	}
+	return src
 }
 
 /*
@@ -277,7 +303,7 @@ type bufferMeta struct {
 
 // Reads the data from files, removing holes. The resulting buffer will be packed
 // Uses the index that prepends each row to identify filled rows versus holes
-func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
+func (r *Reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 	// Number of bytes to buffer, some multiple of record length
 	// This should be at least bigger than 4096 and be better multiple of 4KB,
 	// which is the common io size on most of the storage/filesystem.
@@ -361,12 +387,15 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 			if iop.RecordType == VARIABLE {
 				// If we've added data to the buffer from this file, record it for possible later use
 				if bytesRead > 0 {
+					bufMetaLen := bytesRead
+					// read enough amount of records
 					if bytesLeftToFill < 0 {
 						bytesLeftToFill = 0
+						bufMetaLen = int32(len(resultBuffer))
 					}
 					bufMeta = append(bufMeta, bufferMeta{
 						FullPath:  fp[i].FullPath,
-						Data:      resultBuffer[bytesLeftToFill:],
+						Data:      resultBuffer[bytesLeftToFill : bytesLeftToFill+bufMetaLen],
 						VarRecLen: iop.VariableRecordLen,
 						Intervals: fp[i].tbi.GetIntervals(),
 					})
@@ -392,7 +421,7 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 		if iop.RecordType == VARIABLE {
 			lenOF := len(bufMeta)
 			for i := 0; i < lenOF/2; i++ {
-				bufMeta[(lenOF-1)-i] = bufMeta[i]
+				bufMeta[(lenOF-1)-i], bufMeta[i] = bufMeta[i], bufMeta[(lenOF-1)-i]
 			}
 		}
 	}
@@ -401,12 +430,11 @@ func (r *reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 		If this is a variable record type, we need a second stage of reading to get the data from the files
 	*/
 	if iop.RecordType == VARIABLE {
-		resultBuffer, err = r.readSecondStage(bufMeta, iop.Limit.Number, iop.Limit.Direction)
+		resultBuffer, err = r.readSecondStage(bufMeta)
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	return resultBuffer, err
 }
 
@@ -426,6 +454,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 	// ==> leftbytes <= 0
 
 	recordSize := ex.plan.RecordLen
+	recordSize64 := int64(recordSize)
 
 	var totalRead int64
 	for {
@@ -436,7 +465,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 		if nn == 0 {
 			// We are done reading
 			return nil
-		} else if nn < int64(recordSize) {
+		} else if nn < recordSize64 {
 			return fmt.Errorf("packingReader: Short read %d bytes, recordsize: %d bytes", n, recordSize)
 		}
 		// Calculate how many are left to read
@@ -447,31 +476,36 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 			nn += leftBytes
 		}
 
-		numToRead := nn / int64(recordSize)
-		var i int64
+		numToRead := int32(nn) / recordSize
+		var i int32
+		var indexuint64 uint64
+
+		buf := buffer
 		for i = 0; i < numToRead; i++ {
-			curpos := i * int64(recordSize)
-			index := int64(binary.LittleEndian.Uint64(buffer[curpos:]))
-			if index != 0 {
+			indexuint64 = binary.LittleEndian.Uint64(buf)
+
+			if indexuint64 != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
-				index = IndexToTime(index, fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
+				index := IndexToTime(int64(indexuint64), fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
 				if !ex.checkTimeQuals(index) {
 					continue
 				}
 				idxpos := len(*packedBuffer)
-				*packedBuffer = append(*packedBuffer, buffer[curpos:curpos+int64(recordSize)]...)
+				*packedBuffer = append(*packedBuffer, buf[:int64(recordSize)]...)
 				b := *packedBuffer
 				binary.LittleEndian.PutUint64(b[idxpos:], uint64(index))
 
 				// Update lastKnown only once the first time
 				if fp.seekingLast {
 					if offset, err := f.Seek(0, os.SEEK_CUR); err == nil {
-						offset = offset - nn + i*int64(recordSize)
+						offset = offset - nn + int64(i)*recordSize64
 						readhint.SetLastKnown(fp.FullPath, offset)
 					}
 					fp.seekingLast = false
 				}
 			}
+
+			buf = buf[recordSize:]
 		}
 		if leftBytes <= 0 {
 			return nil

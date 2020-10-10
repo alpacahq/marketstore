@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "gopkg.in/check.v1"
 )
 
@@ -156,7 +156,7 @@ func (t *TestSuite) TestFire(c *C) {
 
 	rs := cs.ToRowSeries(*tbk, true)
 	rowData := rs.GetData()
-	times := rs.GetTime()
+	times, err := rs.GetTime()
 	numRows := len(times)
 	rowLen := len(rowData) / numRows
 
@@ -180,7 +180,7 @@ func (t *TestSuite) TestFire(c *C) {
 	q := planner.NewQuery(catalogDir)
 	tbk5 := io.NewTimeBucketKey("TEST/5Min/OHLC")
 	q.AddTargetKey(tbk5)
-	q.SetRange(planner.MinEpoch, planner.MaxEpoch)
+	q.SetRange(planner.MinTime, planner.MaxTime)
 	parsed, err := q.Parse()
 	c.Check(err, IsNil)
 	scanner, err := executor.NewReader(parsed)
@@ -195,7 +195,7 @@ func (t *TestSuite) TestFire(c *C) {
 	tbk1D := io.NewTimeBucketKey("TEST/1D/OHLC")
 	q = planner.NewQuery(catalogDir)
 	q.AddTargetKey(tbk1D)
-	q.SetRange(planner.MinEpoch, planner.MaxEpoch)
+	q.SetRange(planner.MinTime, planner.MaxTime)
 	parsed, err = q.Parse()
 	c.Check(err, IsNil)
 	scanner, err = executor.NewReader(parsed)

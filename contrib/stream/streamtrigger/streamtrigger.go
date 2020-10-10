@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/calendar"
-	"github.com/alpacahq/marketstore/contrib/stream/shelf"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/frontend/stream"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/plugins/trigger"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/calendar"
+	"github.com/alpacahq/marketstore/v4/contrib/stream/shelf"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/frontend/stream"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type StreamTriggerConfig struct {
@@ -87,7 +87,7 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 
 	q := planner.NewQuery(cDir)
 	q.AddTargetKey(tbk)
-	q.SetEnd(end.Unix())
+	q.SetEnd(end)
 	q.SetRowLimit(io.LAST, 1)
 
 	parsed, err := q.Parse()

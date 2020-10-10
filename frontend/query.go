@@ -8,12 +8,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/sqlparser"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // This is the parameter interface for DataService.Query method.
@@ -28,8 +29,12 @@ type QueryRequest struct {
 	KeyCategory string `msgpack:"key_category,omitempty"`
 	// Lower time predicate (i.e. index >= start) in unix epoch second
 	EpochStart *int64 `msgpack:"epoch_start,omitempty"`
+	// Nanosecond of the lower time predicate
+	EpochStartNanos *int64 `msgpack:"epoch_start_nanos,omitempty"`
 	// Upper time predicate (i.e. index <= end) in unix epoch second
 	EpochEnd *int64 `msgpack:"epoch_end,omitempty"`
+	// Nanosecond of the upper time predicate
+	EpochEndNanos *int64 `msgpack:"epoch_end_nanos,omitempty"`
 	// Number of max returned rows from lower/upper bound
 	LimitRecordCount *int `msgpack:"limit_record_count,omitempty"`
 	// Set to true if LimitRecordCount should be from the lower
@@ -150,11 +155,18 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 
 			epochStart := int64(0)
 			epochEnd := int64(math.MaxInt64)
+			var epochStartNanos, epochEndNanos int64
 			if req.EpochStart != nil {
 				epochStart = *req.EpochStart
+				if req.EpochStartNanos != nil {
+					epochStartNanos = *req.EpochStartNanos
+				}
 			}
 			if req.EpochEnd != nil {
 				epochEnd = *req.EpochEnd
+				if req.EpochEndNanos != nil {
+					epochEndNanos = *req.EpochEndNanos
+				}
 			}
 			limitRecordCount := 0
 			if req.LimitRecordCount != nil {
@@ -169,11 +181,11 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 				columns = req.Columns
 			}
 
-			start := io.ToSystemTimezone(time.Unix(epochStart, 0))
-			stop := io.ToSystemTimezone(time.Unix(epochEnd, 0))
+			start := io.ToSystemTimezone(time.Unix(epochStart, epochStartNanos))
+			end := io.ToSystemTimezone(time.Unix(epochEnd, epochEndNanos))
 			csm, err := executeQuery(
 				dest,
-				start, stop,
+				start, end,
 				limitRecordCount, limitFromStart,
 				columns,
 			)
@@ -231,16 +243,31 @@ type ListSymbolsResponse struct {
 	Results []string
 }
 
-type ListSymbolsArgs struct{}
+type ListSymbolsRequest struct {
+	// "symbol", or "tbk"
+	Format string `msgpack:"format,omitempty"`
+}
 
-func (s *DataService) ListSymbols(r *http.Request, args *ListSymbolsArgs, response *ListSymbolsResponse) (err error) {
+func (s *DataService) ListSymbols(r *http.Request, req *ListSymbolsRequest, response *ListSymbolsResponse) (err error) {
 	if atomic.LoadUint32(&Queryable) == 0 {
 		return queryableError
 	}
-	for symbol := range executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"] {
-		response.Results = append(response.Results, symbol)
+
+	// TBK format (e.g. ["AMZN/1Min/TICK", "AAPL/1Sec/OHLCV", ...])
+	if req != nil && req.Format == "tbk" {
+		response.Results = catalog.ListTimeBucketKeyNames(executor.ThisInstance.CatalogDir)
+		return nil
 	}
-	return err
+
+	// Symbol format (e.g. ["AMZN", "AAPL", ...])
+	symbols := executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"]
+	response.Results = make([]string, len(symbols))
+	cnt := 0
+	for symbol := range symbols {
+		response.Results[cnt] = symbol
+		cnt++
+	}
+	return nil
 }
 
 /*
@@ -249,7 +276,6 @@ Utility functions
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
 	LimitFromStart bool, columns []string) (io.ColumnSeriesMap, error) {
-
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
 	/*
@@ -276,7 +302,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		)
 	}
 
-	query.SetRange(start.Unix(), end.Unix())
+	query.SetRange(start, end)
 	parseResult, err := query.Parse()
 	if err != nil {
 		// No results from query

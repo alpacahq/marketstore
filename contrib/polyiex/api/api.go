@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/buger/jsonparser"
 	"github.com/eapache/channels"
 	"github.com/gorilla/websocket"

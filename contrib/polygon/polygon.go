@@ -7,15 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/contrib/polygon/api"
-	"github.com/alpacahq/marketstore/contrib/polygon/backfill"
-	"github.com/alpacahq/marketstore/contrib/polygon/handlers"
-	"github.com/alpacahq/marketstore/executor"
-	"github.com/alpacahq/marketstore/planner"
-	"github.com/alpacahq/marketstore/plugins/bgworker"
-	"github.com/alpacahq/marketstore/utils"
-	"github.com/alpacahq/marketstore/utils/io"
-	"github.com/alpacahq/marketstore/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type PolygonFetcher struct {
@@ -24,12 +24,14 @@ type PolygonFetcher struct {
 }
 
 type FetcherConfig struct {
+	// AddTickCountToBars controls if TickCnt is added to the schema for Bars or not
+	AddTickCountToBars bool `json:"add_bar_tick_count,omitempty"`
 	// polygon API key for authenticating with their APIs
 	APIKey string `json:"api_key"`
 	// polygon API base URL in case it is being proxied
 	// (defaults to https://api.polygon.io/)
 	BaseURL string `json:"base_url"`
-	// websocket servers for Polygon, default is: "ws://socket.polygon.io:30328"
+	// websocket servers for Polygon, default is: "wss://socket.polygon.io"
 	WSServers string `json:"ws_servers"`
 	// list of data types to subscribe to (one of bars, quotes, trades)
 	DataTypes []string `json:"data_types"`
@@ -94,7 +96,7 @@ func (pf *PolygonFetcher) Run() {
 		switch t {
 		case "bars":
 			prefix = api.Agg
-			handler = handlers.BarsHandler
+			handler = handlers.BarsHandlerWrapper(pf.config.AddTickCountToBars)
 		case "quotes":
 			prefix = api.Quote
 			handler = handlers.QuoteHandler
@@ -128,7 +130,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 					defer wg.Done()
 
 					// backfill the symbol in parallel
-					pf.backfillBars(symbol, *value.(*int64))
+					pf.backfillBars(symbol, time.Unix(*value.(*int64), 0))
 					backfill.BackfillM.Store(key, nil)
 				}()
 			}
@@ -144,7 +146,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 	}
 }
 
-func (pf *PolygonFetcher) backfillBars(symbol string, endEpoch int64) {
+func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time) {
 	var (
 		from time.Time
 		err  error
@@ -158,7 +160,7 @@ func (pf *PolygonFetcher) backfillBars(symbol string, endEpoch int64) {
 		q := planner.NewQuery(cDir)
 		q.AddTargetKey(tbk)
 		q.SetRowLimit(io.LAST, 1)
-		q.SetEnd(endEpoch - int64(time.Minute.Seconds()))
+		q.SetEnd(end.Add(-1 * time.Minute))
 
 		parsed, err := q.Parse()
 		if err != nil {
