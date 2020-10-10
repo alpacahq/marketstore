@@ -81,28 +81,6 @@ func (pr *ParseResult) GetRecordType() (rt map[TimeBucketKey]EnumRecordType) {
 	return rt
 }
 
-func (pr *ParseResult) GetCandleAttributes() (cat map[TimeBucketKey]*CandleAttributes) {
-	/*
-		The test uses the types and length of the elements in the record to determine if it matches a known type
-	*/
-	OHLCNames := []string{"Open", "High", "Low", "Close"}
-	OHLCVNames := []string{"Open", "High", "Low", "Close", "Volume"}
-
-	cat = make(map[TimeBucketKey]*CandleAttributes, len(pr.QualifiedFiles))
-	for _, qf := range pr.QualifiedFiles {
-		elNames := qf.File.GetElementNames()
-		cat[qf.Key] = new(CandleAttributes)
-		if NamesMatch(elNames, OHLCVNames) {
-			*cat[qf.Key] = OHLCV
-		} else if NamesMatch(elNames, OHLCNames) {
-			*cat[qf.Key] = OHLC
-		} else {
-			*cat[qf.Key] = None
-		}
-	}
-	return cat
-}
-
 func (pr *ParseResult) GetDataShapes() (dsv map[TimeBucketKey][]DataShape) {
 	dsv = make(map[TimeBucketKey][]DataShape)
 	for _, qf := range pr.QualifiedFiles {

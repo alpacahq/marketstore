@@ -156,7 +156,6 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 
 		cs := trigger.RecordsToColumnSeries(
 			*tbk, c.cs.GetDataShapes(),
-			c.cs.GetCandleAttributes(),
 			tf.Duration, int16(year), records)
 
 		cs = io.ColumnSeriesUnion(cs, &c.cs)
