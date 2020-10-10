@@ -2,6 +2,8 @@ package backfill
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/contrib/calendar"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"math"
 	"sync"
 	"time"
@@ -19,6 +21,10 @@ type ConsolidatedUpdateInfo struct {
 	UpdateLast    bool
 	UpdateVolume  bool
 }
+
+var WriteTime time.Duration
+var ApiCallTime time.Duration
+var WaitTime time.Duration
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
@@ -88,7 +94,7 @@ var (
 	BackfillM *sync.Map
 )
 
-func Bars(symbol string, from, to time.Time) (err error) {
+func Bars(symbol string, from, to time.Time, writerWP *worker.WorkerPool) (err error) {
 	if from.IsZero() {
 		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
 	}
@@ -96,11 +102,12 @@ func Bars(symbol string, from, to time.Time) (err error) {
 	if to.IsZero() {
 		to = time.Now()
 	}
-
+	t := time.Now()
 	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, nil)
 	if err != nil {
 		return err
 	}
+	ApiCallTime += time.Now().Sub(t)
 
 	if len(resp.Results) == 0 {
 		return nil
@@ -139,12 +146,17 @@ func Bars(symbol string, from, to time.Time) (err error) {
 	cs.AddColumn("Volume", volume)
 	csm.AddColumnSeries(*tbk, cs)
 
-	go func(c io.ColumnSeriesMap) {
+	t = time.Now()
+	writerWP.Do(func() {
+		tt := time.Now()
 		err = executor.WriteCSM(csm, false)
 		if err != nil {
-			log.Warn("[polygon] failed to backfill bars for %v (%v) %s - %s", symbol, err, from, to)
+			log.Warn("[polygon] failed to write bars for %v (%v) %s - %s", symbol, err, from, to)
 		}
-	}(csm)
+		WriteTime += time.Now().Sub(tt)
+	})
+
+	WaitTime += time.Now().Sub(t)
 
 	return nil
 }
@@ -313,23 +325,31 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 	return csm
 }
 
-func Trades(symbol string, date time.Time, batchSize int) error {
-	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
-	if err != nil {
-		return err
+func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+	trades := make([]api.TradeTick, 0)
+	t := time.Now()
+	for date := from; to.After(date); date = date.Add(24 * time.Hour) {
+		if calendar.Nasdaq.IsMarketDay(date) {
+			resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
+			if err != nil {
+				return err
+			}
+			trades = append(trades, resp.Results...)
+		}
 	}
+	ApiCallTime += time.Now().Sub(t)
 
-	if len(resp.Results) > 0 {
+	if len(trades) > 0 {
 		csm := io.NewColumnSeriesMap()
 		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Sec/TRADE")
 		cs := io.NewColumnSeries()
 
-		epoch := make([]int64, len(resp.Results))
-		nanos := make([]int32, len(resp.Results))
-		price := make([]float32, len(resp.Results))
-		size := make([]int32, len(resp.Results))
+		epoch := make([]int64, len(trades))
+		nanos := make([]int32, len(trades))
+		price := make([]float32, len(trades))
+		size := make([]int32, len(trades))
 
-		for i, tick := range resp.Results {
+		for i, tick := range trades {
 			timestamp := time.Unix(0, tick.SipTimestamp)
 			bucketTimestamp := timestamp.Truncate(time.Second)
 			epoch[i] = bucketTimestamp.Unix()
@@ -344,93 +364,82 @@ func Trades(symbol string, date time.Time, batchSize int) error {
 		cs.AddColumn("Size", size)
 		csm.AddColumnSeries(*tbk, cs)
 
-		go func(c io.ColumnSeriesMap) {
-			err = executor.WriteCSM(csm, true)
+		t = time.Now()
+		writerWP.Do(func() {
+			tt := time.Now()
+			err := executor.WriteCSM(csm, true)
 			if err != nil {
-				log.Warn("[polygon] failed to backfill trades for %v (%v) %s ", symbol, err, date.String())
+				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
 			}
-		}(csm)
+			WriteTime += time.Now().Sub(tt)
+		})
+		WaitTime += time.Now().Sub(t)
 	}
 
 	return nil
 }
 
-func Quotes(symbol string, from, to time.Time, batchSize int) error {
+func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
 	// FIXME: This function is broken with the following problems:
 	//  - Callee (backfiller.go) wrongly checks the market day (checks for the day after)
 	//  - Callee always specifies one day worth of data, pointless to do a for loop
 	//  - Retry mechanism on GetHistoricQuotes calls Bars()
 	//  - Underlying GetHistoricQuotes uses Polygon API v1 which is deprecated.
-	if from.IsZero() {
-		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
-	}
+	quotes := make([]api.QuoteTick, 0)
 
-	if to.IsZero() {
-		to = time.Now()
-	}
-
-	var (
-		csm io.ColumnSeriesMap
-		cs  *io.ColumnSeries
-		tbk *io.TimeBucketKey
-
-		epoch    []int64
-		nanos    []int32
-		bidPrice []float32
-		bidSize  []int32
-		askPrice []float32
-		askSize  []int32
-
-		err  error
-		resp *api.HistoricQuotes
-	)
-
-	for {
-		if resp, err = api.GetHistoricQuotes(symbol, from.Format(defaultFormat), batchSize); err != nil {
-			return err
-		}
-
-		if len(resp.Ticks) > 0 {
-			csm = io.NewColumnSeriesMap()
-			tbk = io.NewTimeBucketKeyFromString(symbol + "/1Min/QUOTE")
-			cs = io.NewColumnSeries()
-
-			epoch = make([]int64, len(resp.Ticks))
-			nanos = make([]int32, len(resp.Ticks))
-			bidPrice = make([]float32, len(resp.Ticks))
-			bidSize = make([]int32, len(resp.Ticks))
-			askPrice = make([]float32, len(resp.Ticks))
-			askSize = make([]int32, len(resp.Ticks))
-
-			for i, tick := range resp.Ticks {
-				timestamp := time.Unix(0, 1000*1000*tick.Timestamp)
-
-				epoch[i] = timestamp.Unix()
-				nanos[i] = int32(timestamp.Nanosecond())
-				bidPrice[i] = float32(tick.BidPrice)
-				bidSize[i] = int32(tick.BidSize)
-				askPrice[i] = float32(tick.BidPrice)
-				askSize[i] = int32(tick.AskSize)
-			}
-
-			cs.AddColumn("Epoch", epoch)
-			cs.AddColumn("Nanoseconds", nanos)
-			cs.AddColumn("BidPrice", bidPrice)
-			cs.AddColumn("AskPrice", askPrice)
-			cs.AddColumn("BidSize", bidSize)
-			cs.AddColumn("AskSize", askSize)
-			csm.AddColumnSeries(*tbk, cs)
-
-			if err = executor.WriteCSM(csm, true); err != nil {
+	t := time.Now()
+	for date := from; to.After(date); date = date.Add(24 * time.Hour) {
+		if calendar.Nasdaq.IsMarketDay(date) {
+			resp, err := api.GetHistoricQuotes(symbol, date.Format(defaultFormat), batchSize)
+			if err != nil {
 				return err
 			}
+			quotes = append(quotes, resp.Ticks...)
+		}
+	}
+	ApiCallTime += time.Now().Sub(t)
+
+	if len(quotes) > 0 {
+		csm := io.NewColumnSeriesMap()
+		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/QUOTE")
+		cs := io.NewColumnSeries()
+
+		epoch := make([]int64, len(quotes))
+		nanos := make([]int32, len(quotes))
+		bidPrice := make([]float32, len(quotes))
+		bidSize := make([]int32, len(quotes))
+		askPrice := make([]float32, len(quotes))
+		askSize := make([]int32, len(quotes))
+
+		for i, tick := range quotes {
+			timestamp := time.Unix(0, 1000*1000*tick.Timestamp)
+
+			epoch[i] = timestamp.Unix()
+			nanos[i] = int32(timestamp.Nanosecond())
+			bidPrice[i] = float32(tick.BidPrice)
+			bidSize[i] = int32(tick.BidSize)
+			askPrice[i] = float32(tick.BidPrice)
+			askSize[i] = int32(tick.AskSize)
 		}
 
-		from = from.AddDate(0, 0, 1)
+		cs.AddColumn("Epoch", epoch)
+		cs.AddColumn("Nanoseconds", nanos)
+		cs.AddColumn("BidPrice", bidPrice)
+		cs.AddColumn("AskPrice", askPrice)
+		cs.AddColumn("BidSize", bidSize)
+		cs.AddColumn("AskSize", askSize)
+		csm.AddColumnSeries(*tbk, cs)
 
-		if from.After(to) {
-			break
-		}
+		t = time.Now()
+		writerWP.Do(func() {
+			tt := time.Now()
+			err := executor.WriteCSM(csm, true)
+			if err != nil {
+				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
+			}
+			WriteTime += time.Now().Sub(tt)
+		})
+		WaitTime += time.Now().Sub(t)
 	}
 
 	return nil

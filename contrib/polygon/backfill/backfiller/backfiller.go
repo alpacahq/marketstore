@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/gobwas/glob"
 	"runtime"
 	"runtime/debug"
@@ -23,13 +24,14 @@ import (
 )
 
 var (
-	dir, from, to, barPeriod string
-	bars, quotes, trades     bool
-	symbols                  string
-	parallelism              int
-	apiKey                   string
-	exchanges                string
-	batchSize                int
+	dir, from, to                       string
+	barPeriod, tradePeriod, quotePeriod string
+	bars, quotes, trades                bool
+	symbols                             string
+	parallelism                         int
+	apiKey                              string
+	exchanges                           string
+	batchSize                           int
 
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
@@ -43,6 +45,8 @@ func init() {
 	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
 	flag.StringVar(&barPeriod, "bar-period", (60 * 24 * time.Hour).String(), "backfill bar period")
+	flag.StringVar(&tradePeriod, "trade-period", (10 * 24 * time.Hour).String(), "backfill trade period")
+	flag.StringVar(&quotePeriod, "quote-period", (10 * 24 * time.Hour).String(), "backfill quote period")
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
 	flag.BoolVar(&trades, "trades", false, "backfill trades")
 	flag.StringVar(&symbols, "symbols", "*",
@@ -94,72 +98,45 @@ func main() {
 		log.Fatal("[polygon] failed to parse to timestamp (%v)", err)
 	}
 
-	barPeriodDuration, err := time.ParseDuration(barPeriod)
+	tradePeriodDuration, err := parseAndValidateDuration(tradePeriod, 60*24*time.Hour, 24*time.Hour)
 	if err != nil {
-		log.Fatal("[polygon] failed to parse bar-period duration (%v)", err)
-	}
-	if barPeriodDuration < 24*time.Hour {
-		barPeriodDuration = 24 * time.Hour
-	}
-	if barPeriodDuration > 60*24*time.Hour {
-		barPeriodDuration = 60 * 24 * time.Hour
+		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
 	}
 
-	pattern := glob.MustCompile(symbols)
+	quotePeriodDuration, err := parseAndValidateDuration(quotePeriod, 60*24*time.Hour, 24*time.Hour)
+	if err != nil {
+		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
+	}
 
+	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*24*time.Hour, 24*time.Hour)
+	if err != nil {
+		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
+	}
+
+	startTime := time.Now()
+
+	//GET TICKERS
 	log.Info("[polygon] listing symbols for pattern: %v", symbols)
-
-	tt := time.Now()
-
+	pattern := glob.MustCompile(symbols)
 	symbolList := make([]string, 0)
-	var SymbolListMux sync.Mutex
-
-	sem := make(chan struct{}, parallelism)
-
-	page := 0
+	symbolListMux := new(sync.Mutex)
 	tickerListRunning := true
+	tickerListWP := worker.NewWorkerPool(parallelism)
 
-	for tickerListRunning {
-		sem <- struct{}{}
-		go func(currentPage int) {
-			defer func() { <-sem }()
-			currentTickers, err := api.ListTickersPerPage(currentPage)
-			if err != nil {
-				log.Warn("[polygon] failed to list symbols (%v)", err)
-			}
+	for page := 0; tickerListRunning; page++ {
+		currentPage := page
 
-			if len(currentTickers) == 0 {
-				tickerListRunning = false
-			}
-
-			SymbolListMux.Lock()
-			for _, s := range currentTickers {
-				if pattern.Match(s.Ticker) && s.Ticker != "" {
-					symbolList = append(symbolList, s.Ticker)
-				}
-			}
-			SymbolListMux.Unlock()
-
-		}(page)
-		page++
+		tickerListWP.Do(func() {
+			tickerGet(currentPage, pattern, &symbolList, symbolListMux, &tickerListRunning)
+		})
 	}
 
-	// make sure all goroutines finish
-	for i := 0; true; i++ {
-		if len(sem) == 0 {
-			break
-		}
-		if i >= 100 {
-			log.Error("some goroutine did not ended")
-			return
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-
+	tickerListWP.CloseAndWait()
 	symbolList = unique(symbolList)
 	sort.Strings(symbolList)
 	log.Info("[polygon] selected %v symbols", len(symbolList))
 
+	//PARSE EXCHANGE IDS
 	var exchangeIDs []int
 	if exchanges != "*" {
 		for _, exchangeIDStr := range strings.Split(exchanges, ",") {
@@ -172,111 +149,72 @@ func main() {
 		}
 	}
 
+	//GET BARS
 	if bars {
+		apiCallerWP := worker.NewWorkerPool(parallelism)
+		writerWP := worker.NewWorkerPool(1)
 		log.Info("[polygon] backfilling bars from %v to %v", start, end)
 
 		for _, sym := range symbolList {
-
-			sem <- struct{}{}
-			go func(currentSymbol string) {
-				defer func() { <-sem }()
-
-				s := start
-				e := end
-				addPeriod := barPeriodDuration
-				if len(exchangeIDs) != 0 && addPeriod != 24*time.Hour {
-					log.Warn("[polygon] bar period not adjustable when exchange filtered")
-					addPeriod = 24 * time.Hour
-				}
-				log.Info("[polygon] backfilling bars for %v", currentSymbol)
-				for e.After(s) {
-
-					if s.Add(addPeriod).After(e) {
-						addPeriod = e.Sub(s)
-					}
-
-					log.Info("[polygon] backfilling bars for %v between %s and %s", currentSymbol, s, s.Add(addPeriod))
-
-					if len(exchangeIDs) == 0 {
-						if err = backfill.Bars(currentSymbol, s, s.Add(addPeriod)); err != nil {
-							log.Warn("[polygon] failed to backfill bars for %v (%v)", currentSymbol, err)
-						}
-					} else {
-						if calendar.Nasdaq.IsMarketDay(s) {
-							if err = backfill.BuildBarsFromTrades(currentSymbol, s, exchangeIDs, batchSize); err != nil {
-								log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", currentSymbol, s, err)
-							}
-						}
-					}
-					s = s.Add(addPeriod)
-				}
-			}(sym)
+			currentSymbol := sym
+			apiCallerWP.Do(func() {
+				getBars(start, end, barPeriodDuration, currentSymbol, exchangeIDs, writerWP)
+			})
 		}
+
+		log.Info("[polygon] wait for api workers")
+		apiCallerWP.CloseAndWait()
+		log.Info("[polygon] wait for writer workers")
+		writerWP.CloseAndWait()
 	}
 
+	//GET QUOTES
 	if quotes {
+		apiCallerWP := worker.NewWorkerPool(parallelism)
+		writerWP := worker.NewWorkerPool(1)
 		log.Info("[polygon] backfilling quotes from %v to %v", start, end)
 
 		for _, sym := range symbolList {
-			s := start
-			e := end
-
-			log.Info("[polygon] backfilling quotes for %v", sym)
-
-			for e.After(s) {
-				if calendar.Nasdaq.IsMarketDay(s) {
-					log.Info("[polygon] backfilling quotes for %v on %v", sym, s)
-
-					sem <- struct{}{}
-					go func(t time.Time) {
-						defer func() { <-sem }()
-
-						if err = backfill.Quotes(sym, t, t.Add(24*time.Hour), batchSize); err != nil {
-							log.Warn("[polygon] failed to backfill quotes for %v (%v)", sym, err)
-						}
-					}(s)
-				}
-				s = s.Add(24 * time.Hour)
-			}
+			currentSymbol := sym
+			apiCallerWP.Do(func() {
+				getQuotes(start, end, quotePeriodDuration, currentSymbol, writerWP)
+			})
 		}
+
+		log.Info("[polygon] wait for api workers")
+		apiCallerWP.CloseAndWait()
+		log.Info("[polygon] wait for writer workers")
+		writerWP.CloseAndWait()
+
 	}
 
+	//GET TRADES
 	if trades {
+		apiCallerWP := worker.NewWorkerPool(parallelism)
+		writerWP := worker.NewWorkerPool(1)
 		log.Info("[polygon] backfilling trades from %v to %v", start, end)
 
 		for _, sym := range symbolList {
-
-			sem <- struct{}{}
-			go func(currentSymbol string) {
-				defer func() { <-sem }()
-
-				s := start
-				e := end
-
-				log.Info("[polygon] backfilling trades for %v", currentSymbol)
-
-				for e.After(s) {
-					log.Info("Checking %v", s)
-					if calendar.Nasdaq.IsMarketDay(s) {
-						log.Info("[polygon] backfilling trades for %v on %v", currentSymbol, s)
-						if err = backfill.Trades(currentSymbol, s, batchSize); err != nil {
-							log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", currentSymbol, s, err)
-						}
-					}
-					s = s.Add(24 * time.Hour)
-				}
-			}(sym)
+			currentSymbol := sym
+			apiCallerWP.Do(func() {
+				getTrades(start, end, tradePeriodDuration, currentSymbol, writerWP)
+			})
 		}
+
+		log.Info("[polygon] wait for api workers")
+		apiCallerWP.CloseAndWait()
+		log.Info("[polygon] wait for writer workers")
+		writerWP.CloseAndWait()
 	}
 
-	// make sure all goroutines finish
-	for i := 0; i < cap(sem); i++ {
-		sem <- struct{}{}
-	}
+	log.Info("[polygon] wait for shutdown")
+	executor.ThisInstance.ShutdownPending = true
+	executor.ThisInstance.WALWg.Wait()
 
-	log.Info("[polygon] backfilling complete %s", time.Now().Sub(tt).String())
-	log.Info("[polygon] waiting for 10 more seconds for ondiskagg triggers to complete")
-	time.Sleep(10 * time.Second)
+	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
+	log.Info("[polygon] wait time %s", backfill.WaitTime)
+	log.Info("[polygon] write time %s", backfill.WriteTime)
+	log.Info("[polygon] backfilling complete %s", time.Now().Sub(startTime))
 }
 
 func initWriter() {
@@ -298,6 +236,106 @@ func initWriter() {
 	executor.ThisInstance.TriggerMatchers = []*trigger.TriggerMatcher{
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
+}
+
+func tickerGet(page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
+	currentTickers, err := api.ListTickersPerPage(page)
+	if err != nil {
+		log.Warn("[polygon] failed to list symbols (%v)", err)
+	}
+
+	if len(currentTickers) == 0 {
+		*tickerListRunning = false
+		return
+	}
+
+	symbolListMux.Lock()
+	for _, s := range currentTickers {
+		if pattern.Match(s.Ticker) && s.Ticker != "" {
+			*symbolList = append(*symbolList, s.Ticker)
+		}
+	}
+	symbolListMux.Unlock()
+}
+
+func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, writerWP *worker.WorkerPool) {
+	if len(exchangeIDs) != 0 && period != 24*time.Hour {
+		log.Warn("[polygon] bar period not adjustable when exchange filtered")
+		period = 24 * time.Hour
+	}
+	log.Info("[polygon] backfilling bars for %v", symbol)
+	for end.After(start) {
+
+		if start.Add(period).After(end) {
+			period = end.Sub(start)
+		}
+
+		log.Info("[polygon] backfilling bars for %v between %s and %s", symbol, start, start.Add(period))
+
+		if len(exchangeIDs) == 0 {
+			if err := backfill.Bars(symbol, start, start.Add(period), writerWP); err != nil {
+				log.Warn("[polygon] failed to backfill bars for %v (%v)", symbol, err)
+			}
+
+		} else {
+			if calendar.Nasdaq.IsMarketDay(start) {
+				if err := backfill.BuildBarsFromTrades(symbol, start, exchangeIDs, batchSize); err != nil {
+					log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", symbol, start, err)
+				}
+			}
+		}
+		start = start.Add(period)
+	}
+}
+
+func getQuotes(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+	log.Info("[polygon] backfilling quotes for %v", symbol)
+	for end.After(start) {
+
+		if start.Add(period).After(end) {
+			period = end.Sub(start)
+		}
+
+		log.Info("[polygon] backfilling quotes for %v between %s and %s", symbol, start, start.Add(period))
+		if err := backfill.Quotes(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+			log.Warn("[polygon] failed to backfill quote for %v @ %v (%v)", symbol, start, err)
+		}
+
+		start = start.Add(period)
+	}
+}
+
+func getTrades(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+	log.Info("[polygon] backfilling trades for %v", symbol)
+	for end.After(start) {
+
+		if start.Add(period).After(end) {
+			period = end.Sub(start)
+		}
+
+		log.Info("[polygon] backfilling trades for %v between %s and %s", symbol, start, start.Add(period))
+		if err := backfill.Trades(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+			log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", symbol, start, err)
+		}
+
+		start = start.Add(period)
+	}
+
+}
+
+func parseAndValidateDuration(durationString string, max time.Duration, min time.Duration) (time.Duration, error) {
+
+	duration, err := time.ParseDuration(durationString)
+	if err != nil {
+		return 0, err
+	}
+	if duration < min {
+		duration = min
+	}
+	if duration > max {
+		duration = max
+	}
+	return duration, nil
 }
 
 func unique(stringSlice []string) []string {
