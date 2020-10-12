@@ -115,7 +115,6 @@ func main() {
 
 	startTime := time.Now()
 
-	//GET TICKERS
 	log.Info("[polygon] listing symbols for pattern: %v", symbols)
 	pattern := glob.MustCompile(symbols)
 	symbolList := make([]string, 0)
@@ -127,16 +126,18 @@ func main() {
 		currentPage := page
 
 		tickerListWP.Do(func() {
-			tickerGet(currentPage, pattern, &symbolList, symbolListMux, &tickerListRunning)
+			getTicker(currentPage, pattern, &symbolList, symbolListMux, &tickerListRunning)
 		})
 	}
 
 	tickerListWP.CloseAndWait()
 	symbolList = unique(symbolList)
 	sort.Strings(symbolList)
+	if len(symbolList) == 0 {
+		log.Fatal("no symbol selected")
+	}
 	log.Info("[polygon] selected %v symbols", len(symbolList))
 
-	//PARSE EXCHANGE IDS
 	var exchangeIDs []int
 	if exchanges != "*" {
 		for _, exchangeIDStr := range strings.Split(exchanges, ",") {
@@ -149,7 +150,6 @@ func main() {
 		}
 	}
 
-	//GET BARS
 	if bars {
 		apiCallerWP := worker.NewWorkerPool(parallelism)
 		writerWP := worker.NewWorkerPool(1)
@@ -168,7 +168,6 @@ func main() {
 		writerWP.CloseAndWait()
 	}
 
-	//GET QUOTES
 	if quotes {
 		apiCallerWP := worker.NewWorkerPool(parallelism)
 		writerWP := worker.NewWorkerPool(1)
@@ -188,7 +187,6 @@ func main() {
 
 	}
 
-	//GET TRADES
 	if trades {
 		apiCallerWP := worker.NewWorkerPool(parallelism)
 		writerWP := worker.NewWorkerPool(1)
@@ -238,10 +236,10 @@ func initWriter() {
 	}
 }
 
-func tickerGet(page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
+func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
 	currentTickers, err := api.ListTickersPerPage(page)
 	if err != nil {
-		log.Warn("[polygon] failed to list symbols (%v)", err)
+		log.Error("[polygon] failed to list symbols (%v)", err)
 	}
 
 	if len(currentTickers) == 0 {
@@ -330,9 +328,11 @@ func parseAndValidateDuration(durationString string, max time.Duration, min time
 		return 0, err
 	}
 	if duration < min {
+		log.Warn("duration overridden to %s because given duration (%s) subceed the minimum value)", min, duration)
 		duration = min
 	}
 	if duration > max {
+		log.Warn("duration overridden to %s because given duration (%s) exceed the maximum value)", max, duration)
 		duration = max
 	}
 	return duration, nil
