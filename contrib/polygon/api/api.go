@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/valyala/fasthttp"
 	"gopkg.in/matryer/try.v1"
 )
 
@@ -32,7 +31,18 @@ var (
 	apiKey       string
 	NY, _        = time.LoadLocation("America/New_York")
 	completeDate = "2006-01-02"
+	client       *http.Client
 )
+
+func init() {
+	client = &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: 100,
+			MaxConnsPerHost:     100,
+		},
+		Timeout: 10 * time.Second,
+	}
+}
 
 type GetAggregatesResponse struct {
 	Symbol  string `json:"symbol"`
@@ -68,29 +78,31 @@ func SetWSServers(serverList string) {
 }
 
 type ListTickersResponse struct {
-	Page    int    `json:"page"`
-	PerPage int    `json:"perPage"`
-	Count   int    `json:"count"`
-	Status  string `json:"status"`
-	Tickers []struct {
-		Ticker      string `json:"ticker"`
-		Name        string `json:"name"`
-		Market      string `json:"market"`
-		Locale      string `json:"locale"`
-		Type        string `json:"type"`
-		Currency    string `json:"currency"`
-		Active      bool   `json:"active"`
-		PrimaryExch string `json:"primaryExch"`
-		Updated     string `json:"updated"`
-		Codes       struct {
-			Cik     string `json:"cik"`
-			Figiuid string `json:"figiuid"`
-			Scfigi  string `json:"scfigi"`
-			Cfigi   string `json:"cfigi"`
-			Figi    string `json:"figi"`
-		} `json:"codes"`
-		URL string `json:"url"`
-	} `json:"tickers"`
+	Page    int      `json:"page"`
+	PerPage int      `json:"perPage"`
+	Count   int      `json:"count"`
+	Status  string   `json:"status"`
+	Tickers []Ticker `json:"tickers"`
+}
+
+type Ticker struct {
+	Ticker      string `json:"ticker"`
+	Name        string `json:"name"`
+	Market      string `json:"market"`
+	Locale      string `json:"locale"`
+	Type        string `json:"type"`
+	Currency    string `json:"currency"`
+	Active      bool   `json:"active"`
+	PrimaryExch string `json:"primaryExch"`
+	Updated     string `json:"updated"`
+	Codes       struct {
+		Cik     string `json:"cik"`
+		Figiuid string `json:"figiuid"`
+		Scfigi  string `json:"scfigi"`
+		Cfigi   string `json:"cfigi"`
+		Figi    string `json:"figi"`
+	} `json:"codes"`
+	URL string `json:"url"`
 }
 
 func includeExchange(exchange string) bool {
@@ -103,60 +115,63 @@ func includeExchange(exchange string) bool {
 	return true
 }
 
-func ListTickers() (*ListTickersResponse, error) {
-	resp := ListTickersResponse{}
+func ListTickers() ([]Ticker, error) {
 	page := 0
+	resp := make([]Ticker, 0)
 
 	for {
-		u, err := url.Parse(fmt.Sprintf(tickersURL, baseURL))
+		r, err := ListTickersPerPage(page)
 		if err != nil {
 			return nil, err
 		}
 
-		q := u.Query()
-		q.Set("apiKey", apiKey)
-		q.Set("sort", "ticker")
-		q.Set("perpage", "2000")
-		q.Set("market", "stocks")
-		q.Set("locale", "us")
-		q.Set("active", "true")
-		q.Set("page", strconv.FormatInt(int64(page), 10))
-
-		u.RawQuery = q.Encode()
-
-		code, body, err := fasthttp.Get(nil, u.String())
-		if err != nil {
-			return nil, err
-		}
-
-		if code >= fasthttp.StatusMultipleChoices {
-			return nil, fmt.Errorf("status code %v", code)
-		}
-
-		r := &ListTickersResponse{}
-
-		err = json.Unmarshal(body, r)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if len(r.Tickers) == 0 {
+		if len(r) == 0 {
 			break
 		}
 
-		for _, ticker := range r.Tickers {
-			if includeExchange(ticker.PrimaryExch) {
-				resp.Tickers = append(resp.Tickers, ticker)
-			}
+		for _, ticker := range r {
+			resp = append(resp, ticker)
 		}
 
 		page++
 	}
 
-	log.Info("[polygon] Returning %v symbols\n", len(resp.Tickers))
+	log.Info("[polygon] Returning %v symbols\n", len(resp))
 
-	return &resp, nil
+	return resp, nil
+}
+
+func ListTickersPerPage(page int) ([]Ticker, error) {
+	var resp ListTickersResponse
+	tickers := make([]Ticker, 0)
+
+	u, err := url.Parse(fmt.Sprintf(tickersURL, baseURL))
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	q.Set("apiKey", apiKey)
+	q.Set("sort", "ticker")
+	q.Set("perpage", "2000")
+	q.Set("market", "stocks")
+	q.Set("locale", "us")
+	q.Set("active", "true")
+	q.Set("page", strconv.FormatInt(int64(page), 10))
+	u.RawQuery = q.Encode()
+
+	err = downloadAndUnmarshal(u.String(), retryCount, &resp)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ticker := range resp.Tickers {
+		if includeExchange(ticker.PrimaryExch) {
+			tickers = append(tickers, ticker)
+		}
+	}
+
+	return tickers, nil
 }
 
 // GetHistoricAggregates requests polygon's REST API for aggregates
@@ -305,6 +320,7 @@ func downloadAndUnmarshal(url string, retryCount int, data interface{}) error {
 
 		if err != nil && strings.Contains(err.Error(), "GOAWAY") {
 			// Polygon's way to tell that we are too fast
+			log.Warn("parallel connection number may reach polygon limit, url: %s", url)
 			time.Sleep(5 * time.Second)
 		}
 
@@ -315,10 +331,7 @@ func downloadAndUnmarshal(url string, retryCount int, data interface{}) error {
 }
 
 func download(url string, retryCount int) (*http.Response, error) {
-	var (
-		client = &http.Client{}
-		resp   *http.Response
-	)
+	var resp *http.Response
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
