@@ -24,6 +24,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "marketstore.serviceAccountName" . }}
+      shareProcessNamespace: true
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -36,12 +37,6 @@ spec:
             - name: rpc
               containerPort: 5993
               protocol: TCP
-          livenessProbe:
-            tcpSocket:
-              port: 5993
-          readinessProbe:
-            tcpSocket:
-              port: 5993
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -50,6 +45,40 @@ spec:
           - mountPath: /etc/mkts.yml
             name: mkts-config
             subPath: "mkts.yml"
+      {{ if .Values.backfill.enabled }}
+        - name: ingest
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/polygon-backfill-cron.sh
+          envFrom:
+            - configMapRef:
+                name: {{ template "marketstore.fullname" . }}-backfill
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
+          ports:
+            - name: http
+              containerPort: 18080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 18080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 18080
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /data
+              name: mkts-data
+            - mountPath: /etc/mkts.yml
+              name: mkts-config
+              subPath: "mkts.yml"
+      {{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
