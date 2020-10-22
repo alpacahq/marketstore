@@ -4,13 +4,32 @@ import (
 	"reflect"
 	"strings"
 	"regexp"
-	"fmt"
+	// "fmt"
+	"log"
 )
 
+// last \n intentionally not included, as it would include an extra empy line after split
+var record_matcher = regexp.MustCompile(`\.{59} [[:ascii:]]+?[^\*]\*\* +?\n`)  
 
-var record_matcher = regexp.MustCompile(`\.{59} [[:ascii:]]+? \*\* +\n`)
 var file_end_matcher = regexp.MustCompile(`^\*+? +\n`)
 
+func safeCall(v reflect.Value, fn string, lines []string) (out string) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			log.Printf("whoops: %+v died while parsing: \n%s\n--------\n", fn, strings.Join(lines, "\n"))
+			out = ""
+		}
+	}()
+	if fn := v.MethodByName(strings.TrimSpace(fn)); fn.IsValid() {
+		args := []reflect.Value{reflect.ValueOf(lines)}
+		out_values := fn.Call(args)
+		out = out_values[0].String()
+	} else {
+		out = ""
+	}
+	return out
+}
 
 func ReadRecord(lines []string, it interface{}) {
 	var v reflect.Value 
@@ -23,23 +42,19 @@ func ReadRecord(lines []string, it interface{}) {
 		}
 		v = reflect.Indirect(reflect.ValueOf(t))
 	}	
+	//println("ReadRecord ---------")
 
 	parse_def := GetParseDef(it)
 	var input string 
 	for _, parse := range parse_def {
+		//println(pi)
 		field := v.Field(parse.FieldNo)
 		input = ""
 		// field_name := v.Type().Field(parse.FieldNo).Name
 		if parse.Func != "" {
-			if fn := v.MethodByName(strings.TrimSpace(parse.Func)); fn.IsValid() {
-				out_values := fn.Call([]reflect.Value{reflect.ValueOf(lines)})
-				input = out_values[0].String()
-			} else {
-				fmt.Printf("cannot find function '%s' on %s\n", parse.Func, v.Type().Name())
-				input = ""
-			}
+			input = safeCall(v, parse.Func, lines)
 		} else {
-			input := lines[parse.Line]
+			input = lines[parse.Line]
 			if len(parse.Positions) > 0 {
 				content := ""
 				for _, parse_pos := range(parse.Positions) {
@@ -65,13 +80,19 @@ func ReadRecords(content string, slicePtr interface{}) {
 	record_no := 1
 	for {
 		if file_end_matcher.MatchString(content) {
-			println("EOF reached", len(content), "bytes left")
+			// println("EOF reached", len(content), "bytes left")
 			break
 		}
 		result := record_matcher.FindString(content)
-		if len(result) > 0 {
+		if len(result) > 1 {
 			rec := reflect.New(elementType)
-			ReadRecord(strings.Split(result, "\n"), rec)
+			lines := strings.Split(result, "\n")
+			// println("Record:", record_no, "lines: ", len(lines), len(lines[len(lines)-1]))
+			// println(result[0])
+			lines = lines[:len(lines)-1]
+			//fmt.Printf("%+v\n", lines)
+			ReadRecord(lines, rec)
+			// fmt.Printf("%+v\n", rec.Elem())
 			slice_value.Set(reflect.Append(slice_value, rec.Elem()))
 			content = content[len(result):len(content)]
 			record_no++

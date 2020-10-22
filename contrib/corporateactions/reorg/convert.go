@@ -5,12 +5,14 @@ import (
 	"time"
 	"fmt"
 	"strings"
+	"log"
 )
 
 
 
 var TIME = reflect.TypeOf(time.Time{}).Name()
 var INT = reflect.TypeOf(1).Name()
+var INT64 = reflect.TypeOf(int64(1)).Name()
 var FLOAT = reflect.TypeOf(1.2).Name()
 var STRING = reflect.TypeOf("").Name()
 
@@ -18,6 +20,7 @@ type TypeConverter func(str string, v reflect.Value, format string) error
 
 var converters = map[string]TypeConverter{
 	INT : stringToInt,
+	INT64 : stringToInt,
 	FLOAT : stringToFloat,
 	STRING : stringToString,
 	TIME : stringToTime,
@@ -25,6 +28,7 @@ var converters = map[string]TypeConverter{
 
 var format_defaults = map[string]string{
 		INT : "%d", 
+		INT64 : "%d", 
 		FLOAT : "%f",
 		TIME: "01/02/06",
 }
@@ -55,7 +59,7 @@ func stringToString(str string, v reflect.Value, format string) error {
 
 func stringToTime(str string, v reflect.Value, format string) error {
 	// allow blank time fields
-	if str == "99/99/99" || str == "  /  /  " || str == "" {
+	if str == "99/99/99" || str == "/  /" || str == "" {
 		return nil
 	}
 	t, err := time.Parse(format, str)
@@ -73,6 +77,13 @@ func Convert(input string, format string, def string, v reflect.Value) {
 	if clean_input == "" {
 		return 
 	}
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Printf("panic at conversion: %+v\n input: %s\n", err, input)
+		}
+	}()
+	// println(input, format, def)
 	iv := reflect.Indirect(v)
 	if iv.CanSet() {
 		f := converters[iv.Type().Name()]
@@ -82,7 +93,7 @@ func Convert(input string, format string, def string, v reflect.Value) {
 			}
 			err := f(clean_input, iv, format)
 			if err != nil {
-				fmt.Printf("type conversion error: %+v, %s\n", err, input)
+				log.Printf("type conversion error: %+v, %s\n", err, input)
 			}
 		} else {
 			println("converter not found for", input, v.Type().Name(), "kind:", iv.Kind())
