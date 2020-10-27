@@ -28,12 +28,14 @@ RUN apt-get update && \
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
 COPY --from=builder /go/bin /bin/
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/contrib/polygon/polygon-backfill-*.sh /bin/
+COPY --from=builder /go/src/github.com/alpacahq/marketstore/contrib/corporateactions/ca-sync-*.sh /bin/
 
 ENV GOPATH=/
 
 RUN ["marketstore", "init"]
 RUN mv mkts.yml /etc/
 VOLUME /data
+VOLUME /reorg
 EXPOSE 5993
 
 ENTRYPOINT ["marketstore"]

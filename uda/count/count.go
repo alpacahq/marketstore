@@ -97,3 +97,10 @@ func (ca *Count) Reset() {
 /*
 Utility Functions
 */
+
+
+/*
+	SetTimeBucketKey() 
+*/ 
+func (ca *Count) SetTimeBucketKey(tbk io.TimeBucketKey) {
+} 

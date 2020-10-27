@@ -5,12 +5,18 @@ import (
 	"strings"
 )
 
+const (
+	Split = '7'
+	ReverseSplit = '+'
+	Dividend = '/'
+)
+
+
 type Notification struct {
 	EntryDate time.Time 					`reorg:"line:0 pos:64-72 format:01/02/06"`
 
 	DealNumber string						`reorg:"line:1 pos:6-8"`
 	TextNumber int64						`reorg:"line:1 pos:16-23"`
-	ReorgID	int								`reorg:"line:1 pos:16-23"`
 	Remarks string 							`reorg:"line:1 pos:33-45"`
 	NotificationType string					`reorg:"line:1 pos:53"`
 	Status string							`reorg:"line:1 pos:54"`
@@ -43,12 +49,8 @@ type Notification struct {
 }
 
 
-func (i Notification) IsSplit() bool {
-	return i.NotificationType == "7"
-}
-
-func (i Notification) IsReverseSplit() bool {
-	return i.NotificationType == "+"
+func (i Notification) Is(code byte) bool {
+	return i.NotificationType[0] == code
 }
 
 func (i Notification) ParseUpdateTextNumber(lines []string) string {
@@ -68,7 +70,7 @@ func (i Notification) ParseDeleteTextNumber(lines []string) string {
 }
 
 func (i Notification) ParseNewRate(lines []string) string {
-	if i.IsSplit() || i.IsReverseSplit() {
+	if i.Is(Split) || i.Is(ReverseSplit) {
 		return lines[7][56:69]
 	} else {
 		return lines[4][5:15]
@@ -76,7 +78,7 @@ func (i Notification) ParseNewRate(lines []string) string {
 }
 
 func (i Notification) ParseOldRate(lines []string) string {
-	if i.IsSplit() || i.IsReverseSplit() {
+	if i.Is(Split) || i.Is(ReverseSplit) {
 		return lines[8][56:69]
 	} else {
 		return lines[4][23:32]

@@ -31,6 +31,7 @@ require (
 	github.com/preichenberger/go-gdax v0.0.0-20181027225743-eb74ba719d9a
 	github.com/prometheus/client_golang v1.6.0
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46
+	github.com/secsy/goftp v0.0.0-20200609142545-aa2de14babf4
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.4.0

@@ -20,6 +20,7 @@ debug:
 	$(MAKE) debug -C contrib/polygon
 	$(MAKE) debug -C contrib/stream
 	$(MAKE) debug -C contrib/xignitefeeder
+	${MAKE} debug -C contrib/corporateactions
 	GOFLAGS=$(GOFLAGS) go install -gcflags="all=-N -l" -ldflags "-X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
 generate:
@@ -41,6 +42,7 @@ plugins:
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/stream
 	$(MAKE) -C contrib/xignitefeeder
+	${MAKE} -C contrib/corporateactions
 
 fmt:
 	GOFLAGS=$(GOFLAGS) go fmt ./...

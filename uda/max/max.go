@@ -111,3 +111,10 @@ func (ma *Max) Reset() {
 /*
 Utility Functions
 */
+
+
+/*
+	SetTimeBucketKey() 
+*/ 
+func (ma *Max) SetTimeBucketKey(tbk io.TimeBucketKey) {
+} 

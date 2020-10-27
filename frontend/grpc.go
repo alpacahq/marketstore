@@ -147,7 +147,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			*/
 			if len(req.Functions) != 0 {
 				for tbkStr, cs := range csm {
-					csOut, err := runAggFunctions(req.Functions, cs)
+					csOut, err := runAggFunctions(req.Functions, cs, tbkStr)
 					if err != nil {
 						return nil, err
 					}

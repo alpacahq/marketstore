@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/uda/gap"
 	"github.com/alpacahq/marketstore/v4/uda/max"
 	"github.com/alpacahq/marketstore/v4/uda/min"
+	"github.com/alpacahq/marketstore/v4/uda/reorg"
 )
 
 var AggRegistry = map[string]uda.AggInterface{
@@ -26,4 +27,6 @@ var AggRegistry = map[string]uda.AggInterface{
 	"avg":           &avg.Avg{},
 	"Gap":           &gap.Gap{},
 	"gap":           &gap.Gap{},
+	"Reorg":		 &reorg.Reorg{},
+	"reorg":		 &reorg.Reorg{},
 }
