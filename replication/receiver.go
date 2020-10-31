@@ -9,17 +9,29 @@ import (
 )
 
 type Receiver struct {
-	GRPCClient *GRPCReplicationClient
+	gRPCClient GRPCClient
+	replayer   Replayer
 }
 
-func NewReceiver(grpcClient *GRPCReplicationClient) *Receiver {
+// GRPCClient is an interface to abstract GRPCReplicationClient
+type GRPCClient interface {
+	Connect(ctx context.Context) error
+	Recv() ([]byte, error)
+}
+
+type Replayer interface {
+	Replay(transactionGroup []byte) error
+}
+
+func NewReceiver(grpcClient GRPCClient, replayer Replayer) *Receiver {
 	return &Receiver{
-		GRPCClient: grpcClient,
+		gRPCClient: grpcClient,
+		replayer:   replayer,
 	}
 }
 
 func (r *Receiver) Run(ctx context.Context) error {
-	err := r.GRPCClient.Connect(ctx)
+	err := r.gRPCClient.Connect(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to master instance")
 	}
@@ -28,7 +40,7 @@ func (r *Receiver) Run(ctx context.Context) error {
 		for {
 			log.Debug("waiting for replication messages from master...")
 			// block until receive a new replication message
-			transactionGroup, err := r.GRPCClient.Recv()
+			transactionGroup, err := r.gRPCClient.Recv()
 			if err == io.EOF {
 				log.Info("received EOF from master server")
 				return
@@ -39,14 +51,14 @@ func (r *Receiver) Run(ctx context.Context) error {
 				return
 			}
 
-			err = replay(transactionGroup)
+			err = r.replayer.Replay(transactionGroup)
 			if err != nil {
 				log.Error(fmt.Sprintf("an error occurred while replaying. "+
 					"There will be data inconsistency between master and replica:%s", err.Error()))
-				break
+				return
 			}
 		}
 	}()
 
-	return nil
+	return err
 }

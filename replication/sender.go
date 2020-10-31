@@ -6,23 +6,25 @@ import (
 )
 
 const (
+	// the maximum number of transaction messages that a replicator can hold
 	defaultSenderChannelSize = 500
 )
 
-type ReplicationService interface {
+type Service interface {
+	SendReplicationMessage(transactionGroup []byte)
 }
 
 type Sender struct {
-	ReplService *GRPCReplicationServer
+	replService Service
 	//ReplicaHosts []string
 	channel chan []byte
 }
 
-func NewSender(service *GRPCReplicationServer) *Sender {
+func NewSender(service Service) *Sender {
 	c := make(chan []byte, defaultSenderChannelSize)
 
 	return &Sender{
-		ReplService: service,
+		replService: service,
 		channel:     c,
 	}
 }
@@ -36,7 +38,7 @@ func (s *Sender) Run(ctx context.Context) {
 				return
 			case transactionGroup := <-resc:
 				// log.Debug("send a replication message to replicas")
-				s.ReplService.SendReplicationMessage(transactionGroup)
+				s.replService.SendReplicationMessage(transactionGroup)
 			}
 		}
 	}(ctx, s.channel)

@@ -296,7 +296,7 @@ func serializeTG(tgID int64, commands []*wal.WriteCommand,
 		keyPath := commands[i].WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
 		writesPerFile[keyPath] = append(writesPerFile[keyPath],
-			wal.OffsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
+			TG_Serialized[oStart:oStart+bufferSize])
 
 	}
 

@@ -10,9 +10,13 @@ import (
 type WriteCommand struct {
 	RecordType    io.EnumRecordType
 	WALKeyPath    string
+	// VarRecLen is used only in case of VARIABLE recordType.
+	// (The sum of field lengths in elementTypes without Epoch column) + 4 bytes(for intervalTicks)
 	VarRecLen     int
 	Offset, Index int64
 	// Data can be for multiple row records.
+	// If the record type is FIXED, one row data is the series of columns without Epoch column.
+	// If it's VARIABLE, one row data is the series of columns without Epoch Column, but with IntervalTick(4byte).
 	Data []byte
 	// DataShapes with Epoch column
 	DataShapes []io.DataShape

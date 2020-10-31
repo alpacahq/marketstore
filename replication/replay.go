@@ -8,129 +8,167 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
-	"regexp"
-	"strconv"
+	"time"
 )
 
-// e.g. "/Users/dakimura/marketstore/data/AMZN/1Min/TICK/2017.bin" -> (AMZN), (1Min), (TICK), (2017)
-var WkpRegex = regexp.MustCompile(`([^/]+)/([^/]+)/([^/]+)/([0-9]+)\.bin$`)
+type ReplayerImpl struct {
+	// parseTGFunc is a function to parse Transaction Group byte array to writeTransactionSet.
+	// wal.ParseTGData is always used, but abstracted for testability
+	parseTGFunc func(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet)
+	// WriteFunc is a function to write CSM to marketstore.
+	// executor.WriteCSMInner is always used, but abstracted for testability
+	writeFunc func(csm io.ColumnSeriesMap, isVariableLength bool) (err error)
+	// rootDir is the path to the directory in which Marketstore database resides(e.g. "data")
+	rootDir string
+}
 
-func replay(transactionGroup []byte) error {
+func NewReplayer(
+	parseTGFunc func(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet),
+	writeFunc func(csm io.ColumnSeriesMap, isVariableLength bool) (err error),
+	rootDir string,
+) *ReplayerImpl {
+	return &ReplayerImpl{
+		parseTGFunc: parseTGFunc,
+		writeFunc:   writeFunc,
+		rootDir:     rootDir,
+	}
+}
+
+func (r *ReplayerImpl) Replay(transactionGroup []byte) error {
 	// TODO: replay ordered by transactionGroupID
 	log.Debug(fmt.Sprintf("[replica] received a replication message. size=%v", len(transactionGroup)))
 
-	tgID, wtsets := executor.ParseTGData(transactionGroup, executor.ThisInstance.RootDir)
+	tgID, wtsets := r.parseTGFunc(transactionGroup, r.rootDir)
 	if len(wtsets) == 0 {
 		log.Info("[replica] received empty WTset")
 		return nil
 	}
 	log.Debug(fmt.Sprintf("[replica] transactionGroupID=%v", tgID))
 
-	csm, err := WTSetsToCSM(wtsets)
-	if err != nil {
-		return errors.Wrap(err, "failed to convert WTSet to CSM")
-	}
+	for _, wtSet := range wtsets {
+		csm, err := WTSetToCSM(&wtSet)
+		if err != nil {
+			return errors.Wrap(err, "failed to convert WTSet to CSM")
+		}
 
-	err = executor.WriteCSMInner(csm, wtsets[0].RecordType == io.VARIABLE)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to WriteCSM. csm:%v", csm))
+		err = r.writeFunc(csm, wtsets[0].RecordType == io.VARIABLE)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to WriteCSM. csm:%v", csm))
+		}
 	}
-
 	log.Debug("[replica] successfully replayed the WAL message")
 	return nil
 }
 
-func WTSetsToCSM(wtSets []wal.WTSet) (io.ColumnSeriesMap, error) {
-	const (
-		EpochBytes         = 8
-		NanosecBytes       = 4
-		IntervalTicksBytes = 4
-	)
-
+// WTSetToCSM converts wal.WTSet to ColumnSeriesMap
+func WTSetToCSM(wtSet *wal.WTSet) (io.ColumnSeriesMap, error) {
 	csm := io.NewColumnSeriesMap()
-
-	for _, wtSet := range wtSets {
-		tbk, year, err := walKeyPathToTBKInfo(wtSet.FilePath)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to parse walKeyPath to bucket info. wkp:"+wtSet.FilePath)
-		}
-		tf, err := tbk.GetTimeFrame()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get TimeFrame from TimeBucketKey. tbk:"+tbk.String())
-		}
-
-		epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
-		dsv := wtSet.DataShapes
-
-		intervalsPerDay := uint32(utils.Day.Seconds() / tf.Duration.Seconds())
-		ca := io.None
-
-		var buf []byte
-		switch wtSet.RecordType {
-		case io.FIXED: // only 1 record in WTset in case of FIXED
-			buf, err = io.Serialize(buf, epoch.Unix())
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
-			}
-
-			buf, err = io.Serialize(buf, wtSet.Buffer.Payload())
-
-		case io.VARIABLE: // can have multiple records that have the same Epoch
-			if wtSet.VarRecLen == 0 {
-				return nil, errors.New("[bug] variableRecordLength=0")
-			}
-
-			payload := wtSet.Buffer.Payload()
-			numRows := len(payload) / wtSet.VarRecLen
-
-			// Epoch*numRows + Payload(intervalTicks(4byte) are replaced by Nanoseconds(4byte))
-			buf = make([]byte, numRows*EpochBytes+len(wtSet.Buffer.Payload()))
-			cursor := 0
-			for i := 0; i < numRows; i++ {
-				// serialize Epoch (variable length records in a WriteSet have the same Epoch value)
-				buf, err = io.Serialize(buf[:cursor], epoch.Unix())
-				if err != nil {
-					return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
-				}
-				cursor += EpochBytes
-
-				// append the payload (columns + intervalTicks) for a record
-				buf, err = io.Serialize(buf[:cursor], payload[i*wtSet.VarRecLen:(i+1)*wtSet.VarRecLen])
-				cursor += wtSet.VarRecLen
-
-				// last 4 byte of each record is an intervalTick
-				intervalTicks := io.ToUInt32(buf[len(buf)-IntervalTicksBytes:])
-				// expand intervalTicks(32bit) to Epoch and Nanosecond
-				_, nanosecond := executor.GetTimeFromTicks(uint64(epoch.Unix()), intervalsPerDay, intervalTicks)
-				// chop off the intervalTicks and append nanosec
-				buf, err = io.Serialize(buf[:len(buf)-IntervalTicksBytes], int32(nanosecond))
-			}
-
-			// add Nanoseconds column to the data shape vector
-			dsv = append(dsv, io.DataShape{Name: "Nanoseconds", Type: io.INT32})
-		}
-
-		// when rowLen = 0 is specified, the rowLength is calculated automatically from DataShapes
-		rs := io.NewRowSeries(*tbk, buf, wtSet.DataShapes, 0, &ca, wtSet.RecordType)
-		key, cs := rs.ToColumnSeries()
-
-		csm.AddColumnSeries(key, cs)
+	cs, tbk, err := wtSetToCS(wtSet)
+	if err != nil {
+		return nil, err
 	}
+	csm.AddColumnSeries(*tbk, cs)
 
 	return csm, nil
 }
 
-func walKeyPathToTBKInfo(walKeyPath string) (tbk *io.TimeBucketKey, year int, err error) {
-	group := WkpRegex.FindStringSubmatch(walKeyPath)
-	// group should be like {"AAPL/1Min/Tick/2020.bin","AAPL","1Min","Tick","2017"} (len:5, cap:5)
-	if len(group) != 5 {
-		return nil, 0, errors.New(fmt.Sprintf("failed to extract TBK info from WalKeyPath:%v", walKeyPath))
-	}
-
-	year, err = strconv.Atoi(group[4])
+func wtSetToCS(wtSet *wal.WTSet) (*io.ColumnSeries, *io.TimeBucketKey, error) {
+	// get TimeBucketKey and year from the FilePath in WTSet
+	tbk, year, err := io.NewTimeBucketKeyFromWalKeyPath(wtSet.FilePath)
 	if err != nil {
-		return nil, 0, errors.New(fmt.Sprintf("failed to extract year from WalKeyPath:%s", group[3]))
+		return nil, nil, errors.Wrap(err, "failed to parse walKeyPath to bucket info. wkp:"+wtSet.FilePath)
 	}
 
-	return io.NewTimeBucketKey(fmt.Sprintf("%s/%s/%s", group[1], group[2], group[3])), year, nil
+	tf, err := tbk.GetTimeFrame()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to get TimeFrame from TimeBucketKey. tbk:"+tbk.String())
+	}
+
+	// calculate Epoch
+	epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
+	dsv := wtSet.DataShapes
+
+	var buf []byte
+	switch wtSet.RecordType {
+	case io.FIXED: // only 1 record in WTset
+		buf, err = io.Serialize(buf, epoch.Unix())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
+		}
+
+		buf, err = io.Serialize(buf, wtSet.Buffer.Payload())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, fmt.Sprintf("failed to serialize Payload to buffer:%v", wtSet.Buffer.Payload()))
+		}
+
+	case io.VARIABLE: // WTset can have multiple records that have the same Epoch
+		if wtSet.VarRecLen == 0 {
+			return nil, nil, errors.New("[bug] variableRecordLength=0")
+		}
+
+		intervalsPerDay := uint32(utils.Day.Seconds() / tf.Duration.Seconds())
+
+		// serialize rows in wtSet to []byte
+		buf, err = serializeVariableRecords(epoch, intervalsPerDay, wtSet)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to serialize Payload to buffer:"+epoch.String())
+		}
+
+		// add Nanoseconds column to the data shape vector
+		dsv = append(dsv, io.DataShape{Name: "Nanoseconds", Type: io.INT32})
+	}
+
+	// when rowLen = 0 is specified, the rowLength is calculated automatically from DataShapes
+	rs := io.NewRowSeries(*tbk, buf, wtSet.DataShapes, 0, wtSet.RecordType)
+	_, cs := rs.ToColumnSeries()
+
+	return cs, tbk, nil
+}
+
+// serializeVariableRecord serializes variableLength record(s) data in a WTSet to []byte
+func serializeVariableRecords(epoch time.Time, intervalsPerDay uint32, wtSet *wal.WTSet) ([]byte, error) {
+	const (
+		EpochBytes         = 8
+		IntervalTicksBytes = 4
+	)
+	payload := wtSet.Buffer.Payload()
+	varRecLen := wtSet.VarRecLen
+
+	// the number of records in the wtSet
+	numRows := len(payload) / varRecLen
+
+	// allocate bytes for rows in wtSet.
+	// Epoch*numRows + Payload(= (columns + 4byte (for Nanoseconds that replaces intervalTicks(4byte))*numRows )
+	buf := make([]byte, numRows*EpochBytes+len(payload))
+
+	// 1 record size = 8byte(Epoch) + columns + intervalTicks(4byte) = 8byte(Epoch) + VariableLengthRecord
+	cursor := 0
+	for i := 0; i < numRows; i++ {
+		// serialize Epoch (variable length records in a WTSet have the same Epoch value)
+		buf, err := io.Serialize(buf[:cursor], epoch.Unix())
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
+		}
+		cursor += EpochBytes
+
+		// append the payload (= columns + intervalTicks) for a record
+		buf, err = io.Serialize(buf[:cursor], payload[i*varRecLen:(i+1)*varRecLen])
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to serialize Payload to buffer:"+epoch.String())
+		}
+
+		// last 4 byte of each record is an intervalTick
+		intervalTicks := io.ToUInt32(buf[len(buf)-IntervalTicksBytes:])
+		// expand intervalTicks(32bit) to Epoch and Nanosecond
+		_, nanosecond := executor.GetTimeFromTicks(uint64(epoch.Unix()), intervalsPerDay, intervalTicks)
+		// replace intervalTick with Nanosecond
+		buf, err = io.Serialize(buf[:len(buf)-IntervalTicksBytes], int32(nanosecond))
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to serialize Payload to buffer:"+epoch.String())
+		}
+
+		cursor += varRecLen
+	}
+
+	return buf, nil
 }
