@@ -1,16 +1,20 @@
 package reorg
 
 import (
-	"time"
+	// "time"
 	"errors"
+	"strings"
 
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
+	// "github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const bucketkeySuffix = "/1D/ACTIONS"
+const calcSplit = "split"
+const calcDividend = "dividend"
+
 
 var (
 	requiredColumns = []io.DataShape{}
@@ -20,16 +24,12 @@ var (
 	initArgs = []io.DataShape{}
 )
 
-// const (
-// 	NewRecord = iota
-// 	UpdateRecord
-// 	DeleteRecord
-// )
-
-
 type Reorg struct {
 	uda.AggInterface
 	ArgMap *functions.ArgumentMap
+
+	AdjustDividend bool
+	AdjustSplit bool 
 
 	epochs []int64
 	output map[string][]float64
@@ -50,13 +50,43 @@ func (r *Reorg) GetInitArgs() []io.DataShape {
 
 func (r *Reorg) New() (uda.AggInterface, *functions.ArgumentMap) {
 	rn := new(Reorg)
+	
 	rn.ArgMap = functions.NewArgumentMap(requiredColumns, optionalColumns...)
+	rn.output = map[string][]float64{}	
 	return rn, rn.ArgMap
 }
 
 
 func (r *Reorg) Init(args ...interface{}) error {
 	r.Reset()
+	if len(args) == 0 {
+		r.AdjustSplit = true
+		r.AdjustDividend = true
+		return nil
+	} else {
+		r.AdjustSplit = false
+		r.AdjustDividend = false
+	}
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case []string:
+			for _, p := range a {
+				switch strings.ToLower(p) {
+				case calcSplit: 
+					r.AdjustSplit = true
+				case calcDividend:
+					r.AdjustDividend = true
+				}
+			}
+		case string:
+			switch strings.ToLower(a) {
+			case calcSplit: 
+				r.AdjustSplit = true
+			case calcDividend:
+				r.AdjustDividend = true
+			}
+		}
+	}
 	return nil
 }
 
@@ -65,12 +95,11 @@ func (r *Reorg) SetTimeBucketKey(tbk io.TimeBucketKey) {
 } 
 
 func (r *Reorg) Reset() {
-	// rreset some inner state here
+	// reset some inner state here
 }
 
 func (r *Reorg) Accum(cols io.ColumnInterface) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
-	log.Info("Loaded from %+v to %+v", time.Unix(epochs[0], 0), time.Unix(epochs[len(epochs)-1], 0))
 	if !ok {
 		return errors.New("Reorg: Input data must have an Epoch column!")
 	}
@@ -82,8 +111,8 @@ func (r *Reorg) Accum(cols io.ColumnInterface) error {
 	}
 
 	cusip := r.tbk.GetItemInCategory("Symbol")
-	rate_changes := GetRateChanges(cusip)
-	log.Info("Rate change events: %d", len(rate_changes))
+	rate_changes := GetRateChanges(cusip, r.AdjustSplit, r.AdjustDividend)
+	// log.Info("# of rate change events: %d", len(rate_changes))
 	// rate changes always contains 1.0 at the maximum available time
 	ri := len(rate_changes) - 1
 	rate := rate_changes[ri].Rate
@@ -94,7 +123,6 @@ func (r *Reorg) Accum(cols io.ColumnInterface) error {
 		if ri > 0 && epochs[i] < rate_changes[ri-1].Epoch {
 			ri--
 			rate *= rate_changes[ri].Rate
-			log.Info("%+v Rate changed to %.3f (%d)", time.Unix(epochs[i], 0), rate, rate_changes[ri].Textnumber)
 		}
 		for _, c := range r.output {
 			c[i] *= rate

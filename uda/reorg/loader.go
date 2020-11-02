@@ -58,6 +58,7 @@ type RateChange struct {
 	Epoch int64
 	Rate float64
 	Textnumber int64
+	Type byte
 }
 
 type Actions struct {
@@ -71,25 +72,30 @@ type RateChangeCache struct {
 	Access int64
 	CreatedAt time.Time
 }
+type CacheKey struct {
+	cusip string
+	splits bool 
+	dividends bool
+}
 
 const cacheLifetime = 24 * time.Hour
-var cache = map[string]RateChangeCache{}
+var cache = map[CacheKey]RateChangeCache{}
 
-
-func GetRateChanges(cusip string) []RateChange {
-	rate_cache, present := cache[cusip]
+func GetRateChanges(cusip string, includeSplits, includeDividends bool) []RateChange {
+	key := CacheKey{cusip: cusip, splits: includeSplits, dividends: includeDividends}
+	rate_cache, present := cache[key]
 	if present && time.Now().Sub(rate_cache.CreatedAt) > cacheLifetime  {
 		present = false
 	}
 	if !present {
 		ca := NewCorporateActions(cusip)
 		ca.Load()
-		rate_cache := RateChangeCache{
-			Changes: ca.RateChangeEvents(),
+		rate_cache = RateChangeCache{
+			Changes: ca.RateChangeEvents(includeSplits, includeDividends),
 			Access: 0,
 			CreatedAt: time.Now(),
 		}
-		cache[cusip] = rate_cache
+		cache[key] = rate_cache
 	} 
 	return rate_cache.Changes
 }
@@ -159,7 +165,7 @@ func (a *Actions) Len() int {
 	return len(a.Rows.EntryDates)
 }
 
-func (a *Actions) RateChangeEvents() []RateChange {
+func (a *Actions) RateChangeEvents(includeSplits, includeDividends bool) []RateChange {
 	if a.Len() == 0 {
 		return []RateChange{}
 	}
@@ -194,14 +200,19 @@ func (a *Actions) RateChangeEvents() []RateChange {
 		action_index = append(action_index, index)
 	} 
 	sort.Slice(action_index, func(i, j int) bool { return a.Rows.EffectiveDates[i] < a.Rows.EffectiveDates[j] })
-	changes := make([]RateChange, len(action_index)+1)
-	for i, index := range action_index {
+	changes := make([]RateChange, 0, len(action_index)+1)
+	for _, index := range action_index {
+		if includeSplits && (a.Rows.NotificationTypes[index] == Split || a.Rows.NotificationTypes[index] == ReverseSplit) {
+			changes = append(changes, RateChange{Epoch: a.Rows.EffectiveDates[index], Rate: a.Rows.Rates[index], Textnumber: a.Rows.TextNumbers[index], Type: a.Rows.NotificationTypes[index]})
+		}
+		if includeDividends && (a.Rows.NotificationTypes[index] == Dividend) {
+			changes = append(changes, RateChange{Epoch: a.Rows.EffectiveDates[index], Rate: a.Rows.Rates[index], Textnumber: a.Rows.TextNumbers[index], Type: a.Rows.NotificationTypes[index]})
+		}
 		//FIXME: when to use RecordDates and when EffectiveDates?????
 		//lehet hogy a SecurityType ???
 		// A = Effective
 		// C = RecordDate?
-		changes[i] = RateChange{Epoch: a.Rows.EffectiveDates[index], Rate: a.Rows.Rates[index], Textnumber: a.Rows.TextNumbers[index]}
 	}
-	changes[len(changes)-1] = RateChange{Epoch: math.MaxInt64, Rate: 1, Textnumber: 0}
+	changes = append(changes, RateChange{Epoch: math.MaxInt64, Rate: 1, Textnumber: 0, Type: 0})
 	return changes
 }
