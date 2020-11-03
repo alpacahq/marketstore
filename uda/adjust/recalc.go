@@ -1,4 +1,4 @@
-package reorg
+package adjust
 
 import (
 	"errors"

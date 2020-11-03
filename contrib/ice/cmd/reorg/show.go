@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	uda "github.com/alpacahq/marketstore/v4/uda/reorg"
+	"github.com/alpacahq/marketstore/v4/uda/adjust"
 	"github.com/alpacahq/marketstore/v4/executor"
 )
 
@@ -27,7 +27,7 @@ var ShowRecordsCmd = &cobra.Command{
 }
 
 func show_records(cusip string) {
-	ca := uda.NewCorporateActions(cusip)
+	ca := adjust.NewCorporateActions(cusip)
 	ca.Load()
 	println("----- stored records ------")
 	for i:=0; i<len(ca.Rows.EntryDates); i++ {
@@ -36,9 +36,9 @@ func show_records(cusip string) {
 		rec := time.Unix(ca.Rows.RecordDates[i], 0)
 
 		var ref int64
-		if ca.Rows.Statuses[i] == uda.UpdateRecord {
+		if ca.Rows.Statuses[i] == adjust.UpdateRecord {
 			ref = ca.Rows.UpdateTextNumbers[i]
-		} else if ca.Rows.Statuses[i] == uda.DeleteRecord {
+		} else if ca.Rows.Statuses[i] == adjust.DeleteRecord {
 			ref = ca.Rows.DeleteTextNumbers[i]
 		}
 

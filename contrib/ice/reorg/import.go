@@ -97,6 +97,7 @@ func storeNotification(symbol string, note *models.Notification) error {
 	csm := io.NewColumnSeriesMap()
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{note.EntryDate.Unix()})
+	// cs.AddColumn("Nanoseconds", []int32{int32(note.TextNumber)})
 	cs.AddColumn("TextNumber", []int64{note.TextNumber})
 	cs.AddColumn("UpdateTextNumber", []int64{note.UpdateTextNumber})
 	cs.AddColumn("DeleteTextNumber", []int64{note.DeleteTextNumber})
