@@ -5,7 +5,7 @@ import (
 	"time"
 	"fmt"
 	"strings"
-	"log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 
@@ -80,10 +80,9 @@ func Convert(input string, format string, def string, v reflect.Value) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			fmt.Printf("panic at conversion: %+v\n input: %s\n", err, input)
+			log.Error("panic at conversion: %+v\n input: %s\n", err, input)
 		}
 	}()
-	// println(input, format, def)
 	iv := reflect.Indirect(v)
 	if iv.CanSet() {
 		f := converters[iv.Type().Name()]
@@ -93,7 +92,7 @@ func Convert(input string, format string, def string, v reflect.Value) {
 			}
 			err := f(clean_input, iv, format)
 			if err != nil {
-				log.Printf("type conversion error: %+v, %s\n", err, input)
+				log.Error("type conversion error: %+v, %s\n", err, input)
 			}
 		} else {
 			println("converter not found for", input, v.Type().Name(), "kind:", iv.Kind())

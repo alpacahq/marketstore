@@ -32,6 +32,7 @@ type CARows struct {
 	SecurityTypes []byte
 	EffectiveDates []int64
 	RecordDates []int64
+	ExpirationDates []int64
 	NewRates []float64
 	OldRates []float64
 	Rates []float64
@@ -48,6 +49,7 @@ func NewCARows() *CARows {
 		SecurityTypes: []byte{},
 		RecordDates: []int64{},
 		EffectiveDates: []int64{},
+		ExpirationDates: []int64{},
 		NewRates: []float64{},
 		OldRates: []float64{},
 		Rates: []float64{},
@@ -110,9 +112,9 @@ func NewCorporateActions(cusip string) (*Actions) {
 	}
 }
 
-func (a *Actions) Load() error {
+func (act *Actions) Load() error {
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
-	tbk := io.NewTimeBucketKeyFromString(a.Cusip + bucketkeySuffix)
+	tbk := io.NewTimeBucketKeyFromString(act.Cusip + bucketkeySuffix)
 	tf := tbk.GetItemInCategory("Timeframe")
 	cd := utils.CandleDurationFromString(tf)
 	queryableTimeframe := cd.QueryableTimeframe()
@@ -128,7 +130,7 @@ func (a *Actions) Load() error {
 
 	parseResult, err := query.Parse()
 	if err != nil {
-		// probably it is a no files returned from query phase
+		// probably no files returned from query phase
 		// fmt.Printf("%+v\n", err)
 		return nil
 	}
@@ -142,47 +144,48 @@ func (a *Actions) Load() error {
 		log.Fatal("Error returned from query scanner: %s\n", err)
 		return err
 	}
-	a.FromColumnSeries(csm[*tbk])
+	act.FromColumnSeries(csm[*tbk])
 	return nil
 }
 
-func (a *Actions) FromColumnSeries(cs *io.ColumnSeries) {
-	a.Rows.EntryDates = cs.GetColumn("Epoch").([]int64)
-	a.Rows.TextNumbers = cs.GetColumn("TextNumber").([]int64)
-	a.Rows.UpdateTextNumbers = cs.GetColumn("UpdateTextNumber").([]int64)
-	a.Rows.DeleteTextNumbers = cs.GetColumn("DeleteTextNumber").([]int64)
-	a.Rows.NotificationTypes = cs.GetColumn("NotificationType").([]byte)
-	a.Rows.Statuses = cs.GetColumn("Status").([]byte)
-	a.Rows.SecurityTypes = cs.GetColumn("SecurityType").([]byte)
-	a.Rows.RecordDates = cs.GetColumn("RecordDate").([]int64)
-	a.Rows.EffectiveDates = cs.GetColumn("EffectiveDate").([]int64)
-	a.Rows.NewRates = cs.GetColumn("NewRate").([]float64)
-	a.Rows.OldRates = cs.GetColumn("OldRate").([]float64)
-	a.Rows.Rates = cs.GetColumn("Rate").([]float64)
+func (act *Actions) FromColumnSeries(cs *io.ColumnSeries) {
+	act.Rows.EntryDates = cs.GetColumn("Epoch").([]int64)
+	act.Rows.TextNumbers = cs.GetColumn("TextNumber").([]int64)
+	act.Rows.UpdateTextNumbers = cs.GetColumn("UpdateTextNumber").([]int64)
+	act.Rows.DeleteTextNumbers = cs.GetColumn("DeleteTextNumber").([]int64)
+	act.Rows.NotificationTypes = cs.GetColumn("NotificationType").([]byte)
+	act.Rows.Statuses = cs.GetColumn("Status").([]byte)
+	act.Rows.SecurityTypes = cs.GetColumn("SecurityType").([]byte)
+	act.Rows.RecordDates = cs.GetColumn("RecordDate").([]int64)
+	act.Rows.EffectiveDates = cs.GetColumn("EffectiveDate").([]int64)
+	act.Rows.ExpirationDates = cs.GetColumn("ExpirationDate").([]int64)
+	act.Rows.NewRates = cs.GetColumn("NewRate").([]float64)
+	act.Rows.OldRates = cs.GetColumn("OldRate").([]float64)
+	act.Rows.Rates = cs.GetColumn("Rate").([]float64)
 }
 
-func (a *Actions) Len() int {
-	return len(a.Rows.EntryDates)
+func (act *Actions) Len() int {
+	return len(act.Rows.EntryDates)
 }
 
-func (a *Actions) RateChangeEvents(includeSplits, includeDividends bool) []RateChange {
-	if a.Len() == 0 {
+func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []RateChange {
+	if act.Len() == 0 {
 		return []RateChange{}
 	}
 	ca_map := map[int64]int{}
-	for i:=0; i<a.Len(); i++ {
+	for i:=0; i<act.Len(); i++ {
 		var textnumber int64 
-		status := a.Rows.Statuses[i]
+		status := act.Rows.Statuses[i]
 		switch status {
 		case NewRecord:
-			textnumber = a.Rows.TextNumbers[i]
+			textnumber = act.Rows.TextNumbers[i]
 			ca_map[textnumber] = i
 		case UpdateRecord:
-			textnumber = a.Rows.UpdateTextNumbers[i]
+			textnumber = act.Rows.UpdateTextNumbers[i]
 			prev, present := ca_map[textnumber] 
 			// being extremely paranoid here, allow updates for newer records only
 			if present {
-				if a.Rows.EntryDates[i] > a.Rows.EntryDates[prev] {
+				if act.Rows.EntryDates[i] > act.Rows.EntryDates[prev] {
 					ca_map[textnumber] = i
 				}
 			} else {
@@ -190,28 +193,25 @@ func (a *Actions) RateChangeEvents(includeSplits, includeDividends bool) []RateC
 				ca_map[textnumber] = i
 			}
 		case DeleteRecord:
-			textnumber = a.Rows.DeleteTextNumbers[i]
+			textnumber = act.Rows.DeleteTextNumbers[i]
 			delete(ca_map, textnumber)
 		}
-		// log.Info("ID: %d, date: %+v, status: %d, rate: %+v\n", a.Rows.TextNumbers[i], a.Rows.entrydates[i], a.Rows.Statuses[i], ca.Rows.Rates[i])
+		// log.Info("ID: %d, date: %+v, status: %d, rate: %+v\n", act.Rows.TextNumbers[i], act.Rows.entrydates[i], act.Rows.Statuses[i], ca.Rows.Rates[i])
 	}
 	action_index := []int{}
 	for _, index := range ca_map {
 		action_index = append(action_index, index)
 	} 
-	sort.Slice(action_index, func(i, j int) bool { return a.Rows.EffectiveDates[i] < a.Rows.EffectiveDates[j] })
+	sort.Slice(action_index, func(i, j int) bool { return act.Rows.EffectiveDates[i] < act.Rows.EffectiveDates[j] })
 	changes := make([]RateChange, 0, len(action_index)+1)
 	for _, index := range action_index {
-		if includeSplits && (a.Rows.NotificationTypes[index] == Split || a.Rows.NotificationTypes[index] == ReverseSplit) {
-			changes = append(changes, RateChange{Epoch: a.Rows.EffectiveDates[index], Rate: a.Rows.Rates[index], Textnumber: a.Rows.TextNumbers[index], Type: a.Rows.NotificationTypes[index]})
+		// use Expiration date 
+		if includeSplits && (act.Rows.NotificationTypes[index] == Split || act.Rows.NotificationTypes[index] == ReverseSplit) {
+			changes = append(changes, RateChange{Epoch: act.Rows.ExpirationDates[index], Rate: act.Rows.Rates[index], Textnumber: act.Rows.TextNumbers[index], Type: act.Rows.NotificationTypes[index]})
 		}
-		if includeDividends && (a.Rows.NotificationTypes[index] == Dividend) {
-			changes = append(changes, RateChange{Epoch: a.Rows.EffectiveDates[index], Rate: a.Rows.Rates[index], Textnumber: a.Rows.TextNumbers[index], Type: a.Rows.NotificationTypes[index]})
+		if includeDividends && (act.Rows.NotificationTypes[index] == Dividend) {
+			changes = append(changes, RateChange{Epoch: act.Rows.ExpirationDates[index], Rate: act.Rows.Rates[index], Textnumber: act.Rows.TextNumbers[index], Type: act.Rows.NotificationTypes[index]})
 		}
-		//FIXME: when to use RecordDates and when EffectiveDates?????
-		//lehet hogy a SecurityType ???
-		// A = Effective
-		// C = RecordDate?
 	}
 	changes = append(changes, RateChange{Epoch: math.MaxInt64, Rate: 1, Textnumber: 0, Type: 0})
 	return changes

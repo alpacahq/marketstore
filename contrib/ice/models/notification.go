@@ -45,7 +45,6 @@ type Notification struct {
 	NewRate float64							`reorg:"func:ParseNewRate"`
 	OldRate	float64							`reorg:"func:ParseOldRate"`
 	DueRedemptionDate time.Time				`reorg:"func:ParseDueRedemptionDate"`
-	// Detail string							`reorg:"func:parseDetail"`
 }
 
 

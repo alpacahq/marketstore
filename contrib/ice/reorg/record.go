@@ -4,8 +4,7 @@ import (
 	"reflect"
 	"strings"
 	"regexp"
-	// "fmt"
-	"log"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // last \n intentionally not included, as it would include an extra empy line after split
@@ -17,7 +16,7 @@ func safeCall(v reflect.Value, fn string, lines []string) (out string) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			log.Printf("whoops: %+v died while parsing: \n%s\n--------\n", fn, strings.Join(lines, "\n"))
+			log.Fatal("%+v died while parsing: %s", fn, strings.Join(lines, "\n"))
 			out = ""
 		}
 	}()
@@ -42,15 +41,11 @@ func ReadRecord(lines []string, it interface{}) {
 		}
 		v = reflect.Indirect(reflect.ValueOf(t))
 	}	
-	//println("ReadRecord ---------")
-
 	parse_def := GetParseDef(it)
 	var input string 
 	for _, parse := range parse_def {
-		//println(pi)
 		field := v.Field(parse.FieldNo)
 		input = ""
-		// field_name := v.Type().Field(parse.FieldNo).Name
 		if parse.Func != "" {
 			input = safeCall(v, parse.Func, lines)
 		} else {
@@ -80,25 +75,20 @@ func ReadRecords(content string, slicePtr interface{}) {
 	record_no := 1
 	for {
 		if file_end_matcher.MatchString(content) {
-			// println("EOF reached", len(content), "bytes left")
 			break
 		}
 		result := record_matcher.FindString(content)
 		if len(result) > 1 {
 			rec := reflect.New(elementType)
 			lines := strings.Split(result, "\n")
-			// println("Record:", record_no, "lines: ", len(lines), len(lines[len(lines)-1]))
-			// println(result[0])
 			lines = lines[:len(lines)-1]
-			//fmt.Printf("%+v\n", lines)
 			ReadRecord(lines, rec)
-			// fmt.Printf("%+v\n", rec.Elem())
 			slice_value.Set(reflect.Append(slice_value, rec.Elem()))
 			content = content[len(result):len(content)]
 			record_no++
 		} else {
-			println(content)
-			panic("something went wrong, it shoult ALWAYS match")
+			log.Error(content)
+			panic("something went wrong, it should ALWAYS match")
 		}
 	}
 } 

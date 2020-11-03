@@ -5,7 +5,7 @@ import (
 	"flag"
 	"net/url"
 	"os"
-	"github.com/alpacahq/marketstore/v4/contrib/corporateactions/ftp"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/ftp"
 )
 
 var (

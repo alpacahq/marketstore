@@ -3,7 +3,7 @@ package reorg
 import (
 	"github.com/spf13/cobra"
 	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/contrib/corporateactions/reorg"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
 )
 
 var reimport bool

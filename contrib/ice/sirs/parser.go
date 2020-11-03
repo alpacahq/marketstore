@@ -1,14 +1,17 @@
 package sirs
 
+/*
+	copied from Ledgie
+*/
+
 import (
 	"bufio"
 	"io"
 	"strconv"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/contrib/corporateactions/models"
-	"github.com/alpacahq/marketstore/v4/contrib/corporateactions/lib/date"
-	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/models"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
 
 	"github.com/pkg/errors"
 )
@@ -36,9 +39,7 @@ func Load(r io.Reader) ([]*models.SecurityMaster, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-
-	log.Info("security master was loaded")
-	
+		
 	return l.records, nil
 }
 

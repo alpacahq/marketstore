@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/alpacahq/marketstore/v4/contrib/corporateactions/lib/date"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
 )
 
 //SecurityMaster is model for database column mapping
@@ -67,9 +67,4 @@ type SecurityMaster struct {
 	Country                       string
 	CountryOfIssuerIncorporation  string
 	Exchange                      string
-}
-
-//TableName is database schema + table name
-func (t *SecurityMaster) TableName() string {
-	return "stage.security_master2"
 }

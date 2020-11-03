@@ -2,7 +2,7 @@ package main
 
 import (
 	"os"
-	"github.com/alpacahq/marketstore/v4/contrib/corporateactions/cmd"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd"
 )
 
 func main() {

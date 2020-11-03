@@ -6,7 +6,7 @@ import (
 	//"strings"
 	"github.com/spf13/cobra"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/alpacahq/marketstore/v4/contrib/corporateactions/sirs"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/sirs"
 )
 
 
@@ -16,7 +16,7 @@ var (
 
 //FileCmd load security master from a file
 var ShowSecurityMasterCmd = &cobra.Command{
-	Use:   "securitymaster <file-name>",
+	Use:   "sirs <file-name>",
 	Short: "load security master from a file",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		//open file
@@ -31,18 +31,17 @@ var ShowSecurityMasterCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+			rev := map[string]string{}
 			symbols := make([]string, 0)
-			for k, s := range master {
-				println(k, s)
-				if s != "" {
-					symbols = append(symbols, s)
+			for cusip, symbol := range master {
+				if symbol != "" {
+					rev[symbol] = cusip
+					symbols = append(symbols, symbol)
 				}
 			}
-
-			//sort.(symbols, func(i, j int) bool { return symbols[i] > symbols[j]})
 			sort.Strings(symbols)
 			for _, s := range symbols {
-				println(s)
+				println(s, rev[s])
 			}
 			return err
 		} else {

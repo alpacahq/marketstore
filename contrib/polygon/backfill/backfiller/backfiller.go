@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-	"github.com/gobwas/glob"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -12,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
+	"github.com/gobwas/glob"
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
@@ -36,6 +37,7 @@ var (
 	cacheDir                            string
 	readFromCache                       bool
 	noIngest                            bool
+	unadjusted                          bool
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
@@ -60,7 +62,7 @@ func init() {
 	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
 	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
 	flag.BoolVar(&noIngest, "no-ingest", false, "do not ingest downloaded data, just store it in cache")
-
+	flag.BoolVar(&unadjusted, "unadjusted", false, "request unadjusted price data")
 	flag.Parse()
 }
 
@@ -179,7 +181,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getBars(start, end, barPeriodDuration, currentSymbol, exchangeIDs, writerWP)
+				getBars(start, end, barPeriodDuration, currentSymbol, exchangeIDs, unadjusted, writerWP)
 			})
 		}
 
@@ -277,7 +279,7 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	symbolListMux.Unlock()
 }
 
-func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, writerWP *worker.WorkerPool) {
+func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool, writerWP *worker.WorkerPool) {
 	if len(exchangeIDs) != 0 && period != 24*time.Hour {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
 		period = 24 * time.Hour
@@ -292,10 +294,9 @@ func getBars(start time.Time, end time.Time, period time.Duration, symbol string
 		log.Info("[polygon] backfilling bars for %v between %s and %s", symbol, start, start.Add(period))
 
 		if len(exchangeIDs) == 0 {
-			if err := backfill.Bars(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+			if err := backfill.Bars(symbol, start, start.Add(period), batchSize, unadjusted, writerWP); err != nil {
 				log.Warn("[polygon] failed to backfill bars for %v (%v)", symbol, err)
 			}
-
 		} else {
 			if calendar.Nasdaq.IsMarketDay(start) {
 				if err := backfill.BuildBarsFromTrades(symbol, start, exchangeIDs, batchSize); err != nil {
