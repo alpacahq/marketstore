@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/config"
+	"github.com/alpacahq/marketstore/v4/contrib/alpaca/metrics"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/alpacahq/marketstore/v4/utils/pool"
 	"github.com/eapache/channels"
@@ -92,9 +93,11 @@ func (s *Subscription) start(handler func(msg []byte)) {
 		tickInfo := time.NewTicker(1 * time.Minute)
 		defer tickInfo.Stop()
 		for range tickInfo.C {
+			d := s.channel.Len()
+			metrics.AlpacaStreamQueueLength.Set(float64(d))
 			log.Info("{%s:%v,%s:%v,%s:%v}",
 				"subscription", subscriptions,
-				"channel_depth", s.channel.Len(),
+				"channel_depth", d,
 				"handled_messages", s.getHandled())
 			s.resetHandled()
 		}

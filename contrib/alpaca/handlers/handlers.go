@@ -106,9 +106,7 @@ func tradeHandler(t *api.Trade) {
 
 	Write(key, &tr)
 
-	lagOnReceipt := time.Now().Sub(timestamp).Seconds()
-	metrics.AlpacaStreamUpdateLag.WithLabelValues("trade").Set(lagOnReceipt)
-	metrics.AlpacaStreamLastUpdate.WithLabelValues("trade").SetToCurrentTime()
+	updateMetrics("trade", timestamp)
 }
 
 // quoteHandler handles a Quote
@@ -127,9 +125,7 @@ func quoteHandler(q *api.Quote) {
 	key := fmt.Sprintf("%s/1Sec/QUOTE", strings.Replace(q.Symbol, "/", ".", 1))
 	Write(key, &qu)
 
-	lagOnReceipt := time.Now().Sub(timestamp).Seconds()
-	metrics.AlpacaStreamUpdateLag.WithLabelValues("quote").Set(lagOnReceipt)
-	metrics.AlpacaStreamLastUpdate.WithLabelValues("quote").SetToCurrentTime()
+	updateMetrics("quote", timestamp)
 }
 
 // aggregateHandler handles an Aggregate
@@ -155,7 +151,12 @@ func aggregateHandler(agg *api.Aggregate) {
 		log.Error("[alpaca] csm write failure for key: [%v] (%v)", tbk.String(), err)
 	}
 
-	lagOnReceipt := time.Now().Sub(timestamp).Seconds()
-	metrics.AlpacaStreamUpdateLag.WithLabelValues("bar").Set(lagOnReceipt)
-	metrics.AlpacaStreamLastUpdate.WithLabelValues("bar").SetToCurrentTime()
+	updateMetrics("bar", timestamp)
+}
+
+func updateMetrics(msgType string, msgTimestamp time.Time) {
+	lagOnReceipt := time.Now().Sub(msgTimestamp).Seconds()
+	metrics.AlpacaStreamMessagesHandled.WithLabelValues(msgType).Inc()
+	metrics.AlpacaStreamUpdateLag.WithLabelValues(msgType).Set(lagOnReceipt)
+	metrics.AlpacaStreamLastUpdate.WithLabelValues(msgType).SetToCurrentTime()
 }
