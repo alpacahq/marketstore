@@ -45,7 +45,7 @@ func NewAlpacaWebSocket(config config.Config, oChan chan<- interface{}) *AlpacaW
 func (p *AlpacaWebSocket) listen() error {
 	// start the websocket connection
 	if err := p.connect(); err != nil {
-		log.Warn("error connecting to server {%s:%v,%s:%v,%s:%s}",
+		log.Error("[alpaca] error connecting to server {%s:%v,%s:%v,%s:%s}",
 			"server", p.server,
 			"subscription", p.subscriptions,
 			"error", err)
@@ -79,7 +79,7 @@ func (p *AlpacaWebSocket) listen() error {
 		case <-ticker.C:
 			err := p.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
 			if err != nil {
-				log.Warn("stream write ping error %s", err)
+				log.Error("[alpaca] stream write ping error %s", err)
 				return err
 			}
 		case msg := <-out:
@@ -92,18 +92,18 @@ func (p *AlpacaWebSocket) setReadDeadline() error {
 	return p.conn.SetReadDeadline(time.Now().Add((p.pingPeriod * 6) / 5))
 }
 
-func (p *AlpacaWebSocket) receiveMessages(out chan<- []byte, err chan<- error) {
+func (p *AlpacaWebSocket) receiveMessages(out chan<- []byte, errorChan chan<- error) {
 	for {
-		tt, pp, e := p.conn.ReadMessage()
-		if e != nil {
-			log.Warn("error during reading {%s:%s}",
-				"error", e)
-			err <- e
+		tt, pp, err := p.conn.ReadMessage()
+		if err != nil {
+			log.Error("[alpaca] error during reading {%s:%s}",
+				"error", err)
+			errorChan <- err
 			return
 		}
 
 		if tt == websocket.BinaryMessage {
-			log.Warn("received binary message from server")
+			log.Warn("[alpaca] received binary message from server")
 			continue
 		}
 
@@ -120,14 +120,14 @@ func (p *AlpacaWebSocket) connect() (err error) {
 		if hresp != nil {
 			body, _ := ioutil.ReadAll(hresp.Body)
 			return fmt.Errorf(
-				"connection failure, err: %s, status_code: %d, body: %s",
+				"[alpaca] connection failure, err: %w, status_code: %d, body: %s",
 				err,
 				hresp.StatusCode,
 				body,
 			)
 		}
 		return fmt.Errorf(
-			"connection failure, err: %s",
+			"[alpaca] connection failure, err: %w",
 			err,
 		)
 	}
@@ -158,23 +158,23 @@ func (p *AlpacaWebSocket) subscribe() error {
 	// Authenticate
 	resp, err = p.exchangeMessage(authMsg, `"authorized"`)
 	if err != nil {
-		log.Warn("unable to authenticate {%s:%v,%s:%v}",
+		log.Error("[alpaca] unable to authenticate {%s:%v,%s:%v}",
 			"response", resp,
 			"error", err)
 		return err
 	}
-	log.Info("authenticated successfully")
+	log.Info("[alpaca] authenticated successfully")
 
 	// Subscribe
 	resp, err = p.exchangeMessage(subMsg, "streams")
 	if err != nil {
-		log.Warn("subscription failure {%s:%v,%s:%v,%s:%v}",
+		log.Error("[alpaca] subscription failure {%s:%v,%s:%v,%s:%v}",
 			"streams", p.subscriptions,
 			"response", resp,
 			"error", err)
 		return err
 	}
-	log.Info("subscribed {%s:%v}", "streams", p.subscriptions)
+	log.Info("[alpaca] subscribed {%s:%v}", "streams", p.subscriptions)
 
 	// Setting the read deadline to avoid situations where a timeout
 	// is not set before our first ping is sent out

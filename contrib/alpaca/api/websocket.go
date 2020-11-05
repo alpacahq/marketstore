@@ -63,8 +63,8 @@ func (s *Subscription) Start(handler func(msg []byte)) {
 func (s *Subscription) start(handler func(msg []byte)) {
 	subscriptions := s.ws.subscriptions
 
-	log.Info("subscribing to Alpaca data websocket")
-	log.Info("enabling ... {%s:%v}", "streams", subscriptions)
+	log.Info("[alpaca] subscribing to Alpaca data websocket")
+	log.Info("[alpaca] enabling ... {%s:%v}", "streams", subscriptions)
 
 	// initialize & start the async worker pool
 	s.resetHandled()
@@ -72,7 +72,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 		handler(msg.([]byte))
 		s.incrementHandled()
 	})
-	log.Info("using %d workers", s.workerCount)
+	log.Info("[alpaca] using %d workers", s.workerCount)
 
 	go workerPool.Work(s.incoming)
 
@@ -82,7 +82,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 		defer tickDebug.Stop()
 		for range tickDebug.C {
 			log.Debug(
-				"{%s:%v,%s:%v,%s:%v,%s:%v}",
+				"[alpaca] {%s:%v,%s:%v,%s:%v,%s:%v}",
 				"subscription", subscriptions,
 				"goroutines", runtime.NumGoroutine(),
 				"channel_depth", s.channel.Len(),
@@ -95,7 +95,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 		for range tickInfo.C {
 			d := s.channel.Len()
 			metrics.AlpacaStreamQueueLength.Set(float64(d))
-			log.Info("{%s:%v,%s:%v,%s:%v}",
+			log.Info("[alpaca] {%s:%v,%s:%v,%s:%v}",
 				"subscription", subscriptions,
 				"channel_depth", d,
 				"handled_messages", s.getHandled())
@@ -110,7 +110,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 		for {
 			start := time.Now()
 			err := s.ws.listen()
-			log.Warn("error during ws listening {%s:%s}",
+			log.Error("[alpaca] error during ws listening {%s:%s}",
 				"error", err)
 			if time.Now().Sub(start) > connLiveAfter {
 				backoff = sleepStart
@@ -121,7 +121,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 				}
 			}
 			jitter := time.Duration(random.Intn(1e3)) * time.Millisecond
-			log.Info("backing off for %s", backoff)
+			log.Info("[alpaca] backing off for %s", backoff)
 			time.Sleep(backoff + jitter)
 		}
 	}()

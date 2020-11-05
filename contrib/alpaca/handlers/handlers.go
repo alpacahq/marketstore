@@ -43,7 +43,7 @@ func MessageHandler(msg []byte) {
 	message := api.AlpacaMessage{}
 	err := json.Unmarshal(msg, &message)
 	if err != nil {
-		log.Warn("error processing message {%s:%s,%s:%s}",
+		log.Error("[alpaca] error processing message {%s:%s,%s:%s}",
 			"message", string(msg),
 			"error", err)
 		return
@@ -54,7 +54,7 @@ func MessageHandler(msg []byte) {
 		t := api.AlpacaTrade{}
 		err := json.Unmarshal(msg, &t)
 		if err != nil {
-			log.Warn("error processing trade message {%s:%s,%s:%s}",
+			log.Error("[alpaca] error processing trade message {%s:%s,%s:%s}",
 				"message", string(msg),
 				"error", err)
 			return
@@ -64,7 +64,7 @@ func MessageHandler(msg []byte) {
 		q := api.AlpacaQuote{}
 		err := json.Unmarshal(msg, &q)
 		if err != nil {
-			log.Warn("error processing quote message {%s:%s,%s:%s}",
+			log.Error("[alpaca] error processing quote message {%s:%s,%s:%s}",
 				"message", string(msg),
 				"error", err)
 			return
@@ -74,14 +74,14 @@ func MessageHandler(msg []byte) {
 		agg := api.AlpacaAggregate{}
 		err := json.Unmarshal(msg, &agg)
 		if err != nil {
-			log.Warn("error processing aggregate message {%s:%s,%s:%s}",
+			log.Error("[alpaca] error processing minute aggregate message {%s:%s,%s:%s}",
 				"message", string(msg),
 				"error", err)
 			return
 		}
 		aggregateHandler(&agg.Data)
 	default:
-		log.Warn("unexpected non-event message {%s:%s,%s:%s}",
+		log.Warn("[alpaca] unexpected non-event message {%s:%s,%s:%s}",
 			"event_type", message.Data.EventType,
 			"message", string(msg))
 	}
