@@ -62,4 +62,15 @@ var (
 			Help:      "Number of stream messages waiting for processing",
 		},
 	)
+
+	// AlpacaStreamDroppedPackets counts the number
+	// of dropped packets e.g. due to conditions, size or price
+	AlpacaStreamDroppedPackets = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "alpaca_dropped_packets",
+			Help:      "Number of packets dropped",
+		},
+	)
 )

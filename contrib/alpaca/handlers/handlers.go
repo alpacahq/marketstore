@@ -94,6 +94,7 @@ func MessageHandler(msg []byte) {
 func tradeHandler(t *api.Trade) {
 	switch {
 	case conditionsPresent(t.Conditions), t.Size <= 0, t.Price <= 0:
+		metrics.AlpacaStreamDroppedPackets.Inc()
 		return
 	}
 	timestamp := time.Unix(0, t.Timestamp)
