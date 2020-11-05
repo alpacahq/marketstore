@@ -8,7 +8,7 @@ import (
 )
 
 func TestAsCanonical(t *testing.T) {
-	agg := string(enums.Agg)
+	aggToMinute := string(enums.AggToMinute)
 	q := string(enums.Quote)
 	tr := string(enums.Trade)
 	var tests = []struct {
@@ -21,7 +21,7 @@ func TestAsCanonical(t *testing.T) {
 				MinuteBarSymbols: []string{"PACA", "APCA"},
 				QuoteSymbols:     []string{"AAPL", "*"},
 			},
-			[]string{agg + "PACA", q + "*", agg + "APCA"},
+			[]string{aggToMinute + "PACA", q + "*", aggToMinute + "APCA"},
 		},
 		{
 			Subscription{
@@ -29,7 +29,7 @@ func TestAsCanonical(t *testing.T) {
 				TradeSymbols:     []string{"AAPL"},
 				QuoteSymbols:     []string{"AAPL"},
 			},
-			[]string{agg + "AAPL", q + "AAPL", tr + "AAPL"},
+			[]string{aggToMinute + "AAPL", q + "AAPL", tr + "AAPL"},
 		},
 	}
 
@@ -47,7 +47,7 @@ func TestAsCanonical(t *testing.T) {
 	}
 }
 
-func TestConcat(t *testing.T) {
+func TestFlatten(t *testing.T) {
 	var tests = []struct {
 		lists    [][]string
 		expected []string
@@ -61,7 +61,7 @@ func TestConcat(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := concat(tt.lists...)
+		got := flatten(tt.lists...)
 		assert.ElementsMatchf(
 			t,
 			tt.expected,
@@ -75,14 +75,18 @@ func TestConcat(t *testing.T) {
 }
 
 func TestPrefixStrings(t *testing.T) {
-	agg := string(enums.Agg)
+	aggToMinute := string(enums.AggToMinute)
 	var tests = []struct {
 		list     []string
 		prefix   enums.Prefix
 		expected []string
 	}{
-		{[]string{}, enums.Agg, []string{}},
-		{[]string{"A", "P", "C", ""}, enums.Agg, []string{agg + "A", agg + "P", agg + "C", agg}},
+		{[]string{}, enums.AggToMinute, []string{}},
+		{
+			[]string{"A", "P", "C", ""},
+			enums.AggToMinute,
+			[]string{aggToMinute + "A", aggToMinute + "P", aggToMinute + "C", aggToMinute},
+		},
 	}
 
 	for _, tt := range tests {

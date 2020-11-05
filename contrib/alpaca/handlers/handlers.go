@@ -72,8 +72,8 @@ func MessageHandler(msg []byte) {
 			return
 		}
 		quoteHandler(&q.Data)
-	case enums.AggEvent:
-		agg := api.AlpacaAggregate{}
+	case enums.AggToMinuteEvent:
+		agg := api.AlpacaAggregateToMinute{}
 		err := json.Unmarshal(msg, &agg)
 		if err != nil {
 			log.Error("[alpaca] error processing minute aggregate message {%s:%s,%s:%s}",
@@ -81,7 +81,7 @@ func MessageHandler(msg []byte) {
 				"error", err)
 			return
 		}
-		aggregateHandler(&agg.Data)
+		aggregateToMinuteHandler(&agg.Data)
 	default:
 		log.Warn("[alpaca] unexpected non-event message {%s:%s,%s:%s}",
 			"event_type", message.Data.EventType,
@@ -130,9 +130,9 @@ func quoteHandler(q *api.Quote) {
 	updateMetrics("quote", timestamp)
 }
 
-// aggregateHandler handles an Aggregate
+// aggregateToMinuteHandler handles an AggregateToMinute
 // and stores it to the cache
-func aggregateHandler(agg *api.Aggregate) {
+func aggregateToMinuteHandler(agg *api.AggregateToMinute) {
 	timestamp := time.Unix(0, int64(1e6*agg.EpochMillis))
 
 	epoch := agg.EpochMillis / 1e3
@@ -153,7 +153,7 @@ func aggregateHandler(agg *api.Aggregate) {
 		log.Error("[alpaca] csm write failure for key: [%v] (%v)", tbk.String(), err)
 	}
 
-	updateMetrics("bar", timestamp)
+	updateMetrics("minute_bar", timestamp)
 }
 
 func updateMetrics(msgType string, msgTimestamp time.Time) {

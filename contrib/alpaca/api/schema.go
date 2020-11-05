@@ -68,8 +68,8 @@ type AlpacaQuote struct {
 	Data Quote `json:"data"`
 }
 
-// Aggregate is an aggregate
-type Aggregate struct {
+// AggregateToMinute is a minute aggregate
+type AggregateToMinute struct {
 	// event name, always “AM”
 	eventType string `json:"-"` // ev
 	// symbol
@@ -98,8 +98,8 @@ type Aggregate struct {
 	endTime int64 `json:"-"` // e
 }
 
-// AlpacaAggregate is the message
-// from Alpaca that contains the aggregate
-type AlpacaAggregate struct {
-	Data Aggregate `json:"data"`
+// AlpacaAggregateToMinute is the message
+// from Alpaca that contains the minute aggregate
+type AlpacaAggregateToMinute struct {
+	Data AggregateToMinute `json:"data"`
 }

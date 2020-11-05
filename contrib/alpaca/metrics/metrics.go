@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	// AlpacaStreamLastUpdate stores the Unix time when the given (bar, quote, trade) stream is updated
+	// AlpacaStreamLastUpdate stores the Unix time when the given (minute_bar, quote, trade) stream is updated
 	AlpacaStreamLastUpdate = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -25,7 +25,7 @@ var (
 	)
 
 	// AlpacaStreamUpdateLag stores the current lag in seconds
-	// partitioned by type (bar, quote, trade)
+	// partitioned by type (minute_bar, quote, trade)
 	AlpacaStreamUpdateLag = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -39,7 +39,7 @@ var (
 	)
 
 	// AlpacaStreamMessagesHandled stores the number of
-	// stream messages handled partitioned by type (bar, quote, trade)
+	// stream messages handled partitioned by type (minute_bar, quote, trade)
 	AlpacaStreamMessagesHandled = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -58,7 +58,7 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,
-			Name:      "alpaca_queue_length",
+			Name:      "alpaca_waiting_queue_length",
 			Help:      "Number of stream messages waiting for processing",
 		},
 	)

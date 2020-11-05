@@ -32,14 +32,14 @@ type Subscription struct {
 // AsCanonical returns the list of prefixed
 // streams that we want to subscribe to
 func (s *Subscription) AsCanonical() []string {
-	return concat(
-		prefixStrings(normalizeSubscriptions(s.MinuteBarSymbols), enums.Agg),
+	return flatten(
+		prefixStrings(normalizeSubscriptions(s.MinuteBarSymbols), enums.AggToMinute),
 		prefixStrings(normalizeSubscriptions(s.QuoteSymbols), enums.Quote),
 		prefixStrings(normalizeSubscriptions(s.TradeSymbols), enums.Trade),
 	)
 }
 
-func concat(lists ...[]string) []string {
+func flatten(lists ...[]string) []string {
 	totalLength := 0
 	for _, l := range lists {
 		totalLength += len(l)

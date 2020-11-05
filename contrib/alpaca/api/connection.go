@@ -65,16 +65,16 @@ func (p *AlpacaWebSocket) listen() error {
 		return err
 	}
 
-	// eChan is buffered to ensure receiveMessages
+	// errorChan is buffered to ensure receiveMessages
 	// can always finish
-	out, eChan := make(chan []byte), make(chan error, 1)
-	go p.receiveMessages(out, eChan)
+	out, errorChan := make(chan []byte), make(chan error, 1)
+	go p.receiveMessages(out, errorChan)
 	ticker := time.NewTicker(p.pingPeriod)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case err := <-eChan:
+		case err := <-errorChan:
 			return err
 		case <-ticker.C:
 			err := p.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
