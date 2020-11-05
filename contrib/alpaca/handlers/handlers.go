@@ -14,6 +14,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+// Conditions source:
+// https://polygon.io/glossary/us/stocks/conditions-indicators
 const (
 	ConditionExchangeSummary = 51
 	OfficialConditionClosing = 15
