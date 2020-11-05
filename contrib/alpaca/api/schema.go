@@ -19,17 +19,17 @@ type Trade struct {
 	// trade ID
 	tradeID int `json:"-"` // i
 	// exchange code where the trade occurred
-	exchange int `json:"-"` // x
+	Exchange int32 `json:"x"`
 	// trade price
-	Price float64 `json:"p"`
+	Price float32 `json:"p"`
 	// trade size (shares)
-	Size int64 `json:"s"`
+	Size int32 `json:"s"`
 	// epoch timestamp in nanoseconds
 	Timestamp int64 `json:"t"`
 	// condition flags
-	Conditions []int `json:"c"`
+	Conditions []int32 `json:"c"`
 	// tape ID
-	tapeID int `json:"-"` // z
+	TapeID int32 `json:"z"`
 }
 
 // AlpacaTrade is the message
@@ -45,19 +45,20 @@ type Quote struct {
 	// symbol
 	Symbol string `json:"T"`
 	// exchange code for bid quote
-	bidExchange int `json:"-"` // x
+	BidExchange int32 `json:"x"`
 	// bid price
-	BidPrice float64 `json:"p"`
+	BidPrice float32 `json:"p"`
 	// bid size
-	BidSize int64 `json:"s"`
+	BidSize int32 `json:"s"`
 	// exchange code for ask quote
-	askExchange int `json:"-"` // X
+	AskExchange int32 `json:"X"`
 	// ask price
-	AskPrice float64 `json:"P"`
+	AskPrice float32 `json:"P"`
 	// ask size
-	AskSize int64 `json:"S"`
-	// condition flags
-	condition int `json:"-"` // c
+	AskSize int32 `json:"S"`
+	// condition flags.
+	// NOTE: always has len = 1
+	Conditions []int32 `json:"c"`
 	// epoch timestamp in nanoseconds
 	Timestamp int64 `json:"t"`
 }
@@ -75,27 +76,27 @@ type AggregateToMinute struct {
 	// symbol
 	Symbol string `json:"T"`
 	// volume (shares)
-	Volume int `json:"v"`
+	Volume int32 `json:"v"`
 	// accumulated volume (shares)
 	accumVolume int `json:"-"` // av
 	//official open price of the bar
-	officialOpen float64 `json:"-"` // op
+	officialOpen float32 `json:"-"` // op
 	// VWAP (Volume Weighted Average Price)
-	vWAP float64 `json:"-"` // vw
+	VWAP float32 `json:"vw"`
 	// open price of the bar
-	Open float64 `json:"o"`
+	Open float32 `json:"o"`
 	// close price of the bar
-	Close float64 `json:"c"`
+	Close float32 `json:"c"`
 	// high price of the bar
-	High float64 `json:"h"`
+	High float32 `json:"h"`
 	// low price of the bar
-	Low float64 `json:"l"`
+	Low float32 `json:"l"`
 	// average price of the bar
-	average float64 `json:"-"` // a
+	Average float32 `json:"a"`
 	// epoch time at the beginning of the window in milliseconds
 	EpochMillis int64 `json:"s"`
 	// epoch time at the ending of the window in milliseconds
-	endTime int64 `json:"-"` // e
+	EndTime int64 `json:"e"`
 }
 
 // AlpacaAggregateToMinute is the message

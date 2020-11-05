@@ -1,51 +1,100 @@
 package handlers
 
 import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/alpaca/api"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-type trade struct {
-	epoch int64
-	nanos int32
-	px    float32
-	sz    int32
-}
+var condDefault = int32(-1)
 
-type quote struct {
-	epoch int64   // 8
-	nanos int32   // 4
-	bidPx float32 // 4
-	askPx float32 // 4
-	bidSz int32   // 4
-	askSz int32   // 4
-}
+// writeTrade writes a Trade
+func writeTrade(t *api.Trade) {
+	cs := io.NewColumnSeries()
 
-// Write writes data (a trade or a quote) with
-// the given key
-func Write(key string, data interface{}) {
-	k := *io.NewTimeBucketKey(key)
-	csm := io.NewColumnSeriesMap()
-	switch data.(type) {
-	case *quote:
-		q := data.(*quote)
-		csm.AddColumn(k, "Epoch", []int64{q.epoch})
-		csm.AddColumn(k, "Nanoseconds", []int32{q.nanos})
-		csm.AddColumn(k, "BidPrice", []float32{q.bidPx})
-		csm.AddColumn(k, "AskPrice", []float32{q.askPx})
-		csm.AddColumn(k, "BidSize", []int32{q.bidSz})
-		csm.AddColumn(k, "AskSize", []int32{q.askSz})
-	case *trade:
-		t := data.(*trade)
-		csm.AddColumn(k, "Epoch", []int64{t.epoch})
-		csm.AddColumn(k, "Nanoseconds", []int32{t.nanos})
-		csm.AddColumn(k, "Price", []float32{t.px})
-		csm.AddColumn(k, "Size", []int32{t.sz})
-
+	timestamp := time.Unix(0, t.Timestamp)
+	cs.AddColumn("Epoch", []int64{timestamp.Unix()})
+	cs.AddColumn("Nanoseconds", []int32{int32(timestamp.Nanosecond())})
+	cs.AddColumn("Price", []float32{t.Price})
+	cs.AddColumn("Size", []int32{t.Size})
+	cs.AddColumn("Exchange", []int32{t.Exchange})
+	cs.AddColumn("TapeID", []int32{t.TapeID})
+	c1, c2, c3, c4 := condDefault, condDefault, condDefault, condDefault
+	switch len(t.Conditions) {
+	case 4:
+		c4 = t.Conditions[3]
+		fallthrough
+	case 3:
+		c3 = t.Conditions[2]
+		fallthrough
+	case 2:
+		c2 = t.Conditions[1]
+		fallthrough
+	case 1:
+		c1 = t.Conditions[0]
 	}
+	cs.AddColumn("Cond1", []int32{c1})
+	cs.AddColumn("Cond2", []int32{c2})
+	cs.AddColumn("Cond3", []int32{c3})
+	cs.AddColumn("Cond4", []int32{c4})
 
-	if err := executor.WriteCSM(csm, true); err != nil {
-		log.Error("[alpaca] failed to write csm (%v)", err)
+	csm := io.NewColumnSeriesMap()
+	key := io.NewTimeBucketKey(fmt.Sprintf("%s/1Sec/TRADE", strings.Replace(t.Symbol, "/", ".", 1)))
+	csm.AddColumnSeries(*key, cs)
+
+	writeCSM(&csm, key)
+}
+
+// writeQuote writes a Quote
+func writeQuote(q *api.Quote) {
+	cs := io.NewColumnSeries()
+
+	timestamp := time.Unix(0, q.Timestamp)
+	cs.AddColumn("Epoch", []int64{timestamp.Unix()})
+	cs.AddColumn("Nanoseconds", []int32{int32(timestamp.Nanosecond())})
+	cs.AddColumn("BidPrice", []float32{q.BidPrice})
+	cs.AddColumn("AskPrice", []float32{q.AskPrice})
+	cs.AddColumn("BidSize", []int32{q.BidSize})
+	cs.AddColumn("AskSize", []int32{q.AskSize})
+	cs.AddColumn("BidExchange", []int32{q.BidExchange})
+	cs.AddColumn("AskExchange", []int32{q.AskExchange})
+	cs.AddColumn("Cond", []int32{q.Conditions[0]})
+
+	csm := io.NewColumnSeriesMap()
+	key := io.NewTimeBucketKey(fmt.Sprintf("%s/1Sec/QUOTE", strings.Replace(q.Symbol, "/", ".", 1)))
+	csm.AddColumnSeries(*key, cs)
+
+	writeCSM(&csm, key)
+}
+
+// writeAggregateToMinute writes an AggregateToMinute
+func writeAggregateToMinute(agg *api.AggregateToMinute) {
+	cs := io.NewColumnSeries()
+
+	cs.AddColumn("Epoch", []int64{agg.EpochMillis / 1e3})
+	cs.AddColumn("Open", []float32{agg.Open})
+	cs.AddColumn("High", []float32{agg.High})
+	cs.AddColumn("Low", []float32{agg.Low})
+	cs.AddColumn("Close", []float32{agg.Close})
+	cs.AddColumn("Volume", []int32{agg.Volume})
+	cs.AddColumn("VWAP", []float32{agg.VWAP})
+	cs.AddColumn("Average", []float32{agg.Average})
+	// NOTE: TickCnt is not set!
+
+	csm := io.NewColumnSeriesMap()
+	key := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", agg.Symbol))
+	csm.AddColumnSeries(*key, cs)
+
+	writeCSM(&csm, key)
+}
+
+func writeCSM(csm *io.ColumnSeriesMap, key *io.TimeBucketKey) {
+	if err := executor.WriteCSM(*csm, false); err != nil {
+		log.Error("[alpaca] csm write failure for key: [%v] (%v)", key.String(), err)
 	}
 }

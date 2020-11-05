@@ -112,7 +112,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 			err := s.ws.listen()
 			log.Error("[alpaca] error during ws listening {%s:%s}",
 				"error", err)
-			if time.Now().Sub(start) > connLiveAfter {
+			if time.Since(start) > connLiveAfter {
 				backoff = sleepStart
 			} else {
 				backoff *= 2

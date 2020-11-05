@@ -2,15 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/enums"
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/metrics"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -25,7 +21,7 @@ const (
 	ConditionOpening         = 19
 )
 
-func conditionsPresent(conditions []int) (skip bool) {
+func conditionsPresent(conditions []int32) (skip bool) {
 	for _, c := range conditions {
 		switch c {
 		case ConditionExchangeSummary, ConditionReOpening, ConditionOpening, ConditionClosing,
@@ -97,68 +93,27 @@ func tradeHandler(t *api.Trade) {
 		metrics.AlpacaStreamDroppedPackets.Inc()
 		return
 	}
-	timestamp := time.Unix(0, t.Timestamp)
 
-	tr := trade{
-		epoch: timestamp.Unix(),
-		nanos: int32(timestamp.Nanosecond()),
-		sz:    int32(t.Size),
-		px:    float32(t.Price),
-	}
-	key := fmt.Sprintf("%s/1Sec/TRADE", strings.Replace(t.Symbol, "/", ".", 1))
-
-	Write(key, &tr)
-
-	updateMetrics("trade", timestamp)
+	writeTrade(t)
+	updateMetrics("trade", time.Unix(0, t.Timestamp))
 }
 
 // quoteHandler handles a Quote
 // and stores it to the cache
 func quoteHandler(q *api.Quote) {
-	timestamp := time.Unix(0, q.Timestamp)
-
-	qu := quote{
-		epoch: timestamp.Unix(),
-		nanos: int32(timestamp.Nanosecond()),
-		bidPx: float32(q.BidPrice),
-		bidSz: int32(q.BidSize),
-		askPx: float32(q.AskPrice),
-		askSz: int32(q.AskSize),
-	}
-	key := fmt.Sprintf("%s/1Sec/QUOTE", strings.Replace(q.Symbol, "/", ".", 1))
-	Write(key, &qu)
-
-	updateMetrics("quote", timestamp)
+	writeQuote(q)
+	updateMetrics("quote", time.Unix(0, q.Timestamp))
 }
 
 // aggregateToMinuteHandler handles an AggregateToMinute
 // and stores it to the cache
 func aggregateToMinuteHandler(agg *api.AggregateToMinute) {
-	timestamp := time.Unix(0, int64(1e6*agg.EpochMillis))
-
-	epoch := agg.EpochMillis / 1e3
-
-	tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", agg.Symbol))
-	csm := io.NewColumnSeriesMap()
-
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", []int64{epoch})
-	cs.AddColumn("Open", []float32{float32(agg.Open)})
-	cs.AddColumn("High", []float32{float32(agg.High)})
-	cs.AddColumn("Low", []float32{float32(agg.Low)})
-	cs.AddColumn("Close", []float32{float32(agg.Close)})
-	cs.AddColumn("Volume", []int32{int32(agg.Volume)})
-	csm.AddColumnSeries(*tbk, cs)
-
-	if err := executor.WriteCSM(csm, false); err != nil {
-		log.Error("[alpaca] csm write failure for key: [%v] (%v)", tbk.String(), err)
-	}
-
-	updateMetrics("minute_bar", timestamp)
+	writeAggregateToMinute(agg)
+	updateMetrics("minute_bar", time.Unix(0, int64(1e6*agg.EndTime)))
 }
 
 func updateMetrics(msgType string, msgTimestamp time.Time) {
-	lagOnReceipt := time.Now().Sub(msgTimestamp).Seconds()
+	lagOnReceipt := time.Since(msgTimestamp).Seconds()
 	metrics.AlpacaStreamMessagesHandled.WithLabelValues(msgType).Inc()
 	metrics.AlpacaStreamUpdateLag.WithLabelValues(msgType).Set(lagOnReceipt)
 	metrics.AlpacaStreamLastUpdate.WithLabelValues(msgType).SetToCurrentTime()
