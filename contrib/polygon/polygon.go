@@ -207,7 +207,7 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 	}
 
 	// request & write the missing bars
-	if err = backfill.Bars(symbol, from, time.Time{}, writerWP); err != nil {
+	if err = backfill.Bars(symbol, from, time.Time{}, 50000, writerWP); err != nil {
 		log.Error("[polygon] bars backfill failure for key: [%v] (%v)", tbk.String(), err)
 	}
 }

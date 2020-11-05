@@ -7,3 +7,26 @@ metadata:
 data:
   mkts.yml: |
 {{ printf .Values.mktsConfig | indent 4 }}
+
+
+{{ if .Values.backfill.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "marketstore.fullname" . }}-backfill
+  labels:
+    {{- include "marketstore.labels" . | nindent 4 }}
+data:
+  BACKFILL_APIKEY: '{{required "Please specify .Values.backfill.apiKey" .Values.backfill.apiKey }}'
+  BACKFILL_TRADE_INTERVAL: '{{ .Values.backfill.tradeInterval | default "0 day ago" }}'
+  BACKFILL_BAR_INTERVAL: '{{ .Values.backfill.barInterval | default "0 day ago" }}'
+  BACKFILL_TRADE_ARGS: '{{ .Values.backfill.tradeArgs }}'
+  BACKFILL_BAR_ARGS: '{{ .Values.backfill.barArgs }}'
+  BACKFILL_SCHEDULE: '{{required "Please specify .Values.backfill.schedule" .Values.backfill.schedule }}'
+  BACKFILL_LOG_DIR: '{{required "Please specify .Values.backfill.logDir" .Values.backfill.logDir }}'
+  BACKFILL_TEMP_DIR: '{{required "Please specify .Values.backfill.tempDir" .Values.backfill.tempDir }}'
+  BACKFILL_LIVE_DIR: '{{required "Please specify .Values.backfill.liveDir" .Values.backfill.liveDir }}'
+  BACKFILL_OLD_DIR: '{{required "Please specify .Values.backfill.oldDir" .Values.backfill.oldDir }}'
+  BACKFILL_PARALLELISM: '{{required "Please specify .Values.backfill.paralelism" .Values.backfill.paralelism }}'
+{{ end }}

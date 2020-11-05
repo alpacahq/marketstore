@@ -52,7 +52,7 @@ func init() {
 	flag.StringVar(&symbols, "symbols", "*",
 		"glob pattern of symbols to backfill, the default * means backfill all symbols")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
-	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades & quotes")
+	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades, quotes, & bars")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
 
 	flag.Parse()
@@ -271,7 +271,7 @@ func getBars(start time.Time, end time.Time, period time.Duration, symbol string
 		log.Info("[polygon] backfilling bars for %v between %s and %s", symbol, start, start.Add(period))
 
 		if len(exchangeIDs) == 0 {
-			if err := backfill.Bars(symbol, start, start.Add(period), writerWP); err != nil {
+			if err := backfill.Bars(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
 				log.Warn("[polygon] failed to backfill bars for %v (%v)", symbol, err)
 			}
 
