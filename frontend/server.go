@@ -32,7 +32,6 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("marketstore-version", utils.GitHash)
 	s.Server.ServeHTTP(w, r)
 	metrics.RPCTotalRequestDuration.Observe(time.Since(start).Seconds())
-	metrics.RPCTotalRequestsTotal.Inc()
 }
 
 func NewServer() (*RpcServer, *DataService) {
@@ -74,5 +73,4 @@ func after(i *rpc.RequestInfo) {
 	}
 
 	metrics.RPCSuccessfulRequestDuration.WithLabelValues(i.Method).Observe(time.Since(t).Seconds())
-	metrics.RPCSuccessfulRequestsTotal.WithLabelValues(i.Method).Inc()
 }

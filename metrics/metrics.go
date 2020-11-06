@@ -27,14 +27,6 @@ var (
 		Help:      "RPC request processing time for every request",
 	})
 
-	// RPCTotalRequestsTotal stores the number of requests
-	RPCTotalRequestsTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "rpc_total_requests_total",
-		Help:      "Number of RPC requests received including ones resulting in errors",
-	})
-
 	// RPCSuccessfulRequestDuration stores the processing time for successful
 	// requests partitioned by method
 	RPCSuccessfulRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
@@ -42,15 +34,6 @@ var (
 		Subsystem: subsystem,
 		Name:      "rpc_successful_request_duration_seconds",
 		Help:      "RPC request processing time for successful requests partitioned by method",
-	}, []string{"method"})
-
-	// RPCSuccessfulRequestsTotal stores the number of successful
-	// requests partitioned by method
-	RPCSuccessfulRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "rpc_successful_requests_total",
-		Help:      "Number of RPC successful requests partitioned by method",
 	}, []string{"method"})
 
 	// WSConnections keeps track of the number of currently established WS connections
