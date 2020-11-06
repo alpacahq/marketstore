@@ -45,4 +45,14 @@ var (
 			Help:      "Current number of ws connections established with Marketstore",
 		},
 	)
+
+	// WriteCSMDuration stores the WriteCSM call durations for writes
+	// that didn't result in an error
+	WriteCSMDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: subsystem,
+		Name:      "write_csm_duration_seconds",
+		Help:      "WriteCSM call duration",
+		Buckets:   []float64{.0001, .001, .005, .01, .05, .1, .25, .5, 1},
+	})
 )

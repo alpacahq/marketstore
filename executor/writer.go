@@ -10,6 +10,7 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
@@ -265,6 +266,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 // DataShapeVector defined by the file header. WriteCSM will create any files if they do
 // not already exist for the given ColumnSeriesMap based on its TimeBucketKey.
 func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
+	start := time.Now()
 	cDir := ThisInstance.CatalogDir
 	for tbk, cs := range csm {
 		tf, err := tbk.GetTimeFrame()
@@ -348,5 +350,6 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	}
 	walfile := ThisInstance.WALFile
 	walfile.RequestFlush()
+	metrics.WriteCSMDuration.Observe(time.Since(start).Seconds())
 	return nil
 }
