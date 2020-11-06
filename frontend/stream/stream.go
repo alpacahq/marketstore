@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/eapache/channels"
@@ -145,10 +146,12 @@ func validStream(stream string) bool {
 
 func (s *Subscriber) consume() {
 	defer func() {
+		metrics.WSConnections.Dec()
 		catalog.Remove(s)
 		s.done <- struct{}{}
 	}()
 
+	metrics.WSConnections.Inc()
 	s.c.SetPongHandler(func(string) error {
 		return s.c.SetReadDeadline(time.Now().Add(pongWait))
 	})

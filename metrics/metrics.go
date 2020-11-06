@@ -52,4 +52,14 @@ var (
 		Name:      "rpc_successful_requests_total",
 		Help:      "Number of RPC successful requests partitioned by method",
 	}, []string{"method"})
+
+	// WSConnections keeps track of the number of currently established WS connections
+	WSConnections = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "ws_connections",
+			Help:      "Current number of ws connections established with Marketstore",
+		},
+	)
 )
