@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
+	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/proto"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -103,6 +104,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	// --------------------------------
 	log.Info("initializing marketstore...")
 
+	start := time.Now()
 	//
 	executor.NewInstanceSetup(
 		utils.InstanceConfig.RootDirectory,
@@ -110,6 +112,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		utils.InstanceConfig.InitWALCache,
 		utils.InstanceConfig.BackgroundSync,
 		utils.InstanceConfig.WALBypass)
+
+	startupTime := time.Since(start)
+	metrics.StartupTime.Set(startupTime.Seconds())
+	log.Info("startup time: %s", startupTime)
 
 	// New server.
 	server, _ := frontend.NewServer()
