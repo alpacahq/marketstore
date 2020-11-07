@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/gobwas/glob"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"sort"
@@ -32,7 +33,7 @@ var (
 	apiKey                              string
 	exchanges                           string
 	batchSize                           int
-
+	jsonDir                             string
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
@@ -54,6 +55,7 @@ func init() {
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
 	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades, quotes, & bars")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
+	flag.StringVar(&jsonDir, "json-dump-dir", "", "directory to dump polygon's json replies")
 
 	flag.Parse()
 }
@@ -111,6 +113,14 @@ func main() {
 	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*24*time.Hour, 24*time.Hour)
 	if err != nil {
 		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
+	}
+
+	if jsonDir != "" {
+		err = os.MkdirAll(jsonDir, 0777)
+		if err != nil {
+			log.Fatal("[polygon] cannot create json dump directory (%v)", err)
+		}
+		log.Info("[polygon] using %s to dump polygon's replies", jsonDir)
 	}
 
 	startTime := time.Now()
@@ -295,7 +305,7 @@ func getQuotes(start time.Time, end time.Time, period time.Duration, symbol stri
 		}
 
 		log.Info("[polygon] backfilling quotes for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Quotes(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+		if err := backfill.Quotes(symbol, start, start.Add(period), batchSize, jsonDir, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill quote for %v @ %v (%v)", symbol, start, err)
 		}
 
@@ -312,7 +322,7 @@ func getTrades(start time.Time, end time.Time, period time.Duration, symbol stri
 		}
 
 		log.Info("[polygon] backfilling trades for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Trades(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+		if err := backfill.Trades(symbol, start, start.Add(period), batchSize, jsonDir, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", symbol, start, err)
 		}
 
