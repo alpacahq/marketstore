@@ -3,9 +3,9 @@
 set -eEuo pipefail
 
 export CA_MKTSDB_PATH="${CA_MKTSDB_PATH:=/data}"
-export CA_REORG_PATH="${CA_REORG_PATH:=/reorg}"
+export CA_ICE_PATH="${CA_ICE_PATH:=/ice}"
 export CA_REIMPORT="${CA_REIMPORT:=false}"
-: "${CA_SCHEDULE:=0 0 1 * * *}"
+: "${CA_SCHEDULE:=0 0 5 * * *}"
 
 ca_job="$(dirname ${0})/ca-sync-job.sh"
 

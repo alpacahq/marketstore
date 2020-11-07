@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
@@ -207,7 +208,7 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 	}
 
 	// request & write the missing bars
-	if err = backfill.Bars(symbol, from, time.Time{}, 50000, writerWP); err != nil {
+	if err = backfill.Bars(symbol, from, time.Time{}, 50000, false, writerWP); err != nil {
 		log.Error("[polygon] bars backfill failure for key: [%v] (%v)", tbk.String(), err)
 	}
 }

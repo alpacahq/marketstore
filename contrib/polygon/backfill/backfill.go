@@ -106,7 +106,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 		to = time.Now()
 	}
 	t := time.Now()
-	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, nil, unadjusted)
+	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, &batchSize, unadjusted)
 	if err != nil {
 		return err
 	}
