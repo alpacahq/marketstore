@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"runtime"
 	"sync"
 	"time"
@@ -114,6 +115,7 @@ func (pf *PolygonFetcher) Run() {
 func (pf *PolygonFetcher) workBackfillBars() {
 	ticker := time.NewTicker(30 * time.Second)
 
+	writerWP := worker.NewWorkerPool(1)
 	for range ticker.C {
 		wg := sync.WaitGroup{}
 		count := 0
@@ -130,7 +132,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 					defer wg.Done()
 
 					// backfill the symbol in parallel
-					pf.backfillBars(symbol, time.Unix(*value.(*int64), 0))
+					pf.backfillBars(symbol, time.Unix(*value.(*int64), 0), writerWP)
 					backfill.BackfillM.Store(key, nil)
 				}()
 			}
@@ -146,7 +148,7 @@ func (pf *PolygonFetcher) workBackfillBars() {
 	}
 }
 
-func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time) {
+func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *worker.WorkerPool) {
 	var (
 		from time.Time
 		err  error
@@ -205,7 +207,7 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time) {
 	}
 
 	// request & write the missing bars
-	if err = backfill.Bars(symbol, from, time.Time{}); err != nil {
+	if err = backfill.Bars(symbol, from, time.Time{}, 50000, writerWP); err != nil {
 		log.Error("[polygon] bars backfill failure for key: [%v] (%v)", tbk.String(), err)
 	}
 }

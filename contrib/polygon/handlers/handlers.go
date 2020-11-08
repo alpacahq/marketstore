@@ -63,7 +63,7 @@ func TradeHandler(msg []byte) {
 			sz:    int32(rt.Size),
 			px:    float32(rt.Price),
 		}
-		key := fmt.Sprintf("%s/1Min/TRADE", strings.Replace(rt.Symbol, "/", ".", 1))
+		key := fmt.Sprintf("%s/1Sec/TRADE", strings.Replace(rt.Symbol, "/", ".", 1))
 		appendItem(writeMap, io.NewTimeBucketKey(key), &t)
 		_ = lagOnReceipt
 	}
