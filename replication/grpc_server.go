@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
-	"net"
 )
 
 const (
@@ -17,32 +16,14 @@ const (
 type GRPCReplicationServer struct {
 	CertFile    string
 	CertKeyFile string
-	grpcServer  *grpc.Server
 	// Key: IPAddr (e.g. "192.125.18.1:25"), Value: channel for messages sent to each gRPC stream
 	StreamChannels map[string]chan []byte
 }
 
-func NewGRPCReplicationService(grpcServer *grpc.Server, port int) (*GRPCReplicationServer, error) {
-	r := GRPCReplicationServer{
-		grpcServer:     grpcServer,
+func NewGRPCReplicationService() *GRPCReplicationServer {
+	return &GRPCReplicationServer{
 		StreamChannels: map[string]chan []byte{},
 	}
-
-	pb.RegisterReplicationServer(grpcServer, &r)
-
-	// start gRPC server
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to listen a port for replication")
-	}
-	go func() {
-		log.Info("starting GRPC server for replication...")
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Error(fmt.Sprintf("failed to serve replication service:%v", err))
-		}
-	}()
-
-	return &r, nil
 }
 
 func getClientAddr(stream grpc.ServerStream) (string, error) {
@@ -55,11 +36,11 @@ func getClientAddr(stream grpc.ServerStream) (string, error) {
 	return pr.Addr.String(), nil
 }
 
-func (rs *GRPCReplicationServer) GetWALStream(req *pb.GetWALStreamRequest, stream pb.Replication_GetWALStreamServer) error {
+func (rs *GRPCReplicationServer) GetWALStream(_ *pb.GetWALStreamRequest, stream pb.Replication_GetWALStreamServer) error {
 	// prepare a channel to send messages
 	clientAddr, err := getClientAddr(stream)
 	if err != nil {
-		return errors.Wrap(err,"failed to get client IP address.")
+		return errors.Wrap(err, "failed to get client IP address.")
 	}
 	log.Info(fmt.Sprintf("new replica connection from:%s", clientAddr))
 
@@ -96,11 +77,5 @@ func (rs *GRPCReplicationServer) SendReplicationMessage(transactionGroup []byte)
 	for ip, channel := range rs.StreamChannels {
 		log.Debug("sending a replication message to %s", ip)
 		channel <- transactionGroup
-	}
-}
-
-func (rs *GRPCReplicationServer) Shutdown() {
-	for _, channel := range rs.StreamChannels {
-		close(channel)
 	}
 }

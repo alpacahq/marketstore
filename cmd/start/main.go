@@ -20,7 +20,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
-	"github.com/alpacahq/marketstore/v4/proto"
+	pb "github.com/alpacahq/marketstore/v4/proto"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -82,7 +82,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
 		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
 	)
-	proto.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
+	pb.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
 
 	// New gRPC stream server for replication.
 	opts := []grpc.ServerOption{
@@ -227,13 +227,21 @@ func shutdown() {
 }
 
 func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server) *replication.Sender {
-	grpcReplicationServer, err := replication.NewGRPCReplicationService(
-		grpcServer,
-		utils.InstanceConfig.Replication.ListenPort,
-	)
+	grpcReplicationServer := replication.NewGRPCReplicationService()
+	pb.RegisterReplicationServer(grpcServer, grpcReplicationServer)
+
+	// start gRPC server for Replication
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", utils.InstanceConfig.Replication.ListenPort))
 	if err != nil {
-		log.Fatal("Unable to startup gRPC server for replication")
+		log.Fatal("failed to listen a port for replication:" + err.Error())
 	}
+	go func() {
+		log.Info("starting GRPC server for replication...")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Error(fmt.Sprintf("failed to serve replication service:%v", err))
+		}
+	}()
+
 	replicationSender := replication.NewSender(grpcReplicationServer)
 	replicationSender.Run(ctx)
 
