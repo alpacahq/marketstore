@@ -122,9 +122,6 @@ message GetWALStreamResponse {
     bytes transaction_group = 1;
 }
 
-
-
-
 service Replication {
     rpc GetWALStream (GetWALStreamRequest) returns (stream GetWALStreamResponse);
 }

@@ -42,7 +42,6 @@ func (m *WALStreamServer) SendMsg(msg interface{}) error {
 }
 func (m *WALStreamServer) RecvMsg(msg interface{}) error {
 	return errors.New("not implemented")
-
 }
 
 // -------------

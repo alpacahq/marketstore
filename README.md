@@ -293,11 +293,12 @@ replication:
 ```
 
 ### limitations
-- Currently, the replication connection is initialized only when the marketstore (on the replica instance) is started.
-Please start the master instance first when you want to replicate data.
+- Currently, the replication connection is initialized only at a startup of a marketstore replica instance.
+Please be sure to start the master instance first when you want to replicate data.
 
-- Currently, only `write` API result is supported. `delete` API result won't be reflected to replica instances.
+- Currently, only `write` API is supported. `delete` API result won't be reflected to replica instances.
 
+- When replication is enabled on a replica instance, the instance is set to read-only mode and  write API call(s) to the instance will fail.
 
 ## Development
 If you are interested in improving MarketStore, you are more than welcome! Just file issues or requests in github or contact oss@alpaca.markets. Before opening a PR please be sure tests pass-
