@@ -219,7 +219,7 @@ func initWriter() {
 	utils.InstanceConfig.Timezone = NY
 	utils.InstanceConfig.WALRotateInterval = 5
 
-	executor.NewInstanceSetup(dir, true, true, true, true)
+	executor.NewInstanceSetup(dir, nil, true, true, true, true)
 
 	config := map[string]interface{}{
 		"filter":       "nasdaq",

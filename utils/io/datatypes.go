@@ -136,7 +136,7 @@ func (e EnumElementType) ConvertByteSliceInto(data []byte) interface{} {
 	case INT16:
 		return SwapSliceByte(data, int16(0)).([]int16)
 	case STRING:
-		return SwapSliceByte(data, string(0)).([]string)
+		return SwapSliceByte(data, fmt.Sprint(0)).([]string)
 	case UINT8:
 		return SwapSliceByte(data, uint8(0)).([]uint8)
 	case UINT16:

@@ -36,7 +36,7 @@ func (b *RecentBackfill) UpdateSymbols() {
 	// get the date of {b.days} business days ago
 	startDate, err := b.marketTimeChecker.Sub(endDate, b.days)
 	if err != nil {
-		log.Error("startDate of the recent backfill should be a past date. RecentBackfill.days=" + string(b.days))
+		log.Error("startDate of the recent backfill should be a past date. RecentBackfill.days=" + fmt.Sprint(b.days))
 		return
 	}
 
@@ -73,7 +73,7 @@ func (b *RecentBackfill) UpdateIndexSymbols() {
 	// get the date of {b.days} business days ago
 	startDate, err := b.marketTimeChecker.Sub(endDate, b.days)
 	if err != nil {
-		log.Error("(index symbols) startDate of the recent backfill should be a past date. RecentBackfill.days=" + string(b.days))
+		log.Error("(index symbols) startDate of the recent backfill should be a past date. RecentBackfill.days=" + fmt.Sprint(b.days))
 		return
 	}
 

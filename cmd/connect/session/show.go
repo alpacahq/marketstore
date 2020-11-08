@@ -121,7 +121,7 @@ func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time)
 	epochEnd := end.UTC().Unix()
 	req := frontend.QueryRequest{
 		IsSQLStatement: false,
-		SQLStatement:   string(0),
+		SQLStatement:   "",
 		Destination:    tbk.String(),
 		EpochStart:     &epochStart,
 		EpochEnd:       &epochEnd,
