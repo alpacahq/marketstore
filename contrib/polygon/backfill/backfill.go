@@ -15,7 +15,10 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const defaultFormat = "2006-01-02"
+const (
+	defaultFormat = "2006-01-02"
+	condDefault = int32(-1)
+)
 
 type ConsolidatedUpdateInfo struct {
 	UpdateHighLow bool
@@ -127,7 +130,9 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 	high := make([]float32, len(resp.Results))
 	low := make([]float32, len(resp.Results))
 	close := make([]float32, len(resp.Results))
-	volume := make([]int32, len(resp.Results))
+	volume := make([]uint32, len(resp.Results))
+	vwap := make([]float32, len(resp.Results))
+	average := make([]float32, len(resp.Results))
 
 	for i, bar := range resp.Results {
 		timestamp := bar.EpochMilliseconds / 1000
@@ -140,7 +145,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 		high[i] = float32(bar.High)
 		low[i] = float32(bar.Low)
 		close[i] = float32(bar.Close)
-		volume[i] = int32(bar.Volume)
+		volume[i] = uint32(bar.Volume)
 	}
 
 	cs := io.NewColumnSeries()
@@ -150,6 +155,8 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 	cs.AddColumn("Volume", volume)
+	cs.AddColumn("VWAP", vwap)
+	cs.AddColumn("Average", average)
 	csm.AddColumnSeries(*tbk, cs)
 
 	t = time.Now()
@@ -217,15 +224,16 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 
 	var epoch int64
 	var open, high, low, close_ float32
-	var volume, tickCnt int32
+	var volume, tickCnt uint32
 
 	epochs := make([]int64, 1440)
 	opens := make([]float32, 1440)
 	highs := make([]float32, 1440)
 	lows := make([]float32, 1440)
 	closes := make([]float32, 1440)
-	volumes := make([]int32, 1440)
-	tickCnts := make([]int32, 1440)
+	volumes := make([]uint32, 1440)
+	vwap := make([]float32, 1440)
+	average := make([]float32, 1440)
 
 	barIdx := 0
 	lastBucketTimestamp := time.Time{}
@@ -238,7 +246,6 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 		lows[barIdx] = low
 		closes[barIdx] = close_
 		volumes[barIdx] = volume
-		tickCnts[barIdx] = tickCnt
 
 		barIdx++
 	}
@@ -307,7 +314,7 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 		}
 
 		if updateInfo.UpdateVolume {
-			volume += int32(tick.Size)
+			volume += uint32(tick.Size)
 		}
 	}
 
@@ -322,7 +329,8 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 	cs.AddColumn("Low", lows[:barIdx])
 	cs.AddColumn("Close", closes[:barIdx])
 	cs.AddColumn("Volume", volumes[:barIdx])
-	cs.AddColumn("TickCnt", tickCnts[:barIdx])
+	cs.AddColumn("VWAP", vwap[:barIdx])
+	cs.AddColumn("Average", average[:barIdx])
 
 	csm = io.NewColumnSeriesMap()
 	tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
@@ -357,7 +365,13 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 		epoch := make([]int64, len(trades))
 		nanos := make([]int32, len(trades))
 		price := make([]float32, len(trades))
-		size := make([]int32, len(trades))
+		size := make([]uint32, len(trades))
+		exchange := make([]uint32, len(trades))
+		tapeid := make([]uint32, len(trades))
+		cond1 := make([]int32, len(trades))
+		cond2 := make([]int32, len(trades))
+		cond3 := make([]int32, len(trades))
+		cond4 := make([]int32, len(trades))
 
 		for i, tick := range trades {
 			timestamp := time.Unix(0, tick.SipTimestamp)
@@ -365,19 +379,44 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 			epoch[i] = bucketTimestamp.Unix()
 			nanos[i] = int32(timestamp.UnixNano() - bucketTimestamp.UnixNano())
 			price[i] = float32(tick.Price)
-			size[i] = int32(tick.Size)
+			size[i] = uint32(tick.Size)
+			exchange[i] = uint32(tick.Exchange)
+			tapeid[i] = uint32(tick.Tape)
+			cond1[i] = condDefault
+			cond2[i] = condDefault
+			cond3[i] = condDefault
+			cond4[i] = condDefault
+			switch len(tick.Conditions) {
+			case 4:
+				cond4[i] = int32(tick.Conditions[3])
+				fallthrough
+			case 3:
+				cond3[i] = int32(tick.Conditions[2])
+				fallthrough
+			case 2:
+				cond2[i] = int32(tick.Conditions[1])
+				fallthrough
+			case 1:
+				cond1[i] = int32(tick.Conditions[0])
+			}
 		}
 
 		cs.AddColumn("Epoch", epoch)
 		cs.AddColumn("Nanoseconds", nanos)
 		cs.AddColumn("Price", price)
 		cs.AddColumn("Size", size)
+		cs.AddColumn("Exchange", exchange)
+		cs.AddColumn("TapeID", tapeid)
+		cs.AddColumn("Cond1", cond1)
+		cs.AddColumn("Cond2", cond2)
+		cs.AddColumn("Cond3", cond3)
+		cs.AddColumn("Cond4", cond4)
 		csm.AddColumnSeries(*tbk, cs)
 
 		t = time.Now()
 		writerWP.Do(func() {
 			tt := time.Now()
-			err := executor.WriteCSM(csm, true)
+			err := executor.WriteCSM(csm, false)
 			if err != nil {
 				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
 			}
@@ -421,9 +460,12 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 		epoch := make([]int64, len(quotes))
 		nanos := make([]int32, len(quotes))
 		bidPrice := make([]float32, len(quotes))
-		bidSize := make([]int32, len(quotes))
+		bidSize := make([]uint32, len(quotes))
 		askPrice := make([]float32, len(quotes))
-		askSize := make([]int32, len(quotes))
+		askSize := make([]uint32, len(quotes))
+		bidExchange := make([]uint32, len(quotes))
+		askExchange := make([]uint32, len(quotes))
+		conditions := make([]int32, len(quotes))
 
 		for i, tick := range quotes {
 			timestamp := time.Unix(0, 1000*1000*tick.Timestamp)
@@ -431,9 +473,12 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 			epoch[i] = timestamp.Unix()
 			nanos[i] = int32(timestamp.Nanosecond())
 			bidPrice[i] = float32(tick.BidPrice)
-			bidSize[i] = int32(tick.BidSize)
+			bidSize[i] = uint32(tick.BidSize)
 			askPrice[i] = float32(tick.BidPrice)
-			askSize[i] = int32(tick.AskSize)
+			askSize[i] = uint32(tick.AskSize)
+			bidExchange[i] = uint32(tick.BidExchange)
+			askExchange[i] = uint32(tick.AskExchange)
+			conditions[i] = int32(tick.Condition)
 		}
 
 		cs.AddColumn("Epoch", epoch)
@@ -442,12 +487,15 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 		cs.AddColumn("AskPrice", askPrice)
 		cs.AddColumn("BidSize", bidSize)
 		cs.AddColumn("AskSize", askSize)
+		cs.AddColumn("BidExchange", bidExchange)
+		cs.AddColumn("AskExchange", askExchange)
+		cs.AddColumn("Cond", conditions)
 		csm.AddColumnSeries(*tbk, cs)
 
 		t = time.Now()
 		writerWP.Do(func() {
 			tt := time.Now()
-			err := executor.WriteCSM(csm, true)
+			err := executor.WriteCSM(csm, false)
 			if err != nil {
 				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
 			}

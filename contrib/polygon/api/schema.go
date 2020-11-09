@@ -156,11 +156,12 @@ type HistoricQuotes struct {
 // tick data included in a HistoricQuotes response
 type QuoteTick struct {
 	Timestamp   int64   `json:"t"`
-	BidExchange string  `json:"bE"`
-	AskExchange string  `json:"aE"`
-	BidPrice    float64 `json:"bP"`
-	AskPrice    float64 `json:"aP"`
+	BidExchange int  	`json:"bE"`
+	AskExchange int  	`json:"aE"`
+	BidPrice    float32 `json:"bP"`
+	AskPrice    float32 `json:"aP"`
 	BidSize     int     `json:"bS"`
 	AskSize     int     `json:"aS"`
 	Condition   int     `json:"c"`
+	Tape		int		`json:"z"`
 }
