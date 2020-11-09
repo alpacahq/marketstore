@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"path/filepath"
 	"os"
+	"path/filepath"
 
 	"net/http"
 	"net/url"
@@ -21,15 +21,15 @@ import (
 )
 
 const (
-	aggURL     = "%v/v2/aggs/ticker/%v/range/%v/%v/%v/%v"
-	tradesURL  = "%v/v2/ticks/stocks/trades/%v/%v"
-	quotesURL  = "%v/v1/historic/quotes/%v/%v"
-	tickersURL = "%v/v2/reference/tickers"
-	retryCount = 10
+	aggURL         = "%v/v2/aggs/ticker/%v/range/%v/%v/%v/%v"
+	tradesURL      = "%v/v2/ticks/stocks/trades/%v/%v"
+	quotesURL      = "%v/v1/historic/quotes/%v/%v"
+	tickersURL     = "%v/v2/reference/tickers"
+	retryCount     = 10
 	jsonDumpFormat = "20060102"
-	aggFileName	   = "bars_%s_%s_%s_%d%s_%d.json.gz"
-	tradeFileName = "trades_%s_%s_%d_%d.json.gz"
-	quoteFileName = "quotes_%s_%s_%d_%d.json.gz"
+	aggFileName    = "bars_%s_%s_%s_%d%s_%d.json.gz"
+	tradeFileName  = "trades_%s_%s_%d_%d.json.gz"
+	quoteFileName  = "quotes_%s_%s_%d_%d.json.gz"
 )
 
 var (
@@ -39,7 +39,7 @@ var (
 	NY, _        = time.LoadLocation("America/New_York")
 	completeDate = "2006-01-02"
 	client       *http.Client
-	JsonDir		 = ""
+	JsonDir      = ""
 )
 
 func init() {
@@ -204,7 +204,7 @@ func GetHistoricAggregates(
 
 	q := u.Query()
 	q.Set("apiKey", apiKey)
-	limit_n := 0 
+	limit_n := 0
 	if limit != nil {
 		limit_n = *limit
 		q.Set("limit", strconv.FormatInt(int64(limit_n), 10))
@@ -256,7 +256,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 
 		body, err := download(u.String(), retryCount)
 		if err != nil {
-			return nil, err	
+			return nil, err
 		}
 
 		filename := fmt.Sprintf(tradeFileName, symbol, date, offset, batchSize)
@@ -352,7 +352,7 @@ func download(url string, retryCount int) (body []byte, err error) {
 	// as network errors (e.g. Unexpected EOF) can come also from unmarshal()
 	err = try.Do(func(attempt int) (bool, error) {
 		body, err = request(url, retryCount)
-		if err != nil  && strings.Contains(err.Error(), "GOAWAY") {
+		if err != nil && strings.Contains(err.Error(), "GOAWAY") {
 			// Polygon's way to tell that we are too fast
 			log.Warn("parallel connection number may reach polygon limit, url: %s", url)
 			time.Sleep(5 * time.Second)
@@ -402,11 +402,9 @@ func request(url string, retryCount int) ([]byte, error) {
 	return body, err
 }
 
-
-
 func jsonDump(body []byte, filename string) error {
 	if JsonDir == "" {
-		return nil 
+		return nil
 	}
 	filename = filepath.Join(JsonDir, filename)
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
