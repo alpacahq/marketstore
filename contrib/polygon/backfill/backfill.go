@@ -1,14 +1,12 @@
 package backfill
 
 import (
-	"compress/gzip"
-	"encoding/json"
+
 	"fmt"
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"math"
-	"os"
-	"path/filepath"
+
 	"sync"
 	"time"
 
@@ -19,7 +17,6 @@ import (
 )
 
 const defaultFormat = "2006-01-02"
-const jsonDumpFormat = "20060102"
 
 type ConsolidatedUpdateInfo struct {
 	UpdateHighLow bool
@@ -330,7 +327,7 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 	return csm
 }
 
-func Trades(symbol string, from time.Time, to time.Time, batchSize int, jsonDir string, writerWP *worker.WorkerPool) error {
+func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
 	trades := make([]api.TradeTick, 0)
 	t := time.Now()
 	for date := from; to.After(date); date = date.Add(24 * time.Hour) {
@@ -345,9 +342,6 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, jsonDir 
 	ApiCallTime += time.Now().Sub(t)
 
 	if len(trades) > 0 {
-		if jsonDir != "" {
-			dump(trades, symbol, from, to, jsonDir)
-		}
 		csm := io.NewColumnSeriesMap()
 		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Sec/TRADE")
 		cs := io.NewColumnSeries()
@@ -387,7 +381,7 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, jsonDir 
 	return nil
 }
 
-func Quotes(symbol string, from, to time.Time, batchSize int, jsonDir string, writerWP *worker.WorkerPool) error {
+func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
 	// FIXME: This function is broken with the following problems:
 	//  - Callee (backfiller.go) wrongly checks the market day (checks for the day after)
 	//  - Callee always specifies one day worth of data, pointless to do a for loop
@@ -408,9 +402,6 @@ func Quotes(symbol string, from, to time.Time, batchSize int, jsonDir string, wr
 	ApiCallTime += time.Now().Sub(t)
 
 	if len(quotes) > 0 {
-		if jsonDir != "" {
-			dump(quotes, symbol, from, to, jsonDir)
-		}
 		csm := io.NewColumnSeriesMap()
 		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/QUOTE")
 		cs := io.NewColumnSeries()
@@ -454,32 +445,4 @@ func Quotes(symbol string, from, to time.Time, batchSize int, jsonDir string, wr
 	}
 
 	return nil
-}
-
-func dump(data interface{}, symbol string, from, to time.Time, jsonDir string) error {
-	var prefix = ""
-	switch data.(type) {
-	case []api.TradeTick:
-		prefix = "trades"
-	case []api.QuoteTick:
-		prefix = "quotes"
-	}
-	filename := fmt.Sprintf("%s_%s_%s_%s.json.gz", prefix, symbol, from.Format(jsonDumpFormat), to.Format(jsonDumpFormat))
-	filename = filepath.Join(jsonDir, filename)
-	buff, err := json.Marshal(data)
-	if err == nil {
-		f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
-		if err != nil {
-			log.Fatal("[polygon] cannot create file: %s (%v)", filename, err)
-			return err
-		}
-		defer f.Close()
-		w := gzip.NewWriter(f)
-		w.Write(buff)
-		defer w.Close()
-		log.Info("[polygon] saved: %s", filename)
-	} else {
-		log.Error("[polygon] unable to re-encode polygon's reply to json! (%v)", err)
-	}
-	return err
 }

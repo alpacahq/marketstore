@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"path/filepath"
+	"os"
+
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,6 +26,10 @@ const (
 	quotesURL  = "%v/v1/historic/quotes/%v/%v"
 	tickersURL = "%v/v2/reference/tickers"
 	retryCount = 10
+	jsonDumpFormat = "20060102"
+	aggFileName	   = "bars_%s_%s_%s_%d%s_%d.json.gz"
+	tradeFileName = "trades_%s_%s_%d_%d.json.gz"
+	quoteFileName = "quotes_%s_%s_%d_%d.json.gz"
 )
 
 var (
@@ -32,6 +39,7 @@ var (
 	NY, _        = time.LoadLocation("America/New_York")
 	completeDate = "2006-01-02"
 	client       *http.Client
+	JsonDir		 = ""
 )
 
 func init() {
@@ -160,7 +168,12 @@ func ListTickersPerPage(page int) ([]Ticker, error) {
 	q.Set("page", strconv.FormatInt(int64(page), 10))
 	u.RawQuery = q.Encode()
 
-	err = downloadAndUnmarshal(u.String(), retryCount, &resp)
+	body, err := download(u.String(), retryCount)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(body, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -191,15 +204,24 @@ func GetHistoricAggregates(
 
 	q := u.Query()
 	q.Set("apiKey", apiKey)
-
+	limit_n := 0 
 	if limit != nil {
-		q.Set("limit", strconv.FormatInt(int64(*limit), 10))
+		limit_n = *limit
+		q.Set("limit", strconv.FormatInt(int64(limit_n), 10))
 	}
 
 	u.RawQuery = q.Encode()
 
+	body, err := download(u.String(), retryCount)
+	if err != nil {
+		return nil, err
+	}
+
+	filename := fmt.Sprintf(aggFileName, ticker, from.Format(jsonDumpFormat), to.Format(jsonDumpFormat), multiplier, timespan, limit_n)
+	jsonDump(body, filename)
+
 	agg := &HistoricAggregates{}
-	err = downloadAndUnmarshal(u.String(), retryCount, agg)
+	err = json.Unmarshal(body, agg)
 	if err != nil {
 		return nil, err
 	}
@@ -232,8 +254,16 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 
 		u.RawQuery = q.Encode()
 
+		body, err := download(u.String(), retryCount)
+		if err != nil {
+			return nil, err	
+		}
+
+		filename := fmt.Sprintf(tradeFileName, symbol, date, offset, batchSize)
+		jsonDump(body, filename)
+
 		trades := &HistoricTrades{}
-		err := downloadAndUnmarshal(u.String(), retryCount, trades)
+		err = json.Unmarshal(body, trades)
 		if err != nil {
 			return nil, err
 		}
@@ -288,7 +318,15 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 
 		u.RawQuery = q.Encode()
 
-		err = downloadAndUnmarshal(u.String(), retryCount, quotes)
+		body, err := download(u.String(), retryCount)
+		if err != nil {
+			return nil, err
+		}
+
+		filename := fmt.Sprintf(quoteFileName, symbol, date, offset, batchSize)
+		jsonDump(body, filename)
+
+		err = json.Unmarshal(body, quotes)
 		if err != nil {
 			return nil, err
 		}
@@ -309,28 +347,22 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 	return totalQuotes, nil
 }
 
-func downloadAndUnmarshal(url string, retryCount int, data interface{}) error {
+func download(url string, retryCount int) (body []byte, err error) {
 	// It is required to retry both the download() and unmarshal() calls
 	// as network errors (e.g. Unexpected EOF) can come also from unmarshal()
-	err := try.Do(func(attempt int) (bool, error) {
-		resp, err := download(url, retryCount)
-		if err == nil {
-			err = unmarshal(resp, data)
-		}
-
-		if err != nil && strings.Contains(err.Error(), "GOAWAY") {
+	err = try.Do(func(attempt int) (bool, error) {
+		body, err = request(url, retryCount)
+		if err != nil  && strings.Contains(err.Error(), "GOAWAY") {
 			// Polygon's way to tell that we are too fast
 			log.Warn("parallel connection number may reach polygon limit, url: %s", url)
 			time.Sleep(5 * time.Second)
 		}
-
 		return attempt < retryCount, err
 	})
-
-	return err
+	return body, err
 }
 
-func download(url string, retryCount int) (*http.Response, error) {
+func request(url string, retryCount int) ([]byte, error) {
 	var resp *http.Response
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -349,10 +381,6 @@ func download(url string, retryCount int) (*http.Response, error) {
 		return nil, fmt.Errorf("status code %v", resp.StatusCode)
 	}
 
-	return resp, nil
-}
-
-func unmarshal(resp *http.Response, data interface{}) (err error) {
 	defer resp.Body.Close()
 
 	var reader io.ReadCloser
@@ -360,7 +388,7 @@ func unmarshal(resp *http.Response, data interface{}) (err error) {
 	case "gzip":
 		reader, err = gzip.NewReader(resp.Body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer reader.Close()
 	default:
@@ -369,8 +397,29 @@ func unmarshal(resp *http.Response, data interface{}) (err error) {
 
 	body, err := ioutil.ReadAll(reader)
 	if err != nil {
+		return nil, err
+	}
+	return body, err
+}
+
+
+
+func jsonDump(body []byte, filename string) error {
+	if JsonDir == "" {
+		return nil 
+	}
+	filename = filepath.Join(JsonDir, filename)
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		log.Error("[polygon] cannot create file: %s (%v)", filename, err)
 		return err
 	}
+	defer f.Close()
 
-	return json.Unmarshal(body, data)
+	writer := gzip.NewWriter(f)
+	defer writer.Close()
+
+	writer.Write(body)
+	log.Info("[polygon] saved: %s", filename)
+	return err
 }

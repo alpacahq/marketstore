@@ -121,6 +121,7 @@ func main() {
 			log.Fatal("[polygon] cannot create json dump directory (%v)", err)
 		}
 		log.Info("[polygon] using %s to dump polygon's replies", jsonDir)
+		api.JsonDir = jsonDir
 	}
 
 	startTime := time.Now()
@@ -305,7 +306,7 @@ func getQuotes(start time.Time, end time.Time, period time.Duration, symbol stri
 		}
 
 		log.Info("[polygon] backfilling quotes for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Quotes(symbol, start, start.Add(period), batchSize, jsonDir, writerWP); err != nil {
+		if err := backfill.Quotes(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill quote for %v @ %v (%v)", symbol, start, err)
 		}
 
@@ -322,7 +323,7 @@ func getTrades(start time.Time, end time.Time, period time.Duration, symbol stri
 		}
 
 		log.Info("[polygon] backfilling trades for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Trades(symbol, start, start.Add(period), batchSize, jsonDir, writerWP); err != nil {
+		if err := backfill.Trades(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", symbol, start, err)
 		}
 
