@@ -34,7 +34,7 @@ var (
 	exchanges                           string
 	batchSize                           int
 	cacheDir                            string
-	readFromCache						bool
+	readFromCache                       bool
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
