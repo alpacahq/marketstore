@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/gobwas/glob"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"sort"
@@ -32,7 +33,8 @@ var (
 	apiKey                              string
 	exchanges                           string
 	batchSize                           int
-
+	cacheDir                            string
+	readFromCache                       bool
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
@@ -54,6 +56,8 @@ func init() {
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
 	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades, quotes, & bars")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
+	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
+	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
 
 	flag.Parse()
 }
@@ -111,6 +115,16 @@ func main() {
 	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*24*time.Hour, 24*time.Hour)
 	if err != nil {
 		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
+	}
+
+	if cacheDir != "" {
+		err = os.MkdirAll(cacheDir, 0777)
+		if err != nil {
+			log.Fatal("[polygon] cannot create json dump directory (%v)", err)
+		}
+		log.Info("[polygon] using %s to dump polygon's replies", cacheDir)
+		api.CacheDir = cacheDir
+		api.FromCache = readFromCache
 	}
 
 	startTime := time.Now()
