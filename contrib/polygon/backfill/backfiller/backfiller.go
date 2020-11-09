@@ -33,7 +33,8 @@ var (
 	apiKey                              string
 	exchanges                           string
 	batchSize                           int
-	jsonDir                             string
+	cacheDir                            string
+	readFromCache						bool
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
@@ -55,7 +56,8 @@ func init() {
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
 	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades, quotes, & bars")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
-	flag.StringVar(&jsonDir, "json-dump-dir", "", "directory to dump polygon's json replies")
+	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
+	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
 
 	flag.Parse()
 }
@@ -115,13 +117,14 @@ func main() {
 		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
 	}
 
-	if jsonDir != "" {
-		err = os.MkdirAll(jsonDir, 0777)
+	if cacheDir != "" {
+		err = os.MkdirAll(cacheDir, 0777)
 		if err != nil {
 			log.Fatal("[polygon] cannot create json dump directory (%v)", err)
 		}
-		log.Info("[polygon] using %s to dump polygon's replies", jsonDir)
-		api.JsonDir = jsonDir
+		log.Info("[polygon] using %s to dump polygon's replies", cacheDir)
+		api.CacheDir = cacheDir
+		api.FromCache = readFromCache
 	}
 
 	startTime := time.Now()
