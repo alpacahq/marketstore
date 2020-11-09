@@ -1,0 +1,21 @@
+{{- if .Values.prometheus.serviceMonitor.enable }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "marketstore.fullname" . }}
+  labels:
+    {{- include "marketstore.labels" . | nindent 4 }}
+    {{- range $key, $value := .Values.prometheus.serviceMonitor.additionalLabels }}
+    {{ $key | quote }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  endpoints:
+  - path: /metrics
+    port: rpc
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "marketstore.selectorLabels" . | nindent 6 }}
+{{- end }}
