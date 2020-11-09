@@ -162,54 +162,25 @@ func (g *Gap) Init(args ...interface{}) error {
 func (g *Gap) Output() *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 
+	resultRows := len(g.BigGapIdxs)
+	gapStartEpoch := make([]int64, resultRows)
+	gapEndEpoch := make([]int64, resultRows)
+	gapLength := make([]int64, resultRows)
+
 	if len(g.BigGapIdxs) > 0 && g.Input != nil {
 		cols := *g.Input
 		epochs := cols.GetColumn("Epoch").([]int64)
 
-		retLen := len(g.BigGapIdxs) * 2
-		retEpoch := make([]int64, retLen+3)
-		retType := make([]int8, retLen+3)
-		retCount := make([]uint32, retLen+3)
-
-		// query start
-		retEpoch[0] = epochs[0]
-		retType[0] = 0
-		retCount[0] = 0
-
-		// static
 		for i, idx := range g.BigGapIdxs {
-			j := i*2 + 1
-			retEpoch[j] = epochs[idx]
-			retEpoch[j+1] = epochs[idx+1]
-			retType[j] = 1   // last end
-			retType[j+1] = 0 // next start
-			if i == 0 {
-				retCount[j] = uint32(len(epochs[:idx]))
-			} else {
-				retCount[j] = uint32(len(epochs[g.BigGapIdxs[i-1]:idx]))
-			}
-			retCount[j+1] = 0
+			gapStartEpoch[i] = epochs[idx]
+			gapEndEpoch[i] = epochs[idx+1]
+			gapLength[i] = epochs[idx+1] - epochs[idx]
 		}
-
-		// query end
-		retEpoch[retLen+1] = epochs[len(epochs)-1]
-		retType[retLen+1] = 1
-		retCount[retLen+1] = uint32(len(epochs[g.BigGapIdxs[retLen/2-1]:]))
-		// total
-		retEpoch[retLen+2] = 0
-		retType[retLen+2] = 127
-		retCount[retLen+2] = uint32(len(epochs))
-
-		cs.AddColumn("Epoch", retEpoch)
-		cs.AddColumn("End(1)Start(0)", retType)
-		cs.AddColumn("Count", retCount)
-
-	} else {
-		cs.AddColumn("Epoch", []int64{})
-		cs.AddColumn("End(1)Start(0)", []int8{})
-		cs.AddColumn("Count", []uint32{})
-
 	}
+
+	cs.AddColumn("Epoch", gapStartEpoch)
+	cs.AddColumn("End", gapEndEpoch)
+	cs.AddColumn("Length", gapLength)
 
 	return cs
 }
