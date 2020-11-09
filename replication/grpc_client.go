@@ -4,23 +4,18 @@ import (
 	"context"
 	pb "github.com/alpacahq/marketstore/v4/proto"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"io"
 )
 
 type GRPCReplicationClient struct {
 	Client       pb.ReplicationClient
-	clientConn   *grpc.ClientConn
 	streamClient pb.Replication_GetWALStreamClient
 }
 
-func NewGRPCReplicationClient(conn *grpc.ClientConn) (*GRPCReplicationClient, error) {
-	c := pb.NewReplicationClient(conn)
-
+func NewGRPCReplicationClient(client pb.ReplicationClient) *GRPCReplicationClient {
 	return &GRPCReplicationClient{
-		Client:     c,
-		clientConn: conn,
-	}, nil
+		Client:     client,
+	}
 }
 
 func (rc *GRPCReplicationClient) Connect(ctx context.Context) error {
@@ -40,7 +35,7 @@ func (rc *GRPCReplicationClient) Recv() ([]byte, error) {
 		return nil, errors.New("no stream connection to master")
 	}
 
-	// the following line blocks until receive a new message
+	// streamClient.Recv() blocks the thread until receive a new message
 	resp, err := rc.streamClient.Recv()
 	if err == io.EOF {
 		return nil, err
@@ -52,19 +47,4 @@ func (rc *GRPCReplicationClient) Recv() ([]byte, error) {
 		return nil, errors.New("nil message received from gRPC stream")
 	}
 	return resp.TransactionGroup, nil
-}
-
-// Close closes gRPC stream client and its connection.
-func (rc *GRPCReplicationClient) Close() error {
-	err := rc.streamClient.CloseSend()
-	if err != nil {
-		return errors.Wrap(err, "failed to close gRPC stream connection")
-	}
-
-	err = rc.clientConn.Close()
-	if err != nil {
-		return errors.Wrap(err, "failed to close gRPC connection")
-	}
-
-	return nil
 }

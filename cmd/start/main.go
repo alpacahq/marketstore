@@ -271,10 +271,7 @@ func initReplicationClient(ctx context.Context, tlsEnabled bool, certFile string
 		return errors.Wrap(err, "failed to initialize gRPC client connection for replication")
 	}
 
-	c, err := replication.NewGRPCReplicationClient(conn)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize gRPC client for replication")
-	}
+	c := replication.NewGRPCReplicationClient(pb.NewReplicationClient(conn))
 
 	replayer := replication.NewReplayer(executor.ParseTGData, executor.WriteCSMInner, utils.InstanceConfig.RootDirectory)
 	replicationReceiver := replication.NewReceiver(c, replayer)
