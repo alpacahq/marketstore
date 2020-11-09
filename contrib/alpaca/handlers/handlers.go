@@ -10,28 +10,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// Conditions source:
-// https://polygon.io/glossary/us/stocks/conditions-indicators
-const (
-	ConditionExchangeSummary = 51
-	OfficialConditionClosing = 15
-	OfficialConditionOpening = 16
-	ConditionClosing         = 17
-	ConditionReOpening       = 18
-	ConditionOpening         = 19
-)
-
-func conditionsPresent(conditions []int32) (skip bool) {
-	for _, c := range conditions {
-		switch c {
-		case ConditionExchangeSummary, ConditionReOpening, ConditionOpening, ConditionClosing,
-			OfficialConditionOpening, OfficialConditionClosing:
-			return true
-		}
-	}
-	return
-}
-
 // MessageHandler handles incoming messages
 // from the websocket
 func MessageHandler(msg []byte) {
@@ -88,12 +66,6 @@ func MessageHandler(msg []byte) {
 // tradeHandler handles a Trade
 // and stores it to the cache
 func tradeHandler(t *api.Trade) {
-	switch {
-	case conditionsPresent(t.Conditions), t.Size <= 0, t.Price <= 0:
-		metrics.AlpacaStreamDroppedPackets.Inc()
-		return
-	}
-
 	writeTrade(t)
 	updateMetrics("trade", time.Unix(0, t.Timestamp))
 }

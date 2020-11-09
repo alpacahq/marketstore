@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
@@ -31,10 +29,8 @@ func (s *HandlersTestSuite) SetUpSuite(c *C) {
 
 func (s *HandlersTestSuite) TearDownSuite(c *C) {}
 
-func getTestTrade(conditions []int) []byte {
-	s := `{"data":{"ev":"T","T":"SPY","i":117537207,"x":2,"p":283.63,"s":2,"t":1587407015152775000,"c":%s,"z":2}}`
-	s = fmt.Sprintf(s, strings.ReplaceAll(fmt.Sprintf("%v", conditions), " ", ","))
-	return []byte(s)
+func getTestTrade() []byte {
+	return []byte(`{"data":{"ev":"T","T":"SPY","i":117537207,"x":2,"p":283.63,"s":2,"t":1587407015152775000,"c":[14, 37, 41],"z":2}}`)
 }
 func getTestQuote() []byte {
 	return []byte(`{"data":{"ev":"Q","T":"SPY","x":17,"p":283.35,"s":1,"X":17,"P":283.4,"S":1,"c":[1],"t":1587407015152775000}}`)
@@ -45,9 +41,7 @@ func getTestAggregate() []byte {
 func (s *HandlersTestSuite) TestHandlers(c *C) {
 	// trade
 	{
-		MessageHandler(getTestTrade([]int{}))
-
-		MessageHandler(getTestTrade([]int{ConditionExchangeSummary}))
+		MessageHandler(getTestTrade())
 	}
 	// quote
 	{
