@@ -11,6 +11,7 @@ install:
 	GOFLAGS=$(GOFLAGS) go install -ldflags "-s -X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" .
 
 debug:
+	$(MAKE) debug -C contrib/alpaca
 	$(MAKE) debug -C contrib/binancefeeder
 	$(MAKE) debug -C contrib/bitmexfeeder
 	$(MAKE) debug -C contrib/gdaxfeeder
@@ -31,6 +32,7 @@ update:
 	GOFLAGS=$(GOFLAGS) go mod tidy
 
 plugins:
+	$(MAKE) -C contrib/alpaca
 	$(MAKE) -C contrib/binancefeeder
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/gdaxfeeder
