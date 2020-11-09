@@ -19,17 +19,17 @@ type Trade struct {
 	// trade ID
 	tradeID int `json:"-"` // i
 	// exchange code where the trade occurred
-	Exchange int32 `json:"x"`
+	Exchange uint32 `json:"x"`
 	// trade price
 	Price float32 `json:"p"`
 	// trade size (shares)
-	Size int32 `json:"s"`
+	Size uint32 `json:"s"`
 	// epoch timestamp in nanoseconds
 	Timestamp int64 `json:"t"`
 	// condition flags
 	Conditions []int32 `json:"c"`
 	// tape ID
-	TapeID int32 `json:"z"`
+	TapeID uint32 `json:"z"`
 }
 
 // AlpacaTrade is the message
@@ -45,17 +45,17 @@ type Quote struct {
 	// symbol
 	Symbol string `json:"T"`
 	// exchange code for bid quote
-	BidExchange int32 `json:"x"`
+	BidExchange uint32 `json:"x"`
 	// bid price
 	BidPrice float32 `json:"p"`
 	// bid size
-	BidSize int32 `json:"s"`
+	BidSize uint32 `json:"s"`
 	// exchange code for ask quote
-	AskExchange int32 `json:"X"`
+	AskExchange uint32 `json:"X"`
 	// ask price
 	AskPrice float32 `json:"P"`
 	// ask size
-	AskSize int32 `json:"S"`
+	AskSize uint32 `json:"S"`
 	// condition flags.
 	// NOTE: always has len = 1
 	Conditions []int32 `json:"c"`
@@ -76,7 +76,7 @@ type AggregateToMinute struct {
 	// symbol
 	Symbol string `json:"T"`
 	// volume (shares)
-	Volume int32 `json:"v"`
+	Volume uint32 `json:"v"`
 	// accumulated volume (shares)
 	accumVolume int `json:"-"` // av
 	//official open price of the bar

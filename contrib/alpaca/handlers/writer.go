@@ -21,9 +21,9 @@ func writeTrade(t *api.Trade) {
 	cs.AddColumn("Epoch", []int64{timestamp.Unix()})
 	cs.AddColumn("Nanoseconds", []int32{int32(timestamp.Nanosecond())})
 	cs.AddColumn("Price", []float32{t.Price})
-	cs.AddColumn("Size", []int32{t.Size})
-	cs.AddColumn("Exchange", []int32{t.Exchange})
-	cs.AddColumn("TapeID", []int32{t.TapeID})
+	cs.AddColumn("Size", []uint32{t.Size})
+	cs.AddColumn("Exchange", []uint32{t.Exchange})
+	cs.AddColumn("TapeID", []uint32{t.TapeID})
 	c1, c2, c3, c4 := condDefault, condDefault, condDefault, condDefault
 	switch len(t.Conditions) {
 	case 4:
@@ -59,10 +59,10 @@ func writeQuote(q *api.Quote) {
 	cs.AddColumn("Nanoseconds", []int32{int32(timestamp.Nanosecond())})
 	cs.AddColumn("BidPrice", []float32{q.BidPrice})
 	cs.AddColumn("AskPrice", []float32{q.AskPrice})
-	cs.AddColumn("BidSize", []int32{q.BidSize})
-	cs.AddColumn("AskSize", []int32{q.AskSize})
-	cs.AddColumn("BidExchange", []int32{q.BidExchange})
-	cs.AddColumn("AskExchange", []int32{q.AskExchange})
+	cs.AddColumn("BidSize", []uint32{q.BidSize})
+	cs.AddColumn("AskSize", []uint32{q.AskSize})
+	cs.AddColumn("BidExchange", []uint32{q.BidExchange})
+	cs.AddColumn("AskExchange", []uint32{q.AskExchange})
 	cs.AddColumn("Cond", []int32{q.Conditions[0]})
 
 	csm := io.NewColumnSeriesMap()
@@ -81,7 +81,7 @@ func writeAggregateToMinute(agg *api.AggregateToMinute) {
 	cs.AddColumn("High", []float32{agg.High})
 	cs.AddColumn("Low", []float32{agg.Low})
 	cs.AddColumn("Close", []float32{agg.Close})
-	cs.AddColumn("Volume", []int32{agg.Volume})
+	cs.AddColumn("Volume", []uint32{agg.Volume})
 	cs.AddColumn("VWAP", []float32{agg.VWAP})
 	cs.AddColumn("Average", []float32{agg.Average})
 	// NOTE: TickCnt is not set!
