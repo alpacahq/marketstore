@@ -47,7 +47,7 @@ func writeTrade(t *api.Trade) {
 	key := io.NewTimeBucketKey(fmt.Sprintf("%s/1Sec/TRADE", strings.Replace(t.Symbol, "/", ".", 1)))
 	csm.AddColumnSeries(*key, cs)
 
-	writeCSM(&csm, key)
+	writeCSM(&csm, key, true)
 }
 
 // writeQuote writes a Quote
@@ -69,7 +69,7 @@ func writeQuote(q *api.Quote) {
 	key := io.NewTimeBucketKey(fmt.Sprintf("%s/1Sec/QUOTE", strings.Replace(q.Symbol, "/", ".", 1)))
 	csm.AddColumnSeries(*key, cs)
 
-	writeCSM(&csm, key)
+	writeCSM(&csm, key, true)
 }
 
 // writeAggregateToMinute writes an AggregateToMinute
@@ -82,19 +82,17 @@ func writeAggregateToMinute(agg *api.AggregateToMinute) {
 	cs.AddColumn("Low", []float32{agg.Low})
 	cs.AddColumn("Close", []float32{agg.Close})
 	cs.AddColumn("Volume", []uint32{agg.Volume})
-	cs.AddColumn("VWAP", []float32{agg.VWAP})
-	cs.AddColumn("Average", []float32{agg.Average})
 	// NOTE: TickCnt is not set!
 
 	csm := io.NewColumnSeriesMap()
 	key := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", agg.Symbol))
 	csm.AddColumnSeries(*key, cs)
 
-	writeCSM(&csm, key)
+	writeCSM(&csm, key, false)
 }
 
-func writeCSM(csm *io.ColumnSeriesMap, key *io.TimeBucketKey) {
-	if err := executor.WriteCSM(*csm, false); err != nil {
+func writeCSM(csm *io.ColumnSeriesMap, key *io.TimeBucketKey, isVariableLength bool) {
+	if err := executor.WriteCSM(*csm, isVariableLength); err != nil {
 		log.Error("[alpaca] csm write failure for key: [%v] (%v)", key.String(), err)
 	}
 }

@@ -2,12 +2,13 @@ package backfill
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/contrib/calendar"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"math"
 
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/calendar"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -17,7 +18,7 @@ import (
 
 const (
 	defaultFormat = "2006-01-02"
-	condDefault = int32(-1)
+	condDefault   = int32(-1)
 )
 
 type ConsolidatedUpdateInfo struct {
@@ -131,8 +132,6 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 	low := make([]float32, len(resp.Results))
 	close := make([]float32, len(resp.Results))
 	volume := make([]uint32, len(resp.Results))
-	vwap := make([]float32, len(resp.Results))
-	average := make([]float32, len(resp.Results))
 
 	for i, bar := range resp.Results {
 		timestamp := bar.EpochMilliseconds / 1000
@@ -155,8 +154,6 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 	cs.AddColumn("Volume", volume)
-	cs.AddColumn("VWAP", vwap)
-	cs.AddColumn("Average", average)
 	csm.AddColumnSeries(*tbk, cs)
 
 	t = time.Now()
@@ -232,8 +229,6 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 	lows := make([]float32, 1440)
 	closes := make([]float32, 1440)
 	volumes := make([]uint32, 1440)
-	vwap := make([]float32, 1440)
-	average := make([]float32, 1440)
 
 	barIdx := 0
 	lastBucketTimestamp := time.Time{}
@@ -329,8 +324,6 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 	cs.AddColumn("Low", lows[:barIdx])
 	cs.AddColumn("Close", closes[:barIdx])
 	cs.AddColumn("Volume", volumes[:barIdx])
-	cs.AddColumn("VWAP", vwap[:barIdx])
-	cs.AddColumn("Average", average[:barIdx])
 
 	csm = io.NewColumnSeriesMap()
 	tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
@@ -416,7 +409,7 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 		t = time.Now()
 		writerWP.Do(func() {
 			tt := time.Now()
-			err := executor.WriteCSM(csm, false)
+			err := executor.WriteCSM(csm, true)
 			if err != nil {
 				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
 			}
@@ -495,7 +488,7 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 		t = time.Now()
 		writerWP.Do(func() {
 			tt := time.Now()
-			err := executor.WriteCSM(csm, false)
+			err := executor.WriteCSM(csm, true)
 			if err != nil {
 				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
 			}
