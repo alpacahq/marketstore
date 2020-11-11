@@ -5,18 +5,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
+	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-)
-
-const (
-	NewRecord    = 'N'
-	UpdateRecord = 'U'
-	DeleteRecord = 'D'
 )
 
 type CARows struct {
@@ -61,9 +55,9 @@ type RateChange struct {
 }
 
 type Actions struct {
-	Cusip string
-	Tbk   *io.TimeBucketKey
-	Rows  *CARows
+	Symbol string
+	Tbk    *io.TimeBucketKey
+	Rows   *CARows
 }
 
 type RateChangeCache struct {
@@ -71,24 +65,25 @@ type RateChangeCache struct {
 	Access    int64
 	CreatedAt time.Time
 }
+
 type CacheKey struct {
-	cusip     string
-	splits    bool
-	dividends bool
+	Symbol    string
+	Splits    bool
+	Dividends bool
 }
 
 const cacheLifetime = 24 * time.Hour
 
 var cache = map[CacheKey]RateChangeCache{}
 
-func GetRateChanges(cusip string, includeSplits, includeDividends bool) []RateChange {
-	key := CacheKey{cusip: cusip, splits: includeSplits, dividends: includeDividends}
+func GetRateChanges(symbol string, includeSplits, includeDividends bool) []RateChange {
+	key := CacheKey{Symbol: symbol, Splits: includeSplits, Dividends: includeDividends}
 	rateCache, present := cache[key]
 	if present && time.Now().Sub(rateCache.CreatedAt) > cacheLifetime {
 		present = false
 	}
 	if !present {
-		ca := NewCorporateActions(cusip)
+		ca := NewCorporateActions(symbol)
 		ca.Load()
 		rateCache = RateChangeCache{
 			Changes:   ca.RateChangeEvents(includeSplits, includeDividends),
@@ -100,17 +95,17 @@ func GetRateChanges(cusip string, includeSplits, includeDividends bool) []RateCh
 	return rateCache.Changes
 }
 
-func NewCorporateActions(cusip string) *Actions {
+func NewCorporateActions(symbol string) *Actions {
 	return &Actions{
-		Cusip: cusip,
-		Tbk:   io.NewTimeBucketKeyFromString(cusip + bucketkeySuffix),
-		Rows:  NewCARows(),
+		Symbol: symbol,
+		Tbk:    io.NewTimeBucketKeyFromString(symbol + enum.BucketkeySuffix),
+		Rows:   NewCARows(),
 	}
 }
 
 func (act *Actions) Load() error {
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
-	tbk := io.NewTimeBucketKeyFromString(act.Cusip + bucketkeySuffix)
+	tbk := io.NewTimeBucketKeyFromString(act.Symbol + enum.BucketkeySuffix)
 	tf := tbk.GetItemInCategory("Timeframe")
 	cd := utils.CandleDurationFromString(tf)
 	queryableTimeframe := cd.QueryableTimeframe()
@@ -175,10 +170,10 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 		var textnumber int64
 		status := act.Rows.Statuses[i]
 		switch status {
-		case NewRecord:
+		case enum.NewAnnouncement:
 			textnumber = act.Rows.TextNumbers[i]
 			caMap[textnumber] = i
-		case UpdateRecord:
+		case enum.UpdatedAnnouncement:
 			textnumber = act.Rows.UpdateTextNumbers[i]
 			prev, present := caMap[textnumber]
 			// being extremely paranoid here, allow updates for newer records only
@@ -190,7 +185,7 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 				// sometimes notifications start with an update, so just keep it
 				caMap[textnumber] = i
 			}
-		case DeleteRecord:
+		case enum.DeletedAnnouncement:
 			textnumber = act.Rows.DeleteTextNumbers[i]
 			delete(caMap, textnumber)
 		}
@@ -204,10 +199,10 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 	changes := make([]RateChange, 0, len(actionIndex)+1)
 	for _, index := range actionIndex {
 		// use Expiration date
-		if includeSplits && (act.Rows.NotificationTypes[index] == byte(reorg.Split) || act.Rows.NotificationTypes[index] == byte(reorg.ReverseSplit)) {
+		if includeSplits && (act.Rows.NotificationTypes[index] == enum.StockSplit || act.Rows.NotificationTypes[index] == enum.ReverseStockSplit) {
 			changes = append(changes, RateChange{Epoch: act.Rows.ExpirationDates[index], Rate: act.Rows.Rates[index], Textnumber: act.Rows.TextNumbers[index], Type: act.Rows.NotificationTypes[index]})
 		}
-		if includeDividends && (act.Rows.NotificationTypes[index] == byte(reorg.Dividend)) {
+		if includeDividends && (act.Rows.NotificationTypes[index] == enum.StockDividend) {
 			changes = append(changes, RateChange{Epoch: act.Rows.ExpirationDates[index], Rate: act.Rows.Rates[index], Textnumber: act.Rows.TextNumbers[index], Type: act.Rows.NotificationTypes[index]})
 		}
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const bucketkeySuffix = "/1D/ACTIONS"
 const calcSplit = "split"
 const calcDividend = "dividend"
 
@@ -114,8 +113,8 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 		}
 	}
 
-	cusip := adj.tbk.GetItemInCategory("Symbol")
-	rateChanges := GetRateChanges(cusip, adj.AdjustSplit, adj.AdjustDividend)
+	symbol := adj.tbk.GetItemInCategory("Symbol")
+	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend)
 	log.Info("# of rate change events: %d", len(rateChanges))
 	// rate changes always contains 1.0 at the maximum available time
 	ri := len(rateChanges) - 1

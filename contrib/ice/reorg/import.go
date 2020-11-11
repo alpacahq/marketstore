@@ -7,21 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/sirs"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const (
-	processedTag    = ".processed"
-	bucketkeySuffix = "/1D/ACTIONS"
-	reorgFilePrefix = "reorg"
-	sirsFilePrefix  = "sirs"
-)
-
 func Import(reorgDir string, reimport bool) {
-	reorgFiles, err := fileList(reorgDir, reorgFilePrefix, reimport)
+	reorgFiles, err := fileList(reorgDir, enum.ReorgFilePrefix, reimport)
 	if err != nil {
 		log.Fatal("Cannot read reorg files directory - dir: %s, error: %v", reorgDir, err)
 		return
@@ -29,8 +23,8 @@ func Import(reorgDir string, reimport bool) {
 	log.Info("Parsing %d new files", len(reorgFiles))
 	for _, reorgFile := range reorgFiles {
 		log.Info("======== Processing %s", reorgFile)
-		sirsFile := strings.ReplaceAll(reorgFile, reorgFilePrefix, sirsFilePrefix)
-		sirsFile = strings.ReplaceAll(sirsFile, processedTag, "")
+		sirsFile := strings.ReplaceAll(reorgFile, enum.ReorgFilePrefix, enum.SirsFilePrefix)
+		sirsFile = strings.ReplaceAll(sirsFile, enum.ProcessedFlag, "")
 		pathToReorgFile := filepath.Join(reorgDir, reorgFile)
 		pathToSirsFile := filepath.Join(reorgDir, sirsFile)
 
@@ -60,7 +54,7 @@ func Import(reorgDir string, reimport bool) {
 			return
 		}
 		if !reimport {
-			os.Rename(pathToReorgFile, pathToReorgFile+processedTag)
+			os.Rename(pathToReorgFile, pathToReorgFile+enum.ProcessedFlag)
 		}
 	}
 }
@@ -69,7 +63,7 @@ func fileList(path string, prefix string, reimport bool) (out []string, err erro
 	localfiles, err := ioutil.ReadDir(path)
 	if err == nil {
 		for _, file := range localfiles {
-			if strings.HasPrefix(file.Name(), prefix) && (reimport || (!reimport && !strings.HasSuffix(file.Name(), processedTag))) {
+			if strings.HasPrefix(file.Name(), prefix) && (reimport || (!reimport && !strings.HasSuffix(file.Name(), enum.ProcessedFlag))) {
 				out = append(out, file.Name())
 			}
 		}
@@ -90,7 +84,7 @@ func readNotifications(path string) (*[]Notification, error) {
 }
 
 func storeNotification(symbol string, note *Notification) error {
-	tbk := io.NewTimeBucketKeyFromString(symbol + bucketkeySuffix)
+	tbk := io.NewTimeBucketKeyFromString(symbol + enum.BucketkeySuffix)
 	csm := io.NewColumnSeriesMap()
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{note.EntryDate.Unix()})
@@ -116,7 +110,7 @@ func storeNotifications(notes []Notification, cusipSymbolMap map[string]string) 
 		if note.TargetCusip == "" {
 			continue
 		}
-		if note.Is(Split) || note.Is(ReverseSplit) || note.Is(Dividend) {
+		if note.Is(enum.StockSplit) || note.Is(enum.ReverseStockSplit) || note.Is(enum.StockDividend) {
 			symbol, present := cusipSymbolMap[note.TargetCusip]
 			if present && symbol != "" {
 				if err := storeNotification(symbol, &note); err != nil {

@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd/ftp"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd/reorg"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd/sirs"
 )
@@ -19,4 +20,5 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(sirs.ShowSecurityMasterCmd)
 	Cmd.AddCommand(reorg.Cmd)
+	Cmd.AddCommand(ftp.FTPSyncCmd)
 }

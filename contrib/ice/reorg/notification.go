@@ -3,6 +3,8 @@ package reorg
 import (
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 )
 
 type Notification struct {
@@ -35,46 +37,41 @@ type Notification struct {
 	DueRedemptionDate       time.Time `reorg:"func:ParseDueRedemptionDate"`
 }
 
-func (i Notification) Is(code NotificationTypeEnum) bool {
-	return i.NotificationType[0] == byte(code)
+func (i Notification) Is(code byte) bool {
+	return i.NotificationType[0] == code
 }
 
 func (i Notification) ParseUpdateTextNumber(lines []string) string {
 	if strings.TrimSpace(lines[5][54:61]) == "UPDTEXT" {
 		return strings.TrimSpace(lines[5][62:69])
-	} else {
-		return ""
 	}
+	return ""
 }
 
 func (i Notification) ParseDeleteTextNumber(lines []string) string {
 	if strings.TrimSpace(lines[5][54:61]) == "DELTEXT" {
 		return strings.TrimSpace(lines[5][62:69])
-	} else {
-		return ""
 	}
+	return ""
 }
 
 func (i Notification) ParseNewRate(lines []string) string {
-	if i.Is(Split) || i.Is(ReverseSplit) {
+	if i.Is(enum.StockSplit) || i.Is(enum.ReverseStockSplit) {
 		return lines[7][56:69]
-	} else {
-		return lines[4][5:15]
 	}
+	return lines[4][5:15]
 }
 
 func (i Notification) ParseOldRate(lines []string) string {
-	if i.Is(Split) || i.Is(ReverseSplit) {
+	if i.Is(enum.StockSplit) || i.Is(enum.ReverseStockSplit) {
 		return lines[8][56:69]
-	} else {
-		return lines[4][23:32]
 	}
+	return lines[4][23:32]
 }
 
 func (i Notification) ParseDueRedemptionDate(lines []string) string {
 	if len(lines) > 12 && lines[12][0:25] == "DUE BILL REDEMPTION DATE:" {
 		return lines[12][25:33]
-	} else {
-		return ""
 	}
+	return ""
 }
