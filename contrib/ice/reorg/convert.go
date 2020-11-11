@@ -1,14 +1,13 @@
 package reorg
 
 import (
-	"reflect"
-	"time"
 	"fmt"
+	"reflect"
 	"strings"
+	"time"
+
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
-
-
 
 var TIME = reflect.TypeOf(time.Time{}).Name()
 var INT = reflect.TypeOf(1).Name()
@@ -19,24 +18,23 @@ var STRING = reflect.TypeOf("").Name()
 type TypeConverter func(str string, v reflect.Value, format string) error
 
 var converters = map[string]TypeConverter{
-	INT : stringToInt,
-	INT64 : stringToInt,
-	FLOAT : stringToFloat,
-	STRING : stringToString,
-	TIME : stringToTime,
+	INT:    stringToInt,
+	INT64:  stringToInt,
+	FLOAT:  stringToFloat,
+	STRING: stringToString,
+	TIME:   stringToTime,
 }
 
-var format_defaults = map[string]string{
-		INT : "%d", 
-		INT64 : "%d", 
-		FLOAT : "%f",
-		TIME: "01/02/06",
+var formatDefaults = map[string]string{
+	INT:   "%d",
+	INT64: "%d",
+	FLOAT: "%f",
+	TIME:  "01/02/06",
 }
-
 
 func stringToInt(str string, v reflect.Value, format string) error {
 	var val int
-	n, err := fmt.Sscanf(str, format, &val);
+	n, err := fmt.Sscanf(str, format, &val)
 	if n == 1 {
 		v.SetInt(int64(val))
 	}
@@ -45,7 +43,7 @@ func stringToInt(str string, v reflect.Value, format string) error {
 
 func stringToFloat(str string, v reflect.Value, format string) error {
 	var f float64
-	n, err := fmt.Sscanf(str, format, &f);
+	n, err := fmt.Sscanf(str, format, &f)
 	if n == 1 {
 		v.SetFloat(f)
 	}
@@ -70,12 +68,12 @@ func stringToTime(str string, v reflect.Value, format string) error {
 }
 
 func Convert(input string, format string, def string, v reflect.Value) {
-	clean_input := strings.TrimSpace(input)
-	if len(clean_input) == 0 && len(def) > 0 {
-		clean_input = strings.TrimSpace(def)
+	cleanInput := strings.TrimSpace(input)
+	if len(cleanInput) == 0 && len(def) > 0 {
+		cleanInput = strings.TrimSpace(def)
 	}
-	if clean_input == "" {
-		return 
+	if cleanInput == "" {
+		return
 	}
 	defer func() {
 		err := recover()
@@ -86,11 +84,11 @@ func Convert(input string, format string, def string, v reflect.Value) {
 	iv := reflect.Indirect(v)
 	if iv.CanSet() {
 		f := converters[iv.Type().Name()]
-		if f != nil { 
+		if f != nil {
 			if format == "" {
-				format = format_defaults[iv.Type().Name()]
+				format = formatDefaults[iv.Type().Name()]
 			}
-			err := f(clean_input, iv, format)
+			err := f(cleanInput, iv, format)
 			if err != nil {
 				log.Error("type conversion error: %+v, %s\n", err, input)
 			}
@@ -101,4 +99,3 @@ func Convert(input string, format string, def string, v reflect.Value) {
 		println("value is read only!!!! ", input, " to ", v.Type().Name())
 	}
 }
-

@@ -1,61 +1,59 @@
 package main
 
 import (
-	"log"
 	"flag"
 	"net/url"
 	"os"
+
 	"github.com/alpacahq/marketstore/v4/contrib/ice/ftp"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var (
-	rawFtpUrl string
-	ftpUrl *url.URL 
-	dataDir string
+	rawFtpURL string
+	ftpURL    *url.URL
+	dataDir   string
 )
 
-
 func init() {
-	flag.StringVar(&rawFtpUrl, "url", "", "full FTP url for ICE data, in the form of 'ftp://username:password@ice-ftp-host:port/path-to-files'")
+	flag.StringVar(&rawFtpURL, "url", "", "full FTP url for ICE data, in the form of 'ftp://username:password@ice-ftp-host:port/path-to-files'")
 	flag.StringVar(&dataDir, "datadir", "./data", "directory for storing ICE's reorg files")
 	flag.Parse()
 }
 
-
 func main() {
-	if len(rawFtpUrl) == 0 {
+	if len(rawFtpURL) == 0 {
 		println("Usage: ")
 		flag.PrintDefaults()
-		return 
+		os.Exit(-1)
 	}
-	ftpUrl, error := url.Parse(rawFtpUrl)
+	ftpURL, error := url.Parse(rawFtpURL)
 	if error != nil {
-		log.Println("Please provide a valid url!", rawFtpUrl)
-		return
+		log.Info("Please provide a valid url!", rawFtpURL)
+		os.Exit(-1)
 	}
-	log.Printf("%+v\n", ftpUrl)
 
 	if err := os.MkdirAll(dataDir, 0777); err != nil {
-		log.Println("Cannot create local storage directory!")
+		log.Info("Cannot create local storage directory!")
+		os.Exit(-1)
 	}
 
-	password, ok := ftpUrl.User.Password()
+	password, ok := ftpURL.User.Password()
 	if !ok {
-		log.Println("Please provide a password in the FTP url!")
-		return
+		log.Info("Please provide a password in the FTP url!")
+		os.Exit(-1)
 	}
-	client, err := ftp.NewClient(ftpUrl.User.Username(), password, ftpUrl.Host)
+	client, err := ftp.NewClient(ftpURL.User.Username(), password, ftpURL.Host)
 	if err != nil {
-		log.Println("Unable to connect to ICE:", err)
-		return 
+		log.Info("Unable to connect to ICE:", err)
+		os.Exit(-1)
 	}
-	defer func () { client.Close(); println("connection closed")}()
+	defer func() { client.Close(); println("connection closed") }()
 
-	log.Println("Succesfully connected to ICE")
-	log.Printf("%T, %+v\n", client, client)
+	log.Info("Succesfully connected to ICE: %+v", ftpURL)
 
-	loader := ftp.NewDownloader(client, ftpUrl.Path, dataDir)
+	loader := ftp.NewDownloader(client, ftpURL.Path, dataDir)
 
 	newFiles := loader.Sync()
-	log.Printf("%+v\n", newFiles)
+	log.Info("New files downloaded: %+v", newFiles)
 }

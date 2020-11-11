@@ -1,16 +1,11 @@
 package sirs
 
-/*
-	copied from Ledgie
-*/
-
 import (
 	"bufio"
 	"io"
 	"strconv"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/contrib/ice/models"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
 
 	"github.com/pkg/errors"
@@ -20,13 +15,12 @@ const charactersPerLine = 80
 const minLines = 6
 
 type loader struct {
-	stg         *models.SecurityMaster
-	records 	[]*models.SecurityMaster
+	stg         *SecurityMaster
+	records     []*SecurityMaster
 	processDate *date.Date
 }
 
-
-func Load(r io.Reader) ([]*models.SecurityMaster, error) {
+func Load(r io.Reader) ([]*SecurityMaster, error) {
 
 	l := &loader{}
 
@@ -39,7 +33,7 @@ func Load(r io.Reader) ([]*models.SecurityMaster, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-		
+
 	return l.records, nil
 }
 
@@ -54,7 +48,7 @@ func (l *loader) lineReader(currentLine string) error {
 			return errors.Wrap(err, "cannot parse process date from header")
 		}
 
-		l.stg = &models.SecurityMaster{}
+		l.stg = &SecurityMaster{}
 		return nil
 	}
 
@@ -68,7 +62,7 @@ func (l *loader) lineReader(currentLine string) error {
 		}
 
 		// create new record
-		l.stg = &models.SecurityMaster{
+		l.stg = &SecurityMaster{
 			Cusip: cusip,
 		}
 	}

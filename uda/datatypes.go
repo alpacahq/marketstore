@@ -52,7 +52,7 @@ type AggInterface interface {
 
 	/*
 		SetTimeBucketKey() set the TimeBucketKey for the aggregator function
-	*/ 
+	*/
 	SetTimeBucketKey(io.TimeBucketKey)
 }
 

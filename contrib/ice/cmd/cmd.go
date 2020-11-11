@@ -5,9 +5,7 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd/reorg"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd/sirs"
-	
 )
-
 
 //Cmd implements the main ice command
 var Cmd = &cobra.Command{
@@ -17,7 +15,6 @@ var Cmd = &cobra.Command{
 		return cmd.Help()
 	},
 }
-
 
 func init() {
 	Cmd.AddCommand(sirs.ShowSecurityMasterCmd)

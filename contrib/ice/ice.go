@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+
 	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd"
 )
 

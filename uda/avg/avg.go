@@ -108,9 +108,8 @@ func (av *Avg) Reset() {
 Utility Functions
 */
 
-
 /*
-	SetTimeBucketKey() 
-*/ 
+	SetTimeBucketKey()
+*/
 func (av *Avg) SetTimeBucketKey(tbk io.TimeBucketKey) {
-} 
+}

@@ -113,7 +113,7 @@ Utility Functions
 */
 
 /*
-	SetTimeBucketKey() 
-*/ 
+	SetTimeBucketKey()
+*/
 func (mn *Min) SetTimeBucketKey(tbk io.TimeBucketKey) {
-} 
+}

@@ -1,12 +1,12 @@
 package ftp
 
 import (
-	"github.com/secsy/goftp"
-	"log"
-	"os"
 	"io"
-)
+	"os"
 
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/secsy/goftp"
+)
 
 type FtpClient interface {
 	Retrieve(path string, dest io.Writer) error
@@ -14,13 +14,11 @@ type FtpClient interface {
 	Close() error
 }
 
-
 func NewClient(username string, password string, ftp_host string) (FtpClient, error) {
 	config := goftp.Config{
-		User: username,
+		User:     username,
 		Password: password,
 	}
-	log.Println("Connecting to ICE...")
+	log.Info("Connecting to ICE...")
 	return goftp.DialConfig(config, ftp_host)
 }
-

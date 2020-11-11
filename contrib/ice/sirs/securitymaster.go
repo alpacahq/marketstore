@@ -1,4 +1,4 @@
-package models
+package sirs
 
 import (
 	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"

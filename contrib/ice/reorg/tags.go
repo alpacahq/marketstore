@@ -1,91 +1,86 @@
-
-package reorg 
+package reorg
 
 import (
-	"regexp"
 	"fmt"
-	"strings"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 type ParsePosition struct {
 	Begin int
-	End int
+	End   int
 }
 
-type FieldParserFunc func([]string) string 
+type FieldParserFunc func([]string) string
 
 type ParseInfo struct {
-	FieldNo int
-	Line int
+	FieldNo   int
+	Line      int
 	Positions []ParsePosition
-	Format string
-	Default string
-	Func string
+	Format    string
+	Default   string
+	Func      string
 }
-
-
 
 var ParseMap = map[reflect.Type][]ParseInfo{}
 
-var line_matcher = regexp.MustCompile(`line:([0-9]+)`)
-var pos_matcher = regexp.MustCompile(`pos:([^\s]+)`)
-var format_matcher = regexp.MustCompile(`format:([^\s]+)`)
-var default_matcher = regexp.MustCompile(`default:([^\s]+)`)
-var func_matcher = regexp.MustCompile(`func:([^\s]+)`)
-
+var lineMatcher = regexp.MustCompile(`line:([0-9]+)`)
+var posMatcher = regexp.MustCompile(`pos:([^\s]+)`)
+var formatMatcher = regexp.MustCompile(`format:([^\s]+)`)
+var defaultMatcher = regexp.MustCompile(`default:([^\s]+)`)
+var funcMatcher = regexp.MustCompile(`func:([^\s]+)`)
 
 func NewParseInfo() ParseInfo {
 	return ParseInfo{}
 }
 
 func (pi *ParseInfo) parseLine(tag string) {
-	line_matches := line_matcher.FindStringSubmatch(tag)
-	if len(line_matches) > 1 {
-		line_no := 0
-		n, _ := fmt.Sscanf(line_matches[1], "%d", &line_no)
-		if n == 1{
-			pi.Line = line_no
+	lineMatches := lineMatcher.FindStringSubmatch(tag)
+	if len(lineMatches) > 1 {
+		lineNo := 0
+		n, _ := fmt.Sscanf(lineMatches[1], "%d", &lineNo)
+		if n == 1 {
+			pi.Line = lineNo
 		} else {
 			panic("Can't parse line number from tag!")
 		}
 	}
-} 
+}
 
 func (pi *ParseInfo) parsePos(tag string) {
-	pos_matches := pos_matcher.FindStringSubmatch(tag)
-	if len(pos_matches) > 1 {
-		positions := strings.Split(pos_matches[1], ",")
+	posMatches := posMatcher.FindStringSubmatch(tag)
+	if len(posMatches) > 1 {
+		positions := strings.Split(posMatches[1], ",")
 		for _, p := range positions {
 			p = strings.TrimSpace(p)
 			var pstart, pend int
 			_, err := fmt.Sscanf(p, "%d-%d", &pstart, &pend)
 			if err != nil {
 				_, _ = fmt.Sscanf(p, "%d", &pstart)
-				pend = pstart+1
-			} 
+				pend = pstart + 1
+			}
 			pi.Positions = append(pi.Positions, ParsePosition{Begin: pstart, End: pend})
 		}
 	}
 }
 
 func (pi *ParseInfo) parseFormat(tag string) {
-	matches := format_matcher.FindStringSubmatch(tag)
+	matches := formatMatcher.FindStringSubmatch(tag)
 	if len(matches) > 1 {
 		pi.Format = strings.TrimSpace(matches[1])
 	}
 }
 
 func (pi *ParseInfo) parseDefault(tag string) {
-	matches := default_matcher.FindStringSubmatch(tag)
+	matches := defaultMatcher.FindStringSubmatch(tag)
 	if len(matches) > 1 {
 		pi.Default = strings.TrimSpace(matches[1])
 	}
 }
 
-
 func (pi *ParseInfo) parseFunc(tag string) {
-	matches := func_matcher.FindStringSubmatch(tag)
+	matches := funcMatcher.FindStringSubmatch(tag)
 	if len(matches) > 1 {
 		pi.Func = strings.TrimSpace(matches[1])
 	}
@@ -108,22 +103,22 @@ func GetParseDef(item interface{}) []ParseInfo {
 	default:
 		t = reflect.TypeOf(it).Elem()
 	}
-	parse_infos, ok := ParseMap[t]
+	parseInfos, ok := ParseMap[t]
 	if !ok {
-		parse_infos = make([]ParseInfo, 0, t.NumField())
-		for fn:=0; fn<t.NumField(); fn++ {
+		parseInfos = make([]ParseInfo, 0, t.NumField())
+		for fn := 0; fn < t.NumField(); fn++ {
 			f := t.Field(fn)
 			if f.Tag != "" {
-				tag, exists := f.Tag.Lookup("reorg")	
+				tag, exists := f.Tag.Lookup("reorg")
 				if exists {
 					pi := NewParseInfo()
 					pi.FieldNo = fn
 					pi.ParseTag(tag)
-					parse_infos = append(parse_infos, pi)
+					parseInfos = append(parseInfos, pi)
 				}
 			}
 		}
-		ParseMap[t] = parse_infos
+		ParseMap[t] = parseInfos
 	}
-	return parse_infos
+	return parseInfos
 }

@@ -2,71 +2,68 @@ package reorg
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/contrib/ice/models"
-	"github.com/alpacahq/marketstore/v4/contrib/ice/sirs"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alpacahq/marketstore/v4/contrib/ice/sirs"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (
 	processedTag    = ".processed"
 	bucketkeySuffix = "/1D/ACTIONS"
 	reorgFilePrefix = "reorg"
-	sirsFilePrefix = "sirs"
+	sirsFilePrefix  = "sirs"
 )
 
 func Import(reorgDir string, reimport bool) {
-	reorg_files, err := fileList(reorgDir, reorgFilePrefix, reimport)
+	reorgFiles, err := fileList(reorgDir, reorgFilePrefix, reimport)
 	if err != nil {
 		log.Fatal("Cannot read reorg files directory - dir: %s, error: %v", reorgDir, err)
 		return
 	}
-	log.Info("Parsing %d new files", len(reorg_files))
-	for _, reorg_file := range reorg_files {
-		log.Info("======== Processing %s", reorg_file)
-		sirs_file := strings.ReplaceAll(reorg_file, reorgFilePrefix, sirsFilePrefix)
-		sirs_file = strings.ReplaceAll(sirs_file, processedTag, "")
-		path_to_reorg_file := filepath.Join(reorgDir, reorg_file)
-		path_to_sirs_file := filepath.Join(reorgDir, sirs_file)
+	log.Info("Parsing %d new files", len(reorgFiles))
+	for _, reorgFile := range reorgFiles {
+		log.Info("======== Processing %s", reorgFile)
+		sirsFile := strings.ReplaceAll(reorgFile, reorgFilePrefix, sirsFilePrefix)
+		sirsFile = strings.ReplaceAll(sirsFile, processedTag, "")
+		pathToReorgFile := filepath.Join(reorgDir, reorgFile)
+		pathToSirsFile := filepath.Join(reorgDir, sirsFile)
 
-		notifications, err := readNotifications(path_to_reorg_file)
+		notifications, err := readNotifications(pathToReorgFile)
 		if err != nil {
-			log.Fatal("Error occured while reading reorg file: %s", reorg_file)
+			log.Fatal("Error occured while reading reorg file: %s", reorgFile)
 			return
 		}
 
-		sirsFiles, err := sirs.CollectSirsFilesFor(path_to_sirs_file)
+		sirsFiles, err := sirs.CollectSirsFilesFor(pathToSirsFile)
 		if err != nil {
 			log.Fatal("Cannot loat Sirs files: %+v", err)
-			return 
+			return
 		}
-		// fmt.Printf("SIRS files: %+v\n", sirsFiles)
 		if len(sirsFiles) == 0 {
 			log.Warn("No sirs files loaded, skip to next reorg file")
 			continue
 		}
 		cusipSymbolMap, err := sirs.BuildSecurityMasterMap(sirsFiles)
 		if err != nil {
-			log.Fatal("Cannot read security info data from %s", path_to_sirs_file)
-			return 
+			log.Fatal("Cannot read security info data from %s", pathToSirsFile)
+			return
 		}
 		err = storeNotifications(*notifications, cusipSymbolMap)
 		if err != nil {
-			log.Fatal("Error occured while processing notifications from %s", reorg_file)
+			log.Fatal("Error occured while processing notifications from %s", reorgFile)
 			return
-		} else {
-			if !reimport {
-				os.Rename(path_to_reorg_file, path_to_reorg_file+processedTag)
-			}
+		}
+		if !reimport {
+			os.Rename(pathToReorgFile, pathToReorgFile+processedTag)
 		}
 	}
 }
-
 
 func fileList(path string, prefix string, reimport bool) (out []string, err error) {
 	localfiles, err := ioutil.ReadDir(path)
@@ -80,24 +77,23 @@ func fileList(path string, prefix string, reimport bool) (out []string, err erro
 	return
 }
 
-func readNotifications(path string) (*[]models.Notification, error) {
+func readNotifications(path string) (*[]Notification, error) {
 	buff, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	content := string(buff)
-	var notifications = []models.Notification{}
+	var notifications = []Notification{}
 	ReadRecords(content, &notifications)
 	log.Info(fmt.Sprintf("Read %d records", len(notifications)))
 	return &notifications, nil
 }
 
-func storeNotification(symbol string, note *models.Notification) error {
+func storeNotification(symbol string, note *Notification) error {
 	tbk := io.NewTimeBucketKeyFromString(symbol + bucketkeySuffix)
 	csm := io.NewColumnSeriesMap()
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{note.EntryDate.Unix()})
-	// cs.AddColumn("Nanoseconds", []int32{int32(note.TextNumber)})
 	cs.AddColumn("TextNumber", []int64{note.TextNumber})
 	cs.AddColumn("UpdateTextNumber", []int64{note.UpdateTextNumber})
 	cs.AddColumn("DeleteTextNumber", []int64{note.DeleteTextNumber})
@@ -115,16 +111,13 @@ func storeNotification(symbol string, note *models.Notification) error {
 	return err
 }
 
-func storeNotifications(notes []models.Notification, cusipSymbolMap map[string]string) error {
+func storeNotifications(notes []Notification, cusipSymbolMap map[string]string) error {
 	for _, note := range notes {
 		if note.TargetCusip == "" {
 			continue
 		}
-		if note.Is(models.Split) || note.Is(models.ReverseSplit) || note.Is(models.Dividend) {
+		if note.Is(Split) || note.Is(ReverseSplit) || note.Is(Dividend) {
 			symbol, present := cusipSymbolMap[note.TargetCusip]
-			// msg := fmt.Sprintf("%d %s %s - %s %s : %.2f, %.2f, %.2f", note.TextNumber, note.Status, note.Remarks, note.TargetCusip, symbol, note.OldRate, note.NewRate, note.Rate)
-			// log.Info(msg)
-
 			if present && symbol != "" {
 				if err := storeNotification(symbol, &note); err != nil {
 					log.Fatal("Unable to store notification: %+v %+v", err, note)
