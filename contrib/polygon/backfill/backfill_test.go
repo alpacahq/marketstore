@@ -63,8 +63,7 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300.1})
 		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{300})
 		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{300.1})
-		c.Assert(csm[*key].GetColumn("Volume").([]int32), DeepEquals, []int32{180})
-		c.Assert(csm[*key].GetColumn("TickCnt").([]int32), DeepEquals, []int32{2})
+		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{180})
 
 		// And when we call tradesToBars with different set of exchanges
 		csm = tradesToBars(ticks, symbol, []int{8, 9})
@@ -80,8 +79,7 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300})
 		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{299.9})
 		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{299.9})
-		c.Assert(csm[*key].GetColumn("Volume").([]int32), DeepEquals, []int32{150})
-		c.Assert(csm[*key].GetColumn("TickCnt").([]int32), DeepEquals, []int32{2})
+		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{150})
 	}
 
 	// With one condition: No update on High/Low, Volume & Close
@@ -108,8 +106,7 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{})
 		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{})
 		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{})
-		c.Assert(csm[*key].GetColumn("Volume").([]int32), DeepEquals, []int32{})
-		c.Assert(csm[*key].GetColumn("TickCnt").([]int32), DeepEquals, []int32{})
+		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{})
 	}
 
 	// With conditions: Normal trade + No update on High/Low, Volume & Close
@@ -143,8 +140,7 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300})
 		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{300})
 		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("Volume").([]int32), DeepEquals, []int32{100})
-		c.Assert(csm[*key].GetColumn("TickCnt").([]int32), DeepEquals, []int32{2})
+		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{100})
 	}
 
 	// With condition: Form-T, odd-lot and normal
@@ -199,8 +195,7 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300, 315.2})
 		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{299, 305.2})
 		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{299, 315.2})
-		c.Assert(csm[*key].GetColumn("Volume").([]int32), DeepEquals, []int32{276, 27})
-		c.Assert(csm[*key].GetColumn("TickCnt").([]int32), DeepEquals, []int32{3, 2})
+		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{276, 27})
 
 	}
 }
