@@ -35,6 +35,7 @@ var (
 	batchSize                           int
 	cacheDir                            string
 	readFromCache                       bool
+	unadjusted                          bool
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
@@ -49,6 +50,7 @@ func init() {
 	flag.StringVar(&barPeriod, "bar-period", (60 * 24 * time.Hour).String(), "backfill bar period")
 	flag.StringVar(&tradePeriod, "trade-period", (10 * 24 * time.Hour).String(), "backfill trade period")
 	flag.StringVar(&quotePeriod, "quote-period", (10 * 24 * time.Hour).String(), "backfill quote period")
+	flag.BoolVar(&unadjusted, "unadjusted", false, "backfill bars unadjusted")
 	flag.BoolVar(&quotes, "quotes", false, "backfill quotes")
 	flag.BoolVar(&trades, "trades", false, "backfill trades")
 	flag.StringVar(&symbols, "symbols", "*",
@@ -172,7 +174,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getBars(start, end, barPeriodDuration, currentSymbol, exchangeIDs, writerWP)
+				getBars(start, end, barPeriodDuration, currentSymbol, exchangeIDs, unadjusted, writerWP)
 			})
 		}
 
@@ -270,7 +272,8 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	symbolListMux.Unlock()
 }
 
-func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, writerWP *worker.WorkerPool) {
+func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int,
+	unadjusted bool, writerWP *worker.WorkerPool) {
 	if len(exchangeIDs) != 0 && period != 24*time.Hour {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
 		period = 24 * time.Hour
@@ -285,7 +288,7 @@ func getBars(start time.Time, end time.Time, period time.Duration, symbol string
 		log.Info("[polygon] backfilling bars for %v between %s and %s", symbol, start, start.Add(period))
 
 		if len(exchangeIDs) == 0 {
-			if err := backfill.Bars(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+			if err := backfill.Bars(symbol, start, start.Add(period), batchSize, unadjusted, writerWP); err != nil {
 				log.Warn("[polygon] failed to backfill bars for %v (%v)", symbol, err)
 			}
 

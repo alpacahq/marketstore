@@ -95,7 +95,7 @@ var (
 	BackfillM *sync.Map
 )
 
-func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) (err error) {
+func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, writerWP *worker.WorkerPool) (err error) {
 	if from.IsZero() {
 		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
 	}
@@ -104,7 +104,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 		to = time.Now()
 	}
 	t := time.Now()
-	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, &batchSize)
+	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, &batchSize, unadjusted)
 	if err != nil {
 		return err
 	}
