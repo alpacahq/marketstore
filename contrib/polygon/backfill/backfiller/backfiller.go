@@ -35,6 +35,7 @@ var (
 	batchSize                           int
 	cacheDir                            string
 	readFromCache                       bool
+	noIngest                            bool
 	// NY timezone
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
@@ -58,6 +59,7 @@ func init() {
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
 	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
 	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
+	flag.BoolVar(&noIngest, "no-ingest", false, "do not ingest downloaded data, just store it in cache")
 
 	flag.Parse()
 }
@@ -89,6 +91,11 @@ func main() {
 	if apiKey == "" {
 		log.Fatal("[polygon] api key is required")
 	}
+
+	if noIngest && cacheDir == "" {
+		log.Fatal("[polygon] no-ingest should only be specified when cache-dir is set")
+	}
+	backfill.NoIngest = noIngest
 
 	api.SetAPIKey(apiKey)
 
