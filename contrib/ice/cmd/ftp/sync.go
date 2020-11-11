@@ -51,7 +51,7 @@ var FTPSyncCmd = &cobra.Command{
 		newFiles := reorgLoader.Sync()
 		log.Info("New reorg files downloaded: %+v", newFiles)
 
-		sirsLoader = ftp.NewDownloader(client, ftpURL.Path, dataDir, enum.SirsFilePrefix)
+		sirsLoader := ftp.NewDownloader(client, ftpURL.Path, dataDir, enum.SirsFilePrefix)
 		newFiles = sirsLoader.Sync()
 		log.Info("New sirs files downloaded: %+v", newFiles)
 

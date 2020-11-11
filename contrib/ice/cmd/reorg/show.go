@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/uda/adjust"
 	"github.com/spf13/cobra"
@@ -38,9 +39,9 @@ func showRecords(cusip string) {
 		rec := time.Unix(ca.Rows.RecordDates[i], 0)
 
 		var ref int64
-		if ca.Rows.Statuses[i] == adjust.UpdateRecord {
+		if ca.Rows.Statuses[i] == enum.UpdatedAnnouncement {
 			ref = ca.Rows.UpdateTextNumbers[i]
-		} else if ca.Rows.Statuses[i] == adjust.DeleteRecord {
+		} else if ca.Rows.Statuses[i] == enum.DeletedAnnouncement {
 			ref = ca.Rows.DeleteTextNumbers[i]
 		}
 
