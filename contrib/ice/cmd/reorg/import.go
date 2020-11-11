@@ -16,14 +16,14 @@ var ImportCmd = &cobra.Command{
 	Use:          "import <datadir> <icefilesdir>",
 	SilenceUsage: false,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 2 {
-			dataDir := args[0]
-			reorgDir := args[1]
-			executor.NewInstanceSetup(dataDir, true, true, true, true)
-			reorg.Import(reorgDir, reimport)
-		} else {
+		if len(args) != 2 {
 			cmd.Help()
+			return nil
 		}
+		dataDir := args[0]
+		reorgDir := args[1]
+		executor.NewInstanceSetup(dataDir, true, true, true, true)
+		reorg.Import(reorgDir, reimport)
 		return nil
 	},
 }
