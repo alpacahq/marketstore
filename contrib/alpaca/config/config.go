@@ -20,7 +20,10 @@ type Config struct {
 	Subscription
 }
 
+// Subscription is the collection of Bars, Quotes and Trades we subscribe to
 type Subscription struct {
+	// Feed prefixes all symbols
+	Feed string `json:"feed,omitempty"`
 	// list of symbols whose minute bars are important
 	MinuteBarSymbols []string `json:"minute_bar_symbols"`
 	// list of symbols whose quotes are important
@@ -32,10 +35,15 @@ type Subscription struct {
 // AsCanonical returns the list of prefixed
 // streams that we want to subscribe to
 func (s *Subscription) AsCanonical() []string {
+	feed := s.Feed
+	if feed != "" {
+		feed += "/"
+	}
+
 	return flatten(
-		prefixStrings(normalizeSubscriptions(s.MinuteBarSymbols), enums.AggToMinute),
-		prefixStrings(normalizeSubscriptions(s.QuoteSymbols), enums.Quote),
-		prefixStrings(normalizeSubscriptions(s.TradeSymbols), enums.Trade),
+		prefixStrings(normalizeSubscriptions(s.MinuteBarSymbols), feed+string(enums.AggToMinute)),
+		prefixStrings(normalizeSubscriptions(s.QuoteSymbols), feed+string(enums.Quote)),
+		prefixStrings(normalizeSubscriptions(s.TradeSymbols), feed+string(enums.Trade)),
 	)
 }
 
@@ -51,7 +59,7 @@ func flatten(lists ...[]string) []string {
 	return res
 }
 
-func prefixStrings(list []string, prefix enums.Prefix) []string {
+func prefixStrings(list []string, prefix string) []string {
 	res := make([]string, len(list))
 	for i, s := range list {
 		res[i] = string(prefix) + s

@@ -25,11 +25,36 @@ func TestAsCanonical(t *testing.T) {
 		},
 		{
 			Subscription{
+				Feed:             "alpacadatav1",
+				MinuteBarSymbols: []string{"PACA", "APCA"},
+				QuoteSymbols:     []string{"AAPL", "*"},
+			},
+			[]string{
+				"alpacadatav1/" + aggToMinute + "PACA",
+				"alpacadatav1/" + q + "*",
+				"alpacadatav1/" + aggToMinute + "APCA",
+			},
+		},
+		{
+			Subscription{
 				MinuteBarSymbols: []string{"AAPL"},
 				TradeSymbols:     []string{"AAPL"},
 				QuoteSymbols:     []string{"AAPL"},
 			},
 			[]string{aggToMinute + "AAPL", q + "AAPL", tr + "AAPL"},
+		},
+		{
+			Subscription{
+				Feed:             "alpacadatav1",
+				MinuteBarSymbols: []string{"AAPL"},
+				TradeSymbols:     []string{"AAPL"},
+				QuoteSymbols:     []string{"AAPL"},
+			},
+			[]string{
+				"alpacadatav1/" + aggToMinute + "AAPL",
+				"alpacadatav1/" + q + "AAPL",
+				"alpacadatav1/" + tr + "AAPL",
+			},
 		},
 	}
 
@@ -90,7 +115,7 @@ func TestPrefixStrings(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := prefixStrings(tt.list, tt.prefix)
+		got := prefixStrings(tt.list, string(tt.prefix))
 		assert.ElementsMatchf(
 			t,
 			tt.expected,

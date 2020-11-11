@@ -24,7 +24,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.9
 	github.com/klauspost/compress v1.4.1
-	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
@@ -36,7 +35,6 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/timpalpant/go-iex v0.0.0-20181027174710-0b8a5fdd2ec1
-	github.com/valyala/fasthttp v1.0.0
 	github.com/vmihailenco/msgpack v4.0.1+incompatible
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
