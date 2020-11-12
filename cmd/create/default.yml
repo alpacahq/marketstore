@@ -1,38 +1,21 @@
 # -----------------------------------------
 # Auto-generated marketstore configuration.
 # -----------------------------------------
-# root directory of the database
-root_directory: data
-# listen port - the port exposed by the database server for JSON-RPC API
-listen_port: 5993
-# grpc_listen port - the port exposed by the database server for GRPC API
-grpc_listen_port: 5995
-# log level (info|warn|error)
-log_level: info
-# queryable - allows the database to be queried through a client connection
-queryable: true
-#
+root_directory: data                # root directory of the database
+# listen_host: "localhost"          # listen host for database server (optional)
+listen_port: 5993                   # port exposed by the database server for JSON-RPC API
+grpc_listen_port: 5995              # port exposed by the database server for GRPC API
+log_level: info                     # log level (info|warn|error)
+queryable: true                     # allow database to be queried through a client connection
 stop_grace_period: 0
-#
 wal_rotate_interval: 5
-#
-enable_add: true
-#
-enable_remove: false
-#
-enable_last_known: false
-#
-# timezone: "America/New_York"
-#
-# Optional listen host for database server
-# listen_host: "localhost"
-#
-# Enable debugging pprof and heartbeat endpoints
-# utilities_url: "localhost:5994"
+enable_add: true                    # allow creating new time bucket keys
+enable_remove: false                # allow removing existing time bucket keys
+# timezone: "America/New_York"      # timezone to use for timestamps (default UTC)
+# utilities_url: "localhost:5994"   # enable debugging pprof and heartbeat endpoints
 
 # ----------------------------------------
 # Example trigger modules
-#
 # Un-comment to enable.
 # ----------------------------------------
 #
@@ -49,6 +32,12 @@ enable_last_known: false
 #     on: "*/*/*"
 #     config:
 #       filter: nasdaq
+#
+# ----------------------------------------
+# Example background worker modules
+# Un-comment to enable.
+# ----------------------------------------
+#
 # bgworkers:
 #   - module: gdaxfeeder.so
 #     name: GdaxFetcher
