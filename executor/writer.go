@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/metrics"
@@ -78,7 +80,7 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 // The caller should assume that by calling WriteRecords directly, the data will be written
 // to the file regardless if it satisfies the on-disk data shape, possible corrupting
 // the data files. It is recommended to call WriteCSM() for any writes as it is safer.
-func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
+func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape) {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
@@ -112,18 +114,21 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
 
+		// first row
 		if i == 0 {
 			prevIndex = index
 			prevYear = year
+			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
 			cc = &wal.WriteCommand{
 				RecordType: rt,
 				WALKeyPath: wkp,
 				VarRecLen:  int(vrl),
 				Offset:     offset,
 				Index:      index,
-				Data:       nil,
-				DataShapes: ds,
+				Data:       outBuf,
+				DataShapes: dsWithEpoch,
 			}
+			continue
 		}
 		// Because index is relative time from the beginning of the year,
 		// To confirm that the next data is a different data, both index and year should be checked.
@@ -134,6 +139,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 			*/
 			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
 			cc.Data = outBuf
+			continue
 		}
 		if index != prevIndex || year != prevYear {
 			/*
@@ -150,7 +156,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, ds []DataShape) {
 				Offset:     offset,
 				Index:      index,
 				Data:       outBuf,
-				DataShapes: ds,
+				DataShapes: dsWithEpoch,
 			}
 		}
 	}
@@ -266,6 +272,15 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 // DataShapeVector defined by the file header. WriteCSM will create any files if they do
 // not already exist for the given ColumnSeriesMap based on its TimeBucketKey.
 func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
+	// WRITE is not allowed on a replica
+	if utils.InstanceConfig.Replication.MasterHost != "" {
+		return errors.New("write is not allowed on replica")
+	}
+
+	return WriteCSMInner(csm, isVariableLength)
+}
+
+func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	start := time.Now()
 	cDir := ThisInstance.CatalogDir
 	for tbk, cs := range csm {

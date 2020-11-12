@@ -30,16 +30,31 @@ type WALFileType struct {
 	ReplayState      wal.ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath          string   // Path to the root directory, base of FileName
-	FilePath          string   // WAL file full path
-	lastCommittedTGID int64    // TGID to be checkpointed
-	FilePtr           *os.File // Active file pointer to FileName
+	RootPath          string            // Path to the root directory, base of FileName
+	FilePath          string            // WAL file full path
+	lastCommittedTGID int64             // TGID to be checkpointed
+	FilePtr           *os.File          // Active file pointer to FileName
+	ReplicationSender ReplicationSender // send messages to replica servers
 }
 
-func NewWALFile(rootDir string, owningInstanceID int64) (wf *WALFileType, err error) {
+type ReplicationSender interface {
+	Send(transactionGroup []byte)
+}
+
+type TransactionGroup struct {
+	// A "locally unique" transaction group identifier, can be a clock value
+	ID int64
+	//The contents of the WTSets
+	WTGroup []wal.WTSet
+	//MD5 checksum of the TG contents prior to the checksum
+	Checksum [16]byte
+}
+
+func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
 	wf.OwningInstanceID = owningInstanceID
+	wf.ReplicationSender = rs
 
 	if err = wf.createFile(rootDir); err != nil {
 		log.Fatal("%v: Can not create new WALFile - Error: %v", io.GetCallerFileContext(0), err)
@@ -65,6 +80,7 @@ func TakeOverWALFile(rootDir, fileName string) (wf *WALFileType, err error) {
 	if wf.callerOwnsFile(owningInstanceID) {
 		return nil, WALTakeOverError("TakeOver: File file is owned by calling process")
 	}
+
 	wf.OwningInstanceID = owningInstanceID
 
 	// We call this to take over the file by writing our PID to it
@@ -150,8 +166,6 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/
 
-	defer dispatchRecords()
-
 	WALBypass := ThisInstance.WALBypass
 	//WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
@@ -182,6 +196,12 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		writeCommands[i] = <-tgc.writeChannel
 	}
 
+	return wf.FlushCommandsToWAL(tgc, writeCommands, WALBypass)
+}
+
+func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*wal.WriteCommand, walBypass bool) (err error) {
+	defer dispatchRecords()
+
 	fileRecordTypes := map[string]io.EnumRecordType{}
 	varRecLens := map[string]int{}
 	for i := 0; i < len(writeCommands); i++ {
@@ -194,9 +214,9 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		}
 	}
 
-	TG_Serialized, writesPerFile := serializeTG(tgc.TGID(), writeCommands)
+	TG_Serialized, writesPerFile := serializeTG(tgc.tgID, writeCommands)
 
-	if !WALBypass {
+	if !walBypass {
 		// Serialize the size of the buffer into another buffer
 		TGLen_Serialized, _ := io.Serialize(nil, int64(len(TG_Serialized)))
 
@@ -219,6 +239,11 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		tgc.IncrementTGID()
 
 		wf.FilePtr.Sync() // Flush the OS buffer
+
+		// send transaction to replicas
+		if wf.ReplicationSender != nil {
+			wf.ReplicationSender.Send(TG_Serialized)
+		}
 	}
 
 	/*
@@ -271,7 +296,7 @@ func serializeTG(tgID int64, commands []*wal.WriteCommand,
 		keyPath := commands[i].WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
 		writesPerFile[keyPath] = append(writesPerFile[keyPath],
-			wal.OffsetIndexBuffer(TG_Serialized[oStart:oStart+bufferSize]))
+			TG_Serialized[oStart:oStart+bufferSize])
 
 	}
 
@@ -473,7 +498,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 		if TG_Serialized != nil {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
 			if writeData {
-				tgID, wtSets := parseTGData(TG_Serialized, wf.RootPath)
+				tgID, wtSets := ParseTGData(TG_Serialized, wf.RootPath)
 				log.Info("Replaying TGID: %d, WTSet count is: %d bytes", tgID, len(wtSets))
 				if err := wf.replayTGData(tgID, wtSets); err != nil {
 					return err
@@ -604,7 +629,7 @@ func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	return nil
 }
 
-func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
+func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
 	TGID = io.ToInt64(TG_Serialized[0:8])
 	WTCount := io.ToInt64(TG_Serialized[8:16])
 
@@ -629,7 +654,7 @@ func parseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wa
 		cursor += l
 
 		wtSets[i] = wal.NewWTSet(
-			RecordType,
+			io.EnumRecordType(RecordType),
 			fullPath,
 			dataLen,
 			varRecLen,
@@ -654,7 +679,7 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 		if err != nil {
 			return err
 		}
-		switch io.EnumRecordType(wtSet.RecordType) {
+		switch wtSet.RecordType {
 		case io.FIXED:
 			if err = WriteBufferToFile(fp, wtSet.Buffer); err != nil {
 				return err
@@ -696,6 +721,7 @@ func (wf *WALFileType) syncStatusRead() {
 	}
 	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = readStatus(wf.FilePtr)
 }
+
 func readStatus(filePtr *os.File) (fileStatus wal.FileStatusEnum, replayStatus wal.ReplayStateEnum, owningInstanceID int64) {
 	// Read from beginning of file +1 to skip over the MID
 	filePtr.Seek(1, os.SEEK_SET)
@@ -788,8 +814,8 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	}
 }
 
-func StartupCacheAndWAL(rootDir string, owningInstanceID int64) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, owningInstanceID)
+func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender) (tgc *TransactionPipe, wf *WALFileType, err error) {
+	wf, err = NewWALFile(rootDir, owningInstanceID, rs)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err

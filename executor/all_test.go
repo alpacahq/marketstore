@@ -59,7 +59,7 @@ type DestructiveWALTest2 struct {
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, true, true, false)
+	executor.NewInstanceSetup(s.Rootdir, nil, true, true, false)
 	s.DataDirectory = executor.ThisInstance.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 }
@@ -714,7 +714,7 @@ func (s *TestSuite) TestWriter(c *C) {
 func (s *DestructiveWALTests) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, true, true, false)
+	executor.NewInstanceSetup(s.Rootdir, nil, true, true, false)
 	s.DataDirectory = executor.ThisInstance.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 }
@@ -726,7 +726,7 @@ func (s *DestructiveWALTests) TearDownSuite(c *C) {
 func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
-	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID)
+	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -851,7 +851,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 func (s *DestructiveWALTest2) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, true, true, false)
+	executor.NewInstanceSetup(s.Rootdir, nil, true, true, false)
 	s.DataDirectory = executor.ThisInstance.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 }
@@ -886,7 +886,6 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	for filePath, buffer := range allFileContents {
 		if filepath.Base(filePath) == "2002.bin" {
 			fileContentsOriginal2002[filePath] = buffer
-
 		}
 	}
 

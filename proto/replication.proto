@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package proto;
+
+message WriteAheadLog {
+
+}
+
+// for the initial release of the replication feature, we decided to send the WAL message binary
+// (= serialized transaction group) directly. After the refactor, we will send structured protobuf messages
+// defined & commented out below.
+//
+//// Every message written to the WAL is prepended by the MID, indicating what type of message follows. The MID is structured on-disk:
+//enum MessageID {
+//    TRANSACTION_GROUP = 0;
+//    TRANSACTION_INFO = 1;
+//    WAL_STATUS = 2;
+//}
+//
+//// A transaction info message marks the write status of transactions. It is used in two situations:
+//// When a TG is written to the WAL and when the BW writes a TG to the primary store. The on-disk format of a TI is
+//message TransactionInfo {
+//    int64 transaction_group_id = 1;
+//    DestinationID destination_id = 2; //Identifier for which location [ is being / has been ] written
+//    TIStatus status = 3;
+//}
+//
+//enum DestinationID {
+//    WAL = 0;
+//    PRIMARY_STORE = 1;
+//}
+//
+//// Note: Commit intent state is for future multi-party commit support. Typical processes will only use states 0 and 2
+//enum TIStatus {
+//    PREPARING_TO_COMMIT = 0;
+//    COMMIT_INTENT_SENT = 1;
+//    COMMIT_COMPLETE = 2;
+//}
+//
+//// Transaction Group (TG): A group of data committed at one time to WAL and primary store
+//// Each TG is composed of some number of WTSets and is the smallest unit of data committed to disk.
+//// A TG has an ID that is used to verify whether the TG has been successfully written. A TG has the following structure:
+//message TransactionGroup {
+//    // The length of the TG data for this TGID, starting with the TGID and excluding the checksum
+//    int64 length = 1;
+//    // A "locally unique" transaction group identifier, can be a clock value
+//    // This ID will be used for the position that indicates that replication is done until that point
+//    int64 id = 2;
+//    // The count of WTSets in this TG
+//    int64 wt_count = 3;
+//    // The contents of the WTSets
+//    repeated WriteTransactionSet wt_group = 4;
+//    // MD5 checksum of the TG contents prior to the checksum
+//    bytes checksum = 5;
+//}
+//
+//enum RecordType {
+//    FIXED = 0;
+//    // for variable-length record
+//    VARIABLE = 1;
+//    NO_TYPE = 2;
+//}
+//
+//message WriteTransactionSet {
+//    // Direct or Indirect IO (for variable or fixed length records)
+//    RecordType record_type = 1;
+//    // Length of FilePath string
+//    int32 fp_len = 2;
+//    // FilePath is relative to the root directory, string is ASCII encoded without a trailing null
+//    string filepath = 3;
+//    // Year associated with this file
+//    int32 year = 4;
+//    // Number of intervals per day in this file
+//    int64 intervals = 5;
+//    // Count of records in this WT set
+//    int32 record_count = 6;
+//    // Length of each data element in this set in bytes, excluding the index
+//    int64 data_only_len = 7;
+//    // Interval Index based on the intervals/day of the target file
+//    repeated int64 index = 8;
+//    // Data bytes
+//    bytes buffer = 9;
+//}
+//
+//message WALStatus {
+//    FileStatus file_status = 1;
+//    ReplayState replay_state = 2;
+//    // PID of the process using this WAL file
+//    int64 owning_pid = 3;
+//}
+//
+//enum FileStatus {
+//    // Actively in use or not closed programatically
+//    IN_USE = 0;
+//    // Closed (no process is using file)
+//    CLOSED = 1;
+//}
+//
+//enum ReplayState {
+//    // Not yet processed for replay
+//    NOT_YET_PROCESSED = 0;
+//    // Replayed successfully
+//    REPLAYED = 1;
+//    // Replay in process
+//    REPLAY_IN_PROCESS = 2;
+//}
+//
+//message WriteCommand {
+//    // Direct or Indirect IO (for variable or fixed length records)
+//    RecordType record_type = 1;
+//    string wal_key_path = 2;
+//    int32 variable_record_length = 3;
+//    int64 offset = 4;
+//    int64 index = 5;
+//    bytes data = 6;
+//}
+
+message GetWALStreamRequest {
+}
+
+message GetWALStreamResponse {
+    bytes transaction_group = 1;
+}
+
+service Replication {
+    rpc GetWALStream (GetWALStreamRequest) returns (stream GetWALStreamResponse);
+}

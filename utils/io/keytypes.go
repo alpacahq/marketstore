@@ -2,7 +2,10 @@ package io
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/alpacahq/marketstore/v4/utils"
@@ -36,6 +39,26 @@ func NewTimeBucketKeyFromString(itemCategoryString string) (mk *TimeBucketKey) {
 		return NewTimeBucketKey(splitKey[0])
 	}
 	return NewTimeBucketKey(splitKey[0], splitKey[1])
+}
+
+// e.g. "/project/marketstore/data/AMZN/1Min/TICK/2017.bin" -> (AMZN/1Min/TICK/2017.bin), (AMZN), (1Min), (TICK), (2017)
+var wkpRegex = regexp.MustCompile(`([^/]+)/([^/]+)/([^/]+)/([^/]+)\.bin$`)
+
+// NewTimeBucketKeyFromWalKeyPath converts a string in walKeyPath format
+// (e.g. "/project/marketstore/data/AMZN/1Min/TICK/2017.bin") to a TimeBucketKey and year.
+func NewTimeBucketKeyFromWalKeyPath(walKeyPath string) (tbk *TimeBucketKey, year int, err error) {
+	group := wkpRegex.FindStringSubmatch(walKeyPath)
+	// group should be like {"AAPL/1Min/Tick/2020.bin","AAPL","1Min","Tick","2017"} (len:5, cap:5)
+	if len(group) != 5 {
+		return nil, 0, errors.New(fmt.Sprintf("failed to extract TBK info from WalKeyPath:%v", walKeyPath))
+	}
+
+	year, err = strconv.Atoi(group[4])
+	if err != nil {
+		return nil, 0, errors.New(fmt.Sprintf("failed to extract year from WalKeyPath:%s", group[3]))
+	}
+
+	return NewTimeBucketKey(fmt.Sprintf("%s/%s/%s", group[1], group[2], group[3])), year, nil
 }
 
 func (mk *TimeBucketKey) String() (stringKey string) {

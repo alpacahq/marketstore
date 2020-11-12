@@ -25,7 +25,7 @@ type HandlersTestSuite struct {
 
 func (s *HandlersTestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
-	executor.NewInstanceSetup(s.Rootdir, true, true, false, true) // WAL Bypass
+	executor.NewInstanceSetup(s.Rootdir, nil, true, true, false, true) // WAL Bypass
 	s.DataDirectory = executor.ThisInstance.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 }

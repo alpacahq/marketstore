@@ -35,12 +35,12 @@ func TimeToIndex(t time.Time, tf time.Duration) int64 {
 	if tf == utils.Day {
 		return int64(tLocal.YearDay() - 1)
 	}
-	return 1 + int64(tLocal.Sub(
+	return 1 + tLocal.Sub(
 		time.Date(
 			tLocal.Year(),
 			time.January,
 			1, 0, 0, 0, 0,
-			tLocal.Location())).Nanoseconds())/int64(tf.Nanoseconds())
+			tLocal.Location())).Nanoseconds()/tf.Nanoseconds()
 }
 
 func EpochToIndex(epoch int64, tf time.Duration) int64 {

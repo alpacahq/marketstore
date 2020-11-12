@@ -17,6 +17,15 @@ func init() {
 	InstanceConfig.Timezone = time.UTC
 }
 
+type ReplicationSetting struct {
+	Enabled    bool
+	TLSEnabled bool
+	CertFile   string
+	KeyFile    string
+	ListenPort int
+	MasterHost string
+}
+
 type TriggerSetting struct {
 	Module string
 	On     string
@@ -50,6 +59,7 @@ type MktsConfig struct {
 	WALBypass                  bool
 	ClusterMode                bool
 	StartTime                  time.Time
+	Replication                ReplicationSetting
 	Triggers                   []*TriggerSetting
 	BgWorkers                  []*BgWorkerSetting
 }
@@ -79,7 +89,16 @@ func (m *MktsConfig) Parse(data []byte) error {
 			BackgroundSync             string `yaml:"background_sync"`
 			WALBypass                  string `yaml:"wal_bypass"`
 			ClusterMode                string `yaml:"cluster_mode"`
-			Triggers                   []struct {
+			Replication                struct {
+				Enabled    bool   `yaml:"enabled"`
+				TLSEnabled bool   `yaml:"tls_enabled"`
+				CertFile   string `yaml:"cert_file"`
+				KeyFile    string `yaml:"key_file"`
+				// ListenPort is used for the replication protocol by the master instance
+				ListenPort int    `yaml:"listen_port"`
+				MasterHost string `yaml:"master_host"`
+			} `yaml:"replication"`
+			Triggers []struct {
 				Module string                 `yaml:"module"`
 				On     string                 `yaml:"on"`
 				Config map[string]interface{} `yaml:"config"`
@@ -244,6 +263,34 @@ func (m *MktsConfig) Parse(data []byte) error {
 		if err != nil {
 			log.Error("Invalid value for ClusterMode")
 		}
+	}
+
+	m.Replication = ReplicationSetting{
+		Enabled:    false,
+		TLSEnabled: false,
+		CertFile:   "",
+		KeyFile:    "",
+		ListenPort: 5996, // default listen port for Replication master
+		MasterHost: "",
+	}
+
+	if aux.Replication.ListenPort != 0 {
+		m.Replication.ListenPort = aux.Replication.ListenPort
+	}
+	if aux.Replication.Enabled != false {
+		m.Replication.Enabled = true
+	}
+	if aux.Replication.TLSEnabled != false {
+		m.Replication.TLSEnabled = true
+	}
+	if aux.Replication.CertFile != "" {
+		m.Replication.CertFile = aux.Replication.CertFile
+	}
+	if aux.Replication.KeyFile != "" {
+		m.Replication.KeyFile = aux.Replication.KeyFile
+	}
+	if aux.Replication.MasterHost != "" {
+		m.Replication.MasterHost = aux.Replication.MasterHost
 	}
 
 	m.RootDirectory = aux.RootDirectory

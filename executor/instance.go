@@ -1,13 +1,13 @@
 package executor
 
 import (
+	"github.com/alpacahq/marketstore/v4/utils"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -24,7 +24,7 @@ type InstanceMetadata struct {
 	TriggerMatchers []*trigger.TriggerMatcher
 }
 
-func NewInstanceSetup(relRootDir string, options ...bool) {
+func NewInstanceSetup(relRootDir string, rs ReplicationSender, options ...bool) {
 	/*
 		Defaults
 	*/
@@ -65,12 +65,13 @@ func NewInstanceSetup(relRootDir string, options ...bool) {
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID)
+			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID, nil)
 			if err != nil {
 				log.Fatal("Unable to create WAL")
 			}
 		} else {
-			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID)
+			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID, rs)
+
 			if err != nil {
 				log.Fatal("Unable to startup Cache and WAL")
 			}

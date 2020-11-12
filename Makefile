@@ -59,10 +59,14 @@ integration-test-jsonrpc:
 integration-test-grpc:
 	$(MAKE) -C tests/integ test-grpc
 
+replication-test:
+	$(MAKE) -C tests/replication test-replication
+
 test: build
 	$(MAKE) unit-test
 	$(MAKE) import-csv-test
-	$(MAKE) integration-test
+	$(MAKE) integration-test-jsonrpc
+	$(MAKE) integration-test-grpc
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)
