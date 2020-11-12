@@ -12,6 +12,7 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
@@ -280,6 +281,7 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 }
 
 func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
+	start := time.Now()
 	cDir := ThisInstance.CatalogDir
 	for tbk, cs := range csm {
 		tf, err := tbk.GetTimeFrame()
@@ -363,5 +365,6 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	}
 	walfile := ThisInstance.WALFile
 	walfile.RequestFlush()
+	metrics.WriteCSMDuration.Observe(time.Since(start).Seconds())
 	return nil
 }

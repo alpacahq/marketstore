@@ -5,6 +5,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"math"
+
 	"sync"
 	"time"
 
@@ -25,6 +26,7 @@ type ConsolidatedUpdateInfo struct {
 var WriteTime time.Duration
 var ApiCallTime time.Duration
 var WaitTime time.Duration
+var NoIngest bool
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
@@ -108,6 +110,10 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 		return err
 	}
 	ApiCallTime += time.Now().Sub(t)
+
+	if NoIngest {
+		return nil
+	}
 
 	if len(resp.Results) == 0 {
 		return nil
@@ -339,6 +345,10 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 	}
 	ApiCallTime += time.Now().Sub(t)
 
+	if NoIngest {
+		return nil
+	}
+
 	if len(trades) > 0 {
 		csm := io.NewColumnSeriesMap()
 		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Sec/TRADE")
@@ -398,6 +408,10 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 		}
 	}
 	ApiCallTime += time.Now().Sub(t)
+
+	if NoIngest {
+		return nil
+	}
 
 	if len(quotes) > 0 {
 		csm := io.NewColumnSeriesMap()

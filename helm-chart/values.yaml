@@ -33,6 +33,11 @@ service:
   type: ClusterIP
   port: 5993  # Change to 5995 when running with grpc
 
+prometheus:
+  serviceMonitor:
+    enable: false
+    additionalLabels: {}
+
 replicaCount: 1
 
 persistence:

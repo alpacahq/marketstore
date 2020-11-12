@@ -4,9 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/replication"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc/credentials"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -20,12 +17,17 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
+	"github.com/alpacahq/marketstore/v4/metrics"
 	pb "github.com/alpacahq/marketstore/v4/proto"
+	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 const (
@@ -130,6 +132,8 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		log.Info("initialized replication client")
 	}
 
+	start := time.Now()
+
 	executor.NewInstanceSetup(
 		utils.InstanceConfig.RootDirectory,
 		rs,
@@ -138,6 +142,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		utils.InstanceConfig.BackgroundSync,
 		utils.InstanceConfig.WALBypass,
 	)
+
+	startupTime := time.Since(start)
+	metrics.StartupTime.Set(startupTime.Seconds())
+	log.Info("startup time: %s", startupTime)
 
 	// New server.
 	server, _ := frontend.NewServer()
