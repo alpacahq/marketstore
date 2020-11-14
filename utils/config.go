@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -115,10 +116,12 @@ func (m *MktsConfig) Parse(data []byte) error {
 		return err
 	}
 
-	if aux.RootDirectory == "" {
+	rootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
+	if aux.RootDirectory == "" || err != nil {
 		log.Fatal("Invalid root directory.")
 		return errors.New("Invalid root directory.")
 	}
+	m.RootDirectory = rootDir
 
 	if aux.ListenPort == "" {
 		log.Fatal("Invalid listen port.")
@@ -293,7 +296,6 @@ func (m *MktsConfig) Parse(data []byte) error {
 		m.Replication.MasterHost = aux.Replication.MasterHost
 	}
 
-	m.RootDirectory = aux.RootDirectory
 	m.ListenURL = fmt.Sprintf("%v:%v", aux.ListenHost, aux.ListenPort)
 	if aux.GRPCListenPort != "" {
 		m.GRPCListenURL = fmt.Sprintf("%v:%v", aux.ListenHost, aux.GRPCListenPort)

@@ -30,16 +30,21 @@ var (
 
 // executeInit implements the init command.
 func executeInit(*cobra.Command, []string) error {
+	// check for existing mkts.yml and return if it exists
+	_, err := os.Stat("mkts.yml")
+	if err == nil {
+		return nil
+	}
+
 	// serialize default file.
 	data, err := Asset("default.yml")
 	if err != nil {
 		return err
 	}
-	// write to current directory.
+	// write mkts.yml to current directory.
 	err = ioutil.WriteFile("mkts.yml", data, 0644)
 	if err != nil {
 		return err
 	}
-	// create a new directory to store data.
-	return os.Mkdir("data", 0700)
+	return nil
 }

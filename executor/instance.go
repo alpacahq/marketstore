@@ -1,13 +1,14 @@
 package executor
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -48,14 +49,21 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, options ...bool) 
 	if ThisInstance == nil {
 		ThisInstance = new(InstanceMetadata)
 	}
+
 	var err error
-	log.Info("Root Directory: %s", relRootDir)
 	rootDir, err := filepath.Abs(filepath.Clean(relRootDir))
 	if err != nil {
 		log.Error("Cannot take absolute path of root directory %s", err.Error())
+	} else {
+		log.Info("Root Directory: %s", rootDir)
+		err = os.Mkdir(rootDir, 0770)
+		if err != nil && !os.IsExist(err) {
+			log.Fatal("Could not create root directory: %s", err.Error())
+		}
 	}
 	instanceID := time.Now().UTC().UnixNano()
 	ThisInstance.RootDir = rootDir
+
 	// Initialize a global catalog
 	if initCatalog {
 		ThisInstance.CatalogDir = catalog.NewDirectory(rootDir)
