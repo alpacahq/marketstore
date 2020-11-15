@@ -121,3 +121,7 @@ func (ca *CandleCandler) Accum(cols io.ColumnInterface) error {
 /*
 Utility Functions
 */
+
+func (ca *CandleCandler) SetTimeBucketKey(tbk io.TimeBucketKey) {
+	// for compatibility reasons only
+}

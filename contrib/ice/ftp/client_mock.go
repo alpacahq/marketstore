@@ -27,9 +27,9 @@ func (m MockFtpClient) Retrieve(path string, dest io.Writer) error {
 }
 
 func (m MockFtpClient) ReadDir(path string) ([]os.FileInfo, error) {
-	fileinfos := make([]os.FileInfo, 0)
+	fileinfos := make([]os.FileInfo, 0, len(m.dirs[path]))
 	for _, filename := range m.dirs[path] {
-		fileinfos = append(fileinfos, MockFile{Name_: filename})
+		fileinfos = append(fileinfos, MockFile{name: filename})
 	}
 	return ioutil.ReadDir("." + path)
 }
@@ -47,30 +47,30 @@ func (m *MockFtpClient) SetDirContent(path string, filenames []string) {
 }
 
 type MockFile struct {
-	Name_    string
-	Size_    int64
-	Mode_    os.FileMode
-	ModTime_ time.Time
-	IsDir_   bool
-	Sys_     interface{}
+	name    string
+	size    int64
+	mode    os.FileMode
+	modTime time.Time
+	isDir   bool
+	sys     interface{}
 }
 
 func (m MockFile) Name() string {
-	return m.Name_
+	return m.name
 }
 func (m MockFile) Size() int64 {
-	return m.Size_
+	return m.size
 }
 func (m MockFile) Mode() os.FileMode {
-	return m.Mode_
+	return m.mode
 }
 func (m MockFile) ModTime() time.Time {
-	return m.ModTime_
+	return m.modTime
 }
 func (m MockFile) IsDir() bool {
-	return m.IsDir_
+	return m.isDir
 }
 
 func (m MockFile) Sys() interface{} {
-	return m.Sys_
+	return m.sys
 }

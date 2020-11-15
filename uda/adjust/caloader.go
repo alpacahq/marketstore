@@ -161,10 +161,7 @@ func (act *Actions) Len() int {
 	return len(act.Rows.EntryDates)
 }
 
-func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []RateChange {
-	if act.Len() == 0 {
-		return []RateChange{}
-	}
+func (act *Actions) getEffectiveActionsIndex() []int {
 	caMap := map[int64]int{}
 	for i := 0; i < act.Len(); i++ {
 		var textnumber int64
@@ -196,14 +193,36 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 		actionIndex = append(actionIndex, index)
 	}
 	sort.Slice(actionIndex, func(i, j int) bool { return act.Rows.EffectiveDates[i] < act.Rows.EffectiveDates[j] })
+	return actionIndex
+}
+
+func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []RateChange {
+	if act.Len() == 0 {
+		return []RateChange{}
+	}
+	actionIndex := act.getEffectiveActionsIndex()
+
 	changes := make([]RateChange, 0, len(actionIndex)+1)
 	for _, index := range actionIndex {
+		notificationType := act.Rows.NotificationTypes[index]
 		// use Expiration date
-		if includeSplits && (act.Rows.NotificationTypes[index] == enum.StockSplit || act.Rows.NotificationTypes[index] == enum.ReverseStockSplit) {
-			changes = append(changes, RateChange{Epoch: act.Rows.ExpirationDates[index], Rate: act.Rows.Rates[index], Textnumber: act.Rows.TextNumbers[index], Type: act.Rows.NotificationTypes[index]})
+		if includeSplits && (notificationType == enum.StockSplit || notificationType == enum.ReverseStockSplit) {
+			changes = append(changes,
+				RateChange{
+					Epoch:      act.Rows.ExpirationDates[index],
+					Rate:       act.Rows.Rates[index],
+					Textnumber: act.Rows.TextNumbers[index],
+					Type:       act.Rows.NotificationTypes[index],
+				})
 		}
-		if includeDividends && (act.Rows.NotificationTypes[index] == enum.StockDividend) {
-			changes = append(changes, RateChange{Epoch: act.Rows.ExpirationDates[index], Rate: act.Rows.Rates[index], Textnumber: act.Rows.TextNumbers[index], Type: act.Rows.NotificationTypes[index]})
+		if includeDividends && notificationType == enum.StockDividend {
+			changes = append(changes,
+				RateChange{
+					Epoch:      act.Rows.ExpirationDates[index],
+					Rate:       act.Rows.Rates[index],
+					Textnumber: act.Rows.TextNumbers[index],
+					Type:       act.Rows.NotificationTypes[index],
+				})
 		}
 	}
 	changes = append(changes, RateChange{Epoch: math.MaxInt64, Rate: 1, Textnumber: 0, Type: 0})

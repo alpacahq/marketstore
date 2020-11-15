@@ -88,7 +88,7 @@ func (adj *Adjust) SetTimeBucketKey(tbk io.TimeBucketKey) {
 }
 
 func (adj *Adjust) Reset() {
-	// reset some inner state here
+	// intentionally left empty
 }
 
 func (adj *Adjust) Accum(cols io.ColumnInterface) error {

@@ -10,11 +10,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ShowRecordsCmd shows a stored corporate action records in marketstore. It's main purpose is to provide a way
+// ShowRecordsCmd shows stored corporate action announcements in marketstore. Its main purpose is to provide a way
 // of verification of the imported data.
 var ShowRecordsCmd = &cobra.Command{
-	Use: "show <datadir> <cusip>",
+	Use:   "show <datadir> <cusip/symbol>",
+	Short: "Shows corporate action announcement",
+	Long: `This command shows accouncements stored for a given symbol or cusip
+	<datadir> must point to Marketstore's data directory
+	<cusip/symbol> is euther a CUSIP id or a symbol name
 
+	Mainly for debugging / verification purposes.
+	`,
 	SilenceUsage: false,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
@@ -32,7 +38,7 @@ var ShowRecordsCmd = &cobra.Command{
 func showRecords(cusip string) {
 	ca := adjust.NewCorporateActions(cusip)
 	ca.Load()
-	println("----- stored records ------")
+	fmt.Println("----- stored announcements ------")
 	for i := 0; i < len(ca.Rows.EntryDates); i++ {
 		ent := time.Unix(ca.Rows.EntryDates[i], 0)
 		eff := time.Unix(ca.Rows.EffectiveDates[i], 0)
@@ -57,7 +63,7 @@ func showRecords(cusip string) {
 			ref)
 	}
 	rateChanges := ca.RateChangeEvents(true, true)
-	println("----- effective rate changes ---")
+	fmt.Println("----- effective rate changes ---")
 	for _, r := range rateChanges {
 		fmt.Printf("DATE: %s, TEXTNUM: %d, RATE: %.4f\n", time.Unix(r.Epoch, 0).Format("2006-01-02"), r.Textnumber, r.Rate)
 	}

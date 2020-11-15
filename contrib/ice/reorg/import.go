@@ -23,18 +23,19 @@ func Import(reorgDir string, reimport bool) {
 	log.Info("Parsing %d new files", len(reorgFiles))
 	for _, reorgFile := range reorgFiles {
 		log.Info("======== Processing %s", reorgFile)
-		sirsFile := strings.ReplaceAll(reorgFile, enum.ReorgFilePrefix, enum.SirsFilePrefix)
-		sirsFile = strings.ReplaceAll(sirsFile, enum.ProcessedFlag, "")
+		reorgFileDate := filepath.Ext(reorgFile)
+		if reorgFileDate == enum.ProcessedFlag {
+			reorgFileDate = filepath.Ext(reorgFile)
+		}
 		pathToReorgFile := filepath.Join(reorgDir, reorgFile)
-		pathToSirsFile := filepath.Join(reorgDir, sirsFile)
 
-		notifications, err := readNotifications(pathToReorgFile)
+		announcements, err := readAnnouncements(pathToReorgFile)
 		if err != nil {
 			log.Fatal("Error occured while reading reorg file: %s", reorgFile)
 			return
 		}
 
-		sirsFiles, err := sirs.CollectSirsFilesFor(pathToSirsFile)
+		sirsFiles, err := sirs.CollectSirsFilesFor(reorgDir, reorgFileDate)
 		if err != nil {
 			log.Fatal("Cannot loat Sirs files: %+v", err)
 			return
@@ -45,12 +46,12 @@ func Import(reorgDir string, reimport bool) {
 		}
 		cusipSymbolMap, err := sirs.BuildSecurityMasterMap(sirsFiles)
 		if err != nil {
-			log.Fatal("Cannot read security info data from %s", pathToSirsFile)
+			log.Fatal("Cannot read security info data: %v", err)
 			return
 		}
-		err = storeNotifications(*notifications, cusipSymbolMap)
+		err = storeAnnouncements(*announcements, cusipSymbolMap)
 		if err != nil {
-			log.Fatal("Error occured while processing notifications from %s", reorgFile)
+			log.Fatal("Error occured while processing announcements from %s", reorgFile)
 			return
 		}
 		if !reimport {
@@ -71,19 +72,19 @@ func fileList(path string, prefix string, reimport bool) (out []string, err erro
 	return
 }
 
-func readNotifications(path string) (*[]Notification, error) {
+func readAnnouncements(path string) (*[]Announcement, error) {
 	buff, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	content := string(buff)
-	var notifications = []Notification{}
-	ReadRecords(content, &notifications)
-	log.Info(fmt.Sprintf("Read %d records", len(notifications)))
-	return &notifications, nil
+	var announcements = []Announcement{}
+	ReadRecords(content, &announcements)
+	log.Info(fmt.Sprintf("Read %d records", len(announcements)))
+	return &announcements, nil
 }
 
-func storeNotification(symbol string, note *Notification) error {
+func storeAnnouncement(symbol string, note *Announcement) error {
 	tbk := io.NewTimeBucketKeyFromString(symbol + enum.BucketkeySuffix)
 	csm := io.NewColumnSeriesMap()
 	cs := io.NewColumnSeries()
@@ -105,7 +106,7 @@ func storeNotification(symbol string, note *Notification) error {
 	return err
 }
 
-func storeNotifications(notes []Notification, cusipSymbolMap map[string]string) error {
+func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string) error {
 	for _, note := range notes {
 		if note.TargetCusip == "" {
 			continue
@@ -113,8 +114,8 @@ func storeNotifications(notes []Notification, cusipSymbolMap map[string]string) 
 		if note.Is(enum.StockSplit) || note.Is(enum.ReverseStockSplit) || note.Is(enum.StockDividend) {
 			symbol, present := cusipSymbolMap[note.TargetCusip]
 			if present && symbol != "" {
-				if err := storeNotification(symbol, &note); err != nil {
-					log.Fatal("Unable to store notification: %+v %+v", err, note)
+				if err := storeAnnouncement(symbol, &note); err != nil {
+					log.Fatal("Unable to store Announcement: %+v %+v", err, note)
 					return err
 				}
 			} else {

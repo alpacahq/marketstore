@@ -48,7 +48,7 @@ func (f *Downloader) getRemoteFiles() (FileInfoMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	return f.filterPrefix(remotefiles), nil
+	return f.filter(remotefiles), nil
 }
 
 func (f *Downloader) getLocalFiles() (FileInfoMap, error) {
@@ -56,10 +56,10 @@ func (f *Downloader) getLocalFiles() (FileInfoMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	return f.filterPrefix(localfiles), nil
+	return f.filter(localfiles), nil
 }
 
-func (f *Downloader) filterPrefix(files []os.FileInfo) FileInfoMap {
+func (f *Downloader) filter(files []os.FileInfo) FileInfoMap {
 	fmap := FileInfoMap{}
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), f.filePrefix) {
@@ -96,10 +96,10 @@ func (f *Downloader) remoteLocalDiff() ([]string, error) {
 	return filenames, nil
 }
 
-func (f *Downloader) Sync() []string {
+func (f *Downloader) Sync() ([]string, error) {
 	filenames, err := f.remoteLocalDiff()
 	if err != nil {
-		return []string{}
+		return nil, err
 	}
 	log.Info("Downloading:")
 	for _, filename := range filenames {
@@ -107,9 +107,12 @@ func (f *Downloader) Sync() []string {
 		file, err := os.Create(f.withStoragePath(filename))
 		if err != nil {
 			log.Info("Unable to create local file %s, error:\n %s\n", filename, err)
-			continue
+			return nil, err
 		}
 		err = f.client.Retrieve(f.withFtpPath(filename), file)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return filenames
+	return filenames, nil
 }

@@ -15,12 +15,12 @@ debug:
 	$(MAKE) debug -C contrib/binancefeeder
 	$(MAKE) debug -C contrib/bitmexfeeder
 	$(MAKE) debug -C contrib/gdaxfeeder
+	${MAKE} debug -C contrib/ice
 	$(MAKE) debug -C contrib/iex
 	$(MAKE) debug -C contrib/ondiskagg
 	$(MAKE) debug -C contrib/polygon
 	$(MAKE) debug -C contrib/stream
 	$(MAKE) debug -C contrib/xignitefeeder
-	${MAKE} debug -C contrib/ice
 	GOFLAGS=$(GOFLAGS) go install -gcflags="all=-N -l" -ldflags "-X $(UTIL_PATH).Tag=$(DOCKER_TAG) -X $(UTIL_PATH).BuildStamp=$(shell date -u +%Y-%m-%d-%H-%M-%S) -X $(UTIL_PATH).GitHash=$(shell git rev-parse HEAD)" ./...
 
 generate:
@@ -37,12 +37,12 @@ plugins:
 	$(MAKE) -C contrib/binancefeeder
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/gdaxfeeder
+	${MAKE} -C contrib/ice
 	$(MAKE) -C contrib/iex
 	$(MAKE) -C contrib/ondiskagg
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/stream
 	$(MAKE) -C contrib/xignitefeeder
-	${MAKE} -C contrib/ice
 
 fmt:
 	GOFLAGS=$(GOFLAGS) go fmt ./...

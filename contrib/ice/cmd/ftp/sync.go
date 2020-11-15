@@ -24,35 +24,43 @@ var FTPSyncCmd = &cobra.Command{
 		rawFtpURL := args[1]
 		ftpURL, err := url.Parse(rawFtpURL)
 		if err != nil {
-			log.Info("Please provide a valid url!", rawFtpURL)
+			log.Error("Please provide a valid url!")
 			return err
 		}
 
 		if err := os.MkdirAll(dataDir, 0777); err != nil {
-			log.Info("Cannot create local storage directory!")
+			log.Error("Cannot create local storage directory: %+v", err)
 			return err
 		}
 
 		password, ok := ftpURL.User.Password()
 		if !ok {
-			log.Info("Please provide a password in the FTP url!")
+			log.Error("Please provide a password in the FTP url!")
 			return err
 		}
 		client, err := ftp.NewClient(ftpURL.User.Username(), password, ftpURL.Host)
 		if err != nil {
-			log.Info("Unable to connect to ICE:", err)
+			log.Error("Unable to connect to ICE: %+v", err)
 			return err
 		}
-		defer func() { client.Close(); println("connection closed") }()
+		defer func() { client.Close() }()
 
 		log.Info("Succesfully connected to ICE: %+v", ftpURL)
 
 		reorgLoader := ftp.NewDownloader(client, ftpURL.Path, dataDir, enum.ReorgFilePrefix)
-		newFiles := reorgLoader.Sync()
+		newFiles, err := reorgLoader.Sync()
+		if err != nil {
+			log.Error("Error occurred while downloading files: %+v", err)
+			return err
+		}
 		log.Info("New reorg files downloaded: %+v", newFiles)
 
 		sirsLoader := ftp.NewDownloader(client, ftpURL.Path, dataDir, enum.SirsFilePrefix)
-		newFiles = sirsLoader.Sync()
+		newFiles, err = sirsLoader.Sync()
+		if err != nil {
+			log.Error("Error occurred while downloading files: %+v", err)
+			return err
+		}
 		log.Info("New sirs files downloaded: %+v", newFiles)
 
 		return nil

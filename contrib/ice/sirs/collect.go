@@ -8,11 +8,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-/*
-	Locate the previous Friday for a given time.
-*/
-
-func PreviousFriday(t time.Time) (time.Time, error) {
+// previousFriday Locate the previous Friday for a given time.
+func previousFriday(t time.Time) (time.Time, error) {
 	if t.Weekday() == time.Friday {
 		return t, nil
 	}
@@ -21,22 +18,17 @@ func PreviousFriday(t time.Time) (time.Time, error) {
 	return prevFriday, nil
 }
 
-/*
-	Returns a list of security master files for a given reorg file. File names start from last Friday (the latest complete snapshot)
-	and includes all incremental updates till we reach the date encoded in the reorg filename
-*/
-
-func CollectSirsFilesFor(sirsFile string) ([]string, error) {
-	basePath, fileName := filepath.Split(sirsFile)
-	// getting the date of the reorg file from the filename
-	currentDateStr := filepath.Ext(fileName)
+// CollectSirsFilesFor returns a list of security master files for a given date.
+// File names start from last Friday (the latest complete snapshot) and includes
+// all incremental updates till we reach the date encoded in the reorg filename
+func CollectSirsFilesFor(basePath string, currentDateStr string) ([]string, error) {
 	currentDate, err := time.Parse("20060102", currentDateStr[1:])
 	if err != nil {
-		log.Fatal("Unable to parse date from the reorg filename: %s", fileName)
+		log.Fatal("Unable to parse date: %s", currentDateStr)
 		return []string{}, err
 	}
 	// ICE releases a full snapshot of security master information on each Friday in sirs.refresh files.
-	begin, _ := PreviousFriday(currentDate)
+	begin, _ := previousFriday(currentDate)
 	masterfile := filepath.Join(basePath, "sirs.refresh."+begin.Format("20060102"))
 	if !exists(masterfile) {
 		// no master file, no chocolate
@@ -61,26 +53,18 @@ func CollectSirsFilesFor(sirsFile string) ([]string, error) {
 	return filenames, nil
 }
 
-/*
-Loads a single Security info file and returns it's entries as a Cusip indexed map
-*/
-
+// LoadSirsFile loads a single Security info file
 func LoadSirsFile(fileName string) ([]*SecurityMaster, error) {
-	records := []*SecurityMaster{}
 	file, err := os.Open(fileName)
 	defer file.Close()
-	if err == nil {
-		records, err = Load(file)
+	if err != nil {
+		return nil, err
 	}
-	return records, nil
-
+	return ParseFile(file)
 }
 
-/*
-Loads the listed security files and returns a map of cusipid -> symbol pairs.
-The first element of the input slice should be a complete snapshot (sirs.refresh.YYYYMMDD), and the following entries updates for this file (sirs.YYYYMMDD)
-*/
-
+// BuildSecurityMasterMap loads the listed security files and returns a map of cusipid -> symbol pairs.
+// The first element of the input slice should be a complete snapshot (sirs.refresh.YYYYMMDD), and the following entries updates for this file (sirs.YYYYMMDD)
 func BuildSecurityMasterMap(sirsFiles []string) (map[string]string, error) {
 	master := map[string]string{}
 	for _, filename := range sirsFiles {
@@ -96,9 +80,7 @@ func BuildSecurityMasterMap(sirsFiles []string) (map[string]string, error) {
 	return master, nil
 }
 
-/*
-	Utility function to help out go's incedible standard library...
-*/
+// Utility function to help out go's incedible standard library...
 func exists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)

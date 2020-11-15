@@ -20,7 +20,7 @@ type loader struct {
 	processDate *date.Date
 }
 
-func Load(r io.Reader) ([]*SecurityMaster, error) {
+func ParseFile(r io.Reader) ([]*SecurityMaster, error) {
 
 	l := &loader{}
 
