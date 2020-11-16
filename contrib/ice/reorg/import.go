@@ -23,10 +23,7 @@ func Import(reorgDir string, reimport bool) {
 	log.Info("Parsing %d new files", len(reorgFiles))
 	for _, reorgFile := range reorgFiles {
 		log.Info("======== Processing %s", reorgFile)
-		reorgFileDate := filepath.Ext(reorgFile)
-		if reorgFileDate == enum.ProcessedFlag {
-			reorgFileDate = filepath.Ext(reorgFile)
-		}
+		reorgFileDate := datePartOfFilename(reorgFile)
 		pathToReorgFile := filepath.Join(reorgDir, reorgFile)
 
 		announcements, err := readAnnouncements(pathToReorgFile)
@@ -35,7 +32,7 @@ func Import(reorgDir string, reimport bool) {
 			return
 		}
 
-		sirsFiles, err := sirs.CollectSirsFilesFor(reorgDir, reorgFileDate)
+		sirsFiles, err := sirs.CollectSirsFiles(reorgDir, reorgFileDate)
 		if err != nil {
 			log.Fatal("Cannot loat Sirs files: %+v", err)
 			return
@@ -58,6 +55,11 @@ func Import(reorgDir string, reimport bool) {
 			os.Rename(pathToReorgFile, pathToReorgFile+enum.ProcessedFlag)
 		}
 	}
+}
+
+func datePartOfFilename(filename string) string {
+	ext := filepath.Ext(strings.ReplaceAll(filename, enum.ProcessedFlag, ""))
+	return ext[1:]
 }
 
 func fileList(path string, prefix string, reimport bool) (out []string, err error) {
@@ -119,7 +121,7 @@ func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string) 
 					return err
 				}
 			} else {
-				log.Warn("Cannot map CUSIP %s to Symbol!!\n%+v", note.TargetCusip, note)
+				log.Warn("Cannot map CUSIP %s to Symbol", note.TargetCusip)
 			}
 		}
 	}

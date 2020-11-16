@@ -27,9 +27,9 @@ var ShowSecurityMasterCmd = &cobra.Command{
 		}
 		fileName := args[0]
 		basePath := filepath.Dir(fileName)
-		dateStr := filepath.Ext(fileName)
+		dateStr := filepath.Ext(fileName)[1:]
 		log.Info("loading security master file: %s", dateStr)
-		sirsFiles, err := sirs.CollectSirsFilesFor(basePath, dateStr)
+		sirsFiles, err := sirs.CollectSirsFiles(basePath, dateStr)
 		if err != nil {
 			return err
 		}

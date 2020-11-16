@@ -21,8 +21,8 @@ func previousFriday(t time.Time) (time.Time, error) {
 // CollectSirsFilesFor returns a list of security master files for a given date.
 // File names start from last Friday (the latest complete snapshot) and includes
 // all incremental updates till we reach the date encoded in the reorg filename
-func CollectSirsFilesFor(basePath string, currentDateStr string) ([]string, error) {
-	currentDate, err := time.Parse("20060102", currentDateStr[1:])
+func CollectSirsFiles(basePath string, currentDateStr string) ([]string, error) {
+	currentDate, err := time.Parse("20060102", currentDateStr)
 	if err != nil {
 		log.Fatal("Unable to parse date: %s", currentDateStr)
 		return []string{}, err
@@ -32,7 +32,7 @@ func CollectSirsFilesFor(basePath string, currentDateStr string) ([]string, erro
 	masterfile := filepath.Join(basePath, "sirs.refresh."+begin.Format("20060102"))
 	if !exists(masterfile) {
 		// no master file, no chocolate
-		log.Error("Master file not found: ", masterfile)
+		log.Error("Master file not found: %s", masterfile)
 		return []string{}, nil
 	}
 
