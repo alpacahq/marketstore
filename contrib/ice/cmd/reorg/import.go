@@ -33,7 +33,7 @@ var ImportCmd = &cobra.Command{
 		}
 		dataDir := args[0]
 		reorgDir := args[1]
-		executor.NewInstanceSetup(dataDir, true, true, true, true)
+		executor.NewInstanceSetup(dataDir, nil, true, true, true, true)
 		reorg.Import(reorgDir, reimport)
 		return nil
 	},
