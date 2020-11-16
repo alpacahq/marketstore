@@ -121,13 +121,13 @@ type TradeTick struct {
 	SipTimestamp         int64   `json:"t"` // Optional
 	Price                float64 `json:"p"`
 	Size                 int     `json:"s"`
-	Exchange             int     `json:"x"`
-	Conditions           []int   `json:"c"`
+	Exchange             byte    `json:"x"`
+	Conditions           []byte  `json:"c"`
 	Id                   string  `json:"i"`
 	Correction           int     `json:"e"`
 	SequenceNumber       int     `json:"q"`
 	TrfId                int     `json:"r"`
-	Tape                 int     `json:"z"`
+	Tape                 byte    `json:"z"`
 	OrigId               string  `string:"I"`
 }
 
@@ -156,12 +156,12 @@ type HistoricQuotes struct {
 // tick data included in a HistoricQuotes response
 type QuoteTick struct {
 	Timestamp   int64   `json:"t"`
-	BidExchange int  	`json:"bE"`
-	AskExchange int  	`json:"aE"`
-	BidPrice    float32 `json:"bP"`
-	AskPrice    float32 `json:"aP"`
+	BidExchange byte    `json:"bE"`
+	AskExchange byte    `json:"aE"`
+	BidPrice    float64 `json:"bP"`
+	AskPrice    float64 `json:"aP"`
 	BidSize     int     `json:"bS"`
 	AskSize     int     `json:"aS"`
-	Condition   int     `json:"c"`
-	Tape		int		`json:"z"`
+	Condition   byte    `json:"c"`
+	Tape        byte    `json:"z"`
 }

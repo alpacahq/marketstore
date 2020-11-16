@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-	"github.com/gobwas/glob"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -12,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
+	"github.com/gobwas/glob"
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
@@ -159,15 +160,15 @@ func main() {
 	}
 	log.Info("[polygon] selected %v symbols", len(symbolList))
 
-	var exchangeIDs []int
+	var exchangeIDs []byte
 	if exchanges != "*" {
 		for _, exchangeIDStr := range strings.Split(exchanges, ",") {
-			exchangeIDInt, err := strconv.Atoi(exchangeIDStr)
+			exchangeIDInt, err := strconv.ParseInt(exchangeIDStr, 10, 8)
 			if err != nil {
 				log.Fatal("Invalid exchange ID: %v", exchangeIDStr)
 			}
 
-			exchangeIDs = append(exchangeIDs, exchangeIDInt)
+			exchangeIDs = append(exchangeIDs, byte(exchangeIDInt))
 		}
 	}
 
@@ -277,7 +278,7 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	symbolListMux.Unlock()
 }
 
-func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, writerWP *worker.WorkerPool) {
+func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []byte, writerWP *worker.WorkerPool) {
 	if len(exchangeIDs) != 0 && period != 24*time.Hour {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
 		period = 24 * time.Hour

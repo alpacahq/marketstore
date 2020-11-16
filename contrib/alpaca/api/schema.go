@@ -19,17 +19,17 @@ type Trade struct {
 	// trade ID
 	tradeID int `json:"-"` // i
 	// exchange code where the trade occurred
-	Exchange uint32 `json:"x"`
+	Exchange byte `json:"x"`
 	// trade price
-	Price float32 `json:"p"`
+	Price float64 `json:"p"`
 	// trade size (shares)
-	Size uint32 `json:"s"`
+	Size int64 `json:"s"`
 	// epoch timestamp in nanoseconds
 	Timestamp int64 `json:"t"`
 	// condition flags
-	Conditions []int32 `json:"c"`
+	Conditions []byte `json:"c"`
 	// tape ID
-	TapeID uint32 `json:"z"`
+	TapeID byte `json:"z"`
 }
 
 // AlpacaTrade is the message
@@ -45,20 +45,20 @@ type Quote struct {
 	// symbol
 	Symbol string `json:"T"`
 	// exchange code for bid quote
-	BidExchange uint32 `json:"x"`
+	BidExchange byte `json:"x"`
 	// bid price
-	BidPrice float32 `json:"p"`
+	BidPrice float64 `json:"p"`
 	// bid size
-	BidSize uint32 `json:"s"`
+	BidSize int64 `json:"s"`
 	// exchange code for ask quote
-	AskExchange uint32 `json:"X"`
+	AskExchange byte `json:"X"`
 	// ask price
-	AskPrice float32 `json:"P"`
+	AskPrice float64 `json:"P"`
 	// ask size
-	AskSize uint32 `json:"S"`
+	AskSize int64 `json:"S"`
 	// condition flags.
 	// NOTE: always has len = 1
-	Conditions []int32 `json:"c"`
+	Conditions []int8 `json:"c"`
 	// epoch timestamp in nanoseconds
 	Timestamp int64 `json:"t"`
 }
@@ -76,23 +76,23 @@ type AggregateToMinute struct {
 	// symbol
 	Symbol string `json:"T"`
 	// volume (shares)
-	Volume uint32 `json:"v"`
+	Volume int64 `json:"v"`
 	// accumulated volume (shares)
-	accumVolume int `json:"-"` // av
+	accumVolume int64 `json:"-"` // av
 	//official open price of the bar
-	officialOpen float32 `json:"-"` // op
+	officialOpen float64 `json:"-"` // op
 	// VWAP (Volume Weighted Average Price)
-	VWAP float32 `json:"vw"`
+	VWAP float64 `json:"vw"`
 	// open price of the bar
-	Open float32 `json:"o"`
+	Open float64 `json:"o"`
 	// close price of the bar
-	Close float32 `json:"c"`
+	Close float64 `json:"c"`
 	// high price of the bar
-	High float32 `json:"h"`
+	High float64 `json:"h"`
 	// low price of the bar
-	Low float32 `json:"l"`
+	Low float64 `json:"l"`
 	// average price of the bar
-	Average float32 `json:"a"`
+	Average float64 `json:"a"`
 	// epoch time at the beginning of the window in milliseconds
 	EpochMillis int64 `json:"s"`
 	// epoch time at the ending of the window in milliseconds
