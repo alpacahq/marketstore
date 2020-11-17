@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	TradeSuffix string = "OHLCV"
-	timeframe   string = "1Sec"
+	TradeSuffix    string = "OHLCV"
+	tradeTimeframe string = "1Sec"
 )
 
 type Trade struct {
@@ -36,11 +36,27 @@ type Trade struct {
 
 func NewTrade(symbol string, length int) *Trade {
 	model := &Trade{
-		Tbk:   io.NewTimeBucketKey(symbol + "/" + timeframe + "/" + TradeSuffix),
+		Tbk:   io.NewTimeBucketKey(symbol + "/" + tradeTimeframe + "/" + TradeSuffix),
 		limit: length,
 	}
 	model.Make(length)
 	return model
+}
+
+func (model Trade) Key() *io.TimeBucketKey {
+	return model.Tbk
+}
+
+func (model *Trade) Len() int {
+	return len(model.Epoch)
+}
+
+func (model *Trade) Symbol() string {
+	return model.Tbk.GetItemInCategory("Symbol")
+}
+
+func (model *Trade) SetLimit(limit int) {
+	model.limit = limit
 }
 
 func (model *Trade) Make(length int) {
@@ -56,57 +72,28 @@ func (model *Trade) Make(length int) {
 	model.Cond4 = make([]byte, length)
 }
 
-func (model *Trade) Append(epoch int64, nanos int32, price float64, size int64, exchange, tapeid, cond1, cond2, cond3, cond4 byte) {
-	model.Epoch = append(model.Epoch, epoch)
-	model.Nanos = append(model.Nanos, nanos)
-	model.Price = append(model.Price, price)
-	model.Size = append(model.Size, size)
-	model.Exchange = append(model.Exchange, exchange)
-	model.TapeID = append(model.TapeID, tapeid)
-	model.Cond1 = append(model.Cond1, cond1)
-	model.Cond2 = append(model.Cond2, cond1)
-	model.Cond3 = append(model.Cond3, cond1)
-	model.Cond4 = append(model.Cond4, cond1)
-}
-
 func (model *Trade) Add(epoch int64, nanos int32, price float64, size int64, exchange, tapeid byte, conditions ...byte) {
 	idx := model.idx
-	model.Set(idx, epoch, nanos, price, size, exchange, tapeid, conditions...)
-	model.idx++
-}
-
-func (model *Trade) Set(i int, epoch int64, nanos int32, price float64, size int64, exchange, tapeid byte, conditions ...byte) {
-	model.Epoch[i] = epoch
-	model.Nanos[i] = nanos
-	model.Price[i] = price
-	model.Size[i] = size
-	model.Exchange[i] = exchange
-	model.TapeID[i] = tapeid
+	model.Epoch[idx] = epoch
+	model.Nanos[idx] = nanos
+	model.Price[idx] = price
+	model.Size[idx] = size
+	model.Exchange[idx] = exchange
+	model.TapeID[idx] = tapeid
 	switch len(conditions) {
 	case 4:
-		model.Cond1[i] = conditions[3]
+		model.Cond4[idx] = conditions[3]
 		fallthrough
 	case 3:
-		model.Cond1[i] = conditions[2]
+		model.Cond3[idx] = conditions[2]
 		fallthrough
 	case 2:
-		model.Cond1[i] = conditions[1]
+		model.Cond2[idx] = conditions[1]
 		fallthrough
 	case 1:
-		model.Cond1[i] = conditions[0]
+		model.Cond1[idx] = conditions[0]
 	}
-}
-
-func (model *Trade) Len() int {
-	return len(model.Epoch)
-}
-
-func (model *Trade) Symbol() string {
-	return model.Tbk.GetItemInCategory("Symbol")
-}
-
-func (model *Trade) SetLimit(limit int) {
-	model.limit = limit
+	model.idx++
 }
 
 func (model *Trade) buildCsm() *io.ColumnSeriesMap {
@@ -132,7 +119,7 @@ func (model *Trade) buildCsm() *io.ColumnSeriesMap {
 
 func (model *Trade) Write() error {
 	csm := model.buildCsm()
-	return executor.WriteCSM(*csm, false)
+	return executor.WriteCSM(*csm, true)
 }
 
 func (model *Trade) WriteAsync(workerPool *worker.WorkerPool) {

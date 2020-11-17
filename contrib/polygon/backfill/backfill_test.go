@@ -6,6 +6,7 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/models"
 
 	. "gopkg.in/check.v1"
 )
@@ -46,11 +47,14 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 			},
 		}
 		symbol := "AAPL"
-		exchangeIDs := []int{9, 17}
+		exchangeIDs := []byte{9, 17}
 		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
+		model := models.NewBar(symbol, "1Min", 1440)
 
 		// When we call tradesToBars
-		csm := tradesToBars(ticks, symbol, exchangeIDs)
+		tradesToBars(ticks, model, exchangeIDs)
+
+		csm := *model.BuildCsm()
 
 		// Then the returned ColumnSeriesMarks should contain data from the two
 		// specified exchanges, accumulated to minutes
@@ -59,14 +63,17 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		c.Assert(t, DeepEquals, []time.Time{
 			time.Date(2020, 1, 21, 9, 30, 0, 0, NY).In(time.UTC),
 		})
-		c.Assert(csm[*key].GetColumn("Open").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300.1})
-		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{300.1})
-		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{180})
+		c.Assert(csm[*key].GetColumn("Open").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("High").([]float64), DeepEquals, []float64{300.1})
+		c.Assert(csm[*key].GetColumn("Low").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("Close").([]float64), DeepEquals, []float64{300.1})
+		c.Assert(csm[*key].GetColumn("Volume").([]int64), DeepEquals, []int64{180})
 
+		model = models.NewBar(symbol, "1Min", 1440)
 		// And when we call tradesToBars with different set of exchanges
-		csm = tradesToBars(ticks, symbol, []int{8, 9})
+		tradesToBars(ticks, model, []byte{8, 9})
+
+		csm = *model.BuildCsm()
 
 		// Then the returned ColumnSeriesMarks should contain data from the two new
 		// specified exchanges, accumulated in minutes
@@ -75,11 +82,11 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		c.Assert(t, DeepEquals, []time.Time{
 			time.Date(2020, 1, 21, 9, 30, 0, 0, NY).In(time.UTC),
 		})
-		c.Assert(csm[*key].GetColumn("Open").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{299.9})
-		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{299.9})
-		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{150})
+		c.Assert(csm[*key].GetColumn("Open").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("High").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("Low").([]float64), DeepEquals, []float64{299.9})
+		c.Assert(csm[*key].GetColumn("Close").([]float64), DeepEquals, []float64{299.9})
+		c.Assert(csm[*key].GetColumn("Volume").([]int64), DeepEquals, []int64{150})
 	}
 
 	// With one condition: No update on High/Low, Volume & Close
@@ -90,23 +97,26 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 				Price:        300,
 				Size:         100,
 				Exchange:     9,
-				Conditions:   []int{15},
+				Conditions:   []byte{15},
 			},
 		}
 
 		symbol := "AAPL"
-		exchangeIDs := []int{9}
+		exchangeIDs := []byte{9}
 		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
+		model := models.NewBar(symbol, "1Min", 1440)
 
 		// When we call tradesToBars
-		csm := tradesToBars(ticks, symbol, exchangeIDs)
+		tradesToBars(ticks, model, exchangeIDs)
+
+		csm := *model.BuildCsm()
 
 		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetColumn("Open").([]float32), DeepEquals, []float32{})
-		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{})
-		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{})
-		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{})
-		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{})
+		c.Assert(csm[*key].GetColumn("Open").([]float64), DeepEquals, []float64{})
+		c.Assert(csm[*key].GetColumn("High").([]float64), DeepEquals, []float64{})
+		c.Assert(csm[*key].GetColumn("Low").([]float64), DeepEquals, []float64{})
+		c.Assert(csm[*key].GetColumn("Close").([]float64), DeepEquals, []float64{})
+		c.Assert(csm[*key].GetColumn("Volume").([]int64), DeepEquals, []int64{})
 	}
 
 	// With conditions: Normal trade + No update on High/Low, Volume & Close
@@ -117,30 +127,33 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 				Price:        300,
 				Size:         100,
 				Exchange:     9,
-				Conditions:   []int{0},
+				Conditions:   []byte{0},
 			},
 			{
 				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 4, NY).UnixNano(),
 				Price:        305.2,
 				Size:         10,
 				Exchange:     9,
-				Conditions:   []int{15},
+				Conditions:   []byte{15},
 			},
 		}
 
 		symbol := "AAPL"
-		exchangeIDs := []int{9, 8}
+		exchangeIDs := []byte{9, 8}
 		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
+		model := models.NewBar(symbol, "1Min", 1440)
 
 		// When we call tradesToBars
-		csm := tradesToBars(ticks, symbol, exchangeIDs)
+		tradesToBars(ticks, model, exchangeIDs)
+
+		csm := *model.BuildCsm()
 
 		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetColumn("Open").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{300})
-		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{100})
+		c.Assert(csm[*key].GetColumn("Open").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("High").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("Low").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("Close").([]float64), DeepEquals, []float64{300})
+		c.Assert(csm[*key].GetColumn("Volume").([]int64), DeepEquals, []int64{100})
 	}
 
 	// With condition: Form-T, odd-lot and normal
@@ -151,51 +164,52 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 				Price:        300,
 				Size:         100,
 				Exchange:     9,
-				Conditions:   []int{12},
+				Conditions:   []byte{12},
 			},
 			{ // Should be excluded: odd-lot
 				SipTimestamp: time.Date(2020, 1, 21, 8, 30, 2, 0, NY).UnixNano(),
 				Price:        314,
 				Size:         99,
 				Exchange:     9,
-				Conditions:   []int{12, 37},
+				Conditions:   []byte{12, 37},
 			},
 			{ // Should be included
 				SipTimestamp: time.Date(2020, 1, 21, 8, 30, 2, 0, NY).UnixNano(),
 				Price:        299,
 				Size:         77,
 				Exchange:     8,
-				Conditions:   []int{12},
+				Conditions:   []byte{12},
 			},
 			{
 				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 4, NY).UnixNano(),
 				Price:        305.2,
 				Size:         10,
 				Exchange:     9,
-				Conditions:   []int{14},
+				Conditions:   []byte{14},
 			},
 			{
 				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 1, 4, NY).UnixNano(),
 				Price:        315.2,
 				Size:         17,
 				Exchange:     8,
-				Conditions:   []int{},
+				Conditions:   []byte{},
 			},
 		}
 
 		symbol := "AAPL"
-		exchangeIDs := []int{9, 8}
+		exchangeIDs := []byte{9, 8}
 		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
-
+		model := models.NewBar(symbol, "1Min", 1440)
 		// When we call tradesToBars
-		csm := tradesToBars(ticks, symbol, exchangeIDs)
+		tradesToBars(ticks, model, exchangeIDs)
 
+		csm := *model.BuildCsm()
 		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetColumn("Open").([]float32), DeepEquals, []float32{300, 305.2})
-		c.Assert(csm[*key].GetColumn("High").([]float32), DeepEquals, []float32{300, 315.2})
-		c.Assert(csm[*key].GetColumn("Low").([]float32), DeepEquals, []float32{299, 305.2})
-		c.Assert(csm[*key].GetColumn("Close").([]float32), DeepEquals, []float32{299, 315.2})
-		c.Assert(csm[*key].GetColumn("Volume").([]uint32), DeepEquals, []uint32{276, 27})
+		c.Assert(csm[*key].GetColumn("Open").([]float64), DeepEquals, []float64{300, 305.2})
+		c.Assert(csm[*key].GetColumn("High").([]float64), DeepEquals, []float64{300, 315.2})
+		c.Assert(csm[*key].GetColumn("Low").([]float64), DeepEquals, []float64{299, 305.2})
+		c.Assert(csm[*key].GetColumn("Close").([]float64), DeepEquals, []float64{299, 315.2})
+		c.Assert(csm[*key].GetColumn("Volume").([]int64), DeepEquals, []int64{276, 27})
 
 	}
 }

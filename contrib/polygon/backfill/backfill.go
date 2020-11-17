@@ -11,8 +11,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/alpacahq/marketstore/v4/utils/models"
 )
@@ -124,23 +122,16 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 	}
 
 	model := models.NewBar(symbol, "1Min", len(resp.Results))
-	for i, bar := range resp.Results {
+	for _, bar := range resp.Results {
 		timestamp := bar.EpochMilliseconds / 1000
 		if time.Unix(timestamp, 0).After(to) || time.Unix(timestamp, 0).Before(from) {
 			// polygon sometime returns inconsistent data
 			continue
 		}
-		model.Epoch[i] = timestamp
-		model.Open[i] = bar.Open
-		model.High[i] = bar.High
-		model.Low[i] = bar.Low
-		model.Close[i] = bar.Close
-		model.Volume[i] = int64(bar.Volume)
+		model.Add(timestamp, bar.Open, bar.High, bar.Low, bar.Close, int64(bar.Volume))
 	}
 
-	t = time.Now()
 	model.WriteAsync(writerWP)
-	WaitTime += time.Since(t)
 
 	return nil
 }
@@ -292,7 +283,7 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 
 	if len(trades) > 0 {
 		model := models.NewTrade(symbol, len(trades))
-		for i, tick := range trades {
+		for _, tick := range trades {
 			// type conversions
 			timestamp := time.Unix(0, tick.SipTimestamp)
 			conditions := make([]byte, len(tick.Conditions))
@@ -302,10 +293,10 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 			nanoseconds := int32(timestamp.Nanosecond())
 			price := tick.Price
 			size := int64(tick.Size)
-			exchange := byte(api.ExchangeCode(tick.Exchange))
-			tape := api.TapeCode(tick.Tape)
+			exchange := api.ConvertExchangeCode(tick.Exchange)
+			tape := api.ConvertTapeCode(tick.Tape)
 			// storing
-			model.Set(i, timestamp.Unix(), nanoseconds, price, size, exchange, tape, conditions...)
+			model.Add(timestamp.Unix(), nanoseconds, price, size, exchange, tape, conditions...)
 		}
 		// finally write to database
 		model.WriteAsync(writerWP)
@@ -338,55 +329,18 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 	}
 
 	if len(quotes) > 0 {
-		csm := io.NewColumnSeriesMap()
-		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/QUOTE")
-		cs := io.NewColumnSeries()
+		model := models.NewQuote(symbol, len(quotes))
 
-		epoch := make([]int64, len(quotes))
-		nanos := make([]int32, len(quotes))
-		bidPrice := make([]float64, len(quotes))
-		askPrice := make([]float64, len(quotes))
-		bidSize := make([]int64, len(quotes))
-		askSize := make([]int64, len(quotes))
-		bidExchange := make([]byte, len(quotes))
-		askExchange := make([]byte, len(quotes))
-		conditions := make([]byte, len(quotes))
-
-		for i, tick := range quotes {
+		for _, tick := range quotes {
 			timestamp := time.Unix(0, 1000*1000*tick.Timestamp)
 
-			epoch[i] = timestamp.Unix()
-			nanos[i] = int32(timestamp.Nanosecond())
-			bidPrice[i] = tick.BidPrice
-			askPrice[i] = tick.BidPrice
-			bidSize[i] = int64(tick.BidSize)
-			askSize[i] = int64(tick.AskSize)
-			bidExchange[i] = api.ExchangeCode(tick.BidExchange)
-			askExchange[i] = api.ExchangeCode(tick.AskExchange)
-			conditions[i] = tick.Condition
+			bidExchange := api.ConvertExchangeCode(tick.BidExchange)
+			askExchange := api.ConvertExchangeCode(tick.AskExchange)
+			condition := api.ConvertQuoteCondition(tick.Condition)
+			model.Add(timestamp.Unix(), int32(timestamp.Nanosecond()), tick.BidPrice, tick.AskPrice, int64(tick.BidSize), int64(tick.AskSize), bidExchange, askExchange, condition)
 		}
 
-		cs.AddColumn("Epoch", epoch)
-		cs.AddColumn("Nanoseconds", nanos)
-		cs.AddColumn("BidPrice", bidPrice)
-		cs.AddColumn("AskPrice", askPrice)
-		cs.AddColumn("BidSize", bidSize)
-		cs.AddColumn("AskSize", askSize)
-		cs.AddColumn("BidExchange", bidExchange)
-		cs.AddColumn("AskExchange", askExchange)
-		cs.AddColumn("Cond", conditions)
-		csm.AddColumnSeries(*tbk, cs)
-
-		t = time.Now()
-		writerWP.Do(func() {
-			tt := time.Now()
-			err := executor.WriteCSM(csm, true)
-			if err != nil {
-				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
-			}
-			WriteTime += time.Now().Sub(tt)
-		})
-		WaitTime += time.Now().Sub(t)
+		model.WriteAsync(writerWP)
 	}
 
 	return nil

@@ -13,8 +13,7 @@ const BarSuffix = "OHLCV"
 
 type Bar struct {
 	Tbk                    *io.TimeBucketKey
-	csm                    io.ColumnSeriesMap
-	cs                     *io.ColumnSeries
+	Csm                    io.ColumnSeriesMap
 	Epoch                  []int64
 	Open, High, Low, Close []float64
 	Volume                 []int64
@@ -26,43 +25,15 @@ type Bar struct {
 func NewBar(symbol, timeframe string, length int) *Bar {
 	model := &Bar{
 		Tbk:   io.NewTimeBucketKey(symbol + "/" + timeframe + "/" + BarSuffix),
-		limit: length,
+		Csm:   io.NewColumnSeriesMap(),
+		limit: 0,
 	}
 	model.Make(length)
 	return model
 }
 
-func (model *Bar) Make(length int) {
-	model.Epoch = make([]int64, length)
-	model.Open = make([]float64, length)
-	model.High = make([]float64, length)
-	model.Low = make([]float64, length)
-	model.Close = make([]float64, length)
-	model.Volume = make([]int64, length)
-}
-
-func (model *Bar) Append(epoch int64, open, high, low, close float64, volume int64) {
-	model.Epoch = append(model.Epoch, epoch)
-	model.Open = append(model.Open, open)
-	model.High = append(model.High, high)
-	model.Low = append(model.Low, low)
-	model.Close = append(model.Close, close)
-	model.Volume = append(model.Volume, volume)
-}
-
-func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int64) {
-	idx := model.idx
-	model.Set(idx, epoch, open, high, low, close, volume)
-	model.idx++
-}
-
-func (model *Bar) Set(i int, epoch int64, open, high, low, close float64, volume int64) {
-	model.Epoch[i] = epoch
-	model.Open[i] = open
-	model.High[i] = high
-	model.Low[i] = low
-	model.Close[i] = close
-	model.Volume[i] = volume
+func (model Bar) Key() *io.TimeBucketKey {
+	return model.Tbk
 }
 
 func (model *Bar) Len() int {
@@ -77,7 +48,27 @@ func (model *Bar) SetLimit(limit int) {
 	model.limit = limit
 }
 
-func (model *Bar) buildCsm() *io.ColumnSeriesMap {
+func (model *Bar) Make(length int) {
+	model.Epoch = make([]int64, length)
+	model.Open = make([]float64, length)
+	model.High = make([]float64, length)
+	model.Low = make([]float64, length)
+	model.Close = make([]float64, length)
+	model.Volume = make([]int64, length)
+}
+
+func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int64) {
+	idx := model.idx
+	model.Epoch[idx] = epoch
+	model.Open[idx] = open
+	model.High[idx] = high
+	model.Low[idx] = low
+	model.Close[idx] = close
+	model.Volume[idx] = volume
+	model.idx++
+}
+
+func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
 	limit := model.limit
 	if model.idx > 0 {
 		limit = model.idx
@@ -95,7 +86,7 @@ func (model *Bar) buildCsm() *io.ColumnSeriesMap {
 }
 
 func (model *Bar) Write() error {
-	csm := model.buildCsm()
+	csm := model.BuildCsm()
 	return executor.WriteCSM(*csm, false)
 }
 
