@@ -107,13 +107,7 @@ func QuoteHandler(msg []byte) {
 	metrics.PolygonStreamLastUpdate.WithLabelValues("quote").SetToCurrentTime()
 }
 
-func BarsHandlerWrapper(addTickCount bool) func([]byte) {
-	return func(msg []byte) {
-		BarsHandler(msg, addTickCount)
-	}
-}
-
-func BarsHandler(msg []byte, addTickCount bool) {
+func BarsHandler(msg []byte) {
 	if msg == nil {
 		return
 	}
@@ -143,9 +137,6 @@ func BarsHandler(msg []byte, addTickCount bool) {
 		cs.AddColumn("Low", []float64{bar.Low})
 		cs.AddColumn("Close", []float64{bar.Close})
 		cs.AddColumn("Volume", []uint64{uint64(bar.Volume)})
-		// if addTickCount {
-		// 	cs.AddColumn("TickCnt", []int32{int32(0)})
-		// }
 		csm.AddColumnSeries(*tbk, cs)
 
 		if err := executor.WriteCSM(csm, false); err != nil {

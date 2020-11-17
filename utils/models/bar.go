@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const BarSuffix = "OHLCV"
+const barSuffix = "OHLCV"
 
 type Bar struct {
 	Tbk                    *io.TimeBucketKey
@@ -22,9 +22,13 @@ type Bar struct {
 	idx                    int
 }
 
+func BarBucketKey(symbol, timeframe string) string {
+	return symbol + "/" + timeframe + "/" + barSuffix
+}
+
 func NewBar(symbol, timeframe string, length int) *Bar {
 	model := &Bar{
-		Tbk:   io.NewTimeBucketKey(symbol + "/" + timeframe + "/" + BarSuffix),
+		Tbk:   io.NewTimeBucketKey(BarBucketKey(symbol, timeframe)),
 		Csm:   io.NewColumnSeriesMap(),
 		limit: 0,
 	}
@@ -32,8 +36,8 @@ func NewBar(symbol, timeframe string, length int) *Bar {
 	return model
 }
 
-func (model Bar) Key() *io.TimeBucketKey {
-	return model.Tbk
+func (model Bar) Key() string {
+	return model.Tbk.GetItemKey()
 }
 
 func (model *Bar) Len() int {
@@ -69,10 +73,10 @@ func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int) {
 }
 
 func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
-	limit := model.limit
 	if model.idx > 0 {
-		limit = model.idx
+		model.limit = model.idx
 	}
+	limit := model.limit
 	csm := io.NewColumnSeriesMap()
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", model.Epoch[:limit])
@@ -86,16 +90,20 @@ func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
 }
 
 func (model *Bar) Write() error {
+	start := time.Now()
 	csm := model.BuildCsm()
-	return executor.WriteCSM(*csm, false)
+	err := executor.WriteCSM(*csm, false)
+	model.WriteTime = time.Since(start)
+	if err != nil {
+		log.Error("Failed to write bars for %s (%+v)", model.Key(), err)
+	} else {
+		log.Debug("Wrote %d bars to %s", model.limit, model.Key())
+	}
+	return err
 }
 
 func (model *Bar) WriteAsync(workerPool *worker.WorkerPool) {
 	workerPool.Do(func() {
-		start := time.Now()
-		if err := model.Write(); err != nil {
-			log.Error("failed to write OHLCV bars for %s", model.Tbk.String())
-		}
-		model.WriteTime = time.Since(start)
+		model.Write()
 	})
 }

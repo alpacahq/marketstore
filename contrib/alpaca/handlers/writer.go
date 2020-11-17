@@ -31,7 +31,7 @@ func writeTrade(t *api.Trade) {
 
 	// save
 	if err := model.Write(); err != nil {
-		log.Error("[alpaca] csm write failure for key: [%v] (%v)", model.Key().String(), err)
+		log.Error("[alpaca] csm write failure for key: [%v] (%v)", model.Key(), err)
 	}
 }
 
@@ -51,7 +51,7 @@ func writeQuote(q *api.Quote) {
 
 	// save
 	if err := model.Write(); err != nil {
-		log.Error("[alpaca] csm write failure for key: [%v] (%v)", model.Key().String(), err)
+		log.Error("[alpaca] csm write failure for key: [%v] (%v)", model.Key(), err)
 	}
 }
 
@@ -64,6 +64,6 @@ func writeAggregateToMinute(agg *api.AggregateToMinute) {
 
 	// save
 	if err := model.Write(); err != nil {
-		log.Error("[alpaca] csm write failure for key: [%v] (%v)", model.Key().String(), err)
+		log.Error("[alpaca] csm write failure for key: [%v] (%v)", model.Key(), err)
 	}
 }
