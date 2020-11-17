@@ -19,7 +19,6 @@ import (
 
 const (
 	defaultFormat = "2006-01-02"
-	condDefault   = byte(255)
 )
 
 type ConsolidatedUpdateInfo struct {
@@ -285,79 +284,32 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 			trades = append(trades, resp.Results...)
 		}
 	}
-	ApiCallTime += time.Now().Sub(t)
+	ApiCallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
 	}
 
 	if len(trades) > 0 {
-		csm := io.NewColumnSeriesMap()
-		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Sec/TRADE")
-		cs := io.NewColumnSeries()
-
-		epoch := make([]int64, len(trades))
-		nanos := make([]int32, len(trades))
-		price := make([]float64, len(trades))
-		size := make([]int64, len(trades))
-		exchange := make([]byte, len(trades))
-		tapeid := make([]byte, len(trades))
-		cond1 := make([]byte, len(trades))
-		cond2 := make([]byte, len(trades))
-		cond3 := make([]byte, len(trades))
-		cond4 := make([]byte, len(trades))
-
+		model := models.NewTrade(symbol, len(trades))
 		for i, tick := range trades {
+			// type conversions
 			timestamp := time.Unix(0, tick.SipTimestamp)
-			epoch[i] = timestamp.Unix()
-			nanos[i] = int32(timestamp.Nanosecond())
-			price[i] = tick.Price
-			size[i] = int64(tick.Size)
-			exchange[i] = byte(api.ExchangeCode(tick.Exchange))
-			tapeid[i] = api.TapeCode(tick.Tape)
-			cond1[i] = condDefault
-			cond2[i] = condDefault
-			cond3[i] = condDefault
-			cond4[i] = condDefault
-			switch len(tick.Conditions) {
-			case 4:
-				cond4[i] = api.TradeConditionCode(tick.Conditions[3])
-				fallthrough
-			case 3:
-				cond3[i] = api.TradeConditionCode(tick.Conditions[2])
-				fallthrough
-			case 2:
-				cond2[i] = api.TradeConditionCode(tick.Conditions[1])
-				fallthrough
-			case 1:
-				cond1[i] = api.TradeConditionCode(tick.Conditions[0])
+			conditions := make([]byte, len(tick.Conditions))
+			for i, cond := range tick.Conditions {
+				conditions[i] = api.ConvertTradeCondition(cond)
 			}
+			nanoseconds := int32(timestamp.Nanosecond())
+			price := tick.Price
+			size := int64(tick.Size)
+			exchange := byte(api.ExchangeCode(tick.Exchange))
+			tape := api.TapeCode(tick.Tape)
+			// storing
+			model.Set(i, timestamp.Unix(), nanoseconds, price, size, exchange, tape, conditions...)
 		}
-
-		cs.AddColumn("Epoch", epoch)
-		cs.AddColumn("Nanoseconds", nanos)
-		cs.AddColumn("Price", price)
-		cs.AddColumn("Size", size)
-		cs.AddColumn("Exchange", exchange)
-		cs.AddColumn("TapeID", tapeid)
-		cs.AddColumn("Cond1", cond1)
-		cs.AddColumn("Cond2", cond2)
-		cs.AddColumn("Cond3", cond3)
-		cs.AddColumn("Cond4", cond4)
-		csm.AddColumnSeries(*tbk, cs)
-
-		t = time.Now()
-		writerWP.Do(func() {
-			tt := time.Now()
-			err := executor.WriteCSM(csm, true)
-			if err != nil {
-				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
-			}
-			WriteTime += time.Now().Sub(tt)
-		})
-		WaitTime += time.Now().Sub(t)
+		// finally write to database
+		model.WriteAsync(writerWP)
 	}
-
 	return nil
 }
 

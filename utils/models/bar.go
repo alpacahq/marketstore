@@ -9,10 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-type Model interface {
-}
-
-const attributeGroup = "OHLCV"
+const BarSuffix = "OHLCV"
 
 type Bar struct {
 	Tbk                    *io.TimeBucketKey
@@ -28,7 +25,7 @@ type Bar struct {
 
 func NewBar(symbol, timeframe string, length int) *Bar {
 	model := &Bar{
-		Tbk:   io.NewTimeBucketKey(symbol + "/" + timeframe + "/" + attributeGroup),
+		Tbk:   io.NewTimeBucketKey(symbol + "/" + timeframe + "/" + BarSuffix),
 		limit: length,
 	}
 	model.Make(length)

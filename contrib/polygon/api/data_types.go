@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/alpacahq/marketstore/v4/utils/models/enum"
+)
+
 // Exchange identifies the exchange
 type Exchange byte
 
@@ -97,86 +101,45 @@ func TapeCode(tape byte) byte {
 	return byte(t)
 }
 
-// TradeCondition is the type of trade transaction
-type TradeCondition byte
-
-// List of all trade conditions
-const (
-	Acquisition                TradeCondition = 'A'
-	AutomaticExecution         TradeCondition = 'E'
-	AveragePriceTrade          TradeCondition = 'W'
-	BunchedSoldTrade           TradeCondition = 'G'
-	BunchedTrade               TradeCondition = 'B'
-	CashSale                   TradeCondition = 'C'
-	ClosingPrints              TradeCondition = '6'
-	ContingentTrade            TradeCondition = 'V'
-	CorrectedConsolidatedClose TradeCondition = '9'
-	CrossTrade                 TradeCondition = 'X'
-	DerivativelyPriced         TradeCondition = '4'
-	Distribution               TradeCondition = 'D'
-	ExtendedHoursTrade         TradeCondition = 'T'
-	ExtendedTradingHours       TradeCondition = 'U'
-	FormT                      TradeCondition = 'T'
-	IntermarketSweep           TradeCondition = 'F'
-	MarketCenterOfficialClose  TradeCondition = 'M'
-	MarketCenterOfficialOpen   TradeCondition = 'Q'
-	NextDay                    TradeCondition = 'N'
-	OddLotTrade                TradeCondition = 'I'
-	OpeningPrints              TradeCondition = 'O'
-	PlaceholderFor611Exempt    TradeCondition = '8'
-	PriceVariationTrade        TradeCondition = 'H'
-	PriorReferencePrice        TradeCondition = 'P'
-	QualifiedContingentTrade   TradeCondition = '7'
-	RegularSale                TradeCondition = '@'
-	ReopeningPrints            TradeCondition = '5'
-	Rule155Trade               TradeCondition = 'K'
-	Seller                     TradeCondition = 'R'
-	SoldLast                   TradeCondition = 'L'
-	SoldOutOfSequence          TradeCondition = 'Z'
-	SplitTrade                 TradeCondition = 'S'
-	StoppedStock               TradeCondition = '1'
-	YellowFlagRegularTrade     TradeCondition = 'Y'
-	UnknownTradeCondition      TradeCondition = 0
-)
-
-var TradeConditionMapping = map[byte]TradeCondition{
-	0:  RegularSale,
-	1:  Acquisition,
-	2:  AveragePriceTrade,
-	3:  AutomaticExecution,
-	4:  BunchedTrade,
-	5:  BunchedSoldTrade,
-	7:  CashSale,
-	8:  ClosingPrints,
-	9:  CrossTrade,
-	10: DerivativelyPriced,
-	11: Distribution,
-	12: FormT,
-	13: ExtendedHoursTrade,
-	14: IntermarketSweep,
-	15: MarketCenterOfficialClose,
-	16: MarketCenterOfficialOpen,
-	20: NextDay,
-	21: PriceVariationTrade,
-	22: PriorReferencePrice,
-	23: Rule155Trade,
-	25: OpeningPrints,
-	27: StoppedStock,
-	28: ReopeningPrints,
-	29: Seller,
-	30: SoldLast,
-	32: SoldOutOfSequence,
-	34: SplitTrade,
-	37: OddLotTrade,
-	38: CorrectedConsolidatedClose,
-	52: ContingentTrade,
-	53: QualifiedContingentTrade,
+// TradeConditionMapping provides a mapping from Polygon integer format to Marketstore's internal representation
+var TradeConditionMapping = map[byte]enum.TradeCondition{
+	0:  enum.RegularSale,
+	1:  enum.Acquisition,
+	2:  enum.AveragePriceTrade,
+	3:  enum.AutomaticExecution,
+	4:  enum.BunchedTrade,
+	5:  enum.BunchedSoldTrade,
+	7:  enum.CashSale,
+	8:  enum.ClosingPrints,
+	9:  enum.CrossTrade,
+	10: enum.DerivativelyPriced,
+	11: enum.Distribution,
+	12: enum.FormT,
+	13: enum.ExtendedHoursTrade,
+	14: enum.IntermarketSweep,
+	15: enum.MarketCenterOfficialClose,
+	16: enum.MarketCenterOfficialOpen,
+	20: enum.NextDay,
+	21: enum.PriceVariationTrade,
+	22: enum.PriorReferencePrice,
+	23: enum.Rule155Trade,
+	25: enum.OpeningPrints,
+	27: enum.StoppedStock,
+	28: enum.ReopeningPrints,
+	29: enum.Seller,
+	30: enum.SoldLast,
+	32: enum.SoldOutOfSequence,
+	34: enum.SplitTrade,
+	37: enum.OddLotTrade,
+	38: enum.CorrectedConsolidatedClose,
+	52: enum.ContingentTrade,
+	53: enum.QualifiedContingentTrade,
 }
 
-func TradeConditionCode(condition byte) byte {
+func ConvertTradeCondition(condition byte) byte {
 	val, ok := TradeConditionMapping[condition]
 	if !ok {
-		val = UnknownTradeCondition
+		val = enum.UnknownTradeCondition
 	}
 	return byte(val)
 }
