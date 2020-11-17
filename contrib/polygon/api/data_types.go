@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils/models/enum"
+	"github.com/alpacahq/marketstore/v4/models/enum"
 )
 
 // mapping between Polygon's integer exchange codes and Marketstore's internal representation

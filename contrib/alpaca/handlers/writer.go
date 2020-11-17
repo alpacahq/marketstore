@@ -4,12 +4,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/models/enum"
-
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/api"
 	polygon "github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/models"
+	"github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/alpacahq/marketstore/v4/utils/models"
 )
 
 // writeTrade writes a Trade

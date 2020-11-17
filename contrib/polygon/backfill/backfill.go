@@ -4,17 +4,15 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/alpacahq/marketstore/v4/utils/models/enum"
-
 	"sync"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
+	"github.com/alpacahq/marketstore/v4/models"
+	"github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/alpacahq/marketstore/v4/utils/models"
 )
 
 const (
@@ -133,7 +131,9 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 		model.Add(timestamp, bar.Open, bar.High, bar.Low, bar.Close, int(bar.Volume))
 	}
 
-	model.WriteAsync(writerWP)
+	writerWP.Do(func() {
+		model.Write()
+	})
 
 	return nil
 }
@@ -289,7 +289,9 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.Price, tick.Size, exchange, tape, conditions...)
 		}
 		// finally write to database
-		model.WriteAsync(writerWP)
+		writerWP.Do(func() {
+			model.Write()
+		})
 	}
 	return nil
 }
@@ -330,7 +332,9 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.BidPrice, tick.AskPrice, tick.BidSize, tick.AskSize, bidExchange, askExchange, condition)
 		}
 
-		model.WriteAsync(writerWP)
+		writerWP.Do(func() {
+			model.Write()
+		})
 	}
 
 	return nil

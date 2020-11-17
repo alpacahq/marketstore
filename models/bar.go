@@ -3,7 +3,6 @@ package models
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -100,10 +99,4 @@ func (model *Bar) Write() error {
 		log.Debug("Wrote %d bars to %s", model.limit, model.Key())
 	}
 	return err
-}
-
-func (model *Bar) WriteAsync(workerPool *worker.WorkerPool) {
-	workerPool.Do(func() {
-		model.Write()
-	})
 }

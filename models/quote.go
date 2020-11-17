@@ -3,10 +3,8 @@ package models
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/models/enum"
-
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -121,10 +119,4 @@ func (model *Quote) Write() error {
 		log.Debug("Wrote %d quotes to %s", model.limit, model.Key())
 	}
 	return err
-}
-
-func (model *Quote) WriteAsync(workerPool *worker.WorkerPool) {
-	workerPool.Do(func() {
-		model.Write()
-	})
 }
