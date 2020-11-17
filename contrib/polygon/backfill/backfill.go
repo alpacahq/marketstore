@@ -181,7 +181,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 
 	var epoch int64
-	var open, high, low, close float64
+	var open, high, low, close_ float64
 	var volume int
 
 	lastBucketTimestamp := time.Time{}
@@ -212,7 +212,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 
 		if !lastBucketTimestamp.Equal(bucketTimestamp) {
 			if open != 0 && volume != 0 {
-				model.Add(epoch, open, high, low, close, volume)
+				model.Add(epoch, open, high, low, close_, volume)
 			}
 
 			lastBucketTimestamp = bucketTimestamp
@@ -220,7 +220,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			open = 0
 			high = 0
 			low = math.MaxFloat64
-			close = 0
+			close_ = 0
 			volume = 0
 		}
 
@@ -243,7 +243,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			if open == 0 {
 				open = price
 			}
-			close = price
+			close_ = price
 		}
 
 		if updateInfo.UpdateVolume {
@@ -252,7 +252,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 
 	if open != 0 && volume != 0 {
-		model.Add(epoch, open, high, low, close, volume)
+		model.Add(epoch, open, high, low, close_, volume)
 	}
 }
 
