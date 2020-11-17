@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/models/enum"
+
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -21,7 +23,7 @@ type Trade struct {
 	Epoch    []int64
 	Nanos    []int32
 	Price    []float64
-	Size     []int64
+	Size     []uint64
 	Exchange []byte
 	TapeID   []byte
 	Cond1    []byte
@@ -63,7 +65,7 @@ func (model *Trade) Make(length int) {
 	model.Epoch = make([]int64, length)
 	model.Nanos = make([]int32, length)
 	model.Price = make([]float64, length)
-	model.Size = make([]int64, length)
+	model.Size = make([]uint64, length)
 	model.Exchange = make([]byte, length)
 	model.TapeID = make([]byte, length)
 	model.Cond1 = make([]byte, length)
@@ -72,26 +74,26 @@ func (model *Trade) Make(length int) {
 	model.Cond4 = make([]byte, length)
 }
 
-func (model *Trade) Add(epoch int64, nanos int32, price float64, size int64, exchange, tapeid byte, conditions ...byte) {
+func (model *Trade) Add(epoch int64, nanos int, price float64, size int, exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition) {
 	idx := model.idx
 	model.Epoch[idx] = epoch
-	model.Nanos[idx] = nanos
+	model.Nanos[idx] = int32(nanos)
 	model.Price[idx] = price
-	model.Size[idx] = size
-	model.Exchange[idx] = exchange
-	model.TapeID[idx] = tapeid
+	model.Size[idx] = uint64(size)
+	model.Exchange[idx] = byte(exchange)
+	model.TapeID[idx] = byte(tapeid)
 	switch len(conditions) {
 	case 4:
-		model.Cond4[idx] = conditions[3]
+		model.Cond4[idx] = byte(conditions[3])
 		fallthrough
 	case 3:
-		model.Cond3[idx] = conditions[2]
+		model.Cond3[idx] = byte(conditions[2])
 		fallthrough
 	case 2:
-		model.Cond2[idx] = conditions[1]
+		model.Cond2[idx] = byte(conditions[1])
 		fallthrough
 	case 1:
-		model.Cond1[idx] = conditions[0]
+		model.Cond1[idx] = byte(conditions[0])
 	}
 	model.idx++
 }

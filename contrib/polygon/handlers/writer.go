@@ -9,17 +9,17 @@ import (
 type trade struct {
 	epoch int64
 	nanos int32
-	px    float32
-	sz    int32
+	px    float64
+	sz    uint64
 }
 
 type quote struct {
 	epoch int64   // 8
 	nanos int32   // 4
-	bidPx float32 // 4
-	askPx float32 // 4
-	bidSz int32   // 4
-	askSz int32   // 4
+	bidPx float64 // 4
+	askPx float64 // 4
+	bidSz uint64  // 4
+	askSz uint64  // 4
 }
 
 func Write(writeMap map[io.TimeBucketKey]interface{}) {
@@ -28,12 +28,12 @@ func Write(writeMap map[io.TimeBucketKey]interface{}) {
 		csm   io.ColumnSeriesMap
 		epoch []int64
 		nanos []int32
-		bidPx []float32
-		askPx []float32
-		px    []float32
-		bidSz []int32
-		askSz []int32
-		sz    []int32
+		bidPx []float64
+		askPx []float64
+		px    []float64
+		bidSz []uint64
+		askSz []uint64
+		sz    []uint64
 	)
 	csm = io.NewColumnSeriesMap()
 	for tbk, bucket := range writeMap {

@@ -60,8 +60,8 @@ func TradeHandler(msg []byte) {
 		t := trade{
 			epoch: timestamp.Unix(),
 			nanos: int32(timestamp.Nanosecond()),
-			sz:    int32(rt.Size),
-			px:    float32(rt.Price),
+			sz:    uint64(rt.Size),
+			px:    float64(rt.Price),
 		}
 		key := fmt.Sprintf("%s/1Sec/TRADE", strings.Replace(rt.Symbol, "/", ".", 1))
 		appendItem(writeMap, io.NewTimeBucketKey(key), &t)
@@ -93,10 +93,10 @@ func QuoteHandler(msg []byte) {
 		q := quote{
 			epoch: timestamp.Unix(),
 			nanos: int32(timestamp.Nanosecond()),
-			bidPx: float32(rq.BidPrice),
-			bidSz: int32(rq.BidSize),
-			askPx: float32(rq.AskPrice),
-			askSz: int32(rq.AskSize),
+			bidPx: rq.BidPrice,
+			bidSz: uint64(rq.BidSize),
+			askPx: rq.AskPrice,
+			askSz: uint64(rq.AskSize),
 		}
 		key := fmt.Sprintf("%s/1Min/QUOTE", strings.Replace(rq.Symbol, "/", ".", 1))
 		appendItem(writeMap, io.NewTimeBucketKey(key), &q)
@@ -138,14 +138,14 @@ func BarsHandler(msg []byte, addTickCount bool) {
 
 		cs := io.NewColumnSeries()
 		cs.AddColumn("Epoch", []int64{epoch})
-		cs.AddColumn("Open", []float32{float32(bar.Open)})
-		cs.AddColumn("High", []float32{float32(bar.High)})
-		cs.AddColumn("Low", []float32{float32(bar.Low)})
-		cs.AddColumn("Close", []float32{float32(bar.Close)})
-		cs.AddColumn("Volume", []int32{int32(bar.Volume)})
-		if addTickCount {
-			cs.AddColumn("TickCnt", []int32{int32(0)})
-		}
+		cs.AddColumn("Open", []float64{bar.Open})
+		cs.AddColumn("High", []float64{bar.High})
+		cs.AddColumn("Low", []float64{bar.Low})
+		cs.AddColumn("Close", []float64{bar.Close})
+		cs.AddColumn("Volume", []uint64{uint64(bar.Volume)})
+		// if addTickCount {
+		// 	cs.AddColumn("TickCnt", []int32{int32(0)})
+		// }
 		csm.AddColumnSeries(*tbk, cs)
 
 		if err := executor.WriteCSM(csm, false); err != nil {

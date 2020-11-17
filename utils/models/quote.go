@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/models/enum"
+
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -22,8 +24,8 @@ type Quote struct {
 	Nanos       []int32
 	BidPrice    []float64
 	AskPrice    []float64
-	BidSize     []int64
-	AskSize     []int64
+	BidSize     []uint64
+	AskSize     []uint64
 	BidExchange []byte
 	AskExchange []byte
 	Cond        []byte
@@ -63,24 +65,24 @@ func (model *Quote) Make(length int) {
 	model.Nanos = make([]int32, length)
 	model.BidPrice = make([]float64, length)
 	model.AskPrice = make([]float64, length)
-	model.BidSize = make([]int64, length)
-	model.AskSize = make([]int64, length)
+	model.BidSize = make([]uint64, length)
+	model.AskSize = make([]uint64, length)
 	model.BidExchange = make([]byte, length)
 	model.AskExchange = make([]byte, length)
 	model.Cond = make([]byte, length)
 }
 
-func (model *Quote) Add(epoch int64, nanos int32, bidPrice float64, askPrice float64, bidSize int64, askSize int64, bidExchange, askExchange, cond byte) {
+func (model *Quote) Add(epoch int64, nanos int, bidPrice float64, askPrice float64, bidSize int, askSize int, bidExchange, askExchange enum.Exchange, cond enum.QuoteCondition) {
 	idx := model.idx
 	model.Epoch[idx] = epoch
-	model.Nanos[idx] = nanos
+	model.Nanos[idx] = int32(nanos)
 	model.BidPrice[idx] = bidPrice
 	model.AskPrice[idx] = askPrice
-	model.BidSize[idx] = bidSize
-	model.AskSize[idx] = askSize
-	model.BidExchange[idx] = bidExchange
-	model.AskExchange[idx] = askExchange
-	model.Cond[idx] = cond
+	model.BidSize[idx] = uint64(bidSize)
+	model.AskSize[idx] = uint64(askSize)
+	model.BidExchange[idx] = byte(bidExchange)
+	model.AskExchange[idx] = byte(askExchange)
+	model.Cond[idx] = byte(cond)
 	model.idx++
 }
 

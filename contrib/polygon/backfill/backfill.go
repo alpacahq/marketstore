@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/alpacahq/marketstore/v4/utils/models/enum"
+
 	"sync"
 	"time"
 
@@ -31,7 +33,7 @@ var WaitTime time.Duration
 var NoIngest bool
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
-var ConditionToUpdateInfo = map[byte]ConsolidatedUpdateInfo{
+var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 	0: {true, true, true},   // Regular Sale
 	1: {true, true, true},   // Acquisition
 	2: {false, false, true}, // Average Price Trade
@@ -128,7 +130,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.Wor
 			// polygon sometime returns inconsistent data
 			continue
 		}
-		model.Add(timestamp, bar.Open, bar.High, bar.Low, bar.Close, int64(bar.Volume))
+		model.Add(timestamp, bar.Open, bar.High, bar.Low, bar.Close, int(bar.Volume))
 	}
 
 	model.WriteAsync(writerWP)
@@ -145,16 +147,7 @@ func intInSlice(s int, l []int) bool {
 	return false
 }
 
-func byteInSlice(s byte, l []byte) bool {
-	for _, item := range l {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
-
-func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []byte, batchSize int) error {
+func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
 	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
 		return err
@@ -182,14 +175,14 @@ func conditionToUpdateInfo(tick api.TradeTick) ConsolidatedUpdateInfo {
 	return r
 }
 
-func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []byte) {
+func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	if len(ticks) == 0 {
 		return
 	}
 
 	var epoch int64
 	var open, high, low, close float64
-	var volume int64
+	var volume int
 
 	lastBucketTimestamp := time.Time{}
 
@@ -204,7 +197,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []byte) 
 	// in the daily roll-up calculation. This would require substantial refactor.
 	// The current solution therefore is just a reasonable approximation of the daily close price.
 	for _, tick := range ticks {
-		if !byteInSlice(tick.Exchange, exchangeIDs) {
+		if !intInSlice(tick.Exchange, exchangeIDs) {
 			continue
 		}
 
@@ -254,7 +247,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []byte) 
 		}
 
 		if updateInfo.UpdateVolume {
-			volume += int64(tick.Size)
+			volume += tick.Size
 		}
 	}
 
@@ -286,17 +279,14 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 		for _, tick := range trades {
 			// type conversions
 			timestamp := time.Unix(0, tick.SipTimestamp)
-			conditions := make([]byte, len(tick.Conditions))
+			conditions := make([]enum.TradeCondition, len(tick.Conditions))
 			for i, cond := range tick.Conditions {
 				conditions[i] = api.ConvertTradeCondition(cond)
 			}
-			nanoseconds := int32(timestamp.Nanosecond())
-			price := tick.Price
-			size := int64(tick.Size)
 			exchange := api.ConvertExchangeCode(tick.Exchange)
 			tape := api.ConvertTapeCode(tick.Tape)
 			// storing
-			model.Add(timestamp.Unix(), nanoseconds, price, size, exchange, tape, conditions...)
+			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.Price, tick.Size, exchange, tape, conditions...)
 		}
 		// finally write to database
 		model.WriteAsync(writerWP)
@@ -337,7 +327,7 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 			bidExchange := api.ConvertExchangeCode(tick.BidExchange)
 			askExchange := api.ConvertExchangeCode(tick.AskExchange)
 			condition := api.ConvertQuoteCondition(tick.Condition)
-			model.Add(timestamp.Unix(), int32(timestamp.Nanosecond()), tick.BidPrice, tick.AskPrice, int64(tick.BidSize), int64(tick.AskSize), bidExchange, askExchange, condition)
+			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.BidPrice, tick.AskPrice, tick.BidSize, tick.AskSize, bidExchange, askExchange, condition)
 		}
 
 		model.WriteAsync(writerWP)

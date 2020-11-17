@@ -5,7 +5,7 @@ import (
 )
 
 // mapping between Polygon's integer exchange codes and Marketstore's internal representation
-var exchangeCodeMapping = map[byte]enum.Exchange{
+var exchangeCodeMapping = map[int]enum.Exchange{
 	1:  enum.NYSEAmerican,
 	2:  enum.NasdaqOMXBX,
 	3:  enum.NYSENational,
@@ -28,31 +28,31 @@ var exchangeCodeMapping = map[byte]enum.Exchange{
 }
 
 // ConvertExchangeCode converts a Polygon exchange id to the internal representation
-func ConvertExchangeCode(exchange byte) byte {
+func ConvertExchangeCode(exchange int) enum.Exchange {
 	val, ok := exchangeCodeMapping[exchange]
 	if !ok {
 		val = enum.UndefinedExchange
 	}
-	return byte(val)
+	return val
 }
 
-var tapeCodeMapping = map[byte]enum.Tape{
+var tapeCodeMapping = map[int]enum.Tape{
 	1: enum.TapeA,
 	2: enum.TapeB,
 	3: enum.TapeC,
 }
 
 // ConvertTapeCode converts between Polygons' TapeID and Marketstore's internal representation
-func ConvertTapeCode(tape byte) byte {
+func ConvertTapeCode(tape int) enum.Tape {
 	t, ok := tapeCodeMapping[tape]
 	if !ok {
 		t = enum.UndefinedTape
 	}
-	return byte(t)
+	return t
 }
 
 // TradeConditionMapping provides a mapping from Polygon integer format to Marketstore's internal representation
-var TradeConditionMapping = map[byte]enum.TradeCondition{
+var TradeConditionMapping = map[int]enum.TradeCondition{
 	0:  enum.RegularSale,
 	1:  enum.Acquisition,
 	2:  enum.AveragePriceTrade,
@@ -87,15 +87,15 @@ var TradeConditionMapping = map[byte]enum.TradeCondition{
 }
 
 // ConvertTradeCondition converts between Polygon trade condition format and Marketstore's internal represention
-func ConvertTradeCondition(condition byte) byte {
+func ConvertTradeCondition(condition int) enum.TradeCondition {
 	val, ok := TradeConditionMapping[condition]
 	if !ok {
 		val = enum.UnknownTradeCondition
 	}
-	return byte(val)
+	return val
 }
 
-var QuoteConditionMapping = map[byte]enum.QuoteCondition{
+var QuoteConditionMapping = map[int]enum.QuoteCondition{
 	// 0:  enum.Regular,
 	1: enum.RegularTwoSidedOpen,
 	// 2:  enum.RegularOneSidedOpen,
@@ -144,10 +144,10 @@ var QuoteConditionMapping = map[byte]enum.QuoteCondition{
 }
 
 // ConvertQuoteCondition converts between Polygon trade condition format and Marketstore's internal represention
-func ConvertQuoteCondition(condition byte) byte {
+func ConvertQuoteCondition(condition int) enum.QuoteCondition {
 	val, ok := QuoteConditionMapping[condition]
 	if !ok {
 		val = enum.UnknownQuoteCondition
 	}
-	return byte(val)
+	return val
 }

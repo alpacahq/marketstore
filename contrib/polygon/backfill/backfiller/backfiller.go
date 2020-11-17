@@ -160,15 +160,15 @@ func main() {
 	}
 	log.Info("[polygon] selected %v symbols", len(symbolList))
 
-	var exchangeIDs []byte
+	var exchangeIDs []int
 	if exchanges != "*" {
 		for _, exchangeIDStr := range strings.Split(exchanges, ",") {
-			exchangeIDInt, err := strconv.ParseInt(exchangeIDStr, 10, 8)
+			exchangeIDInt, err := strconv.Atoi(exchangeIDStr)
 			if err != nil {
 				log.Fatal("Invalid exchange ID: %v", exchangeIDStr)
 			}
 
-			exchangeIDs = append(exchangeIDs, byte(exchangeIDInt))
+			exchangeIDs = append(exchangeIDs, exchangeIDInt)
 		}
 	}
 
@@ -278,7 +278,7 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	symbolListMux.Unlock()
 }
 
-func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []byte, writerWP *worker.WorkerPool) {
+func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, writerWP *worker.WorkerPool) {
 	if len(exchangeIDs) != 0 && period != 24*time.Hour {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
 		period = 24 * time.Hour

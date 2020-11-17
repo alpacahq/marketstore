@@ -16,7 +16,7 @@ type Bar struct {
 	Csm                    io.ColumnSeriesMap
 	Epoch                  []int64
 	Open, High, Low, Close []float64
-	Volume                 []int64
+	Volume                 []uint64
 	WriteTime              time.Duration
 	limit                  int
 	idx                    int
@@ -54,17 +54,17 @@ func (model *Bar) Make(length int) {
 	model.High = make([]float64, length)
 	model.Low = make([]float64, length)
 	model.Close = make([]float64, length)
-	model.Volume = make([]int64, length)
+	model.Volume = make([]uint64, length)
 }
 
-func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int64) {
+func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int) {
 	idx := model.idx
 	model.Epoch[idx] = epoch
 	model.Open[idx] = open
 	model.High[idx] = high
 	model.Low[idx] = low
 	model.Close[idx] = close
-	model.Volume[idx] = volume
+	model.Volume[idx] = uint64(volume)
 	model.idx++
 }
 
