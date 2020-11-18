@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-	"github.com/gobwas/glob"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -12,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
+	"github.com/gobwas/glob"
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
