@@ -14,6 +14,7 @@ const (
 	quoteTimeframe string = "1Sec"
 )
 
+// Quote defines schema and helper functions for storing Ask-Bid quote data
 type Quote struct {
 	Tbk         *io.TimeBucketKey
 	csm         io.ColumnSeriesMap
@@ -33,36 +34,45 @@ type Quote struct {
 	idx       int
 }
 
+// BarBucketKey returns a string bucket key for a given symbol and timeframe
 func QuoteBucketKey(symbol string) string {
 	return symbol + "/" + quoteTimeframe + "/" + quoteSuffix
 }
 
+// NewBar creates a new Bar object and initializes it's internal column buffers to the given length
 func NewQuote(symbol string, length int) *Quote {
 	model := &Quote{
 		Tbk:   io.NewTimeBucketKey(QuoteBucketKey(symbol)),
 		limit: length,
 	}
-	model.Make(length)
+	model.make(length)
 	return model
 }
 
+// Key returns the key of the model's time bucket
 func (model Quote) Key() string {
 	return model.Tbk.GetItemKey()
 }
 
+// Len returns the length of the internal column buffers
 func (model *Quote) Len() int {
 	return len(model.Epoch)
 }
 
+// Symbol returns the Symbol part if the TimeBucketKey of this model
 func (model *Quote) Symbol() string {
 	return model.Tbk.GetItemInCategory("Symbol")
 }
 
+// SetLimit sets a limit on how many entries are actually used when .Write() is called
+// It is useful if the model's buffers populated through the exported buffers directly (Open[i], Close[i], etc)
+// and the actual amount of inserted data is less than the initailly specified length parameter.
 func (model *Quote) SetLimit(limit int) {
 	model.limit = limit
 }
 
-func (model *Quote) Make(length int) {
+// make allocates buffers for this model.
+func (model *Quote) make(length int) {
 	model.Epoch = make([]int64, length)
 	model.Nanos = make([]int32, length)
 	model.BidPrice = make([]float64, length)
@@ -74,6 +84,7 @@ func (model *Quote) Make(length int) {
 	model.Cond = make([]byte, length)
 }
 
+// Add adds a new data point to the internal buffers, and increment the internal index by one
 func (model *Quote) Add(epoch int64, nanos int, bidPrice float64, askPrice float64, bidSize int, askSize int, bidExchange, askExchange enum.Exchange, cond enum.QuoteCondition) {
 	idx := model.idx
 	model.Epoch[idx] = epoch
@@ -88,7 +99,9 @@ func (model *Quote) Add(epoch int64, nanos int, bidPrice float64, askPrice float
 	model.idx++
 }
 
-func (model *Quote) buildCsm() *io.ColumnSeriesMap {
+// BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
+// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk
+func (model *Quote) BuildCsm() *io.ColumnSeriesMap {
 	if model.idx > 0 {
 		model.limit = model.idx
 	}
@@ -108,9 +121,10 @@ func (model *Quote) buildCsm() *io.ColumnSeriesMap {
 	return &csm
 }
 
+// Write persist the internal buffers to disk.
 func (model *Quote) Write() error {
 	start := time.Now()
-	csm := model.buildCsm()
+	csm := model.BuildCsm()
 	err := executor.WriteCSM(*csm, true)
 	model.WriteTime = time.Since(start)
 	if err != nil {

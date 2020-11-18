@@ -10,6 +10,7 @@ import (
 
 const barSuffix = "OHLCV"
 
+// Bar is a data model to persist arrays of Ask-Bid quotes
 type Bar struct {
 	Tbk                    *io.TimeBucketKey
 	Csm                    io.ColumnSeriesMap
@@ -21,37 +22,46 @@ type Bar struct {
 	idx                    int
 }
 
+// BarBucketKey returns a string bucket key for a given symbol and timeframe
 func BarBucketKey(symbol, timeframe string) string {
 	return symbol + "/" + timeframe + "/" + barSuffix
 }
 
+// NewBar creates a new Bar object and initializes it's internal column buffers to the given length
 func NewBar(symbol, timeframe string, length int) *Bar {
 	model := &Bar{
 		Tbk:   io.NewTimeBucketKey(BarBucketKey(symbol, timeframe)),
 		Csm:   io.NewColumnSeriesMap(),
 		limit: 0,
 	}
-	model.Make(length)
+	model.make(length)
 	return model
 }
 
+// Key returns the key of the model's time bucket
 func (model Bar) Key() string {
 	return model.Tbk.GetItemKey()
 }
 
+// Len returns the length of the internal column buffers
 func (model *Bar) Len() int {
 	return len(model.Epoch)
 }
 
+// Symbol returns the Symbol part if the TimeBucketKey of this model
 func (model *Bar) Symbol() string {
 	return model.Tbk.GetItemInCategory("Symbol")
 }
 
+// SetLimit sets a limit on how many entries are actually used when .Write() is called
+// It is useful if the model's buffers populated through the exported buffers directly (Open[i], Close[i], etc)
+// and the actual amount of inserted data is less than the initailly specified length parameter.
 func (model *Bar) SetLimit(limit int) {
 	model.limit = limit
 }
 
-func (model *Bar) Make(length int) {
+// make allocates buffers for this model.
+func (model *Bar) make(length int) {
 	model.Epoch = make([]int64, length)
 	model.Open = make([]float64, length)
 	model.High = make([]float64, length)
@@ -60,6 +70,7 @@ func (model *Bar) Make(length int) {
 	model.Volume = make([]uint64, length)
 }
 
+// Add adds a new data point to the internal buffers, and increment the internal index by one
 func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int) {
 	idx := model.idx
 	model.Epoch[idx] = epoch
@@ -71,6 +82,8 @@ func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int) {
 	model.idx++
 }
 
+// BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
+// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk
 func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
 	if model.idx > 0 {
 		model.limit = model.idx
@@ -88,6 +101,7 @@ func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
 	return &csm
 }
 
+// Write persist the internal buffers to disk.
 func (model *Bar) Write() error {
 	start := time.Now()
 	csm := model.BuildCsm()

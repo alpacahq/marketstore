@@ -14,6 +14,7 @@ const (
 	tradeTimeframe string = "1Sec"
 )
 
+// Trade defines schema and helper functions for storing trade data
 type Trade struct {
 	Tbk      *io.TimeBucketKey
 	csm      io.ColumnSeriesMap
@@ -34,36 +35,45 @@ type Trade struct {
 	idx       int
 }
 
+// TradeBucketKey returns a string bucket key for a given symbol and timeframe
 func TradeBucketKey(symbol string) string {
 	return symbol + "/" + tradeTimeframe + "/" + tradeSuffix
 }
 
+// NewTrade creates a new Bar object and initializes it's internal column buffers to the given length
 func NewTrade(symbol string, length int) *Trade {
 	model := &Trade{
 		Tbk:   io.NewTimeBucketKey(TradeBucketKey(symbol)),
 		limit: length,
 	}
-	model.Make(length)
+	model.make(length)
 	return model
 }
 
+// Key returns the key of the model's time bucket
 func (model Trade) Key() string {
 	return model.Tbk.GetItemKey()
 }
 
+// Len returns the length of the internal column buffers
 func (model *Trade) Len() int {
 	return len(model.Epoch)
 }
 
+// Symbol returns the Symbol part if the TimeBucketKey of this model
 func (model *Trade) Symbol() string {
 	return model.Tbk.GetItemInCategory("Symbol")
 }
 
+// SetLimit sets a limit on how many entries are actually used when .Write() is called
+// It is useful if the model's buffers populated through the exported buffers directly (Open[i], Close[i], etc)
+// and the actual amount of inserted data is less than the initailly specified length parameter.
 func (model *Trade) SetLimit(limit int) {
 	model.limit = limit
 }
 
-func (model *Trade) Make(length int) {
+// make allocates buffers for this model.
+func (model *Trade) make(length int) {
 	model.Epoch = make([]int64, length)
 	model.Nanos = make([]int32, length)
 	model.Price = make([]float64, length)
@@ -76,6 +86,7 @@ func (model *Trade) Make(length int) {
 	model.Cond4 = make([]byte, length)
 }
 
+// Add adds a new data point to the internal buffers, and increment the internal index by one
 func (model *Trade) Add(epoch int64, nanos int, price float64, size int, exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition) {
 	idx := model.idx
 	model.Epoch[idx] = epoch
@@ -100,6 +111,8 @@ func (model *Trade) Add(epoch int64, nanos int, price float64, size int, exchang
 	model.idx++
 }
 
+// BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
+// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk
 func (model *Trade) buildCsm() *io.ColumnSeriesMap {
 	if model.idx > 0 {
 		model.limit = model.idx
@@ -121,6 +134,7 @@ func (model *Trade) buildCsm() *io.ColumnSeriesMap {
 	return &csm
 }
 
+// Write persist the internal buffers to disk.
 func (model *Trade) Write() error {
 	start := time.Now()
 	csm := model.buildCsm()
