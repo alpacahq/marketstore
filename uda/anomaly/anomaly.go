@@ -156,7 +156,8 @@ func (a *Anomaly) detectByZSCore(epochs []int64, series []float64, columnNr int)
 	m := stat.Mean(series, nil)
 	s := stat.StdDev(series, nil)
 	if s == 0 {
-		s = 1
+		// no deviation
+		return
 	}
 
 	for i, x := range series {
