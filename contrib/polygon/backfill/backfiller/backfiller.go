@@ -20,7 +20,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygon_config"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -39,13 +38,12 @@ var (
 	readFromCache                       bool
 	noIngest                            bool
 	configFilePath                      string
-	config                              polygon_config.FetcherConfig
 
 	format = "2006-01-02"
 )
 
 func init() {
-	flag.StringVar(&dir, "dir", "/project/data", "mktsdb directory to backfill to")
+	flag.StringVar(&dir, "dir", "", "mktsdb directory to backfill to. If empty, the dir is taken from mkts.yml")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD) [included]")
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill to date (YYYY-MM-DD) [not included]")
 	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
