@@ -12,7 +12,6 @@ import pymarketstore as pymkts
 
 # Constants
 DATA_TYPE_TICK = [('Epoch', 'i8'), ('Bid', 'f4'), ('Ask', 'f4'), ('Nanoseconds', 'i4')]
-DATA_TYPE_CANDLE = [('Epoch', 'i8'), ('Open', 'f8'), ('High', 'f8'), ('Low', 'f8'), ('Close', 'f8'), ('Volume', 'f8')]
 MARKETSTORE_HOST = "localhost"
 MARKETSTORE_PORT = 5993
 
