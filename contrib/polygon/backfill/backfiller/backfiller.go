@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -15,12 +16,12 @@ import (
 	"github.com/gobwas/glob"
 
 	"code.cloudfoundry.org/bytefmt"
+	"github.com/alpacahq/marketstore/v4/cmd/start"
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
-	"github.com/alpacahq/marketstore/v4/contrib/ondiskagg/aggtrigger"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygon_config"
 	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -37,8 +38,9 @@ var (
 	cacheDir                            string
 	readFromCache                       bool
 	noIngest                            bool
-	// NY timezone
-	NY, _  = time.LoadLocation("America/New_York")
+	configFilePath                      string
+	config                              polygon_config.FetcherConfig
+
 	format = "2006-01-02"
 )
 
@@ -61,13 +63,16 @@ func init() {
 	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
 	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
 	flag.BoolVar(&noIngest, "no-ingest", false, "do not ingest downloaded data, just store it in cache")
+	flag.StringVar(&configFilePath, "config", "/etc/mkts.yml", "path to the mkts.yml config file")
 
 	flag.Parse()
 }
 
 func main() {
-	// free memory in the background every 1 minute for long running
-	// backfills with very high parallelism
+	initConfig()
+	initWriter()
+
+	// free memory in the background every 1 minute for long running backfills with very high parallelism
 	go func() {
 		for {
 			<-time.After(time.Minute)
@@ -86,8 +91,6 @@ func main() {
 			)
 		}
 	}()
-
-	initWriter()
 
 	if apiKey == "" {
 		log.Fatal("[polygon] api key is required")
@@ -231,30 +234,43 @@ func main() {
 	executor.ThisInstance.ShutdownPending = true
 	executor.ThisInstance.WALWg.Wait()
 
+	for len(executor.ThisInstance.TriggerMatchers) > 0 {
+		log.Info("[polygon] waiting for 10 more seconds for ondiskagg triggers to complete")
+		time.Sleep(10 * time.Second)
+	}
+
 	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
 	log.Info("[polygon] write time %s", backfill.WriteTime)
 	log.Info("[polygon] backfilling complete %s", time.Now().Sub(startTime))
 }
 
-func initWriter() {
-	utils.InstanceConfig.Timezone = NY
-	utils.InstanceConfig.WALRotateInterval = 5
-
-	executor.NewInstanceSetup(dir, nil, true, true, true, true)
-
-	config := map[string]interface{}{
-		"filter":       "nasdaq",
-		"destinations": []string{"5Min", "15Min", "1H", "1D"},
-	}
-
-	trig, err := aggtrigger.NewTrigger(config)
+func initConfig() {
+	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		log.Fatal("[polygon] backfill failed to initialize writer (%v)", err)
+		log.Fatal("failed to read configuration file error: %s", err.Error())
+		os.Exit(1)
 	}
 
-	executor.ThisInstance.TriggerMatchers = []*trigger.TriggerMatcher{
-		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
+	err = utils.InstanceConfig.Parse(data)
+	if err != nil {
+		log.Fatal("failed to parse configuration file error: %v", err.Error())
+		os.Exit(1)
+	}
+
+	if dir != "" {
+		utils.InstanceConfig.RootDirectory = dir
+	}
+}
+
+func initWriter() {
+	executor.NewInstanceSetup(utils.InstanceConfig.RootDirectory, nil, true, true, true, true)
+	// if configured, also load the ondiskagg triggers
+	for _, triggerSetting := range utils.InstanceConfig.Triggers {
+		if triggerSetting.Module == "ondiskagg.so" {
+			tmatcher := start.NewTriggerMatcher(triggerSetting)
+			executor.ThisInstance.TriggerMatchers = append(executor.ThisInstance.TriggerMatchers, tmatcher)
+		}
 	}
 }
 
