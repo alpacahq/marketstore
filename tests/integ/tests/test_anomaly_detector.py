@@ -56,7 +56,7 @@ def timestamp(datestr):
       (timestamp('2019-01-01 04:19:05'), 10.2, 11.5, 0.05),
       (timestamp('2019-01-01 04:19:06'), 10.2, 11.5, 0.06),
       (timestamp('2019-01-02 05:59:59'), 100.1, 11.6, 0.07)],
-     pd.DataFrame(index=[pd.Timestamp('2019-01-01 04:19:04', tz='UTC'),
+     pd.DataFrame(index=[pd.Timestamp('2019-01-01 04:19:03', tz='UTC'),
                          pd.Timestamp('2019-01-02 05:59:59', tz='UTC')],
                   data=np.array([2,1], dtype='uint64'), columns=['ColumnsBitmap']).rename_axis('Epoch')),
 ])
@@ -73,7 +73,4 @@ def test_anomaly_one_symbol(symbol, columns, detection_type, threshold, data, ex
 
     # ---- then ----
     actual_df = reply.first().df()
-    print()
-    print(actual_df)
-    print(expected_df)
     assert_frame_equal(actual_df, expected_df)

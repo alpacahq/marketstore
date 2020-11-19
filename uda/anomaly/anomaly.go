@@ -133,19 +133,17 @@ func (a Anomaly) detect(cols io.ColumnInterface, columnName string, columnNr int
 		return fmt.Errorf("not enough data available")
 	}
 
-	size := len(columnData)
-	pctChange := make([]float64, size-1)
-
-	// pctChange = (a - b)/a
-	// floats.SubTo(pctChange, columnData[1:], columnData[:size-1])
-	// floats.DivTo(pctChange, pctChange, columnData[:size-1])
-	floats.SubTo(pctChange, columnData[:size-1], columnData[1:])
-	floats.DivTo(pctChange, pctChange, columnData[:size-1])
-
 	switch a.DetectionType {
 	case DetectByZScore:
-		a.detectByZSCore(epochs[1:], pctChange, columnNr)
+		a.detectByZSCore(epochs, columnData, columnNr)
 	case DetectByFixedPct:
+		size := len(columnData)
+
+		// pctChange = (a - b)/a
+		pctChange := make([]float64, size-1)
+		floats.SubTo(pctChange, columnData[:size-1], columnData[1:])
+		floats.DivTo(pctChange, pctChange, columnData[:size-1])
+
 		a.detectByFixedPct(epochs[1:], pctChange, columnNr)
 	default:
 		return fmt.Errorf("invalid detection type: %v", a.DetectionType)
@@ -174,9 +172,7 @@ func (a *Anomaly) detectByZSCore(epochs []int64, series []float64, columnNr int)
 }
 
 func (a *Anomaly) detectByFixedPct(epochs []int64, series []float64, columnNr int) {
-	fmt.Println(">>>")
 	for i, x := range series {
-		fmt.Println(i, math.Abs(x), a.Threshold)
 		if math.Abs(x) >= a.Threshold {
 			epoch := epochs[i]
 			previousValue := uint64(0)
