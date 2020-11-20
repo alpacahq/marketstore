@@ -137,14 +137,7 @@ func (a Anomaly) detect(cols io.ColumnInterface, columnName string, columnNr int
 	case DetectByZScore:
 		a.detectByZSCore(epochs, columnData, columnNr)
 	case DetectByFixedPct:
-		size := len(columnData)
-
-		// pctChange = (a - b)/a
-		pctChange := make([]float64, size-1)
-		floats.SubTo(pctChange, columnData[:size-1], columnData[1:])
-		floats.DivTo(pctChange, pctChange, columnData[:size-1])
-
-		a.detectByFixedPct(epochs[1:], pctChange, columnNr)
+		a.detectByFixedPct(epochs, columnData, columnNr)
 	default:
 		return fmt.Errorf("invalid detection type: %v", a.DetectionType)
 	}
@@ -152,16 +145,53 @@ func (a Anomaly) detect(cols io.ColumnInterface, columnName string, columnNr int
 	return nil
 }
 
-func (a *Anomaly) detectByZSCore(epochs []int64, series []float64, columnNr int) {
+func DetectAnomalyByZScore(series []float64, threshold float64) []bool {
+	anomalies := make([]bool, len(series))
+
 	m := stat.Mean(series, nil)
 	s := stat.StdDev(series, nil)
 	if s == 0 {
 		// no deviation
-		return
+		return anomalies
 	}
 
 	for i, x := range series {
-		if math.Abs(stat.StdScore(x, m, s)) >= a.Threshold {
+		if math.Abs(stat.StdScore(x, m, s)) >= threshold {
+			anomalies[i] = true
+		} else {
+			anomalies[i] = false
+		}
+	}
+
+	return anomalies
+}
+
+func DetectAnomalyByFixedPct(series []float64, threshold float64) []bool {
+	anomalies := make([]bool, len(series))
+
+	size := len(series)
+
+	// pctChange = (a - b)/a
+	pctChange := make([]float64, size-1)
+	floats.SubTo(pctChange, series[:size-1], series[1:])
+	floats.DivTo(pctChange, pctChange, series[:size-1])
+
+	for i, x := range pctChange {
+		if math.Abs(x) >= threshold {
+			anomalies[i] = true
+		} else {
+			anomalies[i] = false
+		}
+	}
+
+	return anomalies
+}
+
+func (a *Anomaly) detectByZSCore(epochs []int64, series []float64, columnNr int) {
+	anomalies := DetectAnomalyByZScore(series, a.Threshold)
+
+	for i, anomaly := range anomalies {
+		if anomaly {
 			epoch := epochs[i]
 			previousValue := uint64(0)
 			if _, ok := a.AnomalyIdxsByColumn[epoch]; ok {
@@ -173,8 +203,10 @@ func (a *Anomaly) detectByZSCore(epochs []int64, series []float64, columnNr int)
 }
 
 func (a *Anomaly) detectByFixedPct(epochs []int64, series []float64, columnNr int) {
-	for i, x := range series {
-		if math.Abs(x) >= a.Threshold {
+	anomalies := DetectAnomalyByFixedPct(series, a.Threshold)
+
+	for i, anomaly := range anomalies {
+		if anomaly {
 			epoch := epochs[i]
 			previousValue := uint64(0)
 			if _, ok := a.AnomalyIdxsByColumn[epoch]; ok {
