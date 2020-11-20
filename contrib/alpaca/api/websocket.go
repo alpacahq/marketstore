@@ -2,7 +2,6 @@ package api
 
 import (
 	"math/rand"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
