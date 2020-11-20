@@ -2,6 +2,7 @@ package adjust
 
 import (
 	"errors"
+	"math"
 	"strings"
 
 	"github.com/alpacahq/marketstore/v4/uda"
@@ -91,7 +92,7 @@ func (adj *Adjust) Reset() {
 	// intentionally left empty
 }
 
-func (adj *Adjust) Accum(cols io.ColumnInterface) error {
+func (adj Adjust) Accum(cols io.ColumnInterface) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
 	if !ok {
 		return errors.New("adjust: Input data must have an Epoch column")
@@ -116,6 +117,11 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 	symbol := adj.tbk.GetItemInCategory("Symbol")
 	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend)
 	log.Info("# of rate change events: %d", len(rateChanges))
+	if len(rateChanges) == 0 {
+		return nil
+	}
+	rateChanges = append(rateChanges, RateChange{Epoch: math.MaxInt64, Rate: 1, Textnumber: 0, Type: 0})
+
 	// rate changes always contains 1.0 at the maximum available time
 	ri := len(rateChanges) - 1
 	rate := float32(rateChanges[ri].Rate)

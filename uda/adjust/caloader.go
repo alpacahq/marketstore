@@ -29,29 +29,29 @@ type CARows struct {
 	Rates             []float64
 }
 
-func NewCARows() *CARows {
+func NewCARows(length int) *CARows {
 	return &CARows{
-		EntryDates:        []int64{},
-		TextNumbers:       []int64{},
-		UpdateTextNumbers: []int64{},
-		DeleteTextNumbers: []int64{},
-		NotificationTypes: []byte{},
-		Statuses:          []byte{},
-		SecurityTypes:     []byte{},
-		RecordDates:       []int64{},
-		EffectiveDates:    []int64{},
-		ExpirationDates:   []int64{},
-		NewRates:          []float64{},
-		OldRates:          []float64{},
-		Rates:             []float64{},
+		EntryDates:        make([]int64, length),
+		TextNumbers:       make([]int64, length),
+		UpdateTextNumbers: make([]int64, length),
+		DeleteTextNumbers: make([]int64, length),
+		NotificationTypes: make([]byte, length),
+		Statuses:          make([]byte, length),
+		SecurityTypes:     make([]byte, length),
+		RecordDates:       make([]int64, length),
+		EffectiveDates:    make([]int64, length),
+		ExpirationDates:   make([]int64, length),
+		NewRates:          make([]float64, length),
+		OldRates:          make([]float64, length),
+		Rates:             make([]float64, length),
 	}
 }
 
 type RateChange struct {
-	Epoch      int64
-	Rate       float64
 	Textnumber int64
+	Epoch      int64
 	Type       byte
+	Rate       float64
 }
 
 type Actions struct {
@@ -72,14 +72,14 @@ type CacheKey struct {
 	Dividends bool
 }
 
-const cacheLifetime = 24 * time.Hour
+const CacheLifetime = 24 * time.Hour
 
-var cache = map[CacheKey]RateChangeCache{}
+var rateChangeCache = map[CacheKey]RateChangeCache{}
 
 func GetRateChanges(symbol string, includeSplits, includeDividends bool) []RateChange {
 	key := CacheKey{Symbol: symbol, Splits: includeSplits, Dividends: includeDividends}
-	rateCache, present := cache[key]
-	if present && time.Now().Sub(rateCache.CreatedAt) > cacheLifetime {
+	rateCache, present := rateChangeCache[key]
+	if present && time.Since(rateCache.CreatedAt) > CacheLifetime {
 		present = false
 	}
 	if !present {
@@ -90,7 +90,7 @@ func GetRateChanges(symbol string, includeSplits, includeDividends bool) []RateC
 			Access:    0,
 			CreatedAt: time.Now(),
 		}
-		cache[key] = rateCache
+		rateChangeCache[key] = rateCache
 	}
 	return rateCache.Changes
 }
@@ -99,11 +99,14 @@ func NewCorporateActions(symbol string) *Actions {
 	return &Actions{
 		Symbol: symbol,
 		Tbk:    io.NewTimeBucketKeyFromString(symbol + enum.BucketkeySuffix),
-		Rows:   NewCARows(),
+		Rows:   NewCARows(0),
 	}
 }
 
 func (act *Actions) Load() error {
+	if executor.ThisInstance == nil || executor.ThisInstance.CatalogDir == nil {
+		return nil
+	}
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 	tbk := io.NewTimeBucketKeyFromString(act.Symbol + enum.BucketkeySuffix)
 	tf := tbk.GetItemInCategory("Timeframe")
@@ -188,11 +191,14 @@ func (act *Actions) getEffectiveActionsIndex() []int {
 		}
 		// log.Info("ID: %d, date: %+v, status: %d, rate: %+v\n", act.Rows.TextNumbers[i], act.Rows.entrydates[i], act.Rows.Statuses[i], ca.Rows.Rates[i])
 	}
-	actionIndex := []int{}
+	actionIndex := make([]int, 0, len(caMap))
 	for _, index := range caMap {
 		actionIndex = append(actionIndex, index)
 	}
-	sort.Slice(actionIndex, func(i, j int) bool { return act.Rows.EffectiveDates[i] < act.Rows.EffectiveDates[j] })
+	sortByDate := func(i, j int) bool {
+		return act.Rows.ExpirationDates[actionIndex[i]] <= act.Rows.ExpirationDates[actionIndex[j]]
+	}
+	sort.SliceStable(actionIndex, sortByDate)
 	return actionIndex
 }
 
@@ -202,7 +208,7 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 	}
 	actionIndex := act.getEffectiveActionsIndex()
 
-	changes := make([]RateChange, 0, len(actionIndex)+1)
+	changes := make([]RateChange, 0, len(actionIndex))
 	for _, index := range actionIndex {
 		notificationType := act.Rows.NotificationTypes[index]
 		// use Expiration date
@@ -225,6 +231,5 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 				})
 		}
 	}
-	changes = append(changes, RateChange{Epoch: math.MaxInt64, Rate: 1, Textnumber: 0, Type: 0})
 	return changes
 }
