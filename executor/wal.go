@@ -499,12 +499,9 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
 			if writeData {
 				tgID, wtSets := ParseTGData(TG_Serialized, wf.RootPath)
-				log.Info("Replaying TGID: %d, WTSet count is: %d bytes", tgID, len(wtSets))
 				if err := wf.replayTGData(tgID, wtSets); err != nil {
 					return err
 				}
-			} else {
-				log.Info("Replay for TGID: %d, data length is: %d bytes", tgid, len(TG_Serialized))
 			}
 		}
 	}
