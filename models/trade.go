@@ -142,8 +142,8 @@ func (model *Trade) Write() error {
 	model.WriteTime = time.Since(start)
 	if err != nil {
 		log.Error("Failed to write trades for %s (%+v)", model.Key(), err)
-	} else {
-		log.Debug("Wrote %d trades to %s", model.limit, model.Key())
+		return err
 	}
-	return err
+
+	return nil
 }
