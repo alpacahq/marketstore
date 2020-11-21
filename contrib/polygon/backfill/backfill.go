@@ -2,6 +2,7 @@ package backfill
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/uda/anomaly"
 	"math"
 
 	"sync"
@@ -29,6 +30,7 @@ var WriteTime time.Duration
 var ApiCallTime time.Duration
 var WaitTime time.Duration
 var NoIngest bool
+var AnomalyDetection bool
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
@@ -99,6 +101,7 @@ var (
 )
 
 func Bars(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) (err error) {
+	// TODO: Add anomaly detection
 	if from.IsZero() {
 		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
 	}
@@ -256,6 +259,23 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 }
 
+func showAnomaliesInTrades(symbol string, trades []api.TradeTick) {
+
+	prices := make([]float64, len(trades))
+	for i, trade := range trades {
+		prices[i] = trade.Price
+	}
+
+	anomalies := anomaly.DetectAnomalyByFixedPct(prices, 3.0)
+
+	for i, anomaly_ := range anomalies {
+		if anomaly_ {
+			log.Info("Anomaly: %s: %#v\n", symbol, trades[i])
+		}
+	}
+
+}
+
 func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
 	trades := make([]api.TradeTick, 0)
 	t := time.Now()
@@ -275,6 +295,10 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 	}
 
 	if len(trades) > 0 {
+		if AnomalyDetection {
+			showAnomaliesInTrades(symbol, trades)
+		}
+
 		model := models.NewTrade(symbol, len(trades))
 		for _, tick := range trades {
 			// type conversions

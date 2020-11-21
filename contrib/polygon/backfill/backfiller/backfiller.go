@@ -38,6 +38,7 @@ var (
 	readFromCache                       bool
 	noIngest                            bool
 	configFilePath                      string
+	anomalyDetection                    bool
 
 	format = "2006-01-02"
 )
@@ -61,6 +62,7 @@ func init() {
 	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
 	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
 	flag.BoolVar(&noIngest, "no-ingest", false, "do not ingest downloaded data, just store it in cache")
+	flag.BoolVar(&anomalyDetection, "anomaly-detetion", false, "enable anomaly detection during ingest")
 	flag.StringVar(&configFilePath, "config", "/etc/mkts.yml", "path to the mkts.yml config file")
 
 	flag.Parse()
