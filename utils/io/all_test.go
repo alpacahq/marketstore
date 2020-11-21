@@ -123,51 +123,6 @@ func (s *TestSuite) TestVariableBoundaryCases(c *C) {
 	c.Assert(diff < 2, Equals, true)
 }
 
-func (s *TestSuite) TestQuorumValue(c *C) {
-	qv := NewQuorumValue()
-	A := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAAAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	B := []string{"4", "5", "6", "22"}
-	CC := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	D := []string{"4", "5", "6", "11", "20"}
-	DD := []string{"4", "5", "6", "11", "20"}
-	DDD := []string{"4", "5", "6", "11", "20"}
-	DDDD := []string{"4", "5", "6", "11", "20"}
-	DDDDD := []string{"4", "5", "6", "11", "20"}
-
-	qv.AddValue(A)
-	qv.AddValue(AA)
-	qv.AddValue(B)
-	qv.AddValue(B)
-	qv.AddValue(B)
-	qv.AddValue(CC)
-	qv.AddValue(D)
-	qv.AddValue(DD)
-	qv.AddValue(DDD)
-	qv.AddValue(DDDD)
-	qv.AddValue(DDDDD)
-	val, conf := qv.GetTopValue()
-	values := val.([]string)
-	c.Assert(reflect.DeepEqual(values, D), Equals, true)
-	c.Assert(conf, Equals, 5)
-
-	qv.AddValue(AAA)
-	qv.AddValue(AAAA)
-	qv.AddValue(AAAAA)
-	qv.AddValue(AAAAAA)
-	qv.AddValue(AAAAAAA)
-
-	val, conf = qv.GetTopValue()
-	values = val.([]string)
-	c.Assert(reflect.DeepEqual(values, A), Equals, true)
-	c.Assert(conf, Equals, 8)
-}
-
 func (s *TestSuite) TestGenerics(c *C) {
 	// DownSizeSlice
 	input := []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
