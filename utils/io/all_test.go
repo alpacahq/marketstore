@@ -200,46 +200,6 @@ func (s *TestSuite) TestGenerics(c *C) {
 	c.Assert(err != nil, Equals, true)
 }
 
-func (s *TestSuite) TestColumnCoercion(c *C) {
-	col1 := []float32{1, 2, 3}
-	col2 := []float64{1, 2, 3}
-	col3 := []int32{1, 2, 3}
-	col4 := []int64{1, 2, 3}
-	col5 := []int8{1, 2, 3}
-	csA := NewColumnSeries()
-	csA.AddColumn("One", col1)
-	csA.AddColumn("Two", col2)
-	csA.AddColumn("Three", col3)
-	csA.AddColumn("Four", col4)
-	csA.AddColumn("Five", col5)
-	c.Assert(csA.Len(), Equals, 3)
-
-	dsNew := DataShape{Name: "Three", Type: FLOAT32}
-	csA.CoerceColumnType(dsNew)
-	_, ok := csA.GetByName("Three").([]float32)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: FLOAT64}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]float64)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: INT32}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]int32)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: INT64}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]int64)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: BYTE}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]int8)
-	c.Assert(ok, Equals, true)
-}
-
 func makeTestCS() *ColumnSeries {
 	col1 := []float32{1, 2, 3}
 	col2 := []float64{1, 2, 3}
@@ -298,8 +258,7 @@ func (s *TestSuite) TestSerializeColumnsToRows(c *C) {
 	/*
 		Type Coercion case
 	*/
-	newDS := DataShape{Name: "Two", Type: BYTE} // Is currently FLOAT64
-	csB.CoerceColumnType(newDS)
+	csB.CoerceColumnType("Two", BYTE) // Is currently FLOAT64
 	dsvProjected = csB.GetDataShapes()
 
 	// Expected record length

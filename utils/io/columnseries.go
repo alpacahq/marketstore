@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-//go:generate ./generateMethods.sh generatedMethods.go
 
 /*
 ColumnSeries stores query results using the following keys:
@@ -536,7 +535,7 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	}
 	// Coerce column types as needed
 	for _, shape := range needcoercion {
-		cs.CoerceColumnType(shape)
+		cs.CoerceColumnType(shape.Name, shape.Type)
 	}
 
 	/*

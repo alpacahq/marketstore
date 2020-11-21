@@ -8,7 +8,7 @@ require (
 	github.com/alpacahq/rpc v1.3.0
 	github.com/antlr/antlr4 v0.0.0-20181031000400-73836edf1f84
 	github.com/bitly/go-simplejson v0.5.0 // indirect
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/buger/jsonparser v0.0.0-20181023193515-52c6e1462ebd
 	github.com/cheekybits/is v0.0.0-20150225183255-68e9c0620927 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
