@@ -1,78 +1,9 @@
 package io
 
 import (
-	"encoding/binary"
 	"fmt"
-	"hash/fnv"
 	"reflect"
 )
-
-type QuorumValue struct {
-	contents  map[int]interface{}
-	histogram map[int]int
-}
-
-func NewQuorumValue() *QuorumValue {
-	qv := new(QuorumValue)
-	qv.contents = make(map[int]interface{})
-	qv.histogram = make(map[int]int)
-	return qv
-}
-
-func (qv *QuorumValue) AddValue(ival interface{}) error {
-	buf := []byte{}
-	var err error
-	val := reflect.ValueOf(ival)
-	switch val.Kind() {
-	case reflect.Slice, reflect.Array:
-		for i := 0; i < val.Len(); i++ {
-			buf, err = Serialize(buf, val.Index(i).Interface())
-			if err != nil {
-				return err
-			}
-		}
-	case reflect.Map, reflect.Struct, reflect.Chan, reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
-		return fmt.Errorf("Unable to handle type: %v", val.Kind())
-	default:
-		buf, err = Serialize(buf, val)
-		if err != nil {
-			return err
-		}
-	}
-	hasher := fnv.New32()
-	_, err = hasher.Write(buf)
-	if err != nil {
-		return err
-	}
-	tval := hasher.Sum(nil)
-	hashval := int(binary.LittleEndian.Uint32(tval[0:]))
-
-	/*
-		Note that this assumes the vals stored here are stable, i.e. not changing due to GC, etc
-	*/
-	if _, ok := qv.histogram[hashval]; !ok {
-		qv.histogram[hashval] = 1
-		qv.contents[hashval] = ival
-	} else {
-		qv.histogram[hashval]++
-	}
-	//	fmt.Printf("Buf: %v Hash: %v Histo: %v\n", buf, hashval, qv.histogram)
-	return nil
-}
-
-func (qv *QuorumValue) GetTopValue() (val interface{}, confidence int) {
-	if len(qv.contents) == 0 {
-		return nil, 0
-	}
-	var maxCount, topKey int
-	for key, count := range qv.histogram {
-		if count > maxCount {
-			maxCount = count
-			topKey = key
-		}
-	}
-	return qv.contents[topKey], maxCount
-}
 
 type AnySet struct {
 	orderedElems interface{}
