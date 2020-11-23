@@ -26,21 +26,9 @@ func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnS
 		rows.TextNumbers[i] = announcement.TextNumber
 		rows.UpdateTextNumbers[i] = announcement.UpdateTextNumber
 		rows.DeleteTextNumbers[i] = announcement.DeleteTextNumber
-		if len(announcement.NotificationType) > 0 {
-			rows.NotificationTypes[i] = announcement.NotificationType[0]
-		} else {
-			rows.NotificationTypes[i] = 0
-		}
-		if len(announcement.Status) > 0 {
-			rows.Statuses[i] = announcement.Status[0]
-		} else {
-			rows.Statuses[i] = 0
-		}
-		if len(announcement.SecurityType) > 0 {
-			rows.SecurityTypes[i] = announcement.SecurityType[0]
-		} else {
-			rows.SecurityTypes[i] = 0
-		}
+		rows.NotificationTypes[i] = byte(announcement.NotificationType)
+		rows.Statuses[i] = byte(announcement.Status)
+		rows.SecurityTypes[i] = byte(announcement.SecurityType)
 		rows.RecordDates[i] = announcement.RecordDate.Unix()
 		rows.EffectiveDates[i] = announcement.EffectiveDate.Unix()
 		rows.ExpirationDates[i] = announcement.ExpirationDate.Unix()
@@ -63,18 +51,6 @@ func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnS
 	cs.AddColumn("OldRate", rows.OldRates)
 	cs.AddColumn("Rate", rows.Rates)
 	return cs
-}
-
-func announcement(textnumber int, entrydate, expdate time.Time, notificationtype, status byte, rate float64) reorg.Announcement {
-	return reorg.Announcement{
-		TextNumber:       int64(textnumber),
-		EntryDate:        entrydate,
-		ExpirationDate:   expdate,
-		NotificationType: string(notificationtype),
-		Status:           string(status),
-		SecurityType:     string(enum.CommonStock),
-		Rate:             rate,
-	}
 }
 
 func date(year int, month time.Month, day int) time.Time {
@@ -120,24 +96,24 @@ var filteringFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 8),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
 				TextNumber:       2222,
 				EntryDate:        date(2020, time.March, 15),
 				ExpirationDate:   date(2020, time.March, 19),
-				NotificationType: string(enum.StockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             3,
 			},
 			{
 				TextNumber:       3333,
 				EntryDate:        date(2020, time.June, 28),
 				ExpirationDate:   date(2020, time.June, 30),
-				NotificationType: string(enum.ReverseStockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.ReverseStockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.4,
 			},
 		},
@@ -155,24 +131,24 @@ var filteringFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 8),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
 				TextNumber:       2222,
 				EntryDate:        date(2020, time.March, 15),
 				ExpirationDate:   date(2020, time.March, 19),
-				NotificationType: string(enum.StockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             3,
 			},
 			{
 				TextNumber:       3333,
 				EntryDate:        date(2020, time.June, 28),
 				ExpirationDate:   date(2020, time.June, 30),
-				NotificationType: string(enum.ReverseStockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.ReverseStockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.4,
 			},
 		},
@@ -192,24 +168,24 @@ var filteringFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 8),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
 				TextNumber:       2222,
 				EntryDate:        date(2020, time.March, 15),
 				ExpirationDate:   date(2020, time.March, 19),
-				NotificationType: string(enum.StockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             3,
 			},
 			{
 				TextNumber:       3333,
 				EntryDate:        date(2020, time.June, 28),
 				ExpirationDate:   date(2020, time.June, 30),
-				NotificationType: string(enum.ReverseStockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.ReverseStockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.4,
 			},
 		},
@@ -230,24 +206,24 @@ var filteringFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 8),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
 				TextNumber:       2222,
 				EntryDate:        date(2020, time.March, 15),
 				ExpirationDate:   date(2020, time.March, 19),
-				NotificationType: string(enum.StockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             3,
 			},
 			{
 				TextNumber:       3333,
 				EntryDate:        date(2020, time.June, 28),
 				ExpirationDate:   date(2020, time.June, 30),
-				NotificationType: string(enum.ReverseStockSplit),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.ReverseStockSplit,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.4,
 			},
 		},
@@ -284,8 +260,8 @@ var statusHandlingFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 8),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
@@ -293,8 +269,8 @@ var statusHandlingFixtures = []struct {
 				UpdateTextNumber: 1111,
 				EntryDate:        date(2019, time.July, 7),
 				ExpirationDate:   date(2019, time.July, 10),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.UpdatedAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.UpdatedAnnouncement,
 				Rate:             0.098,
 			},
 		},
@@ -314,8 +290,8 @@ var statusHandlingFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 8),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
@@ -323,8 +299,8 @@ var statusHandlingFixtures = []struct {
 				UpdateTextNumber: 1111,
 				EntryDate:        date(2019, time.July, 7),
 				ExpirationDate:   date(2019, time.July, 10),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.UpdatedAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.UpdatedAnnouncement,
 				Rate:             0.098,
 			},
 			{
@@ -332,8 +308,8 @@ var statusHandlingFixtures = []struct {
 				UpdateTextNumber: 1111,
 				EntryDate:        date(2019, time.July, 9),
 				ExpirationDate:   date(2019, time.July, 15),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.UpdatedAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.UpdatedAnnouncement,
 				Rate:             0.099,
 			},
 		},
@@ -353,8 +329,8 @@ var statusHandlingFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 8),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
@@ -362,8 +338,8 @@ var statusHandlingFixtures = []struct {
 				UpdateTextNumber: 1111,
 				EntryDate:        date(2019, time.July, 7),
 				ExpirationDate:   date(2019, time.July, 10),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.UpdatedAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.UpdatedAnnouncement,
 				Rate:             0.098,
 			},
 			{
@@ -371,8 +347,8 @@ var statusHandlingFixtures = []struct {
 				UpdateTextNumber: 1111,
 				EntryDate:        date(2019, time.July, 9),
 				ExpirationDate:   date(2019, time.July, 15),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.UpdatedAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.UpdatedAnnouncement,
 				Rate:             0.099,
 			},
 			{
@@ -380,8 +356,8 @@ var statusHandlingFixtures = []struct {
 				DeleteTextNumber: 1111,
 				EntryDate:        date(2019, time.July, 9),
 				ExpirationDate:   date(2019, time.July, 15),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.DeletedAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.DeletedAnnouncement,
 				Rate:             0.099,
 			},
 		},
@@ -414,24 +390,24 @@ var sortingFixtures = []struct {
 				TextNumber:       1111,
 				EntryDate:        date(2019, time.July, 6),
 				ExpirationDate:   date(2019, time.July, 9),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.095,
 			},
 			{
 				TextNumber:       2222,
 				EntryDate:        date(2019, time.July, 7),
 				ExpirationDate:   date(2019, time.July, 7),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.098,
 			},
 			{
 				TextNumber:       3333,
 				EntryDate:        date(2019, time.July, 8),
 				ExpirationDate:   date(2019, time.July, 12),
-				NotificationType: string(enum.StockDividend),
-				Status:           string(enum.NewAnnouncement),
+				NotificationType: enum.StockDividend,
+				Status:           enum.NewAnnouncement,
 				Rate:             0.098,
 			},
 		},

@@ -43,15 +43,17 @@ func showRecords(cusip string) {
 		ent := time.Unix(ca.Rows.EntryDates[i], 0)
 		eff := time.Unix(ca.Rows.EffectiveDates[i], 0)
 		rec := time.Unix(ca.Rows.RecordDates[i], 0)
+		exp := time.Unix(ca.Rows.ExpirationDates[i], 0)
 
 		var ref int64
-		if ca.Rows.Statuses[i] == enum.UpdatedAnnouncement {
+		status := enum.StatusCode(ca.Rows.Statuses[i])
+		if status == enum.UpdatedAnnouncement {
 			ref = ca.Rows.UpdateTextNumbers[i]
-		} else if ca.Rows.Statuses[i] == enum.DeletedAnnouncement {
+		} else if status == enum.DeletedAnnouncement {
 			ref = ca.Rows.DeleteTextNumbers[i]
 		}
 
-		fmt.Printf("%c %c %c\tTEXTNUM: %d\tENT: %s, EFF: %s, REC: %s\tRATE: %.4f, REF: %d\n",
+		fmt.Printf("%c %c %c\tTEXTNUM: %d\tENT: %s, EFF: %s, REC: %s, EXP: %s\tRATE: %.4f, REF: %d\n",
 			ca.Rows.Statuses[i],
 			ca.Rows.SecurityTypes[i],
 			ca.Rows.NotificationTypes[i],
@@ -59,6 +61,7 @@ func showRecords(cusip string) {
 			ent.Format("2006-01-02"),
 			eff.Format("2006-01-02"),
 			rec.Format("2006-01-02"),
+			exp.Format("2006-01-02"),
 			ca.Rows.Rates[i],
 			ref)
 	}

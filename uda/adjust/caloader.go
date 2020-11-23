@@ -50,7 +50,7 @@ func NewCARows(length int) *CARows {
 type RateChange struct {
 	Textnumber int64
 	Epoch      int64
-	Type       byte
+	Type       enum.NotificationType
 	Rate       float64
 }
 
@@ -170,7 +170,7 @@ func (act *Actions) getEffectiveActionsIndex() []int {
 	caMap := map[int64]int{}
 	for i := 0; i < act.Len(); i++ {
 		var textnumber int64
-		status := act.Rows.Statuses[i]
+		status := enum.StatusCode(act.Rows.Statuses[i])
 		switch status {
 		case enum.NewAnnouncement:
 			textnumber = act.Rows.TextNumbers[i]
@@ -212,7 +212,7 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 
 	changes := make([]RateChange, 0, len(actionIndex))
 	for _, index := range actionIndex {
-		notificationType := act.Rows.NotificationTypes[index]
+		notificationType := enum.NotificationType(act.Rows.NotificationTypes[index])
 		// use Expiration date
 		if includeSplits && (notificationType == enum.StockSplit || notificationType == enum.ReverseStockSplit) {
 			changes = append(changes,
@@ -220,7 +220,7 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 					Epoch:      act.Rows.ExpirationDates[index],
 					Rate:       act.Rows.Rates[index],
 					Textnumber: act.Rows.TextNumbers[index],
-					Type:       act.Rows.NotificationTypes[index],
+					Type:       notificationType,
 				})
 		}
 		if includeDividends && notificationType == enum.StockDividend {
@@ -229,7 +229,7 @@ func (act *Actions) RateChangeEvents(includeSplits, includeDividends bool) []Rat
 					Epoch:      act.Rows.ExpirationDates[index],
 					Rate:       act.Rows.Rates[index],
 					Textnumber: act.Rows.TextNumbers[index],
-					Type:       act.Rows.NotificationTypes[index],
+					Type:       notificationType,
 				})
 		}
 	}

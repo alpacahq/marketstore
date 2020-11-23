@@ -10,7 +10,16 @@ import (
 )
 
 var TIME = reflect.TypeOf(time.Time{}).Name()
+
+var UINT = reflect.TypeOf(uint(1)).Name()
+var UINT8 = reflect.TypeOf(uint8(1)).Name()
+var UINT16 = reflect.TypeOf(uint16(1)).Name()
+var UINT32 = reflect.TypeOf(uint32(1)).Name()
+var UINT64 = reflect.TypeOf(uint64(1)).Name()
 var INT = reflect.TypeOf(1).Name()
+var INT8 = reflect.TypeOf(int8(1)).Name()
+var INT16 = reflect.TypeOf(int16(1)).Name()
+var INT32 = reflect.TypeOf(int32(1)).Name()
 var INT64 = reflect.TypeOf(int64(1)).Name()
 var FLOAT = reflect.TypeOf(1.2).Name()
 var STRING = reflect.TypeOf("").Name()
@@ -18,7 +27,15 @@ var STRING = reflect.TypeOf("").Name()
 type TypeConverter func(str string, v reflect.Value, format string) error
 
 var converters = map[string]TypeConverter{
+	UINT:   stringToUint,
+	UINT8:  stringToUint,
+	UINT16: stringToUint,
+	UINT32: stringToUint,
+	UINT64: stringToUint,
 	INT:    stringToInt,
+	INT8:   stringToInt,
+	INT16:  stringToInt,
+	INT64:  stringToInt,
 	INT64:  stringToInt,
 	FLOAT:  stringToFloat,
 	STRING: stringToString,
@@ -26,17 +43,35 @@ var converters = map[string]TypeConverter{
 }
 
 var formatDefaults = map[string]string{
-	INT:   "%d",
-	INT64: "%d",
-	FLOAT: "%f",
-	TIME:  "01/02/06",
+	INT:    "%d",
+	INT8:   "%d",
+	INT16:  "%d",
+	INT32:  "%d",
+	INT64:  "%d",
+	UINT:   "%d",
+	UINT8:  "%d",
+	UINT16: "%d",
+	UINT32: "%d",
+	UINT64: "%d",
+	INT64:  "%d",
+	FLOAT:  "%f",
+	TIME:   "01/02/06",
+}
+
+func stringToUint(str string, v reflect.Value, format string) error {
+	var val uint64
+	n, err := fmt.Sscanf(str, format, &val)
+	if n == 1 {
+		v.SetUint(val)
+	}
+	return err
 }
 
 func stringToInt(str string, v reflect.Value, format string) error {
-	var val int
+	var val int64
 	n, err := fmt.Sscanf(str, format, &val)
 	if n == 1 {
-		v.SetInt(int64(val))
+		v.SetInt(val)
 	}
 	return err
 }
@@ -67,6 +102,22 @@ func stringToTime(str string, v reflect.Value, format string) error {
 	return err
 }
 
+func getConverter(t reflect.Type) TypeConverter {
+	f := converters[t.Name()]
+	if f == nil {
+		f = converters[t.Kind().String()]
+	}
+	return f
+}
+
+func getFormatter(t reflect.Type) string {
+	format := formatDefaults[t.Name()]
+	if format == "" {
+		format = formatDefaults[t.Kind().String()]
+	}
+	return format
+}
+
 func Convert(input string, format string, def string, v reflect.Value) {
 	cleanInput := strings.TrimSpace(input)
 	if len(cleanInput) == 0 && len(def) > 0 {
@@ -83,10 +134,10 @@ func Convert(input string, format string, def string, v reflect.Value) {
 	}()
 	iv := reflect.Indirect(v)
 	if iv.CanSet() {
-		f := converters[iv.Type().Name()]
+		f := getConverter(iv.Type())
 		if f != nil {
 			if format == "" {
-				format = formatDefaults[iv.Type().Name()]
+				format = getFormatter(iv.Type())
 			}
 			err := f(cleanInput, iv, format)
 			if err != nil {
