@@ -7,23 +7,23 @@ import (
 	"strings"
 )
 
-type ParsePosition struct {
-	Begin int
-	End   int
+type parsePosition struct {
+	begin int
+	end   int
 }
 
-type FieldParserFunc func([]string) string
+type fieldParserFunc func([]string) string
 
-type ParseInfo struct {
-	FieldNo   int
-	Line      int
-	Positions []ParsePosition
-	Format    string
-	Default   string
-	Func      string
+type parseInfo struct {
+	fieldNo      int
+	line         int
+	positions    []parsePosition
+	format       string
+	defaultValue string
+	fun          string
 }
 
-var ParseMap = map[reflect.Type][]ParseInfo{}
+var parseMap = map[reflect.Type][]parseInfo{}
 
 var lineMatcher = regexp.MustCompile(`line:([0-9]+)`)
 var posMatcher = regexp.MustCompile(`pos:([^\s]+)`)
@@ -31,24 +31,24 @@ var formatMatcher = regexp.MustCompile(`format:([^\s]+)`)
 var defaultMatcher = regexp.MustCompile(`default:([^\s]+)`)
 var funcMatcher = regexp.MustCompile(`func:([^\s]+)`)
 
-func NewParseInfo() ParseInfo {
-	return ParseInfo{}
+func newParseInfo() parseInfo {
+	return parseInfo{}
 }
 
-func (pi *ParseInfo) parseLine(tag string) {
+func (pi *parseInfo) parseLine(tag string) {
 	lineMatches := lineMatcher.FindStringSubmatch(tag)
 	if len(lineMatches) > 1 {
 		lineNo := 0
 		n, _ := fmt.Sscanf(lineMatches[1], "%d", &lineNo)
 		if n == 1 {
-			pi.Line = lineNo
+			pi.line = lineNo
 		} else {
 			panic("Can't parse line number from tag!")
 		}
 	}
 }
 
-func (pi *ParseInfo) parsePos(tag string) {
+func (pi *parseInfo) parsePos(tag string) {
 	posMatches := posMatcher.FindStringSubmatch(tag)
 	if len(posMatches) > 1 {
 		positions := strings.Split(posMatches[1], ",")
@@ -60,33 +60,33 @@ func (pi *ParseInfo) parsePos(tag string) {
 				_, _ = fmt.Sscanf(p, "%d", &pstart)
 				pend = pstart + 1
 			}
-			pi.Positions = append(pi.Positions, ParsePosition{Begin: pstart, End: pend})
+			pi.positions = append(pi.positions, parsePosition{begin: pstart, end: pend})
 		}
 	}
 }
 
-func (pi *ParseInfo) parseFormat(tag string) {
+func (pi *parseInfo) parseFormat(tag string) {
 	matches := formatMatcher.FindStringSubmatch(tag)
 	if len(matches) > 1 {
-		pi.Format = strings.TrimSpace(matches[1])
+		pi.format = strings.TrimSpace(matches[1])
 	}
 }
 
-func (pi *ParseInfo) parseDefault(tag string) {
+func (pi *parseInfo) parseDefault(tag string) {
 	matches := defaultMatcher.FindStringSubmatch(tag)
 	if len(matches) > 1 {
-		pi.Default = strings.TrimSpace(matches[1])
+		pi.defaultValue = strings.TrimSpace(matches[1])
 	}
 }
 
-func (pi *ParseInfo) parseFunc(tag string) {
+func (pi *parseInfo) parseFunc(tag string) {
 	matches := funcMatcher.FindStringSubmatch(tag)
 	if len(matches) > 1 {
-		pi.Func = strings.TrimSpace(matches[1])
+		pi.fun = strings.TrimSpace(matches[1])
 	}
 }
 
-func (pi *ParseInfo) ParseTag(tag string) {
+func (pi *parseInfo) ParseTag(tag string) {
 	pi.parseLine(tag)
 	pi.parsePos(tag)
 	pi.parseFormat(tag)
@@ -95,7 +95,7 @@ func (pi *ParseInfo) ParseTag(tag string) {
 	return
 }
 
-func GetParseDef(item interface{}) []ParseInfo {
+func getParseDef(item interface{}) []parseInfo {
 	var t reflect.Type
 	switch it := item.(type) {
 	case reflect.Value:
@@ -103,22 +103,22 @@ func GetParseDef(item interface{}) []ParseInfo {
 	default:
 		t = reflect.TypeOf(it).Elem()
 	}
-	parseInfos, ok := ParseMap[t]
+	parseInfos, ok := parseMap[t]
 	if !ok {
-		parseInfos = make([]ParseInfo, 0, t.NumField())
+		parseInfos = make([]parseInfo, 0, t.NumField())
 		for fn := 0; fn < t.NumField(); fn++ {
 			f := t.Field(fn)
 			if f.Tag != "" {
 				tag, exists := f.Tag.Lookup("reorg")
 				if exists {
-					pi := NewParseInfo()
-					pi.FieldNo = fn
+					pi := newParseInfo()
+					pi.fieldNo = fn
 					pi.ParseTag(tag)
 					parseInfos = append(parseInfos, pi)
 				}
 			}
 		}
-		ParseMap[t] = parseInfos
+		parseMap[t] = parseInfos
 	}
 	return parseInfos
 }

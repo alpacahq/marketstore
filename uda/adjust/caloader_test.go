@@ -23,12 +23,14 @@ func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnS
 	rows := NewCARows(length)
 	for i, announcement := range announcements {
 		rows.EntryDates[i] = announcement.EntryDate.Unix()
-		rows.TextNumbers[i] = announcement.TextNumber
-		rows.UpdateTextNumbers[i] = announcement.UpdateTextNumber
-		rows.DeleteTextNumbers[i] = announcement.DeleteTextNumber
+		rows.TextNumbers[i] = int64(announcement.TextNumber)
+		rows.UpdateTextNumbers[i] = int64(announcement.UpdateTextNumber)
+		rows.DeleteTextNumbers[i] = int64(announcement.DeleteTextNumber)
 		rows.NotificationTypes[i] = byte(announcement.NotificationType)
 		rows.Statuses[i] = byte(announcement.Status)
+		rows.UpdatedNotificationTypes[i] = byte(announcement.UpdatedNotificationType)
 		rows.SecurityTypes[i] = byte(announcement.SecurityType)
+		rows.VoluntaryMandatoryCodes[i] = byte(announcement.VoluntaryMandatoryCode)
 		rows.RecordDates[i] = announcement.RecordDate.Unix()
 		rows.EffectiveDates[i] = announcement.EffectiveDate.Unix()
 		rows.ExpirationDates[i] = announcement.ExpirationDate.Unix()
@@ -43,7 +45,9 @@ func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnS
 	cs.AddColumn("DeleteTextNumber", rows.DeleteTextNumbers)
 	cs.AddColumn("NotificationType", rows.NotificationTypes)
 	cs.AddColumn("Status", rows.Statuses)
+	cs.AddColumn("UpdatedNotificationType", rows.UpdatedNotificationTypes)
 	cs.AddColumn("SecurityType", rows.SecurityTypes)
+	cs.AddColumn("VoluntaryMandatoryCode", rows.VoluntaryMandatoryCodes)
 	cs.AddColumn("RecordDate", rows.RecordDates)
 	cs.AddColumn("EffectiveDate", rows.EffectiveDates)
 	cs.AddColumn("ExpirationDate", rows.ExpirationDates)
@@ -64,7 +68,7 @@ func unixDate(year int, month time.Month, day int) int64 {
 func defineCorporateActions(announcements ...reorg.Announcement) *Actions {
 	cs := announcementsToColumnSeries(announcements)
 	ca := NewCorporateActions("AAPL")
-	ca.FromColumnSeries(cs)
+	ca.fromColumnSeries(cs)
 	return ca
 }
 

@@ -13,65 +13,65 @@ var recordMatcher = regexp.MustCompile(`\.{59} [[:ascii:]]+?[^\*]\*\* +?\n`)
 
 var fileEndMatcher = regexp.MustCompile(`^\*+? +\n`)
 
-func safeCall(v reflect.Value, fn string, lines []string) (out string) {
+func safeCall(v reflect.Value, fun string, lines []string) (out string) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			log.Fatal("%+v died while parsing: %s", fn, strings.Join(lines, "\n"))
+			log.Fatal("%+v died while parsing: %s", fun, strings.Join(lines, "\n"))
 			out = ""
 		}
 	}()
-	if fn := v.MethodByName(strings.TrimSpace(fn)); fn.IsValid() {
+	if fn := v.MethodByName(strings.TrimSpace(fun)); fn.IsValid() {
 		args := []reflect.Value{reflect.ValueOf(lines)}
 		outValues := fn.Call(args)
 		out = outValues[0].String()
 	} else {
+		log.Fatal("custom parser method not found: %s", strings.TrimSpace(fun))
 		out = ""
 	}
 	return out
 }
 
-func ReadRecord(lines []string, it interface{}) {
+func readRecord(lines []string, it interface{}) {
 	var v reflect.Value
 	switch t := it.(type) {
 	case reflect.Value:
 		v = t.Elem()
 	default:
 		if reflect.TypeOf(it).Kind() != reflect.Ptr {
-			panic("use & when passing a struct for Parse!!")
+			log.Fatal("readRecord: use & when passing a struct for readRecord")
 		}
 		v = reflect.Indirect(reflect.ValueOf(t))
 	}
-	parseDef := GetParseDef(it)
+	parseDef := getParseDef(it)
 	var input string
 	for _, parse := range parseDef {
-		field := v.Field(parse.FieldNo)
+		field := v.Field(parse.fieldNo)
 		input = ""
-		if parse.Func != "" {
-			input = safeCall(v, parse.Func, lines)
+		if parse.fun != "" {
+			input = safeCall(v, parse.fun, lines)
 		} else {
-			input = lines[parse.Line]
-			if len(parse.Positions) > 0 {
+			input = lines[parse.line]
+			if len(parse.positions) > 0 {
 				content := ""
-				for _, parsePos := range parse.Positions {
-					substr := input[parsePos.Begin:parsePos.End]
+				for _, parsePos := range parse.positions {
+					substr := input[parsePos.begin:parsePos.end]
 					content += substr
 				}
 				input = content
 			}
 		}
-		Convert(input, parse.Format, parse.Default, field)
+		convert(input, parse.format, parse.defaultValue, field)
 	}
 }
 
-func ReadRecords(content string, slicePtr interface{}) {
+func readRecords(content string, slicePtr interface{}) {
 	if !(reflect.TypeOf(slicePtr).Kind() == reflect.Ptr &&
 		reflect.TypeOf(slicePtr).Elem().Kind() == reflect.Slice) {
-		panic("target must be a ptr to slice!!")
+		log.Fatal("readRecords: target must be a pointer to a slice!!")
 	}
 	sliceValue := reflect.ValueOf(slicePtr).Elem()
 	elementType := sliceValue.Type().Elem()
-	recordNo := 1
 	for {
 		if fileEndMatcher.MatchString(content) {
 			break
@@ -81,13 +81,11 @@ func ReadRecords(content string, slicePtr interface{}) {
 			rec := reflect.New(elementType)
 			lines := strings.Split(result, "\n")
 			lines = lines[:len(lines)-1]
-			ReadRecord(lines, rec)
+			readRecord(lines, rec)
 			sliceValue.Set(reflect.Append(sliceValue, rec.Elem()))
 			content = content[len(result):len(content)]
-			recordNo++
 		} else {
-			log.Error(content)
-			panic("something went wrong, it should ALWAYS match")
+			log.Fatal("file parsing error, please check for file corruption or format change", content)
 		}
 	}
 }

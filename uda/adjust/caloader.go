@@ -14,36 +14,40 @@ import (
 )
 
 type CARows struct {
-	EntryDates        []int64
-	TextNumbers       []int64
-	UpdateTextNumbers []int64
-	DeleteTextNumbers []int64
-	NotificationTypes []byte
-	Statuses          []byte
-	SecurityTypes     []byte
-	EffectiveDates    []int64
-	RecordDates       []int64
-	ExpirationDates   []int64
-	NewRates          []float64
-	OldRates          []float64
-	Rates             []float64
+	EntryDates               []int64
+	TextNumbers              []int64
+	UpdateTextNumbers        []int64
+	DeleteTextNumbers        []int64
+	NotificationTypes        []byte
+	Statuses                 []byte
+	UpdatedNotificationTypes []byte
+	SecurityTypes            []byte
+	VoluntaryMandatoryCodes  []byte
+	EffectiveDates           []int64
+	RecordDates              []int64
+	ExpirationDates          []int64
+	NewRates                 []float64
+	OldRates                 []float64
+	Rates                    []float64
 }
 
 func NewCARows(length int) *CARows {
 	return &CARows{
-		EntryDates:        make([]int64, length),
-		TextNumbers:       make([]int64, length),
-		UpdateTextNumbers: make([]int64, length),
-		DeleteTextNumbers: make([]int64, length),
-		NotificationTypes: make([]byte, length),
-		Statuses:          make([]byte, length),
-		SecurityTypes:     make([]byte, length),
-		RecordDates:       make([]int64, length),
-		EffectiveDates:    make([]int64, length),
-		ExpirationDates:   make([]int64, length),
-		NewRates:          make([]float64, length),
-		OldRates:          make([]float64, length),
-		Rates:             make([]float64, length),
+		EntryDates:               make([]int64, length),
+		TextNumbers:              make([]int64, length),
+		UpdateTextNumbers:        make([]int64, length),
+		DeleteTextNumbers:        make([]int64, length),
+		NotificationTypes:        make([]byte, length),
+		Statuses:                 make([]byte, length),
+		UpdatedNotificationTypes: make([]byte, length),
+		SecurityTypes:            make([]byte, length),
+		VoluntaryMandatoryCodes:  make([]byte, length),
+		RecordDates:              make([]int64, length),
+		EffectiveDates:           make([]int64, length),
+		ExpirationDates:          make([]int64, length),
+		NewRates:                 make([]float64, length),
+		OldRates:                 make([]float64, length),
+		Rates:                    make([]float64, length),
 	}
 }
 
@@ -129,31 +133,33 @@ func (act *Actions) Load() error {
 		if err.Error() == "No files returned from query parse" {
 			return nil
 		}
-		log.Fatal("Unable to create parser: %s", err)
+		log.Error("Unable to create parser: %s", err)
 		return err
 	}
 	scanner, err := executor.NewReader(parseResult)
 	if err != nil {
-		log.Fatal("Unable to create scanner: %s", err)
+		log.Error("Unable to create scanner: %s", err)
 		return err
 	}
 	csm, err := scanner.Read()
 	if err != nil {
-		log.Fatal("Error returned from query scanner: %s", err)
+		log.Error("Error returned from query scanner: %s", err)
 		return err
 	}
-	act.FromColumnSeries(csm[*tbk])
+	act.fromColumnSeries(csm[*tbk])
 	return nil
 }
 
-func (act *Actions) FromColumnSeries(cs *io.ColumnSeries) {
+func (act *Actions) fromColumnSeries(cs *io.ColumnSeries) {
 	act.Rows.EntryDates = cs.GetColumn("Epoch").([]int64)
 	act.Rows.TextNumbers = cs.GetColumn("TextNumber").([]int64)
 	act.Rows.UpdateTextNumbers = cs.GetColumn("UpdateTextNumber").([]int64)
 	act.Rows.DeleteTextNumbers = cs.GetColumn("DeleteTextNumber").([]int64)
 	act.Rows.NotificationTypes = cs.GetColumn("NotificationType").([]byte)
 	act.Rows.Statuses = cs.GetColumn("Status").([]byte)
+	act.Rows.UpdatedNotificationTypes = cs.GetColumn("UpdatedNotificationType").([]byte)
 	act.Rows.SecurityTypes = cs.GetColumn("SecurityType").([]byte)
+	act.Rows.VoluntaryMandatoryCodes = cs.GetColumn("VoluntaryMandatoryCode").([]byte)
 	act.Rows.RecordDates = cs.GetColumn("RecordDate").([]int64)
 	act.Rows.EffectiveDates = cs.GetColumn("EffectiveDate").([]int64)
 	act.Rows.ExpirationDates = cs.GetColumn("ExpirationDate").([]int64)

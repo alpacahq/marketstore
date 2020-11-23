@@ -24,9 +24,9 @@ var INT64 = reflect.TypeOf(int64(1)).Name()
 var FLOAT = reflect.TypeOf(1.2).Name()
 var STRING = reflect.TypeOf("").Name()
 
-type TypeConverter func(str string, v reflect.Value, format string) error
+type typeConverter func(str string, v reflect.Value, format string) error
 
-var converters = map[string]TypeConverter{
+var converters = map[string]typeConverter{
 	UINT:   stringToUint,
 	UINT8:  stringToUint,
 	UINT16: stringToUint,
@@ -102,7 +102,7 @@ func stringToTime(str string, v reflect.Value, format string) error {
 	return err
 }
 
-func getConverter(t reflect.Type) TypeConverter {
+func getConverter(t reflect.Type) typeConverter {
 	f := converters[t.Name()]
 	if f == nil {
 		f = converters[t.Kind().String()]
@@ -118,7 +118,7 @@ func getFormatter(t reflect.Type) string {
 	return format
 }
 
-func Convert(input string, format string, def string, v reflect.Value) {
+func convert(input string, format string, def string, v reflect.Value) {
 	cleanInput := strings.TrimSpace(input)
 	if len(cleanInput) == 0 && len(def) > 0 {
 		cleanInput = strings.TrimSpace(def)

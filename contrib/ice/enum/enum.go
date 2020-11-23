@@ -51,6 +51,7 @@ const (
 	TenderOffer         NotificationType = 'T'
 	Termination         NotificationType = 'Q'
 	UnitSplit           NotificationType = 'S'
+	UnsetNotification   NotificationType = 0
 )
 
 type StatusCode byte

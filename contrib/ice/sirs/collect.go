@@ -24,15 +24,14 @@ func previousFriday(t time.Time) (time.Time, error) {
 func CollectSirsFiles(basePath string, currentDateStr string) ([]string, error) {
 	currentDate, err := time.Parse("20060102", currentDateStr)
 	if err != nil {
-		log.Fatal("Unable to parse date: %s", currentDateStr)
-		return []string{}, err
+		log.Error("Unable to parse date: %s", currentDateStr)
+		return nil, err
 	}
 	// ICE releases a full snapshot of security master information on each Friday in sirs.refresh files.
 	begin, _ := previousFriday(currentDate)
 	masterfile := filepath.Join(basePath, "sirs.refresh."+begin.Format("20060102"))
 	if !exists(masterfile) {
-		// no master file, no chocolate
-		log.Error("Master file not found: %s", masterfile)
+		log.Warn("Master file not found: %s", masterfile)
 		return []string{}, nil
 	}
 
@@ -80,8 +79,8 @@ func BuildSecurityMasterMap(sirsFiles []string) (map[string]string, error) {
 	return master, nil
 }
 
-// Utility function to help out go's incedible standard library...
+// Utility function to help out go's incredible standard library...
 func exists(filename string) bool {
-	_, err := os.Stat(filename)
-	return !os.IsNotExist(err)
+	fileinfo, err := os.Stat(filename)
+	return !os.IsNotExist(err) && !fileinfo.IsDir()
 }

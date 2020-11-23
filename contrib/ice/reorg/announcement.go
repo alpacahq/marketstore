@@ -11,7 +11,7 @@ import (
 type Announcement struct {
 	EntryDate               time.Time                     `reorg:"line:0 pos:64-72 format:01/02/06"`
 	DealNumber              string                        `reorg:"line:1 pos:6-8"`
-	TextNumber              int64                         `reorg:"line:1 pos:16-23"`
+	TextNumber              int                           `reorg:"line:1 pos:16-23"`
 	Remarks                 string                        `reorg:"line:1 pos:33-45"`
 	NotificationType        announcement.NotificationType `reorg:"line:1 pos:53 format:%c"`
 	Status                  announcement.StatusCode       `reorg:"line:1 pos:54 format:%c"`
@@ -31,8 +31,8 @@ type Announcement struct {
 	Rate                    float64                       `reorg:"line:4 pos:6-15"`
 	RateCode                string                        `reorg:"line:4 pos:19"`
 	VoluntaryMandatoryCode  announcement.ActionCode       `reorg:"line:4 pos:33 format:%c"`
-	UpdateTextNumber        int64                         `reorg:"func:ParseUpdateTextNumber"`
-	DeleteTextNumber        int64                         `reorg:"func:ParseDeleteTextNumber"`
+	UpdateTextNumber        int                           `reorg:"func:ParseUpdateTextNumber"`
+	DeleteTextNumber        int                           `reorg:"func:ParseDeleteTextNumber"`
 	NewRate                 float64                       `reorg:"func:ParseNewRate"`
 	OldRate                 float64                       `reorg:"func:ParseOldRate"`
 	DueRedemptionDate       time.Time                     `reorg:"func:ParseDueRedemptionDate"`

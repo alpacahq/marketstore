@@ -51,7 +51,7 @@ type AggInterface interface {
 	Reset()
 
 	/*
-		SetTimeBucketKey() set the TimeBucketKey for the aggregator function
+		SetTimeBucketKey() sets the TimeBucketKey for the aggregator function
 	*/
 	SetTimeBucketKey(io.TimeBucketKey)
 }
