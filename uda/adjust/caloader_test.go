@@ -11,12 +11,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-func Test(t *testing.T) { TestingT(t) }
+func TestCALoader(t *testing.T) { TestingT(t) }
 
-type TestSuite struct {
+type TestCALoaderSuite struct {
 }
 
-var _ = Suite(&TestSuite{})
+var _ = Suite(&TestCALoaderSuite{})
 
 func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnSeries {
 	length := len(announcements)
@@ -263,7 +263,7 @@ var filteringFixtures = []struct {
 	},
 }
 
-func (s *TestSuite) TestRateChangeEventsFiltering(c *C) {
+func (s *TestCALoaderSuite) TestRateChangeEventsFiltering(c *C) {
 	for _, tt := range filteringFixtures {
 		ca := defineCorporateActions(tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
@@ -393,7 +393,7 @@ var statusHandlingFixtures = []struct {
 	},
 }
 
-func (s *TestSuite) TestRateChangeEventsAnnouncementStatusHandling(c *C) {
+func (s *TestCALoaderSuite) TestRateChangeEventsAnnouncementStatusHandling(c *C) {
 	for _, tt := range statusHandlingFixtures {
 		ca := defineCorporateActions(tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
@@ -447,7 +447,7 @@ var sortingFixtures = []struct {
 	},
 }
 
-func (s *TestSuite) TestRateChangeEventsProperSorting(c *C) {
+func (s *TestCALoaderSuite) TestRateChangeEventsProperSorting(c *C) {
 	for _, tt := range sortingFixtures {
 		ca := defineCorporateActions(tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
@@ -455,7 +455,7 @@ func (s *TestSuite) TestRateChangeEventsProperSorting(c *C) {
 	}
 }
 
-func (s *TestSuite) TestCache(c *C) {
+func (s *TestCALoaderSuite) TestCache(c *C) {
 	{
 		// GetRateChange should create a separate cache entry for each parameter combination
 		rateChangeCache = map[CacheKey]RateChangeCache{}

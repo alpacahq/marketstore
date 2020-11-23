@@ -8,11 +8,11 @@ import (
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const calcSplit = "split"
 const calcDividend = "dividend"
+const roundToDecimals = 3
 
 var (
 	requiredColumns = []io.DataShape{}
@@ -20,6 +20,8 @@ var (
 	optionalColumns = []io.DataShape{}
 
 	initArgs = []io.DataShape{}
+
+	rounderNum = math.Pow(10, roundToDecimals)
 )
 
 type Adjust struct {
@@ -30,7 +32,7 @@ type Adjust struct {
 	AdjustSplit    bool
 
 	epochs []int64
-	output map[string][]float32
+	output map[string][]float64
 	tbk    io.TimeBucketKey
 }
 
@@ -48,7 +50,7 @@ func (adj *Adjust) New() (uda.AggInterface, *functions.ArgumentMap) {
 	rn := new(Adjust)
 
 	rn.ArgMap = functions.NewArgumentMap(requiredColumns, optionalColumns...)
-	rn.output = map[string][]float32{}
+	rn.output = map[string][]float64{}
 	return rn, rn.ArgMap
 }
 
@@ -92,52 +94,44 @@ func (adj *Adjust) Reset() {
 	// intentionally left empty
 }
 
-func (adj Adjust) Accum(cols io.ColumnInterface) error {
+func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
 	if !ok {
 		return errors.New("adjust: Input data must have an Epoch column")
 	}
 	adj.epochs = epochs
 	for _, ds := range cols.GetDataShapes() {
-		if ds.Name != "Epoch" {
-			col := cols.GetColumn(ds.Name)
-			switch c := col.(type) {
-			case []float64:
-				tmp := make([]float32, len(c))
-				for i, f := range c {
-					tmp[i] = float32(f)
-				}
-				adj.output[ds.Name] = tmp
-			case []float32:
-				adj.output[ds.Name] = c
-			}
+		// hacky, hacky...
+		if ds.Type == io.FLOAT64 {
+			adj.output[ds.Name], _ = uda.ColumnToFloat64(cols, ds.Name)
 		}
 	}
 
 	symbol := adj.tbk.GetItemInCategory("Symbol")
 	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend)
-	log.Info("# of rate change events: %d", len(rateChanges))
 	if len(rateChanges) == 0 {
 		return nil
 	}
+
+	// always append a default no-op rate change to help avoid handling edge cases below
 	rateChanges = append(rateChanges, RateChange{Epoch: math.MaxInt64, Rate: 1, Textnumber: 0, Type: 0})
 
-	// rate changes always contains 1.0 at the maximum available time
+	// start with the default no-op rate 1.0
 	ri := len(rateChanges) - 1
-	rate := float32(rateChanges[ri].Rate)
+	rate := rateChanges[ri].Rate
 
-	// beware, GetTime converts each unix timestamp to the system date, which
-	// times = cols.GetTime()
+	// start from the end of the buffer and iterate backwards toward the beginning, applying rate changes as they occur in time
 	for i := len(epochs) - 1; i >= 0; i-- {
-		if ri > 0 && epochs[i] < rateChanges[ri-1].Epoch {
-			ri--
-			rate *= float32(rateChanges[ri].Rate)
+		// check if the current epoch is before the next rate change action, and if it is, then accumulate their rate changes
+		// 	- mainly for taking care of events occurred after the last epoch in the current dataseet
+		// 	- also handles a highly unlikely case when multiple rate change events occurs at the same time (eg. split and dividend)
+		for ; ri > 0 && (epochs[i] < rateChanges[ri-1].Epoch); ri-- {
+			rate *= rateChanges[ri-1].Rate
 		}
 		for _, c := range adj.output {
-			c[i] /= rate
+			c[i] = math.Round((c[i]/rate)*rounderNum) / rounderNum
 		}
 	}
-
 	return nil
 }
 

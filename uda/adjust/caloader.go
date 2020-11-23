@@ -72,6 +72,8 @@ type CacheKey struct {
 	Dividends bool
 }
 
+type RateChangeGetter func(string, bool, bool) []RateChange
+
 const CacheLifetime = 24 * time.Hour
 
 var rateChangeCache = map[CacheKey]RateChangeCache{}
