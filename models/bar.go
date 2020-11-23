@@ -1,6 +1,8 @@
 package models
 
 import (
+	"github.com/alpacahq/marketstore/v4/models/enum"
+	"math"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -15,11 +17,9 @@ type Bar struct {
 	Tbk                    *io.TimeBucketKey
 	Csm                    io.ColumnSeriesMap
 	Epoch                  []int64
-	Open, High, Low, Close []float64
-	Volume                 []uint64
+	Open, High, Low, Close []enum.Price
+	Volume                 []enum.Size
 	WriteTime              time.Duration
-	limit                  int
-	idx                    int
 }
 
 // BarBucketKey returns a string bucket key for a given symbol and timeframe
@@ -28,13 +28,12 @@ func BarBucketKey(symbol, timeframe string) string {
 }
 
 // NewBar creates a new Bar object and initializes it's internal column buffers to the given length
-func NewBar(symbol, timeframe string, length int) *Bar {
+func NewBar(symbol, timeframe string, capacity int) *Bar {
 	model := &Bar{
-		Tbk:   io.NewTimeBucketKey(BarBucketKey(symbol, timeframe)),
-		Csm:   io.NewColumnSeriesMap(),
-		limit: 0,
+		Tbk: io.NewTimeBucketKey(BarBucketKey(symbol, timeframe)),
+		Csm: io.NewColumnSeriesMap(),
 	}
-	model.make(length)
+	model.make(capacity)
 	return model
 }
 
@@ -53,50 +52,42 @@ func (model *Bar) Symbol() string {
 	return model.Tbk.GetItemInCategory("Symbol")
 }
 
-// SetLimit sets a limit on how many entries are actually used when .Write() is called
-// It is useful if the model's buffers populated through the exported buffers directly (Open[i], Close[i], etc)
-// and the actual amount of inserted data is less than the initailly specified length parameter.
-func (model *Bar) SetLimit(limit int) {
-	model.limit = limit
-}
-
 // make allocates buffers for this model.
-func (model *Bar) make(length int) {
-	model.Epoch = make([]int64, length)
-	model.Open = make([]float64, length)
-	model.High = make([]float64, length)
-	model.Low = make([]float64, length)
-	model.Close = make([]float64, length)
-	model.Volume = make([]uint64, length)
+func (model *Bar) make(capacity int) {
+	model.Epoch = make([]int64, 0, capacity)
+	model.Open = make([]enum.Price, 0, capacity)
+	model.High = make([]enum.Price, 0, capacity)
+	model.Low = make([]enum.Price, 0, capacity)
+	model.Close = make([]enum.Price, 0, capacity)
+	model.Volume = make([]enum.Size, 0, capacity)
 }
 
 // Add adds a new data point to the internal buffers, and increment the internal index by one
-func (model *Bar) Add(epoch int64, open, high, low, close float64, volume int) {
-	idx := model.idx
-	model.Epoch[idx] = epoch
-	model.Open[idx] = open
-	model.High[idx] = high
-	model.Low[idx] = low
-	model.Close[idx] = close
-	model.Volume[idx] = uint64(volume)
-	model.idx++
+func (model *Bar) Add(epoch int64, open, high, low, close enum.Price, volume enum.Size) {
+	model.Epoch = append(model.Epoch, epoch)
+	model.Open = append(model.Open, open)
+	model.High = append(model.High, high)
+	model.Low = append(model.Low, low)
+	model.Close = append(model.Close, close)
+	model.Volume = append(model.Volume, volume)
+}
+
+func (model *Bar) GetCs() *io.ColumnSeries {
+	cs := io.NewColumnSeries()
+	cs.AddColumn("Epoch", model.Epoch)
+	cs.AddColumn("Open", model.Open)
+	cs.AddColumn("High", model.High)
+	cs.AddColumn("Low", model.Low)
+	cs.AddColumn("Close", model.Close)
+	cs.AddColumn("Volume", model.Volume)
+	return cs
 }
 
 // BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
 // it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk
 func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
-	if model.idx > 0 {
-		model.limit = model.idx
-	}
-	limit := model.limit
 	csm := io.NewColumnSeriesMap()
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", model.Epoch[:limit])
-	cs.AddColumn("Open", model.Open[:limit])
-	cs.AddColumn("High", model.High[:limit])
-	cs.AddColumn("Low", model.Low[:limit])
-	cs.AddColumn("Close", model.Close[:limit])
-	cs.AddColumn("Volume", model.Volume[:limit])
+	cs := model.GetCs()
 	csm.AddColumnSeries(*model.Tbk, cs)
 	return &csm
 }
@@ -109,8 +100,195 @@ func (model *Bar) Write() error {
 	model.WriteTime = time.Since(start)
 	if err != nil {
 		log.Error("Failed to write bars for %s (%+v)", model.Key(), err)
-	} else {
-		log.Debug("Wrote %d bars to %s", model.limit, model.Key())
 	}
 	return err
+}
+
+type ConsolidatedUpdateInfo struct {
+	UpdateHighLow bool
+	UpdateLast    bool
+	UpdateVolume  bool
+}
+
+// https://polygon.io/glossary/us/stocks/conditions-indicators
+var ConditionToUpdateInfo = map[enum.TradeCondition]ConsolidatedUpdateInfo{
+	enum.RegularSale:        {true, true, true},   // Regular Sale
+	enum.Acquisition:        {true, true, true},   // Acquisition
+	enum.AveragePriceTrade:  {false, false, true}, // Average Price Trade
+	enum.AutomaticExecution: {true, true, true},   // Automatic Execution
+	enum.BunchedTrade:       {true, true, true},   // Bunched Trade
+	enum.BunchedSoldTrade:   {true, false, true},  // Bunched Sold Trade
+	// 6: {?, ?, ? },  //  CAP Election
+	enum.CashSale:           {false, false, true}, // Cash Sale
+	enum.ClosingPrints:      {true, true, true},   // Closing Prints
+	enum.CrossTrade:         {true, true, true},   // Cross Trade
+	enum.DerivativelyPriced: {true, false, true},  // Derivatively Priced
+	enum.Distribution:       {true, true, true},   // Distribution
+	//	12: {false, false, true},  // XXX: Form T is disabled with the purpose to include extended hours data in mkts
+	enum.ExtendedHoursTrade:        {false, false, true},  // Extended Trading Hours (Sold Out of Sequence)
+	enum.IntermarketSweep:          {true, true, true},    // Intermarket Sweep
+	enum.MarketCenterOfficialClose: {false, false, false}, // Market Center Official Close
+	enum.MarketCenterOfficialOpen:  {false, false, false}, // Market Center Official Open
+	// 17: {?, ?, ?}, // Market Center Opening Trade
+	// 18: {?, ?, ?}, // Market Center Reopening Trade
+	// 19: {?, ?, ?}, // Market Center Closing Trade
+	enum.NextDay:             {false, false, true}, // Next Day
+	enum.PriceVariationTrade: {false, false, true}, // Price Variation Trade
+	enum.PriorReferencePrice: {true, false, true},  // Prior Reference Price
+	enum.Rule155Trade:        {true, true, true},   // Rule 155 Trade (AMEX)
+	// 24: {?, ?, ?}, // Rule 127 NYSE
+	enum.OpeningPrints: {true, true, true}, // Opening Prints
+	// 26: {?, ?, ?}, // Opened
+	enum.StoppedStock:    {true, true, true},  // Stopped Stock (Regular Trade)
+	enum.ReopeningPrints: {true, true, true},  // Re-Opening Prints
+	enum.Seller:          {true, false, true}, // Seller
+	enum.SoldLast:        {true, true, true},  // Sold Last
+	// 32: {?, ?, ?}, // Sold Out
+	enum.SoldOutOfSequence: {true, false, true}, // Sold (out of Sequence)
+	enum.SplitTrade:        {true, true, true},  // Split Trade
+	// 35: {?, ?, ?},  // Stock option
+	enum.YellowFlagRegularTrade:     {true, true, true},   // Yellow Flag Regular Trade
+	enum.OddLotTrade:                {false, false, true}, // Odd Lot Trade
+	enum.CorrectedConsolidatedClose: {true, true, false},  // Corrected Consolidated Close (per listing market)
+	// 39: {?, ?, ?}, // Unknown
+	// 40: {?, ?, ?}, // Held
+	// 41: {?, ?, ?}, // Trade Thru Exempt
+	// 42: {?, ?, ?}, // NonEligible
+	// 43: {?, ?, ?}, // NonEligible Extended
+	// 44: {?, ?, ?}, // Cancelled
+	// 45: {?, ?, ?}, // Recovery
+	// 46: {?, ?, ?}, // Correction
+	// 47: {?, ?, ?}, // As of
+	// 48: {?, ?, ?}, // As of Correction
+	// 49: {?, ?, ?}, // As of Cancel
+	// 50: {?, ?, ?}, // OOB
+	// 51: {?, ?, ?}, // Summary
+	enum.ContingentTrade:          {false, false, true}, // Contingent Trade
+	enum.QualifiedContingentTrade: {false, false, true}, // Qualified Contingent Trade ("QCT")
+	// 54: {?, ?, ?}, // Errored
+	// 55: {?, ?, ?}, // OPENING_REOPENING_TRADE_DETAIL
+	// 56: {TBD, TBD, TBD}, // Placeholder
+	// 59: {TBD, TBD, TBD}, // Placeholder for 611 exempt
+}
+
+func conditionToUpdateInfo(conditions []enum.TradeCondition) ConsolidatedUpdateInfo {
+	r := ConsolidatedUpdateInfo{true, true, true}
+
+	for _, condition := range conditions {
+		if val, ok := ConditionToUpdateInfo[condition]; ok {
+			r.UpdateHighLow = r.UpdateHighLow && val.UpdateHighLow
+			r.UpdateLast = r.UpdateLast && val.UpdateLast
+			r.UpdateVolume = r.UpdateVolume && val.UpdateVolume
+		}
+	}
+
+	return r
+}
+
+func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
+	bar := NewBar(symbol, timeframe, len(trades.Epoch))
+
+	var bucketDuration time.Duration
+	switch timeframe {
+	case "1Sec":
+		bucketDuration = time.Second
+	case "1Min":
+		bucketDuration = time.Minute
+	case "1Hour":
+		bucketDuration = time.Hour
+	case "1Day":
+		bucketDuration = 24 * time.Hour
+	default:
+		log.Fatal("unsupported timeframe: %v", timeframe)
+		return nil
+	}
+
+	var epoch int64
+	var open, high, low, close_ enum.Price
+	var volume enum.Size
+	lastBucketTimestamp := time.Time{}
+
+	// FIXME: The daily close bars are not handled correctly:
+	// We are aggregating from ticks to minutes then from minutes to daily prices.
+	// The current routine correctly aggregates ticks to minutes.
+	// The daily close price however should be the tick set with conditions
+	// 'Closing Prints' & 'Trade Thru Exempt' (8 & 15), generally sent 2-5 minutes
+	// after the official market close time. Given the daily roll-up is using minute data,
+	// the close tick will be aggregated  and impossible to extract from the minutely bar.
+	// In order to solve this, the daily close price should explicitly be stored and used
+	// in the daily roll-up calculation. This would require substantial refactor.
+	// The current solution therefore is just a reasonable approximation of the daily close price.
+	for i, price := range trades.Price {
+		timestamp := time.Unix(trades.Epoch[i], int64(trades.Nanos[i]))
+		bucketTimestamp := timestamp.Truncate(bucketDuration)
+
+		if bucketTimestamp.Before(lastBucketTimestamp) {
+			log.Warn("[Bar.FromTrades] got an out-of-order tick for %v @ %v, skipping", bar.Symbol(), timestamp)
+			continue
+		}
+
+		if !lastBucketTimestamp.Equal(bucketTimestamp) {
+			if open != 0 && volume != 0 {
+				bar.Add(epoch, open, high, low, close_, volume)
+			}
+
+			lastBucketTimestamp = bucketTimestamp
+			epoch = bucketTimestamp.Unix()
+			open = 0
+			high = 0
+			low = math.MaxFloat64
+			close_ = 0
+			volume = 0
+		}
+
+		var condition []enum.TradeCondition
+		if len(trades.Cond1) > i {
+			condition = append(condition, trades.Cond1[i])
+		} else {
+			condition = append(condition, enum.NoTradeCondition)
+		}
+		if len(trades.Cond2) > i {
+			condition = append(condition, trades.Cond2[i])
+		} else {
+			condition = append(condition, enum.NoTradeCondition)
+		}
+		if len(trades.Cond3) > i {
+			condition = append(condition, trades.Cond3[i])
+		}
+		if len(trades.Cond4) > i {
+			condition = append(condition, trades.Cond4[i])
+		}
+
+		updateInfo := conditionToUpdateInfo(condition)
+
+		if !updateInfo.UpdateLast && !updateInfo.UpdateHighLow && !updateInfo.UpdateVolume {
+			continue
+		}
+
+		if updateInfo.UpdateHighLow {
+			if high < price {
+				high = price
+			}
+			if low > price {
+				low = price
+			}
+		}
+
+		if updateInfo.UpdateLast {
+			if open == 0 {
+				open = price
+			}
+			close_ = price
+		}
+
+		if updateInfo.UpdateVolume {
+			volume += trades.Size[i]
+		}
+	}
+
+	if open != 0 && volume != 0 {
+		bar.Add(epoch, open, high, low, close_, volume)
+	}
+
+	return bar
 }

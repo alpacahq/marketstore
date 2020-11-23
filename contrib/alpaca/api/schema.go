@@ -76,9 +76,9 @@ type AggregateToMinute struct {
 	// symbol
 	Symbol string `json:"T"`
 	// volume (shares)
-	Volume int `json:"v"`
+	Volume uint64 `json:"v"`
 	// accumulated volume (shares)
-	accumVolume int `json:"-"` // av
+	accumVolume uint64 `json:"-"` // av
 	//official open price of the bar
 	officialOpen float64 `json:"-"` // op
 	// VWAP (Volume Weighted Average Price)

@@ -46,6 +46,9 @@ const (
 // TradeCondition is the type of trade transaction
 type TradeCondition byte
 
+type Price float64
+type Size uint64
+
 // List of all trade conditions
 const (
 	Acquisition                TradeCondition = 'A'
@@ -82,7 +85,8 @@ const (
 	SplitTrade                 TradeCondition = 'S'
 	StoppedStock               TradeCondition = '1'
 	YellowFlagRegularTrade     TradeCondition = 'Y'
-	UnknownTradeCondition      TradeCondition = 0
+	NoTradeCondition           TradeCondition = 0
+	UnknownTradeCondition      TradeCondition = 0xFF
 )
 
 // QuoteCondition is the type of the quote
