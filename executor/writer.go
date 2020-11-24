@@ -349,12 +349,13 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		missing, coercion := GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
 		if missing != nil {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
-		} else if coercion != nil {
+		}
+		
+		if coercion != nil {
 			for _, dbDS := range coercion {
 				if err := cs.CoerceColumnType(dbDS); err != nil {
 					var csDS DataShape
-					for i := range csDSV {
-						csDS = csDSV[i]
+					for _, csDS := range csDSV {
 						if csDS.Name == dbDS.Name {
 							break
 						}
