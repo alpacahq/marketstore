@@ -84,11 +84,20 @@ func (t *TestSuite) TestFromTradesDailyRollup(c *C) {
 	)
 	trades.Add( // After hours trade
 		time.Date(2020, 11, 20, 10, 4, 3, 0, utils.InstanceConfig.Timezone).Unix(), 4,
-		105.6, 130, enum.NYSE, enum.TapeA, enum.FormT,
+		105.8, 31, enum.NYSE, enum.TapeA, enum.FormT,
 	)
 
 	// When converted to bars
 	bars := FromTrades(trades, symbol, "1Day")
 
 	// Then the daily close price should match to the specified
+	c.Check(bars, NotNil)
+	c.Check(len(bars.Epoch), Equals, 1)
+	c.Check(bars.Epoch[0], Equals,
+		time.Date(2020, 11, 20, 0, 0, 0, 0, utils.InstanceConfig.Timezone).Unix())
+	c.Check(bars.Open[0], Equals, enum.Price(100.1))
+	c.Check(bars.Close[0], Equals, enum.Price(105.6))
+	c.Check(bars.High[0], Equals, enum.Price(111.2))
+	c.Check(bars.Low[0], Equals, enum.Price(100.1))
+	c.Check(bars.Volume[0], Equals, enum.Size(130))
 }

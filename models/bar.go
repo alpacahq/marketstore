@@ -208,16 +208,7 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 	var volume enum.Size
 	lastBucketTimestamp := time.Time{}
 
-	// FIXME: The daily close bars are not handled correctly:
-	// We are aggregating from ticks to minutes then from minutes to daily prices.
-	// The current routine correctly aggregates ticks to minutes.
-	// The daily close price however should be the tick set with conditions
-	// 'Closing Prints' & 'Trade Thru Exempt' (8 & 15), generally sent 2-5 minutes
-	// after the official market close time. Given the daily roll-up is using minute data,
-	// the close tick will be aggregated  and impossible to extract from the minutely bar.
-	// In order to solve this, the daily close price should explicitly be stored and used
-	// in the daily roll-up calculation. This would require substantial refactor.
-	// The current solution therefore is just a reasonable approximation of the daily close price.
+	marketCenterOfficialCloseProcessed := false
 	for i, price := range trades.Price {
 		timestamp := time.Unix(trades.Epoch[i], int64(trades.Nanos[i]))
 		bucketTimestamp := timestamp.Truncate(bucketDuration)
@@ -239,6 +230,7 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 			low = math.MaxFloat64
 			close_ = 0
 			volume = 0
+			marketCenterOfficialCloseProcessed = false
 		}
 
 		var conditions []enum.TradeCondition
@@ -257,6 +249,19 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 		}
 		if len(trades.Cond4) > i {
 			conditions = append(conditions, trades.Cond4[i])
+		}
+
+		if timeframe == "1Day" {
+			for _, condition := range conditions {
+				if condition == enum.MarketCenterOfficialOpen {
+					open = price
+				}
+				if condition == enum.MarketCenterOfficialClose {
+					close_ = price
+					volume = trades.Size[i]
+					marketCenterOfficialCloseProcessed = true
+				}
+			}
 		}
 
 		updateInfo := conditionToUpdateInfo(conditions)
@@ -278,12 +283,20 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 			if open == 0 {
 				open = price
 			}
-			close_ = price
+
+			if timeframe != "1Day" {
+				close_ = price
+			} else if timeframe == "1Day" && !marketCenterOfficialCloseProcessed {
+				close_ = price
+			}
 		}
 
-		if updateInfo.UpdateVolume {
-			volume += trades.Size[i]
+		if timeframe != "1Day" || !marketCenterOfficialCloseProcessed {
+			if updateInfo.UpdateVolume {
+				volume += trades.Size[i]
+			}
 		}
+
 	}
 
 	if open != 0 && volume != 0 {
