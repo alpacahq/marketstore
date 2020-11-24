@@ -8,7 +8,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const calcSplit = "split"
@@ -33,7 +32,7 @@ type Adjust struct {
 	AdjustSplit    bool
 
 	epochs         []int64
-	output         map[string][]float64
+	output         map[io.DataShape]interface{}
 	skippedColumns map[string]interface{}
 
 	tbk io.TimeBucketKey
@@ -53,7 +52,7 @@ func (adj *Adjust) New() (uda.AggInterface, *functions.ArgumentMap) {
 	rn := new(Adjust)
 
 	rn.ArgMap = functions.NewArgumentMap(requiredColumns, optionalColumns...)
-	rn.output = map[string][]float64{}
+	rn.output = map[io.DataShape]interface{}{}
 	rn.skippedColumns = map[string]interface{}{}
 	return rn, rn.ArgMap
 }
@@ -104,13 +103,14 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 		return errors.New("adjust: Input data must have an Epoch column")
 	}
 	adj.epochs = epochs
-	log.Info("[adjust] Accum %+v", cols.GetDataShapes())
 	for _, ds := range cols.GetDataShapes() {
+		if ds.Name == "Epoch" || ds.Name == "Nanoseconds" {
+			continue
+		}
 		// hacky, hacky...
-		if ds.Type == io.FLOAT64 || (ds.Type == io.INT64 && (ds.Name != "Epoch")) {
-			adj.output[ds.Name], _ = uda.ColumnToFloat64(cols, ds.Name)
-		} else if ds.Name != "Epoch" {
-			log.Info("skipping %s", ds.Name)
+		if ds.Type == io.FLOAT64 || ds.Name == "Volume" {
+			adj.output[ds] = cols.GetColumn(ds.Name)
+		} else {
 			adj.skippedColumns[ds.Name] = cols.GetColumn(ds.Name)
 		}
 	}
@@ -136,8 +136,13 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 		for ; ri > 0 && (epochs[i] < rateChanges[ri-1].Epoch); ri-- {
 			rate *= rateChanges[ri-1].Rate
 		}
-		for _, c := range adj.output {
-			c[i] = math.Round((c[i]/rate)*rounderNum) / rounderNum
+		for _, col := range adj.output {
+			switch c := col.(type) {
+			case []float64:
+				c[i] = math.Round((c[i]/rate)*rounderNum) / rounderNum
+			case []int64:
+				c[i] = int64(float64(c[i]) * rate)
+			}
 		}
 	}
 	return nil
@@ -146,11 +151,10 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 func (adj *Adjust) Output() *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", adj.epochs)
-	for name, column := range adj.output {
-		cs.AddColumn(name, column)
+	for ds, column := range adj.output {
+		cs.AddColumn(ds.Name, column)
 	}
 	for name, column := range adj.skippedColumns {
-		log.Info("reinsert %s", name)
 		cs.AddColumn(name, column)
 	}
 	return cs

@@ -5,6 +5,7 @@ MKTS_CONTAINER_NAME ?= integration_tests_mstore
 PYCLIENT_CONTAINER_NAME ?= integrationtests.pyclient
 
 mkts_copy_data:
+	docker exec ${MKTS_CONTAINER_NAME} bash -c "rm -rf /project/data/mktsdb/AAPL"
 	docker exec ${MKTS_CONTAINER_NAME} bash -c "mkdir -p /project/data/contrib/ice/data"
 	docker cp ${PLUGIN_ROOT}/data ${MKTS_CONTAINER_NAME}:/project/data/contrib/ice/
 
@@ -32,11 +33,3 @@ test: prepare
 	docker exec -e MARKETSTORE_PORT=5993 -e USE_GRPC=false $(PYCLIENT_CONTAINER_NAME) \
 	    bash -c \
 		"pytest -v -v -v tests/contrib/ice/$(TEST_FILENAME)"
-
-
-debug:
-	docker cp ${PLUGIN_ROOT}/tests/* ${PYCLIENT_CONTAINER_NAME}:/project/tests/contrib/ice
-	docker exec -e MARKETSTORE_PORT=5993 -e USE_GRPC=false $(PYCLIENT_CONTAINER_NAME) \
-	    bash -c \
-		"pytest -v -v -v tests/contrib/ice/$(TEST_FILENAME)"
-

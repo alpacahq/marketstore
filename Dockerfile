@@ -35,7 +35,6 @@ ENV GOPATH=/
 RUN ["marketstore", "init"]
 RUN mv mkts.yml /etc/
 VOLUME /data
-VOLUME /ice
 EXPOSE 5993
 
 ENTRYPOINT ["marketstore"]

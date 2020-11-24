@@ -11,7 +11,6 @@ INCLUDE_PLUGINS ?= false
 
 # build marketstore docker container for integration test
 build_mstore:
-	@echo "include plugins: ${INCLUDE_PLUGINS}"
 	docker build -t ${IMAGE_NAME} --build-arg INCLUDE_PLUGINS=${INCLUDE_PLUGINS} ../..
 
 # start a marketstore docker container and check if ListSymbols API can be consumed
@@ -85,11 +84,7 @@ test-grpc: clean run _start_pyclient_container connect
 	make -C dockerfiles/pyclient test-grpc
 
 # run all integration tests for the contrib/ice plugin
-.PHONY: test-contrib-ice
-test-contrib-ice: INCLUDE_PLUGINS = true
-test-contrib-ice: clean run _start_pyclient_container connect 
-	TEST_FILENAME='/project/tests/test_uda_adjust.py' \
-	make -C dockerfiles/pyclient test-jsonrpc
-
-ice:
-	MKTS_CONTAINER_NAME=$(CONTAINER_NAME) make -C contrib/ice prepare
+.PHONY: test-contrib
+test-contrib: INCLUDE_PLUGINS = true
+test-contrib: clean run _start_pyclient_container connect 
+	make -C contrib/ice test
