@@ -8,11 +8,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const calcSplit = "split"
 const calcDividend = "dividend"
-const roundToDecimals = 3
+const roundToDecimals = 4
 
 var (
 	requiredColumns = []io.DataShape{}
@@ -31,9 +32,11 @@ type Adjust struct {
 	AdjustDividend bool
 	AdjustSplit    bool
 
-	epochs []int64
-	output map[string][]float64
-	tbk    io.TimeBucketKey
+	epochs         []int64
+	output         map[string][]float64
+	skippedColumns map[string]interface{}
+
+	tbk io.TimeBucketKey
 }
 
 func (adj *Adjust) GetRequiredArgs() []io.DataShape {
@@ -51,6 +54,7 @@ func (adj *Adjust) New() (uda.AggInterface, *functions.ArgumentMap) {
 
 	rn.ArgMap = functions.NewArgumentMap(requiredColumns, optionalColumns...)
 	rn.output = map[string][]float64{}
+	rn.skippedColumns = map[string]interface{}{}
 	return rn, rn.ArgMap
 }
 
@@ -100,10 +104,14 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 		return errors.New("adjust: Input data must have an Epoch column")
 	}
 	adj.epochs = epochs
+	log.Info("[adjust] Accum %+v", cols.GetDataShapes())
 	for _, ds := range cols.GetDataShapes() {
 		// hacky, hacky...
-		if ds.Type == io.FLOAT64 {
+		if ds.Type == io.FLOAT64 || (ds.Type == io.INT64 && (ds.Name != "Epoch")) {
 			adj.output[ds.Name], _ = uda.ColumnToFloat64(cols, ds.Name)
+		} else if ds.Name != "Epoch" {
+			log.Info("skipping %s", ds.Name)
+			adj.skippedColumns[ds.Name] = cols.GetColumn(ds.Name)
 		}
 	}
 
@@ -139,6 +147,10 @@ func (adj *Adjust) Output() *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", adj.epochs)
 	for name, column := range adj.output {
+		cs.AddColumn(name, column)
+	}
+	for name, column := range adj.skippedColumns {
+		log.Info("reinsert %s", name)
 		cs.AddColumn(name, column)
 	}
 	return cs

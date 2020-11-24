@@ -14,7 +14,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-func Import(reorgDir string, reimport bool) {
+func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) {
 	reorgFiles, err := fileList(reorgDir, enum.ReorgFilePrefix, reimport)
 	if err != nil {
 		log.Fatal("Cannot read reorg files directory - dir: %s, error: %v", reorgDir, err)
@@ -34,7 +34,7 @@ func Import(reorgDir string, reimport bool) {
 		if err != nil {
 			log.Fatal("Cannot load sirs files: %+v", err)
 		}
-		if len(sirsFiles) == 0 {
+		if !storeWithoutSymbol && len(sirsFiles) == 0 {
 			log.Warn("No sirs files loaded, skip to next reorg file")
 			continue
 		}
@@ -42,7 +42,7 @@ func Import(reorgDir string, reimport bool) {
 		if err != nil {
 			log.Fatal("Cannot read security info data: %v", err)
 		}
-		err = storeAnnouncements(*announcements, cusipSymbolMap)
+		err = storeAnnouncements(*announcements, cusipSymbolMap, storeWithoutSymbol)
 		if err != nil {
 			log.Fatal("Error occured while processing announcements from %s", reorgFile)
 		}
@@ -108,14 +108,17 @@ func storeAnnouncement(symbol string, note *Announcement) error {
 	return err
 }
 
-func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string) error {
+func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string, storeWithoutSymbol bool) error {
 	for _, note := range notes {
 		if note.TargetCusip == "" {
 			continue
 		}
 		if note.Is(enum.StockSplit) || note.Is(enum.ReverseStockSplit) || note.Is(enum.StockDividend) {
-			symbol, present := cusipSymbolMap[note.TargetCusip]
-			if present && symbol != "" {
+			symbol := cusipSymbolMap[note.TargetCusip]
+			if symbol == "" && storeWithoutSymbol {
+				symbol = note.TargetCusip
+			}
+			if symbol != "" {
 				if err := storeAnnouncement(symbol, &note); err != nil {
 					log.Fatal("Unable to store Announcement: %+v %+v", err, note)
 					return err
