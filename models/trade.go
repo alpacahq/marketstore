@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	tradeSuffix    string = "TRADE"
-	tradeTimeframe string = "1Sec"
+	TradeSuffix    string = "TRADE"
+	TradeTimeframe string = "1Sec"
 )
 
 // Trade defines schema and helper functions for storing trade data
@@ -35,10 +35,10 @@ type Trade struct {
 
 // TradeBucketKey returns a string bucket key for a given symbol and timeframe
 func TradeBucketKey(symbol string) string {
-	return symbol + "/" + tradeTimeframe + "/" + tradeSuffix
+	return symbol + "/" + TradeTimeframe + "/" + TradeSuffix
 }
 
-// NewTrade creates a new Bar object and initializes it's internal column buffers to the given length
+// NewTrade creates a new Trade object and initializes it's internal column buffers to the given capacity
 func NewTrade(symbol string, capacity int) *Trade {
 	model := &Trade{
 		Tbk: io.NewTimeBucketKey(TradeBucketKey(symbol)),
@@ -85,26 +85,31 @@ func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size
 	model.Exchange = append(model.Exchange, exchange)
 	model.TapeID = append(model.TapeID, tapeid)
 
-	model.Cond4 = append(model.Cond4, enum.NoTradeCondition)
-	model.Cond3 = append(model.Cond3, enum.NoTradeCondition)
-	model.Cond2 = append(model.Cond2, enum.NoTradeCondition)
-	model.Cond1 = append(model.Cond1, enum.NoTradeCondition)
+	cond1 := enum.NoTradeCondition
+	cond2 := enum.NoTradeCondition
+	cond3 := enum.NoTradeCondition
+	cond4 := enum.NoTradeCondition
 
 	switch len(conditions) {
 	case 4:
-		model.Cond4[len(model.Cond4)-1] = conditions[3]
+		cond4 = conditions[3]
 		fallthrough
 	case 3:
-		model.Cond3[len(model.Cond3)-1] = conditions[2]
+		cond3 = conditions[2]
 		fallthrough
 	case 2:
-		model.Cond2[len(model.Cond2)-1] = conditions[1]
+		cond2 = conditions[1]
 		fallthrough
 	case 1:
-		model.Cond1[len(model.Cond1)-1] = conditions[0]
+		cond1 = conditions[0]
 	default:
-		log.Fatal("invalid length of conditions: %v", len(conditions))
+		log.Error("invalid length of conditions: %v", len(conditions))
 	}
+
+	model.Cond4 = append(model.Cond4, cond4)
+	model.Cond3 = append(model.Cond3, cond3)
+	model.Cond2 = append(model.Cond2, cond2)
+	model.Cond1 = append(model.Cond1, cond1)
 }
 
 func (model *Trade) GetCs() *io.ColumnSeries {

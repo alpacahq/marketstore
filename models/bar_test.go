@@ -64,8 +64,31 @@ func (t *TestSuite) TestFromTradesFieldExcludes(c *C) {
 func (t *TestSuite) TestFromTradesDailyRollup(c *C) {
 	// Given a set of trades including ones with condition
 	// which signals end of day price
+	symbol := "TEST_TICK_TO_BAR_DAILY_ROLLUP"
+	trades := NewTrade(symbol, 10)
+	trades.Add(
+		time.Date(2020, 11, 20, 10, 3, 0, 0, utils.InstanceConfig.Timezone).Unix(), 1,
+		100.1, 10, enum.NYSEAmerican, enum.TapeA, enum.RegularSale,
+	)
+	trades.Add(
+		time.Date(2020, 11, 20, 10, 3, 1, 0, utils.InstanceConfig.Timezone).Unix(), 2,
+		111.2, 11, enum.Nasdaq, enum.TapeA,
+	)
+	trades.Add(
+		time.Date(2020, 11, 20, 10, 4, 2, 0, utils.InstanceConfig.Timezone).Unix(), 3,
+		100.2, 12, enum.NYSEAmerican, enum.TapeA, enum.RegularSale,
+	)
+	trades.Add( // MarketCenterOfficialClose should be the last for daily bars
+		time.Date(2020, 11, 20, 10, 4, 3, 0, utils.InstanceConfig.Timezone).Unix(), 4,
+		105.6, 130, enum.NYSE, enum.TapeA, enum.MarketCenterOfficialClose,
+	)
+	trades.Add( // After hours trade
+		time.Date(2020, 11, 20, 10, 4, 3, 0, utils.InstanceConfig.Timezone).Unix(), 4,
+		105.6, 130, enum.NYSE, enum.TapeA, enum.FormT,
+	)
 
 	// When converted to bars
+	bars := FromTrades(trades, symbol, "1Day")
 
 	// Then the daily close price should match to the specified
 }

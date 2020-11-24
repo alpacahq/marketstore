@@ -280,7 +280,8 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey) *io.Colum
 	timeWindow := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
 	var params []accumParam
 
-	if strings.HasSuffix(baseTbk.GetItemKey(), "/1Sec/TRADE") {
+	suffix := fmt.Sprintf("/%s/%s", models.TradeTimeframe, models.TradeSuffix)
+	if strings.HasSuffix(baseTbk.GetItemKey(), suffix) {
 		// Ticks to bars
 		symbol := "asdf"
 		trades := models.NewTrade(symbol, cs.Len())
@@ -294,7 +295,6 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey) *io.Colum
 		cond2 := cs.GetColumn("Cond2").([]byte)
 		cond3 := cs.GetColumn("Cond3").([]byte)
 		cond4 := cs.GetColumn("Cond4").([]byte)
-		fmt.Printf("epochs len: %v\n", len(epochs))
 		for i := range epochs {
 			condition := []modelsenum.TradeCondition{
 				modelsenum.TradeCondition(cond1[i]),

@@ -27,7 +27,7 @@ func BarBucketKey(symbol, timeframe string) string {
 	return symbol + "/" + timeframe + "/" + barSuffix
 }
 
-// NewBar creates a new Bar object and initializes it's internal column buffers to the given length
+// NewBar creates a new Bar object and initializes it's internal column buffers to the given capacity
 func NewBar(symbol, timeframe string, capacity int) *Bar {
 	model := &Bar{
 		Tbk: io.NewTimeBucketKey(BarBucketKey(symbol, timeframe)),
@@ -241,25 +241,25 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 			volume = 0
 		}
 
-		var condition []enum.TradeCondition
+		var conditions []enum.TradeCondition
 		if len(trades.Cond1) > i {
-			condition = append(condition, trades.Cond1[i])
+			conditions = append(conditions, trades.Cond1[i])
 		} else {
-			condition = append(condition, enum.NoTradeCondition)
+			conditions = append(conditions, enum.NoTradeCondition)
 		}
 		if len(trades.Cond2) > i {
-			condition = append(condition, trades.Cond2[i])
+			conditions = append(conditions, trades.Cond2[i])
 		} else {
-			condition = append(condition, enum.NoTradeCondition)
+			conditions = append(conditions, enum.NoTradeCondition)
 		}
 		if len(trades.Cond3) > i {
-			condition = append(condition, trades.Cond3[i])
+			conditions = append(conditions, trades.Cond3[i])
 		}
 		if len(trades.Cond4) > i {
-			condition = append(condition, trades.Cond4[i])
+			conditions = append(conditions, trades.Cond4[i])
 		}
 
-		updateInfo := conditionToUpdateInfo(condition)
+		updateInfo := conditionToUpdateInfo(conditions)
 
 		if !updateInfo.UpdateLast && !updateInfo.UpdateHighLow && !updateInfo.UpdateVolume {
 			continue
