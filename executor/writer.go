@@ -354,13 +354,8 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		if coercion != nil {
 			for _, dbDS := range coercion {
 				if err := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err != nil {
-					var csDS DataShape
-					for _, csDS := range csDSV {
-						if csDS.Name == dbDS.Name {
-							break
-						}
-					}
-					log.Error("[%s] error coercing %s from %s to %s", tbk.GetItemKey(), csDS.Name, csDS.Type.String(), dbDS.Type.String())
+					csType := GetElementType(cs.GetColumn(dbDS.Name))
+					log.Error("[%s] error coercing %s from %s to %s", tbk.GetItemKey(), dbDS.Name, csType.String(), dbDS.Type.String())
 					return err
 				}
 			}
