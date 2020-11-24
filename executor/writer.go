@@ -353,7 +353,7 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		
 		if coercion != nil {
 			for _, dbDS := range coercion {
-				if err := cs.CoerceColumnType(dbDS); err != nil {
+				if err := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err != nil {
 					var csDS DataShape
 					for _, csDS := range csDSV {
 						if csDS.Name == dbDS.Name {
