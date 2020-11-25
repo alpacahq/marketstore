@@ -215,7 +215,8 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 		bucketTimestamp := timestamp.Truncate(bucketDuration)
 
 		if bucketTimestamp.Before(lastBucketTimestamp) {
-			log.Warn("[Bar.FromTrades] got an out-of-order tick for %v @ %v, skipping", bar.Symbol(), timestamp)
+			log.Warn("[Bar.FromTrades] got an out-of-order tick: %v %v %v %v (last: %v), skipping",
+				timestamp, bar.Symbol(), trades.Price[i], trades.Size[i], lastBucketTimestamp)
 			continue
 		}
 
@@ -237,13 +238,9 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 		var conditions []enum.TradeCondition
 		if len(trades.Cond1) > i {
 			conditions = append(conditions, trades.Cond1[i])
-		} else {
-			conditions = append(conditions, enum.NoTradeCondition)
 		}
 		if len(trades.Cond2) > i {
 			conditions = append(conditions, trades.Cond2[i])
-		} else {
-			conditions = append(conditions, enum.NoTradeCondition)
 		}
 		if len(trades.Cond3) > i {
 			conditions = append(conditions, trades.Cond3[i])
