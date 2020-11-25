@@ -123,51 +123,6 @@ func (s *TestSuite) TestVariableBoundaryCases(c *C) {
 	c.Assert(diff < 2, Equals, true)
 }
 
-func (s *TestSuite) TestQuorumValue(c *C) {
-	qv := NewQuorumValue()
-	A := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	AAAAAAA := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	B := []string{"4", "5", "6", "22"}
-	CC := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
-	D := []string{"4", "5", "6", "11", "20"}
-	DD := []string{"4", "5", "6", "11", "20"}
-	DDD := []string{"4", "5", "6", "11", "20"}
-	DDDD := []string{"4", "5", "6", "11", "20"}
-	DDDDD := []string{"4", "5", "6", "11", "20"}
-
-	qv.AddValue(A)
-	qv.AddValue(AA)
-	qv.AddValue(B)
-	qv.AddValue(B)
-	qv.AddValue(B)
-	qv.AddValue(CC)
-	qv.AddValue(D)
-	qv.AddValue(DD)
-	qv.AddValue(DDD)
-	qv.AddValue(DDDD)
-	qv.AddValue(DDDDD)
-	val, conf := qv.GetTopValue()
-	values := val.([]string)
-	c.Assert(reflect.DeepEqual(values, D), Equals, true)
-	c.Assert(conf, Equals, 5)
-
-	qv.AddValue(AAA)
-	qv.AddValue(AAAA)
-	qv.AddValue(AAAAA)
-	qv.AddValue(AAAAAA)
-	qv.AddValue(AAAAAAA)
-
-	val, conf = qv.GetTopValue()
-	values = val.([]string)
-	c.Assert(reflect.DeepEqual(values, A), Equals, true)
-	c.Assert(conf, Equals, 8)
-}
-
 func (s *TestSuite) TestGenerics(c *C) {
 	// DownSizeSlice
 	input := []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
@@ -198,46 +153,6 @@ func (s *TestSuite) TestGenerics(c *C) {
 	*/
 	_, err = DownSizeSlice("Should not work", 100, FIRST)
 	c.Assert(err != nil, Equals, true)
-}
-
-func (s *TestSuite) TestColumnCoercion(c *C) {
-	col1 := []float32{1, 2, 3}
-	col2 := []float64{1, 2, 3}
-	col3 := []int32{1, 2, 3}
-	col4 := []int64{1, 2, 3}
-	col5 := []int8{1, 2, 3}
-	csA := NewColumnSeries()
-	csA.AddColumn("One", col1)
-	csA.AddColumn("Two", col2)
-	csA.AddColumn("Three", col3)
-	csA.AddColumn("Four", col4)
-	csA.AddColumn("Five", col5)
-	c.Assert(csA.Len(), Equals, 3)
-
-	dsNew := DataShape{Name: "Three", Type: FLOAT32}
-	csA.CoerceColumnType(dsNew)
-	_, ok := csA.GetByName("Three").([]float32)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: FLOAT64}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]float64)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: INT32}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]int32)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: INT64}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]int64)
-	c.Assert(ok, Equals, true)
-
-	dsNew = DataShape{Name: "Three", Type: BYTE}
-	csA.CoerceColumnType(dsNew)
-	_, ok = csA.GetByName("Three").([]int8)
-	c.Assert(ok, Equals, true)
 }
 
 func makeTestCS() *ColumnSeries {
@@ -298,8 +213,7 @@ func (s *TestSuite) TestSerializeColumnsToRows(c *C) {
 	/*
 		Type Coercion case
 	*/
-	newDS := DataShape{Name: "Two", Type: BYTE} // Is currently FLOAT64
-	csB.CoerceColumnType(newDS)
+	csB.CoerceColumnType("Two", BYTE) // Is currently FLOAT64
 	dsvProjected = csB.GetDataShapes()
 
 	// Expected record length

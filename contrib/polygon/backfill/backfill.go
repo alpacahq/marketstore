@@ -3,20 +3,20 @@ package backfill
 import (
 	"fmt"
 	"math"
-
-	"github.com/alpacahq/marketstore/v4/contrib/calendar"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-
 	"sync"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
+	"github.com/alpacahq/marketstore/v4/models"
+	"github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const defaultFormat = "2006-01-02"
+const (
+	defaultFormat = "2006-01-02"
+)
 
 type ConsolidatedUpdateInfo struct {
 	UpdateHighLow bool
@@ -120,50 +120,19 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 		return nil
 	}
 
-	tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
-	csm := io.NewColumnSeriesMap()
-
-	epoch := make([]int64, len(resp.Results))
-	open := make([]float32, len(resp.Results))
-	high := make([]float32, len(resp.Results))
-	low := make([]float32, len(resp.Results))
-	close := make([]float32, len(resp.Results))
-	volume := make([]int32, len(resp.Results))
-
-	for i, bar := range resp.Results {
+	model := models.NewBar(symbol, "1Min", len(resp.Results))
+	for _, bar := range resp.Results {
 		timestamp := bar.EpochMilliseconds / 1000
 		if time.Unix(timestamp, 0).After(to) || time.Unix(timestamp, 0).Before(from) {
 			// polygon sometime returns inconsistent data
 			continue
 		}
-		epoch[i] = timestamp
-		open[i] = float32(bar.Open)
-		high[i] = float32(bar.High)
-		low[i] = float32(bar.Low)
-		close[i] = float32(bar.Close)
-		volume[i] = int32(bar.Volume)
+		model.Add(timestamp, bar.Open, bar.High, bar.Low, bar.Close, int(bar.Volume))
 	}
 
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", epoch)
-	cs.AddColumn("Open", open)
-	cs.AddColumn("High", high)
-	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
-	cs.AddColumn("Volume", volume)
-	csm.AddColumnSeries(*tbk, cs)
-
-	t = time.Now()
 	writerWP.Do(func() {
-		tt := time.Now()
-		err = executor.WriteCSM(csm, false)
-		if err != nil {
-			log.Warn("[polygon] failed to write bars for %v (%v) %s - %s", symbol, err, from, to)
-		}
-		WriteTime += time.Now().Sub(tt)
+		model.Write()
 	})
-
-	WaitTime += time.Now().Sub(t)
 
 	return nil
 }
@@ -183,16 +152,12 @@ func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batch
 		return err
 	}
 
-	csm := tradesToBars(resp.Results, symbol, exchangeIDs)
-	if csm == nil {
-		return nil
-	}
+	model := models.NewBar(symbol, "1Min", 1440)
 
-	if err = executor.WriteCSM(csm, false); err != nil {
-		return err
-	}
+	tradesToBars(resp.Results, model, exchangeIDs)
 
-	return nil
+	err = model.Write()
+	return err
 }
 
 func conditionToUpdateInfo(tick api.TradeTick) ConsolidatedUpdateInfo {
@@ -209,40 +174,16 @@ func conditionToUpdateInfo(tick api.TradeTick) ConsolidatedUpdateInfo {
 	return r
 }
 
-func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.ColumnSeriesMap {
-	var csm io.ColumnSeriesMap
-
+func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	if len(ticks) == 0 {
-		return csm
+		return
 	}
 
 	var epoch int64
-	var open, high, low, close_ float32
-	var volume, tickCnt int32
+	var open, high, low, close_ float64
+	var volume int
 
-	epochs := make([]int64, 1440)
-	opens := make([]float32, 1440)
-	highs := make([]float32, 1440)
-	lows := make([]float32, 1440)
-	closes := make([]float32, 1440)
-	volumes := make([]int32, 1440)
-	tickCnts := make([]int32, 1440)
-
-	barIdx := 0
 	lastBucketTimestamp := time.Time{}
-
-	storeAggregates := func() {
-		// Store the minute aggregate
-		epochs[barIdx] = epoch
-		opens[barIdx] = open
-		highs[barIdx] = high
-		lows[barIdx] = low
-		closes[barIdx] = close_
-		volumes[barIdx] = volume
-		tickCnts[barIdx] = tickCnt
-
-		barIdx++
-	}
 
 	// FIXME: The daily close bars are not handled correctly:
 	// We are aggregating from ticks to minutes then from minutes to daily prices.
@@ -259,31 +200,28 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 			continue
 		}
 
-		price := float32(tick.Price)
+		price := tick.Price
 		timestamp := time.Unix(0, tick.SipTimestamp)
 		bucketTimestamp := timestamp.Truncate(time.Minute)
 
 		if bucketTimestamp.Before(lastBucketTimestamp) {
-			log.Warn("[polygon] got an out-of-order tick for %v @ %v, skipping", symbol, timestamp)
+			log.Warn("[polygon] got an out-of-order tick for %v @ %v, skipping", model.Symbol(), timestamp)
 			continue
 		}
 
 		if !lastBucketTimestamp.Equal(bucketTimestamp) {
 			if open != 0 && volume != 0 {
-				storeAggregates()
+				model.Add(epoch, open, high, low, close_, volume)
 			}
 
 			lastBucketTimestamp = bucketTimestamp
 			epoch = bucketTimestamp.Unix()
 			open = 0
 			high = 0
-			low = math.MaxFloat32
+			low = math.MaxFloat64
 			close_ = 0
 			volume = 0
-			tickCnt = 0
 		}
-
-		tickCnt += 1
 
 		updateInfo := conditionToUpdateInfo(tick)
 
@@ -308,28 +246,13 @@ func tradesToBars(ticks []api.TradeTick, symbol string, exchangeIDs []int) io.Co
 		}
 
 		if updateInfo.UpdateVolume {
-			volume += int32(tick.Size)
+			volume += tick.Size
 		}
 	}
 
 	if open != 0 && volume != 0 {
-		storeAggregates()
+		model.Add(epoch, open, high, low, close_, volume)
 	}
-
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", epochs[:barIdx])
-	cs.AddColumn("Open", opens[:barIdx])
-	cs.AddColumn("High", highs[:barIdx])
-	cs.AddColumn("Low", lows[:barIdx])
-	cs.AddColumn("Close", closes[:barIdx])
-	cs.AddColumn("Volume", volumes[:barIdx])
-	cs.AddColumn("TickCnt", tickCnts[:barIdx])
-
-	csm = io.NewColumnSeriesMap()
-	tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/OHLCV")
-	csm.AddColumnSeries(*tbk, cs)
-
-	return csm
 }
 
 func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
@@ -344,49 +267,31 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 			trades = append(trades, resp.Results...)
 		}
 	}
-	ApiCallTime += time.Now().Sub(t)
+	ApiCallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
 	}
 
 	if len(trades) > 0 {
-		csm := io.NewColumnSeriesMap()
-		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Sec/TRADE")
-		cs := io.NewColumnSeries()
-
-		epoch := make([]int64, len(trades))
-		nanos := make([]int32, len(trades))
-		price := make([]float32, len(trades))
-		size := make([]int32, len(trades))
-
-		for i, tick := range trades {
+		model := models.NewTrade(symbol, len(trades))
+		for _, tick := range trades {
+			// type conversions
 			timestamp := time.Unix(0, tick.SipTimestamp)
-			bucketTimestamp := timestamp.Truncate(time.Second)
-			epoch[i] = bucketTimestamp.Unix()
-			nanos[i] = int32(timestamp.UnixNano() - bucketTimestamp.UnixNano())
-			price[i] = float32(tick.Price)
-			size[i] = int32(tick.Size)
-		}
-
-		cs.AddColumn("Epoch", epoch)
-		cs.AddColumn("Nanoseconds", nanos)
-		cs.AddColumn("Price", price)
-		cs.AddColumn("Size", size)
-		csm.AddColumnSeries(*tbk, cs)
-
-		t = time.Now()
-		writerWP.Do(func() {
-			tt := time.Now()
-			err := executor.WriteCSM(csm, true)
-			if err != nil {
-				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
+			conditions := make([]enum.TradeCondition, len(tick.Conditions))
+			for i, cond := range tick.Conditions {
+				conditions[i] = api.ConvertTradeCondition(cond)
 			}
-			WriteTime += time.Now().Sub(tt)
+			exchange := api.ConvertExchangeCode(tick.Exchange)
+			tape := api.ConvertTapeCode(tick.Tape)
+			// storing
+			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.Price, tick.Size, exchange, tape, conditions...)
+		}
+		// finally write to database
+		writerWP.Do(func() {
+			model.Write()
 		})
-		WaitTime += time.Now().Sub(t)
 	}
-
 	return nil
 }
 
@@ -415,46 +320,20 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 	}
 
 	if len(quotes) > 0 {
-		csm := io.NewColumnSeriesMap()
-		tbk := io.NewTimeBucketKeyFromString(symbol + "/1Min/QUOTE")
-		cs := io.NewColumnSeries()
+		model := models.NewQuote(symbol, len(quotes))
 
-		epoch := make([]int64, len(quotes))
-		nanos := make([]int32, len(quotes))
-		bidPrice := make([]float32, len(quotes))
-		bidSize := make([]int32, len(quotes))
-		askPrice := make([]float32, len(quotes))
-		askSize := make([]int32, len(quotes))
-
-		for i, tick := range quotes {
+		for _, tick := range quotes {
 			timestamp := time.Unix(0, 1000*1000*tick.Timestamp)
 
-			epoch[i] = timestamp.Unix()
-			nanos[i] = int32(timestamp.Nanosecond())
-			bidPrice[i] = float32(tick.BidPrice)
-			bidSize[i] = int32(tick.BidSize)
-			askPrice[i] = float32(tick.BidPrice)
-			askSize[i] = int32(tick.AskSize)
+			bidExchange := api.ConvertExchangeCode(tick.BidExchange)
+			askExchange := api.ConvertExchangeCode(tick.AskExchange)
+			condition := api.ConvertQuoteCondition(tick.Condition)
+			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.BidPrice, tick.AskPrice, tick.BidSize, tick.AskSize, bidExchange, askExchange, condition)
 		}
 
-		cs.AddColumn("Epoch", epoch)
-		cs.AddColumn("Nanoseconds", nanos)
-		cs.AddColumn("BidPrice", bidPrice)
-		cs.AddColumn("AskPrice", askPrice)
-		cs.AddColumn("BidSize", bidSize)
-		cs.AddColumn("AskSize", askSize)
-		csm.AddColumnSeries(*tbk, cs)
-
-		t = time.Now()
 		writerWP.Do(func() {
-			tt := time.Now()
-			err := executor.WriteCSM(csm, true)
-			if err != nil {
-				log.Warn("[polygon] failed to write trades for %v (%v) between %s and %s ", symbol, err, from.String(), to.String())
-			}
-			WriteTime += time.Now().Sub(tt)
+			model.Write()
 		})
-		WaitTime += time.Now().Sub(t)
 	}
 
 	return nil

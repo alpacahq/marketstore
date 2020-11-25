@@ -2,7 +2,6 @@ package api
 
 import (
 	"math/rand"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -63,7 +62,7 @@ func (s *Subscription) Start(handler func(msg []byte)) {
 func (s *Subscription) start(handler func(msg []byte)) {
 	subscriptions := s.ws.subscriptions
 
-	log.Info("[alpaca] subscribing to Alpaca data websocket")
+	log.Info("[alpaca] subscribing to Alpaca data websocket: %v", s.ws.server)
 	log.Info("[alpaca] enabling ... {%s:%v}", "streams", subscriptions)
 
 	// initialize & start the async worker pool
@@ -76,19 +75,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 
 	go workerPool.Work(s.incoming)
 
-	// monitoring goroutines
-	go func() {
-		tickDebug := time.NewTicker(time.Second)
-		defer tickDebug.Stop()
-		for range tickDebug.C {
-			log.Debug(
-				"[alpaca] {%s:%v,%s:%v,%s:%v,%s:%v}",
-				"subscription", subscriptions,
-				"goroutines", runtime.NumGoroutine(),
-				"channel_depth", s.channel.Len(),
-				"handled_messages", s.getHandled())
-		}
-	}()
+	// monitoring goroutine
 	go func() {
 		tickInfo := time.NewTicker(1 * time.Minute)
 		defer tickInfo.Stop()
