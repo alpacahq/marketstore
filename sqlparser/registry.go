@@ -4,6 +4,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/candler/candlecandler"
 	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/uda/adjust"
 	"github.com/alpacahq/marketstore/v4/uda/avg"
 	"github.com/alpacahq/marketstore/v4/uda/count"
 	"github.com/alpacahq/marketstore/v4/uda/gap"
@@ -26,4 +27,6 @@ var AggRegistry = map[string]uda.AggInterface{
 	"avg":           &avg.Avg{},
 	"Gap":           &gap.Gap{},
 	"gap":           &gap.Gap{},
+	"Adjust":        &adjust.Adjust{},
+	"adjust":        &adjust.Adjust{},
 }

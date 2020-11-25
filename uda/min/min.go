@@ -111,3 +111,9 @@ func (mn *Min) Reset() {
 /*
 Utility Functions
 */
+
+/*
+	SetTimeBucketKey()
+*/
+func (mn *Min) SetTimeBucketKey(tbk io.TimeBucketKey) {
+}

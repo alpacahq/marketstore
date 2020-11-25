@@ -193,3 +193,9 @@ func (g *Gap) Reset() {
 	g.Input = nil
 	g.avgGapIntervalSeconds = -1
 }
+
+/*
+	SetTimeBucketKey()
+*/
+func (g *Gap) SetTimeBucketKey(tbk io.TimeBucketKey) {
+}

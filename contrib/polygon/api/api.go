@@ -195,7 +195,8 @@ func GetHistoricAggregates(
 	timespan string,
 	multiplier int,
 	from, to time.Time,
-	limit *int) (*HistoricAggregates, error) {
+	limit *int,
+	unadjusted bool) (*HistoricAggregates, error) {
 	// FIXME: This function does not handle pagination
 
 	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan, from.Format(completeDate), to.Format(completeDate)))
@@ -205,6 +206,7 @@ func GetHistoricAggregates(
 
 	q := u.Query()
 	q.Set("apiKey", apiKey)
+	q.Set("unadjusted", strconv.FormatBool(unadjusted))
 
 	limit_n := 0
 	if limit != nil {

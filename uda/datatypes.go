@@ -49,6 +49,11 @@ type AggInterface interface {
 		Reset() puts the aggregate state back to "new"
 	*/
 	Reset()
+
+	/*
+		SetTimeBucketKey() sets the TimeBucketKey for the aggregator function
+	*/
+	SetTimeBucketKey(io.TimeBucketKey)
 }
 
 //TODO: This is where we break out a UDF API

@@ -15,6 +15,7 @@ debug:
 	$(MAKE) debug -C contrib/binancefeeder
 	$(MAKE) debug -C contrib/bitmexfeeder
 	$(MAKE) debug -C contrib/gdaxfeeder
+	${MAKE} debug -C contrib/ice
 	$(MAKE) debug -C contrib/iex
 	$(MAKE) debug -C contrib/ondiskagg
 	$(MAKE) debug -C contrib/polygon
@@ -36,6 +37,7 @@ plugins:
 	$(MAKE) -C contrib/binancefeeder
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/gdaxfeeder
+	${MAKE} -C contrib/ice
 	$(MAKE) -C contrib/iex
 	$(MAKE) -C contrib/ondiskagg
 	$(MAKE) -C contrib/polygon
@@ -59,6 +61,9 @@ integration-test-jsonrpc:
 integration-test-grpc:
 	$(MAKE) -C tests/integ test-grpc
 
+integration-test-contrib:
+	$(MAKE) -C tests/integ test-contrib
+
 replication-test:
 	$(MAKE) -C tests/replication test-replication
 
@@ -67,6 +72,7 @@ test: build
 	$(MAKE) import-csv-test
 	$(MAKE) integration-test-jsonrpc
 	$(MAKE) integration-test-grpc
+	$(MAKE) integration-test-contrib
 
 image:
 	docker build . -t marketstore:latest -f $(DOCKER_FILE_PATH)

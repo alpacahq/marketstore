@@ -198,7 +198,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			*/
 			if len(req.Functions) != 0 {
 				for tbkStr, cs := range csm {
-					csOut, err := runAggFunctions(req.Functions, cs)
+					csOut, err := runAggFunctions(req.Functions, cs, tbkStr)
 					if err != nil {
 						return err
 					}
@@ -330,7 +330,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 	return csm, err
 }
 
-func runAggFunctions(callChain []string, csInput *io.ColumnSeries) (cs *io.ColumnSeries, err error) {
+func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBucketKey) (cs *io.ColumnSeries, err error) {
 	cs = nil
 	for _, call := range callChain {
 		if cs != nil {
@@ -346,6 +346,7 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries) (cs *io.Colum
 			return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 		}
 		aggfunc, argMap := agg.New()
+		aggfunc.SetTimeBucketKey(tbk)
 
 		err = argMap.PrepareArguments(parameterList)
 		if err != nil {

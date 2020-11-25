@@ -4,13 +4,14 @@
 
 IMAGE_NAME ?= alpacahq/integrationtests.marketstore
 CONTAINER_NAME = integration_tests_mstore
+INCLUDE_PLUGINS ?= false
 
 # User targets
 ################################################################################
 
 # build marketstore docker container for integration test
 build_mstore:
-	docker build -t ${IMAGE_NAME} --build-arg INCLUDE_PLUGINS=false ../..
+	docker build -t ${IMAGE_NAME} --build-arg INCLUDE_PLUGINS=${INCLUDE_PLUGINS} ../..
 
 # start a marketstore docker container and check if ListSymbols API can be consumed
 .PHONY: connect
@@ -82,3 +83,8 @@ test-grpc: clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test-grpc
 
+# run all integration tests for the contrib/ice plugin
+.PHONY: test-contrib
+test-contrib: INCLUDE_PLUGINS = true
+test-contrib: clean run _start_pyclient_container connect 
+	make -C contrib/ice test

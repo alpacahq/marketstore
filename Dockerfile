@@ -28,6 +28,7 @@ RUN apt-get update && \
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/marketstore /bin/
 COPY --from=builder /go/bin /bin/
 COPY --from=builder /go/src/github.com/alpacahq/marketstore/contrib/polygon/polygon-backfill-*.sh /bin/
+COPY --from=builder /go/src/github.com/alpacahq/marketstore/contrib/ice/ca-sync-*.sh /bin/
 
 ENV GOPATH=/
 

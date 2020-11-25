@@ -100,3 +100,7 @@ func (ca *TickCandler) Accum(cols io.ColumnInterface) error {
 /*
 Utility Functions
 */
+
+func (ca *TickCandler) SetTimeBucketKey(tbk io.TimeBucketKey) {
+	// for compatibility reasons only
+}
