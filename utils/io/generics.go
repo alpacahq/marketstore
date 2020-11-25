@@ -85,6 +85,7 @@ func (as *AnySet) Del(i_elem interface{}) {
 	}
 }
 
+// Intersect provides a list of all elements in both this object and input
 func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 	/*
 		Slice as input - must be of same type as existing
@@ -116,6 +117,7 @@ func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 	return newSlice.Interface()
 }
 
+// Subtract provides a list of all elements in this object and not in input
 func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 	/*
 		Slice as input - must be of same type as existing
@@ -156,13 +158,14 @@ func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 	orderedElems := reflect.ValueOf(as.orderedElems)
 	for i := 0; i < orderedElems.Len(); i++ { // All of A
 		elem := orderedElems.Index(i)
-		if intMap.MapIndex(elem) == emptyValue { // Name is not found in A U B
+		if intMap.MapIndex(elem) == emptyValue { // Name is not found in A ∩ B
 			newSlice = reflect.Append(newSlice, elem)
 		}
 	}
 	return newSlice.Interface()
 }
 
+// Contains returns True if the set fully contains the input
 func (as *AnySet) Contains(input interface{}) bool {
 	/*
 		Slice as input - must be of same type as existing

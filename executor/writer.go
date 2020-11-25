@@ -266,7 +266,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	return err
 }
 
-// WriteCSM writs ColumnSeriesMap csm to each destination file, and flush it to the disk,
+// WriteCSM writes ColumnSeriesMap (csm) to each destination file, and flush it to the disk,
 // isVariableLength is set to true if the record content is variable-length type. WriteCSM
 // also verifies the DataShapeVector of the incoming ColumnSeriesMap matches the on-disk
 // DataShapeVector defined by the file header. WriteCSM will create any files if they do
