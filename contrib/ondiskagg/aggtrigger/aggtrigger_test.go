@@ -67,7 +67,7 @@ func (t *TestSuite) TestAgg(c *C) {
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 
-	outCs := aggregate(cs, aggTbk, baseTbk)
+	outCs := aggregate(cs, aggTbk, baseTbk, "TEST")
 	c.Assert(outCs.Len(), Equals, 3)
 	c.Assert(outCs.GetColumn("Open").([]float32)[0], Equals, float32(1.))
 	c.Assert(outCs.GetColumn("High").([]float32)[1], Equals, float32(4.1))
@@ -92,7 +92,7 @@ func (t *TestSuite) TestAgg(c *C) {
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 
-	outCs = aggregate(cs, aggTbk, baseTbk)
+	outCs = aggregate(cs, aggTbk, baseTbk, "TEST")
 	c.Assert(outCs.Len(), Equals, 2)
 	d1 := time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
 	d2 := time.Date(2017, 12, 16, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
