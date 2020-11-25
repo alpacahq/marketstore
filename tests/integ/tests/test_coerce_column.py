@@ -9,8 +9,9 @@ import pandas as pd
 
 import pymarketstore as pymkts
 
-client = pymkts.Client(f"127.0.0.1:{os.getenv('MARKETSTORE_PORT',5998)}",
-                       grpc=(os.getenv("USE_GRPC", "true") == "true"))
+use_grpc = os.getenv("USE_GRPC", "false") == "true"
+client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/rpc",
+                       grpc=(use_grpc))
 
 
 def timestamp(datestr):
