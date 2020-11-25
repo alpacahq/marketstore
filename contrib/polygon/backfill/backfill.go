@@ -10,7 +10,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/models"
-	"github.com/alpacahq/marketstore/v4/models/enum"
+	modelsenum "github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -127,7 +127,12 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 			// polygon sometime returns inconsistent data
 			continue
 		}
-		model.Add(timestamp, bar.Open, bar.High, bar.Low, bar.Close, int(bar.Volume))
+		model.Add(timestamp,
+			modelsenum.Price(bar.Open),
+			modelsenum.Price(bar.High),
+			modelsenum.Price(bar.Low),
+			modelsenum.Price(bar.Close),
+			modelsenum.Size(bar.Volume))
 	}
 
 	writerWP.Do(func() {
@@ -211,7 +216,13 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 
 		if !lastBucketTimestamp.Equal(bucketTimestamp) {
 			if open != 0 && volume != 0 {
-				model.Add(epoch, open, high, low, close_, volume)
+				model.Add(
+					epoch,
+					modelsenum.Price(open),
+					modelsenum.Price(high),
+					modelsenum.Price(low),
+					modelsenum.Price(close_),
+					modelsenum.Size(volume))
 			}
 
 			lastBucketTimestamp = bucketTimestamp
@@ -251,7 +262,13 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 
 	if open != 0 && volume != 0 {
-		model.Add(epoch, open, high, low, close_, volume)
+		model.Add(
+			epoch,
+			modelsenum.Price(open),
+			modelsenum.Price(high),
+			modelsenum.Price(low),
+			modelsenum.Price(close_),
+			modelsenum.Size(volume))
 	}
 }
 
@@ -278,14 +295,17 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 		for _, tick := range trades {
 			// type conversions
 			timestamp := time.Unix(0, tick.SipTimestamp)
-			conditions := make([]enum.TradeCondition, len(tick.Conditions))
+			conditions := make([]modelsenum.TradeCondition, len(tick.Conditions))
 			for i, cond := range tick.Conditions {
 				conditions[i] = api.ConvertTradeCondition(cond)
 			}
 			exchange := api.ConvertExchangeCode(tick.Exchange)
 			tape := api.ConvertTapeCode(tick.Tape)
-			// storing
-			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.Price, tick.Size, exchange, tape, conditions...)
+			model.Add(
+				timestamp.Unix(), timestamp.Nanosecond(),
+				modelsenum.Price(tick.Price),
+				modelsenum.Size(tick.Size),
+				exchange, tape, conditions...)
 		}
 		// finally write to database
 		writerWP.Do(func() {

@@ -58,7 +58,8 @@ func (t *TestSuite) TestAgg(c *C) {
 	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9}
 	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05}
 
-	tbk := io.NewTimeBucketKey("TEST/5Min/OHLC")
+	baseTbk := io.NewTimeBucketKey("TEST/1Min/OHLCV")
+	aggTbk := io.NewTimeBucketKey("TEST/5Min/OHLC")
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	cs.AddColumn("Open", open)
@@ -66,7 +67,7 @@ func (t *TestSuite) TestAgg(c *C) {
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 
-	outCs := aggregate(cs, tbk)
+	outCs := aggregate(cs, aggTbk, baseTbk, "TEST")
 	c.Assert(outCs.Len(), Equals, 3)
 	c.Assert(outCs.GetColumn("Open").([]float32)[0], Equals, float32(1.))
 	c.Assert(outCs.GetColumn("High").([]float32)[1], Equals, float32(4.1))
@@ -83,7 +84,7 @@ func (t *TestSuite) TestAgg(c *C) {
 		time.Date(2017, 12, 16, 10, 10, 0, 0, utils.InstanceConfig.Timezone).Unix(),
 	}
 
-	tbk = io.NewTimeBucketKey("TEST/1D/OHLC")
+	aggTbk = io.NewTimeBucketKey("TEST/1D/OHLC")
 	cs = io.NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	cs.AddColumn("Open", open)
@@ -91,7 +92,7 @@ func (t *TestSuite) TestAgg(c *C) {
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 
-	outCs = aggregate(cs, tbk)
+	outCs = aggregate(cs, aggTbk, baseTbk, "TEST")
 	c.Assert(outCs.Len(), Equals, 2)
 	d1 := time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
 	d2 := time.Date(2017, 12, 16, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
@@ -99,7 +100,7 @@ func (t *TestSuite) TestAgg(c *C) {
 	c.Assert(outCs.GetEpoch()[1], Equals, d2.Unix())
 }
 
-func (t *TestSuite) TestFire(c *C) {
+func (t *TestSuite) TestFireBars(c *C) {
 	// We assume WriteCSM here is synchronous by not running
 	// background writer
 	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")

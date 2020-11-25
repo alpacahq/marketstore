@@ -235,11 +235,7 @@ func main() {
 	log.Info("[polygon] wait for shutdown")
 	executor.ThisInstance.ShutdownPending = true
 	executor.ThisInstance.WALWg.Wait()
-
-	for len(executor.ThisInstance.TriggerMatchers) > 0 {
-		log.Info("[polygon] waiting for 10 more seconds for ondiskagg triggers to complete")
-		time.Sleep(10 * time.Second)
-	}
+	executor.FinishAndWait()
 
 	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)

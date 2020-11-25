@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	tradeSuffix    string = "TRADE"
-	tradeTimeframe string = "1Sec"
+	TradeSuffix    string = "TRADE"
+	TradeTimeframe string = "1Sec"
 )
 
 // Trade defines schema and helper functions for storing trade data
@@ -21,32 +21,29 @@ type Trade struct {
 	cs       *io.ColumnSeries
 	Epoch    []int64
 	Nanos    []int32
-	Price    []float64
-	Size     []uint64
-	Exchange []byte
-	TapeID   []byte
-	Cond1    []byte
-	Cond2    []byte
-	Cond3    []byte
-	Cond4    []byte
+	Price    []enum.Price
+	Size     []enum.Size
+	Exchange []enum.Exchange
+	TapeID   []enum.Tape
+	Cond1    []enum.TradeCondition
+	Cond2    []enum.TradeCondition
+	Cond3    []enum.TradeCondition
+	Cond4    []enum.TradeCondition
 
 	WriteTime time.Duration
-	limit     int
-	idx       int
 }
 
 // TradeBucketKey returns a string bucket key for a given symbol and timeframe
 func TradeBucketKey(symbol string) string {
-	return symbol + "/" + tradeTimeframe + "/" + tradeSuffix
+	return symbol + "/" + TradeTimeframe + "/" + TradeSuffix
 }
 
-// NewTrade creates a new Bar object and initializes it's internal column buffers to the given length
-func NewTrade(symbol string, length int) *Trade {
+// NewTrade creates a new Trade object and initializes it's internal column buffers to the given capacity
+func NewTrade(symbol string, capacity int) *Trade {
 	model := &Trade{
-		Tbk:   io.NewTimeBucketKey(TradeBucketKey(symbol)),
-		limit: length,
+		Tbk: io.NewTimeBucketKey(TradeBucketKey(symbol)),
 	}
-	model.make(length)
+	model.make(capacity)
 	return model
 }
 
@@ -65,72 +62,79 @@ func (model *Trade) Symbol() string {
 	return model.Tbk.GetItemInCategory("Symbol")
 }
 
-// SetLimit sets a limit on how many entries are actually used when .Write() is called
-// It is useful if the model's buffers populated through the exported buffers directly (Open[i], Close[i], etc)
-// and the actual amount of inserted data is less than the initailly specified length parameter.
-func (model *Trade) SetLimit(limit int) {
-	model.limit = limit
-}
-
 // make allocates buffers for this model.
-func (model *Trade) make(length int) {
-	model.Epoch = make([]int64, length)
-	model.Nanos = make([]int32, length)
-	model.Price = make([]float64, length)
-	model.Size = make([]uint64, length)
-	model.Exchange = make([]byte, length)
-	model.TapeID = make([]byte, length)
-	model.Cond1 = make([]byte, length)
-	model.Cond2 = make([]byte, length)
-	model.Cond3 = make([]byte, length)
-	model.Cond4 = make([]byte, length)
+func (model *Trade) make(capacity int) {
+	model.Epoch = make([]int64, 0, capacity)
+	model.Nanos = make([]int32, 0, capacity)
+	model.Price = make([]enum.Price, 0, capacity)
+	model.Size = make([]enum.Size, 0, capacity)
+	model.Exchange = make([]enum.Exchange, 0, capacity)
+	model.TapeID = make([]enum.Tape, 0, capacity)
+	model.Cond1 = make([]enum.TradeCondition, 0, capacity)
+	model.Cond2 = make([]enum.TradeCondition, 0, capacity)
+	model.Cond3 = make([]enum.TradeCondition, 0, capacity)
+	model.Cond4 = make([]enum.TradeCondition, 0, capacity)
 }
 
 // Add adds a new data point to the internal buffers, and increment the internal index by one
-func (model *Trade) Add(epoch int64, nanos int, price float64, size int, exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition) {
-	idx := model.idx
-	model.Epoch[idx] = epoch
-	model.Nanos[idx] = int32(nanos)
-	model.Price[idx] = price
-	model.Size[idx] = uint64(size)
-	model.Exchange[idx] = byte(exchange)
-	model.TapeID[idx] = byte(tapeid)
+func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size, exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition) {
+	model.Epoch = append(model.Epoch, epoch)
+	model.Nanos = append(model.Nanos, int32(nanos))
+	model.Price = append(model.Price, price)
+	model.Size = append(model.Size, size)
+	model.Exchange = append(model.Exchange, exchange)
+	model.TapeID = append(model.TapeID, tapeid)
+
+	cond1 := enum.NoTradeCondition
+	cond2 := enum.NoTradeCondition
+	cond3 := enum.NoTradeCondition
+	cond4 := enum.NoTradeCondition
+
 	switch len(conditions) {
 	case 4:
-		model.Cond4[idx] = byte(conditions[3])
+		cond4 = conditions[3]
 		fallthrough
 	case 3:
-		model.Cond3[idx] = byte(conditions[2])
+		cond3 = conditions[2]
 		fallthrough
 	case 2:
-		model.Cond2[idx] = byte(conditions[1])
+		cond2 = conditions[1]
 		fallthrough
 	case 1:
-		model.Cond1[idx] = byte(conditions[0])
+		cond1 = conditions[0]
+	case 0:
+		break
+	default:
+		log.Error("invalid length of conditions: %v", len(conditions))
 	}
-	model.idx++
+
+	model.Cond4 = append(model.Cond4, cond4)
+	model.Cond3 = append(model.Cond3, cond3)
+	model.Cond2 = append(model.Cond2, cond2)
+	model.Cond1 = append(model.Cond1, cond1)
+}
+
+func (model *Trade) GetCs() *io.ColumnSeries {
+	cs := io.NewColumnSeries()
+	cs.AddColumn("Epoch", model.Epoch)
+	cs.AddColumn("Nanoseconds", model.Nanos)
+	cs.AddColumn("Price", model.Price)
+	cs.AddColumn("Size", model.Size)
+	cs.AddColumn("Exchange", model.Exchange)
+	cs.AddColumn("TapeID", model.TapeID)
+	cs.AddColumn("Cond1", model.Cond1)
+	cs.AddColumn("Cond2", model.Cond2)
+	cs.AddColumn("Cond3", model.Cond3)
+	cs.AddColumn("Cond4", model.Cond4)
+
+	return cs
 }
 
 // BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
 // it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk
 func (model *Trade) buildCsm() *io.ColumnSeriesMap {
-	if model.idx > 0 {
-		model.limit = model.idx
-	}
-	limit := model.limit
 	csm := io.NewColumnSeriesMap()
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", model.Epoch[:limit])
-	cs.AddColumn("Nanoseconds", model.Nanos[:limit])
-	cs.AddColumn("Price", model.Price[:limit])
-	cs.AddColumn("Size", model.Size[:limit])
-	cs.AddColumn("Exchange", model.Exchange[:limit])
-	cs.AddColumn("TapeID", model.TapeID[:limit])
-	cs.AddColumn("Cond1", model.Cond1[:limit])
-	cs.AddColumn("Cond2", model.Cond2[:limit])
-	cs.AddColumn("Cond3", model.Cond3[:limit])
-	cs.AddColumn("Cond4", model.Cond4[:limit])
-	csm.AddColumnSeries(*model.Tbk, cs)
+	csm.AddColumnSeries(*model.Tbk, model.GetCs())
 	return &csm
 }
 

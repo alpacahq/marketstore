@@ -34,6 +34,8 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/models"
+	modelsenum "github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
@@ -188,9 +190,14 @@ func (s *OnDiskAggTrigger) write(
 	elements []string) {
 
 	for _, dest := range s.destinations {
-		aggTbk := io.NewTimeBucketKeyFromString(elements[0] + "/" + dest.String + "/" + elements[2])
+		symbol := elements[0]
+		attributeGroup := elements[2]
+		if elements[2] == "TRADE" {
+			attributeGroup = "OHLCV"
+		}
+		aggTbk := io.NewTimeBucketKeyFromString(symbol + "/" + dest.String + "/" + attributeGroup)
 
-		if err := s.writeAggregates(aggTbk, tbk, *cs, dest, head, tail); err != nil {
+		if err := s.writeAggregates(aggTbk, tbk, *cs, dest, head, tail, symbol); err != nil {
 			log.Error(
 				"failed to write %v aggregates (%v)\n",
 				tbk.String(),
@@ -213,7 +220,8 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	aggTbk, baseTbk *io.TimeBucketKey,
 	cs io.ColumnSeries,
 	dest utils.Timeframe,
-	head, tail time.Time) error {
+	head, tail time.Time,
+	symbol string) error {
 
 	csm := io.NewColumnSeriesMap()
 
@@ -265,54 +273,93 @@ func (s *OnDiskAggTrigger) writeAggregates(
 		// normally this will always be true, but when there are random bars
 		// on the weekend, it won't be, so checking to avoid panic
 		if len(tqSlc.GetEpoch()) > 0 {
-			csm.AddColumnSeries(*aggTbk, aggregate(tqSlc, aggTbk))
+			csm.AddColumnSeries(*aggTbk, aggregate(tqSlc, aggTbk, baseTbk, symbol))
 		}
 	} else {
-		csm.AddColumnSeries(*aggTbk, aggregate(&slc, aggTbk))
+		csm.AddColumnSeries(*aggTbk, aggregate(&slc, aggTbk, baseTbk, symbol))
 	}
 
 	return executor.WriteCSM(csm, false)
 }
 
-func aggregate(cs *io.ColumnSeries, tbk *io.TimeBucketKey) *io.ColumnSeries {
-	timeWindow := utils.CandleDurationFromString(tbk.GetItemInCategory("Timeframe"))
+func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) *io.ColumnSeries {
+	timeWindow := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
+	var params []accumParam
 
-	params := []accumParam{
-		accumParam{"Open", "first", "Open"},
-		accumParam{"High", "max", "High"},
-		accumParam{"Low", "min", "Low"},
-		accumParam{"Close", "last", "Close"},
-	}
-	if cs.Exists("Volume") {
-		params = append(params, accumParam{"Volume", "sum", "Volume"})
-	}
-	accumGroup := newAccumGroup(cs, params)
-
-	ts, _ := cs.GetTime()
-	outEpoch := make([]int64, 0)
-
-	groupKey := timeWindow.Truncate(ts[0])
-	groupStart := 0
-	// accumulate inputs.  Since the input is ordered by
-	// time, it is just to slice by correct boundaries
-	for i, t := range ts {
-		if !timeWindow.IsWithin(t, groupKey) {
-			// Emit new row and re-init aggState
-			outEpoch = append(outEpoch, groupKey.Unix())
-			accumGroup.apply(groupStart, i)
-			groupKey = timeWindow.Truncate(t)
-			groupStart = i
+	suffix := fmt.Sprintf("/%s/%s", models.TradeTimeframe, models.TradeSuffix)
+	if strings.HasSuffix(baseTbk.GetItemKey(), suffix) {
+		// Ticks to bars
+		trades := models.NewTrade(symbol, cs.Len())
+		epochs := cs.GetEpoch()
+		nanos := cs.GetColumn("Nanoseconds").([]int32)
+		prices := cs.GetColumn("Price").([]float64)
+		sizes := cs.GetColumn("Size").([]uint64)
+		exchanges := cs.GetColumn("Exchange").([]byte)
+		tapeids := cs.GetColumn("TapeID").([]byte)
+		cond1 := cs.GetColumn("Cond1").([]byte)
+		cond2 := cs.GetColumn("Cond2").([]byte)
+		cond3 := cs.GetColumn("Cond3").([]byte)
+		cond4 := cs.GetColumn("Cond4").([]byte)
+		for i := range epochs {
+			condition := []modelsenum.TradeCondition{
+				modelsenum.TradeCondition(cond1[i]),
+				modelsenum.TradeCondition(cond2[i]),
+				modelsenum.TradeCondition(cond3[i]),
+				modelsenum.TradeCondition(cond4[i]),
+			}
+			trades.Add(
+				epochs[i], int(nanos[i]),
+				modelsenum.Price(prices[i]),
+				modelsenum.Size(sizes[i]),
+				modelsenum.Exchange(exchanges[i]),
+				modelsenum.Tape(tapeids[i]),
+				condition...)
 		}
-	}
-	// accumulate any remaining values if not yet
-	outEpoch = append(outEpoch, groupKey.Unix())
-	accumGroup.apply(groupStart, len(ts))
 
-	// finalize output
-	outCs := io.NewColumnSeries()
-	outCs.AddColumn("Epoch", outEpoch)
-	accumGroup.addColumns(outCs)
-	return outCs
+		bar := models.FromTrades(trades, symbol, timeWindow.String)
+		cs := bar.GetCs()
+
+		return cs
+	} else {
+		// bars to bars
+		params = []accumParam{
+			accumParam{"Open", "first", "Open"},
+			accumParam{"High", "max", "High"},
+			accumParam{"Low", "min", "Low"},
+			accumParam{"Close", "last", "Close"},
+		}
+		if cs.Exists("Volume") {
+			params = append(params, accumParam{"Volume", "sum", "Volume"})
+		}
+
+		accumGroup := newAccumGroup(cs, params)
+
+		ts, _ := cs.GetTime()
+		outEpoch := make([]int64, 0)
+
+		groupKey := timeWindow.Truncate(ts[0])
+		groupStart := 0
+		// accumulate inputs.  Since the input is ordered by
+		// time, it is just to slice by correct boundaries
+		for i, t := range ts {
+			if !timeWindow.IsWithin(t, groupKey) {
+				// Emit new row and re-init aggState
+				outEpoch = append(outEpoch, groupKey.Unix())
+				accumGroup.apply(groupStart, i)
+				groupKey = timeWindow.Truncate(t)
+				groupStart = i
+			}
+		}
+		// accumulate any remaining values if not yet
+		outEpoch = append(outEpoch, groupKey.Unix())
+		accumGroup.apply(groupStart, len(ts))
+
+		// finalize output
+		outCs := io.NewColumnSeries()
+		outCs.AddColumn("Epoch", outEpoch)
+		accumGroup.addColumns(outCs)
+		return outCs
+	}
 }
 
 func (s *OnDiskAggTrigger) query(

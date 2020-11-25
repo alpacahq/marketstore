@@ -26,7 +26,8 @@ func writeTrade(t *api.Trade) {
 	}
 
 	// add record
-	model.Add(timestamp.Unix(), timestamp.Nanosecond(), t.Price, t.Size, exchange, tape, conditions...)
+	model.Add(timestamp.Unix(), timestamp.Nanosecond(),
+		enum.Price(t.Price), enum.Size(t.Size), exchange, tape, conditions...)
 
 	// save
 	if err := model.Write(); err != nil {
@@ -59,7 +60,8 @@ func writeAggregateToMinute(agg *api.AggregateToMinute) {
 	model := models.NewBar(agg.Symbol, "1Min", 1)
 
 	// add record
-	model.Add(agg.EpochMillis/1e3, agg.Open, agg.High, agg.Low, agg.Close, agg.Volume)
+	model.Add(agg.EpochMillis/1e3,
+		enum.Price(agg.Open), enum.Price(agg.High), enum.Price(agg.Low), enum.Price(agg.Close), enum.Size(agg.Volume))
 
 	// save
 	if err := model.Write(); err != nil {
