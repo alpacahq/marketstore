@@ -112,6 +112,7 @@ type ConsolidatedUpdateInfo struct {
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
 var ConditionToUpdateInfo = map[enum.TradeCondition]ConsolidatedUpdateInfo{
+	enum.NoTradeCondition:   {true, true, true},
 	enum.RegularSale:        {true, true, true},   // Regular Sale
 	enum.Acquisition:        {true, true, true},   // Acquisition
 	enum.AveragePriceTrade:  {false, false, true}, // Average Price Trade
@@ -194,9 +195,9 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 		bucketDuration = time.Second
 	case "1Min":
 		bucketDuration = time.Minute
-	case "1Hour":
+	case "1H":
 		bucketDuration = time.Hour
-	case "1Day":
+	case "1D":
 		bucketDuration = 24 * time.Hour
 	default:
 		log.Fatal("unsupported timeframe: %v", timeframe)
@@ -251,7 +252,7 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 			conditions = append(conditions, trades.Cond4[i])
 		}
 
-		if timeframe == "1Day" {
+		if timeframe == "1D" {
 			for _, condition := range conditions {
 				if condition == enum.MarketCenterOfficialOpen {
 					open = price
@@ -284,14 +285,14 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 				open = price
 			}
 
-			if timeframe != "1Day" {
+			if timeframe != "1D" {
 				close_ = price
-			} else if timeframe == "1Day" && !marketCenterOfficialCloseProcessed {
+			} else if timeframe == "1D" && !marketCenterOfficialCloseProcessed {
 				close_ = price
 			}
 		}
 
-		if timeframe != "1Day" || !marketCenterOfficialCloseProcessed {
+		if timeframe != "1D" || !marketCenterOfficialCloseProcessed {
 			if updateInfo.UpdateVolume {
 				volume += trades.Size[i]
 			}

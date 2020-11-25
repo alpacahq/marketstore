@@ -40,7 +40,6 @@ func (t *TestSuite) TestFromTradesFieldExcludes(c *C) {
 	// When converted to bars
 	bars := FromTrades(trades, symbol, "1Min")
 
-	// Then the first bar will exclude the volume
 	c.Check(bars, NotNil)
 	c.Check(len(bars.Epoch), Equals, 2)
 	c.Check(bars.Epoch[0], Equals,
@@ -88,7 +87,7 @@ func (t *TestSuite) TestFromTradesDailyRollup(c *C) {
 	)
 
 	// When converted to bars
-	bars := FromTrades(trades, symbol, "1Day")
+	bars := FromTrades(trades, symbol, "1D")
 
 	// Then the daily close price should match to the specified
 	c.Check(bars, NotNil)

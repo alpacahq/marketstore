@@ -102,6 +102,8 @@ func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size
 		fallthrough
 	case 1:
 		cond1 = conditions[0]
+	case 0:
+		break
 	default:
 		log.Error("invalid length of conditions: %v", len(conditions))
 	}

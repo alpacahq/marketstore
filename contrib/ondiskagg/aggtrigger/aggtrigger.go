@@ -190,9 +190,14 @@ func (s *OnDiskAggTrigger) write(
 	elements []string) {
 
 	for _, dest := range s.destinations {
-		aggTbk := io.NewTimeBucketKeyFromString(elements[0] + "/" + dest.String + "/" + elements[2])
+		symbol := elements[0]
+		attributeGroup := elements[2]
+		if elements[2] == "TRADE" {
+			attributeGroup = "OHLCV"
+		}
+		aggTbk := io.NewTimeBucketKeyFromString(symbol + "/" + dest.String + "/" + attributeGroup)
 
-		if err := s.writeAggregates(aggTbk, tbk, *cs, dest, head, tail); err != nil {
+		if err := s.writeAggregates(aggTbk, tbk, *cs, dest, head, tail, symbol); err != nil {
 			log.Error(
 				"failed to write %v aggregates (%v)\n",
 				tbk.String(),
@@ -215,7 +220,8 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	aggTbk, baseTbk *io.TimeBucketKey,
 	cs io.ColumnSeries,
 	dest utils.Timeframe,
-	head, tail time.Time) error {
+	head, tail time.Time,
+	symbol string) error {
 
 	csm := io.NewColumnSeriesMap()
 
@@ -267,23 +273,22 @@ func (s *OnDiskAggTrigger) writeAggregates(
 		// normally this will always be true, but when there are random bars
 		// on the weekend, it won't be, so checking to avoid panic
 		if len(tqSlc.GetEpoch()) > 0 {
-			csm.AddColumnSeries(*aggTbk, aggregate(tqSlc, aggTbk, baseTbk))
+			csm.AddColumnSeries(*aggTbk, aggregate(tqSlc, aggTbk, baseTbk, symbol))
 		}
 	} else {
-		csm.AddColumnSeries(*aggTbk, aggregate(&slc, aggTbk, baseTbk))
+		csm.AddColumnSeries(*aggTbk, aggregate(&slc, aggTbk, baseTbk, symbol))
 	}
 
 	return executor.WriteCSM(csm, false)
 }
 
-func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey) *io.ColumnSeries {
+func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) *io.ColumnSeries {
 	timeWindow := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
 	var params []accumParam
 
 	suffix := fmt.Sprintf("/%s/%s", models.TradeTimeframe, models.TradeSuffix)
 	if strings.HasSuffix(baseTbk.GetItemKey(), suffix) {
 		// Ticks to bars
-		symbol := "asdf"
 		trades := models.NewTrade(symbol, cs.Len())
 		epochs := cs.GetEpoch()
 		nanos := cs.GetColumn("Nanoseconds").([]int32)
@@ -311,7 +316,7 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey) *io.Colum
 				condition...)
 		}
 
-		bar := models.FromTrades(trades, symbol, "1Min")
+		bar := models.FromTrades(trades, symbol, timeWindow.String)
 		cs := bar.GetCs()
 
 		return cs

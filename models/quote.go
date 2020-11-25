@@ -129,8 +129,6 @@ func (model *Quote) Write() error {
 	model.WriteTime = time.Since(start)
 	if err != nil {
 		log.Error("Failed to write quotes for %s (%+v)", model.Key(), err)
-	} else {
-		log.Debug("Wrote %d quotes to %s", model.limit, model.Key())
 	}
 	return err
 }
