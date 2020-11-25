@@ -1,6 +1,7 @@
 package adjust
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -10,7 +11,10 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-func TestAdjust(t *testing.T) { TestingT(t) }
+func TestAdjust(t *testing.T) {
+	rounderNum = math.Pow(10, 3)
+	TestingT(t)
+}
 
 type TestSuiteAdjust struct {
 }
