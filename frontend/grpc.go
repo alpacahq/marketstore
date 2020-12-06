@@ -248,11 +248,10 @@ func convertIntMap(m map[string]int) map[string]int32 {
 	return ret
 }
 
-// NewDataShapeVector returns a new array of DataShapes for the given array of
-// names and element types
-func NewDataShapeVector(names []string, etypes []io.EnumElementType) (dsv []*proto.DataShape) {
-	for i, name := range names {
-		dsv = append(dsv, &proto.DataShape{Name: name, Type: toProtoDataType(etypes[i])})
+// NewDataShapeVector returns a new array of io.DataShape for the given array of proto.DataShape inputs
+func NewDataShapeVector(dataShapes []*proto.DataShape) (dsv []io.DataShape) {
+	for _, ds := range dataShapes {
+		dsv = append(dsv, io.DataShape{Name: ds.Name, Type: dataTypeMap[ds.Type]})
 	}
 	return dsv
 }
@@ -287,6 +286,46 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 		fallthrough
 	default:
 		response.Results = catalog.ListTimeBucketKeyNames(executor.ThisInstance.CatalogDir)
+	}
+
+	return &response, nil
+}
+
+func (s GRPCService) Create(ctx context.Context, req *proto.MultiCreateRequest) (*proto.MultiServerResponse, error) {
+	response := proto.MultiServerResponse{}
+
+	for _, req := range req.Requests {
+		tbk := io.NewTimeBucketKeyFromString(req.Key)
+		if tbk == nil {
+			err := fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV", req.Key)
+			appendResponse(&response, err)
+			continue
+		}
+
+		switch req.RowType {
+		case "fixed", "variable":
+		default:
+			appendResponse(&response, fmt.Errorf("record type \"%s\" must be one of fixed or variable", req.RowType))
+			continue
+		}
+
+		tf, err := tbk.GetTimeFrame()
+		if err != nil {
+			appendResponse(&response, err)
+		}
+		dir := tbk.GetPathToYearFiles(executor.ThisInstance.RootDir)
+		year := int16(time.Now().Year())
+		rt := io.EnumRecordTypeByName(req.RowType)
+		dsv := NewDataShapeVector(req.DataShapes)
+		tbinfo := io.NewTimeBucketInfo(*tf, dir, "Default", year, dsv, rt)
+
+		err = executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+		if err != nil {
+			err = fmt.Errorf("creation of new catalog entry failed: %s", err.Error())
+			appendResponse(&response, err)
+			continue
+		}
+		appendResponse(&response, nil)
 	}
 
 	return &response, nil
