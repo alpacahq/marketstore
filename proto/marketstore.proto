@@ -50,6 +50,16 @@ message NumpyDataset {
     repeated DataShape data_shapes = 5;
 }
 
+message CreateRequest {
+    string key = 1; // a time bucket key
+    repeated DataShape data_shapes = 2;
+    string row_type = 3; // fixed or variable
+}
+
+message MultiCreateRequest {
+    repeated CreateRequest requests = 1;
+}
+
 message MultiQueryRequest {
     /*
         A multi-request allows for different Timeframes and record formats for each request
