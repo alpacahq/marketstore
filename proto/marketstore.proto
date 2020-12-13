@@ -29,7 +29,11 @@ enum DataType {
 
 message DataShape {
     string name = 1;
-    DataType type = 2;
+    // DataType type = 2;
+    // type string such as i4 and f8
+    // use string instead of DataType enum in order to align with column_types in NumpyDataset.
+    // TODO: use DataType enum at DataShape and NumpyDataset
+    string type = 2;
 }
 
 message NumpyMultiDataset {
@@ -155,6 +159,7 @@ message ServerVersionResponse {
 
 service Marketstore {
     rpc Query (MultiQueryRequest) returns (MultiQueryResponse);
+    rpc Create (MultiCreateRequest) returns (MultiServerResponse);
     rpc Write (MultiWriteRequest) returns (MultiServerResponse);
     rpc Destroy (MultiKeyRequest) returns (MultiServerResponse);
     rpc ListSymbols (ListSymbolsRequest) returns (ListSymbolsResponse);

@@ -249,11 +249,15 @@ func convertIntMap(m map[string]int) map[string]int32 {
 }
 
 // NewDataShapeVector returns a new array of io.DataShape for the given array of proto.DataShape inputs
-func NewDataShapeVector(dataShapes []*proto.DataShape) (dsv []io.DataShape) {
+func NewDataShapeVector(dataShapes []*proto.DataShape) (dsv []io.DataShape, err error) {
 	for _, ds := range dataShapes {
-		dsv = append(dsv, io.DataShape{Name: ds.Name, Type: dataTypeMap[ds.Type]})
+		elemType, ok := io.TypeStrToElemType(ds.Type)
+		if !ok {
+			return nil, fmt.Errorf("not supported data type: %v", ds.Type)
+		}
+		dsv = append(dsv, io.DataShape{Name: ds.Name, Type: elemType})
 	}
-	return dsv
+	return dsv, err
 }
 
 func appendResponse(mr *proto.MultiServerResponse, err error) {
@@ -316,7 +320,11 @@ func (s GRPCService) Create(ctx context.Context, req *proto.MultiCreateRequest) 
 		dir := tbk.GetPathToYearFiles(executor.ThisInstance.RootDir)
 		year := int16(time.Now().Year())
 		rt := io.EnumRecordTypeByName(req.RowType)
-		dsv := NewDataShapeVector(req.DataShapes)
+		dsv, err := NewDataShapeVector(req.DataShapes)
+		if err != nil {
+			appendResponse(&response, err)
+			return &response, nil
+		}
 		tbinfo := io.NewTimeBucketInfo(*tf, dir, "Default", year, dsv, rt)
 
 		err = executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
