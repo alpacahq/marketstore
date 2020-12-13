@@ -57,9 +57,9 @@ type CreateRequest struct {
 	// bucket key string. e.g. "TSLA/1Min/OHLC"
 	Key string `msgpack:"key"`
 	// a list of type strings such as i4 and f8
-	ColumnTypes []string `msgpack:"types"`
+	ColumnTypes []string `msgpack:"column_types"`
 	// a list of column names
-	ColumnNames      []string `msgpack:"names"`
+	ColumnNames      []string `msgpack:"column_names"`
 	IsVariableLength bool     `msgpack:"is_variable_length"`
 }
 type MultiCreateRequest struct {
