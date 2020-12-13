@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -69,13 +70,36 @@ func (c *Client) getinfo(line string) {
 func (c *Client) create(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
+	// args[0]:tbk, args[1]:dataTypeStr, args[2]:"fixed" or "variable"
 
-	req := frontend.CreateRequest{Key: args[0], DataShapes: args[1], RowType: args[2]}
+	columnNames, columnTypes, err := toColumns(args[1])
+	if err != nil {
+		fmt.Printf("Failed with error: %s\n", err.Error())
+		return
+	}
+
+	var isVariableLength bool
+	switch args[2] {
+	case "fixed":
+		isVariableLength = false
+	case "variable":
+		isVariableLength = true
+	default:
+		fmt.Printf("record type \"%s\" is not one of fixed or variable\n", args[2])
+		return
+	}
+
+	req := frontend.CreateRequest{
+		Key:              args[0],
+		ColumnNames:      columnNames,
+		ColumnTypes:      columnTypes,
+		IsVariableLength: isVariableLength,
+	}
 	reqs := &frontend.MultiCreateRequest{
 		Requests: []frontend.CreateRequest{req},
 	}
 	responses := &frontend.MultiServerResponse{}
-	var err error
+
 	if c.mode == local {
 		ds := frontend.DataService{}
 		err = ds.Create(nil, reqs, responses)
@@ -93,11 +117,34 @@ func (c *Client) create(line string) {
 
 	for _, resp := range responses.Responses {
 		if len(resp.Error) != 0 {
-			fmt.Printf("Failed with error: %s\n", resp.Error)
+			fmt.Printf("Failed with error: %v\n", resp.Error)
 			return
 		}
 	}
 	fmt.Printf("Successfully created a new catalog entry for bucket %s\n", args[0])
+}
+
+func toColumns(dataShapeStr string) (columnNames, columnTypeStrs []string, err error) {
+	// e.g. dataShapeStr = "Epoch,Open,High,Low,Close/float32,Volume/int32"
+	dsv, err := io.DataShapesFromInputString(dataShapeStr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	columnNames = make([]string, len(dsv))
+	columnTypeStrs = make([]string, len(dsv))
+	for i, ds := range dsv {
+		columnNames[i] = ds.Name
+		typeStr, ok := io.ToTypeStr(ds.Type) // e.g. i8, f4
+		if !ok {
+			return nil, nil,
+				errors.New(fmt.Sprintf("type:%v is not supported", ds.Type))
+		}
+
+		columnTypeStrs[i] = typeStr
+	}
+
+	return columnNames, columnTypeStrs, nil
 }
 
 // destroy removes the subdirectories and buckets for a provided key

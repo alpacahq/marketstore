@@ -54,10 +54,16 @@ func (s *DataService) Write(r *http.Request, reqs *MultiWriteRequest, response *
 	Create: Creates a new time bucket in the DB
 */
 type CreateRequest struct {
-	Key, DataShapes, RowType string
+	// bucket key string. e.g. "TSLA/1Min/OHLC"
+	Key string `msgpack:"key"`
+	// a list of type strings such as i4 and f8
+	ColumnTypes []string `msgpack:"types"`
+	// a list of column names
+	ColumnNames      []string `msgpack:"names"`
+	IsVariableLength bool     `msgpack:"is_variable_length"`
 }
 type MultiCreateRequest struct {
-	Requests []CreateRequest
+	Requests []CreateRequest `msgpack:"requests"`
 }
 
 func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response *MultiServerResponse) (err error) {
@@ -70,6 +76,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 			response.appendResponse(err)
 			continue
 		}
+
 		tbk := io.NewTimeBucketKey(parts[0], parts[1])
 		if tbk == nil {
 			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
@@ -78,21 +85,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 			continue
 		}
 
-		dsv, err := io.DataShapesFromInputString(req.DataShapes)
-		if err != nil {
-			response.appendResponse(err)
-			continue
-		}
-
-		rowType := req.RowType
-		switch rowType {
-		case "fixed", "variable":
-		default:
-			err = fmt.Errorf("record type \"%s\" is not one of fixed or variable\n", rowType)
-			response.appendResponse(err)
-			continue
-		}
-
+		// --- Timeframe
 		rootDir := executor.ThisInstance.RootDir
 		year := int16(time.Now().Year())
 		tf, err := tbk.GetTimeFrame()
@@ -100,8 +93,28 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 			response.appendResponse(err)
 			continue
 		}
-		rt := io.EnumRecordTypeByName(rowType)
-		tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, rt)
+
+		// --- Record Type
+		var recordType io.EnumRecordType
+		if req.IsVariableLength {
+			recordType = io.VARIABLE
+		} else {
+			recordType = io.FIXED
+		}
+
+		// --- DataShapes
+		dsv := make([]io.DataShape, len(req.ColumnNames))
+		for i, name := range req.ColumnNames {
+			t, ok := io.TypeStrToElemType(req.ColumnTypes[i])
+			if !ok {
+				response.appendResponse(fmt.Errorf("unexpected data type:%v", req.ColumnTypes[i]))
+				return nil
+			}
+
+			dsv[i] = io.DataShape{Name: name, Type: t}
+		}
+
+		tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, recordType)
 
 		err = executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {
