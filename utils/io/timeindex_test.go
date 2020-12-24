@@ -1,6 +1,7 @@
 package io_test
 
 import (
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"reflect"
 	"testing"
@@ -9,6 +10,8 @@ import (
 
 func TestIndexToTime(t *testing.T) {
 	t.Parallel()
+	utils.InstanceConfig.Timezone = time.UTC
+
 	tests := []struct {
 		name  string
 		index int64
