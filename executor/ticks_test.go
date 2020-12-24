@@ -18,20 +18,13 @@ func (s *TickTests) SetUpSuite(c *C)    {}
 func (s *TickTests) TearDownSuite(c *C) {}
 
 func (s *TickTests) TestTimeToIntervals(c *C) {
-	t2 := time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
-	index := io.TimeToIndex(t2, time.Minute)
-	c.Assert(index == 1, Equals, true)
-	t2 = time.Date(2016, 12, 31, 23, 59, 0, 0, time.UTC)
-	index = io.TimeToIndex(t2, time.Minute)
-	c.Assert(index == 366*1440, Equals, true)
-
 	//20161230 21:59:20 383000
 	t1 := time.Date(2016, 12, 30, 21, 59, 20, 383000000, time.UTC)
 	fmt.Println("LAL t1 = ", t1)
 
 	// Check the 1Min interval
 	utils.InstanceConfig.Timezone = time.UTC
-	index = io.TimeToIndex(t1, time.Minute)
+	index := io.TimeToIndex(t1, time.Minute)
 
 	o_t1 := io.IndexToTime(index, time.Minute, 2016)
 	//fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())

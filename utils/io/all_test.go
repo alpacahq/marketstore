@@ -300,7 +300,7 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	// Check the 1D interval
 	t2 := time.Date(2018, time.February, 5, 0, 0, 0, 0, loc)
 	index = TimeToIndex(t2, utils.Day)
-	c.Assert(index, Equals, int64(35))
+	c.Assert(index, Equals, int64(36))
 	o_t2 := IndexToTime(index, utils.Day, 2018)
 	c.Assert(o_t2, Equals, t2)
 
@@ -314,7 +314,7 @@ func (s *TestSuite) TestIndexAndOffset(c *C) {
 	// Check 1D at end of year
 	t3 := time.Date(2018, time.December, 31, 0, 0, 0, 0, loc)
 	index = TimeToIndex(t3, utils.Day)
-	c.Assert(index, Equals, int64(364))
+	c.Assert(index, Equals, int64(365))
 	o_t3 := IndexToTime(index, utils.Day, 2018)
 	c.Assert(o_t3, Equals, t3)
 
