@@ -14,7 +14,9 @@ func IndexToTime(index int64, tf time.Duration, year int16) time.Time {
 		time.January,
 		1, 0, 0, 0, 0,
 		utils.InstanceConfig.Timezone)
-
+	if tf == utils.Day {
+		return t0.AddDate(0, 0, int(index))
+	}
 	return t0.Add(tf * time.Duration(index-1))
 }
 
@@ -29,7 +31,10 @@ func ToSystemTimezone(t time.Time) time.Time {
 // MarketStore configuration file (or UTC by default),
 func TimeToIndex(t time.Time, tf time.Duration) int64 {
 	tLocal := ToSystemTimezone(t)
-
+	// special 1D case (maximum supported on-disk size)
+	if tf == utils.Day {
+		return int64(tLocal.YearDay() - 1)
+	}
 	return 1 + tLocal.Sub(
 		time.Date(
 			tLocal.Year(),
