@@ -140,33 +140,33 @@ EVAL:
 		// Evaulate.
 		switch {
 		// Flip timing flag.
-		case strings.HasPrefix(line, "\\o"):
+		case strings.HasPrefix(line, `\o`):
 			args := strings.Split(line, " ")
 			if len(args) > 1 {
 				c.target = args[1]
 			} else {
 				c.target = ""
 			}
-		case strings.HasPrefix(line, "\\timing"):
+		case strings.HasPrefix(line, `\timing`):
 			c.timing = !c.timing
-		case strings.HasPrefix(line, "\\show"):
+		case strings.HasPrefix(line, `\show`):
 			c.show(line)
-		case strings.HasPrefix(line, "\\trim"):
+		case strings.HasPrefix(line, `\trim`):
 			c.trim(line)
-		case strings.HasPrefix(line, "\\load"):
+		case strings.HasPrefix(line, `\load`):
 			c.load(line)
-		case strings.HasPrefix(line, "\\create"):
+		case strings.HasPrefix(line, `\create`):
 			c.create(line)
-		case strings.HasPrefix(line, "\\destroy"):
+		case strings.HasPrefix(line, `\destroy`):
 			c.destroy(line)
-		case strings.HasPrefix(line, "\\getinfo"):
+		case strings.HasPrefix(line, `\getinfo`):
 			c.getinfo(line)
-		case strings.HasPrefix(line, "\\help") || strings.HasPrefix(line, "\\?"):
+		case strings.HasPrefix(line, `\help`) || strings.HasPrefix(line, `\?`):
 			c.functionHelp(line)
 		case line == "help":
-			c.functionHelp("\\help")
+			c.functionHelp(`\help`)
 		// Quit.
-		case line == "\\stop", line == "\\quit", line == "\\q", line == "exit":
+		case line == `\stop`, line == `\quit`, line == `\q`, line == `exit`:
 			break EVAL
 			// Nothing to do.
 		case line == "":
@@ -190,16 +190,16 @@ func newReader() (*readline.Instance, error) {
 
 	// Register commands with autocompletion.
 	autoComplete := readline.NewPrefixCompleter(
-		readline.PcItem("\\show"),
-		readline.PcItem("\\load"),
-		readline.PcItem("\\create"),
-		readline.PcItem("\\trim"),
-		readline.PcItem("\\help"),
-		readline.PcItem("\\exit"),
-		readline.PcItem("\\quit"),
-		readline.PcItem("\\q"),
-		readline.PcItem("\\?"),
-		readline.PcItem("\\stop"),
+		readline.PcItem(`\show`),
+		readline.PcItem(`\load`),
+		readline.PcItem(`\create`),
+		readline.PcItem(`\trim`),
+		readline.PcItem(`\help`),
+		readline.PcItem(`\exit`),
+		readline.PcItem(`\quit`),
+		readline.PcItem(`\q`),
+		readline.PcItem(`\?`),
+		readline.PcItem(`\stop`),
 	)
 
 	// Build config.

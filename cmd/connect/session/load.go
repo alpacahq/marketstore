@@ -137,11 +137,11 @@ func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err erro
 
 func parseLoadArgs(args []string) (mk *io.TimeBucketKey, inputFD, controlFD *os.File, err error) {
 	if len(args) < 2 {
-		return nil, nil, nil, errors.New("Not enough arguments, see \"\\help load\"")
+		return nil, nil, nil, errors.New(`not enough arguments, see "\help load"`)
 	}
 	mk = io.NewTimeBucketKey(args[0])
 	if mk == nil {
-		return nil, nil, nil, errors.New("Key is not in proper format, see \"\\help load\"")
+		return nil, nil, nil, errors.New(`key is not in proper format, see "\help load"`)
 	}
 	/*
 		We need to read two file names that open successfully

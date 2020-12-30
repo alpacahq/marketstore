@@ -23,7 +23,7 @@ func (c *Client) show(line string) {
 	}
 	tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
-		fmt.Println("Could not parse arguments, see \"\\help show\" ")
+		fmt.Println(`Could not parse arguments, see "\help show" `)
 		return
 	}
 
@@ -141,7 +141,7 @@ func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time)
 func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, end *time.Time) {
 	tbk = io.NewTimeBucketKey(args[0])
 	if tbk == nil {
-		fmt.Println("Key is not in proper format, see \"\\help show\" ")
+		fmt.Println(`Key is not in proper format, see "\help show" `)
 		return
 	}
 	parsedTime := false
