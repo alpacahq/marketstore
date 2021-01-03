@@ -72,6 +72,12 @@ func (c *Client) create(line string) (ok bool) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
 	// args[0]:tbk, args[1]:dataTypeStr, args[2]:"fixed" or "variable"
+	if len(args) < 3 {
+		fmt.Println(`Not enough arguments - need "\create [tbk] [dataTypeStr] [recordType('fixed' or 'variable')]"`)
+		fmt.Println(`example usage: "\create TEST/1Min/OHLCV:Symbol/Timeframe/AttributeGroup ` +
+			`Open,High,Low,Close/float32:Volume/int64 variable"`)
+		return
+	}
 
 	columnNames, columnTypes, err := toColumns(args[1])
 	if err != nil {
