@@ -67,7 +67,8 @@ func (c *Client) getinfo(line string) {
 }
 
 // create generates new subdirectories and buckets for a database.
-func (c *Client) create(line string) {
+// It returns true if the bucket is successfully created.
+func (c *Client) create(line string) (ok bool) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
 	// args[0]:tbk, args[1]:dataTypeStr, args[2]:"fixed" or "variable"
@@ -75,7 +76,7 @@ func (c *Client) create(line string) {
 	columnNames, columnTypes, err := toColumns(args[1])
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
-		return
+		return false
 	}
 
 	var isVariableLength bool
@@ -86,7 +87,7 @@ func (c *Client) create(line string) {
 		isVariableLength = true
 	default:
 		fmt.Printf("record type \"%s\" is not one of fixed or variable\n", args[2])
-		return
+		return false
 	}
 
 	req := frontend.CreateRequest{
@@ -112,16 +113,17 @@ func (c *Client) create(line string) {
 	}
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
-		return
+		return false
 	}
 
 	for _, resp := range responses.Responses {
 		if len(resp.Error) != 0 {
 			fmt.Printf("Failed with error: %v\n", resp.Error)
-			return
+			return false
 		}
 	}
 	fmt.Printf("Successfully created a new catalog entry for bucket %s\n", args[0])
+	return true
 }
 
 func toColumns(dataShapeStr string) (columnNames, columnTypeStrs []string, err error) {
