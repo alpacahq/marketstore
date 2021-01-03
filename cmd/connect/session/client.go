@@ -47,9 +47,14 @@ type Client struct {
 	// url is the optional address of a db instance on a different machine.
 	url string
 	// rc is the optional remote client.
-	rc *client.Client
+	rc RPCClient
 	// dir is the optional filesystem location of a local db instance.
 	dir string
+}
+
+// RPCClient is a marketstore API client interface.
+type RPCClient interface {
+	DoRPC(functionName string, args interface{}) (response interface{}, err error)
 }
 
 // NewLocalClient builds a new client struct in local mode.
@@ -193,6 +198,7 @@ func newReader() (*readline.Instance, error) {
 		readline.PcItem(`\show`),
 		readline.PcItem(`\load`),
 		readline.PcItem(`\create`),
+		readline.PcItem(`\getinfo`),
 		readline.PcItem(`\trim`),
 		readline.PcItem(`\help`),
 		readline.PcItem(`\exit`),
