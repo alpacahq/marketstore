@@ -1,8 +1,10 @@
 package session
 
 import (
-	"github.com/alpacahq/marketstore/v4/frontend"
+	"errors"
 	"testing"
+
+	"github.com/alpacahq/marketstore/v4/frontend"
 )
 
 type mockRPCClient struct {
@@ -14,6 +16,9 @@ func (m *mockRPCClient) DoRPC(_ string, _ interface{}) (response interface{}, er
 	return m.rpcResp, m.rpcErr
 }
 
+const exampleCommandFixed = `\create TEST/1Min/OHLCV Open,High,Low,Close/float32:Volume/int64 fixed`
+const exampleCommandVariable = `\create TEST/1Sec/Tick Bid,Ask/float32 variable`
+
 func TestClient_create(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -24,11 +29,44 @@ func TestClient_create(t *testing.T) {
 		wantOk  bool
 	}{
 		{
-			name:    "success",
-			line:    `\create TEST/1Min/OHLCV Open,High,Low,Close/float32:Volume/int64 fixed`,
+			name:    "success/fixed record",
+			line:    exampleCommandFixed,
 			rpcResp: &frontend.MultiServerResponse{Responses: []frontend.ServerResponse{}},
-			rpcErr:  nil,
 			wantOk:  true,
+		},
+		{
+			name:    "success/variable-length record",
+			line:    exampleCommandVariable,
+			rpcResp: &frontend.MultiServerResponse{Responses: []frontend.ServerResponse{}},
+			wantOk:  true,
+		},
+		{
+			name:    "error/invalid record type",
+			line:    `\create TEST/1Sec/Tick Bid,Ask/float32 foobarfizzbuzz`,
+			rpcResp: &frontend.MultiServerResponse{Responses: []frontend.ServerResponse{}},
+			wantOk:  false,
+		},
+		{
+			name:   "error/not enough arguments",
+			line:   `\create firstArg secondArg`,
+			wantOk: false,
+		},
+		{
+			name:   "error/invalid typestr",
+			line:   `\create TEST/1Min/OCV Open,Close/float128:Volume/int64 fixed`, // float128 is invallid
+			wantOk: false,
+		},
+		{
+			name:   "error/rpc Error",
+			line:   exampleCommandFixed,
+			rpcErr: errors.New("error"),
+			wantOk: false,
+		},
+		{name: "error/Create API error",
+			line:    exampleCommandFixed,
+			rpcResp: &frontend.MultiServerResponse{Responses: []frontend.ServerResponse{{Error: "API errosr!"}}},
+			rpcErr:  nil,
+			wantOk:  false,
 		},
 	}
 
