@@ -102,6 +102,15 @@ func (c *Client) load(line string) {
 		}
 	}
 
+	// because a marketstore process has cache of the data directory structure (executor.ThisInstance.CatalogDir)
+	// and it can't be updated by the CSV import using the local mode,
+	// the imported data is not returned to query responses until restart marketstore,
+	// the data is correctly written to the data file though.
+	if c.mode == local {
+		fmt.Println("Note: The imported data won't be returned to query responses until restart marketstore" +
+			" due to the cache of the marketstore process.")
+	}
+
 	return
 }
 

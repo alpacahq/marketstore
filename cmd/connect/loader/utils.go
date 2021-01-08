@@ -45,7 +45,7 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 	if len(csvChunk) == 0 {
 		return nil, true, nil
 	}
-	fmt.Printf("Read next %d lines from CSV file...", linesRead)
+	fmt.Printf("Read next %d lines from CSV file...\n", linesRead)
 
 	csm, err := convertCSVtoCSM(tbk, cvm, csvChunk)
 	if err != nil {
