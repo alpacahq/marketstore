@@ -81,5 +81,22 @@ exit_if_failed $?
 diff -q tests/integ/bin/ticks-example-not-sorted-by-time-output.csv test_ticks.csv && echo "Passed"
 exit_if_failed $?
 
+rm -f test_ticks.csv
+exit_if_failed $?
+
+# import example-string.csv/yaml to TEST4/1Min/TICK
+# and check if the output of show commands match example-string-output.csv
+./marketstore connect -d `pwd`/tests/integ/testdata/mktsdb <<- EOF
+\create TEST4/1Sec/TICK:Symbol/Timeframe/AttributeGroup Memo/string16:Num/int64 variable
+\getinfo TEST4/1Sec/TICK
+\load TEST4/1Sec/TICK tests/integ/bin/example-string.csv tests/integ/bin/example-string.yaml
+\o test_ticks.csv
+\show TEST4/1Sec/TICK 1970-01-01
+EOF
+exit_if_failed $?
+
+diff -q tests/integ/bin/example-string-output.csv test_ticks.csv && echo "Passed"
+exit_if_failed $?
+
 # remove the temporary files
 rm -rf testdata test_ticks.csv tmp.csv

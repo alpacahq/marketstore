@@ -199,7 +199,7 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 	for i := 2; i < len(cvm.ColumnIndex); i++ {
 		if cvm.ColumnIndex[i] == -1 {
 			fail = true
-			fmt.Printf("Unable to find a matching csv column for \"%s\"\n", cvm.DSV[i].Name)
+			fmt.Printf("Unable to find a matching csv column for \"%s\"\n", cvm.DSV[i-2].Name)
 		}
 	}
 	if fail {

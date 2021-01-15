@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey, csvRows [][]string, columnIndex []int,
@@ -87,6 +88,9 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 				if columnError(err, shape.Name) {
 					return nil
 				}
+				csm.AddColumn(key, shape.Name, col)
+			case io.STRING16:
+				col := getString16ColumnFromCSVRows(csvRows, index)
 				csm.AddColumn(key, shape.Name, col)
 			case io.BOOL:
 				col, err := getBoolColumnFromCSVRows(csvRows, index)
@@ -245,4 +249,17 @@ func getUInt64ColumnFromCSVRows(csvRows [][]string, index int) (col []uint64, er
 		}
 	}
 	return col, nil
+}
+
+func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][16]rune) {
+	col = make([][16]rune, len(csvRows))
+	for i, row := range csvRows {
+		if len([]rune(row[index])) > 16 {
+			log.Warn(fmt.Sprintf("too long string column (>16chars):%v", row[index]))
+			copy(col[i][:], []rune(row[index][0:16]))
+		} else {
+			copy(col[i][:], []rune(row[index][0:len(row[index])]))
+		}
+	}
+	return col
 }

@@ -88,6 +88,12 @@ func TestColumnSeries_CoerceColumnType(t *testing.T) {
 			wantErr:       true,
 		},
 		{
+			name:          "error/STRING16 is not supported",
+			addColumnFunc: func(cs *ColumnSeries) { cs.AddColumn(columnName, []int{1, 2, 3}) },
+			newColumnType: STRING16,
+			wantErr:       true,
+		},
+		{
 			name:          "error/BOOL is not supported",
 			addColumnFunc: func(cs *ColumnSeries) { cs.AddColumn(columnName, []int{1, 2, 3}) },
 			newColumnType: BOOL,
