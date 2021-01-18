@@ -78,18 +78,19 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
+	config := utils.InstanceConfig
 
 	// New grpc server for marketstore API.
 	grpcServer := grpc.NewServer(
-		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
-		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
+		grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 	)
 	pb.RegisterMarketstoreServer(grpcServer, frontend.GRPCService{})
 
 	// New gRPC stream server for replication.
 	opts := []grpc.ServerOption{
-		grpc.MaxSendMsgSize(utils.InstanceConfig.GRPCMaxSendMsgSize),
-		grpc.MaxRecvMsgSize(utils.InstanceConfig.GRPCMaxRecvMsgSize),
+		grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 	}
 
 	// Initialize marketstore services.
@@ -99,18 +100,18 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	// initialize replication master or client
 	var rs executor.ReplicationSender
 	var grpcReplicationServer *grpc.Server
-	if utils.InstanceConfig.Replication.Enabled {
+	if config.Replication.Enabled {
 		// Enable TLS for all incoming connections if configured
-		if utils.InstanceConfig.Replication.TLSEnabled {
+		if config.Replication.TLSEnabled {
 			cert, err := tls.LoadX509KeyPair(
-				utils.InstanceConfig.Replication.CertFile,
-				utils.InstanceConfig.Replication.KeyFile,
+				config.Replication.CertFile,
+				config.Replication.KeyFile,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to load server certificates for replication:"+
 					" certFile:%v, keyFile:%v, err:%v",
-					utils.InstanceConfig.Replication.CertFile,
-					utils.InstanceConfig.Replication.KeyFile,
+					config.Replication.CertFile,
+					config.Replication.KeyFile,
 					err.Error(),
 				)
 			}
@@ -119,13 +120,15 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		}
 
 		grpcReplicationServer = grpc.NewServer(opts...)
-		rs = initReplicationMaster(globalCtx, grpcReplicationServer)
+		rs = initReplicationMaster(globalCtx, grpcReplicationServer, config.Replication.ListenPort)
 		log.Info("initialized replication master")
-	} else if utils.InstanceConfig.Replication.MasterHost != "" {
+	} else if config.Replication.MasterHost != "" {
 		err = initReplicationClient(
 			globalCtx,
-			utils.InstanceConfig.Replication.TLSEnabled,
-			utils.InstanceConfig.Replication.CertFile)
+			config.Replication.MasterHost,
+			config.RootDirectory,
+			config.Replication.TLSEnabled,
+			config.Replication.CertFile)
 		if err != nil {
 			log.Fatal("Unable to startup Replication", err)
 		}
@@ -135,12 +138,12 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	start := time.Now()
 
 	executor.NewInstanceSetup(
-		utils.InstanceConfig.RootDirectory,
+		config.RootDirectory,
 		rs,
-		utils.InstanceConfig.InitCatalog,
-		utils.InstanceConfig.InitWALCache,
-		utils.InstanceConfig.BackgroundSync,
-		utils.InstanceConfig.WALBypass,
+		config.InitCatalog,
+		config.InitWALCache,
+		config.BackgroundSync,
+		config.WALBypass,
 	)
 
 	startupTime := time.Since(start)
@@ -167,10 +170,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	InitializeTriggers()
 	RunBgWorkers()
 
-	if utils.InstanceConfig.UtilitiesURL != "" {
+	if config.UtilitiesURL != "" {
 		// Start utility endpoints.
 		log.Info("launching utility service...")
-		go frontend.Utilities(utils.InstanceConfig.UtilitiesURL)
+		go frontend.Utilities(config.UtilitiesURL)
 	}
 
 	log.Info("enabling query access...")
@@ -178,8 +181,8 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	// Serve.
 	log.Info("launching tcp listener for all services...")
-	if utils.InstanceConfig.GRPCListenURL != "" {
-		grpcLn, err := net.Listen("tcp", utils.InstanceConfig.GRPCListenURL)
+	if config.GRPCListenURL != "" {
+		grpcLn, err := net.Listen("tcp", config.GRPCListenURL)
 		if err != nil {
 			return fmt.Errorf("failed to start GRPC server - error: %s", err.Error())
 		}
@@ -212,15 +215,15 @@ func executeStart(cmd *cobra.Command, args []string) error {
 				log.Info("shutdown grpc Replication server...")
 
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
-				log.Info("waiting a grace period of %v to shutdown...", utils.InstanceConfig.StopGracePeriod)
-				time.Sleep(utils.InstanceConfig.StopGracePeriod)
+				log.Info("waiting a grace period of %v to shutdown...", config.StopGracePeriod)
+				time.Sleep(config.StopGracePeriod)
 				shutdown()
 			}
 		}
 	}()
 	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGINT, syscall.SIGTERM)
 
-	if err := http.ListenAndServe(utils.InstanceConfig.ListenURL, nil); err != nil {
+	if err := http.ListenAndServe(config.ListenURL, nil); err != nil {
 		return fmt.Errorf("failed to start server - error: %s", err.Error())
 	}
 
@@ -234,12 +237,12 @@ func shutdown() {
 	os.Exit(0)
 }
 
-func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server) *replication.Sender {
+func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenPort int) *replication.Sender {
 	grpcReplicationServer := replication.NewGRPCReplicationService()
 	pb.RegisterReplicationServer(grpcServer, grpcReplicationServer)
 
 	// start gRPC server for Replication
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", utils.InstanceConfig.Replication.ListenPort))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", listenPort))
 	if err != nil {
 		log.Fatal("failed to listen a port for replication:" + err.Error())
 	}
@@ -256,7 +259,7 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server) *replic
 	return replicationSender
 }
 
-func initReplicationClient(ctx context.Context, tlsEnabled bool, certFile string) error {
+func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string) error {
 	opts := []grpc.DialOption{
 		// grpc.WithBlock(),
 	}
@@ -274,14 +277,14 @@ func initReplicationClient(ctx context.Context, tlsEnabled bool, certFile string
 		opts = append(opts, grpc.WithInsecure())
 	}
 
-	conn, err := grpc.Dial(utils.InstanceConfig.Replication.MasterHost, opts...)
+	conn, err := grpc.Dial(masterHost, opts...)
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize gRPC client connection for replication")
 	}
 
 	c := replication.NewGRPCReplicationClient(pb.NewReplicationClient(conn))
 
-	replayer := replication.NewReplayer(executor.ParseTGData, executor.WriteCSMInner, utils.InstanceConfig.RootDirectory)
+	replayer := replication.NewReplayer(executor.ParseTGData, executor.WriteCSMInner, rootDir)
 	replicationReceiver := replication.NewReceiver(c, replayer)
 	err = replicationReceiver.Run(ctx)
 	if err != nil {
