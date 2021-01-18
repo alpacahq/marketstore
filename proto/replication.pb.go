@@ -24,176 +24,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// Every message written to the WAL is prepended by the MID, indicating what type of message follows. The MID is structured on-disk:
-type MessageID int32
-
-const (
-	MessageID_TRANSACTION_GROUP MessageID = 0
-	MessageID_TRANSACTION_INFO  MessageID = 1
-	MessageID_WAL_STATUS        MessageID = 2
-)
-
-var MessageID_name = map[int32]string{
-	0: "TRANSACTION_GROUP",
-	1: "TRANSACTION_INFO",
-	2: "WAL_STATUS",
-}
-
-var MessageID_value = map[string]int32{
-	"TRANSACTION_GROUP": 0,
-	"TRANSACTION_INFO":  1,
-	"WAL_STATUS":        2,
-}
-
-func (x MessageID) String() string {
-	return proto.EnumName(MessageID_name, int32(x))
-}
-
-func (MessageID) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{0}
-}
-
-type DestinationID int32
-
-const (
-	DestinationID_WAL           DestinationID = 0
-	DestinationID_PRIMARY_STORE DestinationID = 1
-)
-
-var DestinationID_name = map[int32]string{
-	0: "WAL",
-	1: "PRIMARY_STORE",
-}
-
-var DestinationID_value = map[string]int32{
-	"WAL":           0,
-	"PRIMARY_STORE": 1,
-}
-
-func (x DestinationID) String() string {
-	return proto.EnumName(DestinationID_name, int32(x))
-}
-
-func (DestinationID) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{1}
-}
-
-// Note: Commit intent state is for future multi-party commit support. Typical processes will only use states 0 and 2
-type TIStatus int32
-
-const (
-	TIStatus_PREPARING_TO_COMMIT TIStatus = 0
-	TIStatus_COMMIT_INTENT_SENT  TIStatus = 1
-	TIStatus_COMMIT_COMPLETE     TIStatus = 2
-)
-
-var TIStatus_name = map[int32]string{
-	0: "PREPARING_TO_COMMIT",
-	1: "COMMIT_INTENT_SENT",
-	2: "COMMIT_COMPLETE",
-}
-
-var TIStatus_value = map[string]int32{
-	"PREPARING_TO_COMMIT": 0,
-	"COMMIT_INTENT_SENT":  1,
-	"COMMIT_COMPLETE":     2,
-}
-
-func (x TIStatus) String() string {
-	return proto.EnumName(TIStatus_name, int32(x))
-}
-
-func (TIStatus) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{2}
-}
-
-type RecordType int32
-
-const (
-	RecordType_FIXED RecordType = 0
-	// for variable-length record
-	RecordType_VARIABLE RecordType = 1
-	RecordType_NO_TYPE  RecordType = 2
-)
-
-var RecordType_name = map[int32]string{
-	0: "FIXED",
-	1: "VARIABLE",
-	2: "NO_TYPE",
-}
-
-var RecordType_value = map[string]int32{
-	"FIXED":    0,
-	"VARIABLE": 1,
-	"NO_TYPE":  2,
-}
-
-func (x RecordType) String() string {
-	return proto.EnumName(RecordType_name, int32(x))
-}
-
-func (RecordType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{3}
-}
-
-type FileStatus int32
-
-const (
-	// Actively in use or not closed programatically
-	FileStatus_IN_USE FileStatus = 0
-	// Closed (no process is using file)
-	FileStatus_CLOSED FileStatus = 1
-)
-
-var FileStatus_name = map[int32]string{
-	0: "IN_USE",
-	1: "CLOSED",
-}
-
-var FileStatus_value = map[string]int32{
-	"IN_USE": 0,
-	"CLOSED": 1,
-}
-
-func (x FileStatus) String() string {
-	return proto.EnumName(FileStatus_name, int32(x))
-}
-
-func (FileStatus) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{4}
-}
-
-type ReplayState int32
-
-const (
-	// Not yet processed for replay
-	ReplayState_NOT_YET_PROCESSED ReplayState = 0
-	// Replayed successfully
-	ReplayState_REPLAYED ReplayState = 1
-	// Replay in process
-	ReplayState_REPLAY_IN_PROCESS ReplayState = 2
-)
-
-var ReplayState_name = map[int32]string{
-	0: "NOT_YET_PROCESSED",
-	1: "REPLAYED",
-	2: "REPLAY_IN_PROCESS",
-}
-
-var ReplayState_value = map[string]int32{
-	"NOT_YET_PROCESSED": 0,
-	"REPLAYED":          1,
-	"REPLAY_IN_PROCESS": 2,
-}
-
-func (x ReplayState) String() string {
-	return proto.EnumName(ReplayState_name, int32(x))
-}
-
-func (ReplayState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{5}
-}
-
 type WriteAheadLog struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -225,311 +55,6 @@ func (m *WriteAheadLog) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_WriteAheadLog proto.InternalMessageInfo
 
-// A transaction info message marks the write status of transactions. It is used in two situations:
-// When a TG is written to the WAL and when the BW writes a TG to the primary store. The on-disk format of a TI is
-type TransactionInfo struct {
-	TransactionGroupId   int64         `protobuf:"varint,1,opt,name=transaction_group_id,json=transactionGroupId,proto3" json:"transaction_group_id,omitempty"`
-	DestinationId        DestinationID `protobuf:"varint,2,opt,name=destination_id,json=destinationId,proto3,enum=proto.DestinationID" json:"destination_id,omitempty"`
-	Status               TIStatus      `protobuf:"varint,3,opt,name=status,proto3,enum=proto.TIStatus" json:"status,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
-}
-
-func (m *TransactionInfo) Reset()         { *m = TransactionInfo{} }
-func (m *TransactionInfo) String() string { return proto.CompactTextString(m) }
-func (*TransactionInfo) ProtoMessage()    {}
-func (*TransactionInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{1}
-}
-
-func (m *TransactionInfo) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TransactionInfo.Unmarshal(m, b)
-}
-func (m *TransactionInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TransactionInfo.Marshal(b, m, deterministic)
-}
-func (m *TransactionInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TransactionInfo.Merge(m, src)
-}
-func (m *TransactionInfo) XXX_Size() int {
-	return xxx_messageInfo_TransactionInfo.Size(m)
-}
-func (m *TransactionInfo) XXX_DiscardUnknown() {
-	xxx_messageInfo_TransactionInfo.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TransactionInfo proto.InternalMessageInfo
-
-func (m *TransactionInfo) GetTransactionGroupId() int64 {
-	if m != nil {
-		return m.TransactionGroupId
-	}
-	return 0
-}
-
-func (m *TransactionInfo) GetDestinationId() DestinationID {
-	if m != nil {
-		return m.DestinationId
-	}
-	return DestinationID_WAL
-}
-
-func (m *TransactionInfo) GetStatus() TIStatus {
-	if m != nil {
-		return m.Status
-	}
-	return TIStatus_PREPARING_TO_COMMIT
-}
-
-// Transaction Group (TG): A group of data committed at one time to WAL and primary store
-// Each TG is composed of some number of WTSets and is the smallest unit of data committed to disk.
-// A TG has an ID that is used to verify whether the TG has been successfully written. A TG has the following structure:
-type TransactionGroup struct {
-	// The length of the TG data for this TGID, starting with the TGID and excluding the checksum
-	Length int64 `protobuf:"varint,1,opt,name=length,proto3" json:"length,omitempty"`
-	// A "locally unique" transaction group identifier, can be a clock value
-	// This ID will be used for the position that indicates that replication is done until that point
-	Id int64 `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
-	// The count of WTSets in this TG
-	WtCount int64 `protobuf:"varint,3,opt,name=wt_count,json=wtCount,proto3" json:"wt_count,omitempty"`
-	// The contents of the WTSets
-	WtGroup []*WriteTransactionSet `protobuf:"bytes,4,rep,name=wt_group,json=wtGroup,proto3" json:"wt_group,omitempty"`
-	// MD5 checksum of the TG contents prior to the checksum
-	Checksum             []byte   `protobuf:"bytes,5,opt,name=checksum,proto3" json:"checksum,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *TransactionGroup) Reset()         { *m = TransactionGroup{} }
-func (m *TransactionGroup) String() string { return proto.CompactTextString(m) }
-func (*TransactionGroup) ProtoMessage()    {}
-func (*TransactionGroup) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{2}
-}
-
-func (m *TransactionGroup) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TransactionGroup.Unmarshal(m, b)
-}
-func (m *TransactionGroup) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TransactionGroup.Marshal(b, m, deterministic)
-}
-func (m *TransactionGroup) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TransactionGroup.Merge(m, src)
-}
-func (m *TransactionGroup) XXX_Size() int {
-	return xxx_messageInfo_TransactionGroup.Size(m)
-}
-func (m *TransactionGroup) XXX_DiscardUnknown() {
-	xxx_messageInfo_TransactionGroup.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TransactionGroup proto.InternalMessageInfo
-
-func (m *TransactionGroup) GetLength() int64 {
-	if m != nil {
-		return m.Length
-	}
-	return 0
-}
-
-func (m *TransactionGroup) GetId() int64 {
-	if m != nil {
-		return m.Id
-	}
-	return 0
-}
-
-func (m *TransactionGroup) GetWtCount() int64 {
-	if m != nil {
-		return m.WtCount
-	}
-	return 0
-}
-
-func (m *TransactionGroup) GetWtGroup() []*WriteTransactionSet {
-	if m != nil {
-		return m.WtGroup
-	}
-	return nil
-}
-
-func (m *TransactionGroup) GetChecksum() []byte {
-	if m != nil {
-		return m.Checksum
-	}
-	return nil
-}
-
-type WriteTransactionSet struct {
-	// Direct or Indirect IO (for variable or fixed length records)
-	RecordType RecordType `protobuf:"varint,1,opt,name=record_type,json=recordType,proto3,enum=proto.RecordType" json:"record_type,omitempty"`
-	// Length of FilePath string
-	FpLen int32 `protobuf:"varint,2,opt,name=fp_len,json=fpLen,proto3" json:"fp_len,omitempty"`
-	// FilePath is relative to the root directory, string is ASCII encoded without a trailing null
-	Filepath string `protobuf:"bytes,3,opt,name=filepath,proto3" json:"filepath,omitempty"`
-	// Year associated with this file
-	Year int32 `protobuf:"varint,4,opt,name=year,proto3" json:"year,omitempty"`
-	// Number of intervals per day in this file
-	Intervals int64 `protobuf:"varint,5,opt,name=intervals,proto3" json:"intervals,omitempty"`
-	// Count of records in this WT set
-	RecordCount int32 `protobuf:"varint,6,opt,name=record_count,json=recordCount,proto3" json:"record_count,omitempty"`
-	// Length of each data element in this set in bytes, excluding the index
-	DataOnlyLen int64 `protobuf:"varint,7,opt,name=data_only_len,json=dataOnlyLen,proto3" json:"data_only_len,omitempty"`
-	// Interval Index based on the intervals/day of the target file
-	Index []int64 `protobuf:"varint,8,rep,packed,name=index,proto3" json:"index,omitempty"`
-	// Data bytes
-	Buffer               []byte   `protobuf:"bytes,9,opt,name=buffer,proto3" json:"buffer,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *WriteTransactionSet) Reset()         { *m = WriteTransactionSet{} }
-func (m *WriteTransactionSet) String() string { return proto.CompactTextString(m) }
-func (*WriteTransactionSet) ProtoMessage()    {}
-func (*WriteTransactionSet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{3}
-}
-
-func (m *WriteTransactionSet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WriteTransactionSet.Unmarshal(m, b)
-}
-func (m *WriteTransactionSet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WriteTransactionSet.Marshal(b, m, deterministic)
-}
-func (m *WriteTransactionSet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WriteTransactionSet.Merge(m, src)
-}
-func (m *WriteTransactionSet) XXX_Size() int {
-	return xxx_messageInfo_WriteTransactionSet.Size(m)
-}
-func (m *WriteTransactionSet) XXX_DiscardUnknown() {
-	xxx_messageInfo_WriteTransactionSet.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WriteTransactionSet proto.InternalMessageInfo
-
-func (m *WriteTransactionSet) GetRecordType() RecordType {
-	if m != nil {
-		return m.RecordType
-	}
-	return RecordType_FIXED
-}
-
-func (m *WriteTransactionSet) GetFpLen() int32 {
-	if m != nil {
-		return m.FpLen
-	}
-	return 0
-}
-
-func (m *WriteTransactionSet) GetFilepath() string {
-	if m != nil {
-		return m.Filepath
-	}
-	return ""
-}
-
-func (m *WriteTransactionSet) GetYear() int32 {
-	if m != nil {
-		return m.Year
-	}
-	return 0
-}
-
-func (m *WriteTransactionSet) GetIntervals() int64 {
-	if m != nil {
-		return m.Intervals
-	}
-	return 0
-}
-
-func (m *WriteTransactionSet) GetRecordCount() int32 {
-	if m != nil {
-		return m.RecordCount
-	}
-	return 0
-}
-
-func (m *WriteTransactionSet) GetDataOnlyLen() int64 {
-	if m != nil {
-		return m.DataOnlyLen
-	}
-	return 0
-}
-
-func (m *WriteTransactionSet) GetIndex() []int64 {
-	if m != nil {
-		return m.Index
-	}
-	return nil
-}
-
-func (m *WriteTransactionSet) GetBuffer() []byte {
-	if m != nil {
-		return m.Buffer
-	}
-	return nil
-}
-
-type WALStatus struct {
-	FileStatus  FileStatus  `protobuf:"varint,1,opt,name=file_status,json=fileStatus,proto3,enum=proto.FileStatus" json:"file_status,omitempty"`
-	ReplayState ReplayState `protobuf:"varint,2,opt,name=replay_state,json=replayState,proto3,enum=proto.ReplayState" json:"replay_state,omitempty"`
-	// PID of the process using this WAL file
-	OwningPid            int64    `protobuf:"varint,3,opt,name=owning_pid,json=owningPid,proto3" json:"owning_pid,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *WALStatus) Reset()         { *m = WALStatus{} }
-func (m *WALStatus) String() string { return proto.CompactTextString(m) }
-func (*WALStatus) ProtoMessage()    {}
-func (*WALStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{4}
-}
-
-func (m *WALStatus) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WALStatus.Unmarshal(m, b)
-}
-func (m *WALStatus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WALStatus.Marshal(b, m, deterministic)
-}
-func (m *WALStatus) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WALStatus.Merge(m, src)
-}
-func (m *WALStatus) XXX_Size() int {
-	return xxx_messageInfo_WALStatus.Size(m)
-}
-func (m *WALStatus) XXX_DiscardUnknown() {
-	xxx_messageInfo_WALStatus.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WALStatus proto.InternalMessageInfo
-
-func (m *WALStatus) GetFileStatus() FileStatus {
-	if m != nil {
-		return m.FileStatus
-	}
-	return FileStatus_IN_USE
-}
-
-func (m *WALStatus) GetReplayState() ReplayState {
-	if m != nil {
-		return m.ReplayState
-	}
-	return ReplayState_NOT_YET_PROCESSED
-}
-
-func (m *WALStatus) GetOwningPid() int64 {
-	if m != nil {
-		return m.OwningPid
-	}
-	return 0
-}
-
 type GetWALStreamRequest struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -540,7 +65,7 @@ func (m *GetWALStreamRequest) Reset()         { *m = GetWALStreamRequest{} }
 func (m *GetWALStreamRequest) String() string { return proto.CompactTextString(m) }
 func (*GetWALStreamRequest) ProtoMessage()    {}
 func (*GetWALStreamRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{5}
+	return fileDescriptor_ed0454e9e09fb71a, []int{1}
 }
 
 func (m *GetWALStreamRequest) XXX_Unmarshal(b []byte) error {
@@ -562,7 +87,6 @@ func (m *GetWALStreamRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_GetWALStreamRequest proto.InternalMessageInfo
 
 type GetWALStreamResponse struct {
-	//repeated WriteCommand write_commands = 1;
 	TransactionGroup     []byte   `protobuf:"bytes,1,opt,name=transaction_group,json=transactionGroup,proto3" json:"transaction_group,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -573,7 +97,7 @@ func (m *GetWALStreamResponse) Reset()         { *m = GetWALStreamResponse{} }
 func (m *GetWALStreamResponse) String() string { return proto.CompactTextString(m) }
 func (*GetWALStreamResponse) ProtoMessage()    {}
 func (*GetWALStreamResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{6}
+	return fileDescriptor_ed0454e9e09fb71a, []int{2}
 }
 
 func (m *GetWALStreamResponse) XXX_Unmarshal(b []byte) error {
@@ -601,101 +125,10 @@ func (m *GetWALStreamResponse) GetTransactionGroup() []byte {
 	return nil
 }
 
-type WriteCommand struct {
-	// Direct or Indirect IO (for variable or fixed length records)
-	RecordType           RecordType `protobuf:"varint,1,opt,name=record_type,json=recordType,proto3,enum=proto.RecordType" json:"record_type,omitempty"`
-	WalKeyPath           string     `protobuf:"bytes,2,opt,name=wal_key_path,json=walKeyPath,proto3" json:"wal_key_path,omitempty"`
-	VariableRecordLength int32      `protobuf:"varint,3,opt,name=variable_record_length,json=variableRecordLength,proto3" json:"variable_record_length,omitempty"`
-	Offset               int64      `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
-	Index                int64      `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
-	Data                 []byte     `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
-	XXX_unrecognized     []byte     `json:"-"`
-	XXX_sizecache        int32      `json:"-"`
-}
-
-func (m *WriteCommand) Reset()         { *m = WriteCommand{} }
-func (m *WriteCommand) String() string { return proto.CompactTextString(m) }
-func (*WriteCommand) ProtoMessage()    {}
-func (*WriteCommand) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0454e9e09fb71a, []int{7}
-}
-
-func (m *WriteCommand) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WriteCommand.Unmarshal(m, b)
-}
-func (m *WriteCommand) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WriteCommand.Marshal(b, m, deterministic)
-}
-func (m *WriteCommand) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WriteCommand.Merge(m, src)
-}
-func (m *WriteCommand) XXX_Size() int {
-	return xxx_messageInfo_WriteCommand.Size(m)
-}
-func (m *WriteCommand) XXX_DiscardUnknown() {
-	xxx_messageInfo_WriteCommand.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WriteCommand proto.InternalMessageInfo
-
-func (m *WriteCommand) GetRecordType() RecordType {
-	if m != nil {
-		return m.RecordType
-	}
-	return RecordType_FIXED
-}
-
-func (m *WriteCommand) GetWalKeyPath() string {
-	if m != nil {
-		return m.WalKeyPath
-	}
-	return ""
-}
-
-func (m *WriteCommand) GetVariableRecordLength() int32 {
-	if m != nil {
-		return m.VariableRecordLength
-	}
-	return 0
-}
-
-func (m *WriteCommand) GetOffset() int64 {
-	if m != nil {
-		return m.Offset
-	}
-	return 0
-}
-
-func (m *WriteCommand) GetIndex() int64 {
-	if m != nil {
-		return m.Index
-	}
-	return 0
-}
-
-func (m *WriteCommand) GetData() []byte {
-	if m != nil {
-		return m.Data
-	}
-	return nil
-}
-
 func init() {
-	proto.RegisterEnum("proto.MessageID", MessageID_name, MessageID_value)
-	proto.RegisterEnum("proto.DestinationID", DestinationID_name, DestinationID_value)
-	proto.RegisterEnum("proto.TIStatus", TIStatus_name, TIStatus_value)
-	proto.RegisterEnum("proto.RecordType", RecordType_name, RecordType_value)
-	proto.RegisterEnum("proto.FileStatus", FileStatus_name, FileStatus_value)
-	proto.RegisterEnum("proto.ReplayState", ReplayState_name, ReplayState_value)
 	proto.RegisterType((*WriteAheadLog)(nil), "proto.WriteAheadLog")
-	proto.RegisterType((*TransactionInfo)(nil), "proto.TransactionInfo")
-	proto.RegisterType((*TransactionGroup)(nil), "proto.TransactionGroup")
-	proto.RegisterType((*WriteTransactionSet)(nil), "proto.WriteTransactionSet")
-	proto.RegisterType((*WALStatus)(nil), "proto.WALStatus")
 	proto.RegisterType((*GetWALStreamRequest)(nil), "proto.GetWALStreamRequest")
 	proto.RegisterType((*GetWALStreamResponse)(nil), "proto.GetWALStreamResponse")
-	proto.RegisterType((*WriteCommand)(nil), "proto.WriteCommand")
 }
 
 func init() {
@@ -703,63 +136,18 @@ func init() {
 }
 
 var fileDescriptor_ed0454e9e09fb71a = []byte{
-	// 888 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0xdd, 0x6e, 0xe2, 0x46,
-	0x1b, 0x8e, 0x71, 0x20, 0xf0, 0xf2, 0x13, 0x33, 0x21, 0xf9, 0xf8, 0xd2, 0x56, 0xa2, 0xa8, 0x52,
-	0x11, 0x2b, 0xad, 0x56, 0xb4, 0x7b, 0xd4, 0x23, 0x17, 0x9c, 0xd4, 0xaa, 0xb1, 0xad, 0xb1, 0xd3,
-	0x6c, 0x8e, 0x46, 0x0e, 0x1e, 0x88, 0xb5, 0x8e, 0xed, 0xda, 0xc3, 0x52, 0x2e, 0xa4, 0x57, 0xd0,
-	0x93, 0xf6, 0x9e, 0x7a, 0x31, 0xd5, 0x8c, 0x87, 0x9f, 0x6c, 0x73, 0xd4, 0x23, 0xbf, 0xbf, 0x7e,
-	0x9e, 0x79, 0xdf, 0x67, 0x06, 0xba, 0x39, 0xcd, 0xe2, 0x68, 0x11, 0xb0, 0x28, 0x4d, 0xde, 0x66,
-	0x79, 0xca, 0x52, 0x54, 0x15, 0x9f, 0xe1, 0x39, 0xb4, 0xef, 0xf3, 0x88, 0x51, 0xfd, 0x89, 0x06,
-	0xa1, 0x95, 0xae, 0x86, 0x7f, 0x29, 0x70, 0xee, 0xe7, 0x41, 0x52, 0x04, 0x0b, 0x5e, 0x6d, 0x26,
-	0xcb, 0x14, 0xbd, 0x83, 0x1e, 0x3b, 0x84, 0xc8, 0x2a, 0x4f, 0xd7, 0x19, 0x89, 0xc2, 0xbe, 0x32,
-	0x50, 0x46, 0x2a, 0x46, 0x47, 0xb9, 0x5b, 0x9e, 0x32, 0x43, 0xf4, 0x03, 0x74, 0x42, 0x5a, 0xb0,
-	0x28, 0x11, 0x90, 0xbc, 0xb6, 0x32, 0x50, 0x46, 0x9d, 0x49, 0xaf, 0x44, 0x7f, 0x3b, 0x3b, 0x24,
-	0xcd, 0x19, 0x6e, 0x1f, 0xd5, 0x9a, 0x21, 0xfa, 0x16, 0x6a, 0x05, 0x0b, 0xd8, 0xba, 0xe8, 0xab,
-	0xa2, 0xe9, 0x5c, 0x36, 0xf9, 0xa6, 0x27, 0xc2, 0x58, 0xa6, 0x87, 0x7f, 0x2a, 0xa0, 0xf9, 0x9f,
-	0x81, 0xa3, 0x2b, 0xa8, 0xc5, 0x34, 0x59, 0xb1, 0x27, 0x49, 0x4f, 0x7a, 0xa8, 0x03, 0x15, 0x49,
-	0x43, 0xc5, 0x95, 0x28, 0x44, 0xff, 0x87, 0xfa, 0x86, 0x91, 0x45, 0xba, 0x4e, 0x98, 0xc0, 0x51,
-	0xf1, 0xd9, 0x86, 0x4d, 0xb9, 0x8b, 0xde, 0x8b, 0x94, 0x38, 0x66, 0xff, 0x74, 0xa0, 0x8e, 0x9a,
-	0x93, 0x6b, 0x49, 0x41, 0xcc, 0xea, 0x08, 0xd2, 0xa3, 0x8c, 0xb7, 0x95, 0xc8, 0xd7, 0x50, 0x5f,
-	0x3c, 0xd1, 0xc5, 0xc7, 0x62, 0xfd, 0xdc, 0xaf, 0x0e, 0x94, 0x51, 0x0b, 0xef, 0xfd, 0xe1, 0x1f,
-	0x15, 0xb8, 0x78, 0xa5, 0x19, 0x4d, 0xa0, 0x99, 0xd3, 0x45, 0x9a, 0x87, 0x84, 0x6d, 0x33, 0x2a,
-	0x28, 0x77, 0x26, 0x5d, 0x89, 0x86, 0x45, 0xc6, 0xdf, 0x66, 0x14, 0x43, 0xbe, 0xb7, 0xd1, 0x25,
-	0xd4, 0x96, 0x19, 0x89, 0x69, 0x22, 0x4e, 0x53, 0xc5, 0xd5, 0x65, 0x66, 0xd1, 0x84, 0xc3, 0x2f,
-	0xa3, 0x98, 0x66, 0x01, 0x7b, 0x12, 0x07, 0x6a, 0xe0, 0xbd, 0x8f, 0x10, 0x9c, 0x6e, 0x69, 0x90,
-	0xf7, 0x4f, 0x45, 0x83, 0xb0, 0xd1, 0x97, 0xd0, 0x88, 0x12, 0x46, 0xf3, 0x4f, 0x41, 0x5c, 0x08,
-	0xbe, 0x2a, 0x3e, 0x04, 0xd0, 0xd7, 0xd0, 0x92, 0xc4, 0xca, 0x11, 0xd5, 0x44, 0xa7, 0x24, 0x5b,
-	0x8e, 0x69, 0x08, 0xed, 0x30, 0x60, 0x01, 0x49, 0x93, 0x78, 0x2b, 0xe8, 0x9c, 0x89, 0x9f, 0x34,
-	0x79, 0xd0, 0x49, 0xe2, 0x2d, 0x27, 0xd5, 0x83, 0x6a, 0x94, 0x84, 0xf4, 0xb7, 0x7e, 0x7d, 0xa0,
-	0x8e, 0x54, 0x5c, 0x3a, 0x7c, 0x47, 0x8f, 0xeb, 0xe5, 0x92, 0xe6, 0xfd, 0x86, 0x98, 0x93, 0xf4,
-	0x86, 0xbf, 0x2b, 0xd0, 0xb8, 0xd7, 0xad, 0x72, 0xcd, 0x7c, 0x36, 0xfc, 0x00, 0x44, 0x8a, 0xe1,
-	0xe5, 0x6c, 0x6e, 0xa2, 0x98, 0x4a, 0x39, 0xc0, 0x72, 0x6f, 0xa3, 0xf7, 0x9c, 0x76, 0x16, 0x07,
-	0x5b, 0xd1, 0x45, 0xa5, 0xec, 0xd0, 0x7e, 0xa0, 0x3c, 0xc5, 0x4b, 0x29, 0x3f, 0xca, 0xde, 0x41,
-	0x5f, 0x01, 0xa4, 0x9b, 0x24, 0x4a, 0x56, 0x24, 0x8b, 0x42, 0x29, 0x87, 0x46, 0x19, 0x71, 0xa3,
-	0x70, 0x78, 0x09, 0x17, 0xb7, 0x94, 0x09, 0x66, 0x39, 0x0d, 0x9e, 0x31, 0xfd, 0x75, 0x4d, 0x0b,
-	0x36, 0x9c, 0x42, 0xef, 0x65, 0xb8, 0xc8, 0xd2, 0xa4, 0xa0, 0xe8, 0x0d, 0x74, 0xff, 0x75, 0x5f,
-	0x04, 0xfd, 0x16, 0xd6, 0x3e, 0xbf, 0x2c, 0xc3, 0xbf, 0x15, 0x68, 0x09, 0x65, 0x4c, 0xd3, 0xe7,
-	0xe7, 0x20, 0x09, 0xff, 0x93, 0x24, 0x06, 0xd0, 0xda, 0x04, 0x31, 0xf9, 0x48, 0xb7, 0x44, 0xec,
-	0xbf, 0x22, 0xf6, 0x0f, 0x9b, 0x20, 0xfe, 0x99, 0x6e, 0x5d, 0xae, 0x80, 0xef, 0xe1, 0xea, 0x53,
-	0x90, 0x47, 0xc1, 0x63, 0x4c, 0x89, 0xfc, 0xbd, 0xbc, 0x26, 0xaa, 0xd8, 0x6c, 0x6f, 0x97, 0x2d,
-	0x11, 0xac, 0xf2, 0xd2, 0x5c, 0x41, 0x2d, 0x5d, 0x2e, 0x0b, 0xca, 0x84, 0x72, 0x54, 0x2c, 0xbd,
-	0xc3, 0x5a, 0x4b, 0xdd, 0xc8, 0xb5, 0x22, 0x38, 0xe5, 0xbb, 0x17, 0x5a, 0x69, 0x61, 0x61, 0x8f,
-	0x7f, 0x82, 0xc6, 0x9c, 0x16, 0x45, 0xb0, 0xa2, 0xe6, 0x0c, 0x5d, 0x42, 0xd7, 0xc7, 0xba, 0xed,
-	0xe9, 0x53, 0xdf, 0x74, 0x6c, 0x72, 0x8b, 0x9d, 0x3b, 0x57, 0x3b, 0x41, 0x3d, 0xd0, 0x8e, 0xc3,
-	0xa6, 0x7d, 0xe3, 0x68, 0x0a, 0xea, 0x00, 0xdc, 0xeb, 0x16, 0xf1, 0x7c, 0xdd, 0xbf, 0xf3, 0xb4,
-	0xca, 0xf8, 0x0d, 0xb4, 0x5f, 0x3c, 0x1b, 0xe8, 0x0c, 0xd4, 0x7b, 0xdd, 0xd2, 0x4e, 0x50, 0x17,
-	0xda, 0x2e, 0x36, 0xe7, 0x3a, 0x7e, 0x20, 0x9e, 0xef, 0x60, 0x43, 0x53, 0xc6, 0x2e, 0xd4, 0x77,
-	0xcf, 0x05, 0xfa, 0x1f, 0x5c, 0xb8, 0xd8, 0x70, 0x75, 0x6c, 0xda, 0xb7, 0xc4, 0x77, 0xc8, 0xd4,
-	0x99, 0xcf, 0x4d, 0x5f, 0x3b, 0x41, 0x57, 0x80, 0x4a, 0x9b, 0x98, 0xb6, 0x6f, 0xd8, 0x3e, 0xf1,
-	0x0c, 0xdb, 0xd7, 0x14, 0x74, 0x01, 0xe7, 0x32, 0x3e, 0x75, 0xe6, 0xae, 0x65, 0xf8, 0x86, 0x56,
-	0x19, 0x4f, 0x00, 0x0e, 0xc3, 0x47, 0x0d, 0xa8, 0xde, 0x98, 0x1f, 0x8c, 0x99, 0x76, 0x82, 0x5a,
-	0x50, 0xff, 0x45, 0xc7, 0xa6, 0xfe, 0xa3, 0x65, 0x68, 0x0a, 0x6a, 0xc2, 0x99, 0xed, 0x10, 0xff,
-	0xc1, 0xe5, 0x3d, 0xdf, 0x00, 0x1c, 0x74, 0x8a, 0x00, 0x6a, 0xa6, 0x4d, 0xee, 0x3c, 0x43, 0x3b,
-	0xe1, 0xf6, 0xd4, 0x72, 0x3c, 0x63, 0xa6, 0x29, 0x63, 0x13, 0x9a, 0x47, 0xc2, 0xe4, 0x43, 0xb2,
-	0x1d, 0x9f, 0x3c, 0x18, 0x3e, 0x71, 0xb1, 0x33, 0x35, 0x3c, 0x6f, 0x07, 0x83, 0x0d, 0xd7, 0xd2,
-	0x1f, 0x78, 0x0f, 0x2f, 0x2a, 0x3d, 0x62, 0xda, 0xbb, 0x32, 0xad, 0x32, 0xf9, 0x50, 0xfe, 0x4a,
-	0x3e, 0xf5, 0xc8, 0x84, 0xd6, 0xb1, 0x40, 0xd1, 0xee, 0x19, 0x7b, 0x45, 0xcc, 0xd7, 0x5f, 0xbc,
-	0x9a, 0x2b, 0x15, 0xfd, 0x4e, 0x79, 0xac, 0x89, 0xec, 0x77, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff,
-	0x33, 0x53, 0x84, 0x76, 0x4b, 0x06, 0x00, 0x00,
+	// 165 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x2c, 0x4a, 0x2d, 0xc8,
+	0xc9, 0x4c, 0x4e, 0x2c, 0xc9, 0xcc, 0xcf, 0xd3, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05,
+	0x53, 0x4a, 0xfc, 0x5c, 0xbc, 0xe1, 0x45, 0x99, 0x25, 0xa9, 0x8e, 0x19, 0xa9, 0x89, 0x29, 0x3e,
+	0xf9, 0xe9, 0x4a, 0xa2, 0x5c, 0xc2, 0xee, 0xa9, 0x25, 0xe1, 0x8e, 0x3e, 0xc1, 0x25, 0x45, 0xa9,
+	0x89, 0xb9, 0x41, 0xa9, 0x85, 0xa5, 0xa9, 0xc5, 0x25, 0x4a, 0xce, 0x5c, 0x22, 0xa8, 0xc2, 0xc5,
+	0x05, 0xf9, 0x79, 0xc5, 0xa9, 0x42, 0xda, 0x5c, 0x82, 0x25, 0x45, 0x89, 0x79, 0xc5, 0x89, 0xc9,
+	0x20, 0xb3, 0xe3, 0xd3, 0x8b, 0xf2, 0x4b, 0x0b, 0x24, 0x18, 0x15, 0x18, 0x35, 0x78, 0x82, 0x04,
+	0x90, 0x24, 0xdc, 0x41, 0xe2, 0x46, 0x11, 0x5c, 0xdc, 0x41, 0x08, 0x87, 0x08, 0x79, 0x72, 0xf1,
+	0x20, 0x9b, 0x29, 0x24, 0x05, 0x71, 0x9a, 0x1e, 0x16, 0xfb, 0xa5, 0xa4, 0xb1, 0xca, 0x41, 0x1c,
+	0x61, 0xc0, 0x98, 0xc4, 0x06, 0x96, 0x35, 0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0xaa, 0x18, 0x7d,
+	0x99, 0xe9, 0x00, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -774,7 +162,6 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ReplicationClient interface {
-	// rpc GetWALStream (GetWALStreamRequest) returns (stream WALMessage);
 	GetWALStream(ctx context.Context, in *GetWALStreamRequest, opts ...grpc.CallOption) (Replication_GetWALStreamClient, error)
 }
 
@@ -820,7 +207,6 @@ func (x *replicationGetWALStreamClient) Recv() (*GetWALStreamResponse, error) {
 
 // ReplicationServer is the server API for Replication service.
 type ReplicationServer interface {
-	// rpc GetWALStream (GetWALStreamRequest) returns (stream WALMessage);
 	GetWALStream(*GetWALStreamRequest, Replication_GetWALStreamServer) error
 }
 

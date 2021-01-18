@@ -31,6 +31,7 @@ var dataTypeMap = map[proto.DataType]io.EnumElementType{
 	proto.DataType_UINT16:  io.UINT16,
 	proto.DataType_UINT32:  io.UINT32,
 	proto.DataType_UINT64:  io.UINT64,
+	proto.DataType_STRING16:io.STRING16,
 }
 
 var reverseMap = reverseDataTypeMap(dataTypeMap)

@@ -52,6 +52,7 @@ const (
 	UINT16
 	UINT32
 	UINT64
+	STRING16
 )
 
 var (
@@ -61,20 +62,21 @@ var (
 		size   int
 		typeOf reflect.Type
 	}{
-		FLOAT32: {reflect.Float32, "float32", 4, reflect.TypeOf(float32(0))},
-		INT32:   {reflect.Int32, "int32", 4, reflect.TypeOf(int32(0))},
-		FLOAT64: {reflect.Float64, "float64", 8, reflect.TypeOf(float64(0))},
-		INT64:   {reflect.Int64, "int64", 8, reflect.TypeOf(int64(0))},
-		EPOCH:   {reflect.Int64, "epoch", 8, reflect.TypeOf(int64(0))},
-		BYTE:    {reflect.Int8, "byte", 1, reflect.TypeOf(byte(0))},
-		BOOL:    {reflect.Bool, "bool", 1, reflect.TypeOf(bool(false))},
-		NONE:    {reflect.Invalid, "none", 0, reflect.TypeOf(byte(0))},
-		STRING:  {reflect.String, "string", 0, reflect.TypeOf("")},
-		INT16:   {reflect.Int16, "int16", 2, reflect.TypeOf(int16(0))},
-		UINT8:   {reflect.Uint8, "uint8", 1, reflect.TypeOf(uint8(0))},
-		UINT16:  {reflect.Uint16, "uint16", 2, reflect.TypeOf(uint16(0))},
-		UINT32:  {reflect.Uint32, "uint32", 4, reflect.TypeOf(uint32(0))},
-		UINT64:  {reflect.Uint64, "uint64", 8, reflect.TypeOf(uint64(0))},
+		FLOAT32:  {reflect.Float32, "float32", 4, reflect.TypeOf(float32(0))},
+		INT32:    {reflect.Int32, "int32", 4, reflect.TypeOf(int32(0))},
+		FLOAT64:  {reflect.Float64, "float64", 8, reflect.TypeOf(float64(0))},
+		INT64:    {reflect.Int64, "int64", 8, reflect.TypeOf(int64(0))},
+		EPOCH:    {reflect.Int64, "epoch", 8, reflect.TypeOf(int64(0))},
+		BYTE:     {reflect.Int8, "byte", 1, reflect.TypeOf(byte(0))},
+		BOOL:     {reflect.Bool, "bool", 1, reflect.TypeOf(false)},
+		NONE:     {reflect.Invalid, "none", 0, reflect.TypeOf(byte(0))},
+		STRING:   {reflect.String, "string", 0, reflect.TypeOf("")},
+		INT16:    {reflect.Int16, "int16", 2, reflect.TypeOf(int16(0))},
+		UINT8:    {reflect.Uint8, "uint8", 1, reflect.TypeOf(uint8(0))},
+		UINT16:   {reflect.Uint16, "uint16", 2, reflect.TypeOf(uint16(0))},
+		UINT32:   {reflect.Uint32, "uint32", 4, reflect.TypeOf(uint32(0))},
+		UINT64:   {reflect.Uint64, "uint64", 8, reflect.TypeOf(uint64(0))},
+		STRING16: {reflect.Array, "string16", 64, reflect.TypeOf([16]rune{})},
 	}
 )
 
@@ -145,6 +147,8 @@ func (e EnumElementType) ConvertByteSliceInto(data []byte) interface{} {
 		return SwapSliceByte(data, uint32(0)).([]uint32)
 	case UINT64:
 		return SwapSliceByte(data, uint64(0)).([]uint64)
+	case STRING16:
+		return SwapSliceByte(data, [16]rune{}).([][16]rune)
 	}
 	return nil
 }
@@ -164,11 +168,18 @@ func GetElementType(datum interface{}) EnumElementType {
 		/*
 			We need to iterate over this map in order of the Enum
 		*/
-		for i := 0; i <= int(UINT64); i++ {
+		for i := 0; i <= int(STRING16); i++ {
 			e := EnumElementType(i)
 			el := attributeMap[e]
 			if el.typ == kind {
-				return e
+				// need to check the length too in case of String type (=[]rune = array type),
+				if kind == reflect.Array {
+					if el.size == int(value.Type().Elem().Size()) {
+						return e
+					}
+				} else {
+					return e
+				}
 			}
 		}
 	}
@@ -307,6 +318,23 @@ func getUInt64Column(offset, reclen, nrecs int, data []byte) (col []uint64) {
 	cursor := offset
 	for i := 0; i < nrecs; i++ {
 		col[i] = ToUInt64(data[cursor : cursor+8])
+		cursor += reclen
+	}
+	return col
+}
+
+func getString16Column(offset, reclen, nrecs int, data []byte) (col [][16]rune) {
+	col = make([][16]rune, nrecs)
+	if nrecs == 0 {
+		return col
+	}
+	cursor := offset
+	for i := 0; i < nrecs; i++ {
+		subCursor := cursor
+		for k := 0; k < 16; k++ {
+			col[i][k] = ToRune(data[subCursor : subCursor+4]) // 1 rune = 4 byte
+			subCursor += 4
+		}
 		cursor += reclen
 	}
 	return col

@@ -87,29 +87,37 @@ func ToFloat64(b []byte) float64 {
 func ToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
+func ToRune(b []byte) rune {
+	return *(*rune)(unsafe.Pointer(&b[0]))
+}
 
-func SwapSliceData(src_slice interface{}, target_type interface{}) interface{} {
-	leftValue := reflect.ValueOf(src_slice)
-	leftLen := leftValue.Len()
-	leftType := leftValue.Type().Elem()
-	leftSize := leftType.Size()
-	//	fmt.Printf("LeftType: %s LeftLen: %d LeftSize: %d \n",leftType, leftLen, leftSize)
+// SwapSliceData generically converts a slice of the type into a slice of the target type
+// without copying each value in the slice
+func SwapSliceData(srcSlice interface{}, targetType interface{}) interface{} {
+	src := reflect.ValueOf(srcSlice)
+	srcLen := src.Len()
+	srcElementType := src.Type().Elem()
+	// .Size() considers the array values. For example, if srcElementType=[16]rune, Size() returns 64.
+	srcElementTypeSize := srcElementType.Size()
+	//	fmt.Printf("LeftType: %s LeftLen: %d LeftSize: %d \n",srcElementType, srcLen, srcElementTypeSize)
 
-	rightValue := reflect.ValueOf(target_type)
-	rightType := rightValue.Type()
-	rightSize := rightType.Size()
-	//rightSize := binary.Size(target_type)
-	rightSliceType := reflect.SliceOf(rightType)
+	targetValue := reflect.ValueOf(targetType)
+	targetValueType := targetValue.Type()
+	targetSize := targetValueType.Size()
+	targetLen := (srcLen * int(srcElementTypeSize)) / int(targetSize)
 
-	//	fmt.Printf("LeftType: %s LeftLen: %d LeftSize: %d RightSize: %d\n",leftType, leftLen, leftSize, rightSize)
-	LenRight := (leftLen * int(leftSize)) / int(rightSize)
-	CapRight := LenRight
-	rightSlice := reflect.MakeSlice(rightSliceType, LenRight, CapRight)
+	//targetSize := binary.Size(target_type)
+	targetSliceType := reflect.SliceOf(targetValueType)
+
+	//	fmt.Printf("LeftType: %s LeftLen: %d LeftSize: %d RightSize: %d\n",srcElementType, leftLen, srcElementTypeSize, targetSize)
+	targetCap := targetLen
+	targetSlice := reflect.MakeSlice(targetSliceType, targetLen, targetCap)
 
 	// Set the data pointer of the right slice equal to that of the left
-	(*reflect.SliceHeader)(unsafe.Pointer((*(*MValue)(unsafe.Pointer(&rightSlice))).Ptr)).Data =
-		(*reflect.SliceHeader)(unsafe.Pointer((*(*MValue)(unsafe.Pointer(&leftValue))).Ptr)).Data
-	return rightSlice.Interface()
+	(*reflect.SliceHeader)((*(*MValue)(unsafe.Pointer(&targetSlice))).Ptr).Data =
+		(*reflect.SliceHeader)((*(*MValue)(unsafe.Pointer(&src))).Ptr).Data
+
+	return targetSlice.Interface()
 }
 
 // Cast sliceData's memory chunk to a byte slice without copy.

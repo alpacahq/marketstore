@@ -25,6 +25,7 @@ enum DataType {
     UINT16 = 12;
     UINT32 = 13;
     UINT64 = 14;
+    STRING16 = 15;
 }
 
 message DataShape {

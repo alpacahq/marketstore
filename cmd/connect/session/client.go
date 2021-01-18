@@ -225,14 +225,23 @@ func printHeaderLine(cs *dbio.ColumnSeries) {
 	fmt.Printf(formatHeader(cs, "="))
 	fmt.Printf("\n")
 }
+func printColumnNames(cs *dbio.ColumnSeries) {
+	for _, name := range cs.GetColumnNames() {
+		col := cs.GetByName(name)
+		l := columnFormatLength(name, col)
 
-func printColumnNames(colNames []string) {
-	for i, name := range colNames {
-		switch i {
-		case 0:
+		if strings.EqualFold(name, "Epoch") {
 			fmt.Printf("%29s  ", name)
-		default:
-			fmt.Printf("%-10s  ", name)
+		} else {
+			// if the column name is "Ask",
+			// print a string like "        Ask  "
+			var sb strings.Builder
+			for i := 0; i < l-len([]rune(name)); i++ {
+				sb.WriteString(" ")
+			}
+			sb.WriteString(name)
+			sb.WriteString("  ")
+			fmt.Print(sb.String())
 		}
 	}
 	fmt.Printf("\n")
@@ -282,7 +291,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 
 	if writer == nil {
 		printHeaderLine(cs)
-		printColumnNames(cs.GetColumnNames())
+		printColumnNames(cs)
 		printHeaderLine(cs)
 	}
 	for i, ts := range epoch {
@@ -290,7 +299,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		var element string
 		for _, name := range cs.GetColumnNames() {
 			if strings.EqualFold(name, "Epoch") {
-				element = fmt.Sprintf("%29s  ", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
+				element = fmt.Sprintf("%29s", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 			} else {
 				col := cs.GetByName(name)
 				colType := reflect.TypeOf(col).Elem().Kind()
@@ -332,9 +341,18 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 					} else {
 						element = "FALSE"
 					}
-
+				case reflect.Array: // string type (e.g. [16]rune)
+					runes := reflect.ValueOf(col).Index(i)
+					element = strings.Trim(runesToString(runes), "\x00") // trim space
 				}
-				element = fmt.Sprintf("%-10s", element)
+				// print column value in the format length
+				l := columnFormatLength(name, col)
+				var sb strings.Builder
+				for i := 0; i < l-len([]rune(element)); i++ {
+					sb.WriteString(" ")
+				}
+				sb.WriteString(element)
+				element = sb.String()
 			}
 
 			if writer != nil {
@@ -358,6 +376,57 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	return err
 }
 
+// runesToString converts rune array (not slice) in reflect.Value to string
+func runesToString(runes reflect.Value) string {
+	length := runes.Len()
+
+	runeSlice := make([]rune, length)
+	for i := 0; i < length; i++ {
+		runeSlice[i] = rune(runes.Index(i).Int())
+	}
+
+	return string(runeSlice)
+}
+
+func columnFormatLength(colName string, col interface{}) int {
+	if strings.EqualFold(colName, "Epoch") {
+		return 29
+	}
+
+	colType := reflect.TypeOf(col).Elem().Kind()
+	switch colType {
+	case reflect.Float32:
+		fallthrough
+	case reflect.Float64:
+		fallthrough
+	case reflect.Int8:
+		fallthrough
+	case reflect.Int16:
+		fallthrough
+	case reflect.Int32:
+		fallthrough
+	case reflect.Int64:
+		fallthrough
+	case reflect.Uint8:
+		fallthrough
+	case reflect.Uint16:
+		fallthrough
+	case reflect.Uint32:
+		fallthrough
+	case reflect.Uint64:
+		fallthrough
+	case reflect.String:
+		fallthrough
+	case reflect.Bool:
+		return 10
+	case reflect.Array:
+		// e.g. STRING16 column has colType=[16]rune
+		return reflect.TypeOf(col).Elem().Len()
+	}
+	// default
+	return 10
+}
+
 func formatHeader(cs *dbio.ColumnSeries, printChar string) string {
 	var buffer bytes.Buffer
 	appendChars := func(count int) {
@@ -367,38 +436,8 @@ func formatHeader(cs *dbio.ColumnSeries, printChar string) string {
 		buffer.WriteString("  ")
 	}
 	for _, name := range cs.GetColumnNames() {
-		if strings.EqualFold(name, "Epoch") {
-			appendChars(29)
-			continue
-		}
 		col := cs.GetByName(name)
-		colType := reflect.TypeOf(col).Elem().Kind()
-		switch colType {
-		case reflect.Float32:
-			appendChars(10)
-		case reflect.Float64:
-			appendChars(10)
-		case reflect.Int8:
-			appendChars(10)
-		case reflect.Int16:
-			appendChars(10)
-		case reflect.Int32:
-			appendChars(10)
-		case reflect.Int64:
-			appendChars(10)
-		case reflect.Uint8:
-			appendChars(10)
-		case reflect.Uint16:
-			appendChars(10)
-		case reflect.Uint32:
-			appendChars(10)
-		case reflect.Uint64:
-			appendChars(10)
-		case reflect.String:
-			appendChars(10)
-		case reflect.Bool:
-			appendChars(10)
-		}
+		appendChars(columnFormatLength(name, col))
 	}
 	return buffer.String()
 }

@@ -30,7 +30,7 @@ type ColumnInterface interface {
 type ColumnSeries struct {
 	ColumnInterface
 
-	columns       map[string]interface{}
+	columns       map[string]interface{} // key: column name, value: a slice of values of the column
 	orderedNames  []string
 	nameIncrement map[string]int
 }

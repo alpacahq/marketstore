@@ -4,15 +4,44 @@ package io
 
 import "strconv"
 
-const _EnumElementType_name = "FLOAT32INT32FLOAT64INT64EPOCHBYTEBOOLNONESTRINGINT16UINT8UINT16UINT32UINT64"
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[FLOAT32-0]
+	_ = x[INT32-1]
+	_ = x[FLOAT64-2]
+	_ = x[INT64-3]
+	_ = x[EPOCH-4]
+	_ = x[BYTE-5]
+	_ = x[BOOL-6]
+	_ = x[NONE-7]
+	_ = x[STRING-8]
+	_ = x[INT16-9]
+	_ = x[UINT8-10]
+	_ = x[UINT16-11]
+	_ = x[UINT32-12]
+	_ = x[UINT64-13]
+	_ = x[STRING16-14]
+}
 
-var _EnumElementType_index = [...]uint8{0, 7, 12, 19, 24, 29, 33, 37, 41, 47, 52, 57, 63, 69, 75}
+const _EnumElementType_name = "FLOAT32INT32FLOAT64INT64EPOCHBYTEBOOLNONESTRINGINT16UINT8UINT16UINT32UINT64STRING16"
+
+var _EnumElementType_index = [...]uint8{0, 7, 12, 19, 24, 29, 33, 37, 41, 47, 52, 57, 63, 69, 75, 83}
 
 func (i EnumElementType) String() string {
 	if i >= EnumElementType(len(_EnumElementType_index)-1) {
 		return "EnumElementType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 	return _EnumElementType_name[_EnumElementType_index[i]:_EnumElementType_index[i+1]]
+}
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[FIXED-0]
+	_ = x[VARIABLE-1]
+	_ = x[NOTYPE-2]
 }
 
 const _EnumRecordType_name = "FIXEDVARIABLENOTYPE"

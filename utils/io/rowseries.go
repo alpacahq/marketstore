@@ -51,6 +51,8 @@ func (rows *Rows) GetColumn(colname string) (col interface{}) {
 				return getUInt32Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case UINT64:
 				return getUInt64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+			case STRING16:
+				return getString16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case BOOL:
 				fallthrough
 			case BYTE:

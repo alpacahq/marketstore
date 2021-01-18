@@ -20,6 +20,7 @@ var (
 		UINT64:  "u8",
 		FLOAT32: "f4",
 		FLOAT64: "f8",
+		STRING16: "U16",
 	}
 )
 
@@ -49,7 +50,7 @@ type NumpyDataset struct {
 	// a list of column names
 	ColumnNames []string `msgpack:"names"`
 	// two dimentional byte arrays holding the column data.
-	// if there are mulitple rows in DataSet, ColumnData[columnIndex] is concatenation of the byte representation of each row.
+	// if there are multiple rows in a DataSet, ColumnData[columnIndex] is concatenation of the byte representation of each row.
 	// (e.g. row1 of columnA = "\x01\x02\x03\x04", row2 of columnA = "\x05\x06\x07\x08"
 	// => ColumnData[index of columnA] = "\x01\x02\x03\x04\x05\x06\x07\x08"
 	ColumnData [][]byte `msgpack:"data"`
@@ -151,6 +152,7 @@ func NewNumpyMultiDataset(nds *NumpyDataset, tbk TimeBucketKey) (nmds *NumpyMult
 
 func (nmds *NumpyMultiDataset) ToColumnSeriesMap() (csm ColumnSeriesMap, err error) {
 	csm = NewColumnSeriesMap()
+
 	for tbkStr, idx := range nmds.StartIndex {
 		length := nmds.Lengths[tbkStr]
 		var cs *ColumnSeries
