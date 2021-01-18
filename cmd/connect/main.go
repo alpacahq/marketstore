@@ -63,9 +63,6 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 	if len(dir) == 0 && len(url) == 0 {
 		return errors.New("cannot connect to database, use a flag to set location")
 	}
-	if varCompOff {
-		utils.InstanceConfig.DisableVariableCompression = true
-	}
 	return nil
 }
 
@@ -89,6 +86,10 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if varCompOff {
+		utils.InstanceConfig.DisableVariableCompression = true
 	}
 
 	// Initialize connection.
