@@ -75,7 +75,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
-	reader, err := executor.NewReader(parsed)
+	reader, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err := reader.Read()
 	c.Assert(err == nil, Equals, true)

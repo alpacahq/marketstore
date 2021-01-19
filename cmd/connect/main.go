@@ -2,9 +2,7 @@ package connect
 
 import (
 	"errors"
-
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/spf13/cobra"
 )
@@ -74,7 +72,7 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 
 	// Attempt local mode.
 	if len(dir) != 0 {
-		c, err = session.NewLocalClient(dir)
+		c, err = session.NewLocalClient(dir, varCompOff)
 		if err != nil {
 			return err
 		}
@@ -82,14 +80,10 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 
 	// Attempt remote mode.
 	if len(url) != 0 {
-		c, err = session.NewRemoteClient(url)
+		c, err = session.NewRemoteClient(url, varCompOff)
 		if err != nil {
 			return err
 		}
-	}
-
-	if varCompOff {
-		utils.InstanceConfig.DisableVariableCompression = true
 	}
 
 	// Initialize connection.

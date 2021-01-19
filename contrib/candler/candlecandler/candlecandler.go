@@ -36,7 +36,7 @@ type CandleCandler struct {
 	*candler.Candler
 }
 
-func (c CandleCandler) New() (ica uda.AggInterface, am *functions.ArgumentMap) {
+func (c CandleCandler) New(_ bool) (ica uda.AggInterface, am *functions.ArgumentMap) {
 	ca := &CandleCandler{candler.NewCandler(requiredColumns, optionalColumns)}
 	return ca, ca.ArgMap
 }

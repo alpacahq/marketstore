@@ -14,20 +14,20 @@ import (
 
 type SelectRelation struct {
 	ExecutableStatement
-	Limit                  int
-	OrderBy                []SortItem
-	SelectList             []*AliasedIdentifier
-	IsPrimary, IsSelectAll bool
-	PrimaryTargetName      []string
-	Subquery               *SelectRelation
-	WherePredicate         IMSTree // Runtime predicates
-	SetQuantifier          SetQuantifierEnum
-	StaticPredicates       StaticPredicateGroup
+	Limit                      int
+	OrderBy                    []SortItem
+	SelectList                 []*AliasedIdentifier
+	IsPrimary, IsSelectAll     bool
+	PrimaryTargetName          []string
+	Subquery                   *SelectRelation
+	WherePredicate             IMSTree // Runtime predicates
+	SetQuantifier              SetQuantifierEnum
+	StaticPredicates           StaticPredicateGroup
+	DisableVariableCompression bool
 }
 
-func NewSelectRelation() (sr *SelectRelation) {
-	sr = new(SelectRelation)
-	return sr
+func NewSelectRelation(disableVariableCompression bool) (sr *SelectRelation) {
+	return &SelectRelation{DisableVariableCompression: disableVariableCompression}
 }
 
 func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, err error) {
@@ -184,7 +184,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 		if err != nil {
 			return nil, err
 		}
-		scanner, err := executor.NewReader(parsed)
+		scanner, err := executor.NewReader(parsed, sr.disableVariableCompression)
 		if err != nil {
 			return nil, err
 		}
@@ -419,7 +419,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if agg == nil {
 					return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 				}
-				aggfunc, argMap := agg.New()
+				aggfunc, argMap := agg.New(sr.disableVariableCompression)
 
 				if sl.FunctionCall.IsAsterisk {
 					/*

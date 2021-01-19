@@ -56,7 +56,7 @@ func (ca *Count) Accum(cols io.ColumnInterface) error {
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (c Count) New() (out uda.AggInterface, am *functions.ArgumentMap) {
+func (c Count) New(_ bool) (out uda.AggInterface, am *functions.ArgumentMap) {
 	ca := NewCount(requiredColumns, optionalColumns)
 	return ca, ca.ArgMap
 }

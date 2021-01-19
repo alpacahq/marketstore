@@ -73,12 +73,14 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, options ...bool) 
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID, nil)
+			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID, nil, false)
 			if err != nil {
 				log.Fatal("Unable to create WAL")
 			}
 		} else {
-			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID, rs)
+			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID, rs,
+				false,
+			)
 
 			if err != nil {
 				log.Fatal("Unable to startup Cache and WAL")

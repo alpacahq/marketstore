@@ -183,7 +183,9 @@ type IndirectRecordInfo struct {
 	Index, Offset, Len int64
 }
 
-func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRecLen int) (err error) {
+func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRecLen int,
+	disableVariableCompression bool,
+) (err error) {
 	/*
 		Here we write the data payload of the buffer to the end of the data file
 		Prior to writing the new data, we fetch any previously written data and
@@ -214,7 +216,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 		if _, err := fp.Read(oldData); err != nil {
 			return err
 		}
-		if !utils.InstanceConfig.DisableVariableCompression {
+		if !disableVariableCompression {
 			oldData, err = snappy.Decode(nil, oldData)
 			if err != nil {
 				return err
@@ -240,7 +242,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	/*
 		Write the data at the end of the file
 	*/
-	if !utils.InstanceConfig.DisableVariableCompression {
+	if !disableVariableCompression {
 		comp := snappy.Encode(nil, dataToBeWritten)
 		if _, err = fp.Write(comp); err != nil {
 			return err
@@ -350,7 +352,7 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		if missing != nil {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
-		
+
 		if coercion != nil {
 			for _, dbDS := range coercion {
 				if err := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err != nil {

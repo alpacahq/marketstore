@@ -28,8 +28,9 @@ type Adjust struct {
 	uda.AggInterface
 	ArgMap *functions.ArgumentMap
 
-	AdjustDividend bool
-	AdjustSplit    bool
+	AdjustDividend             bool
+	AdjustSplit                bool
+	disableVariableCompression bool
 
 	epochs         []int64
 	output         map[io.DataShape]interface{}
@@ -48,12 +49,14 @@ func (adj *Adjust) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-func (adj *Adjust) New() (uda.AggInterface, *functions.ArgumentMap) {
-	rn := new(Adjust)
+func (adj *Adjust) New(disableVariableCompression bool) (uda.AggInterface, *functions.ArgumentMap) {
+	rn := &Adjust{
+		ArgMap:                     functions.NewArgumentMap(requiredColumns, optionalColumns...),
+		output:                     map[io.DataShape]interface{}{},
+		skippedColumns:             map[string]interface{}{},
+		disableVariableCompression: disableVariableCompression,
+	}
 
-	rn.ArgMap = functions.NewArgumentMap(requiredColumns, optionalColumns...)
-	rn.output = map[io.DataShape]interface{}{}
-	rn.skippedColumns = map[string]interface{}{}
 	return rn, rn.ArgMap
 }
 
@@ -116,7 +119,7 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 	}
 
 	symbol := adj.tbk.GetItemInCategory("Symbol")
-	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend)
+	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend, adj.disableVariableCompression)
 	if len(rateChanges) == 0 {
 		return nil
 	}

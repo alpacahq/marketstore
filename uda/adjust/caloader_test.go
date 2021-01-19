@@ -440,10 +440,10 @@ func (s *TestCALoaderSuite) TestCache(c *C) {
 		// GetRateChange should create a separate cache entry for each parameter combination
 		rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true)
-		GetRateChanges("AAPL", false, true)
-		GetRateChanges("AAPL", true, false)
-		GetRateChanges("AAPL", false, false)
+		GetRateChanges("AAPL", true, true, false)
+		GetRateChanges("AAPL", false, true, false)
+		GetRateChanges("AAPL", true, false, false)
+		GetRateChanges("AAPL", false, false, false)
 
 		c.Assert(len(rateChangeCache), Equals, 4)
 	}
@@ -452,9 +452,9 @@ func (s *TestCALoaderSuite) TestCache(c *C) {
 		// repeated calls with the same signature should not increase the number of cache entries
 		rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true)
-		GetRateChanges("AAPL", true, true)
-		GetRateChanges("AAPL", true, true)
+		GetRateChanges("AAPL", true, true, false)
+		GetRateChanges("AAPL", true, true, false)
+		GetRateChanges("AAPL", true, true, false)
 
 		c.Assert(len(rateChangeCache), Equals, 1)
 	}
