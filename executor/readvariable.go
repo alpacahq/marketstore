@@ -3,7 +3,6 @@ package executor
 import (
 	"os"
 
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/klauspost/compress/snappy"
 
 	. "github.com/alpacahq/marketstore/v4/utils/io"
@@ -33,7 +32,7 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 		var totalDatalen int
 		// Without compression we have the exact size of the output buffer
 		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
-		if utils.InstanceConfig.DisableVariableCompression {
+		if r.disableVariableCompression {
 			for i := 0; i < numIndexRecords; i++ {
 				datalen := int(ToInt64(indexBuffer[i*24+16:]))
 				numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
@@ -63,7 +62,7 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 				return nil, err
 			}
 
-			if !utils.InstanceConfig.DisableVariableCompression {
+			if !r.disableVariableCompression {
 				buffer, err = snappy.Decode(nil, buffer)
 				if err != nil {
 					return nil, err

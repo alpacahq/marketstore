@@ -65,7 +65,7 @@ func (av *Avg) Accum(cols io.ColumnInterface) error {
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Avg) New() (out uda.AggInterface, am *functions.ArgumentMap) {
+func (m Avg) New(_ bool) (out uda.AggInterface, am *functions.ArgumentMap) {
 	av := NewCount(requiredColumns, optionalColumns)
 	return av, av.ArgMap
 }

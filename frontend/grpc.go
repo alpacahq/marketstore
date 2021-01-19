@@ -50,7 +50,13 @@ func toProtoDataType(elemType io.EnumElementType) proto.DataType {
 
 // GRPCService is the implementation of GRPC API for Marketstore.
 // All grpc/protobuf-related logics and models are defined in this file.
-type GRPCService struct{}
+type GRPCService struct{
+	disableVariableCompression bool
+}
+
+func NewGRPCService(disableVariableCompression bool) *GRPCService{
+	return &GRPCService{disableVariableCompression: disableVariableCompression}
+}
 
 func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (*proto.MultiQueryResponse, error) {
 	response := proto.MultiQueryResponse{}
@@ -63,7 +69,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			if err != nil {
 				return nil, err
 			}
-			es, err := sqlparser.NewExecutableStatement(ast.Mtree)
+			es, err := sqlparser.NewExecutableStatement(s.disableVariableCompression, ast.Mtree)
 			if err != nil {
 				return nil, err
 			}
@@ -138,6 +144,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				start, end,
 				limitRecordCount, limitFromStart,
 				columns,
+				s.disableVariableCompression,
 			)
 			if err != nil {
 				return nil, err
@@ -148,7 +155,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			*/
 			if len(req.Functions) != 0 {
 				for tbkStr, cs := range csm {
-					csOut, err := runAggFunctions(req.Functions, cs, tbkStr)
+					csOut, err := runAggFunctions(req.Functions, cs, tbkStr, s.disableVariableCompression)
 					if err != nil {
 						return nil, err
 					}

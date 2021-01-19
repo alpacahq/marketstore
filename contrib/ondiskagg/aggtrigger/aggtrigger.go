@@ -384,7 +384,7 @@ func (s *OnDiskAggTrigger) query(
 		return nil, err
 	}
 
-	scanner, err := executor.NewReader(parsed)
+	scanner, err := executor.NewReader(parsed, false)
 	if err != nil {
 		return nil, err
 	}

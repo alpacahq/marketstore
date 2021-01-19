@@ -82,7 +82,7 @@ const CacheLifetime = 24 * time.Hour
 
 var rateChangeCache = map[CacheKey]RateChangeCache{}
 
-func GetRateChanges(symbol string, includeSplits, includeDividends bool) []RateChange {
+func GetRateChanges(symbol string, includeSplits, includeDividends, disableVariableCompression bool) []RateChange {
 	key := CacheKey{Symbol: symbol, Splits: includeSplits, Dividends: includeDividends}
 	rateCache, present := rateChangeCache[key]
 	if present && time.Since(rateCache.CreatedAt) > CacheLifetime {
@@ -90,7 +90,7 @@ func GetRateChanges(symbol string, includeSplits, includeDividends bool) []RateC
 	}
 	if !present {
 		ca := NewCorporateActions(symbol)
-		ca.Load()
+		ca.Load(disableVariableCompression)
 		rateCache = RateChangeCache{
 			Changes:   ca.RateChangeEvents(includeSplits, includeDividends),
 			Access:    0,
@@ -109,7 +109,7 @@ func NewCorporateActions(symbol string) *Actions {
 	}
 }
 
-func (act *Actions) Load() error {
+func (act *Actions) Load(disableVariableCompression bool) error {
 	if executor.ThisInstance == nil || executor.ThisInstance.CatalogDir == nil {
 		return nil
 	}
@@ -136,7 +136,7 @@ func (act *Actions) Load() error {
 		log.Error("Unable to create parser: %s", err)
 		return err
 	}
-	scanner, err := executor.NewReader(parseResult)
+	scanner, err := executor.NewReader(parseResult, disableVariableCompression)
 	if err != nil {
 		log.Error("Unable to create scanner: %s", err)
 		return err

@@ -30,11 +30,12 @@ type WALFileType struct {
 	ReplayState      wal.ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath          string            // Path to the root directory, base of FileName
-	FilePath          string            // WAL file full path
-	lastCommittedTGID int64             // TGID to be checkpointed
-	FilePtr           *os.File          // Active file pointer to FileName
-	ReplicationSender ReplicationSender // send messages to replica servers
+	RootPath                   string            // Path to the root directory, base of FileName
+	FilePath                   string            // WAL file full path
+	lastCommittedTGID          int64             // TGID to be checkpointed
+	FilePtr                    *os.File          // Active file pointer to FileName
+	ReplicationSender          ReplicationSender // send messages to replica servers
+	disableVariableCompression bool
 }
 
 type ReplicationSender interface {
@@ -50,11 +51,14 @@ type TransactionGroup struct {
 	Checksum [16]byte
 }
 
-func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender) (wf *WALFileType, err error) {
-	wf = new(WALFileType)
-	wf.lastCommittedTGID = 0
-	wf.OwningInstanceID = owningInstanceID
-	wf.ReplicationSender = rs
+func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression bool,
+) (wf *WALFileType, err error) {
+	wf = &WALFileType{
+		lastCommittedTGID: 0,
+		OwningInstanceID: owningInstanceID,
+		ReplicationSender: rs,
+		disableVariableCompression: disableVariableCompression,
+	}
 
 	if err = wf.createFile(rootDir); err != nil {
 		log.Fatal("%v: Can not create new WALFile - Error: %v", io.GetCallerFileContext(0), err)
@@ -332,6 +336,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 				fp.(*os.File),
 				buffer,
 				varRecLen,
+				wf.disableVariableCompression,
 			)
 		}
 		if err != nil {
@@ -686,6 +691,7 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 			if err = WriteBufferToFileIndirect(fp,
 				wtSet.Buffer,
 				wtSet.VarRecLen,
+				wf.disableVariableCompression,
 			); err != nil {
 				return err
 			}
@@ -811,8 +817,9 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	}
 }
 
-func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, owningInstanceID, rs)
+func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender,disableVariableCompression bool,
+	) (tgc *TransactionPipe, wf *WALFileType, err error) {
+	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err

@@ -50,6 +50,8 @@ type Client struct {
 	rc RPCClient
 	// dir is the optional filesystem location of a local db instance.
 	dir string
+	// disableVariableCompression is an option if the compression is used to read & write data
+	disableVariableCompression bool
 }
 
 // RPCClient is a marketstore API client interface.
@@ -58,18 +60,18 @@ type RPCClient interface {
 }
 
 // NewLocalClient builds a new client struct in local mode.
-func NewLocalClient(dir string) (c *Client, err error) {
+func NewLocalClient(dir string, disableVariableCompression bool) (c *Client, err error) {
 	// Configure db settings.
 	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	utils.InstanceConfig.WALRotateInterval = 5
 	executor.NewInstanceSetup(dir,
 		nil, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
-	return &Client{dir: dir, mode: local}, nil
+	return &Client{dir: dir, mode: local, disableVariableCompression: disableVariableCompression}, nil
 }
 
 // NewRemoteClient generates a new client struct.
-func NewRemoteClient(url string) (c *Client, err error) {
+func NewRemoteClient(url string, disableVariableCompression bool) (c *Client, err error) {
 	// TODO: validate url using go core packages.
 	splits := strings.Split(url, ":")
 	if len(splits) != 2 {
@@ -78,7 +80,7 @@ func NewRemoteClient(url string) (c *Client, err error) {
 	}
 	// build url.
 	url = "http://" + url
-	return &Client{url: url, mode: remote}, nil
+	return &Client{url: url, mode: remote, disableVariableCompression: disableVariableCompression}, nil
 }
 
 // Connect initializes a client connection.

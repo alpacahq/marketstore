@@ -44,7 +44,7 @@ func (s *TestSuite) TearDownSuite(c *C) {
 func (s *TestSuite) TestTickCandler(c *C) {
 	dd := executor.ThisInstance.CatalogDir
 
-	cdl, am := TickCandler{}.New()
+	cdl, am := TickCandler{}.New(false)
 	ds := io.NewDataShapeVector([]string{"Bid", "Ask"}, []io.EnumElementType{io.FLOAT32, io.FLOAT32})
 	// Sum and Avg are optional inputs, let's map them arbitrarily
 	//am.MapInputColumn("Sum", ds[1:])
@@ -75,7 +75,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
-	reader, err := executor.NewReader(parsed)
+	reader, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err := reader.Read()
 	c.Assert(err == nil, Equals, true)

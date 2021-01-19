@@ -37,7 +37,7 @@ var ShowRecordsCmd = &cobra.Command{
 
 func showRecords(cusip string) {
 	ca := adjust.NewCorporateActions(cusip)
-	ca.Load()
+	ca.Load(false)
 	fmt.Println("----- stored announcements ------")
 	for i := 0; i < len(ca.Rows.EntryDates); i++ {
 		ent := time.Unix(ca.Rows.EntryDates[i], 0)

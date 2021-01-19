@@ -171,11 +171,12 @@ type Reader struct {
 	IOPMap map[TimeBucketKey]*ioplan
 	// for packingReader to avoid redundant allocation.
 	// really ought to be somewhere close to the function...
-	readBuffer []byte
-	fileBuffer []byte
+	readBuffer                 []byte
+	fileBuffer                 []byte
+	disableVariableCompression bool
 }
 
-func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
+func NewReader(pr *planner.ParseResult, disableVariableCompression bool) (r *Reader, err error) {
 	r = new(Reader)
 	r.pr = *pr
 	if pr.Range == nil {
@@ -204,6 +205,8 @@ func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
 	readSize := RecordsPerRead * maxRecordLen
 	r.readBuffer = make([]byte, readSize)
 	r.fileBuffer = make([]byte, readSize)
+
+	r.disableVariableCompression = disableVariableCompression
 	return r, nil
 }
 

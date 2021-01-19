@@ -12,13 +12,14 @@ import (
 type ExecutableStatement struct {
 	QueryTree
 	BaseSQLQueryTreeVisitor
-	nodeCursor *ExecutableStatement
-	pendingSP  *StaticPredicate
-	IsExplain  bool
+	nodeCursor                 *ExecutableStatement
+	pendingSP                  *StaticPredicate
+	IsExplain                  bool
+	disableVariableCompression bool
 }
 
-func NewExecutableStatement(qtree ...IMSTree) (es *ExecutableStatement, err error) {
-	es = new(ExecutableStatement)
+func NewExecutableStatement(disableVariableCompression bool, qtree ...IMSTree) (es *ExecutableStatement, err error) {
+	es = &ExecutableStatement{disableVariableCompression: disableVariableCompression}
 	es.nodeCursor = es
 	if len(qtree) > 0 {
 		i_err := es.Visit(qtree[0])
@@ -101,7 +102,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 		es.AddChild(NewExplainStatement(context, ctx.QueryText))
 	case INSERT_INTO_STMT:
 		var err error
-		es.nodeCursor, err = NewExecutableStatement(ctx.query)
+		es.nodeCursor, err = NewExecutableStatement(es.disableVariableCompression, ctx.query)
 		if err != nil {
 			return fmt.Errorf("Unable to create executable query")
 		}
@@ -174,7 +175,7 @@ func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) inte
 		return fmt.Errorf("Unsupported statement type: %s", "Query with ORDER BY")
 	}
 
-	sr := NewSelectRelation()
+	sr := NewSelectRelation(es.disableVariableCompression)
 	sr.Limit = ctx.limit
 
 	es.nodeCursor.payload = sr // For retrieval of the dynamic type later
@@ -197,7 +198,7 @@ func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) in
 	if ctx.subquery != nil {
 		//fmt.Println("Visit Query Primary subquery")
 		sr.IsPrimary = false
-		node, err := NewExecutableStatement(ctx.subquery)
+		node, err := NewExecutableStatement(es.disableVariableCompression, ctx.subquery)
 		if err != nil {
 			return err
 		}
@@ -384,7 +385,7 @@ func (es *ExecutableStatement) VisitRelationPrimaryParse(ctx *RelationPrimaryPar
 			}
 		*/
 		if sr, ok := es.payload.(*SelectRelation); ok {
-			newNode, _ := NewExecutableStatement()
+			newNode, _ := NewExecutableStatement(es.disableVariableCompression)
 			retval := QueryWalk(newNode, ctx.GetChild(0).(*QueryParse))
 			if err, ok := retval.(error); ok {
 				return err

@@ -15,7 +15,7 @@ func (c *Client) sql(line string) {
 	var err error
 	var cs *io.ColumnSeries
 	if c.mode == local {
-		cs, err = localSQL(line)
+		cs, err = localSQL(line, c.disableVariableCompression)
 	} else {
 		cs, err = c.remoteSQL(line)
 	}
@@ -37,12 +37,12 @@ func (c *Client) sql(line string) {
 	}
 }
 
-func localSQL(line string) (cs *io.ColumnSeries, err error) {
+func localSQL(line string, disableVariableCompression bool) (cs *io.ColumnSeries, err error) {
 	ast, err := sqlparser.NewAstBuilder(line)
 	if err != nil {
 		return nil, err
 	}
-	es, err := sqlparser.NewExecutableStatement(ast.Mtree)
+	es, err := sqlparser.NewExecutableStatement(disableVariableCompression, ast.Mtree)
 	if err != nil {
 		return nil, err
 	}
