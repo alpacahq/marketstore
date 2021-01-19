@@ -44,7 +44,7 @@ func (s *TestSuite) TearDownSuite(c *C) {
 func (s *TestSuite) TestTickCandler(c *C) {
 	dd := executor.ThisInstance.CatalogDir
 
-	cdl, am := TickCandler{}.New()
+	cdl, am := TickCandler{}.New(false)
 	ds := io.NewDataShapeVector([]string{"Bid", "Ask"}, []io.EnumElementType{io.FLOAT32, io.FLOAT32})
 	// Sum and Avg are optional inputs, let's map them arbitrarily
 	//am.MapInputColumn("Sum", ds[1:])

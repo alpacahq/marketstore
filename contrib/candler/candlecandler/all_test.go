@@ -42,7 +42,7 @@ func (s *TestSuite) TearDownSuite(c *C) {
 }
 
 func (s *TestSuite) TestCandleCandler(c *C) {
-	cdl, am := CandleCandler{}.New()
+	cdl, am := CandleCandler{}.New(false)
 	ds := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},
