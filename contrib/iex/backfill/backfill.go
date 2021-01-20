@@ -237,12 +237,12 @@ func nextBatch(bars []*consolidator.Bar, index int) ([]*consolidator.Bar, int) {
 
 func initWriter() {
 	utils.InstanceConfig.Timezone = NY
-	utils.InstanceConfig.WALRotateInterval = 5
+	walRotateInterval := 5
 	instanceID := time.Now().UTC().UnixNano()
 
 	executor.NewInstanceSetup(
 		fmt.Sprintf("%v/mktsdb", dir), nil,
-		true, true, true, true)
+		walRotateInterval, true, true, true, true)
 
 	log.Info(
 		"Initialized writer with InstanceID: %v - RootDir: %v\n",

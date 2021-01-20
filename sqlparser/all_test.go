@@ -33,7 +33,7 @@ type TestSuite struct {
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyStockDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, true, true, false)
+	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
 	s.DataDirectory = executor.ThisInstance.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 }

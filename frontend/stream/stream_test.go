@@ -24,7 +24,7 @@ var _ = Suite(&StreamTestSuite{})
 
 func (s *StreamTestSuite) SetUpSuite(c *C) {
 	root := c.MkDir()
-	executor.NewInstanceSetup(root, nil, true, true, false, false)
+	executor.NewInstanceSetup(root, nil, 5, true, true, false, false)
 
 	Initialize()
 }

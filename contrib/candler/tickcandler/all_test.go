@@ -32,7 +32,7 @@ type TestSuite struct {
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, false, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, true, true, false, true) // WAL Bypass
+	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
 	s.DataDirectory = executor.ThisInstance.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 }

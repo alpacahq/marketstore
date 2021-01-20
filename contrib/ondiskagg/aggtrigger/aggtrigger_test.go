@@ -109,7 +109,7 @@ func (t *TestSuite) TestFireBars(c *C) {
 	os.MkdirAll(rootDir, 0777)
 	executor.NewInstanceSetup(
 		rootDir, nil,
-		true, true, false, false)
+		5, true, true, false, false)
 
 	ts := utils.TriggerSetting{
 		Module: "ondiskagg.so",
