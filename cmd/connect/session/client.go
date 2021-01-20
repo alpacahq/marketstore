@@ -21,7 +21,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend/client"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
-	"github.com/alpacahq/marketstore/v4/utils"
 	dbio "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/chzyer/readline"
 )
@@ -63,9 +62,9 @@ type RPCClient interface {
 func NewLocalClient(dir string, disableVariableCompression bool) (c *Client, err error) {
 	// Configure db settings.
 	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
-	utils.InstanceConfig.WALRotateInterval = 5
+	walRotateInterval := 5
 	executor.NewInstanceSetup(dir,
-		nil, initCatalog, initWALCache, backgroundSync, WALBypass,
+		nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
 	return &Client{dir: dir, mode: local, disableVariableCompression: disableVariableCompression}, nil
 }

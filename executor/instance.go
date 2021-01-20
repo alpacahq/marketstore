@@ -8,7 +8,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -25,7 +24,7 @@ type InstanceMetadata struct {
 	TriggerMatchers []*trigger.TriggerMatcher
 }
 
-func NewInstanceSetup(relRootDir string, rs ReplicationSender, options ...bool) {
+func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval int, options ...bool) {
 	/*
 		Defaults
 	*/
@@ -88,7 +87,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, options ...bool) 
 		}
 		if backgroundSync {
 			// Startup the WAL and Primary cache flushers
-			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, utils.InstanceConfig.WALRotateInterval)
+			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, walRotateInterval)
 			ThisInstance.WALWg.Add(1)
 		}
 	}

@@ -139,6 +139,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	executor.NewInstanceSetup(
 		config.RootDirectory,
 		rs,
+		config.WALRotateInterval,
 		config.InitCatalog,
 		config.InitWALCache,
 		config.BackgroundSync,
