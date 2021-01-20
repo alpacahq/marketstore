@@ -65,7 +65,7 @@ type MktsConfig struct {
 	BgWorkers                  []*BgWorkerSetting
 }
 
-func (m *MktsConfig) Parse(data []byte) error {
+func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	var (
 		err error
 		aux struct {
@@ -113,19 +113,19 @@ func (m *MktsConfig) Parse(data []byte) error {
 	)
 
 	if err := yaml.Unmarshal(data, &aux); err != nil {
-		return err
+		return nil, err
 	}
 
 	rootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
 	if aux.RootDirectory == "" || err != nil {
 		log.Fatal("Invalid root directory.")
-		return errors.New("Invalid root directory.")
+		return nil, errors.New("Invalid root directory.")
 	}
 	m.RootDirectory = rootDir
 
 	if aux.ListenPort == "" {
 		log.Fatal("Invalid listen port.")
-		return errors.New("Invalid listen port.")
+		return nil, errors.New("Invalid listen port.")
 	}
 
 	// GRPC is optional for now
@@ -151,7 +151,7 @@ func (m *MktsConfig) Parse(data []byte) error {
 	m.Timezone, err = time.LoadLocation(aux.Timezone)
 	if err != nil {
 		log.Fatal("Invalid timezone.")
-		return errors.New("Invalid timezone")
+		return nil, errors.New("Invalid timezone")
 	}
 
 	if aux.WALRotateInterval == 0 {
@@ -320,5 +320,5 @@ func (m *MktsConfig) Parse(data []byte) error {
 		m.BgWorkers = append(m.BgWorkers, bgWorkerSetting)
 	}
 
-	return err
+	return &InstanceConfig, err
 }
