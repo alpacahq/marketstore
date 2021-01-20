@@ -74,11 +74,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	log.Info("using %v for configuration", configFilePath)
 
 	// Attempt to set configuration.
-	err = utils.InstanceConfig.Parse(data)
+	config, err := utils.InstanceConfig.Parse(data)
 	if err != nil {
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
-	config := utils.InstanceConfig
 
 	// New grpc server for marketstore API.
 	grpcServer := grpc.NewServer(

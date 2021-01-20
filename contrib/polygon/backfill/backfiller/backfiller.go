@@ -71,8 +71,8 @@ func init() {
 }
 
 func main() {
-	initConfig()
-	initWriter()
+	rootDir, triggers := initConfig()
+	initWriter(rootDir, triggers)
 
 	// free memory in the background every 1 minute for long running backfills with very high parallelism
 	go func() {
@@ -243,28 +243,26 @@ func main() {
 	log.Info("[polygon] backfilling complete %s", time.Now().Sub(startTime))
 }
 
-func initConfig() {
+func initConfig() (rootDir string, triggers []*utils.TriggerSetting) {
 	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		log.Fatal("failed to read configuration file error: %s", err.Error())
 		os.Exit(1)
 	}
 
-	err = utils.InstanceConfig.Parse(data)
+	config, err := utils.InstanceConfig.Parse(data)
 	if err != nil {
 		log.Fatal("failed to parse configuration file error: %v", err.Error())
 		os.Exit(1)
 	}
 
-	if dir != "" {
-		utils.InstanceConfig.RootDirectory = dir
-	}
+	return config.RootDirectory, config.Triggers
 }
 
-func initWriter() {
-	executor.NewInstanceSetup(utils.InstanceConfig.RootDirectory, nil, true, true, true, true)
+func initWriter(rootDir string, triggers []*utils.TriggerSetting) {
+	executor.NewInstanceSetup(rootDir, nil, true, true, true, true)
 	// if configured, also load the ondiskagg triggers
-	for _, triggerSetting := range utils.InstanceConfig.Triggers {
+	for _, triggerSetting := range triggers {
 		if triggerSetting.Module == "ondiskagg.so" {
 			tmatcher := start.NewTriggerMatcher(triggerSetting)
 			executor.ThisInstance.TriggerMatchers = append(executor.ThisInstance.TriggerMatchers, tmatcher)
