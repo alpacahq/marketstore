@@ -67,18 +67,18 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 	if initCatalog {
 		ThisInstance.CatalogDir = catalog.NewDirectory(rootDir)
 	}
-	ThisInstance.WALBypass = WALBypass
+
 	if initWALCache {
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID, nil, false)
+			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID, nil, false, WALBypass)
 			if err != nil {
 				log.Fatal("Unable to create WAL")
 			}
 		} else {
 			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID, rs,
-				false,
+				false, WALBypass,
 			)
 
 			if err != nil {

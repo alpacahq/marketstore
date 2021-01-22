@@ -36,6 +36,7 @@ type WALFileType struct {
 	FilePtr                    *os.File          // Active file pointer to FileName
 	ReplicationSender          ReplicationSender // send messages to replica servers
 	disableVariableCompression bool
+	walBypass bool
 }
 
 type ReplicationSender interface {
@@ -51,13 +52,14 @@ type TransactionGroup struct {
 	Checksum [16]byte
 }
 
-func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression bool,
+func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression, walBypass bool,
 ) (wf *WALFileType, err error) {
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
 		OwningInstanceID: owningInstanceID,
 		ReplicationSender: rs,
 		disableVariableCompression: disableVariableCompression,
+		walBypass: walBypass,
 	}
 
 	if err = wf.createFile(rootDir); err != nil {
@@ -164,14 +166,13 @@ func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 
 // A.k.a. Commit transaction
 func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
+	//walBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
+
 	/*
 		Here we flush the contents of the write cache to:
 		- Primary storage via the OS write cache - data is visible to readers
 		- WAL file with synchronization to physical storage - in case we need to recover from a crash
 	*/
-
-	WALBypass := ThisInstance.WALBypass
-	//WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
 	// Count of WT Sets in this TG as of now
 	if tgc == nil {
@@ -185,7 +186,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		return nil
 	}
 
-	if !WALBypass {
+	if !wf.walBypass {
 		if !wf.CanWrite("WriteTG", wf.OwningInstanceID) {
 			panic("Failed attempt to write to WAL")
 		}
@@ -200,10 +201,10 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		writeCommands[i] = <-tgc.writeChannel
 	}
 
-	return wf.FlushCommandsToWAL(tgc, writeCommands, WALBypass)
+	return wf.FlushCommandsToWAL(tgc, writeCommands)
 }
 
-func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*wal.WriteCommand, walBypass bool) (err error) {
+func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*wal.WriteCommand) (err error) {
 	defer dispatchRecords()
 
 	fileRecordTypes := map[string]io.EnumRecordType{}
@@ -220,7 +221,7 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 
 	TG_Serialized, writesPerFile := serializeTG(tgc.tgID, writeCommands)
 
-	if !walBypass {
+	if !wf.walBypass {
 		// Serialize the size of the buffer into another buffer
 		TGLen_Serialized, _ := io.Serialize(nil, int64(len(TG_Serialized)))
 
@@ -817,9 +818,9 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	}
 }
 
-func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender,disableVariableCompression bool,
+func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender,disableVariableCompression, walBypass bool,
 	) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression)
+	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression, walBypass)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err
