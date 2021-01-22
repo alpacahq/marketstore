@@ -726,7 +726,7 @@ func (s *DestructiveWALTests) TearDownSuite(c *C) {
 func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
-	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil, false)
+	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil, false, false)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
