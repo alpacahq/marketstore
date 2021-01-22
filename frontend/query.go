@@ -189,6 +189,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 				limitRecordCount, limitFromStart,
 				columns,
 				s.disableVariableCompression,
+				s.enableLastKnown,
 			)
 			if err != nil {
 				return err
@@ -276,7 +277,9 @@ Utility functions
 */
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
-	LimitFromStart bool, columns []string, disableVariableCompression bool) (io.ColumnSeriesMap, error) {
+	LimitFromStart bool, columns []string,
+	disableVariableCompression, enableLastKnown bool,
+) (io.ColumnSeriesMap, error) {
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 
 	/*
@@ -315,7 +318,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		}
 		return nil, err
 	}
-	scanner, err := executor.NewReader(parseResult, disableVariableCompression)
+	scanner, err := executor.NewReader(parseResult, disableVariableCompression, enableLastKnown)
 	if err != nil {
 		log.Error("Unable to create scanner: %s\n", err)
 		return nil, err

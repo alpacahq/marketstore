@@ -17,7 +17,7 @@ type deleter struct {
 	IOPMap map[TimeBucketKey]*ioplan
 }
 
-func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
+func NewDeleter(pr *planner.ParseResult, enableLastKnown bool) (de *deleter, err error) {
 	de = new(deleter)
 	de.pr = *pr
 	if pr.Range == nil {
@@ -32,7 +32,7 @@ func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
-		if de.IOPMap[key], err = NewIOPlan(sfl, pr); err != nil {
+		if de.IOPMap[key], err = NewIOPlan(sfl, pr, enableLastKnown); err != nil {
 			return nil, err
 		}
 		recordLen := de.IOPMap[key].RecordLen

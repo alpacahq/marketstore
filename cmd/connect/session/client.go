@@ -51,6 +51,8 @@ type Client struct {
 	dir string
 	// disableVariableCompression is an option if the compression is used to read & write data
 	disableVariableCompression bool
+	// enableLastKnown is an optimization to reduce the size of dara reading for query
+	enableLastKnown bool
 }
 
 // RPCClient is a marketstore API client interface.

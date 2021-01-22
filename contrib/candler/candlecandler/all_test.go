@@ -66,7 +66,7 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	endDate := time.Date(2001, time.October, 15, 12, 15, 0, 0, time.UTC)
 	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
-	scanner, err := executor.NewReader(parsed, false)
+	scanner, err := executor.NewReader(parsed, false, false)
 	c.Assert(err == nil, Equals, true)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {

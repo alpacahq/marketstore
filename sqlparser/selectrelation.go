@@ -184,7 +184,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 		if err != nil {
 			return nil, err
 		}
-		scanner, err := executor.NewReader(parsed, sr.disableVariableCompression)
+		scanner, err := executor.NewReader(parsed, sr.disableVariableCompression, false)
 		if err != nil {
 			return nil, err
 		}

@@ -19,8 +19,16 @@ var (
 	argsNilError   = errors.New("Arguments are nil, can not query using nil arguments")
 )
 
-type DataService struct{
+func NewDataService(disableVariableCompression, enableLastKnown bool) *DataService {
+	return &DataService{
+		disableVariableCompression: disableVariableCompression,
+		enableLastKnown:            enableLastKnown,
+	}
+}
+
+type DataService struct {
 	disableVariableCompression bool
+	enableLastKnown            bool
 }
 
 func (s *DataService) Init() {}
@@ -36,7 +44,7 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics.RPCTotalRequestDuration.Observe(time.Since(start).Seconds())
 }
 
-func NewServer(disableVariableCompression bool) (*RpcServer, *DataService) {
+func NewServer(disableVariableCompression, enableLastKnown bool) (*RpcServer, *DataService) {
 	s := &RpcServer{
 		Server: rpc.NewServer(),
 	}
@@ -45,7 +53,7 @@ func NewServer(disableVariableCompression bool) (*RpcServer, *DataService) {
 	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
 	s.RegisterInterceptFunc(intercept)
 	s.RegisterAfterFunc(after)
-	service := &DataService{disableVariableCompression: disableVariableCompression}
+	service := NewDataService(disableVariableCompression, enableLastKnown)
 	service.Init()
 	err := s.RegisterService(service, "")
 	if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"runtime"
 	"sync"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -147,7 +147,10 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 			return
 		}
 
-		scanner, err := executor.NewReader(parsed, utils.InstanceConfig.DisableVariableCompression)
+		scanner, err := executor.NewReader(parsed,
+			utils.InstanceConfig.DisableVariableCompression,
+			utils.InstanceConfig.EnableLastKnown,
+		)
 		if err != nil {
 			log.Error("[polygon] new scanner failure (%v)", err)
 			return
