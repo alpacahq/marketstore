@@ -169,8 +169,8 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	http.Handle("/metrics", promhttp.Handler())
 
 	// Initialize any provided plugins.
-	InitializeTriggers()
-	RunBgWorkers()
+	InitializeTriggers(config)
+	RunBgWorkers(config)
 
 	if config.UtilitiesURL != "" {
 		// Start utility endpoints.

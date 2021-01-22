@@ -35,7 +35,7 @@ func (c *Client) show(line string) {
 	)
 
 	if c.mode == local {
-		csm, err = processShowLocal(tbk, start, end, c.disableVariableCompression)
+		csm, err = processShowLocal(tbk, start, end, c.disableVariableCompression, c.enableLastKnown)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -76,7 +76,7 @@ func (c *Client) show(line string) {
 	}
 }
 
-func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time, disableVariableCompression bool,
+func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time, disableVariableCompression, enableLastKnown bool,
 ) (csm io.ColumnSeriesMap, err error) {
 	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
 	query.AddTargetKey(tbk)
@@ -99,7 +99,7 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time, disableVaria
 		return
 	}
 
-	scanner, err := executor.NewReader(pr, disableVariableCompression, false)
+	scanner, err := executor.NewReader(pr, disableVariableCompression, enableLastKnown)
 	if err != nil {
 		log.Error("Error return from query scanner: %v", err)
 		return

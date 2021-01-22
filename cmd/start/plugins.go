@@ -9,9 +9,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-func InitializeTriggers() {
+func InitializeTriggers(config *utils.MktsConfig) {
 	log.Info("InitializeTriggers")
-	config := utils.InstanceConfig
 	theInstance := executor.ThisInstance
 	for _, triggerSetting := range config.Triggers {
 		log.Info("triggerSetting = %v", triggerSetting)
@@ -38,9 +37,8 @@ func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
 	return trigger.NewMatcher(trig, ts.On)
 }
 
-func RunBgWorkers() {
+func RunBgWorkers(config *utils.MktsConfig) {
 	log.Info("InitializeBgWorkers")
-	config := utils.InstanceConfig
 	for _, bgWorkerSetting := range config.BgWorkers {
 		// bgWorkerSetting may contain sensitive data such as a password or token.
 		log.Debug("bgWorkerSetting = %v", bgWorkerSetting)
