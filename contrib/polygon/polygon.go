@@ -7,15 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygon_config"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -147,7 +147,7 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 			return
 		}
 
-		scanner, err := executor.NewReader(parsed, false)
+		scanner, err := executor.NewReader(parsed, utils.InstanceConfig.DisableVariableCompression)
 		if err != nil {
 			log.Error("[polygon] new scanner failure (%v)", err)
 			return

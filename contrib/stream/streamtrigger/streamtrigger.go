@@ -96,7 +96,7 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 		return
 	}
 
-	scanner, err := executor.NewReader(parsed, false)
+	scanner, err := executor.NewReader(parsed, utils.InstanceConfig.DisableVariableCompression)
 	if err != nil {
 		log.Error("[streamtrigger] new scanner failure (%v)", err)
 		return
