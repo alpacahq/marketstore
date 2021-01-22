@@ -122,7 +122,7 @@ func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err erro
 	responses := &frontend.MultiServerResponse{}
 
 	if c.mode == local {
-		ds := frontend.DataService{}
+		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown)
 		err = ds.Write(nil, reqs, responses)
 	} else {
 		var respI interface{}

@@ -99,7 +99,7 @@ func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time, disableVaria
 		return
 	}
 
-	scanner, err := executor.NewReader(pr, disableVariableCompression)
+	scanner, err := executor.NewReader(pr, disableVariableCompression, false)
 	if err != nil {
 		log.Error("Error return from query scanner: %v", err)
 		return

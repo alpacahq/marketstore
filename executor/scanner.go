@@ -30,8 +30,9 @@ type ioFilePlan struct {
 	Length   int64
 	FullPath string // Full file path, including leaf (Year) file
 	// The time that begins each file in seconds since the Unix epoch
-	BaseTime    int64
-	seekingLast bool
+	BaseTime        int64
+	seekingLast     bool
+	enableLastKnown bool
 }
 
 func (iofp *ioFilePlan) GetFileYear() int16 {
@@ -48,7 +49,7 @@ type ioplan struct {
 	TimeQuals         []planner.TimeQualFunc
 }
 
-func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err error) {
+func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, enableLastKnown bool) (iop *ioplan, err error) {
 	iop = &ioplan{
 		FilePlan: make([]*ioFilePlan, 0),
 		Limit:    pr.Limit,
@@ -95,6 +96,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 					file.File.Path,
 					fileStartTime.Unix(),
 					false,
+					enableLastKnown,
 				},
 			)
 		} else if file.File.Year <= int16(pr.Range.End.Year()) {
@@ -119,7 +121,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
 			}
-			if lastKnownOffset, ok := readhint.GetLastKnown(file.File.Path); ok {
+			if lastKnownOffset, ok := readhint.GetLastKnown(enableLastKnown, file.File.Path); ok {
 				hinted := lastKnownOffset + int64(file.File.GetRecordLength())
 				if hinted < endOffset {
 					endOffset = hinted
@@ -137,6 +139,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 				file.File.Path,
 				fileStartTime.Unix(),
 				false,
+				enableLastKnown,
 			}
 			if iop.Limit.Direction == LAST {
 				fp.seekingLast = true
@@ -155,6 +158,7 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 						file.File.Path,
 						fileStartTime.Unix(),
 						false,
+						enableLastKnown,
 					},
 				)
 			}
@@ -176,7 +180,7 @@ type Reader struct {
 	disableVariableCompression bool
 }
 
-func NewReader(pr *planner.ParseResult, disableVariableCompression bool) (r *Reader, err error) {
+func NewReader(pr *planner.ParseResult, disableVariableCompression, enableLastKnown bool) (r *Reader, err error) {
 	r = new(Reader)
 	r.pr = *pr
 	if pr.Range == nil {
@@ -191,7 +195,7 @@ func NewReader(pr *planner.ParseResult, disableVariableCompression bool) (r *Rea
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
-		if r.IOPMap[key], err = NewIOPlan(sfl, pr); err != nil {
+		if r.IOPMap[key], err = NewIOPlan(sfl, pr, enableLastKnown); err != nil {
 			return nil, err
 		}
 		recordLen := r.IOPMap[key].RecordLen
@@ -502,7 +506,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 				if fp.seekingLast {
 					if offset, err := f.Seek(0, os.SEEK_CUR); err == nil {
 						offset = offset - nn + int64(i)*recordSize64
-						readhint.SetLastKnown(fp.FullPath, offset)
+						readhint.SetLastKnown(fp.enableLastKnown, fp.FullPath, offset)
 					}
 					fp.seekingLast = false
 				}

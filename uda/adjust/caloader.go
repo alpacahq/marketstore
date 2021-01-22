@@ -136,7 +136,7 @@ func (act *Actions) Load(disableVariableCompression bool) error {
 		log.Error("Unable to create parser: %s", err)
 		return err
 	}
-	scanner, err := executor.NewReader(parseResult, disableVariableCompression)
+	scanner, err := executor.NewReader(parseResult, disableVariableCompression, false)
 	if err != nil {
 		log.Error("Unable to create scanner: %s", err)
 		return err

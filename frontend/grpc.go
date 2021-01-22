@@ -17,21 +17,21 @@ import (
 )
 
 var dataTypeMap = map[proto.DataType]io.EnumElementType{
-	proto.DataType_FLOAT32: io.FLOAT32,
-	proto.DataType_INT32:   io.INT32,
-	proto.DataType_FLOAT64: io.FLOAT64,
-	proto.DataType_INT64:   io.INT64,
-	proto.DataType_EPOCH:   io.EPOCH,
-	proto.DataType_BYTE:    io.BYTE,
-	proto.DataType_BOOL:    io.BOOL,
-	proto.DataType_NONE:    io.NONE,
-	proto.DataType_STRING:  io.STRING,
-	proto.DataType_INT16:   io.INT16,
-	proto.DataType_UINT8:   io.UINT8,
-	proto.DataType_UINT16:  io.UINT16,
-	proto.DataType_UINT32:  io.UINT32,
-	proto.DataType_UINT64:  io.UINT64,
-	proto.DataType_STRING16:io.STRING16,
+	proto.DataType_FLOAT32:  io.FLOAT32,
+	proto.DataType_INT32:    io.INT32,
+	proto.DataType_FLOAT64:  io.FLOAT64,
+	proto.DataType_INT64:    io.INT64,
+	proto.DataType_EPOCH:    io.EPOCH,
+	proto.DataType_BYTE:     io.BYTE,
+	proto.DataType_BOOL:     io.BOOL,
+	proto.DataType_NONE:     io.NONE,
+	proto.DataType_STRING:   io.STRING,
+	proto.DataType_INT16:    io.INT16,
+	proto.DataType_UINT8:    io.UINT8,
+	proto.DataType_UINT16:   io.UINT16,
+	proto.DataType_UINT32:   io.UINT32,
+	proto.DataType_UINT64:   io.UINT64,
+	proto.DataType_STRING16: io.STRING16,
 }
 
 var reverseMap = reverseDataTypeMap(dataTypeMap)
@@ -50,12 +50,16 @@ func toProtoDataType(elemType io.EnumElementType) proto.DataType {
 
 // GRPCService is the implementation of GRPC API for Marketstore.
 // All grpc/protobuf-related logics and models are defined in this file.
-type GRPCService struct{
+type GRPCService struct {
 	disableVariableCompression bool
+	enableLastKnown            bool
 }
 
-func NewGRPCService(disableVariableCompression bool) *GRPCService{
-	return &GRPCService{disableVariableCompression: disableVariableCompression}
+func NewGRPCService(disableVariableCompression, enableLastKnown bool) *GRPCService {
+	return &GRPCService{
+		disableVariableCompression: disableVariableCompression,
+		enableLastKnown:            enableLastKnown,
+	}
 }
 
 func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (*proto.MultiQueryResponse, error) {
@@ -145,6 +149,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				limitRecordCount, limitFromStart,
 				columns,
 				s.disableVariableCompression,
+				s.enableLastKnown,
 			)
 			if err != nil {
 				return nil, err

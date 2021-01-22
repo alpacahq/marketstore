@@ -3,8 +3,6 @@ package readhint
 import (
 	"fmt"
 	"sync"
-
-	"github.com/alpacahq/marketstore/v4/utils"
 )
 
 type fileOffsetMap struct {
@@ -14,8 +12,8 @@ type fileOffsetMap struct {
 
 var lastKnownMap = &fileOffsetMap{mp: map[string]int64{}}
 
-func GetLastKnown(filePath string) (int64, bool) {
-	if !utils.InstanceConfig.EnableLastKnown {
+func GetLastKnown(enableLastknown bool, filePath string) (int64, bool) {
+	if !enableLastknown {
 		return 0, false
 	}
 	// avoid "defer" for performance reason
@@ -27,8 +25,8 @@ func GetLastKnown(filePath string) (int64, bool) {
 
 // Set the byte offset where the last non-NULL record stays in this file.
 // Note offset is the beginning of the record.
-func SetLastKnown(filePath string, offset int64) {
-	if !utils.InstanceConfig.EnableLastKnown {
+func SetLastKnown(enableLastKnown bool, filePath string, offset int64) {
+	if !enableLastKnown {
 		return
 	}
 	lastKnownMap.Lock()
