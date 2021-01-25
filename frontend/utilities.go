@@ -24,9 +24,17 @@ func init() {
 	Queryable = uint32(0)
 }
 
-func Utilities(url string) {
+func NewUtilityAPIHandlers(startTime time.Time) *utilityAPIHandlers{
+	return &utilityAPIHandlers{startTime: startTime}
+}
+
+type utilityAPIHandlers struct{
+	startTime time.Time
+}
+
+func (uah *utilityAPIHandlers) Handle(url string) {
 	// heartbeat
-	http.HandleFunc("/heartbeat", heartbeat)
+	http.HandleFunc("/heartbeat", uah.heartbeat)
 
 	// profiling
 	http.HandleFunc("/pprof/", pprof.Index)
@@ -42,8 +50,8 @@ func Utilities(url string) {
 	http.ListenAndServe(url, nil)
 }
 
-func heartbeat(rw http.ResponseWriter, r *http.Request) {
-	uptime := time.Since(utils.InstanceConfig.StartTime).String()
+func (uah *utilityAPIHandlers) heartbeat(rw http.ResponseWriter, r *http.Request) {
+	uptime := time.Since(uah.startTime).String()
 	queryable := atomic.LoadUint32(&Queryable)
 	if queryable > 0 {
 		// queryable

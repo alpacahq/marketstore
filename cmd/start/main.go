@@ -175,7 +175,8 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	if config.UtilitiesURL != "" {
 		// Start utility endpoints.
 		log.Info("launching utility service...")
-		go frontend.Utilities(config.UtilitiesURL)
+		uah := frontend.NewUtilityAPIHandlers(config.StartTime)
+		go uah.Handle(config.UtilitiesURL)
 	}
 
 	log.Info("enabling query access...")
