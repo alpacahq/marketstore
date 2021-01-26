@@ -14,6 +14,7 @@ import (
 var ThisInstance *InstanceMetadata
 
 type InstanceMetadata struct {
+	// RootDir is the absolute path to the data directory
 	RootDir         string
 	CatalogDir      *catalog.Directory
 	TXNPipe         *TransactionPipe
@@ -24,7 +25,8 @@ type InstanceMetadata struct {
 	TriggerMatchers []*trigger.TriggerMatcher
 }
 
-func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval int, options ...bool) {
+func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval int, options ...bool,
+) *InstanceMetadata {
 	/*
 		Defaults
 	*/
@@ -72,12 +74,12 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile, err = NewWALFile(ThisInstance.RootDir, instanceID, nil, false, WALBypass)
+			ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, nil, false, WALBypass)
 			if err != nil {
 				log.Fatal("Unable to create WAL")
 			}
 		} else {
-			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(ThisInstance.RootDir, instanceID, rs,
+			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(rootDir, instanceID, rs,
 				false, WALBypass,
 			)
 
@@ -91,4 +93,5 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 			ThisInstance.WALWg.Add(1)
 		}
 	}
+	return ThisInstance
 }

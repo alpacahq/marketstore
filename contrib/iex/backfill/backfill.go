@@ -240,14 +240,14 @@ func initWriter() {
 	walRotateInterval := 5
 	instanceID := time.Now().UTC().UnixNano()
 
-	executor.NewInstanceSetup(
+	instanceConfig := executor.NewInstanceSetup(
 		fmt.Sprintf("%v/mktsdb", dir), nil,
 		walRotateInterval, true, true, true, true)
 
 	log.Info(
 		"Initialized writer with InstanceID: %v - RootDir: %v\n",
 		instanceID,
-		executor.ThisInstance.RootDir,
+		instanceConfig.RootDir,
 	)
 
 	config := map[string]interface{}{
@@ -260,7 +260,7 @@ func initWriter() {
 		log.Fatal(err.Error())
 	}
 
-	executor.ThisInstance.TriggerMatchers = []*trigger.TriggerMatcher{
+	instanceConfig.TriggerMatchers = []*trigger.TriggerMatcher{
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
 }

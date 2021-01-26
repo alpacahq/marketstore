@@ -19,7 +19,7 @@ import (
 // Hook up gocheck into the "go test" runner.
 func Test(t *testing.T) { TestingT(t) }
 
-var _ = Suite(&TestSuite{nil, "", nil, nil})
+var _ = Suite(&TestSuite{nil, "", nil, nil, nil})
 
 type TestSuite struct {
 	DataDirectory *Directory
@@ -27,14 +27,16 @@ type TestSuite struct {
 	// Number of items written in sample data (non-zero index)
 	ItemsWritten map[string]int
 	WALFile      *executor.WALFileType
+	TXNPipe      *executor.TransactionPipe
 }
 
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, false, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
-	s.DataDirectory = executor.ThisInstance.CatalogDir
-	s.WALFile = executor.ThisInstance.WALFile
+	instanceConfig := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
+	s.DataDirectory = instanceConfig.CatalogDir
+	s.WALFile = instanceConfig.WALFile
+	s.TXNPipe = instanceConfig.TXNPipe
 }
 
 func (s *TestSuite) TearDownSuite(c *C) {
@@ -42,8 +44,6 @@ func (s *TestSuite) TearDownSuite(c *C) {
 }
 
 func (s *TestSuite) TestTickCandler(c *C) {
-	dd := executor.ThisInstance.CatalogDir
-
 	cdl, am := TickCandler{}.New(false)
 	ds := io.NewDataShapeVector([]string{"Bid", "Ask"}, []io.EnumElementType{io.FLOAT32, io.FLOAT32})
 	// Sum and Avg are optional inputs, let's map them arbitrarily
@@ -64,12 +64,12 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	/*
 		Create some tick data with symbol "TEST"
 	*/
-	createTickBucket("TEST")
+	createTickBucket("TEST", s.Rootdir, s.DataDirectory, s.TXNPipe, s.WALFile)
 
 	/*
 		Read some tick data
 	*/
-	q := planner.NewQuery(dd)
+	q := planner.NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "TEST")
 	q.AddRestriction("AttributeGroup", "TICK")
 	q.AddRestriction("Timeframe", "1Min")
@@ -118,11 +118,8 @@ func (s *TestSuite) TestTickCandler(c *C) {
 /*
 Utility functions
 */
-func createTickBucket(symbol string) {
-	dd := executor.ThisInstance.CatalogDir
-	rd := executor.ThisInstance.RootDir
-	tgc := executor.ThisInstance.TXNPipe
-	wf := executor.ThisInstance.WALFile
+func createTickBucket(symbol, rootDir string, catalogDir *Directory, txnPipe *executor.TransactionPipe,
+	wf *executor.WALFileType) {
 
 	// Create a new variable data bucket
 	tbk := io.NewTimeBucketKey(symbol + "/1Min/TICK")
@@ -130,13 +127,13 @@ func createTickBucket(symbol string) {
 	eTypes := []io.EnumElementType{io.FLOAT32, io.FLOAT32}
 	eNames := []string{"Bid", "Ask"}
 	dsv := io.NewDataShapeVector(eNames, eTypes)
-	tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rd), "Test", int16(2016), dsv, io.VARIABLE)
-	executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Test", int16(2016), dsv, io.VARIABLE)
+	catalogDir.AddTimeBucket(tbk, tbinfo)
 
 	/*
 		Write some data
 	*/
-	w, err := executor.NewWriter(tbinfo, tgc, dd)
+	w, err := executor.NewWriter(tbinfo, txnPipe, catalogDir)
 	if err != nil {
 		panic(err)
 	}

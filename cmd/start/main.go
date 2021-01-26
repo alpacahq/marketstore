@@ -85,7 +85,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 	)
 	pb.RegisterMarketstoreServer(grpcServer,
-		frontend.NewGRPCService(config.DisableVariableCompression, config.EnableLastKnown),
+		frontend.NewGRPCService(config.DisableVariableCompression, config.EnableLastKnown, config.RootDirectory),
 	)
 
 	// New gRPC stream server for replication.
@@ -153,7 +153,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	log.Info("startup time: %s", startupTime)
 
 	// New server.
-	server, _ := frontend.NewServer(config.DisableVariableCompression, config.EnableLastKnown)
+	server, _ := frontend.NewServer(config.DisableVariableCompression, config.EnableLastKnown, config.RootDirectory)
 
 	// Set rpc handler.
 	log.Info("launching rpc data server...")
