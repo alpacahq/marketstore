@@ -86,7 +86,6 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 		}
 
 		// --- Timeframe
-		rootDir := executor.ThisInstance.RootDir
 		year := int16(time.Now().Year())
 		tf, err := tbk.GetTimeFrame()
 		if err != nil {
@@ -114,7 +113,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 			dsv[i] = io.DataShape{Name: name, Type: t}
 		}
 
-		tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, recordType)
+		tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.rootDir), "Default", year, dsv, recordType)
 
 		err = executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {

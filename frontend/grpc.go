@@ -53,12 +53,14 @@ func toProtoDataType(elemType io.EnumElementType) proto.DataType {
 type GRPCService struct {
 	disableVariableCompression bool
 	enableLastKnown            bool
+	rootDir string
 }
 
-func NewGRPCService(disableVariableCompression, enableLastKnown bool) *GRPCService {
+func NewGRPCService(disableVariableCompression, enableLastKnown bool, rootDir string) *GRPCService {
 	return &GRPCService{
 		disableVariableCompression: disableVariableCompression,
 		enableLastKnown:            enableLastKnown,
+		rootDir: rootDir,
 	}
 }
 
@@ -330,7 +332,7 @@ func (s GRPCService) Create(ctx context.Context, req *proto.MultiCreateRequest) 
 		if err != nil {
 			appendResponse(&response, err)
 		}
-		dir := tbk.GetPathToYearFiles(executor.ThisInstance.RootDir)
+		dir := tbk.GetPathToYearFiles(s.rootDir)
 		year := int16(time.Now().Year())
 		rt := io.EnumRecordTypeByName(req.RowType)
 		dsv, err := NewDataShapeVector(req.DataShapes)

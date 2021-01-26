@@ -108,7 +108,7 @@ func (c *Client) create(line string) (ok bool) {
 	responses := &frontend.MultiServerResponse{}
 
 	if c.mode == local {
-		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown)
+		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown, c.dir)
 		err = ds.Create(nil, reqs, responses)
 	} else {
 		var respI interface{}
@@ -167,7 +167,7 @@ func (c *Client) destroy(line string) {
 	responses := &frontend.MultiServerResponse{}
 	var err error
 	if c.mode == local {
-		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown)
+		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown, c.dir)
 		err = ds.Destroy(nil, reqs, responses)
 	} else {
 		var respI interface{}
@@ -198,7 +198,7 @@ func (c *Client) GetBucketInfo(key io.TimeBucketKey) (resp *frontend.GetInfoResp
 	responses := &frontend.MultiGetInfoResponse{}
 
 	if c.mode == local {
-		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown)
+		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown, c.dir)
 		err = ds.GetInfo(nil, reqs, responses)
 	} else {
 		var respI interface{}
