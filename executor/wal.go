@@ -36,7 +36,8 @@ type WALFileType struct {
 	FilePtr                    *os.File          // Active file pointer to FileName
 	ReplicationSender          ReplicationSender // send messages to replica servers
 	disableVariableCompression bool
-	walBypass bool
+	walBypass                  bool
+	shutdownPending            *bool
 }
 
 type ReplicationSender interface {
@@ -52,14 +53,16 @@ type TransactionGroup struct {
 	Checksum [16]byte
 }
 
-func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression, walBypass bool,
+func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression,
+	walBypass bool, shutdownPending *bool,
 ) (wf *WALFileType, err error) {
 	wf = &WALFileType{
-		lastCommittedTGID: 0,
-		OwningInstanceID: owningInstanceID,
-		ReplicationSender: rs,
+		lastCommittedTGID:          0,
+		OwningInstanceID:           owningInstanceID,
+		ReplicationSender:          rs,
 		disableVariableCompression: disableVariableCompression,
-		walBypass: walBypass,
+		walBypass:                  walBypass,
+		shutdownPending:            shutdownPending,
 	}
 
 	if err = wf.createFile(rootDir); err != nil {
@@ -356,7 +359,7 @@ func (wf *WALFileType) CreateCheckpoint() error {
 	if wf.lastCommittedTGID == 0 {
 		return nil
 	}
-	if ThisInstance.WALBypass {
+	if wf.walBypass {
 		io.Syncfs()
 	} else {
 		// WAL Transaction Preparing Message
@@ -818,9 +821,9 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	}
 }
 
-func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender,disableVariableCompression, walBypass bool,
-	) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression, walBypass)
+func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression, walBypass bool,
+shutdownPending *bool) (tgc *TransactionPipe, wf *WALFileType, err error) {
+	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression, walBypass, shutdownPending)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err
@@ -843,7 +846,7 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 
 	chanCap := cap(ThisInstance.TXNPipe.writeChannel)
 	for {
-		if !ThisInstance.ShutdownPending {
+		if !*wf.shutdownPending {
 			select {
 			case <-tickerWAL.C:
 				if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {

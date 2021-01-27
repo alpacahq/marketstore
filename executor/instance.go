@@ -20,13 +20,11 @@ type InstanceMetadata struct {
 	TXNPipe         *TransactionPipe
 	WALFile         *WALFileType
 	WALWg           sync.WaitGroup
-	ShutdownPending bool
-	WALBypass       bool
 	TriggerMatchers []*trigger.TriggerMatcher
 }
 
 func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval int, options ...bool,
-) *InstanceMetadata {
+) (metadata *InstanceMetadata, shutdownPending *bool) {
 	/*
 		Defaults
 	*/
@@ -70,17 +68,20 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 		ThisInstance.CatalogDir = catalog.NewDirectory(rootDir)
 	}
 
+	shutdownPend := false
 	if initWALCache {
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, nil, false, WALBypass)
+			ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, nil, false, WALBypass,
+				&shutdownPend,
+			)
 			if err != nil {
 				log.Fatal("Unable to create WAL")
 			}
 		} else {
 			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(rootDir, instanceID, rs,
-				false, WALBypass,
+				false, WALBypass, &shutdownPend,
 			)
 
 			if err != nil {
@@ -93,5 +94,5 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 			ThisInstance.WALWg.Add(1)
 		}
 	}
-	return ThisInstance
+	return ThisInstance, &shutdownPend
 }

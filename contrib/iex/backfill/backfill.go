@@ -240,7 +240,7 @@ func initWriter() {
 	walRotateInterval := 5
 	instanceID := time.Now().UTC().UnixNano()
 
-	instanceConfig := executor.NewInstanceSetup(
+	instanceConfig, _ := executor.NewInstanceSetup(
 		fmt.Sprintf("%v/mktsdb", dir), nil,
 		walRotateInterval, true, true, true, true)
 

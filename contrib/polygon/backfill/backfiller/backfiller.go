@@ -72,7 +72,7 @@ func init() {
 
 func main() {
 	rootDir, triggers, walRotateInterval := initConfig()
-	initWriter(rootDir, triggers, walRotateInterval)
+	shutdownPending := initWriter(rootDir, triggers, walRotateInterval)
 
 	// free memory in the background every 1 minute for long running backfills with very high parallelism
 	go func() {
@@ -233,7 +233,9 @@ func main() {
 	}
 
 	log.Info("[polygon] wait for shutdown")
-	executor.ThisInstance.ShutdownPending = true
+	if shutdownPending != nil {
+		*shutdownPending = true
+	}
 	executor.ThisInstance.WALWg.Wait()
 	executor.FinishAndWait()
 
@@ -259,15 +261,16 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 	return config.RootDirectory, config.Triggers, config.WALRotateInterval
 }
 
-func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int) {
-	executor.NewInstanceSetup(rootDir, nil, walRotateInterval, true, true, true, true)
+func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int) (shutdownPending *bool) {
+	instanceConfig, shutdownPending := executor.NewInstanceSetup(rootDir, nil, walRotateInterval, true, true, true, true)
 	// if configured, also load the ondiskagg triggers
 	for _, triggerSetting := range triggers {
 		if triggerSetting.Module == "ondiskagg.so" {
 			tmatcher := start.NewTriggerMatcher(triggerSetting)
-			executor.ThisInstance.TriggerMatchers = append(executor.ThisInstance.TriggerMatchers, tmatcher)
+			executor.ThisInstance.TriggerMatchers = append(instanceConfig.TriggerMatchers, tmatcher)
 		}
 	}
+	return shutdownPending
 }
 
 func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
