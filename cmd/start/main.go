@@ -138,7 +138,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	start := time.Now()
 
-	executor.NewInstanceSetup(
+	_, shutdownPending := executor.NewInstanceSetup(
 		config.RootDirectory,
 		rs,
 		config.WALRotateInterval,
@@ -220,7 +220,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", config.StopGracePeriod)
 				time.Sleep(config.StopGracePeriod)
-				shutdown()
+				shutdown(shutdownPending)
 			}
 		}
 	}()
@@ -233,8 +233,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func shutdown() {
-	executor.ThisInstance.ShutdownPending = true
+func shutdown(shutdownPending *bool) {
+	if shutdownPending != nil {
+		*shutdownPending = true
+	}
 	executor.ThisInstance.WALWg.Wait()
 	log.Info("exiting...")
 	os.Exit(0)

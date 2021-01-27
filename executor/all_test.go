@@ -28,8 +28,8 @@ func Test(t *testing.T) { TestingT(t) }
 
 var (
 	_ = Suite(&TestSuite{nil, "", nil, nil})
-	_ = Suite(&DestructiveWALTests{nil, "", nil, nil})
-	_ = Suite(&DestructiveWALTest2{nil, "", nil, nil})
+	_ = Suite(&DestructiveWALTests{nil, "", nil, nil, nil})
+	_ = Suite(&DestructiveWALTest2{nil, "", nil, nil, nil})
 )
 
 type TestSuite struct {
@@ -44,16 +44,18 @@ type DestructiveWALTests struct {
 	DataDirectory *Directory
 	Rootdir       string
 	// Number of items written in sample data (non-zero index)
-	ItemsWritten map[string]int
-	WALFile      *executor.WALFileType
+	ItemsWritten    map[string]int
+	WALFile         *executor.WALFileType
+	shutdownPending *bool
 }
 
 type DestructiveWALTest2 struct {
 	DataDirectory *Directory
 	Rootdir       string
 	// Number of items written in sample data (non-zero index)
-	ItemsWritten map[string]int
-	WALFile      *executor.WALFileType
+	ItemsWritten    map[string]int
+	WALFile         *executor.WALFileType
+	shutdownPending *bool
 }
 
 func (s *TestSuite) SetUpSuite(c *C) {
@@ -714,9 +716,10 @@ func (s *TestSuite) TestWriter(c *C) {
 func (s *DestructiveWALTests) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
-	s.DataDirectory = executor.ThisInstance.CatalogDir
+	instanceConfig, shutdownPending := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
+	s.DataDirectory = instanceConfig.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
+	s.shutdownPending = shutdownPending
 }
 
 func (s *DestructiveWALTests) TearDownSuite(c *C) {
@@ -726,7 +729,9 @@ func (s *DestructiveWALTests) TearDownSuite(c *C) {
 func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
-	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil, false, false)
+	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil, false,
+		false, s.shutdownPending,
+	)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -851,9 +856,11 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 func (s *DestructiveWALTest2) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
-	s.DataDirectory = executor.ThisInstance.CatalogDir
+	instanceConfig, shutdownPending := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
+	s.DataDirectory = instanceConfig.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
+	s.shutdownPending = shutdownPending
+
 }
 
 func (s *DestructiveWALTest2) TearDownSuite(c *C) {

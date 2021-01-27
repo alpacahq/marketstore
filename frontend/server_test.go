@@ -26,7 +26,7 @@ func (s *ServerTestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	//s.Rootdir = "/tmp/LALtemp"
 	test.MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, nil,5, true, true, false, false)
+	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, false)
 	atomic.StoreUint32(&Queryable, uint32(1))
 }
 
