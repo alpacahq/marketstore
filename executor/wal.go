@@ -5,6 +5,7 @@ import (
 	"fmt"
 	goio "io"
 	"os"
+	"sync"
 	"time"
 
 	"bytes"
@@ -38,6 +39,7 @@ type WALFileType struct {
 	disableVariableCompression bool
 	walBypass                  bool
 	shutdownPending            *bool
+	walWaitGroup               *sync.WaitGroup
 }
 
 type ReplicationSender interface {
@@ -54,7 +56,7 @@ type TransactionGroup struct {
 }
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression,
-	walBypass bool, shutdownPending *bool,
+	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup,
 ) (wf *WALFileType, err error) {
 	wf = &WALFileType{
 		lastCommittedTGID:          0,
@@ -63,6 +65,7 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, di
 		disableVariableCompression: disableVariableCompression,
 		walBypass:                  walBypass,
 		shutdownPending:            shutdownPending,
+		walWaitGroup:               walWaitGroup,
 	}
 
 	if err = wf.createFile(rootDir); err != nil {
@@ -822,8 +825,8 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 }
 
 func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression, walBypass bool,
-shutdownPending *bool) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression, walBypass, shutdownPending)
+	shutdownPending *bool, walWG *sync.WaitGroup) (tgc *TransactionPipe, wf *WALFileType, err error) {
+	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression, walBypass, shutdownPending, walWG)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err
@@ -880,7 +883,7 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 			wf.FlushToWAL(ThisInstance.TXNPipe)
 			log.Info("Flushing to disk...")
 			wf.CreateCheckpoint()
-			ThisInstance.WALWg.Done()
+			wf.walWaitGroup.Done()
 			return
 		}
 	}
