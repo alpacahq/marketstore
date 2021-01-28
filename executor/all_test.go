@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -730,7 +731,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
 	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil, false,
-		false, s.shutdownPending,
+		false, s.shutdownPending, &sync.WaitGroup{},
 	)
 	if err != nil {
 		fmt.Println(err)

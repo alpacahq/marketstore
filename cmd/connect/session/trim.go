@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -22,7 +21,7 @@ func (c *Client) trim(line string) {
 	if err != nil {
 		log.Error("Failed to parse trim date - Error: %v", trimDate)
 	}
-	fInfos := executor.ThisInstance.CatalogDir.GatherTimeBucketInfo()
+	fInfos := c.catalogDir.GatherTimeBucketInfo()
 	for _, info := range fInfos {
 		if info.Year == int16(trimDate.Year()) {
 			offset := io.TimeToOffset(trimDate, info.GetTimeframe(), info.GetRecordLength())

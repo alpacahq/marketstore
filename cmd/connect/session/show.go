@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/planner"
@@ -35,7 +36,7 @@ func (c *Client) show(line string) {
 	)
 
 	if c.mode == local {
-		csm, err = processShowLocal(tbk, start, end, c.disableVariableCompression, c.enableLastKnown)
+		csm, err = processShowLocal(tbk, start, end, c.disableVariableCompression, c.enableLastKnown, c.catalogDir)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -77,8 +78,9 @@ func (c *Client) show(line string) {
 }
 
 func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time, disableVariableCompression, enableLastKnown bool,
+	catalogDir *catalog.Directory,
 ) (csm io.ColumnSeriesMap, err error) {
-	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
+	query := planner.NewQuery(catalogDir)
 	query.AddTargetKey(tbk)
 
 	if start == nil && end == nil {

@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend/client"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
@@ -53,6 +54,8 @@ type Client struct {
 	disableVariableCompression bool
 	// enableLastKnown is an optimization to reduce the size of dara reading for query
 	enableLastKnown bool
+	// catalogDir is an in-memory cache for directory structure under the /data directory
+	catalogDir *catalog.Directory
 }
 
 // RPCClient is a marketstore API client interface.
@@ -65,10 +68,12 @@ func NewLocalClient(dir string, disableVariableCompression bool) (c *Client, err
 	// Configure db settings.
 	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	walRotateInterval := 5
-	executor.NewInstanceSetup(dir,
+	instanceConfig, _ := executor.NewInstanceSetup(dir,
 		nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
-	return &Client{dir: dir, mode: local, disableVariableCompression: disableVariableCompression}, nil
+	return &Client{dir: dir, mode: local, disableVariableCompression: disableVariableCompression,
+		catalogDir: instanceConfig.CatalogDir,
+	}, nil
 }
 
 // NewRemoteClient generates a new client struct.

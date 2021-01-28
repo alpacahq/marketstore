@@ -19,7 +19,7 @@ type InstanceMetadata struct {
 	CatalogDir      *catalog.Directory
 	TXNPipe         *TransactionPipe
 	WALFile         *WALFileType
-	WALWg           sync.WaitGroup
+	WALWg           *sync.WaitGroup
 	TriggerMatchers []*trigger.TriggerMatcher
 }
 
@@ -69,19 +69,20 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 	}
 
 	shutdownPend := false
+	wg := &sync.WaitGroup{}
 	if initWALCache {
 		// Allocate a new WALFile and cache
 		if WALBypass {
 			ThisInstance.TXNPipe = NewTransactionPipe()
 			ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, nil, false, WALBypass,
-				&shutdownPend,
+				&shutdownPend, wg,
 			)
 			if err != nil {
 				log.Fatal("Unable to create WAL")
 			}
 		} else {
 			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(rootDir, instanceID, rs,
-				false, WALBypass, &shutdownPend,
+				false, WALBypass, &shutdownPend, wg,
 			)
 
 			if err != nil {
@@ -91,7 +92,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 		if backgroundSync {
 			// Startup the WAL and Primary cache flushers
 			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, walRotateInterval)
-			ThisInstance.WALWg.Add(1)
+			wg.Add(1)
 		}
 	}
 	return ThisInstance, &shutdownPend
