@@ -107,16 +107,7 @@ func (c *Client) create(line string) (ok bool) {
 	}
 	responses := &frontend.MultiServerResponse{}
 
-	if c.mode == local {
-		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown, c.dir)
-		err = ds.Create(nil, reqs, responses)
-	} else {
-		var respI interface{}
-		respI, err = c.rc.DoRPC("Create", reqs)
-		if respI != nil {
-			responses = respI.(*frontend.MultiServerResponse)
-		}
-	}
+	err = c.apiClient.Create(reqs, responses)
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
 		return false
@@ -165,17 +156,8 @@ func (c *Client) destroy(line string) {
 		Requests: []frontend.KeyRequest{req},
 	}
 	responses := &frontend.MultiServerResponse{}
-	var err error
-	if c.mode == local {
-		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown, c.dir)
-		err = ds.Destroy(nil, reqs, responses)
-	} else {
-		var respI interface{}
-		respI, err = c.rc.DoRPC("Destroy", reqs)
-		if respI != nil {
-			responses = respI.(*frontend.MultiServerResponse)
-		}
-	}
+
+	err := c.apiClient.Destroy(reqs, responses)
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
 		return
@@ -197,16 +179,7 @@ func (c *Client) GetBucketInfo(key io.TimeBucketKey) (resp *frontend.GetInfoResp
 	}
 	responses := &frontend.MultiGetInfoResponse{}
 
-	if c.mode == local {
-		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown, c.dir)
-		err = ds.GetInfo(nil, reqs, responses)
-	} else {
-		var respI interface{}
-		respI, err = c.rc.DoRPC("GetInfo", reqs)
-		if respI != nil {
-			responses = respI.(*frontend.MultiGetInfoResponse)
-		}
-	}
+	err = c.apiClient.GetBucketInfo(reqs, responses)
 	if err != nil {
 		return nil, err
 	}

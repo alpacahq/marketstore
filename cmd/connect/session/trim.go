@@ -10,7 +10,14 @@ import (
 )
 
 // trim removes the data in the date range from the db.
+// Note that this is implemented only for LocalClient.
 func (c *Client) trim(line string) {
+	cli, ok := c.apiClient.(*LocalAPIClient)
+	if !ok {
+		fmt.Printf("Trim command can be used only when '--dir' is specified to connect marketstore.")
+		return
+	}
+
 	log.Info("Trimming...")
 	args := strings.Split(line, " ")
 	if len(args) < 3 {
@@ -21,7 +28,7 @@ func (c *Client) trim(line string) {
 	if err != nil {
 		log.Error("Failed to parse trim date - Error: %v", trimDate)
 	}
-	fInfos := c.catalogDir.GatherTimeBucketInfo()
+	fInfos := cli.catalogDir.GatherTimeBucketInfo()
 	for _, info := range fInfos {
 		if info.Year == int16(trimDate.Year()) {
 			offset := io.TimeToOffset(trimDate, info.GetTimeframe(), info.GetRecordLength())

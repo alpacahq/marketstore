@@ -6,10 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/frontend"
-	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -30,23 +26,10 @@ func (c *Client) show(line string) {
 
 	timeStart := time.Now()
 
-	var (
-		csm io.ColumnSeriesMap
-		err error
-	)
-
-	if c.mode == local {
-		csm, err = processShowLocal(tbk, start, end, c.disableVariableCompression, c.enableLastKnown, c.catalogDir)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	} else {
-		csm, err = c.processShowRemote(tbk, start, end)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	csm, err := c.apiClient.Show(tbk, start, end)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 	elapsedTime := time.Since(timeStart)
 	/*
@@ -75,70 +58,6 @@ func (c *Client) show(line string) {
 	if c.timing && c.target == "" {
 		fmt.Printf("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
-}
-
-func processShowLocal(tbk *io.TimeBucketKey, start, end *time.Time, disableVariableCompression, enableLastKnown bool,
-	catalogDir *catalog.Directory,
-) (csm io.ColumnSeriesMap, err error) {
-	query := planner.NewQuery(catalogDir)
-	query.AddTargetKey(tbk)
-
-	if start == nil && end == nil {
-		fmt.Println("No suitable date range supplied...")
-		return
-	} else if start == nil {
-		query.SetRange(planner.MinTime, *end)
-	} else if end == nil {
-		query.SetRange(*start, planner.MaxTime)
-	}
-
-	fmt.Printf("Query range: %v to %v\n", start, end)
-
-	pr, err := query.Parse()
-	if err != nil {
-		fmt.Println("No results")
-		log.Error("Parsing query: %v", err)
-		return
-	}
-
-	scanner, err := executor.NewReader(pr, disableVariableCompression, enableLastKnown)
-	if err != nil {
-		log.Error("Error return from query scanner: %v", err)
-		return
-	}
-	csm, err = scanner.Read()
-	if err != nil {
-		log.Error("Error return from query scanner: %v", err)
-		return
-	}
-
-	return csm, nil
-}
-
-func (c *Client) processShowRemote(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
-	if end == nil {
-		t := planner.MaxTime
-		end = &t
-	}
-	epochStart := start.UTC().Unix()
-	epochEnd := end.UTC().Unix()
-	req := frontend.QueryRequest{
-		IsSQLStatement: false,
-		SQLStatement:   "",
-		Destination:    tbk.String(),
-		EpochStart:     &epochStart,
-		EpochEnd:       &epochEnd,
-	}
-	args := &frontend.MultiQueryRequest{
-		Requests: []frontend.QueryRequest{req},
-	}
-
-	resp, err := c.rc.DoRPC("Query", args)
-	if err != nil {
-		return nil, err
-	}
-
-	return *resp.(*io.ColumnSeriesMap), nil
 }
 
 func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, end *time.Time) {

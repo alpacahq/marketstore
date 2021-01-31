@@ -102,15 +102,6 @@ func (c *Client) load(line string) {
 		}
 	}
 
-	// because a marketstore process has cache of the data directory structure (executor.ThisInstance.CatalogDir)
-	// and it can't be updated by the CSV import using the local mode,
-	// the imported data is not returned to query responses until restart marketstore,
-	// the data is correctly written to the data file though.
-	if c.mode == local {
-		fmt.Println("Note: The imported data won't be returned to query responses until restart marketstore" +
-			" due to the cache of the marketstore process.")
-	}
-
 	return
 }
 
@@ -121,16 +112,7 @@ func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err erro
 	}
 	responses := &frontend.MultiServerResponse{}
 
-	if c.mode == local {
-		ds := frontend.NewDataService(c.disableVariableCompression, c.enableLastKnown, c.dir)
-		err = ds.Write(nil, reqs, responses)
-	} else {
-		var respI interface{}
-		respI, err = c.rc.DoRPC("Write", reqs)
-		if respI != nil {
-			responses = respI.(*frontend.MultiServerResponse)
-		}
-	}
+	err = c.apiClient.Write(reqs, responses)
 	if err != nil {
 		return err
 	}
