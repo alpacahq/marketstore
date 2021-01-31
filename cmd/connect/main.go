@@ -67,12 +67,15 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 // executeConnect implements the connect command.
 func executeConnect(cmd *cobra.Command, args []string) error {
 
-	var c *session.Client
-	var err error
+	var (
+		c *session.Client
+		conn session.APIClient
+		err error
+	)
 
 	// Attempt local mode.
 	if len(dir) != 0 {
-		c, err = session.NewLocalClient(dir, varCompOff)
+		conn, err = session.NewLocalAPIClient(dir, varCompOff)
 		if err != nil {
 			return err
 		}
@@ -80,11 +83,12 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 
 	// Attempt remote mode.
 	if len(url) != 0 {
-		c, err = session.NewRemoteClient(url, varCompOff)
+		conn, err = session.NewRemoteAPIClient(url)
 		if err != nil {
 			return err
 		}
 	}
+	c = session.NewClient(conn)
 
 	// Initialize connection.
 	err = c.Connect()

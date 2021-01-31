@@ -18,44 +18,49 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/frontend/client"
+	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
 	dbio "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/chzyer/readline"
 )
 
-// mode is the client connection mode.
-type mode int
+func NewClient(ac APIClient) *Client {
+	return &Client{
+		apiClient: ac,
+	}
+}
 
-const (
-	local mode = iota
-	remote
-)
-
-// Client represents an agent that manages a database
-// connection and parses/executes the statements specified by a
-// user in a command-line buffer.
 type Client struct {
-	// timing flag determines to print query execution time.
-	timing bool
+	apiClient APIClient
 	// output target - if empty, output to terminal, filename to output to file
 	target string
-	// mode determines local or remote.
-	mode mode
-	// url is the optional address of a db instance on a different machine.
-	url string
-	// rc is the optional remote client.
-	rc RPCClient
-	// dir is the optional filesystem location of a local db instance.
-	dir string
-	// disableVariableCompression is an option if the compression is used to read & write data
-	disableVariableCompression bool
-	// enableLastKnown is an optimization to reduce the size of dara reading for query
-	enableLastKnown bool
-	// catalogDir is an in-memory cache for directory structure under the /data directory
-	catalogDir *catalog.Directory
+	// timing flag determines to print query execution time.
+	timing bool
+}
+
+//go:generate mockgen -destination mock/client.go -package=mock github.com/alpacahq/marketstore/v4/cmd/connect/session APIClient
+
+type APIClient interface {
+	// PrintConnectInfo prints connection information to stdout.
+	PrintConnectInfo()
+	// Connect initializes a client connection.
+	Connect() error
+	// Create creates a new bucket in the marketstore server
+	Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error
+	// Write executes a write operation to the marketstore server.
+	Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error
+	// Destroy deletes a bucket from the marketstore server.
+	Destroy(reqs *frontend.MultiKeyRequest, responses *frontend.MultiServerResponse) error
+	// ProcessShow returns data stored in the marketstore server.
+	Show(tbk *dbio.TimeBucketKey, start, end *time.Time) (csm dbio.ColumnSeriesMap, err error)
+	// GetBucketInfo returns information(datashape, timeframe, record type, etc.) for the specified buckets.
+	GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error
+	// SQL executes the specified sql statement
+	SQL(line string) (cs *dbio.ColumnSeries, err error)
+}
+
+func (c *Client) Connect() error {
+	return c.apiClient.Connect()
 }
 
 // RPCClient is a marketstore API client interface.
@@ -63,53 +68,8 @@ type RPCClient interface {
 	DoRPC(functionName string, args interface{}) (response interface{}, err error)
 }
 
-// NewLocalClient builds a new client struct in local mode.
-func NewLocalClient(dir string, disableVariableCompression bool) (c *Client, err error) {
-	// Configure db settings.
-	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
-	walRotateInterval := 5
-	instanceConfig, _ := executor.NewInstanceSetup(dir,
-		nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
-	)
-	return &Client{dir: dir, mode: local, disableVariableCompression: disableVariableCompression,
-		catalogDir: instanceConfig.CatalogDir,
-	}, nil
-}
-
-// NewRemoteClient generates a new client struct.
-func NewRemoteClient(url string, disableVariableCompression bool) (c *Client, err error) {
-	// TODO: validate url using go core packages.
-	splits := strings.Split(url, ":")
-	if len(splits) != 2 {
-		msg := fmt.Sprintf("incorrect URL, need \"hostname:port\", have: %s\n", url)
-		return nil, errors.New(msg)
-	}
-	// build url.
-	url = "http://" + url
-	return &Client{url: url, mode: remote, disableVariableCompression: disableVariableCompression}, nil
-}
-
-// Connect initializes a client connection.
-func (c *Client) Connect() error {
-	if c.mode == local {
-		// Nothing to do here yet..
-		return nil
-	}
-
-	// Attempt connection to remote host.
-	client, err := client.NewClient(c.url)
-	if err != nil {
-		return err
-	}
-	c.rc = client
-
-	// Success.
-	return nil
-}
-
 // Read kicks off the buffer reading process.
 func (c *Client) Read() error {
-
 	// Build reader.
 	r, err := newReader()
 	if err != nil {
@@ -118,11 +78,7 @@ func (c *Client) Read() error {
 	defer r.Close()
 
 	// Print connection information.
-	if c.mode == local {
-		fmt.Fprintf(os.Stderr, "Connected to local instance at path: %v\n", c.dir)
-	} else {
-		fmt.Fprintf(os.Stderr, "Connected to remote instance at: %v\n", c.url)
-	}
+	c.apiClient.PrintConnectInfo()
 	fmt.Fprintf(os.Stderr, "Type `\\help` to see command options\n")
 
 	// User input evaluation loop.
