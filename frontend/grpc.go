@@ -53,14 +53,17 @@ func toProtoDataType(elemType io.EnumElementType) proto.DataType {
 type GRPCService struct {
 	disableVariableCompression bool
 	enableLastKnown            bool
-	rootDir string
+	rootDir                    string
+	catalogDir                 *catalog.Directory
 }
 
-func NewGRPCService(disableVariableCompression, enableLastKnown bool, rootDir string) *GRPCService {
+func NewGRPCService(disableVariableCompression, enableLastKnown bool, rootDir string, catDir *catalog.Directory,
+) *GRPCService {
 	return &GRPCService{
 		disableVariableCompression: disableVariableCompression,
 		enableLastKnown:            enableLastKnown,
-		rootDir: rootDir,
+		rootDir:                    rootDir,
+		catalogDir:                 catDir,
 	}
 }
 
@@ -75,7 +78,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			if err != nil {
 				return nil, err
 			}
-			es, err := sqlparser.NewExecutableStatement(s.disableVariableCompression, ast.Mtree)
+			es, err := sqlparser.NewExecutableStatement(s.disableVariableCompression, s.catalogDir, ast.Mtree)
 			if err != nil {
 				return nil, err
 			}
@@ -120,7 +123,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 					dest.String())
 			} else if len(Symbols) == 1 && Symbols[0] == "*" {
 				// replace the * "symbol" with a list all known actual symbols
-				allSymbols := executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"]
+				allSymbols := s.catalogDir.GatherCategoriesAndItems()["Symbol"]
 				symbols := make([]string, 0, len(allSymbols))
 				for symbol := range allSymbols {
 					symbols = append(symbols, symbol)
@@ -152,6 +155,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				columns,
 				s.disableVariableCompression,
 				s.enableLastKnown,
+				s.catalogDir,
 			)
 			if err != nil {
 				return nil, err
@@ -162,7 +166,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			*/
 			if len(req.Functions) != 0 {
 				for tbkStr, cs := range csm {
-					csOut, err := runAggFunctions(req.Functions, cs, tbkStr, s.disableVariableCompression)
+					csOut, err := runAggFunctions(req.Functions, cs, tbkStr, s.disableVariableCompression, s.catalogDir)
 					if err != nil {
 						return nil, err
 					}
@@ -298,13 +302,13 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 
 	switch req.Format {
 	case proto.ListSymbolsRequest_SYMBOL:
-		for symbol := range executor.ThisInstance.CatalogDir.GatherCategoriesAndItems()["Symbol"] {
+		for symbol := range s.catalogDir.GatherCategoriesAndItems()["Symbol"] {
 			response.Results = append(response.Results, symbol)
 		}
 	case proto.ListSymbolsRequest_TIME_BUCKET_KEY:
 		fallthrough
 	default:
-		response.Results = catalog.ListTimeBucketKeyNames(executor.ThisInstance.CatalogDir)
+		response.Results = catalog.ListTimeBucketKeyNames(s.catalogDir)
 	}
 
 	return &response, nil
@@ -342,7 +346,7 @@ func (s GRPCService) Create(ctx context.Context, req *proto.MultiCreateRequest) 
 		}
 		tbinfo := io.NewTimeBucketInfo(*tf, dir, "Default", year, dsv, rt)
 
-		err = executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+		err = s.catalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {
 			err = fmt.Errorf("creation of new catalog entry failed: %s", err.Error())
 			appendResponse(&response, err)
@@ -373,7 +377,7 @@ func (s GRPCService) Destroy(ctx context.Context, req *proto.MultiKeyRequest) (*
 			continue
 		}
 
-		err := executor.ThisInstance.CatalogDir.RemoveTimeBucket(tbk)
+		err := s.catalogDir.RemoveTimeBucket(tbk)
 		if err != nil {
 			err = fmt.Errorf("removal of catalog entry failed: %s", err.Error())
 			appendResponse(&response, err)

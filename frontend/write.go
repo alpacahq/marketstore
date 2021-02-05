@@ -115,7 +115,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 
 		tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.rootDir), "Default", year, dsv, recordType)
 
-		err = executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+		err = s.catalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {
 			err = fmt.Errorf("creation of new catalog entry failed: %s", err.Error())
 			response.appendResponse(err)
@@ -163,7 +163,7 @@ func (s *DataService) GetInfo(r *http.Request, reqs *MultiKeyRequest, response *
 			continue
 		}
 
-		tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+		tbi, err := s.catalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 		if err != nil {
 			err = fmt.Errorf("unable to get info about key %s: %s", req.Key, err.Error())
 			response.appendResponse(nil, err)
@@ -193,7 +193,7 @@ func (s *DataService) Destroy(r *http.Request, reqs *MultiKeyRequest, response *
 			continue
 		}
 
-		err = executor.ThisInstance.CatalogDir.RemoveTimeBucket(tbk)
+		err = s.catalogDir.RemoveTimeBucket(tbk)
 		if err != nil {
 			err = fmt.Errorf("removal of catalog entry failed: %s", err.Error())
 			response.appendResponse(err)

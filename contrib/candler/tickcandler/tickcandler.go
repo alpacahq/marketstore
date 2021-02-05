@@ -3,6 +3,7 @@ package tickcandler
 import (
 	"fmt"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/candler"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
@@ -51,7 +52,7 @@ func (ca *TickCandler) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *TickCandler) Accum(cols io.ColumnInterface) error {
+func (ca *TickCandler) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
 	if cols.Len() == 0 {
 		return fmt.Errorf("Empty input to Accum")
 	}

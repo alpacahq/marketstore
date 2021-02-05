@@ -62,8 +62,8 @@ type DestructiveWALTest2 struct {
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
-	s.DataDirectory = executor.ThisInstance.CatalogDir
+	metadata, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
+	s.DataDirectory = metadata.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 }
 
@@ -103,13 +103,13 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	eNames := []string{"Open", "High", "Low", "Close", "Volume"}
 	dsv := NewDataShapeVector(eNames, eTypes)
 	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, FIXED)
-	err := executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	err := s.DataDirectory.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, IsNil)
 	tgc := executor.ThisInstance.TXNPipe
 	/*
 		Write some data
 	*/
-	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
 	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
@@ -148,7 +148,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	eNames := []string{"Bid", "Ask"}
 	dsv := NewDataShapeVector(eNames, eTypes)
 	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, VARIABLE)
-	err := executor.ThisInstance.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	err := s.DataDirectory.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, IsNil)
 	tgc := executor.ThisInstance.TXNPipe
 
@@ -161,7 +161,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
-	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
 	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
@@ -335,10 +335,9 @@ func (s *TestSuite) TestFileRead(c *C) {
 func (s *TestSuite) TestDelete(c *C) {
 	NY, _ := time.LoadLocation("America/New_York")
 	// First write some data we can delete
-	d := executor.ThisInstance.CatalogDir
 	tgc := executor.ThisInstance.TXNPipe
 	dataItemKey := "TEST-DELETE/OHLCV/1Min"
-	dataItemPath := filepath.Join(d.GetPath(), dataItemKey)
+	dataItemPath := filepath.Join(s.DataDirectory.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close"},
 		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32},
@@ -346,7 +345,7 @@ func (s *TestSuite) TestDelete(c *C) {
 	tbi := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"), dataItemPath, "Test item", 2018,
 		dsv, FIXED)
 	tbk := NewTimeBucketKey(dataItemKey)
-	err := d.AddTimeBucket(tbk, tbi)
+	err := s.DataDirectory.AddTimeBucket(tbk, tbi)
 	c.Assert(err, Equals, nil)
 
 	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
@@ -647,9 +646,8 @@ func (s *TestSuite) TestLastN(c *C) {
 }
 
 func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
-	d := executor.ThisInstance.CatalogDir
 	dataItemKey := "TEST/1Min/OHLCV"
-	dataItemPath := filepath.Join(d.GetPath(), dataItemKey)
+	dataItemPath := filepath.Join(s.DataDirectory.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32, INT32},
@@ -657,15 +655,15 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	tbinfo := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"), dataItemPath, "Test item", 2016,
 		dsv, FIXED)
 	tbk := NewTimeBucketKey(dataItemKey)
-	err := d.AddTimeBucket(tbk, tbinfo)
+	err := s.DataDirectory.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, Equals, nil)
 
-	q := NewQuery(d)
+	q := NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ := q.Parse()
-	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	w, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, d)
+	w, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, s.DataDirectory)
 	c.Assert(err, Equals, nil)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
@@ -675,7 +673,7 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	err = executor.ThisInstance.WALFile.FlushToWAL(executor.ThisInstance.TXNPipe)
 	c.Assert(err == nil, Equals, true)
 
-	q = NewQuery(d)
+	q = NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ = q.Parse()
 	rd, err := executor.NewReader(pr, false, false)
@@ -701,7 +699,7 @@ func (s *TestSuite) TestWriter(c *C) {
 	tgc := executor.ThisInstance.TXNPipe
 	dataItemKey := "TEST/1Min/OHLCV"
 	tbk := NewTimeBucketKey(dataItemKey)
-	tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
 	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
 	c.Assert(err == nil, Equals, true)
@@ -1130,7 +1128,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 		for key, cs := range csmSym {
 			// Add this result data to the overall
 			csm[key] = cs
-			tbi, err := executor.ThisInstance.CatalogDir.GetLatestTimeBucketInfoFromKey(&key)
+			tbi, err := root.GetLatestTimeBucketInfoFromKey(&key)
 			tbiByKey[key] = tbi
 			writerByKey[key], err = executor.NewWriter(tbi, tgc, root)
 			if err != nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/uda/adjust"
@@ -29,15 +30,15 @@ var ShowRecordsCmd = &cobra.Command{
 		}
 		cusip := args[1]
 		dataDir := args[0]
-		executor.NewInstanceSetup(dataDir, nil, 5, true, true, true, true)
-		showRecords(cusip)
+		metadata, _ := executor.NewInstanceSetup(dataDir, nil, 5, true, true, true, true)
+		showRecords(cusip, metadata.CatalogDir)
 		return nil
 	},
 }
 
-func showRecords(cusip string) {
+func showRecords(cusip string, catalogDir *catalog.Directory) {
 	ca := adjust.NewCorporateActions(cusip)
-	ca.Load(false)
+	ca.Load(false, catalogDir)
 	fmt.Println("----- stored announcements ------")
 	for i := 0; i < len(ca.Rows.EntryDates); i++ {
 		ent := time.Unix(ca.Rows.EntryDates[i], 0)

@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/catalog"
 )
 
 var (
@@ -42,7 +43,7 @@ func (av *Avg) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (av *Avg) Accum(cols io.ColumnInterface) error {
+func (av *Avg) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
 	if cols.Len() == 0 {
 		return nil
 	}

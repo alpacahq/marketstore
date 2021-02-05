@@ -46,7 +46,7 @@ func (lc *LocalAPIClient) Connect() error {
 }
 
 func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir)
+	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
 	err := ds.Write(nil, reqs, responses)
 	if err != nil {
 		return err
@@ -99,17 +99,17 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 }
 
 func (lc *LocalAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir)
+	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
 	return ds.Create(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir)
+	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
 	return ds.Destroy(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error{
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir)
+	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
 	return ds.GetInfo(nil, reqs, responses)
 }
 
@@ -118,7 +118,7 @@ func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error){
 	if err != nil {
 		return nil, err
 	}
-	es, err := sqlparser.NewExecutableStatement(lc.disableVariableCompression, ast.Mtree)
+	es, err := sqlparser.NewExecutableStatement(lc.disableVariableCompression, lc.catalogDir, ast.Mtree)
 	if err != nil {
 		return nil, err
 	}
