@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
@@ -82,7 +83,9 @@ const CacheLifetime = 24 * time.Hour
 
 var rateChangeCache = map[CacheKey]RateChangeCache{}
 
-func GetRateChanges(symbol string, includeSplits, includeDividends, disableVariableCompression bool) []RateChange {
+func GetRateChanges(symbol string, includeSplits, includeDividends, disableVariableCompression bool,
+	catalogDir *catalog.Directory,
+) []RateChange {
 	key := CacheKey{Symbol: symbol, Splits: includeSplits, Dividends: includeDividends}
 	rateCache, present := rateChangeCache[key]
 	if present && time.Since(rateCache.CreatedAt) > CacheLifetime {
@@ -90,7 +93,7 @@ func GetRateChanges(symbol string, includeSplits, includeDividends, disableVaria
 	}
 	if !present {
 		ca := NewCorporateActions(symbol)
-		ca.Load(disableVariableCompression)
+		ca.Load(disableVariableCompression, catalogDir)
 		rateCache = RateChangeCache{
 			Changes:   ca.RateChangeEvents(includeSplits, includeDividends),
 			Access:    0,
@@ -109,11 +112,11 @@ func NewCorporateActions(symbol string) *Actions {
 	}
 }
 
-func (act *Actions) Load(disableVariableCompression bool) error {
-	if executor.ThisInstance == nil || executor.ThisInstance.CatalogDir == nil {
+func (act *Actions) Load(disableVariableCompression bool, catalogDir *catalog.Directory) error {
+	if executor.ThisInstance == nil || catalogDir == nil {
 		return nil
 	}
-	query := planner.NewQuery(executor.ThisInstance.CatalogDir)
+	query := planner.NewQuery(catalogDir)
 	tbk := io.NewTimeBucketKeyFromString(act.Symbol + enum.BucketkeySuffix)
 	tf := tbk.GetItemInCategory("Timeframe")
 	cd := utils.CandleDurationFromString(tf)

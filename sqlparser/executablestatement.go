@@ -3,6 +3,7 @@ package sqlparser
 import (
 	"bytes"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"reflect"
 	"time"
 
@@ -15,11 +16,16 @@ type ExecutableStatement struct {
 	nodeCursor                 *ExecutableStatement
 	pendingSP                  *StaticPredicate
 	IsExplain                  bool
-	disableVariableCompression bool
+	DisableVariableCompression bool
+	CatalogDirectory           *catalog.Directory
 }
 
-func NewExecutableStatement(disableVariableCompression bool, qtree ...IMSTree) (es *ExecutableStatement, err error) {
-	es = &ExecutableStatement{disableVariableCompression: disableVariableCompression}
+func NewExecutableStatement(disableVariableCompression bool, catDir *catalog.Directory, qtree ...IMSTree,
+) (es *ExecutableStatement, err error) {
+	es = &ExecutableStatement{
+		DisableVariableCompression: disableVariableCompression,
+		CatalogDirectory:           catDir,
+	}
 	es.nodeCursor = es
 	if len(qtree) > 0 {
 		i_err := es.Visit(qtree[0])
@@ -102,7 +108,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 		es.AddChild(NewExplainStatement(context, ctx.QueryText))
 	case INSERT_INTO_STMT:
 		var err error
-		es.nodeCursor, err = NewExecutableStatement(es.disableVariableCompression, ctx.query)
+		es.nodeCursor, err = NewExecutableStatement(es.DisableVariableCompression, es.CatalogDirectory, ctx.query)
 		if err != nil {
 			return fmt.Errorf("Unable to create executable query")
 		}
@@ -123,7 +129,9 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 				columnAliases = append(columnAliases, cctx.name)
 			}
 		}
-		is := NewInsertIntoStatement(i_tableName.(string), ctx.QueryText, sr)
+		is := NewInsertIntoStatement(i_tableName.(string), ctx.QueryText, sr,
+			es.DisableVariableCompression, es.CatalogDirectory,
+		)
 		is.TableName = i_tableName.(string)
 		is.ColumnAliases = columnAliases
 
@@ -175,7 +183,7 @@ func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) inte
 		return fmt.Errorf("Unsupported statement type: %s", "Query with ORDER BY")
 	}
 
-	sr := NewSelectRelation(es.disableVariableCompression)
+	sr := NewSelectRelation(es.DisableVariableCompression, es.CatalogDirectory)
 	sr.Limit = ctx.limit
 
 	es.nodeCursor.payload = sr // For retrieval of the dynamic type later
@@ -198,7 +206,7 @@ func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) in
 	if ctx.subquery != nil {
 		//fmt.Println("Visit Query Primary subquery")
 		sr.IsPrimary = false
-		node, err := NewExecutableStatement(es.disableVariableCompression, ctx.subquery)
+		node, err := NewExecutableStatement(es.DisableVariableCompression, es.CatalogDirectory, ctx.subquery)
 		if err != nil {
 			return err
 		}
@@ -385,7 +393,7 @@ func (es *ExecutableStatement) VisitRelationPrimaryParse(ctx *RelationPrimaryPar
 			}
 		*/
 		if sr, ok := es.payload.(*SelectRelation); ok {
-			newNode, _ := NewExecutableStatement(es.disableVariableCompression)
+			newNode, _ := NewExecutableStatement(es.DisableVariableCompression, es.CatalogDirectory)
 			retval := QueryWalk(newNode, ctx.GetChild(0).(*QueryParse))
 			if err, ok := retval.(error); ok {
 				return err

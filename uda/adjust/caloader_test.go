@@ -6,14 +6,24 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
+	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 func TestCALoader(t *testing.T) { TestingT(t) }
 
 type TestCALoaderSuite struct {
+	Rootdir string
+	DataDir *catalog.Directory
+}
+
+func (s *TestCALoaderSuite) SetupSuite(c *C) {
+	s.Rootdir = c.MkDir()
+	metadata, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
+	s.DataDir = metadata.CatalogDir
 }
 
 var _ = Suite(&TestCALoaderSuite{})
@@ -440,10 +450,10 @@ func (s *TestCALoaderSuite) TestCache(c *C) {
 		// GetRateChange should create a separate cache entry for each parameter combination
 		rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true, false)
-		GetRateChanges("AAPL", false, true, false)
-		GetRateChanges("AAPL", true, false, false)
-		GetRateChanges("AAPL", false, false, false)
+		GetRateChanges("AAPL", true, true, false, s.DataDir)
+		GetRateChanges("AAPL", false, true, false, s.DataDir)
+		GetRateChanges("AAPL", true, false, false, s.DataDir)
+		GetRateChanges("AAPL", false, false, false, s.DataDir)
 
 		c.Assert(len(rateChangeCache), Equals, 4)
 	}
@@ -452,9 +462,9 @@ func (s *TestCALoaderSuite) TestCache(c *C) {
 		// repeated calls with the same signature should not increase the number of cache entries
 		rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true, false)
-		GetRateChanges("AAPL", true, true, false)
-		GetRateChanges("AAPL", true, true, false)
+		GetRateChanges("AAPL", true, true, false, s.DataDir)
+		GetRateChanges("AAPL", true, true, false, s.DataDir)
+		GetRateChanges("AAPL", true, true, false, s.DataDir)
 
 		c.Assert(len(rateChangeCache), Equals, 1)
 	}

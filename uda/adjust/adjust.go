@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -100,7 +101,7 @@ func (adj *Adjust) Reset() {
 	// intentionally left empty
 }
 
-func (adj *Adjust) Accum(cols io.ColumnInterface) error {
+func (adj *Adjust) Accum(cols io.ColumnInterface, catalogDir *catalog.Directory) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
 	if !ok {
 		return errors.New("adjust: Input data must have an Epoch column")
@@ -119,7 +120,9 @@ func (adj *Adjust) Accum(cols io.ColumnInterface) error {
 	}
 
 	symbol := adj.tbk.GetItemInCategory("Symbol")
-	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend, adj.disableVariableCompression)
+	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend, adj.disableVariableCompression,
+		catalogDir,
+	)
 	if len(rateChanges) == 0 {
 		return nil
 	}

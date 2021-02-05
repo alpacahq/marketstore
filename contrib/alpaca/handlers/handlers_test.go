@@ -22,9 +22,9 @@ type HandlersTestSuite struct {
 
 func (s *HandlersTestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
-	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
-	s.DataDirectory = executor.ThisInstance.CatalogDir
-	s.WALFile = executor.ThisInstance.WALFile
+	metadata, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
+	s.DataDirectory = metadata.CatalogDir
+	s.WALFile = metadata.WALFile
 }
 
 func (s *HandlersTestSuite) TearDownSuite(c *C) {}

@@ -58,7 +58,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	/*
 		We expect an error with an empty input arg set
 	*/
-	err = cdl.Accum(&io.Rows{})
+	err = cdl.Accum(&io.Rows{}, s.DataDirectory)
 	c.Assert(err != nil, Equals, true)
 
 	/*
@@ -82,7 +82,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	c.Assert(len(csm), Equals, 1)
 	for _, cs := range csm {
 		c.Assert(cs.Len(), Equals, 200)
-		err = cdl.Accum(cs)
+		err = cdl.Accum(cs, s.DataDirectory)
 		c.Assert(err == nil, Equals, true)
 	}
 	rows := cdl.Output()
@@ -104,7 +104,7 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	cdl.Reset()
 	for _, cs := range csm {
 		c.Assert(cs.Len(), Equals, 200)
-		err = cdl.Accum(cs)
+		err = cdl.Accum(cs, s.DataDirectory)
 		c.Assert(err == nil, Equals, true)
 	}
 	rows = cdl.Output()

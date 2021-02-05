@@ -26,7 +26,8 @@ func (s *ServerTestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	//s.Rootdir = "/tmp/LALtemp"
 	test.MakeDummyCurrencyDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, false)
+	metadata, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, false)
+	s.root = metadata.CatalogDir
 	atomic.StoreUint32(&Queryable, uint32(1))
 }
 
@@ -35,6 +36,6 @@ func (s *ServerTestSuite) TearDownSuite(c *C) {
 }
 
 func (s *ServerTestSuite) TestNewServer(c *C) {
-	serv, _ := NewServer(false, false, s.Rootdir)
+	serv, _ := NewServer(false, false, s.Rootdir, s.root)
 	c.Check(serv.HasMethod("DataService.Query"), Equals, true)
 }

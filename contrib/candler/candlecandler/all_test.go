@@ -32,9 +32,10 @@ type TestSuite struct {
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyStockDir(s.Rootdir, true, false)
-	executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
-	s.DataDirectory = executor.ThisInstance.CatalogDir
-	s.WALFile = executor.ThisInstance.WALFile
+	metadata, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true,
+	) // WAL Bypass
+	s.DataDirectory = metadata.CatalogDir
+	s.WALFile = metadata.WALFile
 }
 
 func (s *TestSuite) TearDownSuite(c *C) {
@@ -73,7 +74,7 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 		epoch := cs.GetEpoch()
 		c.Assert(time.Unix(epoch[0], 0).UTC(), Equals, startDate)
 		c.Assert(time.Unix(epoch[len(epoch)-1], 0).UTC(), Equals, endDate)
-		err = cdl.Accum(cs)
+		err = cdl.Accum(cs, s.DataDirectory)
 		c.Assert(err == nil, Equals, true)
 	}
 	cols := cdl.Output()

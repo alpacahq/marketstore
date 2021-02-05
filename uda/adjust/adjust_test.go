@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
-
+	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	. "gopkg.in/check.v1"
 )
@@ -17,6 +18,14 @@ func TestAdjust(t *testing.T) {
 }
 
 type TestSuiteAdjust struct {
+	Rootdir string
+	DataDir *catalog.Directory
+}
+
+func (s *TestSuiteAdjust) SetupSuite(c *C) {
+	s.Rootdir = c.MkDir()
+	metadata, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
+	s.DataDir = metadata.CatalogDir
 }
 
 var _ = Suite(&TestSuiteAdjust{})
@@ -48,7 +57,7 @@ func toColumnSeries(inputData []price) *io.ColumnSeries {
 	return cs
 }
 
-func evalCase(testCase AdjustTestCase, c *C) {
+func evalCase(testCase AdjustTestCase, c *C, catDir *catalog.Directory) {
 	symbol := "AAPL"
 	tbkStr := symbol + "/1Min/OHLCV"
 	tbk := io.NewTimeBucketKeyFromString(tbkStr)
@@ -65,7 +74,7 @@ func evalCase(testCase AdjustTestCase, c *C) {
 	inputCs := toColumnSeries(testCase.input)
 
 	aggfunc.Init()
-	aggfunc.Accum(inputCs)
+	aggfunc.Accum(inputCs, catDir)
 
 	outputCs := aggfunc.Output()
 
@@ -151,7 +160,7 @@ var testDifferentEvents = []AdjustTestCase{
 
 func (t *TestSuiteAdjust) TestCase1(c *C) {
 	for _, testCase := range testDifferentEvents {
-		evalCase(testCase, c)
+		evalCase(testCase, c, t.DataDir)
 	}
 }
 
@@ -205,7 +214,7 @@ var testDifferentDates = []AdjustTestCase{
 
 func (t *TestSuiteAdjust) TestCase2(c *C) {
 	for _, testCase := range testDifferentDates {
-		evalCase(testCase, c)
+		evalCase(testCase, c, t.DataDir)
 	}
 }
 
@@ -332,6 +341,6 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 
 func (t *TestSuiteAdjust) TestMultipleEventsOnDifferentDates(c *C) {
 	for _, testCase := range testMultipleEventsOnDifferentDates {
-		evalCase(testCase, c)
+		evalCase(testCase, c, t.DataDir)
 	}
 }
