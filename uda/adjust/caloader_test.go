@@ -22,7 +22,7 @@ type TestCALoaderSuite struct {
 
 func (s *TestCALoaderSuite) SetupSuite(c *C) {
 	s.Rootdir = c.MkDir()
-	metadata, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
+	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false, true) // WAL Bypass
 	s.DataDir = metadata.CatalogDir
 }
 
