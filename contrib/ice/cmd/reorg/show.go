@@ -30,7 +30,7 @@ var ShowRecordsCmd = &cobra.Command{
 		}
 		cusip := args[1]
 		dataDir := args[0]
-		metadata, _ := executor.NewInstanceSetup(dataDir, nil, 5, true, true, true, true)
+		metadata, _, _ := executor.NewInstanceSetup(dataDir, nil, 5, true, true, true, true)
 		showRecords(cusip, metadata.CatalogDir)
 		return nil
 	},

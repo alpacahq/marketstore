@@ -18,7 +18,7 @@ func NewLocalAPIClient(dir string, disableVariableCompression bool) (lc *LocalAP
 	// Configure db settings.
 	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	walRotateInterval := 5
-	instanceConfig, _ := executor.NewInstanceSetup(dir,
+	instanceConfig, _, _ := executor.NewInstanceSetup(dir,
 		nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
 	return &LocalAPIClient{dir: dir, disableVariableCompression: disableVariableCompression,
