@@ -177,6 +177,53 @@ Epoch
 
 ```
 
+* 可変長レコード 
+  
+marketstoreは一つの時間幅(timeframe)に存在するレコード数を1つに絞ることで高速化を実現しているデータベースで、同じ時刻に対する書き込みは基本的に上書きされます。
+`1D`(1日)から`1Sec`(1秒)までの時間幅に対応しており、データの頻度に応じてより長い時間幅を指定していただくことでより高速に読み書きを行うことができます。
+
+しかし、板情報やTICKデータなど、特定の時間間隔ごとにデータが到着しなかったり、
+1秒よりも更に頻繁に到着するデータの保存にも対応しています。
+特定の時間幅に複数のレコードを書き込むことができる機能として、
+これを可変長レコード機能と呼んでいます。
+
+pymarketstoreで該当バケットへのwriteを行う際に`isvariablelength=True` を指定していただくことで、
+該当のバケットの特定timeframeへ複数レコードを書き込むことができ、
+1秒ごとよりも速い間隔で届くTICKデータ等を書き込む際に活用できます。
+
+```python
+import numpy as np, pandas as pd, pymarketstore as pymkts
+
+symbol, timeframe, attribute_group = "TEST", "1Sec", "Tick"
+data_type = [('Epoch', 'i8'), ('Bid', 'f4'), ('Ask', 'f4'), ('Nanoseconds', 'i4')]
+tbk = "{}/{}/{}".format(symbol, timeframe, attribute_group)
+client = pymkts.Client()
+
+# --- write variable length records
+data = np.array([
+    (pd.Timestamp('2021-01-01 00:00:00').value / 10 ** 9, 10.0, 20.0, 1000000),
+    (pd.Timestamp('2021-01-01 00:00:00').value / 10 ** 9, 30.0, 40.0, 2000000),
+    (pd.Timestamp('2021-01-01 00:00:00').value / 10 ** 9, 50.0, 60.0, 3000000),
+], dtype=data_type)
+client.write(data, tbk, isvariablelength=True)
+
+# --- query variable length records
+params = pymkts.Params(symbol, timeframe, attribute_group)
+print(client.query(params=params).first().df())
+
+# --- tearDown
+client.destroy(tbk)
+```
+shows
+```
+                            Bid   Ask  Nanoseconds
+Epoch                                             
+2021-01-01 00:00:00+00:00  10.0  20.0      1000000
+2021-01-01 00:00:00+00:00  30.0  40.0      2000000
+2021-01-01 00:00:00+00:00  50.0  60.0      3000000
+```
+
+
 ### Command-line
 marketstoreインスタンスに接続するコマンドはこちらです。
 ```
