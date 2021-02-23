@@ -43,7 +43,7 @@ func (s *TestSuite) TearDownSuite(c *C) {
 }
 
 func (s *TestSuite) TestCandleCandler(c *C) {
-	cdl, am := CandleCandler{}.New(false)
+	cdl, am := CandleCandler{}.New()
 	ds := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},
@@ -67,7 +67,7 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	endDate := time.Date(2001, time.October, 15, 12, 15, 0, 0, time.UTC)
 	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
-	scanner, err := executor.NewReader(parsed, false, false)
+	scanner, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {

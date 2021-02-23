@@ -32,7 +32,7 @@ type AggInterface interface {
 		  am.MapInputColumn("Price", "Bid", "Ask")
 		  if am.Validate() { Init(args) }
 	*/
-	New(disableVariableCompression bool) (AggInterface, *functions.ArgumentMap)
+	New() (AggInterface, *functions.ArgumentMap)
 	/*
 		Input arguments, followed by a custom set of arguments
 	*/

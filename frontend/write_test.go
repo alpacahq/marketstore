@@ -13,7 +13,7 @@ import (
 )
 
 func (s *ServerTestSuite) TestWrite(c *C) {
-	service := NewDataService(false, false, s.Rootdir, s.root)
+	service := NewDataService(false, s.Rootdir, s.root)
 	service.Init()
 
 	qargs := &MultiQueryRequest{

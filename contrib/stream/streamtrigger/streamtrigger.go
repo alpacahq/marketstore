@@ -97,7 +97,6 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 	}
 
 	scanner, err := executor.NewReader(parsed,
-		utils.InstanceConfig.DisableVariableCompression,
 		utils.InstanceConfig.EnableLastKnown,
 	)
 	if err != nil {
