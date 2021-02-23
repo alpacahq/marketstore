@@ -34,7 +34,7 @@ type TickCandler struct {
 	*candler.Candler
 }
 
-func (c TickCandler) New(_ bool) (ica uda.AggInterface, am *functions.ArgumentMap) {
+func (c TickCandler) New() (ica uda.AggInterface, am *functions.ArgumentMap) {
 	ca := &TickCandler{candler.NewCandler(requiredColumns, optionalColumns)}
 	return ca, ca.ArgMap
 }

@@ -26,10 +26,9 @@ type SelectRelation struct {
 	StaticPredicates       StaticPredicateGroup
 }
 
-func NewSelectRelation(disableVariableCompression bool, catalogDir *catalog.Directory) (sr *SelectRelation) {
+func NewSelectRelation(catalogDir *catalog.Directory) (sr *SelectRelation) {
 	return &SelectRelation{ExecutableStatement: ExecutableStatement{
-		DisableVariableCompression: disableVariableCompression,
-		CatalogDirectory:           catalogDir,
+		CatalogDirectory: catalogDir,
 	}}
 }
 
@@ -186,7 +185,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 		if err != nil {
 			return nil, err
 		}
-		scanner, err := executor.NewReader(parsed, sr.DisableVariableCompression, false)
+		scanner, err := executor.NewReader(parsed, false)
 		if err != nil {
 			return nil, err
 		}
@@ -421,7 +420,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if agg == nil {
 					return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 				}
-				aggfunc, argMap := agg.New(sr.DisableVariableCompression)
+				aggfunc, argMap := agg.New()
 
 				if sl.FunctionCall.IsAsterisk {
 					/*

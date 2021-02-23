@@ -70,7 +70,7 @@ func (ma *Max) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Max) New(_ bool) (out uda.AggInterface, am *functions.ArgumentMap) {
+func (m Max) New() (out uda.AggInterface, am *functions.ArgumentMap) {
 	ma := NewCount(requiredColumns, optionalColumns)
 	return ma, ma.ArgMap
 }

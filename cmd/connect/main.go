@@ -3,6 +3,7 @@ package connect
 import (
 	"errors"
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/spf13/cobra"
 )
@@ -75,7 +76,7 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 
 	// Attempt local mode.
 	if len(dir) != 0 {
-		conn, err = session.NewLocalAPIClient(dir, varCompOff)
+		conn, err = session.NewLocalAPIClient(dir)
 		if err != nil {
 			return err
 		}
@@ -88,6 +89,11 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+
+	if varCompOff {
+		utils.InstanceConfig.DisableVariableCompression = true
+	}
+
 	c = session.NewClient(conn)
 
 	// Initialize connection.

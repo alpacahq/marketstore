@@ -98,7 +98,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			if err != nil {
 				return err
 			}
-			es, err := sqlparser.NewExecutableStatement(s.disableVariableCompression, s.catalogDir, ast.Mtree)
+			es, err := sqlparser.NewExecutableStatement(s.catalogDir, ast.Mtree)
 			if err != nil {
 				return err
 			}
@@ -188,7 +188,6 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 				start, end,
 				limitRecordCount, limitFromStart,
 				columns,
-				s.disableVariableCompression,
 				s.enableLastKnown,
 				s.catalogDir,
 			)
@@ -201,7 +200,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			*/
 			if len(req.Functions) != 0 {
 				for tbkStr, cs := range csm {
-					csOut, err := runAggFunctions(req.Functions, cs, tbkStr, s.disableVariableCompression, s.catalogDir)
+					csOut, err := runAggFunctions(req.Functions, cs, tbkStr, s.catalogDir)
 					if err != nil {
 						return err
 					}
@@ -279,7 +278,7 @@ Utility functions
 
 func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
 	LimitFromStart bool, columns []string,
-	disableVariableCompression, enableLastKnown bool, catDir *catalog.Directory,
+	enableLastKnown bool, catDir *catalog.Directory,
 ) (io.ColumnSeriesMap, error) {
 	query := planner.NewQuery(catDir)
 
@@ -319,7 +318,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 		}
 		return nil, err
 	}
-	scanner, err := executor.NewReader(parseResult, disableVariableCompression, enableLastKnown)
+	scanner, err := executor.NewReader(parseResult, enableLastKnown)
 	if err != nil {
 		log.Error("Unable to create scanner: %s\n", err)
 		return nil, err
@@ -336,7 +335,7 @@ func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount 
 }
 
 func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBucketKey,
-	disableVariableCompression bool, catDir *catalog.Directory) (cs *io.ColumnSeries, err error) {
+	catDir *catalog.Directory) (cs *io.ColumnSeries, err error) {
 	cs = nil
 	for _, call := range callChain {
 		if cs != nil {
@@ -351,7 +350,7 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 		if agg == nil {
 			return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 		}
-		aggfunc, argMap := agg.New(disableVariableCompression)
+		aggfunc, argMap := agg.New()
 		aggfunc.SetTimeBucketKey(tbk)
 
 		err = argMap.PrepareArguments(parameterList)

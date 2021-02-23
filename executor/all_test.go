@@ -133,7 +133,7 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRowLimit(LAST, 5)
 	parsed, _ := q.Parse()
-	reader, _ := executor.NewReader(parsed, false, false)
+	reader, _ := executor.NewReader(parsed, false)
 	csm, _ := reader.Read()
 	c.Assert(len(csm) >= 4, Equals, true)
 	for _, cs := range csm {
@@ -185,7 +185,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	/*
 		Read the data back
 	*/
-	reader, err := executor.NewReader(parsed, false, false)
+	reader, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err := reader.Read()
 	c.Assert(err == nil, Equals, true)
@@ -258,7 +258,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 
 	// Test last N query
 	parsed, _ = q.Parse()
-	reader, err = executor.NewReader(parsed, false, false)
+	reader, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err = reader.Read()
 	for _, cs := range csm {
@@ -273,7 +273,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	// Test first N query
 	q.SetRowLimit(FIRST, 10)
 	parsed, _ = q.Parse()
-	reader, err = executor.NewReader(parsed, false, false)
+	reader, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err = reader.Read()
 	for _, cs := range csm {
@@ -299,7 +299,7 @@ func (s *TestSuite) TestFileRead(c *C) {
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
 	}
-	scanner, err := executor.NewReader(parsed, false, false)
+	scanner, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	// Sum up the total number of items in the query set for validation
 	var nitems, recordlen int
@@ -378,7 +378,7 @@ func (s *TestSuite) TestDelete(c *C) {
 	}
 
 	// Read the data before delete
-	r, err := executor.NewReader(parsed, false, false)
+	r, err := executor.NewReader(parsed, false)
 	csm, err := r.Read()
 	for _, cs := range csm {
 		if cs.Len() != 1000 {
@@ -428,7 +428,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
-	scanner, err := executor.NewReader(parsed, false, false)
+	scanner, err := executor.NewReader(parsed, false)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -464,7 +464,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
-	scanner, err = executor.NewReader(parsed, false, false)
+	scanner, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
@@ -489,7 +489,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	if err != nil {
 		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
-	scanner, err = executor.NewReader(parsed, false, false)
+	scanner, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
@@ -507,7 +507,7 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 		time.Date(2001, time.January, 15, 12, 5, 0, 0, time.UTC),
 	)
 	parsed, err = q.Parse()
-	scanner, err = executor.NewReader(parsed, false, false)
+	scanner, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
@@ -527,7 +527,7 @@ func (s *TestSuite) TestCrossYear(c *C) {
 	endDate := time.Date(2002, time.October, 15, 12, 5, 0, 0, time.UTC)
 	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
-	scanner, err := executor.NewReader(parsed, false, false)
+	scanner, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
@@ -552,7 +552,7 @@ func (s *TestSuite) TestLastN(c *C) {
 	)
 	q.SetRowLimit(LAST, 100)
 	parsed, _ := q.Parse()
-	scanner, err := executor.NewReader(parsed, false, false)
+	scanner, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
@@ -592,7 +592,7 @@ func (s *TestSuite) TestLastN(c *C) {
 	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
-	scanner, err = executor.NewReader(parsed, false, false)
+	scanner, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, _ = scanner.Read()
 	for _, cs := range csm {
@@ -612,7 +612,7 @@ func (s *TestSuite) TestLastN(c *C) {
 	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
-	scanner, err = executor.NewReader(parsed, false, false)
+	scanner, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, _ = scanner.Read()
 	for _, cs := range csm {
@@ -632,7 +632,7 @@ func (s *TestSuite) TestLastN(c *C) {
 	)
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
-	scanner, err = executor.NewReader(parsed, false, false)
+	scanner, err = executor.NewReader(parsed, false)
 	c.Assert(err, IsNil)
 	csm, err = scanner.Read()
 	c.Assert(err, IsNil)
@@ -676,7 +676,7 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	q = NewQuery(s.DataDirectory)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ = q.Parse()
-	rd, err := executor.NewReader(pr, false, false)
+	rd, err := executor.NewReader(pr, false)
 	c.Assert(err == nil, Equals, true)
 	columnSeries, err := rd.Read()
 	c.Assert(err == nil, Equals, true)
@@ -728,7 +728,7 @@ func (s *DestructiveWALTests) TearDownSuite(c *C) {
 func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
-	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil, false,
+	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil,
 		false, s.shutdownPending, &sync.WaitGroup{},
 	)
 	if err != nil {
@@ -1043,7 +1043,7 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	q.SetRange(startDate, endDate)
 	q.SetRowLimit(FIRST, numRecs)
 	parsed, _ := q.Parse()
-	scanner, err := executor.NewReader(parsed, false, false)
+	scanner, err := executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err := scanner.Read()
 	for key, cs := range csm {
@@ -1065,7 +1065,7 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	*/
 	q.SetRowLimit(LAST, numRecs)
 	parsed, _ = q.Parse()
-	scanner, err = executor.NewReader(parsed, false, false)
+	scanner, err = executor.NewReader(parsed, false)
 	c.Assert(err == nil, Equals, true)
 	csm, err = scanner.Read()
 	for key, cs := range csm {
@@ -1113,7 +1113,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 		q.AddRestriction("Timeframe", "1Min")
 		q.SetRowLimit(LAST, number)
 		parsed, _ := q.Parse()
-		scanner, err := executor.NewReader(parsed, false, false)
+		scanner, err := executor.NewReader(parsed, false)
 		if err != nil {
 			fmt.Printf("Failed to create a new reader")
 			return nil, err

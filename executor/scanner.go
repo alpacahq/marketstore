@@ -177,10 +177,9 @@ type Reader struct {
 	// really ought to be somewhere close to the function...
 	readBuffer                 []byte
 	fileBuffer                 []byte
-	disableVariableCompression bool
 }
 
-func NewReader(pr *planner.ParseResult, disableVariableCompression, enableLastKnown bool) (r *Reader, err error) {
+func NewReader(pr *planner.ParseResult, enableLastKnown bool) (r *Reader, err error) {
 	r = new(Reader)
 	r.pr = *pr
 	if pr.Range == nil {
@@ -210,7 +209,6 @@ func NewReader(pr *planner.ParseResult, disableVariableCompression, enableLastKn
 	r.readBuffer = make([]byte, readSize)
 	r.fileBuffer = make([]byte, readSize)
 
-	r.disableVariableCompression = disableVariableCompression
 	return r, nil
 }
 

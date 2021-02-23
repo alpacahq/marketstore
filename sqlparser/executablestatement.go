@@ -16,14 +16,12 @@ type ExecutableStatement struct {
 	nodeCursor                 *ExecutableStatement
 	pendingSP                  *StaticPredicate
 	IsExplain                  bool
-	DisableVariableCompression bool
 	CatalogDirectory           *catalog.Directory
 }
 
-func NewExecutableStatement(disableVariableCompression bool, catDir *catalog.Directory, qtree ...IMSTree,
+func NewExecutableStatement(catDir *catalog.Directory, qtree ...IMSTree,
 ) (es *ExecutableStatement, err error) {
 	es = &ExecutableStatement{
-		DisableVariableCompression: disableVariableCompression,
 		CatalogDirectory:           catDir,
 	}
 	es.nodeCursor = es
@@ -108,7 +106,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 		es.AddChild(NewExplainStatement(context, ctx.QueryText))
 	case INSERT_INTO_STMT:
 		var err error
-		es.nodeCursor, err = NewExecutableStatement(es.DisableVariableCompression, es.CatalogDirectory, ctx.query)
+		es.nodeCursor, err = NewExecutableStatement(es.CatalogDirectory, ctx.query)
 		if err != nil {
 			return fmt.Errorf("Unable to create executable query")
 		}
@@ -130,7 +128,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 			}
 		}
 		is := NewInsertIntoStatement(i_tableName.(string), ctx.QueryText, sr,
-			es.DisableVariableCompression, es.CatalogDirectory,
+			es.CatalogDirectory,
 		)
 		is.TableName = i_tableName.(string)
 		is.ColumnAliases = columnAliases
@@ -183,7 +181,7 @@ func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) inte
 		return fmt.Errorf("Unsupported statement type: %s", "Query with ORDER BY")
 	}
 
-	sr := NewSelectRelation(es.DisableVariableCompression, es.CatalogDirectory)
+	sr := NewSelectRelation(es.CatalogDirectory)
 	sr.Limit = ctx.limit
 
 	es.nodeCursor.payload = sr // For retrieval of the dynamic type later
@@ -206,7 +204,7 @@ func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) in
 	if ctx.subquery != nil {
 		//fmt.Println("Visit Query Primary subquery")
 		sr.IsPrimary = false
-		node, err := NewExecutableStatement(es.DisableVariableCompression, es.CatalogDirectory, ctx.subquery)
+		node, err := NewExecutableStatement(es.CatalogDirectory, ctx.subquery)
 		if err != nil {
 			return err
 		}
@@ -393,7 +391,7 @@ func (es *ExecutableStatement) VisitRelationPrimaryParse(ctx *RelationPrimaryPar
 			}
 		*/
 		if sr, ok := es.payload.(*SelectRelation); ok {
-			newNode, _ := NewExecutableStatement(es.DisableVariableCompression, es.CatalogDirectory)
+			newNode, _ := NewExecutableStatement(es.CatalogDirectory)
 			retval := QueryWalk(newNode, ctx.GetChild(0).(*QueryParse))
 			if err, ok := retval.(error); ok {
 				return err

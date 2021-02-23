@@ -62,7 +62,7 @@ func evalCase(testCase AdjustTestCase, c *C, catDir *catalog.Directory) {
 	tbkStr := symbol + "/1Min/OHLCV"
 	tbk := io.NewTimeBucketKeyFromString(tbkStr)
 	adj := Adjust{}
-	aggfunc, _ := adj.New(false)
+	aggfunc, _ := adj.New()
 	aggfunc.SetTimeBucketKey(*tbk)
 
 	rateChangeCache[CacheKey{symbol, true, true}] = RateChangeCache{

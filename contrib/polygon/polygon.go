@@ -148,7 +148,6 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 		}
 
 		scanner, err := executor.NewReader(parsed,
-			utils.InstanceConfig.DisableVariableCompression,
 			utils.InstanceConfig.EnableLastKnown,
 		)
 		if err != nil {

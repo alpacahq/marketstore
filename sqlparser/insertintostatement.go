@@ -19,12 +19,11 @@ type InsertIntoStatement struct {
 }
 
 func NewInsertIntoStatement(tableName, queryText string, selectRelation *SelectRelation,
-	disableVariableCompression bool, catDir *catalog.Directory) (is *InsertIntoStatement) {
+	catDir *catalog.Directory) (is *InsertIntoStatement) {
 	is = new(InsertIntoStatement)
 	is.QueryText = queryText
 	is.TableName = tableName
 	is.SelectRelation = selectRelation
-	is.DisableVariableCompression = disableVariableCompression
 	is.CatalogDirectory = catDir
 	return is
 }

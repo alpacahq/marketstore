@@ -36,7 +36,6 @@ type WALFileType struct {
 	lastCommittedTGID          int64             // TGID to be checkpointed
 	FilePtr                    *os.File          // Active file pointer to FileName
 	ReplicationSender          ReplicationSender // send messages to replica servers
-	disableVariableCompression bool
 	walBypass                  bool
 	shutdownPending            *bool
 	walWaitGroup               *sync.WaitGroup
@@ -55,14 +54,13 @@ type TransactionGroup struct {
 	Checksum [16]byte
 }
 
-func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression,
+func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup,
 ) (wf *WALFileType, err error) {
 	wf = &WALFileType{
 		lastCommittedTGID:          0,
 		OwningInstanceID:           owningInstanceID,
 		ReplicationSender:          rs,
-		disableVariableCompression: disableVariableCompression,
 		walBypass:                  walBypass,
 		shutdownPending:            shutdownPending,
 		walWaitGroup:               walWaitGroup,
@@ -343,7 +341,6 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 				fp.(*os.File),
 				buffer,
 				varRecLen,
-				wf.disableVariableCompression,
 			)
 		}
 		if err != nil {
@@ -698,7 +695,6 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 			if err = WriteBufferToFileIndirect(fp,
 				wtSet.Buffer,
 				wtSet.VarRecLen,
-				wf.disableVariableCompression,
 			); err != nil {
 				return err
 			}
@@ -824,9 +820,9 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 	}
 }
 
-func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender, disableVariableCompression, walBypass bool,
+func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender, walBypass bool,
 	shutdownPending *bool, walWG *sync.WaitGroup) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, owningInstanceID, rs, disableVariableCompression, walBypass, shutdownPending, walWG)
+	wf, err = NewWALFile(rootDir, owningInstanceID, rs, walBypass, shutdownPending, walWG)
 	if err != nil {
 		log.Error("%s", err.Error())
 		return nil, nil, err

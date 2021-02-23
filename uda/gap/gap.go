@@ -111,7 +111,7 @@ func (g *Gap) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (g Gap) New(_ bool) (out uda.AggInterface, am *functions.ArgumentMap) {
+func (g Gap) New() (out uda.AggInterface, am *functions.ArgumentMap) {
 	gx := NewGap(requiredColumns, optionalColumns)
 	return gx, gx.ArgMap
 }

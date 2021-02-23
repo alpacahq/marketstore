@@ -14,23 +14,19 @@ import (
 )
 
 // NewLocalAPIClient builds a new client struct in local mode.
-func NewLocalAPIClient(dir string, disableVariableCompression bool) (lc *LocalAPIClient, err error) {
+func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	// Configure db settings.
 	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	walRotateInterval := 5
 	instanceConfig, _, _ := executor.NewInstanceSetup(dir,
 		nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
-	return &LocalAPIClient{dir: dir, disableVariableCompression: disableVariableCompression,
-		catalogDir: instanceConfig.CatalogDir,
-	}, nil
+	return &LocalAPIClient{dir: dir, catalogDir: instanceConfig.CatalogDir}, nil
 }
 
 type LocalAPIClient struct {
 	// dir is the optional filesystem location of a local db instance.
 	dir string
-	// disableVariableCompression is an option if the compression is used to read & write data
-	disableVariableCompression bool
 	// catalogDir is an in-memory cache for directory structure under the /data directory
 	catalogDir *catalog.Directory
 	// enableLastKnown is an optimization to reduce the size of dara reading for query
@@ -46,7 +42,7 @@ func (lc *LocalAPIClient) Connect() error {
 }
 
 func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
 	err := ds.Write(nil, reqs, responses)
 	if err != nil {
 		return err
@@ -84,7 +80,7 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 		return
 	}
 
-	scanner, err := executor.NewReader(pr, lc.disableVariableCompression, lc.enableLastKnown)
+	scanner, err := executor.NewReader(pr, lc.enableLastKnown)
 	if err != nil {
 		log.Error("Error return from query scanner: %v", err)
 		return
@@ -99,17 +95,17 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 }
 
 func (lc *LocalAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
 	return ds.Create(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
 	return ds.Destroy(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error{
-	ds := frontend.NewDataService(lc.disableVariableCompression, lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
 	return ds.GetInfo(nil, reqs, responses)
 }
 
@@ -118,7 +114,7 @@ func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error){
 	if err != nil {
 		return nil, err
 	}
-	es, err := sqlparser.NewExecutableStatement(lc.disableVariableCompression, lc.catalogDir, ast.Mtree)
+	es, err := sqlparser.NewExecutableStatement(lc.catalogDir, ast.Mtree)
 	if err != nil {
 		return nil, err
 	}
