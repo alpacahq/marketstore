@@ -236,7 +236,7 @@ However, it also supports data that does not arrive at a specific interval or mo
 such as board data and TICK data. Such kind of data is called variable-length records in marketstore.
 
 You can use the variable-length records feature by specifying `isvariablelength=True`
-when you write them with pymarketstore.
+when you write with pymarketstore.
 
 ```python
 import numpy as np, pandas as pd, pymarketstore as pymkts
