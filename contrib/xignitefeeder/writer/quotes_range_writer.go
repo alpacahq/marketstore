@@ -46,6 +46,7 @@ func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDa
 	var lows []float32
 	var previousCloses []float32
 	var volumes []int64
+	var exchangeOfficialCloses []float32
 	var previousExchangeOfficialClose []float32
 	var changeFromPreviousClose []float32
 	var percentChangeFromPreviousClose []float32
@@ -69,6 +70,7 @@ func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDa
 		lows = append(lows, eq.Low)
 		previousCloses = append(previousCloses, eq.PreviousClose)
 		volumes = append(volumes, eq.Volume)
+		exchangeOfficialCloses = append(exchangeOfficialCloses, eq.ExchangeOfficialClose)
 		previousExchangeOfficialClose = append(previousExchangeOfficialClose, eq.PreviousExchangeOfficialClose)
 		changeFromPreviousClose = append(changeFromPreviousClose, eq.ChangeFromPreviousClose)
 		percentChangeFromPreviousClose = append(percentChangeFromPreviousClose, eq.PercentChangeFromPreviousClose)
@@ -81,14 +83,14 @@ func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDa
 	}
 
 	tbk := io.NewTimeBucketKey(symbol + "/" + q.Timeframe + "/OHLCV")
-	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses,
+	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses, exchangeOfficialCloses,
 		previousExchangeOfficialClose, changeFromPreviousClose, percentChangeFromPreviousClose, volumes)
 	csm.AddColumnSeries(*tbk, cs)
 	return csm, nil
 }
 
 func (q QuotesRangeWriterImpl) newColumnSeries(
-	epochs []int64, opens, closes, highs, lows, previousCloses,
+	epochs []int64, opens, closes, highs, lows, previousCloses, exchangeOfficialCloses,
 	previousExchangeOfficialClose, changeFromPreviousClose, percentChangeFromPreviousClose []float32, volumes []int64,
 ) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
@@ -97,6 +99,7 @@ func (q QuotesRangeWriterImpl) newColumnSeries(
 	cs.AddColumn("Close", closes)
 	cs.AddColumn("High", highs)
 	cs.AddColumn("Low", lows)
+	cs.AddColumn("ExchangeOfficialClose", exchangeOfficialCloses)
 	cs.AddColumn("PreviousClose", previousCloses)
 	cs.AddColumn("Volume", volumes)
 	cs.AddColumn("PreviousExchangeOfficialClose", previousExchangeOfficialClose)
