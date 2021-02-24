@@ -46,6 +46,7 @@ func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDa
 	var lows []float32
 	var previousCloses []float32
 	var volumes []int64
+	var exchangeOfficialCloses []float32
 	var previousExchangeOfficialClose []float32
 	var changeFromPreviousClose []float32
 	var percentChangeFromPreviousClose []float32
@@ -69,6 +70,7 @@ func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDa
 		lows = append(lows, eq.Low)
 		previousCloses = append(previousCloses, eq.PreviousClose)
 		volumes = append(volumes, eq.Volume)
+		exchangeOfficialCloses = append(exchangeOfficialCloses, eq.ExchangeOfficialClose)
 		previousExchangeOfficialClose = append(previousExchangeOfficialClose, eq.PreviousExchangeOfficialClose)
 		changeFromPreviousClose = append(changeFromPreviousClose, eq.ChangeFromPreviousClose)
 		percentChangeFromPreviousClose = append(percentChangeFromPreviousClose, eq.PercentChangeFromPreviousClose)
