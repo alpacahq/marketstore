@@ -12,6 +12,7 @@ install:
 
 debug:
 	$(MAKE) debug -C contrib/alpaca
+	$(MAKE) debug -C contrib/alpacav2
 	$(MAKE) debug -C contrib/binancefeeder
 	$(MAKE) debug -C contrib/bitmexfeeder
 	$(MAKE) debug -C contrib/gdaxfeeder
@@ -34,6 +35,7 @@ update:
 
 plugins:
 	$(MAKE) -C contrib/alpaca
+	$(MAKE) -C contrib/alpacav2
 	$(MAKE) -C contrib/binancefeeder
 	$(MAKE) -C contrib/bitmexfeeder
 	$(MAKE) -C contrib/gdaxfeeder

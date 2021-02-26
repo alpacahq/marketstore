@@ -1,0 +1,115 @@
+package api
+
+import (
+	"math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/alpacav2/config"
+	"github.com/alpacahq/marketstore/v4/contrib/alpacav2/metrics"
+	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/pool"
+	"github.com/eapache/channels"
+)
+
+const (
+	sleepStart    = 1 * time.Second
+	sleepLimit    = 5 * time.Minute
+	connLiveAfter = 5 * time.Second
+)
+
+type Subscription struct {
+	channel     *channels.InfiniteChannel
+	incoming    <-chan interface{}
+	ws          *AlpacaWebSocket
+	workerCount int
+	handled     int64
+	once        sync.Once
+}
+
+// NewSubscription creates and initializes a Subscription
+// that is ready to use.
+func NewSubscription(config config.Config) (s *Subscription) {
+	c := channels.NewInfiniteChannel()
+	return &Subscription{
+		channel:     c,
+		incoming:    c.Out(),
+		ws:          NewAlpacaWebSocket(config, c.In()),
+		workerCount: config.WSWorkerCount,
+	}
+}
+
+func (s *Subscription) resetHandled() {
+	atomic.StoreInt64(&s.handled, 0)
+}
+func (s *Subscription) incrementHandled() {
+	atomic.AddInt64(&s.handled, 1)
+}
+func (s *Subscription) getHandled() int {
+	return int(atomic.LoadInt64(&s.handled))
+}
+
+// Start establishes a websocket connection and
+// starts processing messages using handler.
+// Subsequent calls are no-ops.
+func (s *Subscription) Start(handler func(msg []byte)) {
+	s.once.Do(func() {
+		s.start(handler)
+	})
+}
+
+func (s *Subscription) start(handler func(msg []byte)) {
+	subscriptions := s.ws.subscriptions
+
+	log.Info("[alpacav2] subscribing to AlpacaV2 data websocket: %v", s.ws.server)
+	log.Info("[alpacav2] enabling ... {%s:%v}", "subscriptions", subscriptions)
+
+	// initialize & start the async worker pool
+	s.resetHandled()
+	workerPool := pool.NewPool(s.workerCount, func(msg interface{}) {
+		handler(msg.([]byte))
+		s.incrementHandled()
+	})
+	log.Info("[alpacav2] using %d workers", s.workerCount)
+
+	go workerPool.Work(s.incoming)
+
+	// monitoring goroutine
+	go func() {
+		tickInfo := time.NewTicker(1 * time.Minute)
+		defer tickInfo.Stop()
+		for range tickInfo.C {
+			d := s.channel.Len()
+			metrics.AlpacaV2StreamQueueLength.Set(float64(d))
+			log.Info("[alpacav2] {%s:%v,%s:%v,%s:%v}",
+				"subscription", subscriptions,
+				"channel_depth", d,
+				"handled_messages", s.getHandled())
+			s.resetHandled()
+		}
+	}()
+
+	// Automatically reconnecting w/ exp. backoff + jitter
+	go func() {
+		backoff := sleepStart
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for {
+			start := time.Now()
+			err := s.ws.listen()
+			log.Error("[alpacav2] error during ws listening {%s:%s}",
+				"error", err)
+			if time.Since(start) > connLiveAfter {
+				backoff = sleepStart
+			} else {
+				backoff *= 2
+				if backoff > sleepLimit {
+					backoff = sleepLimit
+				}
+			}
+			jitter := time.Duration(random.Intn(1e3)) * time.Millisecond
+			log.Info("[alpacav2] backing off for %s", backoff)
+			time.Sleep(backoff + jitter)
+		}
+	}()
+}
