@@ -270,6 +270,10 @@ Epoch
 2021-01-01 00:00:00+00:00 50.0 60.0 3000000
 ```
 
+Because the data type of `Epoch` column is always set as 'i8'(=int64) and
+ it's not sufficient for describing a date with sub-second accuracy,
+the sub-second information is stored in another column (=`Nanoseconds` column, the data type is 'i4') in marketstore.
+
 ### Command-line
 Connect to a marketstore instance with
 ```
