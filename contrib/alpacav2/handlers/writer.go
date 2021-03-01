@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/alpacahq/marketstore/v4/contrib/alpacav2/api"
+	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/models"
 	"github.com/alpacahq/marketstore/v4/models/enum"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -65,14 +69,20 @@ func writeQuote(q *api.Quote) {
 
 // writeAggregateToMinute writes an AggregateToMinute
 func writeAggregateToMinute(agg *api.MinuteAggregate) {
-	model := models.NewBar(agg.Symbol, "1Min", 1)
+	epoch := agg.Timestamp.Unix()
 
-	// add record
-	model.Add(agg.Timestamp.Unix(),
-		enum.Price(agg.Open), enum.Price(agg.High), enum.Price(agg.Low), enum.Price(agg.Close), enum.Size(agg.Volume))
+	tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", agg.Symbol))
+	csm := io.NewColumnSeriesMap()
+	cs := io.NewColumnSeries()
+	cs.AddColumn("Epoch", []int64{epoch})
+	cs.AddColumn("Open", []float32{float32(agg.Open)})
+	cs.AddColumn("High", []float32{float32(agg.High)})
+	cs.AddColumn("Low", []float32{float32(agg.Low)})
+	cs.AddColumn("Close", []float32{float32(agg.Close)})
+	cs.AddColumn("Volume", []int32{int32(agg.Volume)})
+	csm.AddColumnSeries(*tbk, cs)
 
-	// save
-	if err := model.Write(); err != nil {
-		log.Error("[alpacav2] write failure for key: [%v] (%v)", model.Key(), err)
+	if err := executor.WriteCSM(csm, false); err != nil {
+		log.Error("[alpacav2] csm write failure for key: [%v] (%v)", tbk.String(), err)
 	}
 }
