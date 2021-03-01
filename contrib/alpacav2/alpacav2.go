@@ -33,6 +33,9 @@ func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 		return nil, errors.New("api_key and api_secret needs to be set")
 	}
 
+	handlers.UseOldSchema = config.UseOldSchema
+	handlers.AddTickCnt = config.AddTickCnt
+
 	return &AlpacaStreamer{
 		config: config,
 	}, nil

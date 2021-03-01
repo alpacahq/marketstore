@@ -19,6 +19,8 @@ api_secret | string | none | The secret corresponding to your api_key
 ws_server | string | wss://stream.data.alpaca.markets/v2 | The websocket server to connect to
 source | string | iex | The source to connect to
 ws_worker_count | int | 10 | The number of workers to use for WS message processing
+use_old_schema | bool | false | Use old schema (currently supported for bars only)
+add_tick_cnt | bool | false | Add TickCnt with value 0 to bars if old schema is used
 minute_bar_symbols | slice of strings | none | The symbols to retrieve minute bars for
 quote_symbols | slice of strings | none | The symbols to retrieve quotes for
 trade_symbols | slice of strings | none | The symbols to retrieve trades for
@@ -34,6 +36,8 @@ bgworkers:
       api_key: your_alpaca_key_id
       api_secret: your_alpaca_secret
       ws_server: wss://stream.data.alpaca.markets/v2
+      use_old_schema: true
+      add_tick_cnt: true
       ws_worker_count: 10
       minute_bar_symbols:
         - '*'

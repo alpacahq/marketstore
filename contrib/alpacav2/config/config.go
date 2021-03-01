@@ -17,6 +17,10 @@ type Config struct {
 	WSServer string `json:"ws_server"`
 	// Source is the data source to use
 	Source string `json:"source"`
+	// UseOldSchema sets whether the old schema should be used
+	UseOldSchema bool `json:"use_old_schema"`
+	// AddTickCnt sets whether TickCnt column should be added to old schema bars
+	AddTickCnt bool `json:"add_tick_cnt"`
 	// The things we want to subscribe to
 	Subscription
 }

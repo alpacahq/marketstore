@@ -11,6 +11,14 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+// NOTE: this solution is not the best out there, feel free to fix. Thank you!
+
+// UseOldSchema modifies writing behavior (currently only implemented for bars)
+var UseOldSchema bool
+
+// AddTickCnt adds TickCnt with a 0 value to bars if true
+var AddTickCnt bool
+
 // writeTrade writes a Trade
 func writeTrade(t *api.Trade) {
 	model := models.NewTrade(t.Symbol, 1)
@@ -69,20 +77,40 @@ func writeQuote(q *api.Quote) {
 
 // writeAggregateToMinute writes an AggregateToMinute
 func writeAggregateToMinute(agg *api.MinuteAggregate) {
-	epoch := agg.Timestamp.Unix()
+	if UseOldSchema {
+		// Using old schema
+		epoch := agg.Timestamp.Unix()
 
-	tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", agg.Symbol))
-	csm := io.NewColumnSeriesMap()
-	cs := io.NewColumnSeries()
-	cs.AddColumn("Epoch", []int64{epoch})
-	cs.AddColumn("Open", []float32{float32(agg.Open)})
-	cs.AddColumn("High", []float32{float32(agg.High)})
-	cs.AddColumn("Low", []float32{float32(agg.Low)})
-	cs.AddColumn("Close", []float32{float32(agg.Close)})
-	cs.AddColumn("Volume", []int32{int32(agg.Volume)})
-	csm.AddColumnSeries(*tbk, cs)
+		tbk := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", agg.Symbol))
+		csm := io.NewColumnSeriesMap()
+		cs := io.NewColumnSeries()
+		cs.AddColumn("Epoch", []int64{epoch})
+		cs.AddColumn("Open", []float32{float32(agg.Open)})
+		cs.AddColumn("High", []float32{float32(agg.High)})
+		cs.AddColumn("Low", []float32{float32(agg.Low)})
+		cs.AddColumn("Close", []float32{float32(agg.Close)})
+		cs.AddColumn("Volume", []int32{int32(agg.Volume)})
+		if AddTickCnt {
+			cs.AddColumn("TickCnt", []int32{int32(0)})
+		}
+		csm.AddColumnSeries(*tbk, cs)
 
-	if err := executor.WriteCSM(csm, false); err != nil {
-		log.Error("[alpacav2] csm write failure for key: [%v] (%v)", tbk.String(), err)
+		if err := executor.WriteCSM(csm, false); err != nil {
+			log.Error("[alpacav2] csm write failure for key: [%v] (%v)", tbk.String(), err)
+		}
+
+		return
+	}
+
+	// Using new schema
+
+	model := models.NewBar(agg.Symbol, "1Min", 1)
+	// add record
+	model.Add(agg.Timestamp.Unix(),
+		enum.Price(agg.Open), enum.Price(agg.High), enum.Price(agg.Low), enum.Price(agg.Close), enum.Size(agg.Volume))
+
+	// save
+	if err := model.Write(); err != nil {
+		log.Error("[alpacav2] write failure for key: [%v] (%v)", model.Key(), err)
 	}
 }
