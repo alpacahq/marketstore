@@ -1,11 +1,11 @@
 package frontend
 
 import (
-	"context"
 	"errors"
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"net/http"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
 
 	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
@@ -23,16 +23,16 @@ var (
 func NewDataService(enableLastKnown bool, rootDir string, catDir *catalog.Directory,
 ) *DataService {
 	return &DataService{
-		enableLastKnown:            enableLastKnown,
-		rootDir:                    rootDir,
-		catalogDir:                 catDir,
+		enableLastKnown: enableLastKnown,
+		rootDir:         rootDir,
+		catalogDir:      catDir,
 	}
 }
 
 type DataService struct {
-	enableLastKnown            bool
-	rootDir                    string
-	catalogDir                 *catalog.Directory
+	enableLastKnown bool
+	rootDir         string
+	catalogDir      *catalog.Directory
 }
 
 func (s *DataService) Init() {}
@@ -72,7 +72,8 @@ type key int
 const startTimeKey key = 0
 
 func intercept(i *rpc.RequestInfo) *http.Request {
-	return i.Request.Clone(context.WithValue(i.Request.Context(), startTimeKey, time.Now()))
+	return nil
+	// return i.Request.Clone(context.WithValue(i.Request.Context(), startTimeKey, time.Now()))
 }
 
 func after(i *rpc.RequestInfo) {

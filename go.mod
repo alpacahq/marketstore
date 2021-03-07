@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.26.0
 	code.cloudfoundry.org/bytefmt v0.0.0-20180906201452-2aa6f33b730c
 	github.com/adshao/go-binance v0.0.0-20181012004556-e9a4ac01ca48
+	github.com/alpacahq/marketstore v2.3.8+incompatible
 	github.com/alpacahq/rpc v1.3.0
 	github.com/antlr/antlr4 v0.0.0-20181031000400-73836edf1f84
 	github.com/bitly/go-simplejson v0.5.0 // indirect
@@ -27,6 +28,8 @@ require (
 	github.com/klauspost/compress v1.10.4
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
 	github.com/mitchellh/mapstructure v1.4.1
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/pkg/errors v0.9.1
@@ -41,6 +44,7 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/tools v0.0.0-20210112230658-8b4aab62c064
 	gonum.org/v1/gonum v0.0.0-20190618015908-5dc218f86579
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.29.1
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/matryer/try.v1 v1.0.0-20150601225556-312d2599e12e

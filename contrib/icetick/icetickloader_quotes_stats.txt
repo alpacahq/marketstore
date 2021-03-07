@@ -1,0 +1,5 @@
+Date: , Tape: , Finished: false, Trades: 0, Quotes: 0
+Date: , Tape: , Finished: false, Trades: 0, Quotes: 0
+Date: , Tape: , Finished: false, Trades: 0, Quotes: 0
+Date: , Tape: , Finished: false, Trades: 0, Quotes: 0
+Date: 2021/01/04, Tape: C, Finished: true, Trades: 33671114, Quotes: 102334289

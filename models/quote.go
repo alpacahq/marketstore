@@ -132,3 +132,13 @@ func (model *Quote) Write() error {
 	}
 	return err
 }
+
+func (model *Quote) FlushIfFull() error {
+	if model.idx == len(model.Epoch) {
+		if err := model.Write(); err != nil {
+			return err
+		}
+		model.idx = 0
+	}
+	return nil
+}
