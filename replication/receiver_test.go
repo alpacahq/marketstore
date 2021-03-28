@@ -55,14 +55,6 @@ func TestReceiver_Run(t *testing.T) {
 		wantReplayCalled bool
 	}{
 		{
-			name:             "success",
-			mockConnectFunc:  func(ctx context.Context) error { return nil },
-			mockRecvFunc:     func() ([]byte, error) { return nil, nil },
-			mockReplayFunc:   func(transactionGroup []byte) error { return nil },
-			wantErr:          false,
-			wantReplayCalled: true,
-		},
-		{
 			name:             "gRPC connect error/ an error occurs and Run() fails",
 			mockConnectFunc:  func(ctx context.Context) error { return errors.New("some error") },
 			mockRecvFunc:     func() ([]byte, error) { return nil, nil },
@@ -75,7 +67,7 @@ func TestReceiver_Run(t *testing.T) {
 			mockConnectFunc:  func(ctx context.Context) error { return nil },
 			mockRecvFunc:     func() ([]byte, error) { return nil, io.EOF },
 			mockReplayFunc:   func(transactionGroup []byte) error { return nil },
-			wantErr:          false,
+			wantErr:          true,
 			wantReplayCalled: false,
 		},
 		{
@@ -83,7 +75,7 @@ func TestReceiver_Run(t *testing.T) {
 			mockConnectFunc:  func(ctx context.Context) error { return nil },
 			mockRecvFunc:     func() ([]byte, error) { return nil, errors.New("some error") },
 			mockReplayFunc:   func(transactionGroup []byte) error { return nil },
-			wantErr:          false,
+			wantErr:          true,
 			wantReplayCalled: false,
 		},
 		{
@@ -91,7 +83,7 @@ func TestReceiver_Run(t *testing.T) {
 			mockConnectFunc:  func(ctx context.Context) error { return nil },
 			mockRecvFunc:     func() ([]byte, error) { return nil, nil },
 			mockReplayFunc:   func(transactionGroup []byte) error { return errors.New("some error") },
-			wantErr:          false,
+			wantErr:          true,
 			wantReplayCalled: true,
 		},
 	}
@@ -111,7 +103,6 @@ func TestReceiver_Run(t *testing.T) {
 
 			// --- when ---
 			err := r.Run(context.Background())
-			time.Sleep(1 * time.Second) // wait 1 second to ensure that the goroutine started
 
 			// --- then ---
 			if (err != nil) != tt.wantErr {

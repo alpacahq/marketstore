@@ -61,13 +61,14 @@ func init() {
 }
 
 // executeStart implements the start command.
-func executeStart(cmd *cobra.Command, args []string) error {
+func executeStart(_ *cobra.Command, _ []string) error {
 	ctx := context.Background()
 	globalCtx, globalCancel := context.WithCancel(ctx)
 
 	// Attempt to read config file.
 	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
+		globalCancel()
 		return fmt.Errorf("failed to read configuration file error: %s", err.Error())
 	}
 
@@ -77,6 +78,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	// Attempt to set configuration.
 	config, err := utils.InstanceConfig.Parse(data)
 	if err != nil {
+		globalCancel()
 		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
 	}
 
@@ -101,6 +103,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 				config.Replication.KeyFile,
 			)
 			if err != nil {
+				globalCancel()
 				return fmt.Errorf("failed to load server certificates for replication:"+
 					" certFile:%v, keyFile:%v, err:%v",
 					config.Replication.CertFile,
@@ -121,7 +124,10 @@ func executeStart(cmd *cobra.Command, args []string) error {
 			config.Replication.MasterHost,
 			config.RootDirectory,
 			config.Replication.TLSEnabled,
-			config.Replication.CertFile)
+			config.Replication.CertFile,
+			config.Replication.RetryInterval,
+			config.Replication.RetryBackoffCoeff,
+		)
 		if err != nil {
 			log.Fatal("Unable to startup Replication", err)
 		}
@@ -191,6 +197,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	if config.GRPCListenURL != "" {
 		grpcLn, err := net.Listen("tcp", config.GRPCListenURL)
 		if err != nil {
+			globalCancel()
 			return fmt.Errorf("failed to start GRPC server - error: %s", err.Error())
 		}
 		go func() {
@@ -268,7 +275,8 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenP
 	return replicationSender
 }
 
-func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string) error {
+func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string,
+	retryInterval time.Duration, retryBackoffCoeff int) error {
 	opts := []grpc.DialOption{
 		// grpc.WithBlock(),
 	}
@@ -295,10 +303,13 @@ func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsE
 
 	replayer := replication.NewReplayer(executor.ParseTGData, executor.WriteCSMInner, rootDir)
 	replicationReceiver := replication.NewReceiver(c, replayer)
-	err = replicationReceiver.Run(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to connect Master instance from Replica")
-	}
+
+	go func() {
+		err = replication.NewRetryer(replicationReceiver.Run, retryInterval, retryBackoffCoeff).Run(ctx)
+		if err != nil {
+			fmt.Printf("failed to connect Master instance from Replica. err=%v\n", err)
+		}
+	}()
 
 	return nil
 }

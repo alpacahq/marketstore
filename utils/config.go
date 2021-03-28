@@ -19,12 +19,14 @@ func init() {
 }
 
 type ReplicationSetting struct {
-	Enabled    bool
-	TLSEnabled bool
-	CertFile   string
-	KeyFile    string
-	ListenPort int
-	MasterHost string
+	Enabled           bool
+	TLSEnabled        bool
+	CertFile          string
+	KeyFile           string
+	ListenPort        int
+	MasterHost        string
+	RetryInterval     time.Duration
+	RetryBackoffCoeff int
 }
 
 type TriggerSetting struct {
@@ -96,8 +98,10 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 				CertFile   string `yaml:"cert_file"`
 				KeyFile    string `yaml:"key_file"`
 				// ListenPort is used for the replication protocol by the master instance
-				ListenPort int    `yaml:"listen_port"`
-				MasterHost string `yaml:"master_host"`
+				ListenPort        int           `yaml:"listen_port"`
+				MasterHost        string        `yaml:"master_host"`
+				RetryInterval     time.Duration `yaml:"retry_interval"`
+				RetryBackoffCoeff int           `yaml:"retry_backoff_coeff"`
 			} `yaml:"replication"`
 			Triggers []struct {
 				Module string                 `yaml:"module"`
@@ -275,6 +279,9 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 		KeyFile:    "",
 		ListenPort: 5996, // default listen port for Replication master
 		MasterHost: "",
+		// default retry intervals are 10s -> 20s -> 40s -> ...
+		RetryInterval:     10 * time.Second,
+		RetryBackoffCoeff: 2,
 	}
 
 	if aux.Replication.ListenPort != 0 {
@@ -294,6 +301,14 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	}
 	if aux.Replication.MasterHost != "" {
 		m.Replication.MasterHost = aux.Replication.MasterHost
+	}
+
+	if aux.Replication.RetryInterval != 0 {
+		m.Replication.RetryInterval = aux.Replication.RetryInterval
+	}
+
+	if aux.Replication.RetryBackoffCoeff != 0 {
+		m.Replication.RetryBackoffCoeff = aux.Replication.RetryBackoffCoeff
 	}
 
 	m.ListenURL = fmt.Sprintf("%v:%v", aux.ListenHost, aux.ListenPort)
