@@ -51,15 +51,13 @@ func toProtoDataType(elemType io.EnumElementType) proto.DataType {
 // GRPCService is the implementation of GRPC API for Marketstore.
 // All grpc/protobuf-related logics and models are defined in this file.
 type GRPCService struct {
-	enableLastKnown            bool
 	rootDir                    string
 	catalogDir                 *catalog.Directory
 }
 
-func NewGRPCService(enableLastKnown bool, rootDir string, catDir *catalog.Directory,
+func NewGRPCService(rootDir string, catDir *catalog.Directory,
 ) *GRPCService {
 	return &GRPCService{
-		enableLastKnown:            enableLastKnown,
 		rootDir:                    rootDir,
 		catalogDir:                 catDir,
 	}
@@ -151,7 +149,6 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				start, end,
 				limitRecordCount, limitFromStart,
 				columns,
-				s.enableLastKnown,
 				s.catalogDir,
 			)
 			if err != nil {

@@ -126,9 +126,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	if err != nil {
 		return time.Time{}
 	}
-	reader, err := executor.NewReader(parsed,
-		utils.InstanceConfig.EnableLastKnown,
-	)
+	reader, err := executor.NewReader(parsed)
 	csm, err := reader.Read()
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {

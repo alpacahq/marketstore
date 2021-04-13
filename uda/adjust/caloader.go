@@ -139,7 +139,7 @@ func (act *Actions) Load(catalogDir *catalog.Directory) error {
 		log.Error("Unable to create parser: %s", err)
 		return err
 	}
-	scanner, err := executor.NewReader(parseResult, false)
+	scanner, err := executor.NewReader(parseResult)
 	if err != nil {
 		log.Error("Unable to create scanner: %s", err)
 		return err

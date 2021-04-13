@@ -15,7 +15,7 @@ import (
 
 func (s *ServerTestSuite) _TestQueryCustomTimeframes(c *C) {
 	//TODO: Support custom timeframes
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 
 	args := &MultiQueryRequest{
@@ -73,7 +73,7 @@ func (s *ServerTestSuite) _TestQueryCustomTimeframes(c *C) {
 }
 
 func (s *ServerTestSuite) TestQuery(c *C) {
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 
 	args := &MultiQueryRequest{
@@ -106,7 +106,7 @@ func (s *ServerTestSuite) TestQuery(c *C) {
 }
 
 func (s *ServerTestSuite) TestQueryFirstN(c *C) {
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 
 	args := &MultiQueryRequest{
@@ -137,7 +137,7 @@ func (s *ServerTestSuite) TestQueryFirstN(c *C) {
 }
 
 func (s *ServerTestSuite) TestQueryRange(c *C) {
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 	{
 		args := &MultiQueryRequest{
@@ -184,7 +184,7 @@ func (s *ServerTestSuite) TestQueryRange(c *C) {
 }
 
 func (s *ServerTestSuite) TestQueryNpyMulti(c *C) {
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 
 	args := &MultiQueryRequest{
@@ -214,7 +214,7 @@ func (s *ServerTestSuite) TestQueryNpyMulti(c *C) {
 }
 
 func (s *ServerTestSuite) TestQueryMulti(c *C) {
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 
 	args := &MultiQueryRequest{
@@ -255,7 +255,7 @@ func (s *ServerTestSuite) TestQueryMulti(c *C) {
 }
 
 func (s *ServerTestSuite) TestListSymbols(c *C) {
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 
 	var response ListSymbolsResponse
@@ -288,7 +288,7 @@ func (s *ServerTestSuite) TestListSymbols(c *C) {
 }
 
 func (s *ServerTestSuite) TestFunctions(c *C) {
-	service := NewDataService(false, s.Rootdir, s.root)
+	service := NewDataService(s.Rootdir, s.root)
 	service.Init()
 
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"

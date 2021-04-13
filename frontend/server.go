@@ -20,17 +20,15 @@ var (
 	argsNilError   = errors.New("Arguments are nil, can not query using nil arguments")
 )
 
-func NewDataService(enableLastKnown bool, rootDir string, catDir *catalog.Directory,
+func NewDataService(rootDir string, catDir *catalog.Directory,
 ) *DataService {
 	return &DataService{
-		enableLastKnown:            enableLastKnown,
 		rootDir:                    rootDir,
 		catalogDir:                 catDir,
 	}
 }
 
 type DataService struct {
-	enableLastKnown            bool
 	rootDir                    string
 	catalogDir                 *catalog.Directory
 }
@@ -48,7 +46,7 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics.RPCTotalRequestDuration.Observe(time.Since(start).Seconds())
 }
 
-func NewServer(enableLastKnown bool, rootDir string, catDir *catalog.Directory,
+func NewServer(rootDir string, catDir *catalog.Directory,
 ) (*RpcServer, *DataService) {
 	s := &RpcServer{
 		Server: rpc.NewServer(),
@@ -58,7 +56,7 @@ func NewServer(enableLastKnown bool, rootDir string, catDir *catalog.Directory,
 	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
 	s.RegisterInterceptFunc(intercept)
 	s.RegisterAfterFunc(after)
-	service := NewDataService(enableLastKnown, rootDir, catDir)
+	service := NewDataService(rootDir, catDir)
 	service.Init()
 	err := s.RegisterService(service, "")
 	if err != nil {

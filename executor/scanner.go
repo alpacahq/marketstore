@@ -9,7 +9,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/executor/readhint"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
@@ -32,7 +31,6 @@ type ioFilePlan struct {
 	// The time that begins each file in seconds since the Unix epoch
 	BaseTime        int64
 	seekingLast     bool
-	enableLastKnown bool
 }
 
 func (iofp *ioFilePlan) GetFileYear() int16 {
@@ -49,7 +47,7 @@ type ioplan struct {
 	TimeQuals         []planner.TimeQualFunc
 }
 
-func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, enableLastKnown bool) (iop *ioplan, err error) {
+func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err error) {
 	iop = &ioplan{
 		FilePlan: make([]*ioFilePlan, 0),
 		Limit:    pr.Limit,
@@ -96,7 +94,6 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, enableLastKnown bool)
 					file.File.Path,
 					fileStartTime.Unix(),
 					false,
-					enableLastKnown,
 				},
 			)
 		} else if file.File.Year <= int16(pr.Range.End.Year()) {
@@ -121,12 +118,6 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, enableLastKnown bool)
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
 			}
-			if lastKnownOffset, ok := readhint.GetLastKnown(enableLastKnown, file.File.Path); ok {
-				hinted := lastKnownOffset + int64(file.File.GetRecordLength())
-				if hinted < endOffset {
-					endOffset = hinted
-				}
-			}
 			length = endOffset - startOffset
 			// Limit the scan to the end of the fixed length data
 			if length > maxLength {
@@ -139,7 +130,6 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, enableLastKnown bool)
 				file.File.Path,
 				fileStartTime.Unix(),
 				false,
-				enableLastKnown,
 			}
 			if iop.Limit.Direction == LAST {
 				fp.seekingLast = true
@@ -158,7 +148,6 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult, enableLastKnown bool)
 						file.File.Path,
 						fileStartTime.Unix(),
 						false,
-						enableLastKnown,
 					},
 				)
 			}
@@ -179,7 +168,7 @@ type Reader struct {
 	fileBuffer                 []byte
 }
 
-func NewReader(pr *planner.ParseResult, enableLastKnown bool) (r *Reader, err error) {
+func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
 	r = new(Reader)
 	r.pr = *pr
 	if pr.Range == nil {
@@ -194,7 +183,7 @@ func NewReader(pr *planner.ParseResult, enableLastKnown bool) (r *Reader, err er
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
-		if r.IOPMap[key], err = NewIOPlan(sfl, pr, enableLastKnown); err != nil {
+		if r.IOPMap[key], err = NewIOPlan(sfl, pr); err != nil {
 			return nil, err
 		}
 		recordLen := r.IOPMap[key].RecordLen
@@ -504,7 +493,6 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 				if fp.seekingLast {
 					if offset, err := f.Seek(0, os.SEEK_CUR); err == nil {
 						offset = offset - nn + int64(i)*recordSize64
-						readhint.SetLastKnown(fp.enableLastKnown, fp.FullPath, offset)
 					}
 					fp.seekingLast = false
 				}
