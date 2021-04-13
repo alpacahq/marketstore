@@ -54,7 +54,6 @@ type MktsConfig struct {
 	WALRotateInterval          int
 	EnableAdd                  bool
 	EnableRemove               bool
-	EnableLastKnown            bool
 	DisableVariableCompression bool
 	InitCatalog                bool
 	InitWALCache               bool
@@ -85,7 +84,6 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 			WALRotateInterval          int    `yaml:"wal_rotate_interval"`
 			EnableAdd                  string `yaml:"enable_add"`
 			EnableRemove               string `yaml:"enable_remove"`
-			EnableLastKnown            string `yaml:"enable_last_known"`
 			DisableVariableCompression string `yaml:"disable_variable_compression"`
 			InitCatalog                string `yaml:"init_catalog"`
 			InitWALCache               string `yaml:"init_wal_cache"`
@@ -212,26 +210,13 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 		}
 	}
 
-	m.EnableLastKnown = false
-	log.Info("Disabling \"enable_last_known\" feature until it is fixed...")
-
 	if aux.DisableVariableCompression != "" {
 		m.DisableVariableCompression, err = strconv.ParseBool(aux.DisableVariableCompression)
 		if err != nil {
 			log.Error("Invalid value for DisableVariableCompression")
 		}
 	}
-	/*
-		// Broken - disable for now
-		if aux.EnableLastKnown != "" {
-			enableLastKnown, err := strconv.ParseBool(aux.EnableLastKnown)
-			if err != nil {
-				log.Error("Invalid value: %v for enable_last_known.  Disabling lastKnown...", aux.EnableLastKnown)
-			} else {
-				m.EnableLastKnown = enableLastKnown
-			}
-		}
-	*/
+
 	m.InitCatalog = true
 	if aux.InitCatalog != "" {
 		m.InitCatalog, err = strconv.ParseBool(aux.InitCatalog)

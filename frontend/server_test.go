@@ -36,6 +36,6 @@ func (s *ServerTestSuite) TearDownSuite(c *C) {
 }
 
 func (s *ServerTestSuite) TestNewServer(c *C) {
-	serv, _ := NewServer(false, s.Rootdir, s.root)
+	serv, _ := NewServer(s.Rootdir, s.root)
 	c.Check(serv.HasMethod("DataService.Query"), Equals, true)
 }

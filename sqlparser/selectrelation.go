@@ -185,7 +185,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 		if err != nil {
 			return nil, err
 		}
-		scanner, err := executor.NewReader(parsed, false)
+		scanner, err := executor.NewReader(parsed)
 		if err != nil {
 			return nil, err
 		}

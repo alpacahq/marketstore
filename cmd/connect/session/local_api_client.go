@@ -29,8 +29,6 @@ type LocalAPIClient struct {
 	dir string
 	// catalogDir is an in-memory cache for directory structure under the /data directory
 	catalogDir *catalog.Directory
-	// enableLastKnown is an optimization to reduce the size of dara reading for query
-	enableLastKnown bool
 }
 
 func (lc *LocalAPIClient) PrintConnectInfo() {
@@ -42,7 +40,7 @@ func (lc *LocalAPIClient) Connect() error {
 }
 
 func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
 	err := ds.Write(nil, reqs, responses)
 	if err != nil {
 		return err
@@ -80,7 +78,7 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 		return
 	}
 
-	scanner, err := executor.NewReader(pr, lc.enableLastKnown)
+	scanner, err := executor.NewReader(pr)
 	if err != nil {
 		log.Error("Error return from query scanner: %v", err)
 		return
@@ -95,17 +93,17 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 }
 
 func (lc *LocalAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
 	return ds.Create(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
 	return ds.Destroy(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error{
-	ds := frontend.NewDataService(lc.enableLastKnown, lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
 	return ds.GetInfo(nil, reqs, responses)
 }
 
