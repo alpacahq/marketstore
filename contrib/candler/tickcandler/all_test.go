@@ -133,7 +133,7 @@ func createTickBucket(symbol, rootDir string, catalogDir *Directory, txnPipe *ex
 	/*
 		Write some data
 	*/
-	w, err := executor.NewWriter(tbinfo, txnPipe, catalogDir)
+	w, err := executor.NewWriter(tbinfo, txnPipe, catalogDir, wf)
 	if err != nil {
 		panic(err)
 	}
