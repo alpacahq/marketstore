@@ -42,6 +42,7 @@ type BgWorkerSetting struct {
 }
 
 type MktsConfig struct {
+	// RootDirectory is the absolute path to the data directory
 	RootDirectory              string
 	ListenURL                  string
 	GRPCListenURL              string
@@ -70,6 +71,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	var (
 		err error
 		aux struct {
+			// RootDirectory can be either a relative or absolute path
 			RootDirectory              string `yaml:"root_directory"`
 			ListenHost                 string `yaml:"listen_host"`
 			ListenPort                 string `yaml:"listen_port"`
@@ -118,12 +120,12 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 		return nil, err
 	}
 
-	rootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
+	absoluteRootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
 	if aux.RootDirectory == "" || err != nil {
 		log.Fatal("Invalid root directory.")
 		return nil, errors.New("Invalid root directory.")
 	}
-	m.RootDirectory = rootDir
+	m.RootDirectory = absoluteRootDir
 
 	if aux.ListenPort == "" {
 		log.Fatal("Invalid listen port.")

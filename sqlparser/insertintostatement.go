@@ -112,7 +112,7 @@ func (is *InsertIntoStatement) Materialize() (outputColumnSeries *io.ColumnSerie
 	if err != nil {
 		return nil, err
 	}
-	writer, err := executor.NewWriter(tbi, tgc, catDir)
+	writer, err := executor.NewWriter(tbi, tgc, catDir, wal)
 	if err != nil {
 		return nil, err
 	}

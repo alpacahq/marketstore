@@ -64,7 +64,7 @@ func (s *TestSuite) SetUpSuite(c *C) {
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
 	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
 	s.DataDirectory = metadata.CatalogDir
-	s.WALFile = executor.ThisInstance.WALFile
+	s.WALFile = metadata.WALFile
 }
 
 func (s *TestSuite) TearDownSuite(c *C) {
@@ -111,7 +111,7 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 	*/
 	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
 	c.Assert(err == nil, Equals, true)
 	row := struct {
 		Epoch                  int64
@@ -163,7 +163,7 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	parsed, _ := q.Parse()
 	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
 	c.Assert(err == nil, Equals, true)
 	row := struct {
 		Epoch    int64
@@ -348,7 +348,7 @@ func (s *TestSuite) TestDelete(c *C) {
 	err := s.DataDirectory.AddTimeBucket(tbk, tbi)
 	c.Assert(err, Equals, nil)
 
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
 	c.Assert(err == nil, Equals, true)
 
 	row := OHLCtest{0, 100., 200., 300., 400.}
@@ -663,7 +663,7 @@ func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
 	pr, _ := q.Parse()
 	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	w, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, s.DataDirectory)
+	w, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, s.DataDirectory, s.WALFile)
 	c.Assert(err, Equals, nil)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
@@ -701,7 +701,7 @@ func (s *TestSuite) TestWriter(c *C) {
 	tbk := NewTimeBucketKey(dataItemKey)
 	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
 	c.Assert(err, IsNil)
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory)
+	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
 	c.Assert(err == nil, Equals, true)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
@@ -737,7 +737,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	}
 	tgc := executor.NewTransactionPipe()
 
-	queryFiles, err := addTGData(s.DataDirectory, tgc, 1000, false)
+	queryFiles, err := addTGData(s.DataDirectory, tgc, s.WALFile, 1000, false)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -761,7 +761,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, true)
 
 	// Add some mixed up data to the cache
-	queryFiles, err = addTGData(s.DataDirectory, tgc, 200, true)
+	queryFiles, err = addTGData(s.DataDirectory, tgc, s.WALFile, 200, true)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -792,7 +792,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	tgc := executor.NewTransactionPipe()
 
 	// Add some mixed up data to the cache
-	_, err = addTGData(s.DataDirectory, tgc, 1000, true)
+	_, err = addTGData(s.DataDirectory, tgc, s.WALFile, 1000, true)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -872,7 +872,7 @@ func (s *DestructiveWALTest2) TestWALReplay(c *C) {
 	// Add some mixed up data to the cache
 	tgc := executor.NewTransactionPipe()
 
-	allQueryFiles, err := addTGData(s.DataDirectory, tgc, 1000, true)
+	allQueryFiles, err := addTGData(s.DataDirectory, tgc, s.WALFile, 1000, true)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -1098,7 +1098,8 @@ func isEqual(left, right *ColumnSeries) bool {
 	return true
 }
 
-func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup bool) (queryFiles []string, err error) {
+func addTGData(root *Directory, tgc *executor.TransactionPipe, walFile *executor.WALFileType, number int, mixup bool,
+) (queryFiles []string, err error) {
 	// Create some data via a query
 	symbols := []string{"NZDUSD", "USDJPY", "EURUSD"}
 	tbiByKey := make(map[TimeBucketKey]*TimeBucketInfo, 0)
@@ -1130,7 +1131,7 @@ func addTGData(root *Directory, tgc *executor.TransactionPipe, number int, mixup
 			csm[key] = cs
 			tbi, err := root.GetLatestTimeBucketInfoFromKey(&key)
 			tbiByKey[key] = tbi
-			writerByKey[key], err = executor.NewWriter(tbi, tgc, root)
+			writerByKey[key], err = executor.NewWriter(tbi, tgc, root, walFile)
 			if err != nil {
 				fmt.Printf("Failed to create a new writer")
 				return nil, err

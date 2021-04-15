@@ -27,14 +27,15 @@ type Writer struct {
 	tbi  *io.TimeBucketInfo
 }
 
-func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog.Directory) (*Writer, error) {
+func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog.Directory, walFile *WALFileType,
+) (*Writer, error) {
 	/*
 		A writer is produced that complies with the parsed query results, including a possible date
 		range restriction.  If there is a date range restriction, the write() routine should produce
 		an error when an out-of-bounds write is tried.
 	*/
 	// Check to ensure there is a valid WALFile for this instance before writing
-	if ThisInstance.WALFile == nil {
+	if walFile == nil {
 		err := fmt.Errorf("there is not an active WALFile for this instance, so cannot write")
 		log.Error("NewWriter: %v", err)
 		return nil, err
@@ -365,7 +366,7 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Create a writer for this TimeBucket
 		*/
-		w, err := NewWriter(tbi, ThisInstance.TXNPipe, cDir)
+		w, err := NewWriter(tbi, ThisInstance.TXNPipe, cDir, ThisInstance.WALFile)
 		if err != nil {
 			return err
 		}
