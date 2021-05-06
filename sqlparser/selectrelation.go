@@ -32,6 +32,19 @@ func NewSelectRelation(catalogDir *catalog.Directory) (sr *SelectRelation) {
 	}}
 }
 
+func isNanosec(epoch int64) bool {
+	const threshold = 32503680000 // epoch second for "3000-01-01 00:00:00"
+	// too big value for an epoch second, assume it as an epoch nanosecond
+	return epoch > threshold
+}
+
+func convertUnitToNanosec(epoch int64) int64 {
+	if isNanosec(epoch) {
+		return epoch
+	}
+	return epoch * 1000000000
+}
+
 func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, err error) {
 	// Call Materialize on any child relations
 	//	fmt.Println("In SelectRelation Materialize")
@@ -145,7 +158,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if sp.ContentsEnum.IsSet(INCLUSIVEMIN) {
 					val += 1
 				}
-				q.SetStart(time.Unix(val, 0))
+				q.SetStart(time.Unix(val/1000000000, val%1000000000))
 			}
 			if sp.ContentsEnum.IsSet(MAXBOUND) {
 				val, err := io.GetValueAsInt64(sp.max)
@@ -155,7 +168,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
 					val -= 1
 				}
-				q.SetEnd(time.Unix(val, 0))
+				q.SetEnd(time.Unix(val/1000000000, val%1000000000))
 			}
 		}
 
@@ -360,9 +373,30 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 						}
 					}
 				case []int64:
+					// Epoch is second (e.g. 1620027224),
+					// but "Nanoseconds" column values should be considered in case of variable-length record.
+					//
+					// Note that max/min values for Epoch column in SQL is managed in nanoseconds precision
+					// when specified by a datetime string (e.g. "2021-01-02-03:04:05.123456")
+					var nanosecs []int32
+					if name == "Epoch" {
+						nanosecCol := outputColumnSeries.GetColumn("Nanoseconds")
+						if nanosecCol != nil {
+							nanosecs, ok = nanosecCol.([]int32)
+						}
+					}
+
 					if sp.ContentsEnum.IsSet(EQUALITY) {
 						eqval, _ := io.GetValueAsInt64(sp.equal)
 						for i, val := range col {
+							// need to consider "Nanoseconds" column value
+							if name == "Epoch" {
+								eqval = convertUnitToNanosec(eqval)
+								val = convertUnitToNanosec(val)
+							}
+							if nanosecs != nil {
+								val = val + int64(nanosecs[i])
+							}
 							if val != eqval {
 								removalBitmap[i] = true // remove
 							}
@@ -371,6 +405,15 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 					if sp.ContentsEnum.IsSet(MINBOUND) {
 						minval, _ := io.GetValueAsInt64(sp.min)
 						for i, val := range col {
+							// need to consider "Nanoseconds" column value
+							if name == "Epoch" {
+								minval = convertUnitToNanosec(minval)
+								val = convertUnitToNanosec(val)
+							}
+							if nanosecs != nil {
+								val = val + int64(nanosecs[i])
+							}
+
 							if sp.ContentsEnum.IsSet(INCLUSIVEMIN) {
 								if val < minval {
 									removalBitmap[i] = true // remove
@@ -385,6 +428,15 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 					if sp.ContentsEnum.IsSet(MAXBOUND) {
 						maxval, _ := io.GetValueAsInt64(sp.max)
 						for i, val := range col {
+							// need to consider "Nanoseconds" column value
+							if name == "Epoch" {
+								maxval = convertUnitToNanosec(maxval)
+								val = convertUnitToNanosec(val)
+							}
+							if nanosecs != nil {
+								val = val + int64(nanosecs[i])
+							}
+
 							if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
 								if val > maxval {
 									removalBitmap[i] = true // remove

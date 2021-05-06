@@ -657,6 +657,9 @@ func CoerceToNumeric(literal *Literal) (err error) {
 		// Strip off the single quotes
 		value = value[1 : len(value)-1]
 		formats := []string{
+			// the fractional second is of the specified width. Please always include the trailing zeros.
+			// ref: https://golang.org/pkg/time/#example_Time_Format
+			"2006-01-02-15:04:05.00000000",
 			"2006-01-02-15:04:05 MST",
 			"2006-01-02-15:04:05",
 			"2006-01-02-15:04",
@@ -674,7 +677,7 @@ func CoerceToNumeric(literal *Literal) (err error) {
 			return fmt.Errorf("Unable to convert string to date: %s",
 				value)
 		}
-		literal.Value = t.Unix()
+		literal.Value = t.UnixNano()
 		literal.Type = INTEGER_LITERAL
 	case NULL_LITERAL:
 		return fmt.Errorf("Unable to convert NULL to a numeric")

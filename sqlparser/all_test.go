@@ -113,6 +113,19 @@ func (s *TestSuite) TestVisitor(c *C) {
 	result := v.Visit(ast.Mtree)
 	fmt.Println("Result: ", result)
 }
+
+func (s *TestSuite) executeQuery(c *C, stmt string) *io.ColumnSeries{
+	ast, err := NewAstBuilder(stmt)
+	evalAndPrint(c, err, false, stmt)
+	//PrintExplain(ast.Mtree, stmt)
+	es, err := NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	evalAndPrint(c, err, false, stmt)
+	cs, err := es.Materialize()
+	evalAndPrint(c, err, false, stmt)
+
+	return cs
+}
+
 func (s *TestSuite) TestExecutableStatement(c *C) {
 
 	stmt := "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
@@ -188,10 +201,8 @@ func (s *TestSuite) TestExecutableStatement(c *C) {
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
-	count := cs.GetColumn("Count").([]int64)
-	fmt.Println("Count = ", count)
 	c.Assert(err == nil, Equals, true)
-	c.Assert(count[0] == int64(0), Equals, true)
+	c.Assert(cs.Len()==0, Equals, true)
 }
 func (s *TestSuite) TestStatementErrors(c *C) {
 	stmt := "select * from `fooble`;"
@@ -225,7 +236,7 @@ func (s *TestSuite) TestAggregation(c *C) {
 		fmt.Printf("%v\t%v\n", t, one[i])
 	}
 
-	agg := AggRegistry["blargle"]
+	agg := AggRegistry["blargle"] // aggregator not found
 	c.Assert(agg == nil, Equals, true)
 
 	agg = AggRegistry["TickCandler"]
