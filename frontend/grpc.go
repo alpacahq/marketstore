@@ -70,11 +70,11 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 	for _, req := range reqs.Requests {
 		switch req.IsSqlStatement {
 		case true:
-			ast, err := sqlparser.NewAstBuilder(req.SqlStatement)
+			queryTree, err := sqlparser.BuildQueryTree(req.SqlStatement)
 			if err != nil {
 				return nil, err
 			}
-			es, err := sqlparser.NewExecutableStatement(s.catalogDir, ast.Mtree)
+			es, err := sqlparser.NewExecutableStatement(s.catalogDir, queryTree)
 			if err != nil {
 				return nil, err
 			}

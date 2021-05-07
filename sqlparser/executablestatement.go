@@ -11,11 +11,10 @@ import (
 )
 
 type ExecutableStatement struct {
-	QueryTree
+	MSTree
 	BaseSQLQueryTreeVisitor
 	nodeCursor                 *ExecutableStatement
 	pendingSP                  *StaticPredicate
-	IsExplain                  bool
 	CatalogDirectory           *catalog.Directory
 }
 

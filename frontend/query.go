@@ -116,11 +116,11 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 }
 
 func (s *DataService) executeSQL(sqlStatement string) (*QueryResponse, error) {
-	ast, err := sqlparser.NewAstBuilder(sqlStatement)
+	queryTree, err := sqlparser.BuildQueryTree(sqlStatement)
 	if err != nil {
 		return nil, err
 	}
-	es, err := sqlparser.NewExecutableStatement(s.catalogDir, ast.Mtree)
+	es, err := sqlparser.NewExecutableStatement(s.catalogDir, queryTree)
 	if err != nil {
 		return nil, err
 	}

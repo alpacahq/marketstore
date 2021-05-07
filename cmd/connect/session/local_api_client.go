@@ -108,11 +108,11 @@ func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, response
 }
 
 func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error){
-	ast, err := sqlparser.NewAstBuilder(line)
+	queryTree, err := sqlparser.BuildQueryTree(line)
 	if err != nil {
 		return nil, err
 	}
-	es, err := sqlparser.NewExecutableStatement(lc.catalogDir, ast.Mtree)
+	es, err := sqlparser.NewExecutableStatement(lc.catalogDir, queryTree)
 	if err != nil {
 		return nil, err
 	}
