@@ -60,28 +60,28 @@ func (s *TestSuite) TestSQLSelectParse(c *C) {
 
 func (s *TestSuite) TestSQLSelect(c *C) {
 	stmt := "SELECT dibble JOIN;" // Should err out
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, true, stmt)
 
 	stmt = "SELECT Epoch, Open, High, Low, Close from `EURUSD/1Min/OHLC` WHERE Epoch BETWEEN '2000-01-01' AND '2002-01-01';"
 	//stmt = "SELECT Epoch, Open, High, Low, Close from `EURUSD/1Min/OHLC` WHERE Epoch BETWEEN '2016-01-01' AND '2017-01-01';"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
+	T_PrintExplain(queryTree, stmt)
 
 	/*
 		stmt = "INSERT INTO `AAPL/1Min/OHLC` SELECT tickcandler(a,b,c) FROM `UVXY/1Min/TICKS`;"
-		ast, err = NewAstBuilder(stmt)
+		queryTree, err = BuildQueryTree(stmt)
 		evalAndPrint(c, err, false, stmt)
-		PrintExplain(ast.Mtree, stmt)
+		PrintExplain(queryTree, stmt)
 
 		stmt = "CREATE VIEW candle5Min AS SELECT tickcandler(a,b,c) FROM `UVXY/1Min/TICKS`;"
-		ast, err = NewAstBuilder(stmt)
+		queryTree, err = BuildQueryTree(stmt)
 		evalAndPrint(c, err, false, stmt)
-		PrintExplain(ast.Mtree, stmt)
+		PrintExplain(queryTree, stmt)
 	*/
 
-	_ = ast
+	_ = queryTree
 }
 
 type Visitor struct {
@@ -106,19 +106,19 @@ func (this *Visitor) VisitStatementParse(ctx *StatementParse) interface{} {
 
 func (s *TestSuite) TestVisitor(c *C) {
 	stmt := "INSERT INTO `AAPL/1Min/OHLC` SELECT tickcandler(a,b,c) FROM `UVXY/1Min/TICKS`;"
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
+	T_PrintExplain(queryTree, stmt)
 	v := NewVisitor()
-	result := v.Visit(ast.Mtree)
+	result := v.Visit(queryTree)
 	fmt.Println("Result: ", result)
 }
 
 func (s *TestSuite) executeQuery(c *C, stmt string) *io.ColumnSeries{
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	//PrintExplain(ast.Mtree, stmt)
-	es, err := NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	//PrintExplain(queryTree, stmt)
+	es, err := NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err := es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -129,19 +129,19 @@ func (s *TestSuite) executeQuery(c *C, stmt string) *io.ColumnSeries{
 func (s *TestSuite) TestExecutableStatement(c *C) {
 
 	stmt := "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	//PrintExplain(ast.Mtree, stmt)
-	es, err := NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	//PrintExplain(queryTree, stmt)
+	es, err := NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err := es.Materialize()
 	evalAndPrint(c, err, false, stmt)
 	c.Assert(cs.Len(), Equals, 29)
 
 	stmt = "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Epoch > '2000-01-05-12:30' AND Epoch < '2000-01-05-13:00';"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -149,9 +149,9 @@ func (s *TestSuite) TestExecutableStatement(c *C) {
 
 	// Impossible predicate, should return 0 results successfully
 	stmt = "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Epoch < '2000-01-05-12:30' AND Epoch > '2000-01-05-13:00';"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -160,10 +160,10 @@ func (s *TestSuite) TestExecutableStatement(c *C) {
 
 	// Nested predicate
 	stmt = "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Open > 10.234 AND (Epoch > '2000-01-05-12:30' AND Epoch < '2000-01-05-13:00');"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	//PrintExplain(ast.Mtree, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	//PrintExplain(queryTree, stmt)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -172,10 +172,10 @@ func (s *TestSuite) TestExecutableStatement(c *C) {
 
 	// SELECT *
 	stmt = "SELECT * from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	//PrintExplain(ast.Mtree, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	//PrintExplain(queryTree, stmt)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -183,10 +183,10 @@ func (s *TestSuite) TestExecutableStatement(c *C) {
 	c.Assert(err == nil, Equals, true)
 
 	stmt = "INSERT INTO `AAPL/5Min/OHLCV` SELECT * from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	T_PrintExplain(queryTree, stmt)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -194,10 +194,10 @@ func (s *TestSuite) TestExecutableStatement(c *C) {
 	c.Assert(err == nil, Equals, true)
 
 	stmt = "select count(*) from `AAPL/1Min/OHLCV` where Epoch < 946684800;" // Should return 0 rows
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	T_PrintExplain(queryTree, stmt)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -206,9 +206,9 @@ func (s *TestSuite) TestExecutableStatement(c *C) {
 }
 func (s *TestSuite) TestStatementErrors(c *C) {
 	stmt := "select * from `fooble`;"
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	es, err := NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	es, err := NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err := es.Materialize()
 	evalAndPrint(c, err, true, stmt)
@@ -216,10 +216,10 @@ func (s *TestSuite) TestStatementErrors(c *C) {
 }
 func (s *TestSuite) TestInsertInto(c *C) {
 	stmt := "INSERT INTO `AAPL/5Min/OHLCV` SELECT * from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	//PrintExplain(ast.Mtree, stmt)
-	es, err := NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	//PrintExplain(queryTree, stmt)
+	es, err := NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err := es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -267,20 +267,20 @@ func (s *TestSuite) TestAggregation(c *C) {
 	c.Assert(reflect.DeepEqual(r_close, []float32{3, 5}), Equals, true)
 
 	stmt := "SELECT TickCandler('1Min', Open)  from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
-	es, err := NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	T_PrintExplain(queryTree, stmt)
+	es, err := NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
 	c.Assert(cs.Len(), Equals, 29)
 
 	stmt = "SELECT TickCandler('5Min', Open)  from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	T_PrintExplain(queryTree, stmt)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -302,10 +302,10 @@ func (s *TestSuite) TestCount(c *C) {
 	//stmt := "SELECT count(*) from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
 	//stmt := "SELECT count(*) from (select tickcandler('1Min',Open) `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00');"
 	stmt := "SELECT count(*) from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	ast, err := NewAstBuilder(stmt)
+	queryTree, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
-	es, err := NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	T_PrintExplain(queryTree, stmt)
+	es, err := NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -316,10 +316,10 @@ func (s *TestSuite) TestCount(c *C) {
 		Subselect
 	*/
 	stmt = "SELECT count(*) from (select * from `AAPL/1Min/OHLCV`);"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	T_PrintExplain(queryTree, stmt)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -327,10 +327,10 @@ func (s *TestSuite) TestCount(c *C) {
 	c.Assert(count[0], Equals, int64(1578240))
 
 	stmt = "SELECT count(*) from (SELECT count(*) from (select * from `AAPL/1Min/OHLCV`));"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	T_PrintExplain(ast.Mtree, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	T_PrintExplain(queryTree, stmt)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, false, stmt)
@@ -341,9 +341,9 @@ func (s *TestSuite) TestCount(c *C) {
 		Subquery error handling
 	*/
 	stmt = "SELECT count(*) from (select tickcandler('1Min',Open) `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00');"
-	ast, err = NewAstBuilder(stmt)
+	queryTree, err = BuildQueryTree(stmt)
 	evalAndPrint(c, err, false, stmt)
-	es, err = NewExecutableStatement(s.DataDirectory, ast.Mtree)
+	es, err = NewExecutableStatement(s.DataDirectory, queryTree)
 	evalAndPrint(c, err, false, stmt)
 	cs, err = es.Materialize()
 	evalAndPrint(c, err, true, stmt)
@@ -556,7 +556,7 @@ func evalAndPrint(c *C, err error, shouldErr bool, msg ...string) {
 	c.Assert(err != nil, Equals, shouldErr)
 }
 func parseAndPrintError(stmt string, shouldErr bool, c *C) {
-	_, err := NewAstBuilder(stmt)
+	_, err := BuildQueryTree(stmt)
 	evalAndPrint(c, err, shouldErr, stmt)
 }
 

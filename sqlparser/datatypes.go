@@ -9,11 +9,6 @@ type Relation interface {
 	Materialize() (cs *io.ColumnSeries, err error)
 }
 
-type QueryTree struct {
-	Relation
-	MSTree
-}
-
 /*
 Utility Functions
 */

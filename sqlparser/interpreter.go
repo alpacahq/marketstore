@@ -7,21 +7,10 @@ import (
 	. "github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
-type AstBuilder struct {
-	BaseSQLBaseListener
 
-	statementSource string
-
-	QTRoot, QTCurrent *QueryTree
-	numberOfRelations int
-
-	Mtree IMSTree // The query tree, built from the parse tree
-}
-
-func NewAstBuilder(sourceString string) (ast *AstBuilder, err error) {
-	ast = &AstBuilder{statementSource: sourceString}
-
-	input := NewInputStream(ast.statementSource)
+// BuildQueryTree returns the query tree built from the parse tree
+func BuildQueryTree(sourceString string) (tree IMSTree, err error) {
+	input := NewInputStream(sourceString)
 	lexer := NewSQLBaseLexer(input)
 	lexErr := new(DescriptiveErrorListener)
 	lexer.RemoveErrorListeners()
@@ -42,15 +31,15 @@ func NewAstBuilder(sourceString string) (ast *AstBuilder, err error) {
 	//	fmt.Println(ast.statementSource)
 	//	fmt.Println(parser.Statements().ToStringTree([]string{"\n"}, parser))
 
-	ast.Mtree = NewStatementsParse(parser.Statements(), sourceString)
-	if ast.Mtree == nil {
+	tree = NewStatementsParse(parser.Statements(), sourceString)
+	if tree == nil {
 		return nil, fmt.Errorf("Unable to create query tree from parse tree")
 	}
 	if parseErr.err != nil {
 		fmt.Println(parseErr.err.Error())
 		return nil, parseErr.err
 	}
-	return ast, nil
+	return tree, nil
 }
 
 /*
