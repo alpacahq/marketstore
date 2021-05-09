@@ -24,54 +24,6 @@ func (this *QueryParse) Accept(visitor IMSTreeVisitor) interface{} {
 		return t.VisitChildren(this)
 	}
 }
-func (this *WithParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitWithParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *TableElementParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitTableElementParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *ColumnDefinitionParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitColumnDefinitionParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *LikeClauseParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitLikeClauseParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *TablePropertiesParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitTablePropertiesParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *TablePropertyParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitTablePropertyParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
 func (this *QueryNoWithParse) Accept(visitor IMSTreeVisitor) interface{} {
 	switch t := visitor.(type) {
 	case ISQLQueryTreeVisitor:
@@ -140,14 +92,6 @@ func (this *GroupingSetParse) Accept(visitor IMSTreeVisitor) interface{} {
 	switch t := visitor.(type) {
 	case ISQLQueryTreeVisitor:
 		return t.VisitGroupingSetParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *NamedQueryParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitNamedQueryParse(this)
 	default:
 		return t.VisitChildren(this)
 	}
@@ -440,22 +384,6 @@ func (this *TimeZoneSpecifierParse) Accept(visitor IMSTreeVisitor) interface{} {
 		return t.VisitChildren(this)
 	}
 }
-func (this *ComparisonOperatorParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitComparisonOperatorParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *ComparisonQuantifierParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitComparisonQuantifierParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
 func (this *IntervalParse) Accept(visitor IMSTreeVisitor) interface{} {
 	switch t := visitor.(type) {
 	case ISQLQueryTreeVisitor:
@@ -536,46 +464,6 @@ func (this *FrameBoundParse) Accept(visitor IMSTreeVisitor) interface{} {
 		return t.VisitChildren(this)
 	}
 }
-func (this *ExplainOptionParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitExplainOptionParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *TransactionModeParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitTransactionModeParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *LevelOfIsolationParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitLevelOfIsolationParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *CallArgParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitCallArgParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
-func (this *PrivilegeParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitPrivilegeParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
 func (this *QualifiedNameParse) Accept(visitor IMSTreeVisitor) interface{} {
 	switch t := visitor.(type) {
 	case ISQLQueryTreeVisitor:
@@ -592,26 +480,12 @@ func (this *IDParse) Accept(visitor IMSTreeVisitor) interface{} {
 		return t.VisitChildren(this)
 	}
 }
-func (this *NonReservedParse) Accept(visitor IMSTreeVisitor) interface{} {
-	switch t := visitor.(type) {
-	case ISQLQueryTreeVisitor:
-		return t.VisitNonReservedParse(this)
-	default:
-		return t.VisitChildren(this)
-	}
-}
 
 type ISQLQueryTreeVisitor interface {
 	IMSTreeVisitor
 	VisitStatementsParse(ctx *StatementsParse) interface{}
 	VisitStatementParse(ctx *StatementParse) interface{}
 	VisitQueryParse(ctx *QueryParse) interface{}
-	VisitWithParse(ctx *WithParse) interface{}
-	VisitTableElementParse(ctx *TableElementParse) interface{}
-	VisitColumnDefinitionParse(ctx *ColumnDefinitionParse) interface{}
-	VisitLikeClauseParse(ctx *LikeClauseParse) interface{}
-	VisitTablePropertiesParse(ctx *TablePropertiesParse) interface{}
-	VisitTablePropertyParse(ctx *TablePropertyParse) interface{}
 	VisitQueryNoWithParse(ctx *QueryNoWithParse) interface{}
 	VisitQueryTermParse(ctx *QueryTermParse) interface{}
 	VisitQueryPrimaryParse(ctx *QueryPrimaryParse) interface{}
@@ -621,7 +495,6 @@ type ISQLQueryTreeVisitor interface {
 	VisitGroupingElementParse(ctx *GroupingElementParse) interface{}
 	VisitGroupingExpressionsParse(ctx *GroupingExpressionsParse) interface{}
 	VisitGroupingSetParse(ctx *GroupingSetParse) interface{}
-	VisitNamedQueryParse(ctx *NamedQueryParse) interface{}
 	VisitSelectItemParse(ctx *SelectItemParse) interface{}
 	VisitRelationParse(ctx *RelationParse) interface{}
 	VisitJoinCriteriaParse(ctx *JoinCriteriaParse) interface{}
@@ -658,8 +531,6 @@ type ISQLQueryTreeVisitor interface {
 	VisitNormalizeParse(ctx *NormalizeParse) interface{}
 	VisitExtractParse(ctx *ExtractParse) interface{}
 	VisitTimeZoneSpecifierParse(ctx *TimeZoneSpecifierParse) interface{}
-	VisitComparisonOperatorParse(ctx *ComparisonOperatorParse) interface{}
-	VisitComparisonQuantifierParse(ctx *ComparisonQuantifierParse) interface{}
 	VisitIntervalParse(ctx *IntervalParse) interface{}
 	VisitIntervalFieldParse(ctx *IntervalFieldParse) interface{}
 	VisitTypeTParse(ctx *TypeTParse) interface{}
@@ -670,14 +541,8 @@ type ISQLQueryTreeVisitor interface {
 	VisitOverParse(ctx *OverParse) interface{}
 	VisitWindowFrameParse(ctx *WindowFrameParse) interface{}
 	VisitFrameBoundParse(ctx *FrameBoundParse) interface{}
-	VisitExplainOptionParse(ctx *ExplainOptionParse) interface{}
-	VisitTransactionModeParse(ctx *TransactionModeParse) interface{}
-	VisitLevelOfIsolationParse(ctx *LevelOfIsolationParse) interface{}
-	VisitCallArgParse(ctx *CallArgParse) interface{}
-	VisitPrivilegeParse(ctx *PrivilegeParse) interface{}
 	VisitQualifiedNameParse(ctx *QualifiedNameParse) interface{}
 	VisitIDParse(ctx *IDParse) interface{}
-	VisitNonReservedParse(ctx *NonReservedParse) interface{}
 }
 
 type BaseSQLQueryTreeVisitor struct {
@@ -709,24 +574,6 @@ func (this *BaseSQLQueryTreeVisitor) VisitStatementParse(ctx *StatementParse) in
 func (this *BaseSQLQueryTreeVisitor) VisitQueryParse(ctx *QueryParse) interface{} {
 	return this.VisitChildren(ctx)
 }
-func (this *BaseSQLQueryTreeVisitor) VisitWithParse(ctx *WithParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitTableElementParse(ctx *TableElementParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitColumnDefinitionParse(ctx *ColumnDefinitionParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitLikeClauseParse(ctx *LikeClauseParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitTablePropertiesParse(ctx *TablePropertiesParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitTablePropertyParse(ctx *TablePropertyParse) interface{} {
-	return this.VisitChildren(ctx)
-}
 func (this *BaseSQLQueryTreeVisitor) VisitQueryNoWithParse(ctx *QueryNoWithParse) interface{} {
 	return this.VisitChildren(ctx)
 }
@@ -752,9 +599,6 @@ func (this *BaseSQLQueryTreeVisitor) VisitGroupingExpressionsParse(ctx *Grouping
 	return this.VisitChildren(ctx)
 }
 func (this *BaseSQLQueryTreeVisitor) VisitGroupingSetParse(ctx *GroupingSetParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitNamedQueryParse(ctx *NamedQueryParse) interface{} {
 	return this.VisitChildren(ctx)
 }
 func (this *BaseSQLQueryTreeVisitor) VisitSelectItemParse(ctx *SelectItemParse) interface{} {
@@ -865,12 +709,6 @@ func (this *BaseSQLQueryTreeVisitor) VisitExtractParse(ctx *ExtractParse) interf
 func (this *BaseSQLQueryTreeVisitor) VisitTimeZoneSpecifierParse(ctx *TimeZoneSpecifierParse) interface{} {
 	return this.VisitChildren(ctx)
 }
-func (this *BaseSQLQueryTreeVisitor) VisitComparisonOperatorParse(ctx *ComparisonOperatorParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitComparisonQuantifierParse(ctx *ComparisonQuantifierParse) interface{} {
-	return this.VisitChildren(ctx)
-}
 func (this *BaseSQLQueryTreeVisitor) VisitIntervalParse(ctx *IntervalParse) interface{} {
 	return this.VisitChildren(ctx)
 }
@@ -901,27 +739,9 @@ func (this *BaseSQLQueryTreeVisitor) VisitWindowFrameParse(ctx *WindowFrameParse
 func (this *BaseSQLQueryTreeVisitor) VisitFrameBoundParse(ctx *FrameBoundParse) interface{} {
 	return this.VisitChildren(ctx)
 }
-func (this *BaseSQLQueryTreeVisitor) VisitExplainOptionParse(ctx *ExplainOptionParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitTransactionModeParse(ctx *TransactionModeParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitLevelOfIsolationParse(ctx *LevelOfIsolationParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitCallArgParse(ctx *CallArgParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitPrivilegeParse(ctx *PrivilegeParse) interface{} {
-	return this.VisitChildren(ctx)
-}
 func (this *BaseSQLQueryTreeVisitor) VisitQualifiedNameParse(ctx *QualifiedNameParse) interface{} {
 	return this.VisitChildren(ctx)
 }
 func (this *BaseSQLQueryTreeVisitor) VisitIDParse(ctx *IDParse) interface{} {
-	return this.VisitChildren(ctx)
-}
-func (this *BaseSQLQueryTreeVisitor) VisitNonReservedParse(ctx *NonReservedParse) interface{} {
 	return this.VisitChildren(ctx)
 }

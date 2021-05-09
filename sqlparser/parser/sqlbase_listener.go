@@ -1,4 +1,4 @@
-// Generated from parser/SQLBase.g4 by ANTLR 4.6.
+// Code generated from parser/SQLBase.g4 by ANTLR 4.9.2. DO NOT EDIT.
 
 package parser // SQLBase
 
@@ -14,125 +14,17 @@ type SQLBaseListener interface {
 	// EnterStatementDefault is called when entering the statementDefault production.
 	EnterStatementDefault(c *StatementDefaultContext)
 
-	// EnterCreateTable is called when entering the createTable production.
-	EnterCreateTable(c *CreateTableContext)
-
-	// EnterCreateTableAsSelect is called when entering the createTableAsSelect production.
-	EnterCreateTableAsSelect(c *CreateTableAsSelectContext)
-
-	// EnterDropTable is called when entering the dropTable production.
-	EnterDropTable(c *DropTableContext)
-
 	// EnterInsertInto is called when entering the insertInto production.
 	EnterInsertInto(c *InsertIntoContext)
 
-	// EnterDelete is called when entering the delete production.
-	EnterDelete(c *DeleteContext)
-
-	// EnterRenameTable is called when entering the renameTable production.
-	EnterRenameTable(c *RenameTableContext)
-
-	// EnterRenameColumn is called when entering the renameColumn production.
-	EnterRenameColumn(c *RenameColumnContext)
-
-	// EnterAddColumn is called when entering the addColumn production.
-	EnterAddColumn(c *AddColumnContext)
-
-	// EnterCreateView is called when entering the createView production.
-	EnterCreateView(c *CreateViewContext)
-
-	// EnterDropView is called when entering the dropView production.
-	EnterDropView(c *DropViewContext)
-
-	// EnterCall is called when entering the call production.
-	EnterCall(c *CallContext)
-
-	// EnterGrant is called when entering the grant production.
-	EnterGrant(c *GrantContext)
-
-	// EnterRevoke is called when entering the revoke production.
-	EnterRevoke(c *RevokeContext)
-
 	// EnterExplain is called when entering the explain production.
 	EnterExplain(c *ExplainContext)
-
-	// EnterShowCreateTable is called when entering the showCreateTable production.
-	EnterShowCreateTable(c *ShowCreateTableContext)
-
-	// EnterShowCreateView is called when entering the showCreateView production.
-	EnterShowCreateView(c *ShowCreateViewContext)
-
-	// EnterShowTables is called when entering the showTables production.
-	EnterShowTables(c *ShowTablesContext)
-
-	// EnterShowSchemas is called when entering the showSchemas production.
-	EnterShowSchemas(c *ShowSchemasContext)
-
-	// EnterShowCatalogs is called when entering the showCatalogs production.
-	EnterShowCatalogs(c *ShowCatalogsContext)
-
-	// EnterShowColumns is called when entering the showColumns production.
-	EnterShowColumns(c *ShowColumnsContext)
-
-	// EnterShowFunctions is called when entering the showFunctions production.
-	EnterShowFunctions(c *ShowFunctionsContext)
-
-	// EnterShowSession is called when entering the showSession production.
-	EnterShowSession(c *ShowSessionContext)
-
-	// EnterSetSession is called when entering the setSession production.
-	EnterSetSession(c *SetSessionContext)
-
-	// EnterResetSession is called when entering the resetSession production.
-	EnterResetSession(c *ResetSessionContext)
-
-	// EnterStartTransaction is called when entering the startTransaction production.
-	EnterStartTransaction(c *StartTransactionContext)
-
-	// EnterCommit is called when entering the commit production.
-	EnterCommit(c *CommitContext)
-
-	// EnterRollback is called when entering the rollback production.
-	EnterRollback(c *RollbackContext)
-
-	// EnterShowPartitions is called when entering the showPartitions production.
-	EnterShowPartitions(c *ShowPartitionsContext)
-
-	// EnterPrepare is called when entering the prepare production.
-	EnterPrepare(c *PrepareContext)
-
-	// EnterDeallocate is called when entering the deallocate production.
-	EnterDeallocate(c *DeallocateContext)
-
-	// EnterExecute is called when entering the execute production.
-	EnterExecute(c *ExecuteContext)
-
-	// EnterDescribeInput is called when entering the describeInput production.
-	EnterDescribeInput(c *DescribeInputContext)
-
-	// EnterDescribeOutput is called when entering the describeOutput production.
-	EnterDescribeOutput(c *DescribeOutputContext)
 
 	// EnterQuery is called when entering the query production.
 	EnterQuery(c *QueryContext)
 
 	// EnterWith is called when entering the with production.
 	EnterWith(c *WithContext)
-
-	// EnterTableElement is called when entering the tableElement production.
-	EnterTableElement(c *TableElementContext)
-
-	// EnterColumnDefinition is called when entering the columnDefinition production.
-	EnterColumnDefinition(c *ColumnDefinitionContext)
-
-	// EnterLikeClause is called when entering the likeClause production.
-	EnterLikeClause(c *LikeClauseContext)
-
-	// EnterTableProperties is called when entering the tableProperties production.
-	EnterTableProperties(c *TablePropertiesContext)
-
-	// EnterTableProperty is called when entering the tableProperty production.
-	EnterTableProperty(c *TablePropertyContext)
 
 	// EnterQueryNoWith is called when entering the queryNoWith production.
 	EnterQueryNoWith(c *QueryNoWithContext)
@@ -422,33 +314,6 @@ type SQLBaseListener interface {
 	// EnterExplainType is called when entering the explainType production.
 	EnterExplainType(c *ExplainTypeContext)
 
-	// EnterIsolationLevel is called when entering the isolationLevel production.
-	EnterIsolationLevel(c *IsolationLevelContext)
-
-	// EnterTransactionAccessMode is called when entering the transactionAccessMode production.
-	EnterTransactionAccessMode(c *TransactionAccessModeContext)
-
-	// EnterReadUncommitted is called when entering the readUncommitted production.
-	EnterReadUncommitted(c *ReadUncommittedContext)
-
-	// EnterReadCommitted is called when entering the readCommitted production.
-	EnterReadCommitted(c *ReadCommittedContext)
-
-	// EnterRepeatableRead is called when entering the repeatableRead production.
-	EnterRepeatableRead(c *RepeatableReadContext)
-
-	// EnterSerializable is called when entering the serializable production.
-	EnterSerializable(c *SerializableContext)
-
-	// EnterPositionalArgument is called when entering the positionalArgument production.
-	EnterPositionalArgument(c *PositionalArgumentContext)
-
-	// EnterNamedArgument is called when entering the namedArgument production.
-	EnterNamedArgument(c *NamedArgumentContext)
-
-	// EnterPrivilege is called when entering the privilege production.
-	EnterPrivilege(c *PrivilegeContext)
-
 	// EnterDotQualifiedName is called when entering the dotQualifiedName production.
 	EnterDotQualifiedName(c *DotQualifiedNameContext)
 
@@ -476,125 +341,17 @@ type SQLBaseListener interface {
 	// ExitStatementDefault is called when exiting the statementDefault production.
 	ExitStatementDefault(c *StatementDefaultContext)
 
-	// ExitCreateTable is called when exiting the createTable production.
-	ExitCreateTable(c *CreateTableContext)
-
-	// ExitCreateTableAsSelect is called when exiting the createTableAsSelect production.
-	ExitCreateTableAsSelect(c *CreateTableAsSelectContext)
-
-	// ExitDropTable is called when exiting the dropTable production.
-	ExitDropTable(c *DropTableContext)
-
 	// ExitInsertInto is called when exiting the insertInto production.
 	ExitInsertInto(c *InsertIntoContext)
 
-	// ExitDelete is called when exiting the delete production.
-	ExitDelete(c *DeleteContext)
-
-	// ExitRenameTable is called when exiting the renameTable production.
-	ExitRenameTable(c *RenameTableContext)
-
-	// ExitRenameColumn is called when exiting the renameColumn production.
-	ExitRenameColumn(c *RenameColumnContext)
-
-	// ExitAddColumn is called when exiting the addColumn production.
-	ExitAddColumn(c *AddColumnContext)
-
-	// ExitCreateView is called when exiting the createView production.
-	ExitCreateView(c *CreateViewContext)
-
-	// ExitDropView is called when exiting the dropView production.
-	ExitDropView(c *DropViewContext)
-
-	// ExitCall is called when exiting the call production.
-	ExitCall(c *CallContext)
-
-	// ExitGrant is called when exiting the grant production.
-	ExitGrant(c *GrantContext)
-
-	// ExitRevoke is called when exiting the revoke production.
-	ExitRevoke(c *RevokeContext)
-
 	// ExitExplain is called when exiting the explain production.
 	ExitExplain(c *ExplainContext)
-
-	// ExitShowCreateTable is called when exiting the showCreateTable production.
-	ExitShowCreateTable(c *ShowCreateTableContext)
-
-	// ExitShowCreateView is called when exiting the showCreateView production.
-	ExitShowCreateView(c *ShowCreateViewContext)
-
-	// ExitShowTables is called when exiting the showTables production.
-	ExitShowTables(c *ShowTablesContext)
-
-	// ExitShowSchemas is called when exiting the showSchemas production.
-	ExitShowSchemas(c *ShowSchemasContext)
-
-	// ExitShowCatalogs is called when exiting the showCatalogs production.
-	ExitShowCatalogs(c *ShowCatalogsContext)
-
-	// ExitShowColumns is called when exiting the showColumns production.
-	ExitShowColumns(c *ShowColumnsContext)
-
-	// ExitShowFunctions is called when exiting the showFunctions production.
-	ExitShowFunctions(c *ShowFunctionsContext)
-
-	// ExitShowSession is called when exiting the showSession production.
-	ExitShowSession(c *ShowSessionContext)
-
-	// ExitSetSession is called when exiting the setSession production.
-	ExitSetSession(c *SetSessionContext)
-
-	// ExitResetSession is called when exiting the resetSession production.
-	ExitResetSession(c *ResetSessionContext)
-
-	// ExitStartTransaction is called when exiting the startTransaction production.
-	ExitStartTransaction(c *StartTransactionContext)
-
-	// ExitCommit is called when exiting the commit production.
-	ExitCommit(c *CommitContext)
-
-	// ExitRollback is called when exiting the rollback production.
-	ExitRollback(c *RollbackContext)
-
-	// ExitShowPartitions is called when exiting the showPartitions production.
-	ExitShowPartitions(c *ShowPartitionsContext)
-
-	// ExitPrepare is called when exiting the prepare production.
-	ExitPrepare(c *PrepareContext)
-
-	// ExitDeallocate is called when exiting the deallocate production.
-	ExitDeallocate(c *DeallocateContext)
-
-	// ExitExecute is called when exiting the execute production.
-	ExitExecute(c *ExecuteContext)
-
-	// ExitDescribeInput is called when exiting the describeInput production.
-	ExitDescribeInput(c *DescribeInputContext)
-
-	// ExitDescribeOutput is called when exiting the describeOutput production.
-	ExitDescribeOutput(c *DescribeOutputContext)
 
 	// ExitQuery is called when exiting the query production.
 	ExitQuery(c *QueryContext)
 
 	// ExitWith is called when exiting the with production.
 	ExitWith(c *WithContext)
-
-	// ExitTableElement is called when exiting the tableElement production.
-	ExitTableElement(c *TableElementContext)
-
-	// ExitColumnDefinition is called when exiting the columnDefinition production.
-	ExitColumnDefinition(c *ColumnDefinitionContext)
-
-	// ExitLikeClause is called when exiting the likeClause production.
-	ExitLikeClause(c *LikeClauseContext)
-
-	// ExitTableProperties is called when exiting the tableProperties production.
-	ExitTableProperties(c *TablePropertiesContext)
-
-	// ExitTableProperty is called when exiting the tableProperty production.
-	ExitTableProperty(c *TablePropertyContext)
 
 	// ExitQueryNoWith is called when exiting the queryNoWith production.
 	ExitQueryNoWith(c *QueryNoWithContext)
@@ -883,33 +640,6 @@ type SQLBaseListener interface {
 
 	// ExitExplainType is called when exiting the explainType production.
 	ExitExplainType(c *ExplainTypeContext)
-
-	// ExitIsolationLevel is called when exiting the isolationLevel production.
-	ExitIsolationLevel(c *IsolationLevelContext)
-
-	// ExitTransactionAccessMode is called when exiting the transactionAccessMode production.
-	ExitTransactionAccessMode(c *TransactionAccessModeContext)
-
-	// ExitReadUncommitted is called when exiting the readUncommitted production.
-	ExitReadUncommitted(c *ReadUncommittedContext)
-
-	// ExitReadCommitted is called when exiting the readCommitted production.
-	ExitReadCommitted(c *ReadCommittedContext)
-
-	// ExitRepeatableRead is called when exiting the repeatableRead production.
-	ExitRepeatableRead(c *RepeatableReadContext)
-
-	// ExitSerializable is called when exiting the serializable production.
-	ExitSerializable(c *SerializableContext)
-
-	// ExitPositionalArgument is called when exiting the positionalArgument production.
-	ExitPositionalArgument(c *PositionalArgumentContext)
-
-	// ExitNamedArgument is called when exiting the namedArgument production.
-	ExitNamedArgument(c *NamedArgumentContext)
-
-	// ExitPrivilege is called when exiting the privilege production.
-	ExitPrivilege(c *PrivilegeContext)
 
 	// ExitDotQualifiedName is called when exiting the dotQualifiedName production.
 	ExitDotQualifiedName(c *DotQualifiedNameContext)

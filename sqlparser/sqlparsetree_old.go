@@ -1,3 +1,5 @@
+//+build ignore
+
 package sqlparser
 
 import (
@@ -56,6 +58,37 @@ func NewStatementParse(node antlr.Tree, queryText string) (term *StatementParse)
 	case *parser.StatementDefaultContext:
 		term.statementType = QUERY_STMT
 		term.query = NewQueryParse(ctx.Query())
+	case *parser.CreateTableContext:
+		term.statementType = CREATE_TABLE_STMT
+		term.tableName = NewQualifiedNameParse(ctx.QualifiedName())
+		if ctx.EXISTS() != nil {
+			term.IsExists = true
+		}
+		if ctx.WITH() != nil {
+			term.tableProperties = NewTablePropertiesParse(
+				ctx.TableProperties())
+		}
+		for _, cctx := range ctx.AllTableElement() {
+			term.tableElements = append(term.tableElements,
+				NewTableElementParse(cctx))
+		}
+	case *parser.CreateTableAsSelectContext:
+		term.statementType = CREATE_TABLE_AS_SELECT_STMT
+		term.tableName = NewQualifiedNameParse(ctx.QualifiedName())
+		term.query = NewQueryParse(ctx.Query())
+		if ctx.EXISTS() != nil {
+			term.IsExists = true
+		}
+		if ctx.WITH() != nil {
+			term.tableProperties = NewTablePropertiesParse(
+				ctx.TableProperties())
+		}
+	case *parser.DropTableContext:
+		term.statementType = DROP_TABLE_STMT
+		term.tableName = NewQualifiedNameParse(ctx.QualifiedName())
+		if ctx.EXISTS() != nil {
+			term.IsExists = true
+		}
 	case *parser.InsertIntoContext:
 		term.statementType = INSERT_INTO_STMT
 		term.tableName = NewQualifiedNameParse(ctx.QualifiedName())
@@ -63,6 +96,77 @@ func NewStatementParse(node antlr.Tree, queryText string) (term *StatementParse)
 		if ctx.ColumnAliases() != nil {
 			term.columnAliases = NewColumnAliasesParse(ctx.ColumnAliases())
 		}
+	case *parser.DeleteContext:
+		term.statementType = DELETE_STMT
+		term.tableName = NewQualifiedNameParse(ctx.QualifiedName())
+		if ctx.WHERE() != nil {
+			term.booleanExpressions = append(term.booleanExpressions,
+				NewBooleanExpressionParse(ctx.BooleanExpression()))
+		}
+	case *parser.RenameTableContext:
+		term.statementType = RENAME_TABLE_STMT
+		term.from = NewQualifiedNameParse(ctx.GetFrom())
+		term.to = NewQualifiedNameParse(ctx.GetTo())
+	case *parser.RenameColumnContext:
+		term.statementType = RENAME_COLUMN_STMT
+		term.tableName = NewQualifiedNameParse(ctx.GetTableName())
+		term.from = NewIDParse(ctx.GetFrom())
+		term.to = NewIDParse(ctx.GetTo())
+	case *parser.AddColumnContext:
+		term.statementType = ADD_COLUMN_STMT
+		term.tableName = NewQualifiedNameParse(ctx.GetTableName())
+		term.column = NewColumnDefinitionParse(ctx.GetColumn())
+	case *parser.CreateViewContext:
+		term.statementType = CREATE_VIEW_STMT
+		term.tableName = NewQualifiedNameParse(ctx.QualifiedName())
+		if ctx.ColumnAliases() != nil {
+			term.columnAliases = NewColumnAliasesParse(ctx.ColumnAliases())
+		}
+		term.query = NewQueryParse(ctx.Query())
+	case *parser.DropViewContext:
+		term.statementType = DROP_VIEW_STMT
+		if ctx.EXISTS() != nil {
+			term.IsExists = true
+		}
+		term.tableName = NewQualifiedNameParse(ctx.QualifiedName())
+	case *parser.CallContext:
+		term.statementType = CALL_STMT
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+		for _, cctx := range ctx.AllCallArgument() {
+			term.callArguments = append(term.callArguments,
+				NewCallArgParse(cctx))
+		}
+	case *parser.GrantContext:
+		term.statementType = GRANT_STMT
+		if ctx.OPTION() != nil {
+			term.IsGrantOption = true
+		}
+		for _, cctx := range ctx.AllPrivilege() {
+			term.privileges = append(term.privileges,
+				NewPrivilegeParse(cctx))
+		}
+		if ctx.ALL() != nil {
+			term.IsAll = true
+		}
+		term.grantee = NewIDParse(ctx.GetGrantee())
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+	case *parser.RevokeContext:
+		term.statementType = REVOKE_STMT
+		if ctx.GRANT() != nil {
+			term.IsGrantOption = true
+		}
+		for _, cctx := range ctx.AllPrivilege() {
+			term.privileges = append(term.privileges,
+				NewPrivilegeParse(cctx))
+		}
+		if ctx.ALL() != nil {
+			term.IsAll = true
+		}
+		term.grantee = NewIDParse(ctx.GetGrantee())
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
 	case *parser.ExplainContext:
 		term.statementType = EXPLAIN_STMT
 		term.statement = NewStatementParse(ctx.Statement(), queryText)
@@ -70,6 +174,117 @@ func NewStatementParse(node antlr.Tree, queryText string) (term *StatementParse)
 			term.explainOptions = append(term.explainOptions,
 				NewExplainOptionParse(cctx))
 		}
+	case *parser.ShowCreateTableContext:
+		term.statementType = SHOW_CREATE_TABLE_STMT
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+	case *parser.ShowCreateViewContext:
+		term.statementType = SHOW_CREATE_VIEW_STMT
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+	case *parser.ShowTablesContext:
+		term.statementType = SHOW_TABLES_STMT
+		if ctx.QualifiedName() != nil {
+			term.qualifiedNames = append(term.qualifiedNames,
+				NewQualifiedNameParse(ctx.QualifiedName()))
+			if ctx.FROM() != nil {
+				term.IsFrom = true
+			}
+		}
+		if ctx.GetPattern() != nil {
+			term.pattern = ctx.GetPattern().GetText()
+		}
+	case *parser.ShowSchemasContext:
+		term.statementType = SHOW_SCHEMAS_STMT
+		if ctx.Identifier() != nil {
+			term.identifiers = append(term.identifiers,
+				NewIDParse(ctx.Identifier()))
+			if ctx.FROM() != nil {
+				term.IsFrom = true
+			}
+		}
+		if ctx.GetPattern() != nil {
+			term.pattern = ctx.GetPattern().GetText()
+		}
+	case *parser.ShowCatalogsContext:
+		term.statementType = SHOW_CATALOGS_STMT
+		if ctx.GetPattern() != nil {
+			term.pattern = ctx.GetPattern().GetText()
+		}
+	case *parser.ShowColumnsContext:
+		term.statementType = SHOW_COLUMNS_STMT
+		if ctx.FROM() != nil {
+			term.IsFrom = true
+		}
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+	case *parser.ShowFunctionsContext:
+		term.statementType = SHOW_FUNCTIONS_STMT
+	case *parser.ShowSessionContext:
+		term.statementType = SHOW_SESSION_STMT
+	case *parser.SetSessionContext:
+		term.statementType = SET_SESSION_STMT
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+		term.expressions = append(term.expressions,
+			NewExpressionParse(ctx.Expression()))
+	case *parser.ResetSessionContext:
+		term.statementType = RESET_SESSION_STMT
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+	case *parser.StartTransactionContext:
+		term.statementType = START_TRANSACTION_STMT
+		for _, cctx := range ctx.AllTransactionMode() {
+			term.transactionModes = append(term.transactionModes,
+				NewTransactionModeParse(cctx))
+		}
+	case *parser.CommitContext:
+		term.statementType = COMMIT_STMT
+	case *parser.RollbackContext:
+		term.statementType = ROLLBACK_STMT
+	case *parser.ShowPartitionsContext:
+		term.statementType = SHOW_PARTITIONS_STMT
+		if ctx.FROM() != nil {
+			term.IsFrom = true
+		}
+		term.qualifiedNames = append(term.qualifiedNames,
+			NewQualifiedNameParse(ctx.QualifiedName()))
+		if ctx.WHERE() != nil {
+			term.booleanExpressions = append(term.booleanExpressions,
+				NewBooleanExpressionParse(ctx.BooleanExpression()))
+		}
+		for _, cctx := range ctx.AllSortItem() {
+			term.sortItems = append(term.sortItems,
+				NewSortItemParse(cctx))
+		}
+		if ctx.LIMIT() != nil {
+			term.limit, _ = strconv.Atoi(ctx.GetLimit().GetText())
+		}
+	case *parser.PrepareContext:
+		term.statementType = PREPARE_STMT
+		term.identifiers = append(term.identifiers,
+			NewIDParse(ctx.Identifier()))
+		term.statement = NewStatementParse(ctx.Statement(), queryText)
+	case *parser.DeallocateContext:
+		term.statementType = DEALLOCATE_STMT
+		term.identifiers = append(term.identifiers,
+			NewIDParse(ctx.Identifier()))
+	case *parser.ExecuteContext:
+		term.statementType = EXECUTE_STMT
+		term.identifiers = append(term.identifiers,
+			NewIDParse(ctx.Identifier()))
+		for _, cctx := range ctx.AllExpression() {
+			term.expressions = append(term.expressions,
+				NewExpressionParse(cctx))
+		}
+	case *parser.DescribeInputContext:
+		term.statementType = DESCRIBE_INPUT_STMT
+		term.identifiers = append(term.identifiers,
+			NewIDParse(ctx.Identifier()))
+	case *parser.DescribeOutputContext:
+		term.statementType = DESCRIBE_OUTPUT_STMT
+		term.identifiers = append(term.identifiers,
+			NewIDParse(ctx.Identifier()))
 	default:
 		fmt.Println(reflect.TypeOf(ctx))
 	}
@@ -97,17 +312,145 @@ func (sp *StatementParse) String(level int) (out []string) {
 
 type QueryParse struct {
 	MSTree
-	queryNoWith IMSTree
+	with, queryNoWith IMSTree
 }
 
 func NewQueryParse(node antlr.Tree) (term *QueryParse) {
 	ctx := node.(*parser.QueryContext)
 	term = new(QueryParse)
+	if ctx.With() != nil {
+		term.with = NewWithParse(ctx.With())
+	}
 	term.queryNoWith = NewQueryNoWithParse(ctx.QueryNoWith())
 	return term
 }
 func (sp *QueryParse) String(level int) (out []string) {
+	out = append(out, Explain(sp.with, level+1)...)
 	out = append(out, Explain(sp.queryNoWith, level+1)...)
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type WithParse struct {
+	MSTree
+	IsRecursive  bool
+	namedQueries []IMSTree
+}
+
+func NewWithParse(node antlr.Tree) (term *WithParse) {
+	ctx := node.(*parser.WithContext)
+	term = new(WithParse)
+	if ctx.RECURSIVE() != nil {
+		term.IsRecursive = true
+	}
+	for _, cctx := range ctx.AllNamedQuery() {
+		term.namedQueries = append(term.namedQueries,
+			NewNamedQueryParse(cctx))
+	}
+	return term
+}
+func (sp *WithParse) String(level int) (out []string) {
+	out = append(out, ExplainAllItemsInList(sp.namedQueries, level+1)...)
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type TableElementParse struct {
+	MSTree
+	columnDefinition, likeClause IMSTree
+}
+
+func NewTableElementParse(node antlr.Tree) (term *TableElementParse) {
+	ctx := node.(*parser.TableElementContext)
+	term = new(TableElementParse)
+	switch {
+	case ctx.ColumnDefinition() != nil:
+		term.columnDefinition = NewColumnDefinitionParse(ctx.ColumnDefinition())
+	case ctx.LikeClause() != nil:
+		term.likeClause = NewLikeClauseParse(ctx.LikeClause())
+	}
+	return term
+}
+func (sp *TableElementParse) String(level int) (out []string) {
+	out = append(out, Explain(sp.columnDefinition, level+1)...)
+	out = append(out, Explain(sp.likeClause, level+1)...)
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type ColumnDefinitionParse struct {
+	MSTree
+	identifier, type_t IMSTree
+	comment            string
+}
+
+func NewColumnDefinitionParse(node antlr.Tree) (term *ColumnDefinitionParse) {
+	ctx := node.(*parser.ColumnDefinitionContext)
+	term = new(ColumnDefinitionParse)
+	term.identifier = NewIDParse(ctx.Identifier())
+	term.type_t = NewTypeTParse(ctx.Type_t())
+	if ctx.STRING() != nil {
+		term.comment = ctx.STRING().GetText()
+	}
+	return term
+}
+func (sp *ColumnDefinitionParse) String(level int) (out []string) {
+	out = append(out, Explain(sp.identifier, level+1)...)
+	out = append(out, Explain(sp.type_t, level+1)...)
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type LikeClauseParse struct {
+	MSTree
+	name        IMSTree
+	IsIncluding bool
+}
+
+func NewLikeClauseParse(node antlr.Tree) (term *LikeClauseParse) {
+	ctx := node.(*parser.LikeClauseContext)
+	term = new(LikeClauseParse)
+	term.name = NewQualifiedNameParse(ctx.QualifiedName())
+	if ctx.INCLUDING() != nil {
+		term.IsIncluding = true
+	}
+	return term
+}
+func (sp *LikeClauseParse) String(level int) (out []string) {
+	out = append(out, Explain(sp.name, level+1)...)
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type TablePropertiesParse struct {
+	MSTree
+	tableProperties []IMSTree
+}
+
+func NewTablePropertiesParse(node antlr.Tree) (term *TablePropertiesParse) {
+	ctx := node.(*parser.TablePropertiesContext)
+	term = new(TablePropertiesParse)
+	for _, cctx := range ctx.AllTableProperty() {
+		term.tableProperties = append(term.tableProperties,
+			NewTablePropertyParse(cctx))
+	}
+	return term
+}
+func (sp *TablePropertiesParse) String(level int) (out []string) {
+	out = append(out, ExplainAllItemsInList(sp.tableProperties, level+1)...)
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type TablePropertyParse struct {
+	MSTree
+	left, right IMSTree
+}
+
+func NewTablePropertyParse(node antlr.Tree) (term *TablePropertyParse) {
+	ctx := node.(*parser.TablePropertyContext)
+	term = new(TablePropertyParse)
+	term.left = NewIDParse(ctx.Identifier())
+	term.right = NewExpressionParse(ctx.Expression())
+	return term
+}
+func (sp *TablePropertyParse) String(level int) (out []string) {
+	out = append(out, Explain(sp.left, level+1)...)
+	out = append(out, Explain(sp.right, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
 
@@ -395,6 +738,28 @@ func NewGroupingSetParse(node antlr.Tree) (term *GroupingSetParse) {
 }
 func (sp *GroupingSetParse) String(level int) (out []string) {
 	out = append(out, ExplainAllItemsInList(sp.qualifiedNames, level+1)...)
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type NamedQueryParse struct {
+	MSTree
+	name, columnAliases, query IMSTree
+}
+
+func NewNamedQueryParse(node antlr.Tree) (term *NamedQueryParse) {
+	ctx := node.(*parser.NamedQueryContext)
+	term = new(NamedQueryParse)
+	term.name = NewIDParse(ctx.Identifier())
+	if ctx.ColumnAliases() != nil {
+		term.columnAliases = NewColumnAliasesParse(ctx.ColumnAliases())
+	}
+	term.query = NewQueryParse(ctx.Query())
+	return term
+}
+func (sp *NamedQueryParse) String(level int) (out []string) {
+	out = append(out, Explain(sp.name, level+1)...)
+	out = append(out, Explain(sp.columnAliases, level+1)...)
+	out = append(out, Explain(sp.query, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
 
@@ -1443,6 +1808,54 @@ func (sp *TimeZoneSpecifierParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
 
+type ComparisonOperatorParse struct {
+	MSTree
+	value io.ComparisonOperatorEnum
+}
+
+func NewComparisonOperatorParse(node antlr.Tree) (term *ComparisonOperatorParse) {
+	ctx := node.(*parser.ComparisonOperatorContext)
+	term = new(ComparisonOperatorParse)
+	switch {
+	case ctx.EQ() != nil:
+		term.value = io.EQ
+	case ctx.NEQ() != nil:
+		term.value = io.NEQ
+	case ctx.LT() != nil:
+		term.value = io.LT
+	case ctx.LTE() != nil:
+		term.value = io.LTE
+	case ctx.GTE() != nil:
+		term.value = io.GTE
+	}
+	return term
+}
+func (sp *ComparisonOperatorParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type ComparisonQuantifierParse struct {
+	MSTree
+	value ComparisonQuantifierEnum
+}
+
+func NewComparisonQuantifierParse(node antlr.Tree) (term *ComparisonQuantifierParse) {
+	ctx := node.(*parser.ComparisonQuantifierContext)
+	term = new(ComparisonQuantifierParse)
+	switch {
+	case ctx.ALL() != nil:
+		term.value = ALL
+	case ctx.SOME() != nil:
+		term.value = SOME
+	case ctx.ANY() != nil:
+		term.value = ANY
+	}
+	return term
+}
+func (sp *ComparisonQuantifierParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
 type IntervalParse struct {
 	MSTree
 	IsPlus, IsMinus    bool
@@ -1718,6 +2131,70 @@ func (sp *ExplainOptionParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
 
+type TransactionModeParse struct{ MSTree }
+
+func NewTransactionModeParse(node antlr.Tree) (term *TransactionModeParse) {
+	term = new(TransactionModeParse)
+	ictx := node.GetChild(0)
+	switch childCtx := ictx.(type) {
+	case *parser.TransactionAccessModeContext:
+		term.payload = childCtx.GetAccessMode().GetText()
+	case *parser.IsolationLevelContext:
+		term.AddChild(NewLevelOfIsolationParse(childCtx))
+	}
+	return term
+}
+func (sp *TransactionModeParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type LevelOfIsolationParse struct{ MSTree }
+
+func NewLevelOfIsolationParse(node antlr.Tree) (term *LevelOfIsolationParse) {
+	ctx := node.(*parser.LevelOfIsolationContext)
+	term = new(LevelOfIsolationParse)
+	term.payload = ctx.GetText()
+	return term
+}
+func (sp *LevelOfIsolationParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type CallArgParse struct{ MSTree }
+
+func NewCallArgParse(node antlr.Tree) (term *CallArgParse) {
+	term = new(CallArgParse)
+	ictx := node.GetChild(0)
+	switch childCtx := ictx.(type) {
+	case *parser.PositionalArgumentContext:
+		term.AddChild(NewExpressionParse(childCtx))
+	case *parser.NamedArgumentContext:
+		term.AddChild(NewIDParse(childCtx.Identifier()))
+		term.AddChild(NewExpressionParse(childCtx.Expression()))
+	}
+	return term
+}
+func (sp *CallArgParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type PrivilegeParse struct{ MSTree }
+
+func NewPrivilegeParse(node antlr.Tree) (term *PrivilegeParse) {
+	ctx := node.(*parser.PrivilegeContext)
+	term = new(PrivilegeParse)
+	switch {
+	case ctx.SELECT() != nil, ctx.DELETE() != nil, ctx.INSERT() != nil:
+		term.payload = ctx.GetText()
+	default:
+		term.AddChild(NewIDParse(ctx.GetChild(0)))
+	}
+	return term
+}
+func (sp *PrivilegeParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
 type QualifiedNameParse struct{ MSTree }
 
 func NewQualifiedNameParse(node antlr.Tree) (term *QualifiedNameParse) {
@@ -1746,10 +2223,24 @@ func NewIDParse(node antlr.Tree) (term *IDParse) {
 	case *parser.BackQuotedIdentifierContext:
 		term.name = ctx.BACKQUOTED_IDENTIFIER().GetText()
 		term.name = term.name[1 : len(term.name)-1]
+	case *parser.NonReservedIdentifierContext:
+		term.AddChild(NewNonReservedParse(ctx.NonReserved()))
 	}
 	return term
 }
 func (sp *IDParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(sp), level))
+}
+
+type NonReservedParse struct{ MSTree }
+
+func NewNonReservedParse(node antlr.Tree) (term *NonReservedParse) {
+	ctx := node.(*parser.NonReservedContext)
+	term = new(NonReservedParse)
+	term.payload = ctx.GetText()
+	return term
+}
+func (sp *NonReservedParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
 
