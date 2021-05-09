@@ -7,59 +7,59 @@ statements
 
 statement
     : query                                                        #statementDefault
-    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
-        '(' tableElement (',' tableElement)* ')'
-        (WITH tableProperties)?                                    #createTable
-    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
-        (WITH tableProperties)? AS query                           #createTableAsSelect
-    | DROP TABLE (IF EXISTS)? qualifiedName                        #dropTable
+//    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+//        '(' tableElement (',' tableElement)* ')'
+//        (WITH tableProperties)?                                    #createTable
+//    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+//        (WITH tableProperties)? AS query                           #createTableAsSelect
+//    | DROP TABLE (IF EXISTS)? qualifiedName                        #dropTable
     | INSERT INTO qualifiedName columnAliases? query               #insertInto
-    | DELETE FROM qualifiedName (WHERE booleanExpression)?         #delete
-    | ALTER TABLE from=qualifiedName RENAME TO to=qualifiedName    #renameTable
-    | ALTER TABLE tableName=qualifiedName
-        RENAME COLUMN from=identifier TO to=identifier             #renameColumn
-    | ALTER TABLE tableName=qualifiedName
-        ADD COLUMN column=columnDefinition                         #addColumn
-    | CREATE (OR REPLACE)? VIEW qualifiedName (columnAliases)?
-         AS query                                                  #createView
-    | DROP VIEW (IF EXISTS)? qualifiedName                         #dropView
-    | CALL qualifiedName '(' (callArgument
-     (',' callArgument)*)? ')'                                     #call
-    | GRANT
-        (privilege (',' privilege)* | ALL PRIVILEGES)
-        ON TABLE? qualifiedName TO grantee=identifier
-        (WITH GRANT OPTION)?                                       #grant
-    | REVOKE
-        (GRANT OPTION FOR)?
-        (privilege (',' privilege)* | ALL PRIVILEGES)
-        ON TABLE? qualifiedName FROM grantee=identifier            #revoke
+//    | DELETE FROM qualifiedName (WHERE booleanExpression)?         #delete
+//    | ALTER TABLE from=qualifiedName RENAME TO to=qualifiedName    #renameTable
+//    | ALTER TABLE tableName=qualifiedName
+//        RENAME COLUMN from=identifier TO to=identifier             #renameColumn
+//    | ALTER TABLE tableName=qualifiedName
+//        ADD COLUMN column=columnDefinition                         #addColumn
+//    | CREATE (OR REPLACE)? VIEW qualifiedName (columnAliases)?
+//         AS query                                                  #createView
+//    | DROP VIEW (IF EXISTS)? qualifiedName                         #dropView
+//    | CALL qualifiedName '(' (callArgument
+//     (',' callArgument)*)? ')'                                     #call
+//    | GRANT
+//        (privilege (',' privilege)* | ALL PRIVILEGES)
+//        ON TABLE? qualifiedName TO grantee=identifier
+//        (WITH GRANT OPTION)?                                       #grant
+//    | REVOKE
+//        (GRANT OPTION FOR)?
+//        (privilege (',' privilege)* | ALL PRIVILEGES)
+//        ON TABLE? qualifiedName FROM grantee=identifier            #revoke
     | EXPLAIN ANALYZE?
         ('(' explainOption (',' explainOption)* ')')? statement    #explain
-    | SHOW CREATE TABLE qualifiedName                              #showCreateTable
-    | SHOW CREATE VIEW qualifiedName                               #showCreateView
-    | SHOW TABLES ((FROM | IN) qualifiedName)?
-     (LIKE pattern=STRING)?                                        #showTables
-    | SHOW SCHEMAS ((FROM | IN) identifier)?
-     (LIKE pattern=STRING)?                                        #showSchemas
-    | SHOW CATALOGS (LIKE pattern=STRING)?                         #showCatalogs
-    | SHOW COLUMNS (FROM | IN) qualifiedName                       #showColumns
-    | (DESCRIBE | DESC) qualifiedName                              #showColumns
-    | SHOW FUNCTIONS                                               #showFunctions
-    | SHOW SESSION                                                 #showSession
-    | SET SESSION qualifiedName EQ expression                      #setSession
-    | RESET SESSION qualifiedName                                  #resetSession
-    | START TRANSACTION (transactionMode (',' transactionMode)*)?  #startTransaction
-    | COMMIT WORK?                                                 #commit
-    | ROLLBACK WORK?                                               #rollback
-    | SHOW PARTITIONS (FROM | IN) qualifiedName
-        (WHERE booleanExpression)?
-        (ORDER BY sortItem (',' sortItem)*)?
-        (LIMIT limit=INTEGER_VALUE)?                               #showPartitions
-    | PREPARE identifier FROM statement                            #prepare
-    | DEALLOCATE PREPARE identifier                                #deallocate
-    | EXECUTE identifier (USING expression (',' expression)*)?     #execute
-    | DESCRIBE INPUT identifier                                    #describeInput
-    | DESCRIBE OUTPUT identifier                                   #describeOutput
+//    | SHOW CREATE TABLE qualifiedName                              #showCreateTable
+//    | SHOW CREATE VIEW qualifiedName                               #showCreateView
+//    | SHOW TABLES ((FROM | IN) qualifiedName)?
+//     (LIKE pattern=STRING)?                                        #showTables
+//    | SHOW SCHEMAS ((FROM | IN) identifier)?
+//     (LIKE pattern=STRING)?                                        #showSchemas
+//    | SHOW CATALOGS (LIKE pattern=STRING)?                         #showCatalogs
+//    | SHOW COLUMNS (FROM | IN) qualifiedName                       #showColumns
+//    | (DESCRIBE | DESC) qualifiedName                              #showColumns
+//    | SHOW FUNCTIONS                                               #showFunctions
+//    | SHOW SESSION                                                 #showSession
+//    | SET SESSION qualifiedName EQ expression                      #setSession
+//    | RESET SESSION qualifiedName                                  #resetSession
+//    | START TRANSACTION (transactionMode (',' transactionMode)*)?  #startTransaction
+//    | COMMIT WORK?                                                 #commit
+//    | ROLLBACK WORK?                                               #rollback
+//    | SHOW PARTITIONS (FROM | IN) qualifiedName
+//        (WHERE booleanExpression)?
+//        (ORDER BY sortItem (',' sortItem)*)?
+//        (LIMIT limit=INTEGER_VALUE)?                               #showPartitions
+//    | PREPARE identifier FROM statement                            #prepare
+//    | DEALLOCATE PREPARE identifier                                #deallocate
+//    | EXECUTE identifier (USING expression (',' expression)*)?     #execute
+//    | DESCRIBE INPUT identifier                                    #describeInput
+//    | DESCRIBE OUTPUT identifier                                   #describeOutput
     ;
 
 query
@@ -70,26 +70,26 @@ with
     : WITH RECURSIVE? namedQuery (',' namedQuery)*
     ;
 
-tableElement
-    : columnDefinition
-    | likeClause
-    ;
+//tableElement
+//    : columnDefinition
+//    | likeClause
+//    ;
 
-columnDefinition
-    : identifier type_t (COMMENT STRING)?
-    ;
+//columnDefinition
+//    : identifier type_t (COMMENT STRING)?
+//    ;
 
-likeClause
-    : LIKE qualifiedName (optionType=(INCLUDING | EXCLUDING) PROPERTIES)?
-    ;
+//likeClause
+//    : LIKE qualifiedName (optionType=(INCLUDING | EXCLUDING) PROPERTIES)?
+//    ;
 
-tableProperties
-    : '(' tableProperty (',' tableProperty)* ')'
-    ;
+//tableProperties
+//    : '(' tableProperty (',' tableProperty)* ')'
+//    ;
 
-tableProperty
-    : identifier EQ expression
-    ;
+//tableProperty
+//    : identifier EQ expression
+//    ;
 
 queryNoWith:
       queryTerm
@@ -349,26 +349,26 @@ explainOption
     | TYPE value=(LOGICAL | DISTRIBUTED | VALIDATE)                #explainType
     ;
 
-transactionMode
-    : ISOLATION LEVEL levelOfIsolation                             #isolationLevel
-    | READ accessMode=(ONLY | WRITE)                               #transactionAccessMode
-    ;
+//transactionMode
+//    : ISOLATION LEVEL levelOfIsolation                             #isolationLevel
+//    | READ accessMode=(ONLY | WRITE)                               #transactionAccessMode
+//    ;
 
-levelOfIsolation
-    : READ UNCOMMITTED                                             #readUncommitted
-    | READ COMMITTED                                               #readCommitted
-    | REPEATABLE READ                                              #repeatableRead
-    | SERIALIZABLE                                                 #serializable
-    ;
+//levelOfIsolation
+//    : READ UNCOMMITTED                                             #readUncommitted
+//    | READ COMMITTED                                               #readCommitted
+//    | REPEATABLE READ                                              #repeatableRead
+//    | SERIALIZABLE                                                 #serializable
+//    ;
 
-callArgument
-    : expression                                                   #positionalArgument
-    | identifier '=>' expression                                   #namedArgument
-    ;
+//callArgument
+//    : expression                                                   #positionalArgument
+//    | identifier '=>' expression                                   #namedArgument
+//    ;
 
-privilege
-    : SELECT | DELETE | INSERT | identifier
-    ;
+//privilege
+//    : SELECT | DELETE | INSERT | identifier
+//    ;
 
 qualifiedName
     : identifier ('.' identifier)*                                 #dotQualifiedName
