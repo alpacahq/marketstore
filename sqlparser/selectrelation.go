@@ -26,10 +26,8 @@ type SelectRelation struct {
 	StaticPredicates       StaticPredicateGroup
 }
 
-func NewSelectRelation(catalogDir *catalog.Directory) (sr *SelectRelation) {
-	return &SelectRelation{ExecutableStatement: ExecutableStatement{
-		CatalogDirectory: catalogDir,
-	}}
+func NewSelectRelation() (sr *SelectRelation) {
+	return &SelectRelation{ExecutableStatement: ExecutableStatement{}}
 }
 
 func isNanosec(epoch int64) bool {
@@ -45,7 +43,7 @@ func convertUnitToNanosec(epoch int64) int64 {
 	return epoch * 1000000000
 }
 
-func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, err error) {
+func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSeries *io.ColumnSeries, err error) {
 	// Call Materialize on any child relations
 	//	fmt.Println("In SelectRelation Materialize")
 	var inputColumnSeries *io.ColumnSeries
@@ -62,7 +60,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 		case *SelectRelation:
 			//			fmt.Println("*SelectRelation")
 			//fmt.Println("Subquery found...")
-			inputColumnSeries, err = value.Materialize()
+			inputColumnSeries, err = value.Materialize(catDir)
 			if err != nil {
 				return nil, err
 			}
@@ -71,7 +69,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 	//	fmt.Printf("Materialize... %+v\n", sr)
 	if !sr.IsPrimary {
 		//		fmt.Println("Materializing subquery")
-		inputColumnSeries, err = sr.Subquery.Materialize()
+		inputColumnSeries, err = sr.Subquery.Materialize(catDir)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +97,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 		if key == nil {
 			return nil, fmt.Errorf("Table name must match \"one/two/three\" for three directory levels")
 		}
-		dsv, err = sr.CatalogDirectory.GetDataShapes(key)
+		dsv, err = catDir.GetDataShapes(key)
 		if err != nil {
 			return nil, err
 		}
@@ -143,7 +141,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 	if inputColumnSeries != nil {
 		outputColumnSeries = inputColumnSeries
 	} else {
-		q := planner.NewQuery(sr.CatalogDirectory)
+		q := planner.NewQuery(catDir)
 		q.AddTargetKey(key)
 
 		/*
@@ -521,7 +519,7 @@ func (sr *SelectRelation) Materialize() (outputColumnSeries *io.ColumnSeries, er
 				/*
 					Execute the aggregate function
 				*/
-				err := aggfunc.Accum(outputColumnSeries, sr.CatalogDirectory)
+				err := aggfunc.Accum(outputColumnSeries, catDir)
 				if err != nil {
 					return nil, err
 				}

@@ -120,11 +120,11 @@ func (s *DataService) executeSQL(sqlStatement string) (*QueryResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	es, err := sqlparser.NewExecutableStatement(s.catalogDir, queryTree)
+	es, err := sqlparser.NewExecutableStatement(queryTree)
 	if err != nil {
 		return nil, err
 	}
-	cs, err := es.Materialize()
+	cs, err := es.Materialize(s.catalogDir)
 	if err != nil {
 		return nil, err
 	}
