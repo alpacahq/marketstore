@@ -113,7 +113,7 @@ func NewCorporateActions(symbol string) *Actions {
 }
 
 func (act *Actions) Load(catalogDir *catalog.Directory) error {
-	if executor.ThisInstance == nil || catalogDir == nil {
+	if catalogDir == nil {
 		return nil
 	}
 	query := planner.NewQuery(catalogDir)

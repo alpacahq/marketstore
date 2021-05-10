@@ -72,10 +72,10 @@ func fire(trig trigger.Trigger, key string, records []trigger.Record) {
 
 // FinishAndWait closes the writtenIndexes channel, and waits
 // for the remaining triggers to fire, returning
-func FinishAndWait() {
+func FinishAndWait(txnPipe *TransactionPipe) {
 	triggerWg.Wait()
 	for {
-		if len(ThisInstance.TXNPipe.writeChannel) == 0 && len(c) == 0 {
+		if len(txnPipe.writeChannel) == 0 && len(c) == 0 {
 			close(c)
 			<-done
 			return

@@ -890,16 +890,16 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 // The function blocks if there are no current queued flushes, and
 // returns if there is already one queued which will handle the data
 // present in the write channel, as it will flush as soon as possible.
-func (wf *WALFileType) RequestFlush() {
+func (wf *WALFileType) RequestFlush(txnPipe *TransactionPipe) {
 	if !haveWALWriter {
-		wf.FlushToWAL(ThisInstance.TXNPipe)
+		wf.FlushToWAL(txnPipe)
 		return
 	}
 	// if there's already a queued flush, no need to queue another
-	if len(ThisInstance.TXNPipe.flushChannel) > 0 {
+	if len(txnPipe.flushChannel) > 0 {
 		return
 	}
 	f := make(chan struct{})
-	ThisInstance.TXNPipe.flushChannel <- f
+	txnPipe.flushChannel <- f
 	<-f
 }
