@@ -15,14 +15,11 @@ type ExecutableStatement struct {
 	BaseSQLQueryTreeVisitor
 	nodeCursor                 *ExecutableStatement
 	pendingSP                  *StaticPredicate
-	CatalogDirectory           *catalog.Directory
 }
 
-func NewExecutableStatement(catDir *catalog.Directory, qtree ...IMSTree,
+func NewExecutableStatement(qtree ...IMSTree,
 ) (es *ExecutableStatement, err error) {
-	es = &ExecutableStatement{
-		CatalogDirectory:           catDir,
-	}
+	es = &ExecutableStatement{}
 	es.nodeCursor = es
 	if len(qtree) > 0 {
 		i_err := es.Visit(qtree[0])
@@ -41,23 +38,23 @@ func (es *ExecutableStatement) GetPendingStaticPredicateGroup() (spg StaticPredi
 	}
 }
 
-func (es *ExecutableStatement) Materialize() (cs *io.ColumnSeries, err error) {
+func (es *ExecutableStatement) Materialize(catDir *catalog.Directory) (cs *io.ColumnSeries, err error) {
 	var child_cs *io.ColumnSeries
 	if es.GetChildCount() != 0 {
 		node := es.GetChild(0)
 		switch ctx := node.(type) {
 		case *ExecutableStatement:
 			//fmt.Println("Materialize Executable Statement")
-			child_cs, err = ctx.Materialize()
+			child_cs, err = ctx.Materialize(catDir)
 		case *SelectRelation:
 			//fmt.Println("Materialize Select Relation")
-			child_cs, err = ctx.Materialize()
+			child_cs, err = ctx.Materialize(catDir)
 		case *ExplainStatement:
 			//fmt.Println("Materialize Explain Statement")
 			child_cs, err = ctx.Materialize()
 		case *InsertIntoStatement:
 			//fmt.Println("Materialize InsertInto Statement")
-			child_cs, err = ctx.Materialize()
+			child_cs, err = ctx.Materialize(catDir)
 		}
 		if err != nil {
 			return nil, err
@@ -67,7 +64,7 @@ func (es *ExecutableStatement) Materialize() (cs *io.ColumnSeries, err error) {
 		switch ctx := es.nodeCursor.payload.(type) {
 		case *SelectRelation:
 			//			fmt.Println("Materialize Select Relation Statement (no children)")
-			cs, err = ctx.Materialize()
+			cs, err = ctx.Materialize(catDir)
 			return cs, err
 		default:
 			//			fmt.Println("Materialize Default (nil)")
@@ -105,7 +102,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 		es.AddChild(NewExplainStatement(context, ctx.QueryText))
 	case INSERT_INTO_STMT:
 		var err error
-		es.nodeCursor, err = NewExecutableStatement(es.CatalogDirectory, ctx.query)
+		es.nodeCursor, err = NewExecutableStatement(ctx.query)
 		if err != nil {
 			return fmt.Errorf("Unable to create executable query")
 		}
@@ -126,9 +123,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 				columnAliases = append(columnAliases, cctx.name)
 			}
 		}
-		is := NewInsertIntoStatement(i_tableName.(string), ctx.QueryText, sr,
-			es.CatalogDirectory,
-		)
+		is := NewInsertIntoStatement(i_tableName.(string), ctx.QueryText, sr)
 		is.TableName = i_tableName.(string)
 		is.ColumnAliases = columnAliases
 
@@ -180,7 +175,7 @@ func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) inte
 		return fmt.Errorf("Unsupported statement type: %s", "Query with ORDER BY")
 	}
 
-	sr := NewSelectRelation(es.CatalogDirectory)
+	sr := NewSelectRelation()
 	sr.Limit = ctx.limit
 
 	es.nodeCursor.payload = sr // For retrieval of the dynamic type later
@@ -203,7 +198,7 @@ func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) in
 	if ctx.subquery != nil {
 		//fmt.Println("Visit Query Primary subquery")
 		sr.IsPrimary = false
-		node, err := NewExecutableStatement(es.CatalogDirectory, ctx.subquery)
+		node, err := NewExecutableStatement(ctx.subquery)
 		if err != nil {
 			return err
 		}
@@ -390,7 +385,7 @@ func (es *ExecutableStatement) VisitRelationPrimaryParse(ctx *RelationPrimaryPar
 			}
 		*/
 		if sr, ok := es.payload.(*SelectRelation); ok {
-			newNode, _ := NewExecutableStatement(es.CatalogDirectory)
+			newNode, _ := NewExecutableStatement()
 			retval := QueryWalk(newNode, ctx.GetChild(0).(*QueryParse))
 			if err, ok := retval.(error); ok {
 				return err

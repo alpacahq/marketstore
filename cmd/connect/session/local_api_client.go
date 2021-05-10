@@ -112,11 +112,11 @@ func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error){
 	if err != nil {
 		return nil, err
 	}
-	es, err := sqlparser.NewExecutableStatement(lc.catalogDir, queryTree)
+	es, err := sqlparser.NewExecutableStatement(queryTree)
 	if err != nil {
 		return nil, err
 	}
-	cs, err = es.Materialize()
+	cs, err = es.Materialize(lc.catalogDir)
 	if err != nil {
 		return nil, err
 	}
