@@ -62,7 +62,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	// init QuotesRangeWriter to backfill daily chart data every day
 	if config.Backfill.Enabled {
 		bf := feed.NewBackfill(sm, apiClient, msqw, msqrw, time.Time(config.Backfill.Since))
-		bf.Update()
 		timer.RunEveryDayAt(ctx, config.UpdatingHour, bf.Update)
 		log.Info("backfilled daily chart in the target exchanges")
 	}
@@ -74,7 +73,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 			Timezone:          utils.InstanceConfig.Timezone,
 		}
 		rbf := feed.NewRecentBackfill(sm, timeChecker, apiClient, msbw, config.RecentBackfill.Days)
-		rbf.Update()
 		timer.RunEveryDayAt(ctx, config.UpdatingHour, rbf.Update)
 	}
 
