@@ -21,6 +21,10 @@ import (
 	"github.com/klauspost/compress/snappy"
 )
 
+
+// Writer is produced that complies with the parsed query results, including a possible date
+// range restriction.  If there is a date range restriction, the write() routine should produce
+// an error when an out-of-bounds write is tried.
 type Writer struct {
 	root *catalog.Directory
 	tgc  *TransactionPipe
@@ -29,11 +33,6 @@ type Writer struct {
 
 func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog.Directory, walFile *WALFileType,
 ) (*Writer, error) {
-	/*
-		A writer is produced that complies with the parsed query results, including a possible date
-		range restriction.  If there is a date range restriction, the write() routine should produce
-		an error when an out-of-bounds write is tried.
-	*/
 	// Check to ensure there is a valid WALFile for this instance before writing
 	if walFile == nil {
 		err := fmt.Errorf("there is not an active WALFile for this instance, so cannot write")
@@ -47,7 +46,7 @@ func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog
 	}, nil
 }
 
-func (w *Writer) AddNewYearFile(year int16) (err error) {
+func (w *Writer) addNewYearFile(year int16) (err error) {
 	newTbi, err := w.root.GetSubDirectoryAndAddFile(w.tbi.Path, year)
 	if err != nil {
 		return err
@@ -107,7 +106,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		t := ts[i]
 		year := int16(t.Year())
 		if year != w.tbi.Year {
-			if err := w.AddNewYearFile(year); err != nil {
+			if err := w.addNewYearFile(year); err != nil {
 				panic(err)
 			}
 			wkp = FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path)

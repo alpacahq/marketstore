@@ -30,7 +30,11 @@ func (s *TestSuite) SetUpSuite(c *C) {
 	//	s.Rootdir = "/tmp/LALTest"
 	//	os.Mkdir(s.Rootdir, 0770)
 	MakeDummyCurrencyDir(s.Rootdir, false, false)
-	s.DataDirectory = NewDirectory(s.Rootdir)
+	var err error
+	s.DataDirectory, err = NewDirectory(s.Rootdir)
+	if err != nil {
+		c.Fatal("failed to create a catalog dir.err=" + err.Error())
+	}
 }
 
 func (s *TestSuite) TearDownSuite(c *C) {
@@ -104,7 +108,11 @@ func (s *TestSuite) TestPathToFileInfo(c *C) {
 	c.Assert(fileInfo.Path, Equals, mypath)
 }
 func (s *TestSuite) TestAddFile(c *C) {
-	d := NewDirectory(s.Rootdir)
+	d,err := NewDirectory(s.Rootdir)
+	if err != nil {
+		c.Fatal("failed to create a catalog dir.err="+err.Error())
+		return
+	}
 	// Get the owning subdirectory for a test file path
 	filePathList := d.gatherFilePaths()
 	filePath := filePathList[0]
@@ -130,7 +138,12 @@ func (s *TestSuite) TestAddFile(c *C) {
 }
 
 func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
-	d := NewDirectory(s.Rootdir)
+	d,err := NewDirectory(s.Rootdir)
+	if err != nil {
+		c.Fatal("failed to create a catalog dir.err="+err.Error())
+		return
+	}
+
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"
 	dataItemPath := filepath.Join(s.Rootdir, dataItemKey)
@@ -142,7 +155,7 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 		dsv, io.FIXED)
 
 	tbk := io.NewTimeBucketKey(dataItemKey, catKey)
-	err := d.AddTimeBucket(tbk, tbinfo)
+	err = d.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, Equals, nil)
 	catList := d.GatherCategoriesAndItems()
 	_, ok := catList["Symbol"]["TEST"]
@@ -180,7 +193,10 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 		Test using an empty root directory
 	*/
 	rootDir := c.MkDir()
-	d = NewDirectory(rootDir)
+	d,err = NewDirectory(rootDir)
+	if err != nil {
+		fmt.Println("failed to create a catalog dir.err="+err.Error())
+	}
 
 	dataItemPath = filepath.Join(rootDir, dataItemKey)
 	dsv = io.NewDataShapeVector(
@@ -263,7 +279,11 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 func (s *TestSuite) TestCreateNewDirectory(c *C) {
 	newRootDir := c.MkDir()
 
-	d := NewDirectory(newRootDir)
+	d,err := NewDirectory(newRootDir)
+	if err != nil {
+		fmt.Println("failed to create a catalog dir.err="+err.Error())
+		// continue
+	}
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -276,7 +296,7 @@ func (s *TestSuite) TestCreateNewDirectory(c *C) {
 		dsv, io.FIXED)
 
 	tbk := io.NewTimeBucketKey(dataItemKey, catKey)
-	err := d.AddTimeBucket(tbk, tbinfo)
+	err = d.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err, Equals, nil)
 	catList := d.GatherCategoriesAndItems()
 	_, ok := catList["Symbol"]["TEST"]

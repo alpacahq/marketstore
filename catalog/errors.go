@@ -52,3 +52,13 @@ func errReport(base string, msg string) string {
 	base = io.GetCallerFileContext(2) + ":" + base
 	return fmt.Sprintf(base, msg)
 }
+
+// ErrCategoryFileNotFound is used when "category_name" file under each data directory is not found.
+type ErrCategoryFileNotFound struct {
+	filePath string
+	msg string
+}
+
+func (e *ErrCategoryFileNotFound) Error() string {
+	return "Could not find a category_name file under:" + e.filePath +", msg="+ e.msg
+}

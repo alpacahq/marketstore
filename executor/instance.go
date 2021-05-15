@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -64,7 +65,15 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 
 	// Initialize a global catalog
 	if initCatalog {
-		ThisInstance.CatalogDir = catalog.NewDirectory(rootDir)
+		ThisInstance.CatalogDir, err = catalog.NewDirectory(rootDir)
+		if err != nil {
+			var e *catalog.ErrCategoryFileNotFound
+			if errors.As(err, &e) {
+				log.Debug("new root directory found:" + rootDir)
+			} else {
+				log.Fatal("Could not create a catalog directory: %s.", err.Error())
+			}
+		}
 	}
 
 	shutdownPend := false
