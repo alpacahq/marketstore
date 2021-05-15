@@ -187,7 +187,10 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	*/
 	childNodeName := datakeySplit[0]
 	childNodePath := filepath.Join(dRoot.GetPath(), childNodeName)
-	childDirectory, _ := NewDirectory(childNodePath)
+	childDirectory, err := NewDirectory(childNodePath)
+	if err != nil {
+		return err
+	}
 	dRoot.addSubdir(childDirectory, childNodeName)
 	return nil
 }

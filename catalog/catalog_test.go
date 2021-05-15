@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"testing"
@@ -108,9 +109,9 @@ func (s *TestSuite) TestPathToFileInfo(c *C) {
 	c.Assert(fileInfo.Path, Equals, mypath)
 }
 func (s *TestSuite) TestAddFile(c *C) {
-	d,err := NewDirectory(s.Rootdir)
+	d, err := NewDirectory(s.Rootdir)
 	if err != nil {
-		c.Fatal("failed to create a catalog dir.err="+err.Error())
+		c.Fatal("failed to create a catalog dir.err=" + err.Error())
 		return
 	}
 	// Get the owning subdirectory for a test file path
@@ -138,9 +139,9 @@ func (s *TestSuite) TestAddFile(c *C) {
 }
 
 func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
-	d,err := NewDirectory(s.Rootdir)
+	d, err := NewDirectory(s.Rootdir)
 	if err != nil {
-		c.Fatal("failed to create a catalog dir.err="+err.Error())
+		c.Fatal("failed to create a catalog dir.err=" + err.Error())
 		return
 	}
 
@@ -193,9 +194,11 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 		Test using an empty root directory
 	*/
 	rootDir := c.MkDir()
-	d,err = NewDirectory(rootDir)
-	if err != nil {
-		fmt.Println("failed to create a catalog dir.err="+err.Error())
+	d, err = NewDirectory(rootDir)
+	var e *ErrCategoryFileNotFound
+	if err != nil && !errors.As(err, &e) {
+		c.Fatal("failed to create a catalog dir.err=" + err.Error())
+		return
 	}
 
 	dataItemPath = filepath.Join(rootDir, dataItemKey)
@@ -279,10 +282,11 @@ func (s *TestSuite) TestAddAndRemoveDataItem(c *C) {
 func (s *TestSuite) TestCreateNewDirectory(c *C) {
 	newRootDir := c.MkDir()
 
-	d,err := NewDirectory(newRootDir)
-	if err != nil {
-		fmt.Println("failed to create a catalog dir.err="+err.Error())
-		// continue
+	d, err := NewDirectory(newRootDir)
+	var e *ErrCategoryFileNotFound
+	if err != nil && !errors.As(err, &e) {
+		c.Fatal("failed to create a catalog dir.err=" + err.Error())
+		return
 	}
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
