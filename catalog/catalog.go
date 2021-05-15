@@ -13,8 +13,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-type DMap map[string]*Directory              // General purpose map for storing directories
-type LevelFunc func(*Directory, interface{}) // Function for use in recursing into directories
+type dMap map[string]*Directory              // General purpose map for storing directories
+type levelFunc func(*Directory, interface{}) // Function for use in recursing into directories
 
 type Directory struct {
 	sync.RWMutex
@@ -23,7 +23,7 @@ type Directory struct {
 		itemName: instance of the category, e.g. itemName: "AAPL", category: "Symbol"
 		pathToItemName: directory path to this item, e.g. pathToItemName: "/project/data", itemName: "AAPL"
 	*/
-	directMap, subDirs DMap
+	directMap, subDirs dMap
 	/*
 		directMap[Key]: Key is the directory path, including the rootPath and excluding filename
 		subDirs[Key]: Key is the name of the directory, aka "ItemName" which is an instance of the category
@@ -35,13 +35,72 @@ type Directory struct {
 	*/
 }
 
-func NewDirectory(rootpath string) *Directory {
+// NewDirectory scans files under the rootPath and return a new Directory struct.
+// - returns ErrCategoryFileNotFound when "category_name" file is not found under each subdirectory,
+// - returns an error in other unexpected cases.
+func NewDirectory(rootPath string) (*Directory, error) {
 	d := &Directory{
 		// Directmap will point to each directory node using a composite key
-		directMap: make(DMap),
+		directMap: make(dMap),
 	}
-	d.load(rootpath)
-	return d
+
+	// Load is single thread compatible - no concurrent access is anticipated
+	rootDmap := d.directMap
+	err := load(rootDmap, d, rootPath, rootPath)
+
+	return d, err
+}
+
+func load(rootDmap dMap, d *Directory, subPath, rootPath string) error {
+	relPath, _ := filepath.Rel(rootPath, subPath)
+	d.itemName = filepath.Base(relPath)
+	d.pathToItemName = filepath.Clean(subPath)
+	// Read the category name for the child directory items
+	catFilePath := subPath + "/" + "category_name"
+	catname, err := ioutil.ReadFile(catFilePath)
+	if err != nil {
+		return &ErrCategoryFileNotFound{filePath: catFilePath, msg: io.GetCallerFileContext(0) + err.Error()}
+	}
+	d.category = string(catname)
+
+	// Load up the child directories
+	d.subDirs = make(dMap)
+	dirlist, err := ioutil.ReadDir(subPath)
+	for _, dirname := range dirlist {
+		leafPath := path.Clean(subPath + "/" + dirname.Name())
+		if dirname.IsDir() && dirname.Name() != "metadata.db" {
+			itemName := dirname.Name()
+			d.subDirs[itemName] = new(Directory)
+			d.subDirs[itemName].itemName = itemName
+			d.subDirs[itemName].pathToItemName = subPath
+			d.datafile = nil
+			if err := load(rootDmap, d.subDirs[itemName], leafPath, rootPath); err != nil {
+				return fmt.Errorf(io.GetCallerFileContext(0) + ", " + err.Error())
+			}
+		} else if filepath.Ext(leafPath) == ".bin" {
+			rootDmap[d.pathToItemName] = d
+			if d.datafile == nil {
+				d.datafile = make(map[string]*io.TimeBucketInfo)
+			}
+			// Mark this as a pending Fileinfo reference
+			d.datafile[leafPath] = new(io.TimeBucketInfo)
+			d.datafile[leafPath].IsRead = false
+			d.datafile[leafPath].Path = leafPath
+			yearFileBase := filepath.Base(leafPath)
+			yearString := yearFileBase[:len(yearFileBase)-4]
+			yearInt, err := strconv.Atoi(yearString)
+			if err != nil {
+				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+			}
+			d.datafile[leafPath].Year = int16(yearInt)
+			/*
+				if d.datafile[leafPath], err = ReadHeader(leafPath); err != nil {
+					return err
+				}
+			*/
+		}
+	}
+	return nil
 }
 
 func fileExists(path string) bool {
@@ -128,7 +187,10 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	*/
 	childNodeName := datakeySplit[0]
 	childNodePath := filepath.Join(dRoot.GetPath(), childNodeName)
-	childDirectory := NewDirectory(childNodePath)
+	childDirectory, err := NewDirectory(childNodePath)
+	if err != nil {
+		return err
+	}
 	dRoot.addSubdir(childDirectory, childNodeName)
 	return nil
 }
@@ -564,7 +626,7 @@ func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	subDir.itemName = subDirItemName
 	d.catList = nil // Reset the category list
 	if d.subDirs == nil {
-		d.subDirs = make(DMap)
+		d.subDirs = make(dMap)
 	}
 	d.subDirs[subDirItemName] = subDir
 	for key, val := range subDir.directMap {
@@ -572,7 +634,7 @@ func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	}
 	subDir.directMap = nil
 }
-func (d *Directory) removeSubDir(subDirItemName string, directMap DMap) {
+func (d *Directory) removeSubDir(subDirItemName string, directMap dMap) {
 	d.Lock()
 	defer d.Unlock()
 	if _, ok := d.subDirs[subDirItemName]; ok {
@@ -586,7 +648,7 @@ func (d *Directory) removeSubDir(subDirItemName string, directMap DMap) {
 	}
 }
 
-func (d *Directory) recurse(elem interface{}, levelFunc LevelFunc) {
+func (d *Directory) recurse(elem interface{}, levelFunc levelFunc) {
 	// Must be thread-safe for READ access
 	// Recurse will recurse through a directory, calling levelfunc. Elem is used to pass along a variable.
 	d.RLock()
@@ -597,64 +659,6 @@ func (d *Directory) recurse(elem interface{}, levelFunc LevelFunc) {
 			pd.recurse(elem, levelFunc)
 		}
 	}
-}
-
-func (d *Directory) load(rootPath string) error {
-	// Load is single thread compatible - no concurrent access is anticipated
-	rootDmap := d.directMap
-	var loader func(d *Directory, subPath, rootPath string) error
-	loader = func(d *Directory, subPath, rootPath string) error {
-		relPath, _ := filepath.Rel(rootPath, subPath)
-		d.itemName = filepath.Base(relPath)
-		d.pathToItemName = filepath.Clean(subPath)
-		// Read the category name for the child directory items
-		catFilePath := subPath + "/" + "category_name"
-		catname, err := ioutil.ReadFile(catFilePath)
-		if err != nil {
-			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-		}
-		d.category = string(catname)
-
-		// Load up the child directories
-		d.subDirs = make(DMap)
-		dirlist, err := ioutil.ReadDir(subPath)
-		for _, dirname := range dirlist {
-			leafPath := path.Clean(subPath + "/" + dirname.Name())
-			if dirname.IsDir() && dirname.Name() != "metadata.db" {
-				itemName := dirname.Name()
-				d.subDirs[itemName] = new(Directory)
-				d.subDirs[itemName].itemName = itemName
-				d.subDirs[itemName].pathToItemName = subPath
-				d.datafile = nil
-				if err := loader(d.subDirs[itemName], leafPath, rootPath); err != nil {
-					return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-				}
-			} else if filepath.Ext(leafPath) == ".bin" {
-				rootDmap[d.pathToItemName] = d
-				if d.datafile == nil {
-					d.datafile = make(map[string]*io.TimeBucketInfo)
-				}
-				// Mark this as a pending Fileinfo reference
-				d.datafile[leafPath] = new(io.TimeBucketInfo)
-				d.datafile[leafPath].IsRead = false
-				d.datafile[leafPath].Path = leafPath
-				yearFileBase := filepath.Base(leafPath)
-				yearString := yearFileBase[:len(yearFileBase)-4]
-				yearInt, err := strconv.Atoi(yearString)
-				if err != nil {
-					return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
-				}
-				d.datafile[leafPath].Year = int16(yearInt)
-				/*
-					if d.datafile[leafPath], err = ReadHeader(leafPath); err != nil {
-						return err
-					}
-				*/
-			}
-		}
-		return nil
-	}
-	return loader(d, rootPath, rootPath)
 }
 
 func removeDirFiles(td *Directory) {

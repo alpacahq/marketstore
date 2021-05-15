@@ -23,7 +23,12 @@ var _ = Suite(&TestSuite{nil, ""})
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	MakeDummyCurrencyDir(s.Rootdir, false, false)
-	s.DataDirectory = NewDirectory(s.Rootdir)
+	var err error
+	s.DataDirectory, err = NewDirectory(s.Rootdir)
+	if err != nil {
+		c.Fatal("failed to create a catalog directory. err=" + err.Error())
+		return
+	}
 }
 
 func (s *TestSuite) TearDownSuite(c *C) {

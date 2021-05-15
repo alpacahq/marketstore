@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"math"
 	"os"
@@ -87,11 +88,22 @@ func (s *TestSuite) TestAddDir(c *C) {
 	rt := EnumRecordTypeByName("variable")
 
 	rootDir := c.MkDir()
-	catDir := NewDirectory(rootDir)
+	catDir, err := NewDirectory(rootDir)
+	var e *ErrCategoryFileNotFound
+	if err != nil && !errors.As(err, &e) {
+		c.Fatal("failed to create a catalog dir.err=" + err.Error())
+		return
+	}
+
 	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, rt)
 	err = catDir.AddTimeBucket(tbk, tbinfo)
 	c.Assert(err == nil, Equals, true)
-	catDir = NewDirectory(rootDir)
+	catDir, err = NewDirectory(rootDir)
+	if err != nil {
+		c.Fatal("failed to create a catalog dir.err=" + err.Error())
+		return
+	}
+
 	c.Assert(catDir.GetCategory(), Equals, "Symbol")
 }
 
