@@ -148,5 +148,5 @@ func createTickBucket(symbol, rootDir string, catalogDir *Directory, txnPipe *ex
 		buffer, _ := io.Serialize([]byte{}, row)
 		w.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
-	wf.RequestFlush()
+	wf.RequestFlush(txnPipe)
 }

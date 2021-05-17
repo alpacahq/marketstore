@@ -122,7 +122,7 @@ func (is *InsertIntoStatement) Materialize(catDir *catalog.Directory) (outputCol
 	}
 
 	writer.WriteRecords(indexTime, data, targetDSV)
-	wal.RequestFlush()
+	wal.RequestFlush(tgc)
 
 	outputColumnSeries = io.NewColumnSeries()
 	outputColumnSeries.AddColumn("Epoch",

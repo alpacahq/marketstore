@@ -284,6 +284,9 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	start := time.Now()
 	cDir := ThisInstance.CatalogDir
+	txnPipe := ThisInstance.TXNPipe
+	walfile := ThisInstance.WALFile
+
 	for tbk, cs := range csm {
 		tf, err := tbk.GetTimeFrame()
 		if err != nil {
@@ -365,7 +368,7 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Create a writer for this TimeBucket
 		*/
-		w, err := NewWriter(tbi, ThisInstance.TXNPipe, cDir, ThisInstance.WALFile)
+		w, err := NewWriter(tbi, txnPipe, cDir, walfile)
 		if err != nil {
 			return err
 		}
@@ -373,8 +376,7 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		rowData := cs.ToRowSeries(tbk, alignData).GetData()
 		w.WriteRecords(times, rowData, dbDSV)
 	}
-	walfile := ThisInstance.WALFile
-	walfile.RequestFlush()
+	walfile.RequestFlush(txnPipe)
 	metrics.WriteCSMDuration.Observe(time.Since(start).Seconds())
 	return nil
 }

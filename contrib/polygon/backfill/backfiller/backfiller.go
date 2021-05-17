@@ -72,7 +72,7 @@ func init() {
 
 func main() {
 	rootDir, triggers, walRotateInterval := initConfig()
-	_, shutdownPending, walWG := initWriter(rootDir, triggers, walRotateInterval)
+	metadata, shutdownPending, walWG := initWriter(rootDir, triggers, walRotateInterval)
 
 	// free memory in the background every 1 minute for long running backfills with very high parallelism
 	go func() {
@@ -237,7 +237,7 @@ func main() {
 		*shutdownPending = true
 	}
 	walWG.Wait()
-	executor.FinishAndWait()
+	executor.FinishAndWait(metadata.TXNPipe)
 
 	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
