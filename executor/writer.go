@@ -22,9 +22,10 @@ import (
 )
 
 type Writer struct {
-	root *catalog.Directory
-	tgc  *TransactionPipe
-	tbi  *io.TimeBucketInfo
+	root    *catalog.Directory
+	tgc     *TransactionPipe
+	tbi     *io.TimeBucketInfo
+	walFile *WALFileType
 }
 
 func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog.Directory, walFile *WALFileType,
@@ -41,9 +42,10 @@ func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog
 		return nil, err
 	}
 	return &Writer{
-		root: rootCatDir,
-		tgc:  tgc,
-		tbi:  tbi,
+		root:    rootCatDir,
+		tgc:     tgc,
+		tbi:     tbi,
+		walFile: walFile,
 	}, nil
 }
 
@@ -98,7 +100,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		rowLen    = len(data) / numRows
 	)
 
-	wkp := FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path)
+	wkp := FullPathToWALKey(w.walFile.RootPath, w.tbi.Path)
 	vrl := w.tbi.GetVariableRecordLength()
 	rt := w.tbi.GetRecordType()
 	for i := 0; i < numRows; i++ {
@@ -110,7 +112,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			if err := w.AddNewYearFile(year); err != nil {
 				panic(err)
 			}
-			wkp = FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path)
+			wkp = FullPathToWALKey(w.walFile.RootPath, w.tbi.Path)
 		}
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
@@ -152,7 +154,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
 			cc = &wal.WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
-				WALKeyPath: FullPathToWALKey(ThisInstance.WALFile.RootPath, w.tbi.Path),
+				WALKeyPath: FullPathToWALKey(w.walFile.RootPath, w.tbi.Path),
 				VarRecLen:  int(w.tbi.GetVariableRecordLength()),
 				Offset:     offset,
 				Index:      index,
@@ -283,8 +285,11 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 }
 
 func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
-	start := time.Now()
+	walfile := ThisInstance.WALFile
+	txnPipe := ThisInstance.TXNPipe
 	cDir := ThisInstance.CatalogDir
+
+	start := time.Now()
 	for tbk, cs := range csm {
 		tf, err := tbk.GetTimeFrame()
 		if err != nil {
@@ -366,7 +371,7 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Create a writer for this TimeBucket
 		*/
-		w, err := NewWriter(tbi, ThisInstance.TXNPipe, cDir, ThisInstance.WALFile)
+		w, err := NewWriter(tbi, txnPipe, cDir, walfile)
 		if err != nil {
 			return err
 		}
@@ -374,7 +379,6 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		rowData := cs.ToRowSeries(tbk, alignData).GetData()
 		w.WriteRecords(times, rowData, dbDSV)
 	}
-	walfile := ThisInstance.WALFile
 	walfile.RequestFlush()
 	metrics.WriteCSMDuration.Observe(time.Since(start).Seconds())
 	return nil
