@@ -21,7 +21,6 @@ import (
 	"github.com/klauspost/compress/snappy"
 )
 
-
 // Writer is produced that complies with the parsed query results, including a possible date
 // range restriction.  If there is a date range restriction, the write() routine should produce
 // an error when an out-of-bounds write is tried.
@@ -72,7 +71,7 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 	*/
 	var outBuf []byte
 	outBuf = append(buf, row...)
-	outBuf = AppendIntervalTicks(outBuf, t, index, intervalsPerDay)
+	outBuf = appendIntervalTicks(outBuf, t, index, intervalsPerDay)
 	return outBuf
 
 }
@@ -82,13 +81,13 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 // The caller should assume that by calling WriteRecords directly, the data will be written
 // to the file regardless if it satisfies the on-disk data shape, possible corrupting
 // the data files. It is recommended to call WriteCSM() for any writes as it is safer.
-func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape) {
+func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape) error {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
 	numRows := len(ts)
 	if numRows == 0 {
-		return
+		return nil
 	}
 
 	var (
@@ -109,7 +108,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		year := int16(t.Year())
 		if year != w.tbi.Year {
 			if err := w.addNewYearFile(year); err != nil {
-				panic(err)
+				return fmt.Errorf("add new year file. path=%s, err: %w", w.tbi.Path, err)
 			}
 			wkp = FullPathToWALKey(w.walFile.RootPath, w.tbi.Path)
 		}
@@ -165,9 +164,11 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 
 	// output to WAL
 	w.tgc.writeChannel <- cc
+
+	return nil
 }
 
-func AppendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
+func appendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
 	iticks := GetIntervalTicks32Bit(t, index, intervalsPerDay)
 	postdata, _ := Serialize([]byte{}, iticks)
 	outBuf = append(buf, postdata...)
