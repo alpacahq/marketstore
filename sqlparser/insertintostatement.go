@@ -15,6 +15,8 @@ type InsertIntoStatement struct {
 	SelectRelation *SelectRelation
 	QueryText      string
 	TableName      string
+	// ColumnAliases are the names of the columns to insert data.
+	// e.g. INSERT INTO foo (a, b, c) SELECT * FROM bar; -> ["a", "b", "c"] are the column aliases.
 	ColumnAliases  []string
 }
 
@@ -27,7 +29,8 @@ func NewInsertIntoStatement(tableName, queryText string, selectRelation *SelectR
 }
 
 func (is *InsertIntoStatement) Materialize(catDir *catalog.Directory) (outputColumnSeries *io.ColumnSeries, err error) {
-	// Call Materialize on any child relations
+	// Call Materialize on any child relations.
+	// inputColumnSeries includes Epoch column
 	inputColumnSeries, err := is.SelectRelation.Materialize(catDir)
 	if err != nil {
 		return nil, err
@@ -65,8 +68,6 @@ func (is *InsertIntoStatement) Materialize(catDir *catalog.Directory) (outputCol
 	if is.ColumnAliases != nil {
 		targetColumnNames = is.ColumnAliases
 	} else {
-		// Add the Epoch column name
-		targetColumnNames = append(targetColumnNames, "Epoch")
 		for _, shape := range targetDSV {
 			targetColumnNames = append(
 				targetColumnNames,
@@ -96,33 +97,22 @@ func (is *InsertIntoStatement) Materialize(catDir *catalog.Directory) (outputCol
 	}
 
 	// Get the time with nanoseconds included if available, prior to projection
-	indexTime, err := inputColumnSeries.GetTime()
+	//indexTime, err := inputColumnSeries.GetTime()
 
 	// Columns are matched - Now project out all but the target column names
 	inputColumnSeries.Project(targetColumnNames)
+
 	/*
 		Write the data
 	*/
-	tgc := executor.ThisInstance.TXNPipe
-	wal := executor.ThisInstance.WALFile
-	tbi, err := catDir.GetLatestTimeBucketInfoFromKey(targetMK)
-	if err != nil {
-		return nil, err
-	}
-	writer, err := executor.NewWriter(tbi, tgc, catDir, wal)
-	if err != nil {
-		return nil, err
-	}
-	/*
-		Serialize the Column Series for writing, with the targetDSV controlling projections and coercion
-	*/
-	data, _ := io.SerializeColumnsToRows(inputColumnSeries, targetDSV, true)
-	if data == nil {
-		return nil, fmt.Errorf("Unable to pre-process data for insertion")
-	}
+	isVariableLength := inputColumnSeries.GetColumn("Nanoseconds") != nil
 
-	writer.WriteRecords(indexTime, data, targetDSV)
-	wal.RequestFlush()
+	csm := io.NewColumnSeriesMap()
+	csm.AddColumnSeries(*targetMK, inputColumnSeries)
+	if err = executor.WriteCSM(csm, isVariableLength); err != nil{
+		return nil, err
+	}
+	// --------
 
 	outputColumnSeries = io.NewColumnSeries()
 	outputColumnSeries.AddColumn("Epoch",
