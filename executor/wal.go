@@ -31,14 +31,14 @@ type WALFileType struct {
 	ReplayState      wal.ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath                   string            // Path to the root directory, base of FileName
-	FilePath                   string            // WAL file full path
-	lastCommittedTGID          int64             // TGID to be checkpointed
-	FilePtr                    *os.File          // Active file pointer to FileName
-	ReplicationSender          ReplicationSender // send messages to replica servers
-	walBypass                  bool
-	shutdownPending            *bool
-	walWaitGroup               *sync.WaitGroup
+	RootPath          string            // Path to the root directory, base of FileName
+	FilePath          string            // WAL file full path
+	lastCommittedTGID int64             // TGID to be checkpointed
+	FilePtr           *os.File          // Active file pointer to FileName
+	ReplicationSender ReplicationSender // send messages to replica servers
+	walBypass         bool
+	shutdownPending   *bool
+	walWaitGroup      *sync.WaitGroup
 }
 
 type ReplicationSender interface {
@@ -58,12 +58,12 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup,
 ) (wf *WALFileType, err error) {
 	wf = &WALFileType{
-		lastCommittedTGID:          0,
-		OwningInstanceID:           owningInstanceID,
-		ReplicationSender:          rs,
-		walBypass:                  walBypass,
-		shutdownPending:            shutdownPending,
-		walWaitGroup:               walWaitGroup,
+		lastCommittedTGID: 0,
+		OwningInstanceID:  owningInstanceID,
+		ReplicationSender: rs,
+		walBypass:         walBypass,
+		shutdownPending:   shutdownPending,
+		walWaitGroup:      walWaitGroup,
 	}
 
 	if err = wf.createFile(rootDir); err != nil {
@@ -784,11 +784,11 @@ func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 	sanityLen := 1000 * fstat.Size()
 	return value < sanityLen
 }
-func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
+func (wf *WALFileType) cleanupOldWALFiles(rootDir string) error {
 	rootDir = filepath.Clean(rootDir)
 	files, err := ioutil.ReadDir(rootDir)
 	if err != nil {
-		log.Fatal("Unable to read root directory %s\n%s", rootDir, err)
+		return fmt.Errorf("Unable to read root directory %s: %w", rootDir, err)
 	}
 	myFileBase := filepath.Base(wf.FilePath)
 	log.Info("My WALFILE: %s", myFileBase)
@@ -806,29 +806,21 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) {
 					} else {
 						w, err := TakeOverWALFile(rootDir, filename)
 						if err != nil {
-							log.Fatal("Opening %s\n%s", filename, err)
+							return fmt.Errorf("opening %s: %w", filename, err)
 						}
 						if err = w.Replay(true); err != nil {
-							log.Fatal("Unable to replay %s\n%s", filename, err)
+							return fmt.Errorf("unable to replay %s: %w", filename, err)
 						}
 
-						w.Delete(wf.OwningInstanceID)
+						if err = w.Delete(wf.OwningInstanceID); err != nil {
+							return err
+						}
 					}
 				}
 			}
 		}
 	}
-}
-
-func StartupCacheAndWAL(rootDir string, owningInstanceID int64, rs ReplicationSender, walBypass bool,
-	shutdownPending *bool, walWG *sync.WaitGroup) (tgc *TransactionPipe, wf *WALFileType, err error) {
-	wf, err = NewWALFile(rootDir, owningInstanceID, rs, walBypass, shutdownPending, walWG)
-	if err != nil {
-		log.Error("%s", err.Error())
-		return nil, nil, err
-	}
-	wf.cleanupOldWALFiles(rootDir)
-	return NewTransactionPipe(), wf, nil
+	return nil
 }
 
 var haveWALWriter = false

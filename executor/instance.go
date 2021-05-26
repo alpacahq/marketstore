@@ -1,11 +1,12 @@
 package executor
 
 import (
-	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
@@ -79,20 +80,20 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 	shutdownPend := false
 	walWG = &sync.WaitGroup{}
 	if initWALCache {
-		// Allocate a new WALFile and cache
-		if WALBypass {
-			ThisInstance.TXNPipe = NewTransactionPipe()
-			ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, nil, WALBypass,
-				&shutdownPend, walWG,
-			)
-			if err != nil {
-				log.Fatal("Unable to create WAL")
-			}
-		} else {
-			ThisInstance.TXNPipe, ThisInstance.WALFile, err = StartupCacheAndWAL(rootDir, instanceID, rs,
-				WALBypass, &shutdownPend, walWG,
-			)
+		// initialize TransactionPipe
+		ThisInstance.TXNPipe = NewTransactionPipe()
 
+		// initialize WAL File
+		ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, rs,
+			WALBypass, &shutdownPend, walWG,
+		)
+		if err != nil {
+			log.Fatal("Unable to create WAL")
+		}
+
+		// Allocate a new WALFile and cache
+		if !WALBypass {
+			err = ThisInstance.WALFile.cleanupOldWALFiles(rootDir)
 			if err != nil {
 				log.Fatal("Unable to startup Cache and WAL")
 			}

@@ -740,6 +740,7 @@ func (s *DestructiveWALTests) TearDownSuite(c *C) {
 func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
+	txnPipe := executor.NewTransactionPipe()
 	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil,
 		false, s.shutdownPending, &sync.WaitGroup{},
 	)
@@ -747,9 +748,8 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 		fmt.Println(err)
 		c.Fail()
 	}
-	tgc := executor.NewTransactionPipe()
 
-	queryFiles, err := addTGData(s.DataDirectory, tgc, s.WALFile, 1000, false)
+	queryFiles, err := addTGData(s.DataDirectory, txnPipe, s.WALFile, 1000, false)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
@@ -758,7 +758,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
 	originalFileContents := createBufferFromFiles(queryFiles, c)
 
-	err = s.WALFile.FlushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(txnPipe)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -773,13 +773,13 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, true)
 
 	// Add some mixed up data to the cache
-	queryFiles, err = addTGData(s.DataDirectory, tgc, s.WALFile, 200, true)
+	queryFiles, err = addTGData(s.DataDirectory, txnPipe, s.WALFile, 200, true)
 	if err != nil {
 		fmt.Println(err)
 		c.Fail()
 	}
 
-	err = s.WALFile.FlushToWAL(tgc)
+	err = s.WALFile.FlushToWAL(txnPipe)
 	if err != nil {
 		fmt.Println(err)
 	}
