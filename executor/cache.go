@@ -25,18 +25,12 @@ type TransactionPipe struct {
 // NewTransactionPipe creates a new transaction pipe that channels all
 // of the write transactions to the WAL and primary writers
 func NewTransactionPipe() *TransactionPipe {
-	tgc := new(TransactionPipe)
-	// Allocate the write channel with enough depth to allow all conceivable writers concurrent access
-	tgc.writeChannel = make(chan *wal.WriteCommand, WriteChannelCommandDepth)
-	tgc.flushChannel = make(chan chan struct{}, WriteChannelCommandDepth)
-	tgc.newTGID()
-	return tgc
-}
-
-// NewTGID monotonically increases the transaction group ID using
-// the current unix epoch nanosecond timestamp
-func (tgc *TransactionPipe) newTGID() int64 {
-	return atomic.AddInt64(&tgc.tgID, time.Now().UTC().UnixNano()-tgc.tgID)
+	return &TransactionPipe{
+		tgID:         time.Now().UTC().UnixNano(),
+		// Allocate the write channel with enough depth to allow all conceivable writers concurrent access
+		writeChannel: make(chan *wal.WriteCommand, WriteChannelCommandDepth),
+		flushChannel: make(chan chan struct{}, WriteChannelCommandDepth),
+	}
 }
 
 // IncrementTGID increments the transaction group ID and returns the new value
