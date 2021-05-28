@@ -39,6 +39,7 @@ type WALFileType struct {
 	walBypass         bool
 	shutdownPending   *bool
 	walWaitGroup      *sync.WaitGroup
+	tpd               *TriggerPluginDispatcher
 }
 
 type ReplicationSender interface {
@@ -55,7 +56,7 @@ type TransactionGroup struct {
 }
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
-	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup,
+	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
 ) (wf *WALFileType, err error) {
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
@@ -64,6 +65,7 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 		walBypass:         walBypass,
 		shutdownPending:   shutdownPending,
 		walWaitGroup:      walWaitGroup,
+		tpd:               tpd,
 	}
 
 	if err = wf.createFile(rootDir); err != nil {
@@ -209,7 +211,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 }
 
 func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*wal.WriteCommand) (err error) {
-	defer dispatchRecords()
+	defer wf.tpd.dispatchRecords()
 
 	fileRecordTypes := map[string]io.EnumRecordType{}
 	varRecLens := map[string]int{}
@@ -265,7 +267,7 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 			return err
 		}
 		for i, buffer := range writes {
-			appendRecord(keyPath, trigger.Record(buffer.IndexAndPayload()))
+			wf.tpd.appendRecord(keyPath, trigger.Record(buffer.IndexAndPayload()))
 			writes[i] = nil // for GC
 		}
 		writesPerFile[keyPath] = nil // for GC
@@ -894,4 +896,19 @@ func (wf *WALFileType) RequestFlush() {
 	f := make(chan struct{})
 	ThisInstance.TXNPipe.flushChannel <- f
 	<-f
+}
+
+
+// FinishAndWait closes the writtenIndexes channel, and waits
+// for the remaining triggers to fire, returning
+func (wf *WALFileType) FinishAndWait() {
+	wf.tpd.triggerWg.Wait()
+	for {
+		if len(ThisInstance.TXNPipe.writeChannel) == 0 && len(wf.tpd.c) == 0 {
+			close(wf.tpd.c)
+			<-wf.tpd.done
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
 }

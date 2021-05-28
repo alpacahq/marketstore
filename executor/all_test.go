@@ -63,7 +63,7 @@ type DestructiveWALTest2 struct {
 func (s *TestSuite) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
+	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false)
 	s.DataDirectory = metadata.CatalogDir
 	s.WALFile = metadata.WALFile
 }
@@ -727,7 +727,7 @@ func (s *TestSuite) TestWriter(c *C) {
 func (s *DestructiveWALTests) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	instanceConfig, shutdownPending, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
+	instanceConfig, shutdownPending, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false)
 	s.DataDirectory = instanceConfig.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 	s.shutdownPending = shutdownPending
@@ -742,7 +742,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 	mockInstanceID := time.Now().UTC().UnixNano()
 	txnPipe := executor.NewTransactionPipe()
 	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil,
-		false, s.shutdownPending, &sync.WaitGroup{},
+		false, s.shutdownPending, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -867,7 +867,7 @@ func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 func (s *DestructiveWALTest2) SetUpSuite(c *C) {
 	s.Rootdir = c.MkDir()
 	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	instanceConfig, shutdownPending, _ := executor.NewInstanceSetup(s.Rootdir, nil, 5, true, true, false)
+	instanceConfig, shutdownPending, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false)
 	s.DataDirectory = instanceConfig.CatalogDir
 	s.WALFile = executor.ThisInstance.WALFile
 	s.shutdownPending = shutdownPending

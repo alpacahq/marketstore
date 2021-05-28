@@ -240,15 +240,6 @@ func initWriter() {
 	walRotateInterval := 5
 	instanceID := time.Now().UTC().UnixNano()
 	relRootDir := fmt.Sprintf("%v/mktsdb", dir)
-	instanceConfig, _, _ := executor.NewInstanceSetup(
-		relRootDir, nil,
-		walRotateInterval, true, true, true, true)
-
-	log.Info(
-		"Initialized writer with InstanceID: %v - RootDir: %v\n",
-		instanceID,
-		instanceConfig.RootDir,
-	)
 
 	config := map[string]interface{}{
 		"filter":       "nasdaq",
@@ -260,7 +251,17 @@ func initWriter() {
 		log.Fatal(err.Error())
 	}
 
-	instanceConfig.TriggerMatchers = []*trigger.TriggerMatcher{
+	triggerMatchers := []*trigger.TriggerMatcher{
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
+
+	instanceConfig, _, _ := executor.NewInstanceSetup(
+		relRootDir, nil, triggerMatchers,
+		walRotateInterval, true, true, true, true)
+
+	log.Info(
+		"Initialized writer with InstanceID: %v - RootDir: %v\n",
+		instanceID,
+		instanceConfig.RootDir,
+	)
 }

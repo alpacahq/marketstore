@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -17,14 +17,14 @@ var ThisInstance *InstanceMetadata
 
 type InstanceMetadata struct {
 	// RootDir is the absolute path to the data directory
-	RootDir         string
-	CatalogDir      *catalog.Directory
-	TXNPipe         *TransactionPipe
-	WALFile         *WALFileType
-	TriggerMatchers []*trigger.TriggerMatcher
+	RootDir    string
+	CatalogDir *catalog.Directory
+	TXNPipe    *TransactionPipe
+	WALFile    *WALFileType
 }
 
-func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval int, options ...bool,
+func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.TriggerMatcher,
+	walRotateInterval int, options ...bool,
 ) (metadata *InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup) {
 	/*
 		Defaults
@@ -77,6 +77,9 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 		}
 	}
 
+	// read Trigger plugin matchers
+	tpd := NewTriggerPluginDispatcher(tm)
+
 	shutdownPend := false
 	walWG = &sync.WaitGroup{}
 	if initWALCache {
@@ -85,7 +88,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, walRotateInterval
 
 		// initialize WAL File
 		ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, rs,
-			WALBypass, &shutdownPend, walWG,
+			WALBypass, &shutdownPend, walWG, tpd,
 		)
 		if err != nil {
 			log.Fatal("Unable to create WAL")

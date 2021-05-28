@@ -1,45 +1,15 @@
 package start
 
 import (
-	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/plugins"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-func InitializeTriggers(config *utils.MktsConfig) {
-	log.Info("InitializeTriggers")
-	theInstance := executor.ThisInstance
-	for _, triggerSetting := range config.Triggers {
-		log.Info("triggerSetting = %v", triggerSetting)
-		tmatcher := NewTriggerMatcher(triggerSetting)
-		if tmatcher != nil {
-			theInstance.TriggerMatchers = append(
-				theInstance.TriggerMatchers, tmatcher)
-		}
-	}
-	log.Info("InitializeTriggers - Done")
-}
-
-func NewTriggerMatcher(ts *utils.TriggerSetting) *trigger.TriggerMatcher {
-	loader, err := plugins.NewSymbolLoader(ts.Module)
-	if err != nil {
-		log.Error("Unable to open plugin for trigger in %s: %v", ts.Module, err)
-		return nil
-	}
-	trig, err := trigger.Load(loader, ts.Config)
-	if err != nil {
-		log.Error("Error returned while creating a trigger: %v", err)
-		return nil
-	}
-	return trigger.NewMatcher(trig, ts.On)
-}
-
-func RunBgWorkers(config *utils.MktsConfig) {
+func RunBgWorkers(bgWorkers []*utils.BgWorkerSetting) {
 	log.Info("InitializeBgWorkers")
-	for _, bgWorkerSetting := range config.BgWorkers {
+	for _, bgWorkerSetting := range bgWorkers {
 		// bgWorkerSetting may contain sensitive data such as a password or token.
 		log.Debug("bgWorkerSetting = %v", bgWorkerSetting)
 		bgWorker := NewBgWorker(bgWorkerSetting)

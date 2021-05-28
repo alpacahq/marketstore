@@ -19,7 +19,7 @@ func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	walRotateInterval := 5
 	instanceConfig, _, _ := executor.NewInstanceSetup(dir,
-		nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
+		nil, nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
 	return &LocalAPIClient{dir: dir, catalogDir: instanceConfig.CatalogDir}, nil
 }
@@ -102,12 +102,12 @@ func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *fro
 	return ds.Destroy(nil, reqs, responses)
 }
 
-func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error{
+func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error {
 	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
 	return ds.GetInfo(nil, reqs, responses)
 }
 
-func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error){
+func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error) {
 	queryTree, err := sqlparser.BuildQueryTree(line)
 	if err != nil {
 		return nil, err
@@ -122,5 +122,3 @@ func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error){
 	}
 	return cs, nil
 }
-
-

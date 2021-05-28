@@ -23,6 +23,9 @@ package trigger
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/plugins"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"regexp"
 	"strings"
 	"time"
@@ -128,6 +131,36 @@ func Load(loader SymbolLoader, config map[string]interface{}) (Trigger, error) {
 		return nil, fmt.Errorf("%s does not comply function spec", symbolName)
 	}
 	return newFunc(config)
+}
+
+func NewTriggerMatchers(triggers []*utils.TriggerSetting) []*TriggerMatcher {
+	log.Info("InitializeTriggers")
+	var triggerMatchers []*TriggerMatcher
+
+	for _, triggerSetting := range triggers {
+		log.Info("triggerSetting = %v", triggerSetting)
+		tmatcher := NewTriggerMatcher(triggerSetting)
+		if tmatcher != nil {
+			triggerMatchers = append(
+				triggerMatchers, tmatcher)
+		}
+	}
+	log.Info("InitializeTriggers - Done")
+	return triggerMatchers
+}
+
+func NewTriggerMatcher(ts *utils.TriggerSetting) *TriggerMatcher {
+	loader, err := plugins.NewSymbolLoader(ts.Module)
+	if err != nil {
+		log.Error("Unable to open plugin for trigger in %s: %v", ts.Module, err)
+		return nil
+	}
+	trig, err := Load(loader, ts.Config)
+	if err != nil {
+		log.Error("Error returned while creating a trigger: %v", err)
+		return nil
+	}
+	return NewMatcher(trig, ts.On)
 }
 
 // NewMatcher creates a new TriggerMatcher.
