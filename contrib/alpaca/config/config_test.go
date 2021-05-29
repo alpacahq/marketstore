@@ -8,6 +8,7 @@ import (
 )
 
 func TestAsCanonical(t *testing.T) {
+	t.Parallel()
 	aggToMinute := string(enums.AggToMinute)
 	q := string(enums.Quote)
 	tr := string(enums.Trade)
@@ -59,6 +60,7 @@ func TestAsCanonical(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		got := tt.sub.AsCanonical()
 		assert.ElementsMatchf(
 			t,
@@ -73,6 +75,7 @@ func TestAsCanonical(t *testing.T) {
 }
 
 func TestFlatten(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		lists    [][]string
 		expected []string
@@ -86,6 +89,7 @@ func TestFlatten(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		got := flatten(tt.lists...)
 		assert.ElementsMatchf(
 			t,
@@ -100,6 +104,7 @@ func TestFlatten(t *testing.T) {
 }
 
 func TestPrefixStrings(t *testing.T) {
+	t.Parallel()
 	aggToMinute := string(enums.AggToMinute)
 	var tests = []struct {
 		list     []string
@@ -115,6 +120,7 @@ func TestPrefixStrings(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		got := prefixStrings(tt.list, string(tt.prefix))
 		assert.ElementsMatchf(
 			t,
@@ -130,6 +136,7 @@ func TestPrefixStrings(t *testing.T) {
 }
 
 func TestNormalizeSubscriptions(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		list     []string
 		expected []string
@@ -142,6 +149,7 @@ func TestNormalizeSubscriptions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		got := normalizeSubscriptions(tt.list)
 		assert.ElementsMatchf(
 			t,
@@ -156,6 +164,7 @@ func TestNormalizeSubscriptions(t *testing.T) {
 }
 
 func TestContainsWildcard(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		list     []string
 		expected bool
@@ -169,6 +178,7 @@ func TestContainsWildcard(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		got := containsWildcard(tt.list)
 		assert.Equalf(
 			t,

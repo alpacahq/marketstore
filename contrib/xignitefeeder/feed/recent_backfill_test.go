@@ -41,6 +41,7 @@ func (mbw *MockBarWriter) Write(symbol string, bars []api.Bar, isIndexSymbol boo
 
 // 3 writes should be successfully done with the 3 identifiers
 func TestRecentBackfill_Update(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	var w writer.BarWriter = &MockBarWriter{WriteCount: 0}
 
@@ -67,6 +68,7 @@ func TestRecentBackfill_Update(t *testing.T) {
 
 // Even if Xignite returns Outcome:"RequestError" to an identifier, Backfill writes data for the other identifiers
 func TestRecentBackfill_Update_RequestErrorIdentifier(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	var w writer.BarWriter = &MockBarWriter{WriteCount: 0}
 

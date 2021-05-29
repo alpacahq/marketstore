@@ -10,6 +10,7 @@ import (
 )
 
 func TestQuotesRangeWriterImpl_Write(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	m := &internal.MockMarketStoreWriter{}
 	SUT := QuotesRangeWriterImpl{
@@ -76,6 +77,7 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 }
 
 func TestQuotesRangeWriterImpl_noDataToWrite(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	m := &internal.MockMarketStoreWriter{}
 	SUT := QuotesRangeWriterImpl{
@@ -110,6 +112,7 @@ func TestQuotesRangeWriterImpl_noDataToWrite(t *testing.T) {
 }
 
 func TestQuotesRangeWriterImpl_getLatestTime(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	t1 := time.Date(2019, 05, 01, 12, 34, 56, 0, time.UTC)
 	t2 := time.Date(2018, 05, 01, 12, 34, 56, 0, time.UTC)

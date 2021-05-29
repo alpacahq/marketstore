@@ -19,6 +19,7 @@ var (
 )
 
 func TestBarWriterImpl_Write(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	m := &internal.MockMarketStoreWriter{}
 	SUT := BarWriterImpl{
@@ -86,6 +87,7 @@ func TestBarWriterImpl_Write(t *testing.T) {
 }
 
 func TestBarWriterImpl_Write_IndexSymbol(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	m := &internal.MockMarketStoreWriter{}
 	SUT := BarWriterImpl{

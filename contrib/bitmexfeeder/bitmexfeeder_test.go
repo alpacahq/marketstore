@@ -5,23 +5,19 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	bitmex "github.com/alpacahq/marketstore/v4/contrib/bitmexfeeder/api"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
-	. "gopkg.in/check.v1"
 )
-
-func Test(t *testing.T) { TestingT(t) }
-
-var _ = Suite(&TestSuite{})
-
-type TestSuite struct{}
 
 func getConfig(data string) (ret map[string]interface{}) {
 	json.Unmarshal([]byte(data), &ret)
 	return
 }
 
-func (t *TestSuite) TestNew(c *C) {
+func TestNew(t *testing.T) {
+	t.Parallel()
 	var config = getConfig(`{
         "symbols": ["XBTUSD"]
         }`)
@@ -30,18 +26,18 @@ func (t *TestSuite) TestNew(c *C) {
 	var err error
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
-	c.Assert(len(worker.symbols), Equals, 1)
-	c.Assert(worker.symbols[0], Equals, "XBTUSD")
-	c.Assert(err, IsNil)
+	assert.Equal(t, len(worker.symbols), 1)
+	assert.Equal(t, worker.symbols[0], "XBTUSD")
+	assert.Nil(t, err)
 
 	config = getConfig(``)
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
-	c.Assert(err, IsNil)
+	assert.Nil(t, err)
 	client := bitmex.Init()
 	symbols, err := client.GetInstruments()
-	c.Assert(err, IsNil)
-	c.Assert(len(worker.symbols), Equals, len(symbols))
+	assert.Nil(t, err)
+	assert.Equal(t, len(worker.symbols), len(symbols))
 
 	config = getConfig(`{
 	    "query_start": "2017-01-02 00:00"
@@ -52,6 +48,6 @@ func (t *TestSuite) TestNew(c *C) {
 	}
 	worker = ret.(*BitmexFetcher)
 	fmt.Printf("%v", worker)
-	c.Assert(err, IsNil)
-	c.Assert(worker.queryStart.IsZero(), Equals, false)
+	assert.Nil(t, err)
+	assert.Equal(t, worker.queryStart.IsZero(), false)
 }

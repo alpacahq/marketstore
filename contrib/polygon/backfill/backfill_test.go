@@ -1,27 +1,19 @@
 package backfill
 
 import (
-	"github.com/alpacahq/marketstore/v4/models/enum"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/models/enum"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/models"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-
-	. "gopkg.in/check.v1"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-var _ = Suite(&BackfillTests{})
-
-type BackfillTests struct{}
-
-func (s *BackfillTests) SetUpSuite(c *C)    {}
-func (s *BackfillTests) TearDownSuite(c *C) {}
-
-func (s *BackfillTests) TestTicksToBars(c *C) {
+func TestTicksToBars(t *testing.T) {
+	t.Parallel()
 	NY, _ := time.LoadLocation("America/New_York")
 
 	// Without any condition
@@ -59,16 +51,16 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 
 		// Then the returned ColumnSeriesMarks should contain data from the two
 		// specified exchanges, accumulated to minutes
-		c.Assert(csm, NotNil)
-		t, _ := csm[*key].GetTime()
-		c.Assert(t, DeepEquals, []time.Time{
+		assert.NotNil(t, csm)
+		ti, _ := csm[*key].GetTime()
+		assert.Equal(t, ti, []time.Time{
 			time.Date(2020, 1, 21, 9, 30, 0, 0, NY).In(time.UTC),
 		})
-		c.Assert(csm[*key].GetColumn("Open").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("High").([]enum.Price), DeepEquals, []enum.Price{300.1})
-		c.Assert(csm[*key].GetColumn("Low").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("Close").([]enum.Price), DeepEquals, []enum.Price{300.1})
-		c.Assert(csm[*key].GetColumn("Volume").([]enum.Size), DeepEquals, []enum.Size{180})
+		assert.Equal(t, csm[*key].GetColumn("Open").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("High").([]enum.Price), []enum.Price{300.1})
+		assert.Equal(t, csm[*key].GetColumn("Low").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("Close").([]enum.Price), []enum.Price{300.1})
+		assert.Equal(t, csm[*key].GetColumn("Volume").([]enum.Size), []enum.Size{180})
 
 		model = models.NewBar(symbol, "1Min", 1440)
 		// And when we call tradesToBars with different set of exchanges
@@ -78,16 +70,16 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 
 		// Then the returned ColumnSeriesMarks should contain data from the two new
 		// specified exchanges, accumulated in minutes
-		c.Assert(csm, NotNil)
-		t, _ = csm[*key].GetTime()
-		c.Assert(t, DeepEquals, []time.Time{
+		assert.NotNil(t, csm)
+		ti, _ = csm[*key].GetTime()
+		assert.Equal(t, ti, []time.Time{
 			time.Date(2020, 1, 21, 9, 30, 0, 0, NY).In(time.UTC),
 		})
-		c.Assert(csm[*key].GetColumn("Open").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("High").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("Low").([]enum.Price), DeepEquals, []enum.Price{299.9})
-		c.Assert(csm[*key].GetColumn("Close").([]enum.Price), DeepEquals, []enum.Price{299.9})
-		c.Assert(csm[*key].GetColumn("Volume").([]enum.Size), DeepEquals, []enum.Size{150})
+		assert.Equal(t, csm[*key].GetColumn("Open").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("High").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("Low").([]enum.Price), []enum.Price{299.9})
+		assert.Equal(t, csm[*key].GetColumn("Close").([]enum.Price), []enum.Price{299.9})
+		assert.Equal(t, csm[*key].GetColumn("Volume").([]enum.Size), []enum.Size{150})
 	}
 
 	// With one condition: No update on High/Low, Volume & Close
@@ -112,12 +104,12 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 
 		csm := *model.BuildCsm()
 
-		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetColumn("Open").([]enum.Price), DeepEquals, []enum.Price{})
-		c.Assert(csm[*key].GetColumn("High").([]enum.Price), DeepEquals, []enum.Price{})
-		c.Assert(csm[*key].GetColumn("Low").([]enum.Price), DeepEquals, []enum.Price{})
-		c.Assert(csm[*key].GetColumn("Close").([]enum.Price), DeepEquals, []enum.Price{})
-		c.Assert(csm[*key].GetColumn("Volume").([]enum.Size), DeepEquals, []enum.Size{})
+		assert.NotNil(t, csm)
+		assert.Equal(t, csm[*key].GetColumn("Open").([]enum.Price), []enum.Price{})
+		assert.Equal(t, csm[*key].GetColumn("High").([]enum.Price), []enum.Price{})
+		assert.Equal(t, csm[*key].GetColumn("Low").([]enum.Price), []enum.Price{})
+		assert.Equal(t, csm[*key].GetColumn("Close").([]enum.Price), []enum.Price{})
+		assert.Equal(t, csm[*key].GetColumn("Volume").([]enum.Size), []enum.Size{})
 	}
 
 	// With conditions: Normal trade + No update on High/Low, Volume & Close
@@ -149,12 +141,12 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 
 		csm := *model.BuildCsm()
 
-		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetColumn("Open").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("High").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("Low").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("Close").([]enum.Price), DeepEquals, []enum.Price{300})
-		c.Assert(csm[*key].GetColumn("Volume").([]enum.Size), DeepEquals, []enum.Size{100})
+		assert.NotNil(t, csm)
+		assert.Equal(t, csm[*key].GetColumn("Open").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("High").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("Low").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("Close").([]enum.Price), []enum.Price{300})
+		assert.Equal(t, csm[*key].GetColumn("Volume").([]enum.Size), []enum.Size{100})
 	}
 
 	// With condition: Form-T, odd-lot and normal
@@ -205,12 +197,11 @@ func (s *BackfillTests) TestTicksToBars(c *C) {
 		tradesToBars(ticks, model, exchangeIDs)
 
 		csm := *model.BuildCsm()
-		c.Assert(csm, NotNil)
-		c.Assert(csm[*key].GetColumn("Open").([]enum.Price), DeepEquals, []enum.Price{300, 305.2})
-		c.Assert(csm[*key].GetColumn("High").([]enum.Price), DeepEquals, []enum.Price{300, 315.2})
-		c.Assert(csm[*key].GetColumn("Low").([]enum.Price), DeepEquals, []enum.Price{299, 305.2})
-		c.Assert(csm[*key].GetColumn("Close").([]enum.Price), DeepEquals, []enum.Price{299, 315.2})
-		c.Assert(csm[*key].GetColumn("Volume").([]enum.Size), DeepEquals, []enum.Size{276, 27})
-
+		assert.NotNil(t, csm)
+		assert.Equal(t, csm[*key].GetColumn("Open").([]enum.Price), []enum.Price{300, 305.2})
+		assert.Equal(t, csm[*key].GetColumn("High").([]enum.Price), []enum.Price{300, 315.2})
+		assert.Equal(t, csm[*key].GetColumn("Low").([]enum.Price), []enum.Price{299, 305.2})
+		assert.Equal(t, csm[*key].GetColumn("Close").([]enum.Price), []enum.Price{299, 315.2})
+		assert.Equal(t, csm[*key].GetColumn("Volume").([]enum.Size), []enum.Size{276, 27})
 	}
 }

@@ -4,25 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "gopkg.in/check.v1"
 )
 
-// Hook up gocheck into the "go test" runner.
-var _ = Suite(&TestSuite{})
-
-func Test(t *testing.T) { TestingT(t) }
-
-type TestSuite struct {
-}
-
-func (s *TestSuite) SetUpSuite(c *C) {
-}
-
-func (s *TestSuite) TearDownSuite(c *C) {
-}
-
-func (s *TestSuite) TestParameters(c *C) {
+func TestParameters(t *testing.T) {
+	t.Parallel()
 	var requiredColumns = []io.DataShape{
 		{Name: "A", Type: io.FLOAT32},
 		{Name: "B", Type: io.FLOAT32},
@@ -43,11 +31,11 @@ func (s *TestSuite) TestParameters(c *C) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	c.Assert(err == nil, Equals, true)
-	c.Assert(argMap.nameMap["A"][0].Name, Equals, "i")
-	c.Assert(argMap.nameMap["B"][0].Name, Equals, "j")
-	c.Assert(argMap.nameMap["C"][0].Name, Equals, "k")
-	c.Assert(argMap.nameMap["D"][0].Name, Equals, "l")
+	assert.Nil(t, err)
+	assert.Equal(t, argMap.nameMap["A"][0].Name, "i")
+	assert.Equal(t, argMap.nameMap["B"][0].Name, "j")
+	assert.Equal(t, argMap.nameMap["C"][0].Name, "k")
+	assert.Equal(t, argMap.nameMap["D"][0].Name, "l")
 
 	/*
 		All columns positionally specified with optionals
@@ -58,13 +46,13 @@ func (s *TestSuite) TestParameters(c *C) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	c.Assert(err == nil, Equals, true)
-	c.Assert(argMap.nameMap["A"][0].Name, Equals, "i")
-	c.Assert(argMap.nameMap["B"][0].Name, Equals, "j")
-	c.Assert(argMap.nameMap["C"][0].Name, Equals, "k")
-	c.Assert(argMap.nameMap["D"][0].Name, Equals, "l")
-	c.Assert(argMap.nameMap["E"][0].Name, Equals, "m")
-	c.Assert(argMap.nameMap["F"][0].Name, Equals, "n")
+	assert.Nil(t, err)
+	assert.Equal(t, argMap.nameMap["A"][0].Name, "i")
+	assert.Equal(t, argMap.nameMap["B"][0].Name, "j")
+	assert.Equal(t, argMap.nameMap["C"][0].Name, "k")
+	assert.Equal(t, argMap.nameMap["D"][0].Name, "l")
+	assert.Equal(t, argMap.nameMap["E"][0].Name, "m")
+	assert.Equal(t, argMap.nameMap["F"][0].Name, "n")
 
 	/*
 		Mixed positional and named
@@ -75,11 +63,11 @@ func (s *TestSuite) TestParameters(c *C) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	c.Assert(err == nil, Equals, true)
-	c.Assert(argMap.nameMap["A"][0].Name, Equals, "i")
-	c.Assert(argMap.nameMap["B"][0].Name, Equals, "j")
-	c.Assert(argMap.nameMap["C"][0].Name, Equals, "k")
-	c.Assert(argMap.nameMap["D"][0].Name, Equals, "l")
+	assert.Nil(t, err)
+	assert.Equal(t, argMap.nameMap["A"][0].Name, "i")
+	assert.Equal(t, argMap.nameMap["B"][0].Name, "j")
+	assert.Equal(t, argMap.nameMap["C"][0].Name, "k")
+	assert.Equal(t, argMap.nameMap["D"][0].Name, "l")
 
 	/*
 		Multiple inputs mapped to single
@@ -90,14 +78,14 @@ func (s *TestSuite) TestParameters(c *C) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	c.Assert(err == nil, Equals, true)
-	c.Assert(argMap.nameMap["A"][0].Name, Equals, "i1")
-	c.Assert(argMap.nameMap["A"][1].Name, Equals, "i2")
-	c.Assert(argMap.nameMap["B"][0].Name, Equals, "j")
-	c.Assert(argMap.nameMap["C"][0].Name, Equals, "k")
-	c.Assert(argMap.nameMap["D"][0].Name, Equals, "l1")
-	c.Assert(argMap.nameMap["D"][1].Name, Equals, "l2")
-	c.Assert(argMap.nameMap["D"][2].Name, Equals, "l3")
+	assert.Nil(t, err)
+	assert.Equal(t, argMap.nameMap["A"][0].Name, "i1")
+	assert.Equal(t, argMap.nameMap["A"][1].Name, "i2")
+	assert.Equal(t, argMap.nameMap["B"][0].Name, "j")
+	assert.Equal(t, argMap.nameMap["C"][0].Name, "k")
+	assert.Equal(t, argMap.nameMap["D"][0].Name, "l1")
+	assert.Equal(t, argMap.nameMap["D"][1].Name, "l2")
+	assert.Equal(t, argMap.nameMap["D"][2].Name, "l3")
 
 	/*
 		Multiple inputs mapped to single with optional columns included
@@ -108,16 +96,16 @@ func (s *TestSuite) TestParameters(c *C) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	c.Assert(err == nil, Equals, true)
-	c.Assert(argMap.nameMap["A"][0].Name, Equals, "i1")
-	c.Assert(argMap.nameMap["A"][1].Name, Equals, "i2")
-	c.Assert(argMap.nameMap["B"][0].Name, Equals, "j")
-	c.Assert(argMap.nameMap["C"][0].Name, Equals, "k")
-	c.Assert(argMap.nameMap["D"][0].Name, Equals, "l1")
-	c.Assert(argMap.nameMap["D"][1].Name, Equals, "l2")
-	c.Assert(argMap.nameMap["D"][2].Name, Equals, "l3")
-	c.Assert(argMap.nameMap["E"][0].Name, Equals, "m")
-	c.Assert(argMap.nameMap["F"][0].Name, Equals, "n")
+	assert.Nil(t, err)
+	assert.Equal(t, argMap.nameMap["A"][0].Name, "i1")
+	assert.Equal(t, argMap.nameMap["A"][1].Name, "i2")
+	assert.Equal(t, argMap.nameMap["B"][0].Name, "j")
+	assert.Equal(t, argMap.nameMap["C"][0].Name, "k")
+	assert.Equal(t, argMap.nameMap["D"][0].Name, "l1")
+	assert.Equal(t, argMap.nameMap["D"][1].Name, "l2")
+	assert.Equal(t, argMap.nameMap["D"][2].Name, "l3")
+	assert.Equal(t, argMap.nameMap["E"][0].Name, "m")
+	assert.Equal(t, argMap.nameMap["F"][0].Name, "n")
 
 	/*
 		Insufficient params (error)
@@ -128,5 +116,5 @@ func (s *TestSuite) TestParameters(c *C) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	c.Assert(err != nil, Equals, true)
+	assert.NotNil(t, err)
 }

@@ -54,6 +54,7 @@ func (mqrw *MockQuotesRangeWriter) WriteIndex(quotesRange api.GetIndexQuotesRang
 
 // 3 writes should be successfully done with the 3 identifiers
 func TestBackfill_Update(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	var rw writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
 	var w writer.QuotesWriter = &MockQuotesWriter{WriteCount: 0}
@@ -89,6 +90,7 @@ func TestBackfill_Update(t *testing.T) {
 
 // Even if Xignite returns Outcome:"RequestError" to an identifier, Backfill writes data for the other identifiers
 func TestBackfill_Update_RequestErrorIdentifier(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	var rw writer.QuotesRangeWriter = &MockQuotesRangeWriter{WriteCount: 0}
 	var w writer.QuotesWriter = &MockQuotesWriter{WriteCount: 0}

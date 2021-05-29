@@ -2,10 +2,13 @@ package aggtrigger
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
@@ -13,39 +16,34 @@ import (
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "gopkg.in/check.v1"
 )
-
-func Test(t *testing.T) { TestingT(t) }
-
-var _ = Suite(&TestSuite{})
-
-type TestSuite struct{}
 
 func getConfig(data string) (ret map[string]interface{}) {
 	json.Unmarshal([]byte(data), &ret)
 	return
 }
 
-func (t *TestSuite) TestNew(c *C) {
+func TestNew(t *testing.T) {
+	t.Parallel()
 	var config = getConfig(`{
         "destinations": ["5Min", "1D"],
         "filter": "something"
         }`)
 	var ret, err = NewTrigger(config)
 	var trig = ret.(*OnDiskAggTrigger)
-	c.Assert(len(trig.destinations), Equals, 2)
-	c.Assert(trig.filter, Equals, "")
-	c.Assert(err, IsNil)
+	assert.Len(t, trig.destinations, 2)
+	assert.Equal(t, trig.filter, "")
+	assert.Nil(t, err)
 
 	// missing destinations
 	config = getConfig(`{}`)
 	ret, err = NewTrigger(config)
-	c.Assert(ret, IsNil)
-	c.Assert(err, NotNil)
+	assert.Nil(t, ret)
+	assert.NotNil(t, err)
 }
 
-func (t *TestSuite) TestAgg(c *C) {
+func TestAgg(t *testing.T) {
+	t.Parallel()
 	epoch := []int64{
 		time.Date(2017, 12, 15, 10, 3, 0, 0, time.UTC).Unix(),
 		time.Date(2017, 12, 15, 10, 4, 0, 0, time.UTC).Unix(),
@@ -68,11 +66,11 @@ func (t *TestSuite) TestAgg(c *C) {
 	cs.AddColumn("Close", close)
 
 	outCs := aggregate(cs, aggTbk, baseTbk, "TEST")
-	c.Assert(outCs.Len(), Equals, 3)
-	c.Assert(outCs.GetColumn("Open").([]float32)[0], Equals, float32(1.))
-	c.Assert(outCs.GetColumn("High").([]float32)[1], Equals, float32(4.1))
-	c.Assert(outCs.GetColumn("Low").([]float32)[0], Equals, float32(0.9))
-	c.Assert(outCs.GetColumn("Close").([]float32)[1], Equals, float32(4.05))
+	assert.Equal(t, outCs.Len(), 3)
+	assert.Equal(t, outCs.GetColumn("Open").([]float32)[0], float32(1.))
+	assert.Equal(t, outCs.GetColumn("High").([]float32)[1], float32(4.1))
+	assert.Equal(t, outCs.GetColumn("Low").([]float32)[0], float32(0.9))
+	assert.Equal(t, outCs.GetColumn("Close").([]float32)[1], float32(4.05))
 
 	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")
 
@@ -93,19 +91,23 @@ func (t *TestSuite) TestAgg(c *C) {
 	cs.AddColumn("Close", close)
 
 	outCs = aggregate(cs, aggTbk, baseTbk, "TEST")
-	c.Assert(outCs.Len(), Equals, 2)
+	assert.Equal(t, outCs.Len(), 2)
 	d1 := time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
 	d2 := time.Date(2017, 12, 16, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
-	c.Assert(outCs.GetEpoch()[0], Equals, d1.Unix())
-	c.Assert(outCs.GetEpoch()[1], Equals, d2.Unix())
+	assert.Equal(t, outCs.GetEpoch()[0], d1.Unix())
+	assert.Equal(t, outCs.GetEpoch()[1], d2.Unix())
 }
 
-func (t *TestSuite) TestFireBars(c *C) {
+func TestFireBars(t *testing.T) {
+	t.Parallel()
 	// We assume WriteCSM here is synchronous by not running
 	// background writer
 	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")
 
-	rootDir := filepath.Join(c.MkDir(), "mktsdb")
+	tempDir, _ := ioutil.TempDir("", "aggtrigger.TestFireBars")
+	defer os.RemoveAll(tempDir)
+
+	rootDir := filepath.Join(tempDir, "mktsdb")
 	os.MkdirAll(rootDir, 0777)
 	executor.NewInstanceSetup(
 		rootDir, nil, nil,
@@ -153,7 +155,7 @@ func (t *TestSuite) TestFireBars(c *C) {
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*tbk, cs)
 	err = executor.WriteCSM(csm, false)
-	c.Assert(err, IsNil)
+	assert.Nil(t, err)
 
 	rs := cs.ToRowSeries(*tbk, true)
 	rowData := rs.GetData()
@@ -183,14 +185,14 @@ func (t *TestSuite) TestFireBars(c *C) {
 	q.AddTargetKey(tbk5)
 	q.SetRange(planner.MinTime, planner.MaxTime)
 	parsed, err := q.Parse()
-	c.Check(err, IsNil)
+	assert.Nil(t, err)
 	scanner, err := executor.NewReader(parsed)
-	c.Check(err, IsNil)
+	assert.Nil(t, err)
 	csm5, err := scanner.Read()
-	c.Check(err, IsNil)
+	assert.Nil(t, err)
 	cs5 := csm5[*tbk5]
-	c.Check(cs5, NotNil)
-	c.Check(cs5.Len(), Equals, 6)
+	assert.NotNil(t, cs5)
+	assert.Equal(t, cs5.Len(), 6)
 
 	// verify 1D agg
 	tbk1D := io.NewTimeBucketKey("TEST/1D/OHLC")
@@ -198,16 +200,16 @@ func (t *TestSuite) TestFireBars(c *C) {
 	q.AddTargetKey(tbk1D)
 	q.SetRange(planner.MinTime, planner.MaxTime)
 	parsed, err = q.Parse()
-	c.Check(err, IsNil)
+	assert.Nil(t, err)
 	scanner, err = executor.NewReader(parsed)
-	c.Check(err, IsNil)
+	assert.Nil(t, err)
 	csm1D, err := scanner.Read()
-	c.Check(err, IsNil)
+	assert.Nil(t, err)
 	cs1D := csm1D[*tbk1D]
-	c.Check(cs1D, NotNil)
-	c.Check(cs1D.Len(), Equals, 2)
+	assert.NotNil(t, cs1D)
+	assert.Equal(t, cs1D.Len(), 2)
 	t1 := time.Unix(cs1D.GetEpoch()[0], 0).In(utils.InstanceConfig.Timezone)
-	c.Assert(t1.Equal(time.Date(2017, 12, 14, 0, 0, 0, 0, utils.InstanceConfig.Timezone)), Equals, true)
+	assert.True(t, t1.Equal(time.Date(2017, 12, 14, 0, 0, 0, 0, utils.InstanceConfig.Timezone)))
 	t2 := time.Unix(cs1D.GetEpoch()[1], 0).In(utils.InstanceConfig.Timezone)
-	c.Assert(t2.Equal(time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)), Equals, true)
+	assert.True(t, t2.Equal(time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)))
 }

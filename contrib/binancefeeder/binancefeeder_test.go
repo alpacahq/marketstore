@@ -4,22 +4,18 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
-	. "gopkg.in/check.v1"
 )
-
-func Test(t *testing.T) { TestingT(t) }
-
-var _ = Suite(&TestSuite{})
-
-type TestSuite struct{}
 
 func getConfig(data string) (ret map[string]interface{}) {
 	json.Unmarshal([]byte(data), &ret)
 	return
 }
 
-func (t *TestSuite) TestNew(c *C) {
+func TestNew(t *testing.T) {
+	t.Parallel()
 	var config = getConfig(`{
 		"symbols": ["ETH"],
 		"base_currencies": ["USDT", "BTC"]
@@ -29,12 +25,12 @@ func (t *TestSuite) TestNew(c *C) {
 	var err error
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BinanceFetcher)
-	c.Assert(len(worker.symbols), Equals, 1)
-	c.Assert(worker.symbols[0], Equals, "ETH")
-	c.Assert(len(worker.baseCurrencies), Equals, 2)
-	c.Assert(worker.baseCurrencies[0], Equals, "USDT")
-	c.Assert(worker.baseCurrencies[1], Equals, "BTC")
-	c.Assert(err, IsNil)
+	assert.Len(t, worker.symbols, 1)
+	assert.Equal(t, worker.symbols[0], "ETH")
+	assert.Len(t, worker.baseCurrencies, 2)
+	assert.Equal(t, worker.baseCurrencies[0], "USDT")
+	assert.Equal(t, worker.baseCurrencies[1], "BTC")
+	assert.Nil(t, err)
 
 	//The symbols from the biannce API can very well change so
 	//if this test fails, consider that the API might of changed with more symbols
@@ -50,6 +46,6 @@ func (t *TestSuite) TestNew(c *C) {
         }`)
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BinanceFetcher)
-	c.Assert(err, IsNil)
-	c.Assert(worker.queryStart.IsZero(), Equals, false)
+	assert.Nil(t, err)
+	assert.False(t, worker.queryStart.IsZero())
 }
