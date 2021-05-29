@@ -47,8 +47,8 @@ func (tpd *TriggerPluginDispatcher) run() {
 	}
 }
 
-// appendRecord collects the record from the serialized buffer.
-func (tpd *TriggerPluginDispatcher) appendRecord(keyPath string, record []byte) {
+// AppendRecord collects the record from the serialized buffer.
+func (tpd *TriggerPluginDispatcher) AppendRecord(keyPath string, record []byte) {
 	if tpd.m == nil {
 		tpd.m = make(map[string][]trigger.Record)
 	}
@@ -56,10 +56,10 @@ func (tpd *TriggerPluginDispatcher) appendRecord(keyPath string, record []byte) 
 	tpd.m[keyPath] = append(tpd.m[keyPath], record)
 }
 
-// dispatchRecords iterates over the registered triggers and fire the event
+// DispatchRecords iterates over the registered triggers and fire the event
 // if the file path matches the condition.  This is meant to be
 // run in a separate goroutine and recovers from panics in the triggers.
-func (tpd *TriggerPluginDispatcher) dispatchRecords() {
+func (tpd *TriggerPluginDispatcher) DispatchRecords() {
 	for key, records := range tpd.m {
 		tpd.c <- writtenRecords{key: key, records: records}
 	}

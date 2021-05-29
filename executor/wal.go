@@ -211,7 +211,7 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 }
 
 func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*wal.WriteCommand) (err error) {
-	defer wf.tpd.dispatchRecords()
+	defer wf.tpd.DispatchRecords()
 
 	fileRecordTypes := map[string]io.EnumRecordType{}
 	varRecLens := map[string]int{}
@@ -267,7 +267,7 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 			return err
 		}
 		for i, buffer := range writes {
-			wf.tpd.appendRecord(keyPath, trigger.Record(buffer.IndexAndPayload()))
+			wf.tpd.AppendRecord(keyPath, trigger.Record(buffer.IndexAndPayload()))
 			writes[i] = nil // for GC
 		}
 		writesPerFile[keyPath] = nil // for GC
