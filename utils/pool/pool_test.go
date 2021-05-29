@@ -4,16 +4,11 @@ import (
 	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-var _ = Suite(&PoolTestSuite{})
-
-type PoolTestSuite struct{}
-
-func (s *PoolTestSuite) TestPool(c *C) {
+func TestPool(t *testing.T) {
+	t.Parallel()
 	jobCount := 0
 
 	job := func(input interface{}) {
@@ -31,5 +26,5 @@ func (s *PoolTestSuite) TestPool(c *C) {
 	close(cc)
 	<-time.After(time.Second)
 
-	c.Assert(jobCount, Equals, 10)
+	assert.Equal(t, jobCount, 10)
 }

@@ -3,22 +3,17 @@ package orderbook
 import (
 	"testing"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type OrderBookTestSuite struct{}
-
-var _ = Suite(&OrderBookTestSuite{})
-
-func (s *OrderBookTestSuite) TestOrderBook(c *C) {
+func TestOrderBook(t *testing.T) {
+	t.Parallel()
 	ob := NewOrderBook()
 
 	{
 		b, a := ob.BBO()
-		c.Assert(float32(0.0), Equals, b.Price)
-		c.Assert(float32(0.0), Equals, a.Price)
+		assert.Equal(t, float32(0.0), b.Price)
+		assert.Equal(t, float32(0.0), a.Price)
 	}
 
 	bids0 := []Entry{
@@ -34,8 +29,8 @@ func (s *OrderBookTestSuite) TestOrderBook(c *C) {
 
 	{
 		b, a := ob.BBO()
-		c.Assert(float32(153.72), Equals, b.Price)
-		c.Assert(float32(0.0), Equals, a.Price)
+		assert.Equal(t, float32(153.72), b.Price)
+		assert.Equal(t, float32(0.0), a.Price)
 	}
 
 	asks0 := []Entry{
@@ -50,10 +45,10 @@ func (s *OrderBookTestSuite) TestOrderBook(c *C) {
 
 	{
 		b, a := ob.BBO()
-		c.Assert(float32(153.72), Equals, b.Price)
-		c.Assert(int32(100), Equals, b.Size)
-		c.Assert(float32(154.04), Equals, a.Price)
-		c.Assert(int32(100), Equals, a.Size)
+		assert.Equal(t, float32(153.72), b.Price)
+		assert.Equal(t, int32(100), b.Size)
+		assert.Equal(t, float32(154.04), a.Price)
+		assert.Equal(t, int32(100), a.Size)
 	}
 
 	asks1 := []Entry{
@@ -66,8 +61,8 @@ func (s *OrderBookTestSuite) TestOrderBook(c *C) {
 
 	{
 		_, a := ob.BBO()
-		c.Assert(float32(154.05), Equals, a.Price)
-		c.Assert(int32(200), Equals, a.Size)
+		assert.Equal(t, float32(154.05), a.Price)
+		assert.Equal(t, int32(200), a.Size)
 	}
 
 }

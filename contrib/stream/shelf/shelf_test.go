@@ -4,17 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "gopkg.in/check.v1"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type ShelfTestSuite struct{}
-
-var _ = Suite(&ShelfTestSuite{})
-
-func (s *ShelfTestSuite) TestShelf(c *C) {
+func TestShelf(t *testing.T) {
+	t.Parallel()
 	// normal expiration
 	{
 		expC := make(chan struct{}, 1)
@@ -34,7 +30,7 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 
 		<-expC
 
-		c.Assert(expired, Equals, true)
+		assert.True(t, expired)
 	}
 	// replacement with same deadline, then expiration
 	{
@@ -60,7 +56,7 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 
 		<-expC
 
-		c.Assert(expireCount, Equals, 1)
+		assert.Equal(t, expireCount, 1)
 	}
 	// replacement with new deadline, then expiration
 	{
@@ -89,11 +85,11 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 
 		<-expC
 
-		c.Assert(expireCount, Equals, 1)
+		assert.Equal(t, expireCount, 1)
 
 		<-expC
 
-		c.Assert(expireCount, Equals, 2)
+		assert.Equal(t, expireCount, 2)
 	}
 	// attempted replacement w/ same deadline - make sure
 	// things get properly cleaned up
@@ -114,7 +110,7 @@ func (s *ShelfTestSuite) TestShelf(c *C) {
 		// attempt replace
 		shelf.Store(tbk, genColumns(), &deadline)
 
-		c.Assert(len(shelf.m), Equals, 1)
+		assert.Len(t, shelf.m, 1)
 	}
 }
 

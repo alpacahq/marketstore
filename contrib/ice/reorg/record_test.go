@@ -5,23 +5,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
-
-	. "gopkg.in/check.v1"
 )
-
-func TestAnnouncement(t *testing.T) { TestingT(t) }
-
-type TestAnnouncementSuite struct {
-}
-
-var _ = Suite(&TestAnnouncementSuite{})
 
 func date(year int, month time.Month, day int) time.Time {
 	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }
 
-func (t *TestAnnouncementSuite) TestReadRecord(c *C) {
+func TestReadRecord(t *testing.T) {
+	t.Parallel()
 	input := `........................................................... ENT:01/24/20:(2020) 
 DEAL#: 1: TEXT#:2052662: REMARKS:STOCK SPLIT :   IND:7N  C: EFF:99/99/99:(9999) 
 TARGET:928534106: :VIVIC CORP: INIT:999999999: :9999999999: EXP:01/27/20:(2020) 
@@ -40,36 +34,37 @@ DUE BILL REDEMPTION DATE:  /  /  :                                  **
 	a := Announcement{}
 	readRecord(lines, &a)
 
-	c.Assert(a.EntryDate, DeepEquals, date(2020, time.January, 24))
-	c.Assert(a.DealNumber, Equals, "1")
-	c.Assert(a.TextNumber, Equals, 2052662)
-	c.Assert(a.Remarks, Equals, "STOCK SPLIT")
-	c.Assert(a.NotificationType, Equals, enum.StockSplit)
-	c.Assert(a.Status, Equals, enum.NewAnnouncement)
-	c.Assert(a.UpdatedNotificationType, Equals, enum.UnsetNotification)
-	c.Assert(a.NrOfOptions, Equals, "")
-	c.Assert(a.SecurityType, Equals, enum.CommonStock)
-	c.Assert(a.EffectiveDate, Equals, time.Time{})
-	c.Assert(a.TargetCusip, Equals, "928534106")
-	c.Assert(a.TargetDescription, Equals, "VIVIC CORP")
-	c.Assert(a.InitiatingCusip, Equals, "999999999")
-	c.Assert(a.InitiatingDescription, Equals, "9999999999")
-	c.Assert(a.ExpirationDate, Equals, date(2020, time.January, 27))
-	c.Assert(a.Cash, Equals, 0.0)
-	c.Assert(a.CashCode, Equals, "")
-	c.Assert(a.StateCode, Equals, "")
-	c.Assert(a.RecordDate, Equals, date(2020, time.January, 20))
-	c.Assert(a.Rate, Equals, 4.0)
-	c.Assert(a.RateCode, Equals, "")
-	c.Assert(a.VoluntaryMandatoryCode, Equals, enum.MandatoryAction)
-	c.Assert(a.UpdateTextNumber, Equals, 0)
-	c.Assert(a.DeleteTextNumber, Equals, 0)
-	c.Assert(a.NewRate, Equals, 4.0)
-	c.Assert(a.OldRate, Equals, 1.0)
-	c.Assert(a.DueRedemptionDate, Equals, time.Time{})
+	assert.Equal(t, a.EntryDate, date(2020, time.January, 24))
+	assert.Equal(t, a.DealNumber, "1")
+	assert.Equal(t, a.TextNumber, 2052662)
+	assert.Equal(t, a.Remarks, "STOCK SPLIT")
+	assert.Equal(t, a.NotificationType, enum.StockSplit)
+	assert.Equal(t, a.Status, enum.NewAnnouncement)
+	assert.Equal(t, a.UpdatedNotificationType, enum.UnsetNotification)
+	assert.Equal(t, a.NrOfOptions, "")
+	assert.Equal(t, a.SecurityType, enum.CommonStock)
+	assert.Equal(t, a.EffectiveDate, time.Time{})
+	assert.Equal(t, a.TargetCusip, "928534106")
+	assert.Equal(t, a.TargetDescription, "VIVIC CORP")
+	assert.Equal(t, a.InitiatingCusip, "999999999")
+	assert.Equal(t, a.InitiatingDescription, "9999999999")
+	assert.Equal(t, a.ExpirationDate, date(2020, time.January, 27))
+	assert.Equal(t, a.Cash, 0.0)
+	assert.Equal(t, a.CashCode, "")
+	assert.Equal(t, a.StateCode, "")
+	assert.Equal(t, a.RecordDate, date(2020, time.January, 20))
+	assert.Equal(t, a.Rate, 4.0)
+	assert.Equal(t, a.RateCode, "")
+	assert.Equal(t, a.VoluntaryMandatoryCode, enum.MandatoryAction)
+	assert.Equal(t, a.UpdateTextNumber, 0)
+	assert.Equal(t, a.DeleteTextNumber, 0)
+	assert.Equal(t, a.NewRate, 4.0)
+	assert.Equal(t, a.OldRate, 1.0)
+	assert.Equal(t, a.DueRedemptionDate, time.Time{})
 }
 
-func (t *TestAnnouncementSuite) TestReadRecords(c *C) {
+func TestReadRecords(t *testing.T) {
+	t.Parallel()
 	input := `........................................................... ENT:01/24/20:(2020) 
 DEAL#: 1: TEXT#:2052815: REMARKS:EXPIRATION  :   IND:@UT1C: EFF:99/99/99:(9999) 
 TARGET:26153M200: :DREAM UNLI: INIT:999999999: :DREAM UNLI: EXP:01/22/20:(2020) 
@@ -125,13 +120,13 @@ TEL: 800 680-0661
 	var announcements = []Announcement{}
 	readRecords(input, &announcements)
 
-	c.Assert(len(announcements), Equals, 2)
+	assert.Equal(t, len(announcements), 2)
 	first := announcements[0]
 	second := announcements[1]
-	c.Assert(first.TextNumber, Equals, 2052815)
-	c.Assert(first.TargetCusip, Equals, "26153M200")
-	c.Assert(first.UpdateTextNumber, Equals, 2035174)
-	c.Assert(second.TextNumber, Equals, 2052817)
-	c.Assert(second.TargetCusip, Equals, "11144V105")
-	c.Assert(second.UpdateTextNumber, Equals, 1984589)
+	assert.Equal(t, first.TextNumber, 2052815)
+	assert.Equal(t, first.TargetCusip, "26153M200")
+	assert.Equal(t, first.UpdateTextNumber, 2035174)
+	assert.Equal(t, second.TextNumber, 2052817)
+	assert.Equal(t, second.TargetCusip, "11144V105")
+	assert.Equal(t, second.UpdateTextNumber, 1984589)
 }

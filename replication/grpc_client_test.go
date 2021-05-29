@@ -104,7 +104,6 @@ func TestGRPCReplicationClient_Recv(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			// --- given ---
-			t.Parallel()
 			client := replication.NewGRPCReplicationClient(&mock.ReplicationClient{StreamClient: tt.mockStreamClient})
 			_ = client.Connect(context.Background())
 

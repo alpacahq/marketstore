@@ -48,6 +48,7 @@ func NewMockClient(t *testing.T, expectedResponse interface{}) *http.Client {
 }
 
 func TestDefaultAPIClient_GetRealTimeQuotes_Success(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
@@ -67,6 +68,7 @@ func TestDefaultAPIClient_GetRealTimeQuotes_Success(t *testing.T) {
 }
 
 func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
@@ -86,6 +88,7 @@ func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
 }
 
 func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
@@ -106,6 +109,7 @@ func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
 
 // When Xignite returns Outcome:"SystemError", throw an error
 func TestDefaultAPIClient_ListSymbols_Error(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: SystemError" response body
@@ -123,6 +127,7 @@ func TestDefaultAPIClient_ListSymbols_Error(t *testing.T) {
 
 // When Xignite returns Outcome:"SystemError" to ListIndexSymbols API, throw an error
 func TestDefaultAPIClient_ListIndexSymbols_Error(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: SystemError" response body
@@ -139,6 +144,7 @@ func TestDefaultAPIClient_ListIndexSymbols_Error(t *testing.T) {
 }
 
 func TestDefaultAPIClient_GetRealTimeBars_Success(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
@@ -158,6 +164,7 @@ func TestDefaultAPIClient_GetRealTimeBars_Success(t *testing.T) {
 }
 
 func TestDefaultAPIClient_GetIndexBars_Success(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
@@ -178,6 +185,7 @@ func TestDefaultAPIClient_GetIndexBars_Success(t *testing.T) {
 
 // When Xignite returns Outcome:"SystemError", throw an error
 func TestDefaultAPIClient_GetQuotesRange_Error(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: SystemError" response body

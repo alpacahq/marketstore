@@ -30,6 +30,7 @@ func TimeAndHeap(n int, f func()) (t int64, h uint64) {
 
 // TestRewriteBuffer checks the compatibility of C and Go implementations of rewrite buffer
 func TestRewriteBuffer(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	variableRecordLength := uint32(12)       // e.g. Ask(4bytes) + Bid(4bytes) + IntervalTicks(4byte)
 	numVarRecords := uint32(4)               // 4 records in 1 interval
@@ -57,6 +58,7 @@ func TestRewriteBuffer(t *testing.T) {
 }
 
 func TestGetTimeFromTicks(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	intervalStart := uint64(1546300800) // 2019-01-01 00:00:00
 	intervalsPerDay := uint32(86400)    // timeframe: 1sec

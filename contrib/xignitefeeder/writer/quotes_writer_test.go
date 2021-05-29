@@ -19,6 +19,7 @@ var (
 )
 
 func TestQuotesWriterImpl_Write(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	m := &internal.MockMarketStoreWriter{}
 	SUT := QuotesWriterImpl{
@@ -101,6 +102,7 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 
 //  UTCOffset response parameter is used to convert the time in API response to UTC.
 func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	m := &internal.MockMarketStoreWriter{}
 	SUT := QuotesWriterImpl{

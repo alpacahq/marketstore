@@ -140,6 +140,7 @@ func executeRaw(t *testing.T, s *rpc.Server, req interface{}, res interface{}) e
 }
 
 func TestService(t *testing.T) {
+	t.Parallel()
 	s := rpc.NewServer()
 	s.RegisterCodec(NewCodec(), "application/x-msgpack")
 	s.RegisterService(new(Service1), "")
@@ -188,6 +189,7 @@ func TestService(t *testing.T) {
 }
 
 func TestDecodeNullResult(t *testing.T) {
+	t.Parallel()
 	data := []byte(`{"jsonrpc": "2.0", "id": 12345, "result": null}`)
 	var obj interface{}
 	json.Unmarshal(data, &obj)

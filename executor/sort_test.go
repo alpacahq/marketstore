@@ -7,6 +7,7 @@ import (
 )
 
 func TestSortBuffer(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	// 4 records * 8byte, [3,4,2,1]
 	buffer := []byte{

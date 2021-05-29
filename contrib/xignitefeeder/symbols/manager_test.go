@@ -37,6 +37,7 @@ func (mac *MockListSymbolsAPIClient) ListSymbols(exchange string) (api.ListSymbo
 }
 
 func TestManagerImpl_UpdateSymbols(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := ManagerImpl{
 		APIClient:       &MockListSymbolsAPIClient{},

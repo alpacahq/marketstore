@@ -26,6 +26,7 @@ type testCase struct {
 }
 
 func TestDefaultMarketTimeChecker_isOpen(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultMarketTimeChecker{
 		ClosedDaysOfTheWeek,
@@ -54,7 +55,9 @@ func TestDefaultMarketTimeChecker_isOpen(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// --- when ---
 			got := SUT.IsOpen(tt.arg)
 
@@ -75,6 +78,7 @@ type subTestCase struct {
 }
 
 func TestDefaultMarketTimeChecker_Sub(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	SUT := &DefaultMarketTimeChecker{
 		ClosedDaysOfTheWeek,
@@ -105,7 +109,9 @@ func TestDefaultMarketTimeChecker_Sub(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// --- when ---
 			got, err := SUT.Sub(tt.currentTime, tt.businessDays)
 

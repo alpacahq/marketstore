@@ -33,6 +33,7 @@ func (m *MockQuotesWriter) Write(resp api.GetQuotesResponse) error {
 }
 
 func TestWorker_try_normal(t *testing.T) {
+	t.Parallel()
 	// --- given ---
 	w := &MockQuotesWriter{WriteCount: 0}
 	SUT := Worker{

@@ -4,22 +4,18 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
-	. "gopkg.in/check.v1"
 )
-
-func Test(t *testing.T) { TestingT(t) }
-
-var _ = Suite(&TestSuite{})
-
-type TestSuite struct{}
 
 func getConfig(data string) (ret map[string]interface{}) {
 	json.Unmarshal([]byte(data), &ret)
 	return
 }
 
-func (t *TestSuite) TestNew(c *C) {
+func TestNew(t *testing.T) {
+	t.Parallel()
 	var config = getConfig(`{
         "symbols": ["BTC-USD"]
         }`)
@@ -28,23 +24,23 @@ func (t *TestSuite) TestNew(c *C) {
 	var err error
 	ret, err = NewBgWorker(config)
 	worker = ret.(*GdaxFetcher)
-	c.Assert(len(worker.symbols), Equals, 1)
-	c.Assert(worker.symbols[0], Equals, "BTC-USD")
-	c.Assert(err, IsNil)
+	assert.Len(t, worker.symbols, 1)
+	assert.Equal(t, worker.symbols[0], "BTC-USD")
+	assert.Nil(t, err)
 
 	config = getConfig(`{
         "symbols": ["BTC-USD", "ETH-USD", "LTC-BTC"]
         }`)
 	ret, err = NewBgWorker(config)
-	c.Assert(err, IsNil)
+	assert.Nil(t, err)
 	worker = ret.(*GdaxFetcher)
-	c.Assert(len(worker.symbols), Equals, 3)
+	assert.Len(t, worker.symbols, 3)
 
 	config = getConfig(`{
         "query_start": "2017-01-02 00:00"
         }`)
 	ret, err = NewBgWorker(config)
 	worker = ret.(*GdaxFetcher)
-	c.Assert(err, IsNil)
-	c.Assert(worker.queryStart.IsZero(), Equals, false)
+	assert.Nil(t, err)
+	assert.False(t, worker.queryStart.IsZero())
 }

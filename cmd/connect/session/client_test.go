@@ -6,6 +6,8 @@ import (
 )
 
 func TestPrintResult(t *testing.T) {
+	t.Parallel()
+	
 	// --- given ---
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{1483228800, 1483315200, 1483401600}) //2017-01-01,02,03
