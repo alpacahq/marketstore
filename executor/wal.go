@@ -898,7 +898,6 @@ func (wf *WALFileType) RequestFlush() {
 	<-f
 }
 
-
 // FinishAndWait closes the writtenIndexes channel, and waits
 // for the remaining triggers to fire, returning
 func (wf *WALFileType) FinishAndWait() {

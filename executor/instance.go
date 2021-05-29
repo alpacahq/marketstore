@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
