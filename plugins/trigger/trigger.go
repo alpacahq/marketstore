@@ -23,12 +23,13 @@ package trigger
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/plugins"
-	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/plugins"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )

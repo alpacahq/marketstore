@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"

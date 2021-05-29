@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/gobwas/glob"

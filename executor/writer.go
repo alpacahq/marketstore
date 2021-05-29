@@ -29,9 +29,6 @@ type Writer struct {
 	tgc     *TransactionPipe
 	tbi     *io.TimeBucketInfo
 	walFile *WALFileType
-	// isReplica is true when this replication is enabled and this instance is a replica instance.
-	// it's not allowed to write data to replica instances unless the write request is from its replication master.
-	isReplica bool
 }
 
 func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog.Directory, walFile *WALFileType,
