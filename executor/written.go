@@ -1,85 +1,77 @@
 package executor
 
 import (
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"runtime/debug"
 	"sync"
-	"time"
-
-	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 )
 
-var (
-	once      sync.Once
-	c         chan writtenRecords
-	done      chan struct{}
-	m         map[string][]trigger.Record
-	triggerWg sync.WaitGroup
-)
+type TriggerPluginDispatcher struct {
+	c               chan writtenRecords
+	done            chan struct{}
+	m               map[string][]trigger.Record
+	triggerMatchers []*trigger.TriggerMatcher
+	triggerWg       *sync.WaitGroup
+}
 
 type writtenRecords struct {
 	key     string
 	records []trigger.Record
 }
 
-func setup() {
-	c = make(chan writtenRecords, WriteChannelCommandDepth)
-	done = make(chan struct{})
-	go run()
-}
-
-// appendRecord collects the record from the serialized buffer.
-func appendRecord(keyPath string, record []byte) {
-	once.Do(setup)
-	if m == nil {
-		m = make(map[string][]trigger.Record)
+func NewTriggerPluginDispatcher(triggerMatchers []*trigger.TriggerMatcher) *TriggerPluginDispatcher {
+	tpd := TriggerPluginDispatcher{
+		c:               make(chan writtenRecords, WriteChannelCommandDepth),
+		done:            make(chan struct{}),
+		m:               nil,
+		triggerMatchers: triggerMatchers,
+		triggerWg:       &sync.WaitGroup{},
 	}
-	m[keyPath] = append(m[keyPath], record)
+	go tpd.run()
+
+	return &tpd
 }
 
-// dispatchRecords iterates over the registered triggers and fire the event
-// if the file path matches the condition.  This is meant to be
-// run in a separate goroutine and recovers from panics in the triggers.
-func dispatchRecords() {
-	for key, records := range m {
-		c <- writtenRecords{key: key, records: records}
-	}
-	m = nil // for GC
-}
+func (tpd *TriggerPluginDispatcher) run() {
+	defer func() { tpd.done <- struct{}{} }()
 
-func run() {
-	defer func() { done <- struct{}{} }()
-	for wr := range c {
-		for _, tmatcher := range ThisInstance.TriggerMatchers {
+	for wr := range tpd.c {
+		for _, tmatcher := range tpd.triggerMatchers {
 			if tmatcher.Match(wr.key) {
-				triggerWg.Add(1)
-				go fire(tmatcher.Trigger, wr.key, wr.records)
+				tpd.triggerWg.Add(1)
+				go tpd.fire(tmatcher.Trigger, wr.key, wr.records)
 			}
 		}
 	}
 }
 
-func fire(trig trigger.Trigger, key string, records []trigger.Record) {
+// AppendRecord collects the record from the serialized buffer.
+func (tpd *TriggerPluginDispatcher) AppendRecord(keyPath string, record []byte) {
+	if tpd.m == nil {
+		tpd.m = make(map[string][]trigger.Record)
+	}
+
+	tpd.m[keyPath] = append(tpd.m[keyPath], record)
+}
+
+// DispatchRecords iterates over the registered triggers and fire the event
+// if the file path matches the condition.  This is meant to be
+// run in a separate goroutine and recovers from panics in the triggers.
+func (tpd *TriggerPluginDispatcher) DispatchRecords() {
+	for key, records := range tpd.m {
+		tpd.c <- writtenRecords{key: key, records: records}
+	}
+	tpd.m = nil // for GC
+}
+
+func (tpd *TriggerPluginDispatcher) fire(trig trigger.Trigger, key string, records []trigger.Record) {
 	defer func() {
-		triggerWg.Done()
+		tpd.triggerWg.Done()
 		if r := recover(); r != nil {
 			log.Error("recovering from %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	trig.Fire(key, records)
-}
-
-// FinishAndWait closes the writtenIndexes channel, and waits
-// for the remaining triggers to fire, returning
-func FinishAndWait() {
-	triggerWg.Wait()
-	for {
-		if len(ThisInstance.TXNPipe.writeChannel) == 0 && len(c) == 0 {
-			close(c)
-			<-done
-			return
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
 }

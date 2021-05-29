@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
@@ -136,9 +138,11 @@ func executeStart(_ *cobra.Command, _ []string) error {
 
 	start := time.Now()
 
+	triggerMatchers := trigger.NewTriggerMatchers(config.Triggers)
 	instanceConfig, shutdownPending, walWG := executor.NewInstanceSetup(
 		config.RootDirectory,
 		rs,
+		triggerMatchers,
 		config.WALRotateInterval,
 		config.InitCatalog,
 		config.InitWALCache,
@@ -176,9 +180,8 @@ func executeStart(_ *cobra.Command, _ []string) error {
 	log.Info("launching prometheus metrics server...")
 	http.Handle("/metrics", promhttp.Handler())
 
-	// Initialize any provided plugins.
-	InitializeTriggers(config)
-	RunBgWorkers(config)
+	// Initialize any provided bgWorker plugins.
+	RunBgWorkers(config.BgWorkers)
 
 	if config.UtilitiesURL != "" {
 		// Start utility endpoints.

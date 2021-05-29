@@ -12,11 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/gobwas/glob"
 
 	"code.cloudfoundry.org/bytefmt"
-	"github.com/alpacahq/marketstore/v4/cmd/start"
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
@@ -72,7 +73,7 @@ func init() {
 
 func main() {
 	rootDir, triggers, walRotateInterval := initConfig()
-	_, shutdownPending, walWG := initWriter(rootDir, triggers, walRotateInterval)
+	instanceMeta, shutdownPending, walWG := initWriter(rootDir, triggers, walRotateInterval)
 
 	// free memory in the background every 1 minute for long running backfills with very high parallelism
 	go func() {
@@ -237,7 +238,7 @@ func main() {
 		*shutdownPending = true
 	}
 	walWG.Wait()
-	executor.FinishAndWait()
+	instanceMeta.WALFile.FinishAndWait()
 
 	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
@@ -263,14 +264,18 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 
 func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int,
 ) (instanceConfig *executor.InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup) {
-	instanceConfig, shutdownPending, walWG = executor.NewInstanceSetup(rootDir, nil, walRotateInterval, true, true, true, true)
 	// if configured, also load the ondiskagg triggers
+	var tm []*trigger.TriggerMatcher
 	for _, triggerSetting := range triggers {
 		if triggerSetting.Module == "ondiskagg.so" {
-			tmatcher := start.NewTriggerMatcher(triggerSetting)
-			executor.ThisInstance.TriggerMatchers = append(instanceConfig.TriggerMatchers, tmatcher)
+			tmatcher := trigger.NewTriggerMatcher(triggerSetting)
+			tm = append(tm, tmatcher)
+			break
 		}
 	}
+
+	instanceConfig, shutdownPending, walWG = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval, true, true, true, true)
+
 	return instanceConfig, shutdownPending, walWG
 }
 

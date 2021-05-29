@@ -108,7 +108,7 @@ func (t *TestSuite) TestFireBars(c *C) {
 	rootDir := filepath.Join(c.MkDir(), "mktsdb")
 	os.MkdirAll(rootDir, 0777)
 	executor.NewInstanceSetup(
-		rootDir, nil,
+		rootDir, nil, nil,
 		5, true, true, false, false)
 
 	ts := utils.TriggerSetting{
