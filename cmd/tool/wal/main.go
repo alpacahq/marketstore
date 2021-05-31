@@ -49,7 +49,6 @@ func executeWAL(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	wf.FilePtr = filePtr
-	wf.RootPath = filepath.Base(wf.FilePath)
 
 	// Execute.
 	return wf.Replay(false)

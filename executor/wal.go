@@ -31,10 +31,12 @@ type WALFileType struct {
 	ReplayState      wal.ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-	RootPath          string            // Path to the root directory, base of FileName
-	FilePath          string            // WAL file full path
-	lastCommittedTGID int64             // TGID to be checkpointed
+
 	FilePtr           *os.File          // Active file pointer to FileName
+	// FilePath is the absolute path to the WAL file.
+	// e.g. "/project/marketstore/data/WALFile.1621901771897875000.walfile"
+	FilePath          string
+	lastCommittedTGID int64             // TGID to be checkpointed
 	ReplicationSender ReplicationSender // send messages to replica servers
 	walBypass         bool
 	shutdownPending   *bool
@@ -80,7 +82,6 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 func TakeOverWALFile(rootDir, fileName string) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
-	wf.RootPath = rootDir
 	wf.FilePath = filepath.Join(rootDir, fileName)
 
 	err = wf.open()
@@ -104,7 +105,6 @@ func TakeOverWALFile(rootDir, fileName string) (wf *WALFileType, err error) {
 // createFile creates a WAL file in "{rootDir}/WALFile.{currentEpochNanoSecondInUTC}.walfile" format.
 // it doesn't return an error even if another WAL file has already been created.
 func (wf *WALFileType) createFile(rootDir string) error {
-	wf.RootPath = rootDir
 	now := time.Now().UTC()
 	nowNano := now.UnixNano()
 	wf.FilePath = filepath.Join(rootDir, "WALFile")
@@ -321,7 +321,8 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 	}
 	const batchThreshold = 100
 	var fp WriteAtCloser
-	fullPath := walKeyToFullPath(wf.RootPath, keyPath)
+	rootDir := filepath.Dir(wf.FilePtr.Name())
+	fullPath := walKeyToFullPath(rootDir, keyPath)
 	if recordType == io.FIXED && len(writes) >= batchThreshold {
 		fp, err = buffile.New(fullPath)
 	} else {
@@ -509,7 +510,8 @@ func (wf *WALFileType) Replay(writeData bool) error {
 		if TG_Serialized != nil {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
 			if writeData {
-				tgID, wtSets := ParseTGData(TG_Serialized, wf.RootPath)
+				rootDir := filepath.Dir(wf.FilePtr.Name())
+				tgID, wtSets := ParseTGData(TG_Serialized, rootDir)
 				if err := wf.replayTGData(tgID, wtSets); err != nil {
 					return err
 				}
