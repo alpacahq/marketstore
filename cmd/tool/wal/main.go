@@ -40,11 +40,10 @@ func init() {
 func executeWAL(cmd *cobra.Command, args []string) error {
 	log.SetLevel(log.INFO)
 
+	wfPath := filepath.Clean(walfilePath)
 	// Read in WALFile.
-	wf := &executor.WALFileType{
-		FilePath: filepath.Clean(walfilePath),
-	}
-	filePtr, err := os.OpenFile(wf.FilePath, os.O_RDONLY, 0600)
+	wf := &executor.WALFileType{}
+	filePtr, err := os.OpenFile(wfPath, os.O_RDONLY, 0600)
 	if err != nil {
 		return err
 	}

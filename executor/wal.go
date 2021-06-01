@@ -33,9 +33,6 @@ type WALFileType struct {
 	// End of WAL Header
 
 	FilePtr           *os.File          // Active file pointer to FileName
-	// FilePath is the absolute path to the WAL file.
-	// e.g. "/project/marketstore/data/WALFile.1621901771897875000.walfile"
-	FilePath          string
 	lastCommittedTGID int64             // TGID to be checkpointed
 	ReplicationSender ReplicationSender // send messages to replica servers
 	walBypass         bool
@@ -82,9 +79,9 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 func TakeOverWALFile(rootDir, fileName string) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
-	wf.FilePath = filepath.Join(rootDir, fileName)
+	filePath := filepath.Join(rootDir, fileName)
 
-	err = wf.open()
+	err = wf.open(filePath)
 	if err != nil {
 		return nil, WALTakeOverError("TakeOverFile" + err.Error())
 	}
@@ -107,20 +104,19 @@ func TakeOverWALFile(rootDir, fileName string) (wf *WALFileType, err error) {
 func (wf *WALFileType) createFile(rootDir string) error {
 	now := time.Now().UTC()
 	nowNano := now.UnixNano()
-	wf.FilePath = filepath.Join(rootDir, "WALFile")
-	wf.FilePath = fmt.Sprintf("%s.%d", wf.FilePath, nowNano)
-	wf.FilePath = wf.FilePath + ".walfile"
+	filePath := filepath.Join(rootDir, "WALFile")
+	filePath = fmt.Sprintf("%s.%d.walfile", filePath, nowNano)
 	// Try to open the file for writing, creating it in the process if it doesn't exist
-	err := wf.open()
+	err := wf.open(filePath)
 	if err != nil {
 		return WALCreateError("CreateFile" + err.Error())
 	}
 	return nil
 }
 
-func (wf *WALFileType) open() error {
+func (wf *WALFileType) open(filePath string) error {
 	var err error
-	wf.FilePtr, err = os.OpenFile(wf.FilePath, os.O_CREATE|os.O_RDWR, 0600)
+	wf.FilePtr, err = os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 	}
@@ -132,7 +128,7 @@ func (wf *WALFileType) close(ReplayStatus wal.ReplayStateEnum) {
 }
 func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
 	if !wf.canDeleteSafely(callersInstanceID) {
-		log.Fatal("BUG: cannot delete the current instance's WALfile: %s", wf.FilePath)
+		log.Fatal("BUG: cannot delete the current instance's WALfile: %s", wf.FilePtr.Name())
 	}
 
 	if !wf.IsOpen() {
@@ -149,7 +145,7 @@ func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
 	}
 
 	wf.close(wal.REPLAYED)
-	if err = os.Remove(wf.FilePath); err != nil {
+	if err = os.Remove(wf.FilePtr.Name()); err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": Can not remove WALFile")
 	}
 
@@ -518,7 +514,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			}
 		}
 	}
-	log.Info("Replay of WAL file %s finished", wf.FilePath)
+	log.Info("Replay of WAL file %s finished", wf.FilePtr.Name())
 	if writeData {
 		wf.WriteStatus(wal.OPEN, wal.REPLAYED)
 	}
@@ -794,7 +790,7 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) error {
 	if err != nil {
 		return fmt.Errorf("Unable to read root directory %s: %w", rootDir, err)
 	}
-	myFileBase := filepath.Base(wf.FilePath)
+	myFileBase := filepath.Base(wf.FilePtr.Name())
 	log.Info("My WALFILE: %s", myFileBase)
 	for _, file := range files {
 		if !file.IsDir() {
