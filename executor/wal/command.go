@@ -8,8 +8,10 @@ import (
 // WriteCommand is a write request for WriteAheadLog (WAL).
 // One WriteCommand can have multiple row records that have the same index, in case of VariableLength record type.
 type WriteCommand struct {
-	RecordType    io.EnumRecordType
-	WALKeyPath    string
+	RecordType io.EnumRecordType
+	// WALKeyPath is the relative path from the root directory.
+	// e.g. "WALFile.1621901771897875000.walfile"
+	WALKeyPath string
 	// VarRecLen is used only in case of VARIABLE recordType.
 	// (The sum of field lengths in elementTypes without Epoch column) + 4 bytes(for intervalTicks)
 	VarRecLen     int

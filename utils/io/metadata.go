@@ -38,7 +38,7 @@ type TimeBucketInfo struct {
 	// Year, Path and IsRead are all set on catalog startup
 	Year   int16
 	// Path is the absolute path to the data binary file.
-	// (e.g. "/mkts/data/TEST/1Sec/Tick/2021.bin")
+	// (e.g. "/project/marketstore/data/TEST/1Sec/Tick/2021.bin")
 	Path   string
 	IsRead bool
 

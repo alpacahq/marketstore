@@ -4,6 +4,7 @@ import (
 	"fmt"
 	stdio "io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -98,7 +99,8 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		rowLen    = len(data) / numRows
 	)
 
-	wkp := FullPathToWALKey(w.walFile.RootPath, w.tbi.Path)
+	rootDir := filepath.Dir(w.walFile.FilePtr.Name())
+	wkp := FullPathToWALKey(rootDir, w.tbi.Path)
 	vrl := w.tbi.GetVariableRecordLength()
 	rt := w.tbi.GetRecordType()
 	for i := 0; i < numRows; i++ {
@@ -110,7 +112,8 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			if err := w.addNewYearFile(year); err != nil {
 				return fmt.Errorf("add new year file. path=%s, err: %w", w.tbi.Path, err)
 			}
-			wkp = FullPathToWALKey(w.walFile.RootPath, w.tbi.Path)
+			rootDir := filepath.Dir(w.walFile.FilePtr.Name())
+			wkp = FullPathToWALKey(rootDir, w.tbi.Path)
 		}
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
@@ -150,9 +153,10 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			// Setup next command
 			prevIndex = index
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
+			rootDir := filepath.Dir(w.walFile.FilePtr.Name())
 			cc = &wal.WriteCommand{
 				RecordType: w.tbi.GetRecordType(),
-				WALKeyPath: FullPathToWALKey(w.walFile.RootPath, w.tbi.Path),
+				WALKeyPath: FullPathToWALKey(rootDir, w.tbi.Path),
 				VarRecLen:  int(w.tbi.GetVariableRecordLength()),
 				Offset:     offset,
 				Index:      index,
