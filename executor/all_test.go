@@ -3,8 +3,6 @@ package executor_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/executor/wal"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"math"
 	"os"
@@ -14,6 +12,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 
 	. "gopkg.in/check.v1"
 
@@ -29,18 +31,9 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 var (
-	_ = Suite(&TestSuite{nil, "", nil, nil})
 	_ = Suite(&DestructiveWALTests{nil, "", nil, nil, nil})
 	_ = Suite(&DestructiveWALTest2{nil, "", nil, nil, nil})
 )
-
-type TestSuite struct {
-	DataDirectory *Directory
-	Rootdir       string
-	// Number of items written in sample data (non-zero index)
-	ItemsWritten map[string]int
-	WALFile      *executor.WALFileType
-}
 
 type DestructiveWALTests struct {
 	DataDirectory *Directory
@@ -60,71 +53,77 @@ type DestructiveWALTest2 struct {
 	shutdownPending *bool
 }
 
-func (s *TestSuite) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false)
-	s.DataDirectory = metadata.CatalogDir
-	s.WALFile = metadata.WALFile
+func setup(t *testing.T, testName string,
+) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
+	t.Helper()
+
+	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))
+	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
+	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+
+	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata
 }
 
-func (s *TestSuite) TearDownSuite(c *C) {
-	CleanupDummyDataDir(s.Rootdir)
-}
+func TestAddDir(t *testing.T) {
+	// --- given ---
+	// make temporary catalog directory
+	tempRootDir, _ := ioutil.TempDir("", "executor_test-TestAddDir")
+	defer os.RemoveAll(tempRootDir)
 
-func (s *TestSuite) TestAddDir(c *C) {
+	// make catelog directory
+	catDir, err := NewDirectory(tempRootDir)
+	var e *ErrCategoryFileNotFound
+	if err != nil && !errors.As(err, &e) {
+		t.Fatal("failed to create a catalog dir.err=" + err.Error())
+		return
+	}
+
 	year := int16(time.Now().Year())
 	eNames := []string{"Bid", "Ask"}
 	eTypes := []EnumElementType{FLOAT32, FLOAT32}
 	dsv := NewDataShapeVector(eNames, eTypes)
-
 	tbk := NewTimeBucketKey("TEST/1Min/TICKS")
-
 	tf, err := tbk.GetTimeFrame()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 	rt := EnumRecordTypeByName("variable")
+	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(tempRootDir), "Default", year, dsv, rt)
 
-	rootDir := c.MkDir()
-	catDir, err := NewDirectory(rootDir)
-	var e *ErrCategoryFileNotFound
-	if err != nil && !errors.As(err, &e) {
-		c.Fatal("failed to create a catalog dir.err=" + err.Error())
-		return
-	}
-
-	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Default", year, dsv, rt)
+	// --- when a new time bucket is added to catalog directory ---
 	err = catDir.AddTimeBucket(tbk, tbinfo)
-	c.Assert(err == nil, Equals, true)
-	catDir, err = NewDirectory(rootDir)
-	if err != nil {
-		c.Fatal("failed to create a catalog dir.err=" + err.Error())
-		return
-	}
+	// --- then ---
+	assert.Nil(t, err)
 
-	c.Assert(catDir.GetCategory(), Equals, "Symbol")
+	// --- when a new catalog directory is made on the same root directory ---
+	catDir, err = NewDirectory(tempRootDir)
+	// --- then ---
+	assert.Nil(t, err)
+
+	assert.Equal(t, catDir.GetCategory(), "Symbol")
 }
 
-func (s *TestSuite) TestQueryMulti(c *C) {
+func TestQueryMulti(t *testing.T) {
+	tearDown, rootDir, _, metadata := setup(t, "TestQueryMulti")
+	defer tearDown()
+
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("AAPL/1Min/OHLCV")
 	tf := utils.TimeframeFromString("1Min")
 	eTypes := []EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32, INT32}
 	eNames := []string{"Open", "High", "Low", "Close", "Volume"}
 	dsv := NewDataShapeVector(eNames, eTypes)
-	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, FIXED)
-	err := s.DataDirectory.AddTimeBucket(tbk, tbinfo)
-	c.Assert(err, IsNil)
-	tgc := executor.ThisInstance.TXNPipe
+	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Test", int16(2016), dsv, FIXED)
+	err := metadata.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	assert.Nil(t, err)
 	/*
 		Write some data
 	*/
-	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
-	c.Assert(err, IsNil)
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
-	c.Assert(err == nil, Equals, true)
+	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	assert.Nil(t, err)
+	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	assert.Nil(t, err)
 	row := struct {
 		Epoch                  int64
 		Open, High, Low, Close float32
@@ -137,46 +136,49 @@ func (s *TestSuite) TestQueryMulti(c *C) {
 		row.Epoch = ts.Unix()
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
-	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.CreateCheckpoint()
+	assert.Nil(t, err)
+	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.CreateCheckpoint()
 
-	q := NewQuery(s.DataDirectory)
+	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetRowLimit(LAST, 5)
 	parsed, _ := q.Parse()
 	reader, _ := executor.NewReader(parsed)
 	csm, _ := reader.Read()
-	c.Assert(len(csm) >= 4, Equals, true)
+	assert.True(t, len(csm) >= 4)
 	for _, cs := range csm {
-		c.Assert(cs.Len() <= 5, Equals, true)
+		assert.True(t, cs.Len() <= 5)
 	}
 }
-func (s *TestSuite) TestWriteVariable(c *C) {
+
+func TestWriteVariable(t *testing.T) {
+	tearDown, rootDir, _, metadata := setup(t, "TestWriteVariable")
+	defer tearDown()
+
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("TEST-WV/1Min/TICK-BIDASK")
 	tf := utils.TimeframeFromString("1Min")
 	eTypes := []EnumElementType{FLOAT32, FLOAT32}
 	eNames := []string{"Bid", "Ask"}
 	dsv := NewDataShapeVector(eNames, eTypes)
-	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(s.Rootdir), "Test", int16(2016), dsv, VARIABLE)
-	err := s.DataDirectory.AddTimeBucket(tbk, tbinfo)
-	c.Assert(err, IsNil)
-	tgc := executor.ThisInstance.TXNPipe
+	tbinfo := NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Test", int16(2016), dsv, VARIABLE)
+	err := metadata.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	assert.Nil(t, err)
 
 	/*
 		Write some data
 	*/
-	q := NewQuery(s.DataDirectory)
+	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST-WV")
 	q.AddRestriction("AttributeGroup", "TICK-BIDASK")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
-	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
-	c.Assert(err, IsNil)
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
-	c.Assert(err == nil, Equals, true)
+	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	assert.Nil(t, err)
+	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	assert.Nil(t, err)
 	row := struct {
 		Epoch    int64
 		Bid, Ask float32
@@ -190,29 +192,29 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		buffer, _ := Serialize([]byte{}, row)
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
-	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.CreateCheckpoint()
+	assert.Nil(t, err)
+	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.CreateCheckpoint()
 
 	/*
 		Read the data back
 	*/
 	reader, err := executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err := reader.Read()
-	c.Assert(err == nil, Equals, true)
-	c.Assert(len(csm), Equals, 1)
+	assert.Nil(t, err)
+	assert.Len(t, csm, 1)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		nanos := cs.GetByName("Nanoseconds").([]int32)
-		c.Assert(cs.Len(), Equals, 2)
+		assert.Equal(t, cs.Len(), 2)
 		for i, ep := range epoch {
 			checkSecs := inputTime[i].Unix()
 			checkNanos := inputTime[i].Nanosecond()
 			secs := nearestSecond(ep, nanos[i])
 			//fmt.Println("ep, nanos, checkSecs, checkNanos =", ep, nanos[i], checkSecs, checkNanos)
-			c.Assert(checkSecs, Equals, secs)
-			c.Assert(math.Abs(float64(int32(checkNanos)-nanos[i])) < 100, Equals, true)
+			assert.Equal(t, checkSecs, secs)
+			assert.True(t, math.Abs(float64(int32(checkNanos)-nanos[i])) < 100)
 		}
 	}
 
@@ -227,15 +229,15 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		buffer, _ := Serialize([]byte{}, row)
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
-	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.CreateCheckpoint()
+	assert.Nil(t, err)
+	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.CreateCheckpoint()
 
 	csm, err = reader.Read()
-	c.Assert(err == nil, Equals, true)
-	c.Assert(len(csm), Equals, 1)
+	assert.Nil(t, err)
+	assert.Len(t, csm, 1)
 	for _, cs := range csm {
-		c.Assert(cs.Len(), Equals, 5)
+		assert.Equal(t, cs.Len(), 5)
 		epoch := cs.GetEpoch()[2:]
 		nanos := cs.GetByName("Nanoseconds").([]int32)[2:]
 		for i, ep := range epoch {
@@ -243,8 +245,8 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 			checkNanos := inputTime[2+i].Nanosecond()
 			secs := nearestSecond(ep, nanos[i])
 			//			fmt.Println("check, secs, nanos[i]: ", check, secs, nanos[i])
-			c.Assert(checkSecs, Equals, secs)
-			c.Assert(math.Abs(float64(int32(checkNanos)-nanos[i])) < 100, Equals, true)
+			assert.Equal(t, checkSecs, secs)
+			assert.True(t, math.Abs(float64(int32(checkNanos)-nanos[i])) < 100)
 		}
 	}
 	/*
@@ -258,11 +260,11 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 		buffer, _ := Serialize([]byte{}, row)
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
-	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.CreateCheckpoint()
+	assert.Nil(t, err)
+	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.CreateCheckpoint()
 
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST-WV")
 	q.AddRestriction("AttributeGroup", "TICK-BIDASK")
 	q.AddRestriction("Timeframe", "1Min")
@@ -271,14 +273,14 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	// Test last N query
 	parsed, _ = q.Parse()
 	reader, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err = reader.Read()
 	for _, cs := range csm {
 		fmt.Println("Results: ", cs)
-		c.Assert(cs.Len() == 10, Equals, true)
-		c.Assert(cs.GetEpoch()[9] == row.Epoch, Equals, true)
+		assert.Equal(t, cs.Len(), 10)
+		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
 		nanos := cs.GetByName("Nanoseconds").([]int32)
-		c.Assert(math.Abs(float64(nanos[9]-600000000)) < 50., Equals, true)
+		assert.True(t, math.Abs(float64(nanos[9]-600000000)) < 50., true)
 		break
 	}
 
@@ -286,20 +288,23 @@ func (s *TestSuite) TestWriteVariable(c *C) {
 	q.SetRowLimit(FIRST, 10)
 	parsed, _ = q.Parse()
 	reader, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err = reader.Read()
 	for _, cs := range csm {
 		fmt.Println("Results: ", cs)
-		c.Assert(cs.Len() == 10, Equals, true)
-		c.Assert(cs.GetEpoch()[9] == row.Epoch, Equals, true)
+		assert.Equal(t, cs.Len(), 10)
+		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
 		nanos := cs.GetByName("Nanoseconds").([]int32)
 		fmt.Println("Nanos: ", nanos)
-		c.Assert(math.Abs(float64(nanos[9]-505000000)) < 50., Equals, true)
+		assert.True(t, math.Abs(float64(nanos[9]-505000000)) < 50., true)
 		break
 	}
 }
-func (s *TestSuite) TestFileRead(c *C) {
-	q := NewQuery(s.DataDirectory)
+func TestFileRead(t *testing.T) {
+	tearDown, _, itemsWritten, metadata := setup(t, "TestFileRead")
+	defer tearDown()
+
+	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
@@ -309,15 +314,15 @@ func (s *TestSuite) TestFileRead(c *C) {
 	)
 	parsed, err := q.Parse()
 	if err != nil {
-		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
+		t.Fatalf(fmt.Sprintf("Failed to parse query"), err)
 	}
 	scanner, err := executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	// Sum up the total number of items in the query set for validation
 	var nitems, recordlen int
 	var minYear int16
 	for _, iop := range scanner.IOPMap {
-		c.Assert(len(iop.FilePlan), Equals, 1)
+		assert.Len(t, iop.FilePlan, 1)
 		for _, fp := range iop.FilePlan {
 			year := int16(time.Unix(fp.BaseTime, 0).UTC().Year())
 			if minYear == 0 {
@@ -327,11 +332,11 @@ func (s *TestSuite) TestFileRead(c *C) {
 			}
 			if year == 2001 {
 				//fmt.Printf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
-				nitems += s.ItemsWritten[fp.FullPath]
+				nitems += itemsWritten[fp.FullPath]
 				recordlen = int(iop.RecordLen)
 			}
 		}
-		c.Assert(minYear, Equals, int16(2001))
+		assert.Equal(t, minYear, int16(2001))
 		csm, _ := scanner.Read()
 		/*
 			for _, cs := range csm {
@@ -344,12 +349,15 @@ func (s *TestSuite) TestFileRead(c *C) {
 	}
 }
 
-func (s *TestSuite) TestDelete(c *C) {
+func TestDelete(t *testing.T) {
+	tearDown, _, _, metadata := setup(t, "TestDelete")
+	defer tearDown()
+
 	NY, _ := time.LoadLocation("America/New_York")
 	// First write some data we can delete
-	tgc := executor.ThisInstance.TXNPipe
+
 	dataItemKey := "TEST-DELETE/OHLCV/1Min"
-	dataItemPath := filepath.Join(s.DataDirectory.GetPath(), dataItemKey)
+	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close"},
 		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32},
@@ -357,11 +365,11 @@ func (s *TestSuite) TestDelete(c *C) {
 	tbi := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"), dataItemPath, "Test item", 2018,
 		dsv, FIXED)
 	tbk := NewTimeBucketKey(dataItemKey)
-	err := s.DataDirectory.AddTimeBucket(tbk, tbi)
-	c.Assert(err, Equals, nil)
+	err := metadata.CatalogDir.AddTimeBucket(tbk, tbi)
+	assert.Nil(t, err)
 
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
-	c.Assert(err == nil, Equals, true)
+	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	assert.Nil(t, err)
 
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
@@ -375,18 +383,18 @@ func (s *TestSuite) TestDelete(c *C) {
 		buffer, _ = Serialize(buffer, row)
 	}
 	writer.WriteRecords(tsA, buffer, dsv)
-	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.CreateCheckpoint()
+	assert.Nil(t, err)
+	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.CreateCheckpoint()
 
 	endTime := tsA[len(tsA)-1]
 
-	q := NewQuery(s.DataDirectory)
+	q := NewQuery(metadata.CatalogDir)
 	q.AddTargetKey(tbk)
 	q.SetRange(startTime.UTC(), endTime.UTC())
 	parsed, err := q.Parse()
 	if err != nil {
-		c.Fatalf(fmt.Sprintf("Failed to parse query"), err)
+		t.Fatalf(fmt.Sprintf("Failed to parse query"), err)
 	}
 
 	// Read the data before delete
@@ -394,40 +402,45 @@ func (s *TestSuite) TestDelete(c *C) {
 	csm, err := r.Read()
 	for _, cs := range csm {
 		if cs.Len() != 1000 {
-			fmt.Println("error: number of rows read back from write is incorrect")
-			fmt.Printf("should be: %d, was %d", 1000, cs.Len())
-			c.Fail()
+			assert.Failf(t, "error: number of rows read back from write is incorrect",
+				"should be: %d, was %d", 1000, cs.Len(),
+			)
 		}
 		break
 	}
 
 	de, err := executor.NewDeleter(parsed)
 	err = de.Delete()
-	asserter(c, err, true)
+	asserter(t, err, true)
 	err = de.Delete()
-	asserter(c, err, true)
+	asserter(t, err, true)
 
 	// Read back the data, should have zero records
 	csm, err = r.Read()
 	for _, cs := range csm {
 		if cs.Len() != 0 {
-			fmt.Println("error: number of rows read back after delete is incorrect")
-			fmt.Printf("should be: %d, was %d", 0, cs.Len())
-			c.Fail()
+			assert.Failf(t, "error: number of rows read back after delete is incorrect",
+				"should be: %d, was %d", 0, cs.Len(),
+			)
 		}
 		break
 	}
 }
 
-func asserter(c *C, err error, shouldBeNil bool) {
+func asserter(t *testing.T, err error, shouldBeNil bool) {
+	t.Helper()
+
 	if err != nil {
 		fmt.Println("error: ", err.Error())
 	}
-	c.Assert(err == nil, Equals, shouldBeNil)
+	assert.Equal(t, err == nil, shouldBeNil)
 }
 
-func (s *TestSuite) TestSortedFiles(c *C) {
-	q := NewQuery(s.DataDirectory)
+func TestSortedFiles(t *testing.T) {
+	tearDown, _, itemsWritten, metadata := setup(t, "TestSortedFiles")
+	defer tearDown()
+
+	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	//	q.AddRestriction("Symbol", "USDJPY")
@@ -438,35 +451,35 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	)
 	parsed, err := q.Parse()
 	if err != nil {
-		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
+		t.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
 	scanner, err := executor.NewReader(parsed)
 	if err != nil {
 		fmt.Println(err)
 	}
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	// Sum up the total number of items in the query set for validation
 	sortedFiles := executor.SortedFileList(parsed.QualifiedFiles)
 	sort.Sort(sortedFiles)
 	var nitems int
 	for _, qf := range sortedFiles {
 		if qf.File.Year >= 2001 && qf.File.Year <= 2002 {
-			nitems += s.ItemsWritten[qf.File.Path]
+			nitems += itemsWritten[qf.File.Path]
 		}
 	}
-	c.Assert(len(sortedFiles), Equals, 3)
-	c.Assert(sortedFiles[0].File.Year, Equals, int16(2000))
-	c.Assert(sortedFiles[1].File.Year, Equals, int16(2001))
-	c.Assert(sortedFiles[2].File.Year, Equals, int16(2002))
+	assert.Len(t, sortedFiles, 3)
+	assert.Equal(t, sortedFiles[0].File.Year, int16(2000))
+	assert.Equal(t, sortedFiles[1].File.Year, int16(2001))
+	assert.Equal(t, sortedFiles[2].File.Year, int16(2002))
 	csm, err := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		c.Assert(len(epoch), Equals, nitems)
+		assert.Len(t, epoch, nitems)
 		//printoutCandles(cs, 0, 0)
 	}
 
 	// Test Limit Query - First N
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Symbol", "USDJPY")
@@ -474,10 +487,10 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	q.SetRowLimit(FIRST, 200)
 	parsed, err = q.Parse()
 	if err != nil {
-		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
+		t.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
 	scanner, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
@@ -487,11 +500,11 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 		//printoutCandles(cs, length-1, length-1)
 
 		//fmt.Printf("Length: %d\n", length)
-		c.Assert(len(epoch) == 200, Equals, true)
+		assert.Len(t, epoch, 200)
 	}
 
 	// Test Limit Query - Last N
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	//	q.AddRestriction("Symbol", "USDJPY")
@@ -499,18 +512,18 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	q.SetRowLimit(LAST, 200)
 	parsed, err = q.Parse()
 	if err != nil {
-		c.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
+		t.Fatalf(fmt.Sprintf("Failed to parse query %s", err))
 	}
 	scanner, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		c.Assert(len(epoch) == 200, Equals, true)
+		assert.Len(t, epoch, 200)
 	}
 
 	// Test data range query - 5 min interval
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "5Min")
@@ -520,18 +533,21 @@ func (s *TestSuite) TestSortedFiles(c *C) {
 	)
 	parsed, err = q.Parse()
 	scanner, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		//printoutCandles(cs, -1, -1)
-		c.Assert(len(epoch), Equals, 2)
+		assert.Len(t, epoch, 2)
 	}
 }
 
-func (s *TestSuite) TestCrossYear(c *C) {
+func TestCrossYear(t *testing.T) {
+	tearDown, _, _, metadata := setup(t, "TestCrossYear")
+	defer tearDown()
+
 	// Test data range query - across year
-	q := NewQuery(s.DataDirectory)
+	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Symbol", "USDJPY")
 	q.AddRestriction("Timeframe", "5Min")
@@ -540,21 +556,24 @@ func (s *TestSuite) TestCrossYear(c *C) {
 	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
 	scanner, err := executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		//printoutCandles(cs, -1, 1)
-		c.Assert(time.Unix(epoch[0], 0).UTC(), Equals, startDate)
-		c.Assert(time.Unix(epoch[len(epoch)-1], 0).UTC(), Equals, endDate)
+		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
+		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
 	}
 
 	// Test Last N over year boundary
-	forwardBackwardScan(366, s.DataDirectory, c)
+	forwardBackwardScan(t, 366, metadata.CatalogDir)
 }
 
-func (s *TestSuite) TestLastN(c *C) {
-	q := NewQuery(s.DataDirectory)
+func TestLastN(t *testing.T) {
+	tearDown, _, _, metadata := setup(t, "TestLastN")
+	defer tearDown()
+
+	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
@@ -565,17 +584,17 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.SetRowLimit(LAST, 100)
 	parsed, _ := q.Parse()
 	scanner, err := executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		//	printoutCandles(OHLCSlice, 0, -1)
-		c.Assert(len(epoch), Equals, 100)
+		assert.Len(t, epoch, 100)
 		endTime := time.Date(2001, time.December, 31, 23, 59, 0, 0, time.UTC)
-		c.Assert(epoch[99], Equals, endTime.Unix())
+		assert.Equal(t, epoch[99], endTime.Unix())
 	}
 
-	forwardBackwardScan(201, s.DataDirectory, c)
+	forwardBackwardScan(t, 201, metadata.CatalogDir)
 
 	// Test with no data in bounding query
 	/*
@@ -594,7 +613,7 @@ func (s *TestSuite) TestLastN(c *C) {
 	*/
 
 	// Query data with an end date of 1/1 asking for the last 10 rows
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
@@ -605,16 +624,16 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
 	scanner, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, _ = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		c.Log(epoch)
-		c.Assert(len(epoch), Equals, 1)
+		t.Log(epoch)
+		assert.Len(t, epoch, 1)
 	}
 
 	// Query data with an end date of 12/31 asking for last 10 rows
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
@@ -625,16 +644,16 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
 	scanner, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, _ = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		c.Log(epoch)
-		c.Assert(len(epoch), Equals, 0)
+		t.Log(epoch)
+		assert.Len(t, epoch, 0)
 	}
 
 	// Query data with an end date of 1/1 asking for the last 10 rows
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Timeframe", "1Min")
@@ -645,83 +664,99 @@ func (s *TestSuite) TestLastN(c *C) {
 	q.SetRowLimit(LAST, 10)
 	parsed, _ = q.Parse()
 	scanner, err = executor.NewReader(parsed)
-	c.Assert(err, IsNil)
+	assert.Nil(t, err)
 	csm, err = scanner.Read()
-	c.Assert(err, IsNil)
-	c.Assert(csm.IsEmpty(), Equals, false)
+	assert.Nil(t, err)
+	assert.False(t, csm.IsEmpty())
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		c.Log(epoch)
+		t.Log(epoch)
 		//printoutCandles(cs, 0, -1)
-		c.Assert(len(epoch), Equals, 2)
+		assert.Len(t, epoch, 2)
 	}
 }
 
-func (s *TestSuite) TestAddSymbolThenWrite(c *C) {
+func TestAddSymbolThenWrite(t *testing.T) {
+	tearDown, _, _, metadata := setup(t, "TestAddSymbolThenWrite")
+	defer tearDown()
+
 	dataItemKey := "TEST/1Min/OHLCV"
-	dataItemPath := filepath.Join(s.DataDirectory.GetPath(), dataItemKey)
+	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32, INT32},
 	)
-	tbinfo := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"), dataItemPath, "Test item", 2016,
+	tbinfo := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"),
+		dataItemPath,
+		"Test item",
+		2016,
 		dsv, FIXED)
 	tbk := NewTimeBucketKey(dataItemKey)
-	err := s.DataDirectory.AddTimeBucket(tbk, tbinfo)
-	c.Assert(err, Equals, nil)
+	err := metadata.CatalogDir.AddTimeBucket(tbk, tbinfo)
+	assert.Nil(t, err)
 
-	q := NewQuery(s.DataDirectory)
+	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ := q.Parse()
-	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
-	c.Assert(err, IsNil)
-	w, err := executor.NewWriter(tbi, executor.ThisInstance.TXNPipe, s.DataDirectory, s.WALFile)
-	c.Assert(err, Equals, nil)
+	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
+	assert.Nil(t, err)
+	w, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	assert.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
 	buffer, _ := Serialize([]byte{}, row)
 	w.WriteRecords([]time.Time{ts}, buffer, dsv)
-	c.Assert(err == nil, Equals, true)
-	err = executor.ThisInstance.WALFile.FlushToWAL(executor.ThisInstance.TXNPipe)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
+	err = metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	assert.Nil(t, err)
 
-	q = NewQuery(s.DataDirectory)
+	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
 	pr, _ = q.Parse()
 	rd, err := executor.NewReader(pr)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	columnSeries, err := rd.Read()
-	c.Assert(err == nil, Equals, true)
-	c.Assert(len(columnSeries) != 0, Equals, true)
+	assert.Nil(t, err)
+	assert.True(t, len(columnSeries) != 0)
 	for _, cs := range columnSeries {
 		open := cs.GetByName("Open").([]float32)
 		high := cs.GetByName("High").([]float32)
 		low := cs.GetByName("Low").([]float32)
 		close := cs.GetByName("Close").([]float32)
 		volume := cs.GetByName("Volume").([]int32)
-		c.Assert(open[0], Equals, row.Open)
-		c.Assert(high[0], Equals, row.High)
-		c.Assert(low[0], Equals, row.Low)
-		c.Assert(close[0], Equals, row.Close)
-		c.Assert(volume[0], Equals, row.Volume)
+		assert.Equal(t, open[0], row.Open)
+		assert.Equal(t, high[0], row.High)
+		assert.Equal(t, low[0], row.Low)
+		assert.Equal(t, close[0], row.Close)
+		assert.Equal(t, volume[0], row.Volume)
 	}
 }
 
-func (s *TestSuite) TestWriter(c *C) {
-	tgc := executor.ThisInstance.TXNPipe
+func TestWriter(t *testing.T) {
+	tearDown, _, _, metadata := setup(t, "TestWriter")
+	defer tearDown()
+
 	dataItemKey := "TEST/1Min/OHLCV"
-	tbk := NewTimeBucketKey(dataItemKey)
-	tbi, err := s.DataDirectory.GetLatestTimeBucketInfoFromKey(tbk)
-	c.Assert(err, IsNil)
-	writer, err := executor.NewWriter(tbi, tgc, s.DataDirectory, s.WALFile)
-	c.Assert(err == nil, Equals, true)
+	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
+	dsv := NewDataShapeVector(
+		[]string{"Open", "High", "Low", "Close", "Volume"},
+		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32, INT32},
+	)
+	tbi := NewTimeBucketInfo(*utils.TimeframeFromString("1Min"),
+		dataItemPath,
+		"Test item",
+		2016,
+		dsv, FIXED)
+
+	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	assert.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
 	writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes())
-	c.Assert(err == nil, Equals, true)
-	s.WALFile.FlushToWAL(tgc)
-	s.WALFile.CreateCheckpoint()
+	assert.Nil(t, err)
+	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.CreateCheckpoint()
 }
 
 func (s *DestructiveWALTests) SetUpSuite(c *C) {
@@ -801,7 +836,7 @@ func (s *DestructiveWALTests) TestWALWrite(c *C) {
 func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
 	var err error
 
-	tgc := executor.NewTransactionPipe()
+	tgc := executor.ThisInstance.TXNPipe
 
 	// Add some mixed up data to the cache
 	_, err = addTGData(s.DataDirectory, tgc, s.WALFile, 1000, true)
@@ -1041,7 +1076,9 @@ func compareFileToBuf(originalFileContents map[string][]byte, queryFiles []strin
 	return true
 }
 
-func forwardBackwardScan(numRecs int, d *Directory, c *C) {
+func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
+	t.Helper()
+
 	// First we grab records forward from a date
 	endDate := time.Date(2002, time.December, 31, 1, 0, 0, 0, time.UTC)
 	startDate := endDate.AddDate(0, 0, -numRecs+1)
@@ -1056,14 +1093,14 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	q.SetRowLimit(FIRST, numRecs)
 	parsed, _ := q.Parse()
 	scanner, err := executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err := scanner.Read()
 	for key, cs := range csm {
-		c.Assert(err == nil, Equals, true)
+		assert.Nil(t, err)
 		RefColumnSet[key] = cs
 		epoch := cs.GetEpoch()
 		//fmt.Println("Total number of rows: ", len(epoch))
-		c.Assert(len(epoch), Equals, numRecs)
+		assert.Len(t, epoch, numRecs)
 	}
 
 	q = NewQuery(d)
@@ -1078,13 +1115,13 @@ func forwardBackwardScan(numRecs int, d *Directory, c *C) {
 	q.SetRowLimit(LAST, numRecs)
 	parsed, _ = q.Parse()
 	scanner, err = executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err = scanner.Read()
 	for key, cs := range csm {
-		c.Assert(err == nil, Equals, true)
+		assert.Nil(t, err)
 		epoch := cs.GetEpoch()
 		//fmt.Println("Total number of rows: ", len(epoch))
-		c.Assert(len(epoch), Equals, numRecs)
+		assert.Len(t, epoch, numRecs)
 		if !isEqual(RefColumnSet[key], cs) {
 			epoch, r_epoch := cs.GetEpoch(), RefColumnSet[key].GetEpoch()
 			for i, r_ts := range r_epoch {
