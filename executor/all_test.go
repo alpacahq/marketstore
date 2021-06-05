@@ -1,7 +1,6 @@
 package executor_test
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -9,15 +8,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-
-	. "gopkg.in/check.v1"
 
 	. "github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -27,41 +22,15 @@ import (
 	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { TestingT(t) }
-
-var (
-	_ = Suite(&DestructiveWALTests{nil, "", nil, nil, nil})
-	_ = Suite(&DestructiveWALTest2{nil, "", nil, nil, nil})
-)
-
-type DestructiveWALTests struct {
-	DataDirectory *Directory
-	Rootdir       string
-	// Number of items written in sample data (non-zero index)
-	ItemsWritten    map[string]int
-	WALFile         *executor.WALFileType
-	shutdownPending *bool
-}
-
-type DestructiveWALTest2 struct {
-	DataDirectory *Directory
-	Rootdir       string
-	// Number of items written in sample data (non-zero index)
-	ItemsWritten    map[string]int
-	WALFile         *executor.WALFileType
-	shutdownPending *bool
-}
-
 func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
+) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata, shutdownPending *bool) {
 	t.Helper()
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, shutdownPending, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
 
-	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata
+	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata, shutdownPending
 }
 
 func TestAddDir(t *testing.T) {
@@ -105,7 +74,7 @@ func TestAddDir(t *testing.T) {
 }
 
 func TestQueryMulti(t *testing.T) {
-	tearDown, rootDir, _, metadata := setup(t, "TestQueryMulti")
+	tearDown, rootDir, _, metadata, _ := setup(t, "TestQueryMulti")
 	defer tearDown()
 
 	// Create a new variable data bucket
@@ -153,7 +122,7 @@ func TestQueryMulti(t *testing.T) {
 }
 
 func TestWriteVariable(t *testing.T) {
-	tearDown, rootDir, _, metadata := setup(t, "TestWriteVariable")
+	tearDown, rootDir, _, metadata, _ := setup(t, "TestWriteVariable")
 	defer tearDown()
 
 	// Create a new variable data bucket
@@ -301,7 +270,7 @@ func TestWriteVariable(t *testing.T) {
 	}
 }
 func TestFileRead(t *testing.T) {
-	tearDown, _, itemsWritten, metadata := setup(t, "TestFileRead")
+	tearDown, _, itemsWritten, metadata, _ := setup(t, "TestFileRead")
 	defer tearDown()
 
 	q := NewQuery(metadata.CatalogDir)
@@ -350,7 +319,7 @@ func TestFileRead(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	tearDown, _, _, metadata := setup(t, "TestDelete")
+	tearDown, _, _, metadata, _ := setup(t, "TestDelete")
 	defer tearDown()
 
 	NY, _ := time.LoadLocation("America/New_York")
@@ -437,7 +406,7 @@ func asserter(t *testing.T, err error, shouldBeNil bool) {
 }
 
 func TestSortedFiles(t *testing.T) {
-	tearDown, _, itemsWritten, metadata := setup(t, "TestSortedFiles")
+	tearDown, _, itemsWritten, metadata, _ := setup(t, "TestSortedFiles")
 	defer tearDown()
 
 	q := NewQuery(metadata.CatalogDir)
@@ -543,7 +512,7 @@ func TestSortedFiles(t *testing.T) {
 }
 
 func TestCrossYear(t *testing.T) {
-	tearDown, _, _, metadata := setup(t, "TestCrossYear")
+	tearDown, _, _, metadata, _ := setup(t, "TestCrossYear")
 	defer tearDown()
 
 	// Test data range query - across year
@@ -570,7 +539,7 @@ func TestCrossYear(t *testing.T) {
 }
 
 func TestLastN(t *testing.T) {
-	tearDown, _, _, metadata := setup(t, "TestLastN")
+	tearDown, _, _, metadata, _ := setup(t, "TestLastN")
 	defer tearDown()
 
 	q := NewQuery(metadata.CatalogDir)
@@ -677,7 +646,7 @@ func TestLastN(t *testing.T) {
 }
 
 func TestAddSymbolThenWrite(t *testing.T) {
-	tearDown, _, _, metadata := setup(t, "TestAddSymbolThenWrite")
+	tearDown, _, _, metadata, _ := setup(t, "TestAddSymbolThenWrite")
 	defer tearDown()
 
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -733,7 +702,7 @@ func TestAddSymbolThenWrite(t *testing.T) {
 }
 
 func TestWriter(t *testing.T) {
-	tearDown, _, _, metadata := setup(t, "TestWriter")
+	tearDown, _, _, metadata, _ := setup(t, "TestWriter")
 	defer tearDown()
 
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -759,322 +728,9 @@ func TestWriter(t *testing.T) {
 	metadata.WALFile.CreateCheckpoint()
 }
 
-func (s *DestructiveWALTests) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	instanceConfig, shutdownPending, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false)
-	s.DataDirectory = instanceConfig.CatalogDir
-	s.WALFile = executor.ThisInstance.WALFile
-	s.shutdownPending = shutdownPending
-}
-
-func (s *DestructiveWALTests) TearDownSuite(c *C) {
-	CleanupDummyDataDir(s.Rootdir)
-}
-
-func (s *DestructiveWALTests) TestWALWrite(c *C) {
-	var err error
-	mockInstanceID := time.Now().UTC().UnixNano()
-	txnPipe := executor.NewTransactionPipe()
-	s.WALFile, err = executor.NewWALFile(s.Rootdir, mockInstanceID, nil,
-		false, s.shutdownPending, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
-	)
-	if err != nil {
-		fmt.Println(err)
-		c.Fail()
-	}
-
-	queryFiles, err := addTGData(s.DataDirectory, txnPipe, s.WALFile, 1000, false)
-	if err != nil {
-		fmt.Println(err)
-		c.Fail()
-	}
-
-	// Get the base files associated with this cache so that we can verify they remain correct after flush
-	originalFileContents := createBufferFromFiles(queryFiles, c)
-
-	err = s.WALFile.FlushToWAL(txnPipe)
-	if err != nil {
-		fmt.Println(err)
-	}
-	// Verify that the file contents have not changed
-	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, true)
-
-	err = s.WALFile.CreateCheckpoint()
-	if err != nil {
-		fmt.Println(err)
-	}
-	// Verify that the file contents have not changed
-	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, true)
-
-	// Add some mixed up data to the cache
-	queryFiles, err = addTGData(s.DataDirectory, txnPipe, s.WALFile, 200, true)
-	if err != nil {
-		fmt.Println(err)
-		c.Fail()
-	}
-
-	err = s.WALFile.FlushToWAL(txnPipe)
-	if err != nil {
-		fmt.Println(err)
-	}
-	c.Assert(err == nil, Equals, true)
-
-	// Old file contents should be different
-	c.Assert(compareFileToBuf(originalFileContents, queryFiles, c), Equals, false)
-
-	c.Assert(s.WALFile.IsOpen(), Equals, true)
-	c.Assert(s.WALFile.CanWrite("WALTest", mockInstanceID), Equals, true)
-	s.WALFile.WriteStatus(wal.OPEN, wal.REPLAYED)
-
-	s.WALFile.Delete(mockInstanceID)
-
-	c.Assert(s.WALFile.IsOpen(), Equals, false)
-
-}
-
-func (s *DestructiveWALTests) TestBrokenWAL(c *C) {
-	var err error
-
-	tgc := executor.ThisInstance.TXNPipe
-
-	// Add some mixed up data to the cache
-	_, err = addTGData(s.DataDirectory, tgc, s.WALFile, 1000, true)
-	if err != nil {
-		fmt.Println(err)
-		c.Fail()
-	}
-
-	// Get the base files associated with this cache so that we can verify later
-	// Note that at this point the files are unmodified
-	//	originalFileContents := createBufferFromFiles(tgc, c)
-
-	err = s.WALFile.FlushToWAL(tgc)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// Save the WALFile contents after WAL flush, but before flush to primary
-	fstat, _ := s.WALFile.FilePtr.Stat()
-	fsize := fstat.Size()
-	WALFileAfterWALFlush := make([]byte, fsize)
-	n, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
-	c.Assert(int64(n), Equals, fsize)
-
-	err = s.WALFile.CreateCheckpoint()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// Now we have a completed WALFile, we can write some degraded files for testing
-	fstat, _ = s.WALFile.FilePtr.Stat()
-	WALLength := fstat.Size()
-	WALBuffer := make([]byte, WALLength)
-	n, err = s.WALFile.FilePtr.ReadAt(WALBuffer, 0)
-	c.Assert(n == int(WALLength), Equals, true)
-	c.Assert(err == nil, Equals, true)
-
-	// We write a broken WAL File, but we need to replace the Owning PID with a bogus one before we write
-	for i, val := range [8]byte{1, 1, 1, 1, 1, 1, 1, 1} {
-		WALBuffer[3+i] = val
-	}
-	BrokenWAL := WALBuffer[:(3 * len(WALBuffer) / 4)]
-	//BrokenWAL := WALBuffer[:]
-	BrokenWALFileName := "BrokenWAL"
-	BrokenWALFilePath := s.Rootdir + "/" + BrokenWALFileName
-
-	os.Remove(BrokenWALFilePath)
-	fp, err := os.OpenFile(BrokenWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
-	c.Assert(err == nil, Equals, true)
-	_, err = fp.Write(BrokenWAL)
-	c.Assert(err == nil, Equals, true)
-	Syncfs()
-	fp.Close()
-
-	// Take over the broken WALFile and replay it
-	WALFile, err := executor.TakeOverWALFile(s.Rootdir, BrokenWALFileName)
-	newTGC := executor.NewTransactionPipe()
-	c.Assert(newTGC != nil, Equals, true)
-	c.Assert(WALFile.Replay(true) == nil, Equals, true)
-	c.Assert(WALFile.Delete(WALFile.OwningInstanceID) == nil, Equals, true)
-}
-
-func (s *DestructiveWALTest2) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, true, false)
-	instanceConfig, shutdownPending, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false)
-	s.DataDirectory = instanceConfig.CatalogDir
-	s.WALFile = executor.ThisInstance.WALFile
-	s.shutdownPending = shutdownPending
-
-}
-
-func (s *DestructiveWALTest2) TearDownSuite(c *C) {
-	CleanupDummyDataDir(s.Rootdir)
-}
-
-func (s *DestructiveWALTest2) TestWALReplay(c *C) {
-	var err error
-
-	// Add some mixed up data to the cache
-	tgc := executor.NewTransactionPipe()
-
-	allQueryFiles, err := addTGData(s.DataDirectory, tgc, s.WALFile, 1000, true)
-	if err != nil {
-		fmt.Println(err)
-		c.Fail()
-	}
-	// Filter out only year 2003 in the resulting file list
-	queryFiles2002 := make([]string, 0)
-	for _, filePath := range allQueryFiles {
-		if filepath.Base(filePath) == "2002.bin" {
-			queryFiles2002 = append(queryFiles2002, filePath)
-		}
-	}
-
-	// Get the base files associated with this cache so that we can verify later
-	// Note that at this point the files are unmodified
-	allFileContents := createBufferFromFiles(queryFiles2002, c)
-	fileContentsOriginal2002 := make(map[string][]byte, 0)
-	for filePath, buffer := range allFileContents {
-		if filepath.Base(filePath) == "2002.bin" {
-			fileContentsOriginal2002[filePath] = buffer
-		}
-	}
-
-	err = s.WALFile.FlushToWAL(tgc)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// Save the WALFile contents after WAL flush, but before checkpoint
-	fstat, _ := s.WALFile.FilePtr.Stat()
-	fsize := fstat.Size()
-	WALFileAfterWALFlush := make([]byte, fsize)
-	bytesWritten, err := s.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
-	c.Assert(int64(bytesWritten) == fsize, Equals, true)
-
-	err = s.WALFile.CreateCheckpoint()
-	if err != nil {
-		fmt.Println(err)
-		c.FailNow()
-	}
-	// Put the modified files into a buffer and then verify the state of the files
-	modifiedFileContents := createBufferFromFiles(queryFiles2002, c)
-	c.Assert(compareFileToBuf(modifiedFileContents, queryFiles2002, c), Equals, true)
-
-	// Verify that the file contents have changed for year 2002
-	for key, buf := range fileContentsOriginal2002 {
-		//fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(modifiedFileContents[key]))
-		c.Assert(bytes.Equal(buf, modifiedFileContents[key]), Equals, false)
-	}
-
-	// Re-write the original files
-	//fmt.Println("Rewrite")
-	rewriteFilesFromBuffer(fileContentsOriginal2002, c)
-	// At this point, we should have our original files
-	c.Assert(compareFileToBuf(fileContentsOriginal2002, queryFiles2002, c), Equals, true)
-
-	// Write a WAL file with the pre-flushed state - we will replay this to get the modified files
-	newWALFileName := "ReplayWAL"
-	newWALFilePath := s.Rootdir + "/" + newWALFileName
-	os.Remove(newWALFilePath) // Remove it if it exists
-	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
-	// Replace PID with a bogus PID
-	for i, val := range [8]byte{1, 1, 1, 1, 1, 1, 1, 1} {
-		WALFileAfterWALFlush[3+i] = val
-	}
-	bytesWritten, err = fp.WriteAt(WALFileAfterWALFlush, 0)
-	c.Assert(err == nil && bytesWritten == len(WALFileAfterWALFlush), Equals, true)
-	Syncfs()
-
-	// Take over the new WALFile and replay it into a new TG cache
-	WALFile, err := executor.TakeOverWALFile(s.Rootdir, newWALFileName)
-	data, _ := ioutil.ReadFile(newWALFilePath)
-	ioutil.WriteFile("/tmp/wal", data, 0644)
-	newTGC := executor.NewTransactionPipe()
-	c.Assert(newTGC != nil, Equals, true)
-	// Verify that our files are in original state prior to replay
-	c.Assert(compareFileToBuf(fileContentsOriginal2002, queryFiles2002, c), Equals, true)
-
-	// Replay the WALFile into the new cache
-	err = WALFile.Replay(true)
-	c.Assert(err, IsNil)
-
-	// Verify that the files are in the correct state after replay
-	postReplayFileContents := createBufferFromFiles(queryFiles2002, c)
-	for key, buf := range modifiedFileContents {
-		if filepath.Base(key) == "2002.bin" {
-			buf2 := postReplayFileContents[key]
-			//fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
-			if !bytes.Equal(buf, postReplayFileContents[key]) {
-				for i, val := range buf {
-					if val != buf2[i] {
-						fmt.Println("Diff: pre/post:", buf[i:i+8], buf2[i:i+8])
-						fmt.Println("Diff: pre/post int64:", ToInt64(buf[i:i+8]), ToInt64(buf2[i:i+8]))
-						fmt.Println("Diff: pre/post float32:", ToFloat32(buf[i:i+4]), ToFloat32(buf2[i:i+4]))
-						c.Assert(false, Equals, true)
-					}
-				}
-			}
-		}
-	}
-	// Final verify after replay
-	c.Assert(compareFileToBuf(modifiedFileContents, queryFiles2002, c), Equals, true)
-	c.Assert(WALFile.Delete(WALFile.OwningInstanceID) == nil, Equals, true)
-}
-
 /*
 	===================== Helper Functions =================================
 */
-func createBufferFromFiles(queryFiles []string, c *C) (originalFileContents map[string][]byte) {
-	// Get the base files associated with this cache so that we can verify they remain correct after flush
-	originalFileContents = make(map[string][]byte, 0)
-	for _, filePath := range queryFiles {
-		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
-		c.Assert(err == nil, Equals, true)
-		fstat, err := fp.Stat()
-		c.Assert(err == nil, Equals, true)
-		size := fstat.Size()
-		originalFileContents[filePath] = make([]byte, size)
-		_, err = fp.Read(originalFileContents[filePath])
-		c.Assert(err == nil, Equals, true)
-		//		fmt.Println("Read file ", filePath, " Size: ", n)
-		fp.Close()
-	}
-	return originalFileContents
-}
-
-func rewriteFilesFromBuffer(originalFileContents map[string][]byte, c *C) {
-	// Replace the file contents with the contents of the buffer
-	for filePath, _ := range originalFileContents {
-		fp, err := os.OpenFile(filePath, os.O_RDWR, 0600)
-		c.Assert(err == nil, Equals, true)
-		n, err := fp.WriteAt(originalFileContents[filePath], 0)
-		c.Assert(err == nil && n == len(originalFileContents[filePath]), Equals, true)
-		//		fmt.Println("Read file ", filePath, " Size: ", n)
-		fp.Close()
-	}
-}
-
-func compareFileToBuf(originalFileContents map[string][]byte, queryFiles []string, c *C) (isTheSame bool) {
-	for _, filePath := range queryFiles {
-		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
-		c.Assert(err == nil, Equals, true)
-		fstat, err := fp.Stat()
-		c.Assert(err == nil, Equals, true)
-		size := fstat.Size()
-		content := make([]byte, size)
-		_, err = fp.Read(content)
-		c.Assert(err == nil, Equals, true)
-		//		fmt.Println("Read original file ", filePath, " Size: ", n)
-		fp.Close()
-		if !bytes.Equal(content, originalFileContents[filePath]) {
-			return false
-		}
-	}
-	return true
-}
 
 func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 	t.Helper()
@@ -1145,87 +801,6 @@ func isEqual(left, right *ColumnSeries) bool {
 		}
 	}
 	return true
-}
-
-func addTGData(root *Directory, tgc *executor.TransactionPipe, walFile *executor.WALFileType, number int, mixup bool,
-) (queryFiles []string, err error) {
-	// Create some data via a query
-	symbols := []string{"NZDUSD", "USDJPY", "EURUSD"}
-	tbiByKey := make(map[TimeBucketKey]*TimeBucketInfo, 0)
-	writerByKey := make(map[TimeBucketKey]*executor.Writer, 0)
-	csm := NewColumnSeriesMap()
-	queryFiles = make([]string, 0)
-
-	for _, sym := range symbols {
-		q := NewQuery(root)
-		q.AddRestriction("Symbol", sym)
-		q.AddRestriction("AttributeGroup", "OHLC")
-		q.AddRestriction("Timeframe", "1Min")
-		q.SetRowLimit(LAST, number)
-		parsed, _ := q.Parse()
-		scanner, err := executor.NewReader(parsed)
-		if err != nil {
-			fmt.Printf("Failed to create a new reader")
-			return nil, err
-		}
-
-		csmSym, err := scanner.Read()
-		if err != nil {
-			fmt.Printf("scanner.Read failed: Err: %s", err)
-			return nil, err
-		}
-
-		for key, cs := range csmSym {
-			// Add this result data to the overall
-			csm[key] = cs
-			tbi, err := root.GetLatestTimeBucketInfoFromKey(&key)
-			tbiByKey[key] = tbi
-			writerByKey[key], err = executor.NewWriter(tbi, tgc, root, walFile)
-			if err != nil {
-				fmt.Printf("Failed to create a new writer")
-				return nil, err
-			}
-		}
-		for _, iop := range scanner.IOPMap {
-			for _, iofp := range iop.FilePlan {
-				queryFiles = append(queryFiles, iofp.FullPath)
-			}
-		}
-	}
-
-	// Write the data to the TG cache
-	for key, cs := range csm {
-		epoch := cs.GetEpoch()
-		open := cs.GetByName("Open").([]float32)
-		high := cs.GetByName("High").([]float32)
-		low := cs.GetByName("Low").([]float32)
-		close := cs.GetByName("Close").([]float32)
-		// If we have the mixup flag set, change the data
-		if mixup {
-			asize := len(epoch)
-			for i := 0; i < asize/2; i++ {
-				ii := (asize - 1) - i
-				epoch[i], epoch[ii] = epoch[ii], epoch[i]
-				open[i] = float32(-1 * i)
-				high[i] = float32(-2 * ii)
-				low[i] = -3
-				close[i] = -4
-			}
-		}
-		timestamps := make([]time.Time, len(epoch))
-		var buffer []byte
-		for i := range epoch {
-			timestamps[i] = time.Unix(epoch[i], 0).UTC()
-			buffer = append(buffer, DataToByteSlice(epoch[i])...)
-			buffer = append(buffer, DataToByteSlice(open[i])...)
-			buffer = append(buffer, DataToByteSlice(high[i])...)
-			buffer = append(buffer, DataToByteSlice(low[i])...)
-			buffer = append(buffer, DataToByteSlice(close[i])...)
-		}
-		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapesWithEpoch())
-	}
-
-	return queryFiles, nil
 }
 
 type OHLCtest struct {
