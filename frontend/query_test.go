@@ -1,233 +1,265 @@
-package frontend
+package frontend_test
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/test"
-
+	"fmt"
+	"io/ioutil"
+	"math"
+	"sync/atomic"
+	"testing"
 	"time"
 
-	"fmt"
-
-	"math"
-
-	. "gopkg.in/check.v1"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/stretchr/testify/assert"
 )
 
-func (s *ServerTestSuite) _TestQueryCustomTimeframes(c *C) {
+func setup(t *testing.T, testName string,
+) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata) {
+	t.Helper()
+
+	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("frontend_test-%s", testName))
+	test.MakeDummyCurrencyDir(rootDir, true, false)
+	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	atomic.StoreUint32(&frontend.Queryable, uint32(1))
+
+	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata
+}
+
+func _TestQueryCustomTimeframes(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "_TestQueryCustomTimeframes")
+	defer tearDown()
+
 	//TODO: Support custom timeframes
-	service := NewDataService(s.Rootdir, s.root)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
-	args := &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("USDJPY,EURUSD/30Min/OHLC").
+	args := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("USDJPY,EURUSD/30Min/OHLC").
 				EpochStart(0).
 				EpochEnd(math.MaxInt32).
 				LimitRecordCount(10).
 				LimitFromStart(false).
-				End()),
-			(NewQueryRequestBuilder("USDJPY,EURUSD/1W/OHLC").
+				End(),
+			frontend.NewQueryRequestBuilder("USDJPY,EURUSD/1W/OHLC").
 				EpochStart(0).
 				EpochEnd(math.MaxInt32).
 				LimitRecordCount(10).
 				LimitFromStart(false).
-				End()),
-			(NewQueryRequestBuilder("USDJPY/1M/OHLC").
+				End(),
+			frontend.NewQueryRequestBuilder("USDJPY/1M/OHLC").
 				EpochStart(0).
 				EpochEnd(math.MaxInt32).
 				LimitRecordCount(5).
 				LimitFromStart(false).
-				End()),
+				End(),
 		},
 	}
 
-	var response MultiQueryResponse
+	var response frontend.MultiQueryResponse
 	if err := service.Query(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err.Error())
+		t.Fatalf("error returned: %s", err.Error())
 	}
 
-	c.Check(len(response.Responses), Equals, 3)
-	c.Check(len(response.Responses[0].Result.StartIndex), Equals, 2)
-	c.Check(len(response.Responses[1].Result.StartIndex), Equals, 2)
-	c.Check(len(response.Responses[2].Result.StartIndex), Equals, 1)
+	assert.Len(t, response.Responses, 3)
+	assert.Len(t, response.Responses[0].Result.StartIndex, 2)
+	assert.Len(t, response.Responses[1].Result.StartIndex, 2)
+	assert.Len(t, response.Responses[2].Result.StartIndex, 1)
 	csm, err := response.Responses[0].Result.ToColumnSeriesMap()
 	if err != nil {
 		fmt.Println(err)
-		c.Fail()
+		t.Fail()
 	}
-	c.Assert(len(csm), Equals, 2)
+	assert.Len(t, csm, 2)
 
 	csm, err = response.Responses[1].Result.ToColumnSeriesMap()
 	if err != nil {
 		fmt.Println(err)
-		c.Fail()
+		t.Fail()
 	}
-	c.Assert(len(csm), Equals, 2)
+	assert.Len(t, csm, 2)
 
 	csm, err = response.Responses[2].Result.ToColumnSeriesMap()
 	if err != nil {
 		fmt.Println(err)
-		c.Fail()
+		t.Fail()
 	}
-	c.Assert(len(csm), Equals, 1)
+	assert.Len(t, csm, 1)
 }
 
-func (s *ServerTestSuite) TestQuery(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestQuery(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestQuery")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
-	args := &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+	args := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("USDJPY/1Min/OHLC").
 				EpochStart(0).
 				EpochEnd(math.MaxInt32).
 				LimitRecordCount(200).
 				LimitFromStart(false).
-				End()),
+				End(),
 		},
 	}
 
-	var response MultiQueryResponse
+	var response frontend.MultiQueryResponse
 	if err := service.Query(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err)
+		t.Fatalf("error returned: %s", err)
 	}
 
-	c.Assert(len(response.Responses[0].Result.ColumnNames), Equals, 5) // key + OHLC
+	assert.Len(t, response.Responses[0].Result.ColumnNames, 5) // key + OHLC
 
 	cs, err := response.Responses[0].Result.ToColumnSeries()
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 
 	index := cs.GetEpoch()
-	c.Assert(len(index), Equals, 200)
+	assert.Len(t, index, 200)
 	lastTime := index[len(index)-1]
-	t := time.Unix(lastTime, 0).UTC()
+	ti := time.Unix(lastTime, 0).UTC()
 	tref := time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
-	c.Assert(t, Equals, tref)
+	assert.Equal(t, ti, tref)
 }
 
-func (s *ServerTestSuite) TestQueryFirstN(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestQueryFirstN(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestQueryFirstN")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
-	args := &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+	args := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("USDJPY/1Min/OHLC").
 				EpochStart(0).
 				EpochEnd(math.MaxInt32).
 				LimitRecordCount(200).
 				LimitFromStart(true).
-				End()),
+				End(),
 		},
 	}
 
-	var response MultiQueryResponse
+	var response frontend.MultiQueryResponse
 	if err := service.Query(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err)
+		t.Fatalf("error returned: %s", err)
 	}
 
 	cs, err := response.Responses[0].Result.ToColumnSeries()
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	index := cs.GetEpoch()
-	c.Assert(len(index), Equals, 200)
+	assert.Len(t, index, 200)
 
 	firstTime := index[0]
-	t := time.Unix(firstTime, 0).UTC()
+	ti := time.Unix(firstTime, 0).UTC()
 	tref := test.ParseT("2000-01-01 00:00:00")
-	c.Assert(t, Equals, tref)
+	assert.Equal(t, ti, tref)
 }
 
-func (s *ServerTestSuite) TestQueryRange(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestQueryRange(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestQueryRange")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 	{
-		args := &MultiQueryRequest{
-			Requests: []QueryRequest{
-				(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+		args := &frontend.MultiQueryRequest{
+			Requests: []frontend.QueryRequest{
+				frontend.NewQueryRequestBuilder("USDJPY/1Min/OHLC").
 					EpochStart(time.Date(2002, time.October, 1, 10, 5, 0, 0, time.UTC).Unix()).
 					EpochEnd(time.Date(2002, time.October, 1, 15, 5, 0, 0, time.UTC).Unix()).
 					LimitRecordCount(0).
 					LimitFromStart(false).
-					End()),
+					End(),
 			},
 		}
 
-		var response MultiQueryResponse
+		var response frontend.MultiQueryResponse
 		if err := service.Query(nil, args, &response); err != nil {
-			c.Fatalf("error returned: %s", err)
+			t.Fatalf("error returned: %s", err)
 		}
 		cs, _ := response.Responses[0].Result.ToColumnSeries()
 		index := cs.GetEpoch()
-		c.Logf("EPOCH: %v", index)
-		c.Assert(time.Unix(index[0], 0), Equals, time.Unix(*args.Requests[0].EpochStart, 0))
+		t.Logf("EPOCH: %v", index)
+		assert.Equal(t, time.Unix(index[0], 0), time.Unix(*args.Requests[0].EpochStart, 0))
 	}
 
 	{
-		args := &MultiQueryRequest{
-			Requests: []QueryRequest{
-				(NewQueryRequestBuilder("USDJPY/5Min/OHLC").
+		args := &frontend.MultiQueryRequest{
+			Requests: []frontend.QueryRequest{
+				frontend.NewQueryRequestBuilder("USDJPY/5Min/OHLC").
 					EpochStart(test.ParseT("2002-12-31 00:00:00").Unix()).
 					EpochEnd(math.MaxInt32).
 					LimitRecordCount(0).
 					LimitFromStart(false).
-					End()),
+					End(),
 			},
 		}
 
-		var response MultiQueryResponse
+		var response frontend.MultiQueryResponse
 		if err := service.Query(nil, args, &response); err != nil {
-			c.Fatalf("error returned: %s", err)
+			t.Fatalf("error returned: %s", err)
 		}
 		cs, _ := response.Responses[0].Result.ToColumnSeries()
 		index := cs.GetEpoch()
-		c.Assert(len(index), Equals, 288)
+		assert.Len(t, index, 288)
 	}
 }
 
-func (s *ServerTestSuite) TestQueryNpyMulti(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestQueryNpyMulti(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestQueryNpyMulti")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
-	args := &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
+	args := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
 				LimitRecordCount(200).
 				LimitFromStart(false).
-				End()),
+				End(),
 		},
 	}
 
-	var response MultiQueryResponse
+	var response frontend.MultiQueryResponse
 	if err := service.Query(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err)
+		t.Fatalf("error returned: %s", err)
 	}
 
-	c.Check(len(response.Responses[0].Result.StartIndex), Equals, 2)
+	assert.Len(t, response.Responses[0].Result.StartIndex, 2)
 	csm, err := response.Responses[0].Result.ToColumnSeriesMap()
 	if err != nil {
 		fmt.Println(err)
-		c.Fail()
+		t.Fail()
 	}
 	for _, cs := range csm {
-		c.Assert(cs.Len() == 200, Equals, true)
+		assert.Equal(t, cs.Len(), 200)
 	}
-	c.Assert(len(csm), Equals, 2)
+	assert.Len(t, csm, 2)
 }
 
-func (s *ServerTestSuite) TestQueryMulti(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestQueryMulti(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestQueryMulti")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
-	args := &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
+	args := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
 				LimitRecordCount(200).
-				End()),
+				End(),
 		},
 	}
 
-	var response MultiQueryResponse
+	var response frontend.MultiQueryResponse
 	if err := service.Query(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err)
+		t.Fatalf("error returned: %s", err)
 	}
 
 	csm, _ := response.Responses[0].Result.ToColumnSeriesMap()
@@ -239,28 +271,31 @@ func (s *ServerTestSuite) TestQueryMulti(c *C) {
 	eurusd := csm[*tbk]
 	eurusd_index := eurusd.GetEpoch()
 
-	c.Assert(len(usdjpy.GetColumnNames()), Equals, 5) // key + OHLC
-	c.Assert(len(usdjpy_index), Equals, 200)
+	assert.Len(t, usdjpy.GetColumnNames(), 5) // key + OHLC
+	assert.Len(t, usdjpy_index, 200)
 	lastTime := usdjpy_index[len(usdjpy_index)-1]
-	t := time.Unix(lastTime, 0).UTC()
+	ti := time.Unix(lastTime, 0).UTC()
 	tref := time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
-	c.Assert(t, Equals, tref)
+	assert.Equal(t, ti, tref)
 
-	c.Assert(len(eurusd.GetColumnNames()), Equals, 5) // key + OHLC + prev
-	c.Assert(len(eurusd_index), Equals, 200)
+	assert.Len(t, eurusd.GetColumnNames(), 5) // key + OHLC + prev
+	assert.Len(t, eurusd_index, 200)
 	lastTime = eurusd_index[len(eurusd_index)-1]
-	t = time.Unix(lastTime, 0).UTC()
+	ti = time.Unix(lastTime, 0).UTC()
 	tref = time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
-	c.Assert(t, Equals, tref)
+	assert.Equal(t, ti, tref)
 }
 
-func (s *ServerTestSuite) TestListSymbols(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestListSymbols(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestListSymbols")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
-	var response ListSymbolsResponse
+	var response frontend.ListSymbolsResponse
 	if err := service.ListSymbols(nil, nil, &response); err != nil {
-		c.Fatalf("error returned: %s", err)
+		t.Fatalf("error returned: %s", err)
 	}
 
 	contains := func(s []string, e string) bool {
@@ -272,75 +307,78 @@ func (s *ServerTestSuite) TestListSymbols(c *C) {
 		return false
 	}
 
-	c.Assert(contains(response.Results, "EURUSD"), Equals, true)
-	c.Assert(contains(response.Results, "USDJPY"), Equals, true)
+	assert.True(t, contains(response.Results, "EURUSD"))
+	assert.True(t, contains(response.Results, "USDJPY"))
 
-	var resp ListSymbolsResponse
+	var resp frontend.ListSymbolsResponse
 
-	req := &ListSymbolsRequest{}
+	req := &frontend.ListSymbolsRequest{}
 
 	if err := service.ListSymbols(nil, req, &resp); err != nil {
-		c.Fatalf("error returned: %s", err)
+		t.Fatalf("error returned: %s", err)
 	}
 
-	c.Assert(contains(resp.Results, "EURUSD"), Equals, true)
-	c.Assert(contains(resp.Results, "USDJPY"), Equals, true)
+	assert.True(t, contains(resp.Results, "EURUSD"))
+	assert.True(t, contains(resp.Results, "USDJPY"))
 }
 
-func (s *ServerTestSuite) TestFunctions(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestFunctions(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestFunctions")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
-	fname, l_list, p_list, err := parseFunctionCall(call)
+	fname, l_list, p_list, err := frontend.ParseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
-		c.FailNow()
+		t.FailNow()
 	}
 	//	printFuncParams(fname, l_list, p_list)
 
 	call = "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
-	fname, l_list, p_list, err = parseFunctionCall(call)
+	fname, l_list, p_list, err = frontend.ParseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
-		c.FailNow()
+		t.FailNow()
 	}
 	//	printFuncParams(fname, l_list, p_list)
-	c.Assert(fname, Equals, "FuncName")
-	c.Assert(l_list[0], Equals, "Lit1")
-	c.Assert(l_list[1], Equals, "Lit2")
-	c.Assert(p_list[0], Equals, "P1")
-	c.Assert(p_list[1], Equals, "P2")
-	c.Assert(p_list[2], Equals, "P3")
-	c.Assert(p_list[3], Equals, "P4")
-	c.Assert(p_list[4], Equals, "Sum::P5")
-	c.Assert(p_list[5], Equals, "Avg::P6")
+	assert.Equal(t, fname, "FuncName")
+	assert.Equal(t, l_list[0], "Lit1")
+	assert.Equal(t, l_list[1], "Lit2")
+	assert.Equal(t, p_list[0], "P1")
+	assert.Equal(t, p_list[1], "P2")
+	assert.Equal(t, p_list[2], "P3")
+	assert.Equal(t, p_list[3], "P4")
+	assert.Equal(t, p_list[4], "Sum::P5")
+	assert.Equal(t, p_list[5], "Avg::P6")
 
-	args := &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("USDJPY/1Min/OHLC").
+	args := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("USDJPY/1Min/OHLC").
 				LimitRecordCount(200).
 				Functions([]string{"candlecandler('5Min',Open,High,Low,Close)"}).
-				End()),
+				End(),
 		},
 	}
 
-	var response MultiQueryResponse
+	var response frontend.MultiQueryResponse
 	if err := service.Query(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err)
+		t.Fatalf("error returned: %s", err)
 	}
 
-	c.Assert(len(response.Responses[0].Result.ColumnNames), Equals, 5) // key + OHLC
+	assert.Len(t, response.Responses[0].Result.ColumnNames, 5) // key + OHLC
 
 	cs, err := response.Responses[0].Result.ToColumnSeries()
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 
 	index := cs.GetEpoch()
-	c.Assert(len(index), Equals, 40)
+	assert.Len(t, index, 40)
 	lastTime := index[len(index)-1]
-	t := time.Unix(lastTime, 0).UTC()
+	ti := time.Unix(lastTime, 0).UTC()
 	tref := time.Date(2002, time.December, 31, 23, 55, 0, 0, time.UTC)
-	c.Assert(t, Equals, tref)
+	assert.Equal(t, ti, tref)
 }
 
 func printFuncParams(fname string, l_list, p_list []string) {

@@ -1,41 +1,16 @@
-package frontend
+package frontend_test
 
 import (
 	"testing"
 
-	. "gopkg.in/check.v1"
-
-	"sync/atomic"
-
-	"github.com/alpacahq/marketstore/v4/catalog"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/stretchr/testify/assert"
 )
 
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { TestingT(t) }
+func TestNewServer(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestNewServer")
+	defer tearDown()
 
-type ServerTestSuite struct {
-	root    *catalog.Directory
-	Rootdir string
-}
-
-var _ = Suite(&ServerTestSuite{nil, ""})
-
-func (s *ServerTestSuite) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	//s.Rootdir = "/tmp/LALtemp"
-	test.MakeDummyCurrencyDir(s.Rootdir, true, false)
-	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil,5, true, true, false, false)
-	s.root = metadata.CatalogDir
-	atomic.StoreUint32(&Queryable, uint32(1))
-}
-
-func (s *ServerTestSuite) TearDownSuite(c *C) {
-	test.CleanupDummyDataDir(s.Rootdir)
-}
-
-func (s *ServerTestSuite) TestNewServer(c *C) {
-	serv, _ := NewServer(s.Rootdir, s.root)
-	c.Check(serv.HasMethod("DataService.Query"), Equals, true)
+	serv, _ := frontend.NewServer(rootDir, metadata.CatalogDir)
+	assert.True(t, serv.HasMethod("DataService.Query"))
 }

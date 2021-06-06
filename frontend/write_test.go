@@ -1,32 +1,34 @@
-package frontend
+package frontend_test
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils/io"
-
 	"fmt"
-
 	"strconv"
-
+	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/stretchr/testify/assert"
 )
 
-func (s *ServerTestSuite) TestWrite(c *C) {
-	service := NewDataService(s.Rootdir, s.root)
+func TestWrite(t *testing.T) {
+	tearDown, rootDir, metadata := setup(t, "TestWrite")
+	defer tearDown()
+
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
 	service.Init()
 
-	qargs := &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
+	qargs := &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("USDJPY,EURUSD/1Min/OHLC").
 				LimitRecordCount(201).
-				End()),
+				End(),
 		},
 	}
 
-	var qresponse MultiQueryResponse
+	var qresponse frontend.MultiQueryResponse
 	if err := service.Query(nil, qargs, &qresponse); err != nil {
-		c.Fatalf("error returned: %s", err.Error())
+		t.Fatalf("error returned: %s", err.Error())
 	}
 
 	/*
@@ -49,55 +51,55 @@ func (s *ServerTestSuite) TestWrite(c *C) {
 	csm2, _ := qresponse.Responses[0].Result.ToColumnSeriesMap()
 	for _, cs := range csm2 {
 		//		fmt.Println("LAL cs len:", cs.Len())
-		c.Assert(cs.Len(), Equals, 201)
+		assert.Equal(t, cs.Len(), 201)
 	}
 
-	args := &MultiWriteRequest{
-		Requests: []WriteRequest{
-			WriteRequest{
+	args := &frontend.MultiWriteRequest{
+		Requests: []frontend.WriteRequest{
+			frontend.WriteRequest{
 				Data:             qresponse.Responses[0].Result,
 				IsVariableLength: false,
 			},
 		},
 	}
 
-	var response MultiServerResponse
+	var response frontend.MultiServerResponse
 	if err := service.Write(nil, args, &response); err != nil {
-		c.Fatalf("error returned: %s", err.Error())
+		t.Fatalf("error returned: %s", err.Error())
 	}
 
 	for _, resp := range response.Responses {
 		if len(resp.Error) != 0 {
 			fmt.Printf("Error: %s\n", resp.Error)
-			c.FailNow()
+			t.FailNow()
 		}
 	}
 
 	/*
 		Read the newly written data back and verify
 	*/
-	qargs = &MultiQueryRequest{
-		Requests: []QueryRequest{
-			(NewQueryRequestBuilder("TEST0,TEST1/1Min/OHLC").
+	qargs = &frontend.MultiQueryRequest{
+		Requests: []frontend.QueryRequest{
+			frontend.NewQueryRequestBuilder("TEST0,TEST1/1Min/OHLC").
 				LimitRecordCount(200).
-				End()),
+				End(),
 		},
 	}
 
-	qresponse = MultiQueryResponse{}
+	qresponse = frontend.MultiQueryResponse{}
 	if err := service.Query(nil, qargs, &qresponse); err != nil {
-		c.Fatalf("error returned: %s", err.Error())
+		t.Fatalf("error returned: %s", err.Error())
 	}
 	csm, err := qresponse.Responses[0].Result.ToColumnSeriesMap()
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 
 	for _, cs := range csm {
 		index := cs.GetEpoch()
-		c.Assert(len(index), Equals, 200)
+		assert.Len(t, index, 200)
 		lastTime := index[len(index)-1]
-		t := time.Unix(lastTime, 0).UTC()
+		ti := time.Unix(lastTime, 0).UTC()
 		tref := time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
-		c.Assert(t, Equals, tref)
+		assert.Equal(t, ti, tref)
 	}
 
 }
