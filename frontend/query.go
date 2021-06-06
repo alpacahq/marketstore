@@ -94,7 +94,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 	for _, req := range reqs.Requests {
 		var (
 			resp *QueryResponse
-			err error
+			err  error
 		)
 		// SQL
 		if req.IsSQLStatement {
@@ -102,7 +102,7 @@ func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *
 			if err != nil {
 				return err
 			}
-		}else {
+		} else {
 			// Query
 			resp, err = s.executeQuery(&req)
 			if err != nil {
@@ -348,7 +348,7 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 		if cs != nil {
 			csInput = cs
 		}
-		aggName, literalList, parameterList, err := parseFunctionCall(call)
+		aggName, literalList, parameterList, err := ParseFunctionCall(call)
 		if err != nil {
 			return nil, err
 		}
@@ -399,7 +399,10 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 	return cs, nil
 }
 
-func parseFunctionCall(call string) (funcName string, literalList, parameterList []string, err error) {
+// ParseFunctionCall parses a string to call an aggregator function.
+// e.g. "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
+// -> funcName="FuncName" , literalList=["Lit1", "Lit2"], parameterList=["P1","P2","P3","P4","Sum::P5", "Avg::P6"]
+func ParseFunctionCall(call string) (funcName string, literalList, parameterList []string, err error) {
 	call = strings.Trim(call, " ")
 	left := strings.Index(call, "(")
 	right := strings.LastIndex(call, ")")

@@ -13,26 +13,25 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-type dMap map[string]*Directory              // General purpose map for storing directories
-type levelFunc func(*Directory, interface{}) // Function for use in recursing into directories
+type dMap map[string]*Directory // General purpose map for storing directories
 
 type Directory struct {
 	sync.RWMutex
-	itemName, pathToItemName, category string
-	/*
-		itemName: instance of the category, e.g. itemName: "AAPL", category: "Symbol"
-		pathToItemName: directory path to this item, e.g. pathToItemName: "/project/data", itemName: "AAPL"
-	*/
-	directMap, subDirs dMap
-	/*
-		directMap[Key]: Key is the directory path, including the rootPath and excluding filename
-		subDirs[Key]: Key is the name of the directory, aka "ItemName" which is an instance of the category
-	*/
-	catList  map[string]int8
+
+	// itemName is the instance of the category. e.g. itemName: "AAPL", category: "Symbol"
+	itemName string
+	// pathToItemName is the directory path to this item. e.g. pathToItemName: "/project/data", itemName: "AAPL"
+	pathToItemName string
+	category       string
+
+	// DirectMap[Key]: Key is the directory path, including the rootPath and excluding filename
+	DirectMap dMap
+	// subDirs[Key]: Key is the name of the directory, aka "ItemName" which is an instance of the category
+	subDirs dMap
+
+	catList map[string]int8
+	// datafile[Key]: Key is the fully specified path to the datafile, including rootPath and filename
 	datafile map[string]*io.TimeBucketInfo
-	/*
-		datafile[Key]: Key is the fully specified path to the datafile, including rootPath and filename
-	*/
 }
 
 // NewDirectory scans files under the rootPath and return a new Directory struct.
@@ -41,11 +40,11 @@ type Directory struct {
 func NewDirectory(rootPath string) (*Directory, error) {
 	d := &Directory{
 		// Directmap will point to each directory node using a composite key
-		directMap: make(dMap),
+		DirectMap: make(dMap),
 	}
 
 	// Load is single thread compatible - no concurrent access is anticipated
-	rootDmap := d.directMap
+	rootDmap := d.DirectMap
 	err := load(rootDmap, d, rootPath, rootPath)
 
 	return d, err
@@ -70,9 +69,11 @@ func load(rootDmap dMap, d *Directory, subPath, rootPath string) error {
 		leafPath := path.Clean(subPath + "/" + dirname.Name())
 		if dirname.IsDir() && dirname.Name() != "metadata.db" {
 			itemName := dirname.Name()
-			d.subDirs[itemName] = new(Directory)
-			d.subDirs[itemName].itemName = itemName
-			d.subDirs[itemName].pathToItemName = subPath
+			d.subDirs[itemName] = &Directory{
+				itemName:       itemName,
+				pathToItemName: subPath,
+			}
+
 			d.datafile = nil
 			if err := load(rootDmap, d.subDirs[itemName], leafPath, rootPath); err != nil {
 				return fmt.Errorf(io.GetCallerFileContext(0) + ", " + err.Error())
@@ -224,7 +225,7 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 			deleteMap[i] = true // This dir was deleted, we'll remove it from the parent's subdir list later
 		} else {
 			if deleteMap[i+1] {
-				tree[i].removeSubDir(tree[i+1].itemName, dRoot.directMap)
+				tree[i].removeSubDir(tree[i+1].itemName, dRoot.DirectMap)
 			}
 		}
 		if !tree[i].DirHasSubDirs() {
@@ -235,7 +236,7 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	if deleteMap[0] {
 		removeDirFiles(tree[0])
 		if dRoot != nil {
-			dRoot.removeSubDir(tree[0].itemName, dRoot.directMap)
+			dRoot.removeSubDir(tree[0].itemName, dRoot.DirectMap)
 		}
 	}
 	return nil
@@ -278,7 +279,7 @@ func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *i
 	if err != nil {
 		return nil, err
 	}
-	return subDir.getLatestYearFile()
+	return subDir.GetLatestYearFile()
 }
 
 func (d *Directory) GetLatestTimeBucketInfoFromFullFilePath(fullFilePath string) (fi *io.TimeBucketInfo, err error) {
@@ -286,7 +287,7 @@ func (d *Directory) GetLatestTimeBucketInfoFromFullFilePath(fullFilePath string)
 	if err != nil {
 		return nil, err
 	}
-	return subDir.getLatestYearFile()
+	return subDir.GetLatestYearFile()
 }
 
 func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error) {
@@ -390,7 +391,7 @@ func (d *Directory) GetSubDirectoryAndAddFile(fullFilePath string, year int16) (
 	d.Lock()
 	defer d.Unlock()
 	dirPath := path.Dir(fullFilePath)
-	if dir, ok := d.directMap[dirPath]; ok {
+	if dir, ok := d.DirectMap[dirPath]; ok {
 		return dir.AddFile(year)
 	}
 	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
@@ -401,7 +402,7 @@ func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Director
 	dirPath := path.Dir(fullFilePath)
 	d.RLock()
 	defer d.RUnlock()
-	if dir, ok := d.directMap[dirPath]; ok {
+	if dir, ok := d.DirectMap[dirPath]; ok {
 		return dir, nil
 	}
 	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
@@ -538,7 +539,7 @@ func (d *Directory) String() string {
 	return printstring[:len(printstring)-1]
 }
 
-func (d *Directory) gatherDirectories() []string {
+func (d *Directory) GatherDirectories() []string {
 	// Must be thread-safe for READ access
 	dirListFunc := func(d *Directory, i_list interface{}) {
 		p_list := i_list.(*[]string)
@@ -548,7 +549,7 @@ func (d *Directory) gatherDirectories() []string {
 	d.recurse(&dirList, dirListFunc)
 	return dirList
 }
-func (d *Directory) gatherFilePaths() []string {
+func (d *Directory) GatherFilePaths() []string {
 	// Must be thread-safe for READ access
 	filePathListFunc := func(d *Directory, i_list interface{}) {
 		p_list := i_list.(*[]string)
@@ -600,7 +601,7 @@ func (d *Directory) getOwningSubDirectoryByRecursion(filePath string) (subDir *D
 		return subDir, nil
 	}
 }
-func (d *Directory) getLatestYearFile() (latestFile *io.TimeBucketInfo, err error) {
+func (d *Directory) GetLatestYearFile() (latestFile *io.TimeBucketInfo, err error) {
 	// Must be thread-safe for READ access
 	d.RLock()
 	defer d.RUnlock()
@@ -629,10 +630,10 @@ func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 		d.subDirs = make(dMap)
 	}
 	d.subDirs[subDirItemName] = subDir
-	for key, val := range subDir.directMap {
-		d.directMap[key] = val
+	for key, val := range subDir.DirectMap {
+		d.DirectMap[key] = val
 	}
-	subDir.directMap = nil
+	subDir.DirectMap = nil
 }
 func (d *Directory) removeSubDir(subDirItemName string, directMap dMap) {
 	d.Lock()
@@ -647,6 +648,8 @@ func (d *Directory) removeSubDir(subDirItemName string, directMap dMap) {
 		d.subDirs = nil
 	}
 }
+
+type levelFunc func(*Directory, interface{}) // Function for use in recursing into directories
 
 func (d *Directory) recurse(elem interface{}, levelFunc levelFunc) {
 	// Must be thread-safe for READ access
