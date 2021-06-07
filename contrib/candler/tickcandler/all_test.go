@@ -1,96 +1,85 @@
-package tickcandler
+package tickcandler_test
 
 import (
+	"fmt"
+	"io/ioutil"
 	"testing"
-
-	. "gopkg.in/check.v1"
-
-	"reflect"
 	"time"
 
-	. "github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/utils/test"
+
+	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { TestingT(t) }
+func setup(t *testing.T, testName string,
+) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
+	t.Helper()
 
-var _ = Suite(&TestSuite{nil, "", nil, nil, nil})
+	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("tickcandler_test-%s", testName))
+	itemsWritten = test.MakeDummyCurrencyDir(rootDir, true, false)
+	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
 
-type TestSuite struct {
-	DataDirectory *Directory
-	Rootdir       string
-	// Number of items written in sample data (non-zero index)
-	ItemsWritten map[string]int
-	WALFile      *executor.WALFileType
-	TXNPipe      *executor.TransactionPipe
+	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata
 }
 
-func (s *TestSuite) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	s.ItemsWritten = MakeDummyCurrencyDir(s.Rootdir, false, false)
-	instanceConfig, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false, true) // WAL Bypass
-	s.DataDirectory = instanceConfig.CatalogDir
-	s.WALFile = instanceConfig.WALFile
-	s.TXNPipe = instanceConfig.TXNPipe
-}
+func TestTickCandler(t *testing.T) {
+	tearDown, rootDir, _, metadata := setup(t, "TestTickCandler")
+	defer tearDown()
 
-func (s *TestSuite) TearDownSuite(c *C) {
-	CleanupDummyDataDir(s.Rootdir)
-}
-
-func (s *TestSuite) TestTickCandler(c *C) {
-	cdl, am := TickCandler{}.New()
+	cdl, am := tickcandler.TickCandler{}.New()
 	ds := io.NewDataShapeVector([]string{"Bid", "Ask"}, []io.EnumElementType{io.FLOAT32, io.FLOAT32})
 	// Sum and Avg are optional inputs, let's map them arbitrarily
 	//am.MapInputColumn("Sum", ds[1:])
 	am.MapRequiredColumn("Sum", ds...)
 	am.MapRequiredColumn("Avg", ds...)
 	err := cdl.Init("1Min")
-	c.Assert(err != nil, Equals, true)
+	assert.NotNil(t, err)
 	am.MapRequiredColumn("CandlePrice", ds...)
 	err = cdl.Init("1Min")
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	/*
 		We expect an error with an empty input arg set
 	*/
-	err = cdl.Accum(&io.Rows{}, s.DataDirectory)
-	c.Assert(err != nil, Equals, true)
+	err = cdl.Accum(&io.Rows{}, metadata.CatalogDir)
+	assert.NotNil(t, err)
 
 	/*
 		Create some tick data with symbol "TEST"
 	*/
-	createTickBucket("TEST", s.Rootdir, s.DataDirectory, s.TXNPipe, s.WALFile)
+	createTickBucket("TEST", rootDir, metadata.CatalogDir, metadata.TXNPipe, metadata.WALFile)
 
 	/*
 		Read some tick data
 	*/
-	q := planner.NewQuery(s.DataDirectory)
+	q := planner.NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
 	q.AddRestriction("AttributeGroup", "TICK")
 	q.AddRestriction("Timeframe", "1Min")
 	q.SetStart(time.Date(2016, time.November, 1, 12, 0, 0, 0, time.UTC))
 	parsed, _ := q.Parse()
 	reader, err := executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, err := reader.Read()
-	c.Assert(err == nil, Equals, true)
-	c.Assert(len(csm), Equals, 1)
+	assert.Nil(t, err)
+	assert.Len(t, csm, 1)
 	for _, cs := range csm {
-		c.Assert(cs.Len(), Equals, 200)
-		err = cdl.Accum(cs, s.DataDirectory)
-		c.Assert(err == nil, Equals, true)
+		assert.Equal(t, cs.Len(), 200)
+		err = cdl.Accum(cs, metadata.CatalogDir)
+		assert.Nil(t, err)
 	}
 	rows := cdl.Output()
-	c.Assert(rows.Len(), Equals, 4)
+	assert.Equal(t, rows.Len(), 4)
 	tsa, err := rows.GetTime()
 	tbase := time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
-	c.Assert(tsa[0] == tbase, Equals, true)
-	c.Assert(reflect.DeepEqual(rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200}), Equals, true)
+	assert.Equal(t, tsa[0], tbase)
+	assert.Equal(t, rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200})
 	/*
 		fmt.Println("Ask_SUM", rows.GetColumn("Ask_SUM"))
 		fmt.Println("Bid_SUM", rows.GetColumn("Bid_SUM"))
@@ -103,22 +92,22 @@ func (s *TestSuite) TestTickCandler(c *C) {
 	*/
 	cdl.Reset()
 	for _, cs := range csm {
-		c.Assert(cs.Len(), Equals, 200)
-		err = cdl.Accum(cs, s.DataDirectory)
-		c.Assert(err == nil, Equals, true)
+		assert.Equal(t, cs.Len(), 200)
+		err = cdl.Accum(cs, metadata.CatalogDir)
+		assert.Nil(t, err)
 	}
 	rows = cdl.Output()
-	c.Assert(rows.Len(), Equals, 4)
+	assert.Equal(t, rows.Len(), 4)
 	tsa, err = rows.GetTime()
 	tbase = time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
-	c.Assert(tsa[0] == tbase, Equals, true)
-	c.Assert(reflect.DeepEqual(rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200}), Equals, true)
+	assert.Equal(t, tsa[0], tbase)
+	assert.Equal(t, rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200})
 }
 
 /*
 Utility functions
 */
-func createTickBucket(symbol, rootDir string, catalogDir *Directory, txnPipe *executor.TransactionPipe,
+func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, txnPipe *executor.TransactionPipe,
 	wf *executor.WALFileType) {
 
 	// Create a new variable data bucket

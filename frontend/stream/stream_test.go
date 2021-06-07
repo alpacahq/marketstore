@@ -1,6 +1,8 @@
-package stream
+package stream_test
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -8,35 +10,39 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/frontend/stream"
+	"github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/gorilla/websocket"
 	"github.com/vmihailenco/msgpack"
-	. "gopkg.in/check.v1"
 )
 
-func Test(t *testing.T) { TestingT(t) }
+func setup(t *testing.T, testName string,
+) (tearDown func()) {
+	t.Helper()
 
-type StreamTestSuite struct{}
+	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("stream_test-%s", testName))
+	_, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	stream.Initialize()
 
-var _ = Suite(&StreamTestSuite{})
-
-func (s *StreamTestSuite) SetUpSuite(c *C) {
-	root := c.MkDir()
-	executor.NewInstanceSetup(root, nil, nil,5, true, true, false, false)
-
-	Initialize()
+	return func() { test.CleanupDummyDataDir(rootDir) }
 }
 
-func (s *StreamTestSuite) TestStream(c *C) {
-	srv := httptest.NewServer(http.HandlerFunc(Handler))
+func TestStream(t *testing.T) {
+	tearDown := setup(t, "TestStream")
+	defer tearDown()
+
+	srv := httptest.NewServer(http.HandlerFunc(stream.Handler))
 
 	u, _ := url.Parse(srv.URL + "/ws")
 	u.Scheme = "ws"
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	c.Assert(err, IsNil)
+	assert.Nil(t, err)
 
 	// AAPL 5Min bars & all daily bars
 	streamKeys := []string{"AAPL/5Min/OHLCV", "*/1D/OHLCV"}
@@ -47,12 +53,13 @@ func (s *StreamTestSuite) TestStream(c *C) {
 	}
 
 	handler := func(buf []byte) error {
-		var payload *Payload
-		c.Assert(msgpack.Unmarshal(buf, &payload), IsNil)
+		var payload *stream.Payload
+		err := msgpack.Unmarshal(buf, &payload)
+		assert.Nil(t, err)
 
 		payload.Key = strings.Replace(payload.Key, "NVDA", "*", 1)
 		if count, ok := streamCount[payload.Key]; !ok {
-			c.Fatalf("invalid stream key in payload: %v", *payload)
+			t.Fatalf("invalid stream key in payload: %v", *payload)
 		} else {
 			streamCount[payload.Key] = count + 1
 		}
@@ -68,17 +75,18 @@ func (s *StreamTestSuite) TestStream(c *C) {
 		return nil
 	}
 
-	buf, err := msgpack.Marshal(SubscribeMessage{Streams: streamKeys})
-	c.Assert(err, IsNil)
+	buf, err := msgpack.Marshal(stream.SubscribeMessage{Streams: streamKeys})
+	assert.Nil(t, err)
 
-	c.Assert(conn.WriteMessage(websocket.BinaryMessage, buf), IsNil)
+	assert.Nil(t, conn.WriteMessage(websocket.BinaryMessage, buf))
 
 	_, buf, err = conn.ReadMessage()
 
-	subRespMsg := &SubscribeMessage{}
-	c.Assert(msgpack.Unmarshal(buf, subRespMsg), IsNil)
+	subRespMsg := &stream.SubscribeMessage{}
+	err = msgpack.Unmarshal(buf, subRespMsg)
+	assert.Nil(t, err)
 
-	c.Assert(len(subRespMsg.Streams), Equals, len(streamKeys))
+	assert.Equal(t, len(subRespMsg.Streams), len(streamKeys))
 
 	bufC := make(chan []byte, 1)
 
@@ -109,11 +117,11 @@ func (s *StreamTestSuite) TestStream(c *C) {
 	// write data
 	for i := 0; i < 2; i++ {
 		tbk := io.NewTimeBucketKey("AAPL/5Min/OHLCV")
-		Push(*tbk, genColumns())
+		stream.Push(*tbk, genColumns())
 	}
 
 	tbk := io.NewTimeBucketKey("NVDA/1D/OHLCV")
-	Push(*tbk, genColumns())
+	stream.Push(*tbk, genColumns())
 
 	timer := time.NewTimer(5 * time.Second)
 
@@ -122,12 +130,12 @@ func (s *StreamTestSuite) TestStream(c *C) {
 		select {
 		case buf, ok := <-bufC:
 			if ok {
-				c.Assert(handler(buf), IsNil)
+				assert.Nil(t, handler(buf))
 			} else {
 				finished = true
 			}
 		case <-timer.C:
-			c.Fatalf("test timed out [%v]", streamCount)
+			t.Fatalf("test timed out [%v]", streamCount)
 		}
 		if finished {
 			break

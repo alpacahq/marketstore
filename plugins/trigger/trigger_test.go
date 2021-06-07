@@ -1,44 +1,33 @@
-package trigger
+package trigger_test
 
 import (
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 )
-
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { TestingT(t) }
-
-type TestSuite struct {
-}
-
-var _ = Suite(&TestSuite{})
-
-func (s *TestSuite) SetUpSuite(c *C) {}
-
-func (s *TestSuite) TearDownSuite(c *C) {}
 
 type EmptyTrigger struct{}
 
-func (t *EmptyTrigger) Fire(keyPath string, records []Record) {
+func (t *EmptyTrigger) Fire(keyPath string, records []trigger.Record) {
 	// do nothing
 }
 
-func (s *TestSuite) TestMatch(c *C) {
+func TestMatch(t *testing.T) {
 	trig := &EmptyTrigger{}
-	matcher := NewMatcher(trig, "*/1Min/OHLC")
+	matcher := trigger.NewMatcher(trig, "*/1Min/OHLC")
 	var matched bool
 	matched = matcher.Match("TSLA/1Min/OHLC")
-	c.Check(matched, Equals, true)
+	assert.True(t, matched)
 	matched = matcher.Match("TSLA/5Min/OHLC")
-	c.Check(matched, Equals, false)
+	assert.False(t, matched)
 }
 
-func (s *TestSuite) TestRecordsToColumnSeries(c *C) {
+func TestRecordsToColumnSeries(t *testing.T) {
 	epoch := []int64{
 		time.Date(2017, 12, 14, 10, 3, 0, 0, utils.InstanceConfig.Timezone).Unix(),
 		time.Date(2017, 12, 14, 10, 4, 0, 0, utils.InstanceConfig.Timezone).Unix(),
@@ -70,7 +59,7 @@ func (s *TestSuite) TestRecordsToColumnSeries(c *C) {
 	numRows := len(times)
 	rowLen := len(rowData) / numRows
 
-	records := make([]Record, numRows)
+	records := make([]trigger.Record, numRows)
 
 	for i := 0; i < numRows; i++ {
 		pos := i * rowLen
@@ -80,10 +69,10 @@ func (s *TestSuite) TestRecordsToColumnSeries(c *C) {
 		buf, _ := io.Serialize(nil, index)
 		buf = append(buf, record[8:]...)
 
-		records[i] = Record(buf)
+		records[i] = trigger.Record(buf)
 	}
 
-	testCS := RecordsToColumnSeries(
+	testCS := trigger.RecordsToColumnSeries(
 		*tbk, cs.GetDataShapes(),
 		time.Minute, int16(2017),
 		records)
@@ -94,11 +83,11 @@ func (s *TestSuite) TestRecordsToColumnSeries(c *C) {
 		cV := reflect.ValueOf(col)
 		tcV := reflect.ValueOf(testCol)
 
-		c.Check(cV.Len(), Equals, tcV.Len())
+		assert.Equal(t, cV.Len(), tcV.Len())
 	}
 
-	c.Check(len(cs.GetEpoch()), Equals, len(testCS.GetEpoch()))
+	assert.Equal(t, len(cs.GetEpoch()), len(testCS.GetEpoch()))
 	for i := 0; i < len(epoch); i++ {
-		c.Check(cs.GetEpoch()[i], Equals, testCS.GetEpoch()[i])
+		assert.Equal(t, cs.GetEpoch()[i], testCS.GetEpoch()[i])
 	}
 }

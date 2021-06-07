@@ -2,63 +2,60 @@ package io
 
 import (
 	"reflect"
+	"testing"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 )
 
-type TestSuite3 struct{}
-
-var _ = Suite(&TestSuite3{})
-
-func (s *TestSuite3) TestNewNumpyDataset(c *C) {
+func TestNewNumpyDataset(t *testing.T) {
 	epoch := []int64{10, 11, 12}
 	cs := NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	nds, err := NewNumpyDataset(cs)
-	c.Check(err, Equals, nil)
-	c.Check(nds.Length, Equals, 3)
-	c.Check(nds.ColumnNames[0], Equals, "Epoch")
-	c.Check(len(nds.ColumnData), Equals, 1)
-	c.Check(nds.Length, Equals, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, nds.Length, 3)
+	assert.Equal(t, nds.ColumnNames[0], "Epoch")
+	assert.Len(t, nds.ColumnData, 1)
+	assert.Equal(t, nds.Length, 3)
 
 	dsv, err := nds.buildDataShapes()
-	c.Check(len(dsv), Equals, 1)
-	c.Check(err, IsNil)
+	assert.Len(t, dsv, 1)
+	assert.Nil(t, err)
 }
 
-func (s *TestSuite3) TestNewNumpyMultiDataset(c *C) {
+func TestNewNumpyMultiDataset(t *testing.T) {
 	epoch := []int64{10, 11, 12}
 	cs := NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	nds, err := NewNumpyDataset(cs)
-	c.Check(err, Equals, nil)
+	assert.Nil(t, err)
 	tbk := NewTimeBucketKey("TSLA/1Min/OHLCV")
 	nmds, err := NewNumpyMultiDataset(nds, *tbk)
-	c.Check(err, Equals, nil)
-	c.Check(nmds.Length, Equals, 3)
-	c.Check(nmds.ColumnNames[0], Equals, "Epoch")
-	c.Check(nmds.StartIndex[tbk.String()], Equals, 0)
-	c.Check(len(nmds.ColumnData), Equals, 1)
-	c.Check(nmds.Length, Equals, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, nmds.Length, 3)
+	assert.Equal(t, nmds.ColumnNames[0], "Epoch")
+	assert.Equal(t, nmds.StartIndex[tbk.String()], 0)
+	assert.Len(t, nmds.ColumnData, 1)
+	assert.Equal(t, nmds.Length, 3)
 }
 
-func (s *TestSuite3) TestAppend(c *C) {
+func TestAppend(t *testing.T) {
 	epoch := []int64{10, 11, 12}
 	col1 := []float32{5.5, 6.6, 7.7}
 	cs := NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	cs.AddColumn("col1", col1)
 	nds, err := NewNumpyDataset(cs)
-	c.Check(err, Equals, nil)
+	assert.Nil(t, err)
 	tbk := NewTimeBucketKey("TSLA/1Min/OHLCV")
 	nmds, err := NewNumpyMultiDataset(nds, *tbk)
-	c.Check(err, Equals, nil)
-	c.Check(nmds.Length, Equals, 3)
-	c.Check(nmds.ColumnNames[0], Equals, "Epoch")
-	c.Check(nmds.ColumnNames[1], Equals, "col1")
-	c.Check(nmds.StartIndex[tbk.String()], Equals, 0)
-	c.Check(len(nmds.ColumnData), Equals, 2)
-	c.Check(nmds.Length, Equals, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, nmds.Length, 3)
+	assert.Equal(t, nmds.ColumnNames[0], "Epoch")
+	assert.Equal(t, nmds.ColumnNames[1], "col1")
+	assert.Equal(t, nmds.StartIndex[tbk.String()], 0)
+	assert.Len(t, nmds.ColumnData, 2)
+	assert.Equal(t, nmds.Length, 3)
 
 	epoch = []int64{5, 6, 7}
 	col3 := []float32{1.1, 2.2, 3.3}
@@ -67,35 +64,35 @@ func (s *TestSuite3) TestAppend(c *C) {
 	cs2.AddColumn("col1", col3)
 	tbk2 := NewTimeBucketKey("NVDA/1Min/OHLCV")
 	err = nmds.Append(cs2, *tbk2)
-	c.Check(err, Equals, nil)
-	c.Check(nmds.Lengths[tbk2.String()], Equals, 3)
-	c.Check(nmds.Length, Equals, 6)
-	c.Check(len(nmds.ColumnData), Equals, 2)
+	assert.Nil(t, err)
+	assert.Equal(t, nmds.Lengths[tbk2.String()], 3)
+	assert.Equal(t, nmds.Length, 6)
+	assert.Len(t, nmds.ColumnData, 2)
 	badCol := []int64{12, 13, 14, 15}
 	badCS := NewColumnSeries()
 	badCS.AddColumn("bad", badCol)
 	tbkBad := NewTimeBucketKey("FORD/1Min/OHLCV")
 	err = nmds.Append(badCS, *tbkBad)
-	c.Check(err != nil, Equals, true)
+	assert.NotNil(t, err)
 }
 
-func (s *TestSuite3) TestToColumnSeries(c *C) {
+func TestToColumnSeries(t *testing.T) {
 	epoch := []int64{10, 11, 12}
 	cs := NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	nds, err := NewNumpyDataset(cs)
-	c.Check(err, Equals, nil)
-	c.Check(nds.Length, Equals, 3)
-	c.Check(nds.ColumnNames[0], Equals, "Epoch")
-	c.Check(len(nds.ColumnData[0]), Equals, 24)
-	c.Check(nds.Len(), Equals, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, nds.Length, 3)
+	assert.Equal(t, nds.ColumnNames[0], "Epoch")
+	assert.Len(t, nds.ColumnData[0], 24)
+	assert.Equal(t, nds.Len(), 3)
 
 	csReturned, err := nds.ToColumnSeries(0, nds.Len())
-	c.Check(err, Equals, nil)
-	c.Check(reflect.DeepEqual(csReturned, cs), Equals, true)
+	assert.Nil(t, err)
+	assert.True(t, reflect.DeepEqual(csReturned, cs))
 
 	nds.dataShapes = nil
 	csReturned, err = nds.ToColumnSeries(0, cs.Len())
-	c.Check(err, Equals, nil)
-	c.Check(reflect.DeepEqual(csReturned, cs), Equals, true)
+	assert.Nil(t, err)
+	assert.True(t, reflect.DeepEqual(csReturned, cs))
 }

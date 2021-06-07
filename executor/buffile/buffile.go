@@ -26,14 +26,14 @@ type BufferedFile struct {
 	bufferOffset int64
 }
 
-const defaultBlockSize = 32 * 1024
+const DefaultBlockSize = 32 * 1024
 
 func New(filePath string) (*BufferedFile, error) {
 	fp, err := os.OpenFile(filePath, os.O_RDWR, 0700)
 	if err != nil {
 		return nil, err
 	}
-	blockSize := defaultBlockSize
+	blockSize := DefaultBlockSize
 	return &BufferedFile{
 		fp:        fp,
 		blockSize: blockSize,

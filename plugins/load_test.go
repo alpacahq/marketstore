@@ -1,7 +1,8 @@
-package plugins
+package plugins_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,35 +10,28 @@ import (
 	"runtime"
 	"testing"
 
-	. "gopkg.in/check.v1"
+	"github.com/alpacahq/marketstore/v4/plugins"
+	"github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/stretchr/testify/assert"
 )
 
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { TestingT(t) }
+func setup(t *testing.T, testName string) (tearDown func(), testPluginLib, oldGoPath, absTestPluginLib string) {
+	dirName, _ := ioutil.TempDir("", fmt.Sprintf("plugins_test-%s", testName))
 
-type TestSuite struct {
-	TestPluginLib    string
-	AbsTestPluginLib string
-	OldGoPath        string
-}
-
-var _ = Suite(&TestSuite{})
-
-func (s *TestSuite) SetUpSuite(c *C) {
 	osType := runtime.GOOS
 	if osType != "linux" {
-		c.Skip("Only linux runs plugins")
+		t.Skip("Only linux runs plugins")
 	}
-	dirName := c.MkDir()
+
 	binDirName := filepath.Join(dirName, "bin")
 	os.MkdirAll(binDirName, 0777)
 	testFileName := "plugin.go"
 	testFilePath := filepath.Join(dirName, testFileName)
-	s.TestPluginLib = "plugin.so"
-	soFilePath := filepath.Join(binDirName, s.TestPluginLib)
+	testPluginLib = "plugin.so"
+	soFilePath := filepath.Join(binDirName, testPluginLib)
 	file, err := os.Create(testFilePath)
 	if err != nil {
-		c.Fatal("Could not create test plugin source file")
+		t.Fatal("Could not create test plugin source file")
 	}
 	code := `package main
 func main() {}
@@ -53,35 +47,40 @@ func main() {}
 
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
-		c.Skip("Unable to build test plugin ** is go version > 1.9 in your path?")
+		t.Skip("Unable to build test plugin ** is go version > 1.9 in your path?")
 	}
 
 	goPath := os.Getenv("GOPATH")
 	newGoPath := dirName + ":" + goPath
-	s.OldGoPath = goPath
-	s.AbsTestPluginLib = soFilePath
+	oldGoPath = goPath
+	absTestPluginLib = soFilePath
 	os.Setenv("GOPATH", newGoPath)
+
+	return func() {
+		test.CleanupDummyDataDir(dirName)
+
+		if oldGoPath != "" {
+			os.Setenv("GOPATH", oldGoPath)
+		}
+	}, testPluginLib, oldGoPath, absTestPluginLib
 }
 
-func (s *TestSuite) TearDownSuite(c *C) {
-	if s.OldGoPath != "" {
-		os.Setenv("GOPATH", s.OldGoPath)
-	}
-}
+func TestLoadFromGOPATH(t *testing.T) {
+	tearDown, testPluginLib, _, absTestPluginLib := setup(t, "TestLoadFromGOPATH")
+	defer tearDown()
 
-func (s *TestSuite) TestLoadFromGOPATH(c *C) {
 	var pi *plugin.Plugin
 	var err error
-	pi, err = Load(s.TestPluginLib)
-	c.Check(pi, NotNil)
-	c.Check(err, IsNil)
+	pi, err = plugins.Load(testPluginLib)
+	assert.NotNil(t, pi)
+	assert.Nil(t, err)
 
-	pi, err = Load("nonexistent")
-	c.Check(pi, IsNil)
-	c.Check(err, NotNil)
+	pi, err = plugins.Load("nonexistent")
+	assert.Nil(t, pi)
+	assert.NotNil(t, err)
 
 	// abs path case
-	pi, err = Load(s.AbsTestPluginLib)
-	c.Check(pi, NotNil)
-	c.Check(err, IsNil)
+	pi, err = plugins.Load(absTestPluginLib)
+	assert.NotNil(t, pi)
+	assert.Nil(t, err)
 }
