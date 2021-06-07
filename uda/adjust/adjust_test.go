@@ -1,34 +1,32 @@
 package adjust
 
 import (
+	"fmt"
+	"io/ioutil"
 	"math"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "gopkg.in/check.v1"
 )
 
-func TestAdjust(t *testing.T) {
+func setup(t *testing.T, testName string,
+) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata) {
+	t.Helper()
+
 	rounderNum = math.Pow(10, 3)
-	TestingT(t)
-}
 
-type TestSuiteAdjust struct {
-	Rootdir string
-	DataDir *catalog.Directory
-}
+	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("adjust_test-%s", testName))
+	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
 
-func (s *TestSuiteAdjust) SetupSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false, true) // WAL Bypass
-	s.DataDir = metadata.CatalogDir
+	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata
 }
-
-var _ = Suite(&TestSuiteAdjust{})
 
 type inputData []price
 
@@ -57,7 +55,9 @@ func toColumnSeries(inputData []price) *io.ColumnSeries {
 	return cs
 }
 
-func evalCase(testCase AdjustTestCase, c *C, catDir *catalog.Directory) {
+func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) {
+	t.Helper()
+
 	symbol := "AAPL"
 	tbkStr := symbol + "/1Min/OHLCV"
 	tbk := io.NewTimeBucketKeyFromString(tbkStr)
@@ -81,11 +81,11 @@ func evalCase(testCase AdjustTestCase, c *C, catDir *catalog.Directory) {
 	outEpochs := outputCs.GetColumn("Epoch").([]int64)
 	outPrice := outputCs.GetColumn("Price").([]float64)
 
-	c.Assert(inputCs.Len(), Equals, outputCs.Len())
+	assert.Equal(t, inputCs.Len(), outputCs.Len())
 
 	for i := range outPrice {
-		c.Assert(outEpochs[i], Equals, testCase.expected[i].epoch, Commentf(testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02")))
-		c.Assert(outPrice[i], Equals, testCase.expected[i].price, Commentf(testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02")))
+		assert.Equal(t, outEpochs[i], testCase.expected[i].epoch, testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02"))
+		assert.Equal(t, outPrice[i], testCase.expected[i].price, testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02"))
 	}
 }
 
@@ -158,9 +158,12 @@ var testDifferentEvents = []AdjustTestCase{
 	},
 }
 
-func (t *TestSuiteAdjust) TestCase1(c *C) {
+func TestCase1(t *testing.T) {
+	tearDown, _, metadata := setup(t, "TestCase1")
+	defer tearDown()
+
 	for _, testCase := range testDifferentEvents {
-		evalCase(testCase, c, t.DataDir)
+		evalCase(t, testCase, metadata.CatalogDir)
 	}
 }
 
@@ -212,9 +215,12 @@ var testDifferentDates = []AdjustTestCase{
 	},
 }
 
-func (t *TestSuiteAdjust) TestCase2(c *C) {
+func TestCase2(t *testing.T) {
+	tearDown, _, metadata := setup(t, "TestCase1")
+	defer tearDown()
+
 	for _, testCase := range testDifferentDates {
-		evalCase(testCase, c, t.DataDir)
+		evalCase(t, testCase, metadata.CatalogDir)
 	}
 }
 
@@ -339,8 +345,11 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 	},
 }
 
-func (t *TestSuiteAdjust) TestMultipleEventsOnDifferentDates(c *C) {
+func TestMultipleEventsOnDifferentDates(t *testing.T) {
+	tearDown, _, metadata := setup(t, "TestMultipleEventsOnDifferentDates")
+	defer tearDown()
+
 	for _, testCase := range testMultipleEventsOnDifferentDates {
-		evalCase(testCase, c, t.DataDir)
+		evalCase(t, testCase, metadata.CatalogDir)
 	}
 }

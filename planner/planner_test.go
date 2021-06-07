@@ -1,42 +1,36 @@
-package planner
+package planner_test
 
 import (
+	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
-
-	. "github.com/alpacahq/marketstore/v4/catalog"
-	. "github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/stretchr/testify/assert"
 )
 
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { TestingT(t) }
+func setup(t *testing.T, testName string,
+) (tearDown func(), rootDir string, catalogDir *catalog.Directory) {
+	t.Helper()
 
-type TestSuite struct {
-	DataDirectory *Directory
-	Rootdir       string
-}
-
-var _ = Suite(&TestSuite{nil, ""})
-
-func (s *TestSuite) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	MakeDummyCurrencyDir(s.Rootdir, false, false)
-	var err error
-	s.DataDirectory, err = NewDirectory(s.Rootdir)
+	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("planner_test-%s", testName))
+	test.MakeDummyCurrencyDir(rootDir, false, false)
+	catalogDir, err := catalog.NewDirectory(rootDir)
 	if err != nil {
-		c.Fatal("failed to create a catalog directory. err=" + err.Error())
-		return
+		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 	}
+
+	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, catalogDir
 }
 
-func (s *TestSuite) TearDownSuite(c *C) {
-	CleanupDummyDataDir(s.Rootdir)
-}
+func TestQuery(t *testing.T) {
+	tearDown, _, catalogDir := setup(t, "TestQuery")
+	defer tearDown()
 
-func (s *TestSuite) TestQuery(c *C) {
-	q := NewQuery(s.DataDirectory)
+	q := planner.NewQuery(catalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
 	q.AddRestriction("AttributeGroup", "OHLC")
 	q.AddRestriction("Symbol", "USDJPY")
@@ -46,22 +40,22 @@ func (s *TestSuite) TestQuery(c *C) {
 		time.Date(2002, 12, 20, 12, 0, 0, 0, time.UTC),
 	)
 	pr, _ := q.Parse()
-	c.Assert(len(pr.QualifiedFiles), Equals, 6)
+	assert.Len(t, pr.QualifiedFiles, 6)
 
-	q = NewQuery(s.DataDirectory)
+	q = planner.NewQuery(catalogDir)
 	q.AddRestriction("Symbol", "BBBYYY")
 	pr, err := q.Parse()
-	c.Assert(err != nil, Equals, true)
-	c.Assert(len(pr.QualifiedFiles), Equals, 0)
+	assert.NotNil(t, err)
+	assert.Len(t, pr.QualifiedFiles, 0)
 
-	q = NewQuery(s.DataDirectory)
+	q = planner.NewQuery(catalogDir)
 	q.AddRestriction("YYYYYY", "BBBYYY")
 	pr, err = q.Parse()
-	c.Assert(err != nil, Equals, true)
+	assert.NotNil(t, err)
 
-	q = NewQuery(s.DataDirectory)
+	q = planner.NewQuery(catalogDir)
 	q.AddRestriction("AttributeGroup", "OHLC")
 	pr, err = q.Parse()
 	qfs := pr.QualifiedFiles
-	c.Assert(len(qfs), Equals, 54)
+	assert.Len(t, qfs, 54)
 }
