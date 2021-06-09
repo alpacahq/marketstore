@@ -1,16 +1,12 @@
 package io
 
 import (
-	"reflect"
+	"testing"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 )
 
-type TestSuite2 struct{}
-
-var _ = Suite(&TestSuite2{})
-
-func (s *TestSuite2) TestAnySet(c *C) {
+func TestAnySet(t *testing.T) {
 	A := []string{"1", "a", "3", "4", "5", "6", "7", "8", "9", "10"}
 	B := []string{"4", "5", "6", "22"}
 	D := []string{"4", "5", "6", "11", "20"}
@@ -20,19 +16,19 @@ func (s *TestSuite2) TestAnySet(c *C) {
 		Strings
 	*/
 	sgA, err := NewAnySet(A)
-	c.Assert(err == nil, Equals, true)
-	c.Assert(reflect.DeepEqual(AintB, sgA.Intersect(B)), Equals, true)
-	c.Assert(reflect.DeepEqual(result1, sgA.Subtract(B)), Equals, true)
-	c.Assert(reflect.DeepEqual(result1, sgA.Subtract(D)), Equals, true)
-	c.Assert(sgA.Contains(B), Equals, false)
-	c.Assert(sgA.Contains(AintB), Equals, true)
+	assert.Nil(t, err)
+	assert.Equal(t, AintB, sgA.Intersect(B))
+	assert.Equal(t, result1, sgA.Subtract(B))
+	assert.Equal(t, result1, sgA.Subtract(D))
+	assert.False(t, sgA.Contains(B))
+	assert.True(t, sgA.Contains(AintB))
 	Anoa := []string{"1", "3", "4", "5", "6", "7", "8", "9", "10"}
 	Empty := []string{}
 	sgA.Del("a")
-	c.Assert(reflect.DeepEqual(sgA.Subtract(Anoa), Empty), Equals, true)
+	assert.Equal(t, sgA.Subtract(Anoa), Empty)
 	sgA.Add("2020202020")
 	twenty := []string{"2020202020"}
-	c.Assert(reflect.DeepEqual(sgA.Subtract(Anoa), twenty), Equals, true)
+	assert.Equal(t, sgA.Subtract(Anoa), twenty)
 
 	/*
 		Integers
@@ -43,19 +39,19 @@ func (s *TestSuite2) TestAnySet(c *C) {
 	AAintBB := []int{4, 5, 6}
 	result11 := []int{1, 2, 3, 7, 8, 9, 10}
 	sgAA, err := NewAnySet(AA)
-	c.Assert(err == nil, Equals, true)
-	c.Assert(reflect.DeepEqual(AAintBB, sgAA.Intersect(BB)), Equals, true)
-	c.Assert(reflect.DeepEqual(result11, sgAA.Subtract(BB)), Equals, true)
-	c.Assert(reflect.DeepEqual(result11, sgAA.Subtract(DD)), Equals, true)
-	c.Assert(sgAA.Contains(BB), Equals, false)
-	c.Assert(sgAA.Contains(AAintBB), Equals, true)
+	assert.Nil(t, err)
+	assert.Equal(t, AAintBB, sgAA.Intersect(BB))
+	assert.Equal(t, result11, sgAA.Subtract(BB))
+	assert.Equal(t, result11, sgAA.Subtract(DD))
+	assert.False(t, sgAA.Contains(BB))
+	assert.True(t, sgAA.Contains(AAintBB))
 	AAnoa := []int{1, 3, 4, 5, 6, 7, 8, 9, 10}
 	IEmpty := []int{}
 	Itwenty := []int{2020202020}
 	sgAA.Del(2)
-	c.Assert(reflect.DeepEqual(sgAA.Subtract(AAnoa), IEmpty), Equals, true)
+	assert.Equal(t, sgAA.Subtract(AAnoa), IEmpty)
 	sgAA.Add(2020202020)
-	c.Assert(reflect.DeepEqual(sgAA.Subtract(AAnoa), Itwenty), Equals, true)
+	assert.Equal(t, sgAA.Subtract(AAnoa), Itwenty)
 
 	/*
 		Datashapes
@@ -100,12 +96,12 @@ func (s *TestSuite2) TestAnySet(c *C) {
 		{Name: "10", Type: FLOAT32},
 	}
 	sgAAA, err := NewAnySet(AAA)
-	c.Assert(err == nil, Equals, true)
-	c.Assert(reflect.DeepEqual(AAAintBBB, sgAAA.Intersect(BBB)), Equals, true)
-	c.Assert(reflect.DeepEqual(result2, sgAAA.Subtract(BBB)), Equals, true)
-	c.Assert(reflect.DeepEqual(result2, sgAAA.Subtract(DDD)), Equals, true)
-	c.Assert(sgAAA.Contains(BBB), Equals, false)
-	c.Assert(sgAAA.Contains(AAAintBBB), Equals, true)
+	assert.Nil(t, err)
+	assert.Equal(t, AAAintBBB, sgAAA.Intersect(BBB))
+	assert.Equal(t, result2, sgAAA.Subtract(BBB))
+	assert.Equal(t, result2, sgAAA.Subtract(DDD))
+	assert.False(t, sgAAA.Contains(BBB))
+	assert.True(t, sgAAA.Contains(AAAintBBB))
 	AAAnoa := []DataShape{
 		{Name: "1", Type: FLOAT32},
 		{Name: "2", Type: FLOAT32},
@@ -126,17 +122,17 @@ func (s *TestSuite2) TestAnySet(c *C) {
 		{Name: "2020202020", Type: FLOAT32},
 	}
 	sgAAA.Del(DataShape{Name: "2", Type: FLOAT32})
-	c.Assert(reflect.DeepEqual(sgAAA.Subtract(AAAnoa), I2Empty), Equals, true)
+	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2Empty)
 	sgAAA.Add(DataShape{Name: "2020202020", Type: FLOAT64})
-	c.Assert(reflect.DeepEqual(sgAAA.Subtract(AAAnoa), I2twenty), Equals, true)
+	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2twenty)
 	sgAAA.Del(DataShape{Name: "2020202020", Type: FLOAT64})
-	c.Assert(reflect.DeepEqual(sgAAA.Subtract(AAAnoa), I2Empty), Equals, true)
+	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2Empty)
 	sgAAA.Add(DataShape{Name: "2020202020", Type: FLOAT32})
-	c.Assert(reflect.DeepEqual(sgAAA.Subtract(AAAnoa), I2twentyFloat32), Equals, true)
+	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2twentyFloat32)
 
 }
 
-func (s *TestSuite2) TestGetMissingColumns(c *C) {
+func TestGetMissingColumns(t *testing.T) {
 	col1 := []float32{1, 2, 3}
 	col2 := []float64{1, 2, 3}
 	col3 := []int32{1, 2, 3}
@@ -148,13 +144,13 @@ func (s *TestSuite2) TestGetMissingColumns(c *C) {
 	csA.AddColumn("Three", col3)
 	csA.AddColumn("Four", col4)
 	csA.AddColumn("Five", col5)
-	c.Assert(csA.Len(), Equals, 3)
+	assert.Equal(t, csA.Len(), 3)
 	names := []string{"One", "Two", "Three", "Four", "Five"}
 	types := []EnumElementType{FLOAT32, FLOAT64, INT32, INT64, INT64}
 	requiredDSV := NewDataShapeVector(names, types)
 	columnDSVSet, err := NewAnySet(csA.GetDataShapes())
-	c.Assert(err == nil, Equals, true)
-	c.Assert(columnDSVSet.Contains(requiredDSV), Equals, true)
+	assert.Nil(t, err)
+	assert.True(t, columnDSVSet.Contains(requiredDSV))
 	/*
 		All columns are present
 	*/
@@ -162,8 +158,8 @@ func (s *TestSuite2) TestGetMissingColumns(c *C) {
 		requiredDSV,
 		csA.GetDataShapes(),
 	)
-	c.Assert(len(missing) == 0, Equals, true)
-	c.Assert(len(coercion) == 0, Equals, true)
+	assert.Len(t, missing, 0)
+	assert.Len(t, coercion, 0)
 
 	csA.Remove("Three")
 	/*
@@ -171,8 +167,8 @@ func (s *TestSuite2) TestGetMissingColumns(c *C) {
 	*/
 	missing, coercion = GetMissingAndTypeCoercionColumns(requiredDSV,
 		csA.GetDataShapes())
-	c.Assert(len(missing) == 1, Equals, true)
-	c.Assert(len(coercion) == 0, Equals, true)
+	assert.Len(t, missing, 1)
+	assert.Len(t, coercion, 0)
 
 	csA.AddColumn("Three", col2)
 	/*
@@ -180,8 +176,8 @@ func (s *TestSuite2) TestGetMissingColumns(c *C) {
 	*/
 	missing, coercion = GetMissingAndTypeCoercionColumns(requiredDSV,
 		csA.GetDataShapes())
-	c.Assert(len(missing) == 0, Equals, true)
-	c.Assert(len(coercion) == 1, Equals, true)
+	assert.Len(t, missing, 0)
+	assert.Len(t, coercion, 1)
 
 	ds6 := DataShape{Name: "Six", Type: FLOAT32}
 	requiredDSV = append(requiredDSV, ds6)
@@ -191,8 +187,8 @@ func (s *TestSuite2) TestGetMissingColumns(c *C) {
 	*/
 	missing, coercion = GetMissingAndTypeCoercionColumns(requiredDSV,
 		csA.GetDataShapes())
-	c.Assert(len(missing) == 1, Equals, true)
-	c.Assert(len(coercion) == 1, Equals, true)
-	c.Assert(missing[0], Equals, ds6)
-	c.Assert(coercion[0], Equals, DataShape{Name: "Three", Type: INT32})
+	assert.Len(t, missing, 1)
+	assert.Len(t, coercion, 1)
+	assert.Equal(t, missing[0], ds6)
+	assert.Equal(t, coercion[0], DataShape{Name: "Three", Type: INT32})
 }

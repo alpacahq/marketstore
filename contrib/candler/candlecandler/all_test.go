@@ -1,49 +1,38 @@
-package candlecandler
+package candlecandler_test
 
 import (
-	"testing"
-
-	. "gopkg.in/check.v1"
-
 	"fmt"
 	"reflect"
+	"testing"
 	"time"
 
-	. "github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/contrib/candler/candlecandler"
+	"github.com/alpacahq/marketstore/v4/utils/test"
+	"github.com/stretchr/testify/assert"
+
+	"io/ioutil"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { TestingT(t) }
+func setup(t *testing.T, testName string,
+) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
+	t.Helper()
 
-var _ = Suite(&TestSuite{nil, "", nil, nil})
+	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("candlecandler_test-%s", testName))
+	itemsWritten = test.MakeDummyStockDir(rootDir, true, false)
+	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
 
-type TestSuite struct {
-	DataDirectory *Directory
-	Rootdir       string
-	// Number of items written in sample data (non-zero index)
-	ItemsWritten map[string]int
-	WALFile      *executor.WALFileType
+	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata
 }
 
-func (s *TestSuite) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	s.ItemsWritten = MakeDummyStockDir(s.Rootdir, true, false)
-	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false, true,
-	) // WAL Bypass
-	s.DataDirectory = metadata.CatalogDir
-	s.WALFile = metadata.WALFile
-}
+func TestCandleCandler(t *testing.T) {
+	tearDown, _, _, metadata := setup(t, "TestCandleCandler")
+	defer tearDown()
 
-func (s *TestSuite) TearDownSuite(c *C) {
-	CleanupDummyDataDir(s.Rootdir)
-}
-
-func (s *TestSuite) TestCandleCandler(c *C) {
-	cdl, am := CandleCandler{}.New()
+	cdl, am := candlecandler.CandleCandler{}.New()
 	ds := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},
@@ -56,10 +45,10 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	am.MapRequiredColumn("Low", ds[2])
 	am.MapRequiredColumn("Close", ds[3])
 	err := cdl.Init("5Min")
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 
 	// Test data range query - across year
-	q := planner.NewQuery(s.DataDirectory)
+	q := planner.NewQuery(metadata.CatalogDir)
 	q.AddRestriction("AttributeGroup", "OHLCV")
 	q.AddRestriction("Symbol", "AAPL")
 	q.AddRestriction("Timeframe", "1Min")
@@ -68,17 +57,17 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	q.SetRange(startDate, endDate)
 	parsed, _ := q.Parse()
 	scanner, err := executor.NewReader(parsed)
-	c.Assert(err == nil, Equals, true)
+	assert.Nil(t, err)
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		c.Assert(time.Unix(epoch[0], 0).UTC(), Equals, startDate)
-		c.Assert(time.Unix(epoch[len(epoch)-1], 0).UTC(), Equals, endDate)
-		err = cdl.Accum(cs, s.DataDirectory)
-		c.Assert(err == nil, Equals, true)
+		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
+		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
+		err = cdl.Accum(cs, metadata.CatalogDir)
+		assert.Nil(t, err)
 	}
 	cols := cdl.Output()
-	c.Assert(cols.Len(), Equals, 4)
+	assert.Equal(t, cols.Len(), 4)
 	vsum := cols.GetColumn("Volume_SUM")
 	vavg := cols.GetColumn("Volume_AVG")
 	/*
@@ -90,8 +79,8 @@ func (s *TestSuite) TestCandleCandler(c *C) {
 	// Sum of volume and avg of volume
 	cmpsum := []float64{2070015, 2070040, 2070065, 414016}
 	cmpavg := []float64{414003, 414008, 414013, 414016}
-	c.Assert(reflect.DeepEqual(cmpsum, vsum), Equals, true)
-	c.Assert(reflect.DeepEqual(cmpavg, vavg), Equals, true)
+	assert.True(t, reflect.DeepEqual(cmpsum, vsum))
+	assert.True(t, reflect.DeepEqual(cmpavg, vavg))
 }
 
 /*

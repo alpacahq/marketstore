@@ -4,29 +4,12 @@ import (
 	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/assert"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
-	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
-
-func TestCALoader(t *testing.T) { TestingT(t) }
-
-type TestCALoaderSuite struct {
-	Rootdir string
-	DataDir *catalog.Directory
-}
-
-func (s *TestCALoaderSuite) SetupSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil,5, true, true, false, true) // WAL Bypass
-	s.DataDir = metadata.CatalogDir
-}
-
-var _ = Suite(&TestCALoaderSuite{})
 
 func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnSeries {
 	length := len(announcements)
@@ -253,11 +236,14 @@ var filteringFixtures = []struct {
 	},
 }
 
-func (s *TestCALoaderSuite) TestRateChangeEventsFiltering(c *C) {
+func TestRateChangeEventsFiltering(t *testing.T) {
+	tearDown, _, _ := setup(t, "TestRateChangeEventsFiltering")
+	defer tearDown()
+
 	for _, tt := range filteringFixtures {
 		ca := defineCorporateActions(tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
-		c.Assert(events, DeepEquals, tt.out, Commentf("FAILED: %s, %+v\n", tt.description, tt.params))
+		assert.Equal(t, events, tt.out, "FAILED: %s, %+v\n", tt.description, tt.params)
 	}
 }
 
@@ -383,11 +369,14 @@ var statusHandlingFixtures = []struct {
 	},
 }
 
-func (s *TestCALoaderSuite) TestRateChangeEventsAnnouncementStatusHandling(c *C) {
+func TestRateChangeEventsAnnouncementStatusHandling(t *testing.T) {
+	tearDown, _, _ := setup(t, "TestRateChangeEventsFiltering")
+	defer tearDown()
+
 	for _, tt := range statusHandlingFixtures {
 		ca := defineCorporateActions(tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
-		c.Assert(events, DeepEquals, tt.out, Commentf("FAILED: %s, %+v\n", tt.description, tt.params))
+		assert.Equal(t, events, tt.out, "FAILED: %s, %+v\n", tt.description, tt.params)
 	}
 }
 
@@ -437,36 +426,42 @@ var sortingFixtures = []struct {
 	},
 }
 
-func (s *TestCALoaderSuite) TestRateChangeEventsProperSorting(c *C) {
+func TestRateChangeEventsProperSorting(t *testing.T) {
+	tearDown, _, _ := setup(t, "TestRateChangeEventsProperSorting")
+	t.Cleanup(tearDown)
+
 	for _, tt := range sortingFixtures {
 		ca := defineCorporateActions(tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
-		c.Assert(events, DeepEquals, tt.out, Commentf("FAILED: %s, %+v\n", tt.description, tt.params))
+		assert.Equal(t, events, tt.out, "FAILED: %s, %+v\n", tt.description, tt.params)
 	}
 }
 
-func (s *TestCALoaderSuite) TestCache(c *C) {
+func TestCache(t *testing.T) {
+	tearDown, _, metadata := setup(t, "TestCache")
+	t.Cleanup(tearDown)
+
 	{
 		// GetRateChange should create a separate cache entry for each parameter combination
 		rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true, s.DataDir)
-		GetRateChanges("AAPL", false, true, s.DataDir)
-		GetRateChanges("AAPL", true, false, s.DataDir)
-		GetRateChanges("AAPL", false, false, s.DataDir)
+		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+		GetRateChanges("AAPL", false, true, metadata.CatalogDir)
+		GetRateChanges("AAPL", true, false, metadata.CatalogDir)
+		GetRateChanges("AAPL", false, false, metadata.CatalogDir)
 
-		c.Assert(len(rateChangeCache), Equals, 4)
+		assert.Len(t, rateChangeCache, 4)
 	}
 
 	{
 		// repeated calls with the same signature should not increase the number of cache entries
 		rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true, s.DataDir)
-		GetRateChanges("AAPL", true, true, s.DataDir)
-		GetRateChanges("AAPL", true, true, s.DataDir)
+		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
 
-		c.Assert(len(rateChangeCache), Equals, 1)
+		assert.Len(t, rateChangeCache, 1)
 	}
 
 }

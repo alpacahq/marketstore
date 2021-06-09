@@ -1,36 +1,29 @@
-package handlers
+package handlers_test
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
-	. "gopkg.in/check.v1"
 )
 
-func Test(t *testing.T) { TestingT(t) }
+func setup(t *testing.T, testName string,
+) (tearDown func()) {
+	t.Helper()
 
-var _ = Suite(&HandlersTestSuite{})
+	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("handlers_test-%s", testName))
+	executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
 
-type HandlersTestSuite struct {
-	DataDirectory *catalog.Directory
-	Rootdir       string
-	WALFile       *executor.WALFileType
+	return func() { test.CleanupDummyDataDir(rootDir) }
 }
-
-func (s *HandlersTestSuite) SetUpSuite(c *C) {
-	s.Rootdir = c.MkDir()
-	metadata, _, _ := executor.NewInstanceSetup(s.Rootdir, nil, nil, 5, true, true, false, true) // WAL Bypass
-	s.DataDirectory = metadata.CatalogDir
-	s.WALFile = metadata.WALFile
-}
-
-func (s *HandlersTestSuite) TearDownSuite(c *C) {}
 
 func getTestTradeArray() []api.PolyTrade {
 	return []api.PolyTrade{
@@ -55,20 +48,23 @@ func getTestQuoteArray() []api.PolyQuote {
 		},
 	}
 }
-func (s *HandlersTestSuite) TestHandlers(c *C) {
+func TestHandlers(t *testing.T) {
+	tearDown := setup(t, "TestHandlers")
+	defer tearDown()
+
 	// trade
 	{
 		buf, _ := json.Marshal(getTestTradeArray())
-		TradeHandler(buf)
+		handlers.TradeHandler(buf)
 
 		a := getTestTradeArray()
-		a[0].Conditions = []int{ConditionExchangeSummary}
+		a[0].Conditions = []int{handlers.ConditionExchangeSummary}
 		buf, _ = json.Marshal(a)
-		TradeHandler(buf)
+		handlers.TradeHandler(buf)
 	}
 	// quote
 	{
 		buf, _ := json.Marshal(getTestQuoteArray())
-		QuoteHandler(buf)
+		handlers.QuoteHandler(buf)
 	}
 }
