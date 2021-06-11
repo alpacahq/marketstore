@@ -255,13 +255,13 @@ func initWriter() {
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
 
-	instanceConfig, _, _ := executor.NewInstanceSetup(
+	executor.NewInstanceSetup(
 		relRootDir, nil, triggerMatchers,
 		walRotateInterval, true, true, true, true)
 
 	log.Info(
-		"Initialized writer with InstanceID: %v - RootDir: %v\n",
+		"Initialized writer with InstanceID: %v - relRootDir: %v\n",
 		instanceID,
-		instanceConfig.RootDir,
+		relRootDir,
 	)
 }
