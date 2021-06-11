@@ -16,9 +16,6 @@ import (
 var ThisInstance *InstanceMetadata
 
 type InstanceMetadata struct {
-	// RootDir is the absolute path to the data directory.
-	// e.g. RootDir = "/project/marketstore/data"
-	RootDir    string
 	CatalogDir *catalog.Directory
 	WALFile    *WALFileType
 }
@@ -64,7 +61,6 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		}
 	}
 	instanceID := time.Now().UTC().UnixNano()
-	ThisInstance.RootDir = rootDir
 
 	// Initialize a global catalog
 	if initCatalog {
