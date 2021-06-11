@@ -91,7 +91,7 @@ func TestQueryMulti(t *testing.T) {
 	*/
 	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	assert.Nil(t, err)
-	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	writer, err := executor.NewWriter(tbi, metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 	row := struct {
 		Epoch                  int64
@@ -106,7 +106,7 @@ func TestQueryMulti(t *testing.T) {
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.FlushToWAL()
 	metadata.WALFile.CreateCheckpoint()
 
 	q := NewQuery(metadata.CatalogDir)
@@ -146,7 +146,7 @@ func TestWriteVariable(t *testing.T) {
 	parsed, _ := q.Parse()
 	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	assert.Nil(t, err)
-	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	writer, err := executor.NewWriter(tbi, metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 	row := struct {
 		Epoch    int64
@@ -162,7 +162,7 @@ func TestWriteVariable(t *testing.T) {
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.FlushToWAL()
 	metadata.WALFile.CreateCheckpoint()
 
 	/*
@@ -199,7 +199,7 @@ func TestWriteVariable(t *testing.T) {
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.FlushToWAL()
 	metadata.WALFile.CreateCheckpoint()
 
 	csm, err = reader.Read()
@@ -230,7 +230,7 @@ func TestWriteVariable(t *testing.T) {
 		writer.WriteRecords([]time.Time{ts}, buffer, dsv)
 	}
 	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.FlushToWAL()
 	metadata.WALFile.CreateCheckpoint()
 
 	q = NewQuery(metadata.CatalogDir)
@@ -337,7 +337,7 @@ func TestDelete(t *testing.T) {
 	err := metadata.CatalogDir.AddTimeBucket(tbk, tbi)
 	assert.Nil(t, err)
 
-	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	writer, err := executor.NewWriter(tbi, metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 
 	row := OHLCtest{0, 100., 200., 300., 400.}
@@ -353,7 +353,7 @@ func TestDelete(t *testing.T) {
 	}
 	writer.WriteRecords(tsA, buffer, dsv)
 	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.FlushToWAL()
 	metadata.WALFile.CreateCheckpoint()
 
 	endTime := tsA[len(tsA)-1]
@@ -669,14 +669,14 @@ func TestAddSymbolThenWrite(t *testing.T) {
 	pr, _ := q.Parse()
 	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	assert.Nil(t, err)
-	w, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	w, err := executor.NewWriter(tbi, metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
 	buffer, _ := Serialize([]byte{}, row)
 	w.WriteRecords([]time.Time{ts}, buffer, dsv)
 	assert.Nil(t, err)
-	err = metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	err = metadata.WALFile.FlushToWAL()
 	assert.Nil(t, err)
 
 	q = NewQuery(metadata.CatalogDir)
@@ -717,14 +717,14 @@ func TestWriter(t *testing.T) {
 		2016,
 		dsv, FIXED)
 
-	writer, err := executor.NewWriter(tbi, metadata.TXNPipe, metadata.CatalogDir, metadata.WALFile)
+	writer, err := executor.NewWriter(tbi, metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
 	writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes())
 	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL(metadata.TXNPipe)
+	metadata.WALFile.FlushToWAL()
 	metadata.WALFile.CreateCheckpoint()
 }
 

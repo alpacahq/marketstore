@@ -27,12 +27,11 @@ import (
 // an error when an out-of-bounds write is tried.
 type Writer struct {
 	root    *catalog.Directory
-	tgc     *TransactionPipe
 	tbi     *io.TimeBucketInfo
 	walFile *WALFileType
 }
 
-func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog.Directory, walFile *WALFileType,
+func NewWriter(tbi *io.TimeBucketInfo, rootCatDir *catalog.Directory, walFile *WALFileType,
 ) (*Writer, error) {
 	// Check to ensure there is a valid WALFile for this instance before writing
 	if walFile == nil {
@@ -42,7 +41,6 @@ func NewWriter(tbi *io.TimeBucketInfo, tgc *TransactionPipe, rootCatDir *catalog
 	}
 	return &Writer{
 		root:    rootCatDir,
-		tgc:     tgc,
 		tbi:     tbi,
 		walFile: walFile,
 	}, nil
@@ -149,7 +147,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			/*
 				This row is at a new index, output previous output buffer
 			*/
-			w.tgc.writeChannel <- cc
+			w.walFile.QueueWriteCommand(cc)
 			// Setup next command
 			prevIndex = index
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
@@ -167,7 +165,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 	}
 
 	// output to WAL
-	w.tgc.writeChannel <- cc
+	w.walFile.QueueWriteCommand(cc)
 
 	return nil
 }
@@ -290,7 +288,6 @@ func WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 
 func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 	walfile := ThisInstance.WALFile
-	txnPipe := ThisInstance.TXNPipe
 	cDir := ThisInstance.CatalogDir
 
 	start := time.Now()
@@ -375,7 +372,7 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Create a writer for this TimeBucket
 		*/
-		w, err := NewWriter(tbi, txnPipe, cDir, walfile)
+		w, err := NewWriter(tbi, cDir, walfile)
 		if err != nil {
 			return err
 		}

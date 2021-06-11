@@ -27,12 +27,13 @@ func TestWALWrite(t *testing.T) {
 	txnPipe := executor.NewTransactionPipe()
 	metadata.WALFile, err = executor.NewWALFile(rootDir, mockInstanceID, nil,
 		false, shutdownPending, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
+		txnPipe,
 	)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
 
-	queryFiles, err := addTGData(metadata.CatalogDir, txnPipe, metadata.WALFile, 1000, false)
+	queryFiles, err := addTGData(metadata.CatalogDir, metadata.WALFile, 1000, false)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
@@ -40,7 +41,7 @@ func TestWALWrite(t *testing.T) {
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
 	originalFileContents := createBufferFromFiles(t, queryFiles)
 
-	err = metadata.WALFile.FlushToWAL(txnPipe)
+	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -55,12 +56,12 @@ func TestWALWrite(t *testing.T) {
 	assert.True(t, compareFileToBuf(t, originalFileContents, queryFiles))
 
 	// Add some mixed up data to the cache
-	queryFiles, err = addTGData(metadata.CatalogDir, txnPipe, metadata.WALFile, 200, true)
+	queryFiles, err = addTGData(metadata.CatalogDir, metadata.WALFile, 200, true)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
 
-	err = metadata.WALFile.FlushToWAL(txnPipe)
+	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -85,10 +86,8 @@ func TestBrokenWAL(t *testing.T) {
 
 	var err error
 
-	tgc := executor.ThisInstance.TXNPipe
-
 	// Add some mixed up data to the cache
-	_, err = addTGData(metadata.CatalogDir, tgc, metadata.WALFile, 1000, true)
+	_, err = addTGData(metadata.CatalogDir, metadata.WALFile, 1000, true)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
@@ -97,7 +96,7 @@ func TestBrokenWAL(t *testing.T) {
 	// Note that at this point the files are unmodified
 	//	originalFileContents := createBufferFromFiles(tgc, c)
 
-	err = metadata.WALFile.FlushToWAL(tgc)
+	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -156,10 +155,7 @@ func TestWALReplay(t *testing.T) {
 
 	var err error
 
-	// Add some mixed up data to the cache
-	tgc := executor.NewTransactionPipe()
-
-	allQueryFiles, err := addTGData(metadata.CatalogDir, tgc, metadata.WALFile, 1000, true)
+	allQueryFiles, err := addTGData(metadata.CatalogDir, metadata.WALFile, 1000, true)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
@@ -181,7 +177,7 @@ func TestWALReplay(t *testing.T) {
 		}
 	}
 
-	err = metadata.WALFile.FlushToWAL(tgc)
+	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -326,7 +322,7 @@ func compareFileToBuf(t *testing.T, originalFileContents map[string][]byte, quer
 	return true
 }
 
-func addTGData(root *catalog.Directory, tgc *executor.TransactionPipe, walFile *executor.WALFileType,
+func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 	number int, mixup bool,
 ) (queryFiles []string, err error) {
 	// Create some data via a query
@@ -360,7 +356,7 @@ func addTGData(root *catalog.Directory, tgc *executor.TransactionPipe, walFile *
 			csm[key] = cs
 			tbi, err := root.GetLatestTimeBucketInfoFromKey(&key)
 			tbiByKey[key] = tbi
-			writerByKey[key], err = executor.NewWriter(tbi, tgc, root, walFile)
+			writerByKey[key], err = executor.NewWriter(tbi, root, walFile)
 			if err != nil {
 				fmt.Printf("Failed to create a new writer")
 				return nil, err
