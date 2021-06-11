@@ -53,7 +53,7 @@ func TestTickCandler(t *testing.T) {
 	/*
 		Create some tick data with symbol "TEST"
 	*/
-	createTickBucket("TEST", rootDir, metadata.CatalogDir, metadata.TXNPipe, metadata.WALFile)
+	createTickBucket("TEST", rootDir, metadata.CatalogDir, metadata.WALFile)
 
 	/*
 		Read some tick data
@@ -107,8 +107,7 @@ func TestTickCandler(t *testing.T) {
 /*
 Utility functions
 */
-func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, txnPipe *executor.TransactionPipe,
-	wf *executor.WALFileType) {
+func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, wf *executor.WALFileType) {
 
 	// Create a new variable data bucket
 	tbk := io.NewTimeBucketKey(symbol + "/1Min/TICK")
@@ -122,7 +121,7 @@ func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, txn
 	/*
 		Write some data
 	*/
-	w, err := executor.NewWriter(tbinfo, txnPipe, catalogDir, wf)
+	w, err := executor.NewWriter(tbinfo, catalogDir, wf)
 	if err != nil {
 		panic(err)
 	}

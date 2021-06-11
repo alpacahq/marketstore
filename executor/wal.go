@@ -39,6 +39,7 @@ type WALFileType struct {
 	shutdownPending   *bool
 	walWaitGroup      *sync.WaitGroup
 	tpd               *TriggerPluginDispatcher
+	txnPipe           *TransactionPipe
 }
 
 type ReplicationSender interface {
@@ -56,7 +57,7 @@ type TransactionGroup struct {
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
-) (wf *WALFileType, err error) {
+	txnPipe *TransactionPipe) (wf *WALFileType, err error) {
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
 		OwningInstanceID:  owningInstanceID,
@@ -65,6 +66,7 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 		shutdownPending:   shutdownPending,
 		walWaitGroup:      walWaitGroup,
 		tpd:               tpd,
+		txnPipe:           txnPipe,
 	}
 
 	if err = wf.createFile(rootDir); err != nil {
@@ -166,8 +168,12 @@ func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 	return filepath.Join(rootPath, keyPath)
 }
 
+func (wf *WALFileType) QueueWriteCommand(wc *wal.WriteCommand){
+	wf.txnPipe.writeChannel <- wc
+}
+
 // A.k.a. Commit transaction
-func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
+func (wf *WALFileType) FlushToWAL() (err error) {
 	//walBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
 	/*
@@ -177,14 +183,14 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 	*/
 
 	// Count of WT Sets in this TG as of now
-	if tgc == nil {
+	if wf.txnPipe == nil {
 		return nil
 	}
 
-	WTCount := len(tgc.writeChannel)
+	WTCount := len(wf.txnPipe.writeChannel)
 	if WTCount == 0 {
 		// refresh TGID so requester can confirm it went through even if nothing is written
-		tgc.IncrementTGID()
+		wf.txnPipe.IncrementTGID()
 		return nil
 	}
 
@@ -194,19 +200,19 @@ func (wf *WALFileType) FlushToWAL(tgc *TransactionPipe) (err error) {
 		}
 
 		// WAL Transaction Preparing Message
-		wf.WriteTransactionInfo(tgc.TGID(), WAL, PREPARING)
+		wf.WriteTransactionInfo(wf.txnPipe.TGID(), WAL, PREPARING)
 	}
 
 	// Serialize all data to be written except for the size of this buffer
 	writeCommands := make([]*wal.WriteCommand, WTCount)
 	for i := 0; i < WTCount; i++ {
-		writeCommands[i] = <-tgc.writeChannel
+		writeCommands[i] = <-wf.txnPipe.writeChannel
 	}
 
-	return wf.FlushCommandsToWAL(tgc, writeCommands)
+	return wf.FlushCommandsToWAL(writeCommands)
 }
 
-func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []*wal.WriteCommand) (err error) {
+func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (err error) {
 	defer wf.tpd.DispatchRecords()
 
 	fileRecordTypes := map[string]io.EnumRecordType{}
@@ -221,7 +227,7 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 		}
 	}
 
-	TG_Serialized, writesPerFile := serializeTG(tgc.tgID, writeCommands)
+	TG_Serialized, writesPerFile := serializeTG(wf.txnPipe.tgID, writeCommands)
 
 	if !wf.walBypass {
 		// Serialize the size of the buffer into another buffer
@@ -240,10 +246,10 @@ func (wf *WALFileType) FlushCommandsToWAL(tgc *TransactionPipe, writeCommands []
 		wf.FilePtr.Write(cksum) // Checksum
 
 		// WAL Transaction Commit Complete Message
-		TGID := tgc.TGID()
+		TGID := wf.txnPipe.TGID()
 		wf.WriteTransactionInfo(TGID, WAL, COMMITCOMPLETE)
 		wf.lastCommittedTGID = TGID
-		tgc.IncrementTGID()
+		wf.txnPipe.IncrementTGID()
 
 		wf.FilePtr.Sync() // Flush the OS buffer
 
@@ -835,23 +841,23 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 	tickerCheck := time.NewTicker(WALRefresh / 100)
 	primaryFlushCounter := 0
 
-	chanCap := cap(ThisInstance.TXNPipe.writeChannel)
+	chanCap := cap(wf.txnPipe.writeChannel)
 	for {
 		if !*wf.shutdownPending {
 			select {
 			case <-tickerWAL.C:
-				if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {
+				if err := wf.FlushToWAL(); err != nil {
 					log.Fatal(err.Error())
 				}
-			case f := <-ThisInstance.TXNPipe.flushChannel:
-				if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {
+			case f := <-wf.txnPipe.flushChannel:
+				if err := wf.FlushToWAL(); err != nil {
 					log.Fatal(err.Error())
 				}
 				f <- struct{}{}
 			case <-tickerCheck.C:
-				queued := len(ThisInstance.TXNPipe.writeChannel)
+				queued := len(wf.txnPipe.writeChannel)
 				if float64(queued)/float64(chanCap) >= 0.8 {
-					if err := wf.FlushToWAL(ThisInstance.TXNPipe); err != nil {
+					if err := wf.FlushToWAL(); err != nil {
 						log.Fatal(err.Error())
 					}
 				}
@@ -868,7 +874,7 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 		} else {
 			haveWALWriter = false
 			log.Info("Flushing to WAL...")
-			wf.FlushToWAL(ThisInstance.TXNPipe)
+			wf.FlushToWAL()
 			log.Info("Flushing to disk...")
 			wf.CreateCheckpoint()
 			wf.walWaitGroup.Done()
@@ -884,15 +890,15 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 // present in the write channel, as it will flush as soon as possible.
 func (wf *WALFileType) RequestFlush() {
 	if !haveWALWriter {
-		wf.FlushToWAL(ThisInstance.TXNPipe)
+		wf.FlushToWAL()
 		return
 	}
 	// if there's already a queued flush, no need to queue another
-	if len(ThisInstance.TXNPipe.flushChannel) > 0 {
+	if len(wf.txnPipe.flushChannel) > 0 {
 		return
 	}
 	f := make(chan struct{})
-	ThisInstance.TXNPipe.flushChannel <- f
+	wf.txnPipe.flushChannel <- f
 	<-f
 }
 
@@ -901,7 +907,7 @@ func (wf *WALFileType) RequestFlush() {
 func (wf *WALFileType) FinishAndWait() {
 	wf.tpd.triggerWg.Wait()
 	for {
-		if len(ThisInstance.TXNPipe.writeChannel) == 0 && len(wf.tpd.c) == 0 {
+		if len(wf.txnPipe.writeChannel) == 0 && len(wf.tpd.c) == 0 {
 			close(wf.tpd.c)
 			<-wf.tpd.done
 			return

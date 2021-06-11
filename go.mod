@@ -38,7 +38,6 @@ require (
 	github.com/timpalpant/go-iex v0.0.0-20181027174710-0b8a5fdd2ec1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.uber.org/zap v1.15.0
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/tools v0.0.0-20210112230658-8b4aab62c064
 	gonum.org/v1/gonum v0.0.0-20190618015908-5dc218f86579
 	google.golang.org/grpc v1.29.1

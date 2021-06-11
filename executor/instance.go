@@ -20,7 +20,6 @@ type InstanceMetadata struct {
 	// e.g. RootDir = "/project/marketstore/data"
 	RootDir    string
 	CatalogDir *catalog.Directory
-	TXNPipe    *TransactionPipe
 	WALFile    *WALFileType
 }
 
@@ -87,11 +86,11 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 	walWG = &sync.WaitGroup{}
 	if initWALCache {
 		// initialize TransactionPipe
-		ThisInstance.TXNPipe = NewTransactionPipe()
+		txnPipe := NewTransactionPipe()
 
 		// initialize WAL File
 		ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, rs,
-			WALBypass, &shutdownPend, walWG, tpd,
+			WALBypass, &shutdownPend, walWG, tpd, txnPipe,
 		)
 		if err != nil {
 			log.Fatal("Unable to create WAL")
