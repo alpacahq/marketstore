@@ -31,7 +31,7 @@ type WALFileType struct {
 	ReplayState      wal.ReplayStateEnum
 	OwningInstanceID int64
 	// End of WAL Header
-
+	rootDir           string
 	FilePtr           *os.File          // Active file pointer to FileName
 	lastCommittedTGID int64             // TGID to be checkpointed
 	ReplicationSender ReplicationSender // send messages to replica servers
@@ -61,6 +61,7 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
 		OwningInstanceID:  owningInstanceID,
+		rootDir:           rootDir,
 		ReplicationSender: rs,
 		walBypass:         walBypass,
 		shutdownPending:   shutdownPending,
@@ -154,6 +155,20 @@ func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
 	return nil
 }
 
+func (wf *WALFileType) WriteCommand(rt io.EnumRecordType, tbiAbsPath string, varRecLen int, offset, index int64,
+	data []byte, ds []io.DataShape,
+) *wal.WriteCommand {
+	return &wal.WriteCommand{
+		RecordType: rt,
+		WALKeyPath: FullPathToWALKey(wf.rootDir, tbiAbsPath),
+		VarRecLen:  varRecLen,
+		Offset:     offset,
+		Index:      index,
+		Data:       data,
+		DataShapes: ds,
+	}
+}
+
 func FullPathToWALKey(rootPath, fullPath string) (keyPath string) {
 	/*
 		NOTE: This key includes the year filename at the end of the metadata key
@@ -168,7 +183,7 @@ func walKeyToFullPath(rootPath, keyPath string) (fullPath string) {
 	return filepath.Join(rootPath, keyPath)
 }
 
-func (wf *WALFileType) QueueWriteCommand(wc *wal.WriteCommand){
+func (wf *WALFileType) QueueWriteCommand(wc *wal.WriteCommand) {
 	wf.txnPipe.writeChannel <- wc
 }
 
