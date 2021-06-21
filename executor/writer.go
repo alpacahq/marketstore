@@ -4,7 +4,6 @@ import (
 	"fmt"
 	stdio "io"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -97,8 +96,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		rowLen    = len(data) / numRows
 	)
 
-	rootDir := filepath.Dir(w.walFile.FilePtr.Name())
-	wkp := FullPathToWALKey(rootDir, w.tbi.Path)
+	tbiAbsPath := w.tbi.Path
 	vrl := w.tbi.GetVariableRecordLength()
 	rt := w.tbi.GetRecordType()
 	for i := 0; i < numRows; i++ {
@@ -110,8 +108,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			if err := w.addNewYearFile(year); err != nil {
 				return fmt.Errorf("add new year file. path=%s, err: %w", w.tbi.Path, err)
 			}
-			rootDir := filepath.Dir(w.walFile.FilePtr.Name())
-			wkp = FullPathToWALKey(rootDir, w.tbi.Path)
+			tbiAbsPath = w.tbi.Path
 		}
 		index := TimeToIndex(t, w.tbi.GetTimeframe())
 		offset := IndexToOffset(index, w.tbi.GetRecordLength())
@@ -121,15 +118,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			prevIndex = index
 			prevYear = year
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
-			cc = &wal.WriteCommand{
-				RecordType: rt,
-				WALKeyPath: wkp,
-				VarRecLen:  int(vrl),
-				Offset:     offset,
-				Index:      index,
-				Data:       outBuf,
-				DataShapes: dsWithEpoch,
-			}
+			cc = w.walFile.WriteCommand(rt, tbiAbsPath, int(vrl), offset, index, outBuf, dsWithEpoch)
 			continue
 		}
 		// Because index is relative time from the beginning of the year,
@@ -151,16 +140,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			// Setup next command
 			prevIndex = index
 			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
-			rootDir := filepath.Dir(w.walFile.FilePtr.Name())
-			cc = &wal.WriteCommand{
-				RecordType: w.tbi.GetRecordType(),
-				WALKeyPath: FullPathToWALKey(rootDir, w.tbi.Path),
-				VarRecLen:  int(w.tbi.GetVariableRecordLength()),
-				Offset:     offset,
-				Index:      index,
-				Data:       outBuf,
-				DataShapes: dsWithEpoch,
-			}
+			cc = w.walFile.WriteCommand(
+				w.tbi.GetRecordType(), w.tbi.Path, int(w.tbi.GetVariableRecordLength()), offset, index,
+				outBuf, dsWithEpoch)
 		}
 	}
 
