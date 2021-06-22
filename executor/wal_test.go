@@ -356,7 +356,7 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 			csm[key] = cs
 			tbi, err := root.GetLatestTimeBucketInfoFromKey(&key)
 			tbiByKey[key] = tbi
-			writerByKey[key], err = executor.NewWriter(tbi, root, walFile)
+			writerByKey[key], err = executor.NewWriter(root, walFile)
 			if err != nil {
 				fmt.Printf("Failed to create a new writer")
 				return nil, err
@@ -398,7 +398,7 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 			buffer = append(buffer, io.DataToByteSlice(low[i])...)
 			buffer = append(buffer, io.DataToByteSlice(close[i])...)
 		}
-		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapesWithEpoch())
+		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapesWithEpoch(), tbiByKey[key])
 	}
 
 	return queryFiles, nil

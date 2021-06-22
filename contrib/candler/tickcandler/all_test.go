@@ -121,7 +121,7 @@ func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, wf 
 	/*
 		Write some data
 	*/
-	w, err := executor.NewWriter(tbinfo, catalogDir, wf)
+	w, err := executor.NewWriter(catalogDir, wf)
 	if err != nil {
 		panic(err)
 	}
@@ -134,7 +134,7 @@ func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, wf 
 		ts = ts.Add(time.Second)
 		row.Epoch = ts.Unix()
 		buffer, _ := io.Serialize([]byte{}, row)
-		w.WriteRecords([]time.Time{ts}, buffer, dsv)
+		w.WriteRecords([]time.Time{ts}, buffer, dsv, tbinfo)
 	}
 	wf.RequestFlush()
 }
