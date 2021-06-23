@@ -12,10 +12,10 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	tearDown, rootDir, metadata := setup(t, "TestWrite")
+	tearDown, rootDir, metadata, writer := setup(t, "TestWrite")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
 	service.Init()
 
 	qargs := &frontend.MultiQueryRequest{

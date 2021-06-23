@@ -21,7 +21,11 @@ func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	instanceConfig, _, _ := executor.NewInstanceSetup(dir,
 		nil, nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
-	return &LocalAPIClient{dir: dir, catalogDir: instanceConfig.CatalogDir}, nil
+	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
+	if err != nil {
+		return nil, fmt.Errorf("init writer: %w", err)
+	}
+	return &LocalAPIClient{dir: dir, catalogDir: instanceConfig.CatalogDir, writer: writer}, nil
 }
 
 type LocalAPIClient struct {
@@ -29,6 +33,7 @@ type LocalAPIClient struct {
 	dir string
 	// catalogDir is an in-memory cache for directory structure under the /data directory
 	catalogDir *catalog.Directory
+	writer     *executor.Writer
 }
 
 func (lc *LocalAPIClient) PrintConnectInfo() {
@@ -40,7 +45,7 @@ func (lc *LocalAPIClient) Connect() error {
 }
 
 func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer)
 	err := ds.Write(nil, reqs, responses)
 	if err != nil {
 		return err
@@ -93,17 +98,17 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 }
 
 func (lc *LocalAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer)
 	return ds.Create(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer)
 	return ds.Destroy(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer)
 	return ds.GetInfo(nil, reqs, responses)
 }
 

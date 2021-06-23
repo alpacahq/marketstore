@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -40,7 +39,7 @@ func (s *DataService) Write(r *http.Request, reqs *MultiWriteRequest, response *
 			response.appendResponse(err)
 			continue
 		}
-		if err = executor.WriteCSM(csm, req.IsVariableLength); err != nil {
+		if err = s.writer.WriteCSM(csm, req.IsVariableLength); err != nil {
 			response.appendResponse(err)
 			continue
 		}

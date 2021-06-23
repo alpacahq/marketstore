@@ -3,9 +3,11 @@ package frontend
 import (
 	"context"
 	"errors"
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"net/http"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/executor"
 
 	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
@@ -20,17 +22,19 @@ var (
 	argsNilError   = errors.New("Arguments are nil, can not query using nil arguments")
 )
 
-func NewDataService(rootDir string, catDir *catalog.Directory,
+func NewDataService(rootDir string, catDir *catalog.Directory, w *executor.Writer,
 ) *DataService {
 	return &DataService{
-		rootDir:                    rootDir,
-		catalogDir:                 catDir,
+		rootDir:    rootDir,
+		catalogDir: catDir,
+		writer:     w,
 	}
 }
 
 type DataService struct {
-	rootDir                    string
-	catalogDir                 *catalog.Directory
+	rootDir    string
+	catalogDir *catalog.Directory
+	writer     *executor.Writer
 }
 
 func (s *DataService) Init() {}
@@ -46,7 +50,7 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics.RPCTotalRequestDuration.Observe(time.Since(start).Seconds())
 }
 
-func NewServer(rootDir string, catDir *catalog.Directory,
+func NewServer(rootDir string, catDir *catalog.Directory, w *executor.Writer,
 ) (*RpcServer, *DataService) {
 	s := &RpcServer{
 		Server: rpc.NewServer(),
@@ -56,7 +60,7 @@ func NewServer(rootDir string, catDir *catalog.Directory,
 	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
 	s.RegisterInterceptFunc(intercept)
 	s.RegisterAfterFunc(after)
-	service := NewDataService(rootDir, catDir)
+	service := NewDataService(rootDir, catDir, w)
 	service.Init()
 	err := s.RegisterService(service, "")
 	if err != nil {
