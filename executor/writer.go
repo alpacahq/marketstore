@@ -26,12 +26,10 @@ import (
 // an error when an out-of-bounds write is tried.
 type Writer struct {
 	root    *catalog.Directory
-	tbi     *io.TimeBucketInfo
 	walFile *WALFileType
 }
 
-func NewWriter(tbi *io.TimeBucketInfo, rootCatDir *catalog.Directory, walFile *WALFileType,
-) (*Writer, error) {
+func NewWriter(rootCatDir *catalog.Directory, walFile *WALFileType) (*Writer, error) {
 	// Check to ensure there is a valid WALFile for this instance before writing
 	if walFile == nil {
 		err := fmt.Errorf("there is not an active WALFile for this instance, so cannot write")
@@ -40,18 +38,8 @@ func NewWriter(tbi *io.TimeBucketInfo, rootCatDir *catalog.Directory, walFile *W
 	}
 	return &Writer{
 		root:    rootCatDir,
-		tbi:     tbi,
 		walFile: walFile,
 	}, nil
-}
-
-func (w *Writer) addNewYearFile(year int16) (err error) {
-	newTbi, err := w.root.GetSubDirectoryAndAddFile(w.tbi.Path, year)
-	if err != nil {
-		return err
-	}
-	w.tbi = newTbi
-	return nil
 }
 
 // formatRecord chops off the Epoch column(first 8bytes).
@@ -79,7 +67,7 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 // The caller should assume that by calling WriteRecords directly, the data will be written
 // to the file regardless if it satisfies the on-disk data shape, possible corrupting
 // the data files. It is recommended to call WriteCSM() for any writes as it is safer.
-func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape) error {
+func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape, tbi *io.TimeBucketInfo) error {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
@@ -94,31 +82,32 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		cc        *wal.WriteCommand
 		outBuf    []byte
 		rowLen    = len(data) / numRows
+		err error
 	)
 
-	tbiAbsPath := w.tbi.Path
-	vrl := w.tbi.GetVariableRecordLength()
-	rt := w.tbi.GetRecordType()
+	vrl := tbi.GetVariableRecordLength()
+	rt := tbi.GetRecordType()
 	for i := 0; i < numRows; i++ {
 		pos := i * rowLen
 		record := data[pos : pos+rowLen]
 		t := ts[i]
 		year := int16(t.Year())
-		if year != w.tbi.Year {
-			if err := w.addNewYearFile(year); err != nil {
-				return fmt.Errorf("add new year file. path=%s, err: %w", w.tbi.Path, err)
+		if year != tbi.Year {
+			// add a new year's file
+			tbi, err = w.root.GetSubDirectoryAndAddFile(tbi.Path, year)
+			if err != nil {
+				return fmt.Errorf("add new year file. tbi=%v, err: %w", tbi, err)
 			}
-			tbiAbsPath = w.tbi.Path
 		}
-		index := TimeToIndex(t, w.tbi.GetTimeframe())
-		offset := IndexToOffset(index, w.tbi.GetRecordLength())
+		index := TimeToIndex(t, tbi.GetTimeframe())
+		offset := IndexToOffset(index, tbi.GetRecordLength())
 
 		// first row
 		if i == 0 {
 			prevIndex = index
 			prevYear = year
-			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
-			cc = w.walFile.WriteCommand(rt, tbiAbsPath, int(vrl), offset, index, outBuf, dsWithEpoch)
+			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
+			cc = w.walFile.WriteCommand(rt, tbi.Path, int(vrl), offset, index, outBuf, dsWithEpoch)
 			continue
 		}
 		// Because index is relative time from the beginning of the year,
@@ -128,7 +117,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			/*
 				This is the interior of a multi-row write buffer
 			*/
-			outBuf = formatRecord(outBuf, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord(outBuf, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
 			cc.Data = outBuf
 			continue
 		}
@@ -139,9 +128,9 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			w.walFile.QueueWriteCommand(cc)
 			// Setup next command
 			prevIndex = index
-			outBuf = formatRecord([]byte{}, record, t, index, w.tbi.GetIntervals(), w.tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
 			cc = w.walFile.WriteCommand(
-				w.tbi.GetRecordType(), w.tbi.Path, int(w.tbi.GetVariableRecordLength()), offset, index,
+				tbi.GetRecordType(), tbi.Path, int(tbi.GetVariableRecordLength()), offset, index,
 				outBuf, dsWithEpoch)
 		}
 	}
@@ -354,13 +343,13 @@ func WriteCSMInner(csm io.ColumnSeriesMap, isVariableLength bool) (err error) {
 		/*
 			Create a writer for this TimeBucket
 		*/
-		w, err := NewWriter(tbi, cDir, walfile)
+		w, err := NewWriter(cDir, walfile)
 		if err != nil {
 			return err
 		}
 
 		rowData := cs.ToRowSeries(tbk, alignData).GetData()
-		w.WriteRecords(times, rowData, dbDSV)
+		w.WriteRecords(times, rowData, dbDSV, tbi)
 	}
 	walfile.RequestFlush()
 	metrics.WriteCSMDuration.Observe(time.Since(start).Seconds())
