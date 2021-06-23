@@ -155,7 +155,11 @@ func executeStart(_ *cobra.Command, _ []string) error {
 	log.Info("startup time: %s", startupTime)
 
 	// New server.
-	server, _ := frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir)
+	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
+	if err != nil {
+		panic("init writer: " + err.Error())
+	}
+	server, _ := frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, writer)
 
 	// Set rpc handler.
 	log.Info("launching rpc data server...")
