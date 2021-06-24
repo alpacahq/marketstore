@@ -3,12 +3,11 @@ package frontend
 import (
 	"context"
 	"errors"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	"net/http"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-	"github.com/alpacahq/marketstore/v4/executor"
-
 	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -22,7 +21,11 @@ var (
 	argsNilError   = errors.New("Arguments are nil, can not query using nil arguments")
 )
 
-func NewDataService(rootDir string, catDir *catalog.Directory, w *executor.Writer,
+type Writer interface {
+	WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error
+}
+
+func NewDataService(rootDir string, catDir *catalog.Directory, w Writer,
 ) *DataService {
 	return &DataService{
 		rootDir:    rootDir,
@@ -34,7 +37,7 @@ func NewDataService(rootDir string, catDir *catalog.Directory, w *executor.Write
 type DataService struct {
 	rootDir    string
 	catalogDir *catalog.Directory
-	writer     *executor.Writer
+	writer     Writer
 }
 
 func (s *DataService) Init() {}
@@ -50,7 +53,7 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics.RPCTotalRequestDuration.Observe(time.Since(start).Seconds())
 }
 
-func NewServer(rootDir string, catDir *catalog.Directory, w *executor.Writer,
+func NewServer(rootDir string, catDir *catalog.Directory, w Writer,
 ) (*RpcServer, *DataService) {
 	s := &RpcServer{
 		Server: rpc.NewServer(),

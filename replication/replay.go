@@ -16,7 +16,6 @@ type ReplayerImpl struct {
 	// wal.ParseTGData is always used, but abstracted for testability
 	parseTGFunc func(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet)
 	// WriteFunc is a function to write CSM to marketstore.
-	// executor.WriteCSMInner is always used, but abstracted for testability
 	writeFunc func(csm io.ColumnSeriesMap, isVariableLength bool) (err error)
 	// rootDir is the path to the directory in which Marketstore database resides(e.g. "data")
 	rootDir string
