@@ -120,20 +120,6 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		grpcReplicationServer = grpc.NewServer(opts...)
 		rs = initReplicationMaster(globalCtx, grpcReplicationServer, config.Replication.ListenPort)
 		log.Info("initialized replication master")
-	} else if config.Replication.MasterHost != "" {
-		err = initReplicationClient(
-			globalCtx,
-			config.Replication.MasterHost,
-			config.RootDirectory,
-			config.Replication.TLSEnabled,
-			config.Replication.CertFile,
-			config.Replication.RetryInterval,
-			config.Replication.RetryBackoffCoeff,
-		)
-		if err != nil {
-			log.Fatal("Unable to startup Replication", err)
-		}
-		log.Info("initialized replication client")
 	}
 
 	start := time.Now()
@@ -154,12 +140,38 @@ func executeStart(_ *cobra.Command, _ []string) error {
 	metrics.StartupTime.Set(startupTime.Seconds())
 	log.Info("startup time: %s", startupTime)
 
-	// New server.
+	// init writer
+	var server *frontend.RpcServer
 	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
 	if err != nil {
 		panic("init writer: " + err.Error())
 	}
-	server, _ := frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, writer)
+
+	if config.Replication.MasterHost != "" {
+		// init replication client
+		err = initReplicationClient(
+			globalCtx,
+			config.Replication.MasterHost,
+			config.RootDirectory,
+			config.Replication.TLSEnabled,
+			config.Replication.CertFile,
+			config.Replication.RetryInterval,
+			config.Replication.RetryBackoffCoeff,
+			writer,
+		)
+		if err != nil {
+			log.Fatal("Unable to startup Replication", err)
+		}
+		log.Info("initialized replication client")
+
+		// New server.
+		// WRITE is not allowed on a replica
+		errorWriter := &executor.ErrorWriter{}
+		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, errorWriter)
+	} else {
+		// New server.
+		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, writer)
+	}
 
 	// Set rpc handler.
 	log.Info("launching rpc data server...")
@@ -281,7 +293,7 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenP
 }
 
 func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string,
-	retryInterval time.Duration, retryBackoffCoeff int) error {
+	retryInterval time.Duration, retryBackoffCoeff int, w *executor.Writer) error {
 	opts := []grpc.DialOption{
 		// grpc.WithBlock(),
 	}
@@ -306,7 +318,7 @@ func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsE
 
 	c := replication.NewGRPCReplicationClient(pb.NewReplicationClient(conn))
 
-	replayer := replication.NewReplayer(executor.ParseTGData, executor.WriteCSMInner, rootDir)
+	replayer := replication.NewReplayer(executor.ParseTGData, w.WriteCSM, rootDir)
 	replicationReceiver := replication.NewReceiver(c, replayer)
 
 	go func() {
