@@ -203,12 +203,11 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 
 	start := io.ToSystemTimezone(time.Unix(epochStart, epochStartNanos))
 	end := io.ToSystemTimezone(time.Unix(epochEnd, epochEndNanos))
-	csm, err := executeQuery(
+	csm, err := s.query.ExecuteQuery(
 		dest,
 		start, end,
 		limitRecordCount, limitFromStart,
 		columns,
-		s.catalogDir,
 	)
 	if err != nil {
 		return nil, err
@@ -284,10 +283,20 @@ func (s *DataService) ListSymbols(r *http.Request, req *ListSymbolsRequest, resp
 Utility functions
 */
 
-func executeQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
-	LimitFromStart bool, columns []string, catDir *catalog.Directory,
+type QueryService struct {
+	catalogDir *catalog.Directory
+}
+
+func NewQueryService(catDir *catalog.Directory) *QueryService {
+	return &QueryService{
+		catalogDir: catDir,
+	}
+}
+
+func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
+	LimitFromStart bool, columns []string,
 ) (io.ColumnSeriesMap, error) {
-	query := planner.NewQuery(catDir)
+	query := planner.NewQuery(qs.catalogDir)
 
 	/*
 		Alter timeframe inside key to ensure it matches a queryable TF

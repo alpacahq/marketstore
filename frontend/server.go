@@ -25,12 +25,19 @@ type Writer interface {
 	WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error
 }
 
-func NewDataService(rootDir string, catDir *catalog.Directory, w Writer,
+type QueryInterface interface {
+	ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
+		LimitFromStart bool, columns []string,
+	) (io.ColumnSeriesMap, error)
+}
+
+func NewDataService(rootDir string, catDir *catalog.Directory, w Writer, q QueryInterface,
 ) *DataService {
 	return &DataService{
 		rootDir:    rootDir,
 		catalogDir: catDir,
 		writer:     w,
+		query:      q,
 	}
 }
 
@@ -38,6 +45,7 @@ type DataService struct {
 	rootDir    string
 	catalogDir *catalog.Directory
 	writer     Writer
+	query      QueryInterface
 }
 
 func (s *DataService) Init() {}
@@ -53,7 +61,7 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics.RPCTotalRequestDuration.Observe(time.Since(start).Seconds())
 }
 
-func NewServer(rootDir string, catDir *catalog.Directory, w Writer,
+func NewServer(rootDir string, catDir *catalog.Directory, w Writer, q QueryInterface,
 ) (*RpcServer, *DataService) {
 	s := &RpcServer{
 		Server: rpc.NewServer(),
@@ -63,7 +71,7 @@ func NewServer(rootDir string, catDir *catalog.Directory, w Writer,
 	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
 	s.RegisterInterceptFunc(intercept)
 	s.RegisterAfterFunc(after)
-	service := NewDataService(rootDir, catDir, w)
+	service := NewDataService(rootDir, catDir, w, q)
 	service.Init()
 	err := s.RegisterService(service, "")
 	if err != nil {

@@ -140,6 +140,15 @@ func executeStart(_ *cobra.Command, _ []string) error {
 	metrics.StartupTime.Set(startupTime.Seconds())
 	log.Info("startup time: %s", startupTime)
 
+	// init QueryService
+	qs := frontend.NewQueryService(instanceConfig.CatalogDir)
+
+	// New grpc server for marketstore API.
+	grpcServer := grpc.NewServer(
+		grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
+	)
+
 	// init writer
 	var server *frontend.RpcServer
 	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
@@ -167,25 +176,27 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		// New server.
 		// WRITE is not allowed on a replica
 		errorWriter := &executor.ErrorWriter{}
-		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, errorWriter)
+		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, errorWriter, qs)
+
+		// register grpc server
+		pb.RegisterMarketstoreServer(grpcServer,
+			frontend.NewGRPCService(config.RootDirectory,
+				instanceConfig.CatalogDir, errorWriter, qs),
+		)
 	} else {
 		// New server.
-		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, writer)
+		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, writer, qs)
+
+		// register grpc server
+		pb.RegisterMarketstoreServer(grpcServer,
+			frontend.NewGRPCService(config.RootDirectory,
+				instanceConfig.CatalogDir, writer, qs),
+		)
 	}
 
 	// Set rpc handler.
 	log.Info("launching rpc data server...")
 	http.Handle("/rpc", server)
-
-	// New grpc server for marketstore API.
-	grpcServer := grpc.NewServer(
-		grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
-		grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
-	)
-	pb.RegisterMarketstoreServer(grpcServer,
-		frontend.NewGRPCService(config.RootDirectory,
-			instanceConfig.CatalogDir),
-	)
 
 	// Set websocket handler.
 	log.Info("initializing websocket...")

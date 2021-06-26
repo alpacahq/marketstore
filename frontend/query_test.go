@@ -16,7 +16,9 @@ import (
 )
 
 func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata, writer *executor.Writer) {
+) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata, writer *executor.Writer,
+	q frontend.QueryInterface,
+) {
 	t.Helper()
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("frontend_test-%s", testName))
@@ -24,16 +26,17 @@ func setup(t *testing.T, testName string,
 	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
 	atomic.StoreUint32(&frontend.Queryable, uint32(1))
 
+	qs := frontend.NewQueryService(metadata.CatalogDir)
 	writer, _ = executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata, writer
+	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata, writer, qs
 }
 
 func _TestQueryCustomTimeframes(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "_TestQueryCustomTimeframes")
+	tearDown, rootDir, metadata, writer, q := setup(t, "_TestQueryCustomTimeframes")
 	defer tearDown()
 
 	//TODO: Support custom timeframes
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -91,10 +94,10 @@ func _TestQueryCustomTimeframes(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "TestQuery")
+	tearDown, rootDir, metadata, writer, q := setup(t, "TestQuery")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -127,10 +130,10 @@ func TestQuery(t *testing.T) {
 }
 
 func TestQueryFirstN(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "TestQueryFirstN")
+	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryFirstN")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -161,10 +164,10 @@ func TestQueryFirstN(t *testing.T) {
 }
 
 func TestQueryRange(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "TestQueryRange")
+	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryRange")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 	{
 		args := &frontend.MultiQueryRequest{
@@ -211,10 +214,10 @@ func TestQueryRange(t *testing.T) {
 }
 
 func TestQueryNpyMulti(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "TestQueryNpyMulti")
+	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryNpyMulti")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -244,10 +247,10 @@ func TestQueryNpyMulti(t *testing.T) {
 }
 
 func TestQueryMulti(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "TestQueryMulti")
+	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryMulti")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -288,10 +291,10 @@ func TestQueryMulti(t *testing.T) {
 }
 
 func TestListSymbols(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "TestListSymbols")
+	tearDown, rootDir, metadata, writer, q := setup(t, "TestListSymbols")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 
 	var response frontend.ListSymbolsResponse
@@ -324,10 +327,10 @@ func TestListSymbols(t *testing.T) {
 }
 
 func TestFunctions(t *testing.T) {
-	tearDown, rootDir, metadata, writer := setup(t, "TestFunctions")
+	tearDown, rootDir, metadata, writer, q := setup(t, "TestFunctions")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
 	service.Init()
 
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
