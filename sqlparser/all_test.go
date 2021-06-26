@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -232,7 +233,7 @@ func TestAggregation(t *testing.T) {
 	agg := sqlparser.AggRegistry["blargle"] // aggregator not found
 	assert.Nil(t, agg)
 
-	agg = sqlparser.AggRegistry["TickCandler"]
+	agg = sqlparser.AggRegistry[strings.ToLower("TickCandler")]
 	assert.NotNil(t, agg)
 	tickCandler, argMap := agg.New()
 	dsPrice := io.DataShape{Name: "One", Type: io.FLOAT32}

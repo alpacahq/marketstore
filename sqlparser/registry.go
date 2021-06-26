@@ -13,20 +13,12 @@ import (
 )
 
 var AggRegistry = map[string]uda.AggInterface{
-	"TickCandler":   &tickcandler.TickCandler{},
 	"tickcandler":   &tickcandler.TickCandler{},
-	"CandleCandler": &candlecandler.CandleCandler{},
 	"candlecandler": &candlecandler.CandleCandler{},
-	"Count":         &count.Count{},
 	"count":         &count.Count{},
-	"Min":           &min.Min{},
 	"min":           &min.Min{},
-	"Max":           &max.Max{},
 	"max":           &max.Max{},
-	"Avg":           &avg.Avg{},
 	"avg":           &avg.Avg{},
-	"Gap":           &gap.Gap{},
 	"gap":           &gap.Gap{},
-	"Adjust":        &adjust.Adjust{},
 	"adjust":        &adjust.Adjust{},
 }
