@@ -41,7 +41,8 @@ type AggInterface interface {
 		Accum() sends new data to the aggregate
 	*/
 	//Accum(ts []time.Time, rows io.Rows)
-	Accum(io.ColumnInterface, *catalog.Directory) error // The parameter is one of; ColumnSeries or Rows
+	Accum(io.TimeBucketKey, io.ColumnInterface, *catalog.Directory,
+	) error // The parameter is one of; ColumnSeries or Rows
 	/*
 		Output() returns the currently valid output of this aggregate
 	*/
@@ -50,11 +51,6 @@ type AggInterface interface {
 		Reset() puts the aggregate state back to "new"
 	*/
 	Reset()
-
-	/*
-		SetTimeBucketKey() sets the TimeBucketKey for the aggregator function
-	*/
-	SetTimeBucketKey(io.TimeBucketKey)
 }
 
 //TODO: This is where we break out a UDF API

@@ -48,7 +48,7 @@ func (ca *Count) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *Count) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
+func (ca *Count) Accum(tbk io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
 	ca.Sum += int64(cols.Len())
 	return nil
 }
@@ -93,14 +93,4 @@ func (ca *Count) Output() *io.ColumnSeries {
 */
 func (ca *Count) Reset() {
 	ca.Sum = 0
-}
-
-/*
-Utility Functions
-*/
-
-/*
-	SetTimeBucketKey()
-*/
-func (ca *Count) SetTimeBucketKey(tbk io.TimeBucketKey) {
 }

@@ -47,7 +47,7 @@ func TestTickCandler(t *testing.T) {
 	/*
 		We expect an error with an empty input arg set
 	*/
-	err = cdl.Accum(&io.Rows{}, metadata.CatalogDir)
+	err = cdl.Accum(io.TimeBucketKey{}, &io.Rows{}, metadata.CatalogDir)
 	assert.NotNil(t, err)
 
 	/*
@@ -58,6 +58,7 @@ func TestTickCandler(t *testing.T) {
 	/*
 		Read some tick data
 	*/
+	tbk := io.NewTimeBucketKeyFromString("TEST/TICK/1Min")
 	q := planner.NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
 	q.AddRestriction("AttributeGroup", "TICK")
@@ -71,7 +72,7 @@ func TestTickCandler(t *testing.T) {
 	assert.Len(t, csm, 1)
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)
-		err = cdl.Accum(cs, metadata.CatalogDir)
+		err = cdl.Accum(*tbk, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
 	rows := cdl.Output()
@@ -93,7 +94,7 @@ func TestTickCandler(t *testing.T) {
 	cdl.Reset()
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)
-		err = cdl.Accum(cs, metadata.CatalogDir)
+		err = cdl.Accum(*tbk, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
 	rows = cdl.Output()

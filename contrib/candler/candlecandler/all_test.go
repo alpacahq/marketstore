@@ -48,6 +48,7 @@ func TestCandleCandler(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Test data range query - across year
+	tbk := io.NewTimeBucketKey("OHLCV/AAPL/1Min")
 	q := planner.NewQuery(metadata.CatalogDir)
 	q.AddRestriction("AttributeGroup", "OHLCV")
 	q.AddRestriction("Symbol", "AAPL")
@@ -63,7 +64,7 @@ func TestCandleCandler(t *testing.T) {
 		epoch := cs.GetEpoch()
 		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
 		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
-		err = cdl.Accum(cs, metadata.CatalogDir)
+		err = cdl.Accum(*tbk, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
 	cols := cdl.Output()

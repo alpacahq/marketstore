@@ -52,7 +52,7 @@ func (ca *TickCandler) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *TickCandler) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
+func (ca *TickCandler) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
 	if cols.Len() == 0 {
 		return fmt.Errorf("Empty input to Accum")
 	}
@@ -96,12 +96,4 @@ func (ca *TickCandler) Accum(cols io.ColumnInterface, _ *catalog.Directory) erro
 		candle.Count++
 	}
 	return nil
-}
-
-/*
-Utility Functions
-*/
-
-func (ca *TickCandler) SetTimeBucketKey(tbk io.TimeBucketKey) {
-	// for compatibility reasons only
 }
