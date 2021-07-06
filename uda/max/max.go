@@ -43,7 +43,7 @@ func (ma *Max) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ma *Max) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
+func (ma *Max) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
 	if cols.Len() == 0 {
 		return nil
 	}
@@ -107,14 +107,4 @@ func (ma *Max) Output() *io.ColumnSeries {
 func (ma *Max) Reset() {
 	ma.Max = 0
 	ma.IsInitialized = false
-}
-
-/*
-Utility Functions
-*/
-
-/*
-	SetTimeBucketKey()
-*/
-func (ma *Max) SetTimeBucketKey(tbk io.TimeBucketKey) {
 }

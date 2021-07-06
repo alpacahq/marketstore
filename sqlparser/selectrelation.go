@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
@@ -519,7 +520,13 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 				/*
 					Execute the aggregate function
 				*/
-				err := aggfunc.Accum(outputColumnSeries, catDir)
+				var tbk io.TimeBucketKey
+				if key == nil { // if the input does not have tbk (e.g. input is a result from inner subquery)
+					tbk = io.TimeBucketKey{}
+				} else {
+					tbk = *key
+				}
+				err := aggfunc.Accum(tbk, outputColumnSeries, catDir)
 				if err != nil {
 					return nil, err
 				}

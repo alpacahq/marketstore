@@ -58,7 +58,7 @@ func (g *Gap) GetInitArgs() []io.DataShape {
 
 // Accum() sends new data to the aggregate
 // Use Zscore to find out the big hole in data.
-func (g *Gap) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
+func (g *Gap) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
 	g.BigGapIdxs = []int{}
 	g.Input = &cols
 
@@ -192,10 +192,4 @@ func (g *Gap) Reset() {
 	g.BigGapIdxs = []int{}
 	g.Input = nil
 	g.avgGapIntervalSeconds = -1
-}
-
-/*
-	SetTimeBucketKey()
-*/
-func (g *Gap) SetTimeBucketKey(tbk io.TimeBucketKey) {
 }

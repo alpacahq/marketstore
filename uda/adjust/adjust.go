@@ -35,8 +35,6 @@ type Adjust struct {
 	epochs         []int64
 	output         map[io.DataShape]interface{}
 	skippedColumns map[string]interface{}
-
-	tbk io.TimeBucketKey
 }
 
 func (adj *Adjust) GetRequiredArgs() []io.DataShape {
@@ -91,15 +89,11 @@ func (adj *Adjust) Init(args ...interface{}) error {
 	return nil
 }
 
-func (adj *Adjust) SetTimeBucketKey(tbk io.TimeBucketKey) {
-	adj.tbk = tbk
-}
-
 func (adj *Adjust) Reset() {
 	// intentionally left empty
 }
 
-func (adj *Adjust) Accum(cols io.ColumnInterface, catalogDir *catalog.Directory) error {
+func (adj *Adjust) Accum(tbk io.TimeBucketKey, cols io.ColumnInterface, catalogDir *catalog.Directory) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
 	if !ok {
 		return errors.New("adjust: Input data must have an Epoch column")
@@ -117,7 +111,7 @@ func (adj *Adjust) Accum(cols io.ColumnInterface, catalogDir *catalog.Directory)
 		}
 	}
 
-	symbol := adj.tbk.GetItemInCategory("Symbol")
+	symbol := tbk.GetItemInCategory("Symbol")
 	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend,
 		catalogDir,
 	)

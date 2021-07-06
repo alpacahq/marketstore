@@ -367,7 +367,6 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 			return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 		}
 		aggfunc, argMap := agg.New()
-		aggfunc.SetTimeBucketKey(tbk)
 
 		err = argMap.PrepareArguments(parameterList)
 		if err != nil {
@@ -395,7 +394,7 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 		/*
 			Execute the aggregate function
 		*/
-		if err = aggfunc.Accum(csInput, catDir); err != nil {
+		if err = aggfunc.Accum(tbk, csInput, catDir); err != nil {
 			return nil, err
 		}
 		cs = aggfunc.Output()

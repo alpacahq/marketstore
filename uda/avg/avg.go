@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/catalog"
 )
 
 var (
@@ -43,7 +43,7 @@ func (av *Avg) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (av *Avg) Accum(cols io.ColumnInterface, _ *catalog.Directory) error {
+func (av *Avg) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
 	if cols.Len() == 0 {
 		return nil
 	}
@@ -103,14 +103,4 @@ func (av *Avg) Output() *io.ColumnSeries {
 func (av *Avg) Reset() {
 	av.Avg = 0
 	av.Count = 0
-}
-
-/*
-Utility Functions
-*/
-
-/*
-	SetTimeBucketKey()
-*/
-func (av *Avg) SetTimeBucketKey(tbk io.TimeBucketKey) {
 }
