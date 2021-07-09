@@ -91,6 +91,4 @@ def test_gap(aggfunc, exp_value_len):
                                            functions=aggfunc))
 
     # ---- then ----
-    print("\n")
-    print(agg_reply.first().df().values)
     assert len(agg_reply.first().df()) == exp_value_len
