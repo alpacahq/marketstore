@@ -11,8 +11,9 @@ coverage:
     patch:
       default:
         target: 70%
-# ignore:
-#   - xxx
+
+ignore:
+  - "tests"  # ignore integration tests under tests directory
 
 comment:
   layout: "header, diff, changes, tree"
