@@ -58,7 +58,6 @@ func (adj *Adjust) New() (uda.AggInterface, *functions.ArgumentMap) {
 }
 
 func (adj *Adjust) Init(args ...interface{}) error {
-	adj.Reset()
 	if len(args) == 0 {
 		adj.AdjustSplit = true
 		adj.AdjustDividend = true
@@ -89,9 +88,6 @@ func (adj *Adjust) Init(args ...interface{}) error {
 	return nil
 }
 
-func (adj *Adjust) Reset() {
-	// intentionally left empty
-}
 
 func (adj *Adjust) Accum(tbk io.TimeBucketKey, cols io.ColumnInterface, catalogDir *catalog.Directory) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)

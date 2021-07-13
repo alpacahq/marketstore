@@ -47,10 +47,6 @@ type AggInterface interface {
 		Output() returns the currently valid output of this aggregate
 	*/
 	Output() *io.ColumnSeries
-	/*
-		Reset() puts the aggregate state back to "new"
-	*/
-	Reset()
 }
 
 //TODO: This is where we break out a UDF API

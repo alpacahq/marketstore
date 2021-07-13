@@ -87,7 +87,8 @@ func (ma *Max) Init(itf ...interface{}) error {
 	if unmapped := ma.ArgMap.Validate(); unmapped != nil {
 		return fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
-	ma.Reset()
+	ma.Max = 0
+	ma.IsInitialized = false
 	return nil
 }
 
@@ -99,12 +100,4 @@ func (ma *Max) Output() *io.ColumnSeries {
 	cs.AddColumn("Epoch", []int64{time.Now().UTC().Unix()})
 	cs.AddColumn("Max", []float32{ma.Max})
 	return cs
-}
-
-/*
-	Reset() puts the aggregate state back to "new"
-*/
-func (ma *Max) Reset() {
-	ma.Max = 0
-	ma.IsInitialized = false
 }
