@@ -87,7 +87,8 @@ func (mn *Min) Init(itf ...interface{}) error {
 	if unmapped := mn.ArgMap.Validate(); unmapped != nil {
 		return fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
-	mn.Reset()
+	mn.Min = 0
+	mn.IsInitialized = false
 	return nil
 }
 
@@ -99,12 +100,4 @@ func (mn *Min) Output() *io.ColumnSeries {
 	cs.AddColumn("Epoch", []int64{time.Now().UTC().Unix()})
 	cs.AddColumn("Min", []float32{mn.Min})
 	return cs
-}
-
-/*
-	Reset() puts the aggregate state back to "new"
-*/
-func (mn *Min) Reset() {
-	mn.Min = 0
-	mn.IsInitialized = false
 }

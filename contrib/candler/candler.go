@@ -205,13 +205,6 @@ func (ca *Candler) Output() *io.ColumnSeries {
 	return rows.ToColumnSeries()
 }
 
-/*
-	Reset() puts the aggregate state back to "new"
-*/
-func (ca *Candler) Reset() {
-	ca.Init(ca.MyCD.String)
-}
-
 func (ca *Candler) GetCandle(t time.Time, cndl ...*Candle) *Candle {
 	/*
 		Returns a candle matching the start time "t", or creates

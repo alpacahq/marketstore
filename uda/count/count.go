@@ -87,10 +87,3 @@ func (ca *Count) Output() *io.ColumnSeries {
 	cs.AddColumn("Count", []int64{ca.Sum})
 	return cs
 }
-
-/*
-	Reset() puts the aggregate state back to "new"
-*/
-func (ca *Count) Reset() {
-	ca.Sum = 0
-}

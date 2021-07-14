@@ -91,7 +91,8 @@ func TestTickCandler(t *testing.T) {
 	/*
 		Test Reset()
 	*/
-	cdl.Reset()
+	err = cdl.Init("1Min")
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)
 		err = cdl.Accum(*tbk, cs, metadata.CatalogDir)

@@ -126,7 +126,9 @@ func NewGap(inputColumns, optionalInputColumns []io.DataShape) (g *Gap) {
 }
 
 func (g *Gap) Init(args ...interface{}) error {
-	g.Reset()
+	g.BigGapIdxs = []int{}
+	g.Input = nil
+	g.avgGapIntervalSeconds = -1
 
 	if len(args) > 0 {
 		var tfstring string
@@ -185,11 +187,3 @@ func (g *Gap) Output() *io.ColumnSeries {
 	return cs
 }
 
-/*
-	Reset() puts the aggregate state back to "new"
-*/
-func (g *Gap) Reset() {
-	g.BigGapIdxs = []int{}
-	g.Input = nil
-	g.avgGapIntervalSeconds = -1
-}

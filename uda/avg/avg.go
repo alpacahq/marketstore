@@ -83,7 +83,8 @@ func (av *Avg) Init(itf ...interface{}) error {
 	if unmapped := av.ArgMap.Validate(); unmapped != nil {
 		return fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
-	av.Reset()
+	av.Avg = 0
+	av.Count = 0
 	return nil
 }
 
@@ -95,12 +96,4 @@ func (av *Avg) Output() *io.ColumnSeries {
 	cs.AddColumn("Epoch", []int64{time.Now().UTC().Unix()})
 	cs.AddColumn("Avg", []float64{av.Avg / float64(av.Count)})
 	return cs
-}
-
-/*
-	Reset() puts the aggregate state back to "new"
-*/
-func (av *Avg) Reset() {
-	av.Avg = 0
-	av.Count = 0
 }
