@@ -1,9 +1,10 @@
 package executor
 
 import (
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSortBuffer(t *testing.T) {

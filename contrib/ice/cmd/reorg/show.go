@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/uda/adjust"
-	"github.com/spf13/cobra"
 )
 
 // ShowRecordsCmd shows stored corporate action announcements in marketstore. Its main purpose is to provide a way

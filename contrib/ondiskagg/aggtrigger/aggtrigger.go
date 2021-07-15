@@ -323,10 +323,10 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 	} else {
 		// bars to bars
 		params = []accumParam{
-			accumParam{"Open", "first", "Open"},
-			accumParam{"High", "max", "High"},
-			accumParam{"Low", "min", "Low"},
-			accumParam{"Close", "last", "Close"},
+			{"Open", "first", "Open"},
+			{"High", "max", "High"},
+			{"Low", "min", "Low"},
+			{"Close", "last", "Close"},
 		}
 		if cs.Exists("Volume") {
 			params = append(params, accumParam{"Volume", "sum", "Volume"})

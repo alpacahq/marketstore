@@ -1,12 +1,14 @@
 package replication_test
 
 import (
+	"testing"
+	"time"
+
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/alpacahq/marketstore/v4/proto"
 	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/alpacahq/marketstore/v4/replication/mock"
-	"github.com/google/go-cmp/cmp"
-	"testing"
-	"time"
 )
 
 // listen messages -> wait 500ms -> put a test message to a channel -> wait 100ms -> the message should be sent

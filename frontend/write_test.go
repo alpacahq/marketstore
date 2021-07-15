@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestWrite(t *testing.T) {
@@ -56,7 +57,7 @@ func TestWrite(t *testing.T) {
 
 	args := &frontend.MultiWriteRequest{
 		Requests: []frontend.WriteRequest{
-			frontend.WriteRequest{
+			{
 				Data:             qresponse.Responses[0].Result,
 				IsVariableLength: false,
 			},

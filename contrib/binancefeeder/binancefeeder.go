@@ -11,6 +11,7 @@ import (
 	"time"
 
 	binance "github.com/adshao/go-binance"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"

@@ -3,11 +3,12 @@ package executor_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/stretchr/testify/assert"
 )
 
 type FakeTrigger struct {

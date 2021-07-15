@@ -2,11 +2,13 @@ package replication_test
 
 import (
 	"context"
-	"github.com/alpacahq/marketstore/v4/replication"
-	"github.com/pkg/errors"
 	"io"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/replication"
 )
 
 type MockGRPCClient struct {

@@ -2,11 +2,13 @@ package replication
 
 import (
 	"fmt"
-	pb "github.com/alpacahq/marketstore/v4/proto"
-	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
+
+	pb "github.com/alpacahq/marketstore/v4/proto"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (

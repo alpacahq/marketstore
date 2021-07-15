@@ -56,9 +56,9 @@ func errReport(base string, msg string) string {
 // ErrCategoryFileNotFound is used when "category_name" file under each data directory is not found.
 type ErrCategoryFileNotFound struct {
 	filePath string
-	msg string
+	msg      string
 }
 
 func (e *ErrCategoryFileNotFound) Error() string {
-	return "Could not find a category_name file under:" + e.filePath +", msg="+ e.msg
+	return "Could not find a category_name file under:" + e.filePath + ", msg=" + e.msg
 }

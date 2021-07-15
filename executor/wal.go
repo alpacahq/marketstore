@@ -487,7 +487,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			case CHECKPOINT:
 				if _, ok := TGData[TGID]; ok && txnStatus == COMMITCOMPLETE {
 					// Remove all TGData for TGID less than this complete one
-					for tgid, _ := range TGData {
+					for tgid := range TGData {
 						if tgid <= TGID {
 							TGData[tgid] = nil
 							delete(TGData, tgid)

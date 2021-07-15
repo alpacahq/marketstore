@@ -3,8 +3,9 @@ package sqlparser
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -17,7 +18,7 @@ type InsertIntoStatement struct {
 	TableName      string
 	// ColumnAliases are the names of the columns to insert data.
 	// e.g. INSERT INTO foo (a, b, c) SELECT * FROM bar; -> ["a", "b", "c"] are the column aliases.
-	ColumnAliases  []string
+	ColumnAliases []string
 }
 
 func NewInsertIntoStatement(tableName, queryText string, selectRelation *SelectRelation) (is *InsertIntoStatement) {
@@ -109,7 +110,7 @@ func (is *InsertIntoStatement) Materialize(catDir *catalog.Directory) (outputCol
 
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*targetMK, inputColumnSeries)
-	if err = executor.WriteCSM(csm, isVariableLength); err != nil{
+	if err = executor.WriteCSM(csm, isVariableLength); err != nil {
 		return nil, err
 	}
 	// --------

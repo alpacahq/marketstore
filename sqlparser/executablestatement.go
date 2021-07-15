@@ -3,9 +3,10 @@ package sqlparser
 import (
 	"bytes"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"reflect"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -13,8 +14,8 @@ import (
 type ExecutableStatement struct {
 	MSTree
 	BaseSQLQueryTreeVisitor
-	nodeCursor                 *ExecutableStatement
-	pendingSP                  *StaticPredicate
+	nodeCursor *ExecutableStatement
+	pendingSP  *StaticPredicate
 }
 
 func NewExecutableStatement(qtree ...IMSTree,

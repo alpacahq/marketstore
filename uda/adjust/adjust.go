@@ -29,8 +29,8 @@ type Adjust struct {
 	uda.AggInterface
 	ArgMap *functions.ArgumentMap
 
-	AdjustDividend             bool
-	AdjustSplit                bool
+	AdjustDividend bool
+	AdjustSplit    bool
 
 	epochs         []int64
 	output         map[io.DataShape]interface{}
@@ -49,9 +49,9 @@ func (adj *Adjust) GetInitArgs() []io.DataShape {
 
 func (adj *Adjust) New() (uda.AggInterface, *functions.ArgumentMap) {
 	rn := &Adjust{
-		ArgMap:                     functions.NewArgumentMap(requiredColumns, optionalColumns...),
-		output:                     map[io.DataShape]interface{}{},
-		skippedColumns:             map[string]interface{}{},
+		ArgMap:         functions.NewArgumentMap(requiredColumns, optionalColumns...),
+		output:         map[io.DataShape]interface{}{},
+		skippedColumns: map[string]interface{}{},
 	}
 
 	return rn, rn.ArgMap
@@ -87,7 +87,6 @@ func (adj *Adjust) Init(args ...interface{}) error {
 	}
 	return nil
 }
-
 
 func (adj *Adjust) Accum(tbk io.TimeBucketKey, cols io.ColumnInterface, catalogDir *catalog.Directory) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)

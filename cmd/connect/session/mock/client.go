@@ -5,11 +5,13 @@
 package mock
 
 import (
-	frontend "github.com/alpacahq/marketstore/v4/frontend"
-	io "github.com/alpacahq/marketstore/v4/utils/io"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
+
+	frontend "github.com/alpacahq/marketstore/v4/frontend"
+	io "github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 // MockAPIClient is a mock of APIClient interface

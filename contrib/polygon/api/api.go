@@ -16,8 +16,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"gopkg.in/matryer/try.v1"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (

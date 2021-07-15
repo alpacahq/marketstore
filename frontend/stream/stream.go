@@ -22,13 +22,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/metrics"
-	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/eapache/channels"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/websocket"
 	msgpack "github.com/vmihailenco/msgpack"
+
+	"github.com/alpacahq/marketstore/v4/metrics"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (

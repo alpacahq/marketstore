@@ -3,12 +3,14 @@ package replication_test
 import (
 	"encoding/binary"
 	"errors"
+	"testing"
+	"time"
+
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/google/go-cmp/cmp"
-	"testing"
-	"time"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -100,7 +102,7 @@ func TestReplayerImpl_Replay(t *testing.T) {
 			writeErr: false,
 			wantCSM: io.ColumnSeriesMap(
 				map[io.TimeBucketKey]*io.ColumnSeries{
-					io.TimeBucketKey{Key: "AMZN/1Min/OHLC:Symbol/Timeframe/AttributeGroup"}: makeMockOHLCColumnSeries(
+					{Key: "AMZN/1Min/OHLC:Symbol/Timeframe/AttributeGroup"}: makeMockOHLCColumnSeries(
 						time.Date(2020, 01, 01, 00, 00, 00, 0, time.UTC),
 						1, 2, 3, 4,
 					),
@@ -132,8 +134,7 @@ func TestReplayerImpl_Replay(t *testing.T) {
 			writeErr: false,
 			wantCSM: io.ColumnSeriesMap(
 				map[io.TimeBucketKey]*io.ColumnSeries{
-					io.TimeBucketKey{Key: "AMZN/1Sec/OHLC:Symbol/Timeframe/AttributeGroup"}:
-					makeMockOHLCColumnSeries(variableRecordDate, 1, 2, 3, 4),
+					{Key: "AMZN/1Sec/OHLC:Symbol/Timeframe/AttributeGroup"}: makeMockOHLCColumnSeries(variableRecordDate, 1, 2, 3, 4),
 				},
 			),
 			wantIsVariableLength: true,
@@ -199,7 +200,7 @@ func TestReplayerImpl_Replay(t *testing.T) {
 					FilePath:   "/data/AMZN/1Sec/OHLC/2020.bin",
 					DataLen:    24,
 					VarRecLen:  0,
-					Buffer:     makeMockOffsetIndexBufferVariable(
+					Buffer: makeMockOffsetIndexBufferVariable(
 						variableRecordDate, utils.TimeframeFromDuration(1*time.Second), buffer32,
 					),
 					DataShapes: []io.DataShape{},

@@ -9,8 +9,9 @@ import (
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils/test"
 
-	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"

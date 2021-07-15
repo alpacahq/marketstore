@@ -1,9 +1,10 @@
 package loader
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseTime(t *testing.T) {

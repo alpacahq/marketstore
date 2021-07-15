@@ -12,8 +12,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/alpacahq/marketstore/v4/utils"
 	. "gopkg.in/check.v1"
+
+	"github.com/alpacahq/marketstore/v4/utils"
 )
 
 type ohlc struct {

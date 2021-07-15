@@ -9,13 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/websocket"
+	"github.com/vmihailenco/msgpack"
+
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
-	"github.com/gorilla/websocket"
-	"github.com/vmihailenco/msgpack"
 )
 
 type Client struct {

@@ -10,9 +10,10 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/plugins"
 	"github.com/alpacahq/marketstore/v4/utils/test"
-	"github.com/stretchr/testify/assert"
 )
 
 func setup(t *testing.T, testName string) (tearDown func(), testPluginLib, oldGoPath, absTestPluginLib string) {

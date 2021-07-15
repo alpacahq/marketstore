@@ -12,6 +12,10 @@ import (
 	"strings"
 	"time"
 
+	iex "github.com/timpalpant/go-iex"
+	"github.com/timpalpant/go-iex/consolidator"
+	"github.com/timpalpant/go-iex/iextp/tops"
+
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/ondiskagg/aggtrigger"
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -19,9 +23,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	iex "github.com/timpalpant/go-iex"
-	"github.com/timpalpant/go-iex/consolidator"
-	"github.com/timpalpant/go-iex/iextp/tops"
 )
 
 var (

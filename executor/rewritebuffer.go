@@ -4,9 +4,10 @@ import (
 	"encoding/binary"
 	"math"
 
+	_ "go.uber.org/zap"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	_ "github.com/alpacahq/marketstore/v4/utils/log"
-	_ "go.uber.org/zap"
 )
 
 // RewriteBuffer converts variable_length records to the result buffer.

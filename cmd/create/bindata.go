@@ -193,7 +193,7 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"default.yml": &bintree{defaultYml, map[string]*bintree{}},
+	"default.yml": {defaultYml, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory

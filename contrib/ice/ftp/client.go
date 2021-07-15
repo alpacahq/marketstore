@@ -4,8 +4,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/secsy/goftp"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type FtpClient interface {

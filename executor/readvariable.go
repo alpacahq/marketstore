@@ -3,8 +3,9 @@ package executor
 import (
 	"os"
 
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/klauspost/compress/snappy"
+
+	"github.com/alpacahq/marketstore/v4/utils"
 
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 )

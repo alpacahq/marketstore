@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/models/enum"
 
 	"github.com/alpacahq/marketstore/v4/utils"
 )

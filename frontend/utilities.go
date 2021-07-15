@@ -24,11 +24,11 @@ func init() {
 	Queryable = uint32(0)
 }
 
-func NewUtilityAPIHandlers(startTime time.Time) *utilityAPIHandlers{
+func NewUtilityAPIHandlers(startTime time.Time) *utilityAPIHandlers {
 	return &utilityAPIHandlers{startTime: startTime}
 }
 
-type utilityAPIHandlers struct{
+type utilityAPIHandlers struct {
 	startTime time.Time
 }
 

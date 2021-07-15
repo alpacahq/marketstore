@@ -2,9 +2,10 @@ package wal
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"os"
 )
 
 type FileStatusEnum int8
