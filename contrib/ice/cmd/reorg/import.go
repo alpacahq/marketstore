@@ -1,9 +1,10 @@
 package reorg
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
 	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/spf13/cobra"
 )
 
 var reimport bool

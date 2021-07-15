@@ -2,10 +2,11 @@ package io
 
 import (
 	"encoding/binary"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 	"unsafe"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var TestData = []byte{

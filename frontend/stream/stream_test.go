@@ -10,15 +10,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
 	"github.com/alpacahq/marketstore/v4/utils/test"
-	"github.com/stretchr/testify/assert"
+
+	"github.com/gorilla/websocket"
+	"github.com/vmihailenco/msgpack"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/gorilla/websocket"
-	"github.com/vmihailenco/msgpack"
 )
 
 func setup(t *testing.T, testName string,

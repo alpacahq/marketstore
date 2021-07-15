@@ -29,8 +29,8 @@ type ioFilePlan struct {
 	Length   int64
 	FullPath string // Full file path, including leaf (Year) file
 	// The time that begins each file in seconds since the Unix epoch
-	BaseTime        int64
-	seekingLast     bool
+	BaseTime    int64
+	seekingLast bool
 }
 
 func (iofp *ioFilePlan) GetFileYear() int16 {
@@ -164,8 +164,8 @@ type Reader struct {
 	IOPMap map[TimeBucketKey]*ioplan
 	// for packingReader to avoid redundant allocation.
 	// really ought to be somewhere close to the function...
-	readBuffer                 []byte
-	fileBuffer                 []byte
+	readBuffer []byte
+	fileBuffer []byte
 }
 
 func NewReader(pr *planner.ParseResult) (r *Reader, err error) {

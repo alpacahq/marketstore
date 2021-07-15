@@ -2,10 +2,12 @@ package connect
 
 import (
 	"errors"
+
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -69,9 +71,9 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 func executeConnect(cmd *cobra.Command, args []string) error {
 
 	var (
-		c *session.Client
+		c    *session.Client
 		conn session.APIClient
-		err error
+		err  error
 	)
 
 	// Attempt local mode.

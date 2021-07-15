@@ -2,8 +2,9 @@ package timer
 
 import (
 	"context"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // RunEveryDayAt runs a specified function every day at a specified hour

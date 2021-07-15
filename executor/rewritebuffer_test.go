@@ -1,10 +1,11 @@
 package executor
 
 import (
-	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var mem runtime.MemStats

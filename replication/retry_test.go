@@ -3,9 +3,10 @@ package replication_test
 import (
 	"context"
 	"errors"
-	"github.com/alpacahq/marketstore/v4/replication"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/replication"
 )
 
 // retryer succeeds at a certain trial

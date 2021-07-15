@@ -2,15 +2,16 @@ package io
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/pkg/errors"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-)
 
+	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
+)
 
 /*
 ColumnSeries stores query results using the following keys:

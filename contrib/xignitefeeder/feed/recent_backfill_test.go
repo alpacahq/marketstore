@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
-	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 )

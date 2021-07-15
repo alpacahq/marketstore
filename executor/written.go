@@ -1,9 +1,10 @@
 package executor
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"runtime/debug"
 	"sync"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 )

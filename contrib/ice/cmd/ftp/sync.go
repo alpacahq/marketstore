@@ -4,10 +4,11 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/ftp"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/spf13/cobra"
 )
 
 // FTPSyncCmd downloads reorg and sirs files from ICE's ftp directory to a local path

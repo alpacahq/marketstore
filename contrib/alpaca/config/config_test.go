@@ -3,8 +3,9 @@ package config
 import (
 	"testing"
 
-	"github.com/alpacahq/marketstore/v4/contrib/alpaca/enums"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/contrib/alpaca/enums"
 )
 
 func TestAsCanonical(t *testing.T) {

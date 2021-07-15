@@ -2,6 +2,9 @@ package session
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
@@ -9,8 +12,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"os"
-	"time"
 )
 
 // NewLocalAPIClient builds a new client struct in local mode.

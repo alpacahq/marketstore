@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/config"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/gorilla/websocket"
 )
 
 var errExchangeMessage = errors.New("didn't receive expected message")

@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/contrib/ice/sirs"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/spf13/cobra"
 )
 
 // ShowSecurityMasterCmd provides a command line option to view Symbol -> CUSIP mappings for a given SIRS file

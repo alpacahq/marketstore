@@ -15,4 +15,4 @@ When a marketstore instance starts with replication settings, the following 2 th
 - WAL receiver
 	WAL receiver is a thread running only on replica instances to listen to WAL records sent from the master instance.
 	When WAL record is sent, WAL receiver stores it to WAL file and replay it.
- */
+*/

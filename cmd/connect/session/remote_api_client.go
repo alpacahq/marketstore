@@ -3,12 +3,13 @@ package session
 import (
 	"errors"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/frontend"
-	"github.com/alpacahq/marketstore/v4/planner"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 
 	"github.com/alpacahq/marketstore/v4/frontend/client"
 )

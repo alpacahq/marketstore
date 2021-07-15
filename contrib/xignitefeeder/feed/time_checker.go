@@ -2,8 +2,9 @@ package feed
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )

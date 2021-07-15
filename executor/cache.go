@@ -26,7 +26,7 @@ type TransactionPipe struct {
 // of the write transactions to the WAL and primary writers
 func NewTransactionPipe() *TransactionPipe {
 	return &TransactionPipe{
-		tgID:         time.Now().UTC().UnixNano(),
+		tgID: time.Now().UTC().UnixNano(),
 		// Allocate the write channel with enough depth to allow all conceivable writers concurrent access
 		writeChannel: make(chan *wal.WriteCommand, WriteChannelCommandDepth),
 		flushChannel: make(chan chan struct{}, WriteChannelCommandDepth),

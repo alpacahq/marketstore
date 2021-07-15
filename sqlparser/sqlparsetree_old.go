@@ -9,9 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/antlr/antlr4/runtime/Go/antlr"
+
 	"github.com/alpacahq/marketstore/v4/sqlparser/parser"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
 type StatementsParse struct {

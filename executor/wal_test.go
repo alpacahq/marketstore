@@ -10,12 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestWALWrite(t *testing.T) {
@@ -290,7 +291,7 @@ func rewriteFilesFromBuffer(t *testing.T, originalFileContents map[string][]byte
 	t.Helper()
 
 	// Replace the file contents with the contents of the buffer
-	for filePath, _ := range originalFileContents {
+	for filePath := range originalFileContents {
 		fp, err := os.OpenFile(filePath, os.O_RDWR, 0600)
 		assert.Nil(t, err)
 		n, err := fp.WriteAt(originalFileContents[filePath], 0)

@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 
 	"github.com/alpacahq/marketstore/v4/utils/test"
 

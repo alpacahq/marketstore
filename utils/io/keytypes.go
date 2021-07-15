@@ -2,11 +2,12 @@ package io
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils"
 )

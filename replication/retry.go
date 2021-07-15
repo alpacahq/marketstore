@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // RetryableError is a custom error to retry the logic when returned

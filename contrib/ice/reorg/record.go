@@ -83,7 +83,7 @@ func readRecords(content string, slicePtr interface{}) {
 			lines = lines[:len(lines)-1]
 			readRecord(lines, rec)
 			sliceValue.Set(reflect.Append(sliceValue, rec.Elem()))
-			content = content[len(result):len(content)]
+			content = content[len(result):]
 		} else {
 			log.Fatal("file parsing error, please check for file corruption or format change", content)
 		}
