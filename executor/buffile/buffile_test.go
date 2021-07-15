@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
 	"github.com/alpacahq/marketstore/v4/utils/test"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestBufferedFile(t *testing.T) {

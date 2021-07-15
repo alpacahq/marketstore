@@ -3,12 +3,14 @@ package mock
 import (
 	"context"
 	"errors"
-	"github.com/alpacahq/marketstore/v4/proto"
+
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+
+	"github.com/alpacahq/marketstore/v4/proto"
 )
 
-type WALStreamServer struct{
+type WALStreamServer struct {
 	SendFunc func(resp *proto.GetWALStreamResponse) error
 }
 

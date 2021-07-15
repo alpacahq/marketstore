@@ -3,13 +3,14 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/cmd/connect"
 	"github.com/alpacahq/marketstore/v4/cmd/create"
 	"github.com/alpacahq/marketstore/v4/cmd/estimate"
 	"github.com/alpacahq/marketstore/v4/cmd/start"
 	"github.com/alpacahq/marketstore/v4/cmd/tool"
 	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/spf13/cobra"
 )
 
 // flagPrintVersion set flag to show current marketstore version.

@@ -3,8 +3,9 @@ package frontend_test
 import (
 	"testing"
 
-	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/frontend"
 )
 
 func TestNewServer(t *testing.T) {

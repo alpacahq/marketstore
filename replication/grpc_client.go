@@ -2,9 +2,11 @@ package replication
 
 import (
 	"context"
-	pb "github.com/alpacahq/marketstore/v4/proto"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
+
+	pb "github.com/alpacahq/marketstore/v4/proto"
 )
 
 type GRPCReplicationClient struct {
@@ -14,7 +16,7 @@ type GRPCReplicationClient struct {
 
 func NewGRPCReplicationClient(client pb.ReplicationClient) *GRPCReplicationClient {
 	return &GRPCReplicationClient{
-		Client:     client,
+		Client: client,
 	}
 }
 

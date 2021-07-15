@@ -2,9 +2,10 @@ package io_test
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 	"reflect"
 	"testing"
+
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 func TestNewTimeBucketKeyFromWalKeyPath(t *testing.T) {
@@ -27,12 +28,12 @@ func TestNewTimeBucketKeyFromWalKeyPath(t *testing.T) {
 		{
 			name:       "Invalid format of WalKeyPath",
 			walKeyPath: "/foor/bar/2017.bin",
-			wantErr:  true,
+			wantErr:    true,
 		},
 		{
 			name:       "Invalid format of year",
 			walKeyPath: "/project/marketstore/data/AMZN/1Min/TICK/InvalidYear.bin",
-			wantErr:  true,
+			wantErr:    true,
 		},
 	}
 	for _, tt := range tests {

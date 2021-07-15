@@ -507,7 +507,7 @@ func ListTimeBucketKeyNames(d *Directory) []string {
 			if timeframeDir == nil {
 				continue
 			}
-			for attributeGroup, _ := range timeframeDir.subDirs {
+			for attributeGroup := range timeframeDir.subDirs {
 				tbkMap[fmt.Sprintf("%s/%s/%s", symbol, timeframe, attributeGroup)] = struct{}{}
 			}
 		}

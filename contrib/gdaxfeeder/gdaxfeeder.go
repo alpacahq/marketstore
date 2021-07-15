@@ -8,13 +8,14 @@ import (
 	"sort"
 	"time"
 
+	gdax "github.com/preichenberger/go-gdax"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	gdax "github.com/preichenberger/go-gdax"
 )
 
 type byTime []gdax.HistoricRate

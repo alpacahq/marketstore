@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/gorilla/websocket"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type PolygonWebSocket struct {

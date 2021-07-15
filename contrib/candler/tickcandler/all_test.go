@@ -6,11 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils/test"
 
-	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
@@ -33,21 +36,23 @@ func TestTickCandler(t *testing.T) {
 	tearDown, rootDir, _, metadata := setup(t, "TestTickCandler")
 	defer tearDown()
 
-	cdl, am := tickcandler.TickCandler{}.New()
+	tc := tickcandler.TickCandler{}
+	cdl := tc.New()
+	am := functions.NewArgumentMap(cdl.GetRequiredArgs(), cdl.GetOptionalArgs()...)
 	ds := io.NewDataShapeVector([]string{"Bid", "Ask"}, []io.EnumElementType{io.FLOAT32, io.FLOAT32})
 	// Sum and Avg are optional inputs, let's map them arbitrarily
 	//am.MapInputColumn("Sum", ds[1:])
 	am.MapRequiredColumn("Sum", ds...)
 	am.MapRequiredColumn("Avg", ds...)
-	err := cdl.Init("1Min")
+	err := cdl.Init(am, "1Min")
 	assert.NotNil(t, err)
 	am.MapRequiredColumn("CandlePrice", ds...)
-	err = cdl.Init("1Min")
+	err = cdl.Init(am, "1Min")
 	assert.Nil(t, err)
 	/*
 		We expect an error with an empty input arg set
 	*/
-	err = cdl.Accum(io.TimeBucketKey{}, &io.Rows{}, metadata.CatalogDir)
+	err = cdl.Accum(io.TimeBucketKey{}, am, &io.Rows{}, metadata.CatalogDir)
 	assert.NotNil(t, err)
 
 	/*
@@ -72,7 +77,7 @@ func TestTickCandler(t *testing.T) {
 	assert.Len(t, csm, 1)
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)
-		err = cdl.Accum(*tbk, cs, metadata.CatalogDir)
+		err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
 	rows := cdl.Output()
@@ -91,11 +96,11 @@ func TestTickCandler(t *testing.T) {
 	/*
 		Test Reset()
 	*/
-	err = cdl.Init("1Min")
+	err = cdl.Init(am, "1Min")
 	assert.Nil(t, err)
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)
-		err = cdl.Accum(*tbk, cs, metadata.CatalogDir)
+		err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
 	rows = cdl.Output()

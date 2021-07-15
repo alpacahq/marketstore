@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/symbols"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/pkg/errors"
 )
 
 // Worker is the main worker instance.  It implements bgworker.Run().

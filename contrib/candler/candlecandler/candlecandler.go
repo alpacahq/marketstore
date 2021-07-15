@@ -37,9 +37,9 @@ type CandleCandler struct {
 	*candler.Candler
 }
 
-func (c CandleCandler) New() (ica uda.AggInterface, am *functions.ArgumentMap) {
-	ca := &CandleCandler{candler.NewCandler(requiredColumns, optionalColumns)}
-	return ca, ca.ArgMap
+func (c CandleCandler) New() (ica uda.AggInterface) {
+	ca := &CandleCandler{candler.NewCandler()}
+	return ca
 }
 
 func (ca *CandleCandler) GetRequiredArgs() []io.DataShape {
@@ -55,17 +55,19 @@ func (ca *CandleCandler) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *CandleCandler) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
+	cols io.ColumnInterface, _ *catalog.Directory,
+) error {
 	if cols.Len() == 0 {
 		return fmt.Errorf("Empty input to Accum")
 	}
 	/*
 		Get the input column for "Price"
 	*/
-	openCols := ca.ArgMap.GetMappedColumns(requiredColumns[0].Name)
-	highCols := ca.ArgMap.GetMappedColumns(requiredColumns[1].Name)
-	lowCols := ca.ArgMap.GetMappedColumns(requiredColumns[2].Name)
-	closeCols := ca.ArgMap.GetMappedColumns(requiredColumns[3].Name)
+	openCols := argMap.GetMappedColumns(requiredColumns[0].Name)
+	highCols := argMap.GetMappedColumns(requiredColumns[1].Name)
+	lowCols := argMap.GetMappedColumns(requiredColumns[2].Name)
+	closeCols := argMap.GetMappedColumns(requiredColumns[3].Name)
 	open, err := candler.GetAverageColumnFloat32(cols, openCols)
 	if err != nil {
 		return err

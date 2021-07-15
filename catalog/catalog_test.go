@@ -3,16 +3,18 @@ package catalog_test
 import (
 	"errors"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/catalog"
-	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/test"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func setup(t *testing.T, testName string,
@@ -200,8 +202,6 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	}
 
 	defer test.CleanupDummyDataDir(rootDir)
-
-
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"

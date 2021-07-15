@@ -3,10 +3,11 @@ package tickcandler
 import (
 	"fmt"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/candler"
 	"github.com/alpacahq/marketstore/v4/uda"
-	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -34,9 +35,9 @@ type TickCandler struct {
 	*candler.Candler
 }
 
-func (c TickCandler) New() (ica uda.AggInterface, am *functions.ArgumentMap) {
-	ca := &TickCandler{candler.NewCandler(requiredColumns, optionalColumns)}
-	return ca, ca.ArgMap
+func (c TickCandler) New() (ica uda.AggInterface) {
+	ca := &TickCandler{candler.NewCandler()}
+	return ca
 }
 
 func (ca *TickCandler) GetRequiredArgs() []io.DataShape {
@@ -52,14 +53,16 @@ func (ca *TickCandler) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *TickCandler) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
+	cols io.ColumnInterface, _ *catalog.Directory,
+) error {
 	if cols.Len() == 0 {
 		return fmt.Errorf("Empty input to Accum")
 	}
 	/*
 		Get the input column for "Price"
 	*/
-	priceCols := ca.ArgMap.GetMappedColumns(requiredColumns[0].Name)
+	priceCols := argMap.GetMappedColumns(requiredColumns[0].Name)
 	price, err := candler.GetAverageColumnFloat32(cols, priceCols)
 	if err != nil {
 		return err

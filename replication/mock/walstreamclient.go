@@ -2,8 +2,10 @@ package mock
 
 import (
 	"context"
-	pb "github.com/alpacahq/marketstore/v4/proto"
+
 	"google.golang.org/grpc/metadata"
+
+	pb "github.com/alpacahq/marketstore/v4/proto"
 )
 
 type WALStreamClient struct {

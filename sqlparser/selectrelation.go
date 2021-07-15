@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -471,7 +473,12 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 				if agg == nil {
 					return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 				}
-				aggfunc, argMap := agg.New()
+
+				argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
+				if unmapped := argMap.Validate(); unmapped != nil {
+					return nil, fmt.Errorf("unmapped columns: %s", unmapped)
+				}
+				aggfunc := agg.New()
 
 				if sl.FunctionCall.IsAsterisk {
 					/*
@@ -515,7 +522,7 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 						value,
 					)
 				}
-				aggfunc.Init(initArgList)
+				aggfunc.Init(argMap, initArgList)
 
 				/*
 					Execute the aggregate function
@@ -526,7 +533,7 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 				} else {
 					tbk = *key
 				}
-				err := aggfunc.Accum(tbk, outputColumnSeries, catDir)
+				err := aggfunc.Accum(tbk, argMap, outputColumnSeries, catDir)
 				if err != nil {
 					return nil, err
 				}

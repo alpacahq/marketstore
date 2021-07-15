@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"gopkg.in/yaml.v2"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var InstanceConfig MktsConfig

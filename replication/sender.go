@@ -2,6 +2,7 @@ package replication
 
 import (
 	"context"
+
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 

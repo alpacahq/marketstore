@@ -14,10 +14,12 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/gobwas/glob"
 
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
+
 	"code.cloudfoundry.org/bytefmt"
+
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"

@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (

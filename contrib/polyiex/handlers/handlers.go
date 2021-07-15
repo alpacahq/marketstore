@@ -4,12 +4,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/buger/jsonparser"
+	"github.com/eapache/channels"
+
 	"github.com/alpacahq/marketstore/v4/contrib/polyiex/orderbook"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/buger/jsonparser"
-	"github.com/eapache/channels"
 )
 
 func handleTrade(raw []byte) {

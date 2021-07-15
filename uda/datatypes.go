@@ -3,8 +3,9 @@ package uda
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -32,16 +33,16 @@ type AggInterface interface {
 		  am.MapInputColumn("Price", "Bid", "Ask")
 		  if am.Validate() { Init(args) }
 	*/
-	New() (AggInterface, *functions.ArgumentMap)
+	New() AggInterface
 	/*
 		Input arguments, followed by a custom set of arguments
 	*/
-	Init(args ...interface{}) error
+	Init(argMap *functions.ArgumentMap, args ...interface{}) error
 	/*
 		Accum() sends new data to the aggregate
 	*/
 	//Accum(ts []time.Time, rows io.Rows)
-	Accum(io.TimeBucketKey, io.ColumnInterface, *catalog.Directory,
+	Accum(io.TimeBucketKey, *functions.ArgumentMap, io.ColumnInterface, *catalog.Directory,
 	) error // The parameter is one of; ColumnSeries or Rows
 	/*
 		Output() returns the currently valid output of this aggregate

@@ -6,11 +6,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/eapache/channels"
+
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/config"
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/metrics"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/alpacahq/marketstore/v4/utils/pool"
-	"github.com/eapache/channels"
 )
 
 const (

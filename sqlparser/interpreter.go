@@ -3,10 +3,10 @@ package sqlparser
 import (
 	"fmt"
 
-	. "github.com/alpacahq/marketstore/v4/sqlparser/parser"
 	. "github.com/antlr/antlr4/runtime/Go/antlr"
-)
 
+	. "github.com/alpacahq/marketstore/v4/sqlparser/parser"
+)
 
 // BuildQueryTree returns the query tree built from the parse tree
 func BuildQueryTree(sourceString string) (tree IMSTree, err error) {

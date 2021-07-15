@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
-	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -22,9 +23,6 @@ var (
 
 type Min struct {
 	uda.AggInterface
-
-	// Input arguments mapping
-	ArgMap *functions.ArgumentMap
 
 	IsInitialized bool
 	Min           float32
@@ -43,11 +41,11 @@ func (mn *Min) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (mn *Min) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface, _ *catalog.Directory) error {
 	if cols.Len() == 0 {
 		return nil
 	}
-	inputColDSV := mn.ArgMap.GetMappedColumns(requiredColumns[0].Name)
+	inputColDSV := argMap.GetMappedColumns(requiredColumns[0].Name)
 	inputColName := inputColDSV[0].Name
 	inputCol, err := uda.ColumnToFloat32(cols, inputColName)
 	if err != nil {
@@ -70,21 +68,20 @@ func (mn *Min) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Dir
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Min) New() (out uda.AggInterface, am *functions.ArgumentMap) {
-	mn := NewCount(requiredColumns, optionalColumns)
-	return mn, mn.ArgMap
+func (m Min) New() (out uda.AggInterface) {
+	mn := NewCount()
+	return mn
 }
 
 /*
 CONCRETE - these may be suitable methods for general usage
 */
-func NewCount(inputColumns, optionalInputColumns []io.DataShape) (mn *Min) {
+func NewCount() (mn *Min) {
 	mn = new(Min)
-	mn.ArgMap = functions.NewArgumentMap(inputColumns, optionalInputColumns...)
 	return mn
 }
-func (mn *Min) Init(itf ...interface{}) error {
-	if unmapped := mn.ArgMap.Validate(); unmapped != nil {
+func (mn *Min) Init(argMap *functions.ArgumentMap, itf ...interface{}) error {
+	if unmapped := argMap.Validate(); unmapped != nil {
 		return fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
 	mn.Min = 0

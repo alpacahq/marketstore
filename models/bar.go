@@ -1,9 +1,10 @@
 package models
 
 import (
-	"github.com/alpacahq/marketstore/v4/models/enum"
 	"math"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/models/enum"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"

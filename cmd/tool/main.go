@@ -1,9 +1,10 @@
 package tool
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/cmd/tool/integrity"
 	"github.com/alpacahq/marketstore/v4/cmd/tool/wal"
-	"github.com/spf13/cobra"
 )
 
 const (

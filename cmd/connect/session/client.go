@@ -18,10 +18,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chzyer/readline"
+
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
 	dbio "github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/chzyer/readline"
 )
 
 func NewClient(ac APIClient) *Client {

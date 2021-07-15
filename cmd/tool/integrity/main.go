@@ -8,10 +8,11 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/spf13/cobra"
+
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/spf13/cobra"
 )
 
 const (
