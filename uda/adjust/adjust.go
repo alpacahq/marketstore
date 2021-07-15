@@ -5,9 +5,10 @@ import (
 	"math"
 	"strings"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
-	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -27,7 +28,6 @@ var (
 
 type Adjust struct {
 	uda.AggInterface
-	ArgMap *functions.ArgumentMap
 
 	AdjustDividend bool
 	AdjustSplit    bool
@@ -47,17 +47,16 @@ func (adj *Adjust) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-func (adj *Adjust) New() (uda.AggInterface, *functions.ArgumentMap) {
+func (adj *Adjust) New() uda.AggInterface {
 	rn := &Adjust{
-		ArgMap:         functions.NewArgumentMap(requiredColumns, optionalColumns...),
 		output:         map[io.DataShape]interface{}{},
 		skippedColumns: map[string]interface{}{},
 	}
 
-	return rn, rn.ArgMap
+	return rn
 }
 
-func (adj *Adjust) Init(args ...interface{}) error {
+func (adj *Adjust) Init(_ *functions.ArgumentMap, args ...interface{}) error {
 	if len(args) == 0 {
 		adj.AdjustSplit = true
 		adj.AdjustDividend = true
@@ -88,7 +87,9 @@ func (adj *Adjust) Init(args ...interface{}) error {
 	return nil
 }
 
-func (adj *Adjust) Accum(tbk io.TimeBucketKey, cols io.ColumnInterface, catalogDir *catalog.Directory) error {
+func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap,
+	cols io.ColumnInterface, catalogDir *catalog.Directory,
+) error {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
 	if !ok {
 		return errors.New("adjust: Input data must have an Epoch column")

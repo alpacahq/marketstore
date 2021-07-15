@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/utils/test"
@@ -63,7 +65,8 @@ func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) 
 	tbkStr := symbol + "/1Min/OHLCV"
 	tbk := io.NewTimeBucketKeyFromString(tbkStr)
 	adj := Adjust{}
-	aggfunc, _ := adj.New()
+	am := functions.NewArgumentMap(adj.GetRequiredArgs(), adj.GetOptionalArgs()...)
+	aggfunc := adj.New()
 
 	rateChangeCache[CacheKey{symbol, true, true}] = RateChangeCache{
 		Changes:   testCase.rateChanges,
@@ -73,8 +76,8 @@ func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) 
 
 	inputCs := toColumnSeries(testCase.input)
 
-	aggfunc.Init()
-	aggfunc.Accum(*tbk, inputCs, catDir)
+	aggfunc.Init(am)
+	aggfunc.Accum(*tbk, am, inputCs, catDir)
 
 	outputCs := aggfunc.Output()
 

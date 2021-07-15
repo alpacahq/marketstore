@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
-	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -22,9 +23,6 @@ var (
 
 type Max struct {
 	uda.AggInterface
-
-	// Input arguments mapping
-	ArgMap *functions.ArgumentMap
 
 	IsInitialized bool
 	Max           float32
@@ -43,11 +41,13 @@ func (ma *Max) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ma *Max) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
+	cols io.ColumnInterface, _ *catalog.Directory,
+) error {
 	if cols.Len() == 0 {
 		return nil
 	}
-	inputColDSV := ma.ArgMap.GetMappedColumns(requiredColumns[0].Name)
+	inputColDSV := argMap.GetMappedColumns(requiredColumns[0].Name)
 	inputColName := inputColDSV[0].Name
 	inputCol, err := uda.ColumnToFloat32(cols, inputColName)
 	if err != nil {
@@ -70,21 +70,20 @@ func (ma *Max) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Dir
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Max) New() (out uda.AggInterface, am *functions.ArgumentMap) {
-	ma := NewCount(requiredColumns, optionalColumns)
-	return ma, ma.ArgMap
+func (m Max) New() (out uda.AggInterface) {
+	ma := NewCount()
+	return ma
 }
 
 /*
 CONCRETE - these may be suitable methods for general usage
 */
-func NewCount(inputColumns, optionalInputColumns []io.DataShape) (ma *Max) {
+func NewCount() (ma *Max) {
 	ma = new(Max)
-	ma.ArgMap = functions.NewArgumentMap(inputColumns, optionalInputColumns...)
 	return ma
 }
-func (ma *Max) Init(itf ...interface{}) error {
-	if unmapped := ma.ArgMap.Validate(); unmapped != nil {
+func (ma *Max) Init(argMap *functions.ArgumentMap, itf ...interface{}) error {
+	if unmapped := argMap.Validate(); unmapped != nil {
 		return fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
 	ma.Max = 0

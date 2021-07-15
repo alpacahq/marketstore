@@ -18,13 +18,14 @@ import (
 	"math"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -38,9 +39,6 @@ var (
 
 type Gap struct {
 	uda.AggInterface
-
-	// Input arguments mapping
-	ArgMap *functions.ArgumentMap
 
 	BigGapIdxs            []int
 	Input                 *io.ColumnInterface
@@ -59,7 +57,9 @@ func (g *Gap) GetInitArgs() []io.DataShape {
 
 // Accum() sends new data to the aggregate
 // Use Zscore to find out the big hole in data.
-func (g *Gap) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
+	cols io.ColumnInterface, _ *catalog.Directory,
+) error {
 	g.BigGapIdxs = []int{}
 	g.Input = &cols
 
@@ -112,21 +112,20 @@ func (g *Gap) Accum(_ io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Dire
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (g Gap) New() (out uda.AggInterface, am *functions.ArgumentMap) {
-	gx := NewGap(requiredColumns, optionalColumns)
-	return gx, gx.ArgMap
+func (g Gap) New() (out uda.AggInterface) {
+	gx := NewGap()
+	return gx
 }
 
 /*
 CONCRETE - these may be suitable methods for general usage
 */
-func NewGap(inputColumns, optionalInputColumns []io.DataShape) (g *Gap) {
+func NewGap() (g *Gap) {
 	g = new(Gap)
-	g.ArgMap = functions.NewArgumentMap(inputColumns, optionalInputColumns...)
 	return g
 }
 
-func (g *Gap) Init(args ...interface{}) error {
+func (g *Gap) Init(_ *functions.ArgumentMap, args ...interface{}) error {
 	g.BigGapIdxs = []int{}
 	g.Input = nil
 	g.avgGapIntervalSeconds = -1

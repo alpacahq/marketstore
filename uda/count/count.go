@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
-	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -29,9 +30,6 @@ var initArgs = []io.DataShape{}
 type Count struct {
 	uda.AggInterface
 
-	// Input arguments mapping
-	ArgMap *functions.ArgumentMap
-
 	Sum int64
 }
 
@@ -48,7 +46,9 @@ func (ca *Count) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *Count) Accum(tbk io.TimeBucketKey, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
+	cols io.ColumnInterface, _ *catalog.Directory,
+) error {
 	ca.Sum += int64(cols.Len())
 	return nil
 }
@@ -57,21 +57,20 @@ func (ca *Count) Accum(tbk io.TimeBucketKey, cols io.ColumnInterface, _ *catalog
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (c Count) New() (out uda.AggInterface, am *functions.ArgumentMap) {
-	ca := NewCount(requiredColumns, optionalColumns)
-	return ca, ca.ArgMap
+func (c Count) New() (out uda.AggInterface) {
+	ca := NewCount()
+	return ca
 }
 
 /*
 CONCRETE - these may be suitable methods for general usage
 */
-func NewCount(inputColumns, optionalInputColumns []io.DataShape) (ca *Count) {
+func NewCount() (ca *Count) {
 	ca = new(Count)
-	ca.ArgMap = functions.NewArgumentMap(inputColumns, optionalInputColumns...)
 	return ca
 }
-func (ca *Count) Init(itf ...interface{}) error {
-	if unmapped := ca.ArgMap.Validate(); unmapped != nil {
+func (ca *Count) Init(argMap *functions.ArgumentMap, itf ...interface{}) error {
+	if unmapped := argMap.Validate(); unmapped != nil {
 		return fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
 	ca.Sum = 0

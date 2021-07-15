@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/candler/candlecandler"
@@ -33,7 +35,12 @@ func TestCandleCandler(t *testing.T) {
 	tearDown, _, _, metadata := setup(t, "TestCandleCandler")
 	defer tearDown()
 
-	cdl, am := candlecandler.CandleCandler{}.New()
+	c := candlecandler.CandleCandler{}
+	am := functions.NewArgumentMap(c.GetRequiredArgs(), c.GetOptionalArgs()...)
+	if unmapped := am.Validate(); unmapped != nil {
+		t.Fatalf("unmapped columns: %s", unmapped)
+	}
+	cdl := candlecandler.CandleCandler{}.New()
 	ds := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},
@@ -45,7 +52,7 @@ func TestCandleCandler(t *testing.T) {
 	am.MapRequiredColumn("High", ds[1])
 	am.MapRequiredColumn("Low", ds[2])
 	am.MapRequiredColumn("Close", ds[3])
-	err := cdl.Init("5Min")
+	err := cdl.Init(am, "5Min")
 	assert.Nil(t, err)
 
 	// Test data range query - across year
@@ -65,7 +72,7 @@ func TestCandleCandler(t *testing.T) {
 		epoch := cs.GetEpoch()
 		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
 		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
-		err = cdl.Accum(*tbk, cs, metadata.CatalogDir)
+		err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
 	cols := cdl.Output()

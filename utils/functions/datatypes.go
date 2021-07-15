@@ -77,7 +77,7 @@ func (am *ArgumentMap) MapRequiredColumn(requiredName string, userColumns ...io.
 		create the single native input. In some cases they might be summed, in others
 		they might be averaged - it's up to the function implementation to choose.
 	*/
-	if _, ok := am.nameMap[requiredName]; ok {
+	if _, found := am.nameMap[requiredName]; found {
 		// Entry Exists: Need to merge this into existing mapping
 		existingCol := am.nameMap[requiredName]
 		for _, col := range userColumns {

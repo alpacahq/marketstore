@@ -5,9 +5,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -44,8 +45,6 @@ var (
 type Candler struct {
 	uda.AggInterface
 
-	// Input arguments mapping
-	ArgMap *functions.ArgumentMap
 	/*
 	   Manages one timeframe, creates candles in that timeframe from
 	   input and outputs them on demand.
@@ -85,20 +84,19 @@ func (ca *Candler) Accum(cols io.ColumnInterface) error {
 	Creates a new candler using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (c Candler) New() (ca *Candler, am *functions.ArgumentMap) {
-	ca = NewCandler(requiredColumns, optionalColumns)
-	return ca, ca.ArgMap
+func (c Candler) New() (ca *Candler) {
+	ca = NewCandler()
+	return ca
 }
 
 /*
 CONCRETE - these may be suitable methods for general usage
 */
-func NewCandler(inputColumns, optionalInputColumns []io.DataShape) (ca *Candler) {
+func NewCandler() (ca *Candler) {
 	ca = new(Candler)
-	ca.ArgMap = functions.NewArgumentMap(inputColumns, optionalInputColumns...)
 	return ca
 }
-func (ca *Candler) Init(args ...interface{}) error {
+func (ca *Candler) Init(argMap *functions.ArgumentMap, args ...interface{}) error {
 	if len(args) != 1 {
 		return fmt.Errorf("Init requires a *utils.CandleDuration as the argument")
 	}
@@ -128,9 +126,10 @@ func (ca *Candler) Init(args ...interface{}) error {
 	if cd == nil {
 		return fmt.Errorf("No suitable timeframe provided")
 	}
-	if unmapped := ca.ArgMap.Validate(); unmapped != nil {
+	if unmapped := argMap.Validate(); unmapped != nil {
 		return fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
+
 	ca.MyCD = cd
 	ca.CMap = make(CandleMap)
 	/*
@@ -146,11 +145,11 @@ func (ca *Candler) Init(args ...interface{}) error {
 		//		fmt.Println("Optionals: ", ds.Name, ca.argMap.GetMappedColumns(ds.Name))
 		switch ds.Name {
 		case "Sum":
-			for _, dds := range ca.ArgMap.GetMappedColumns("Sum") {
+			for _, dds := range argMap.GetMappedColumns("Sum") {
 				ca.SumNames = append(ca.SumNames, dds.Name)
 			}
 		case "Avg":
-			for _, dds := range ca.ArgMap.GetMappedColumns("Avg") {
+			for _, dds := range argMap.GetMappedColumns("Avg") {
 				ca.AvgNames = append(ca.AvgNames, dds.Name)
 			}
 		}

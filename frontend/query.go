@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/functions"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
@@ -366,7 +368,11 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 		if agg == nil {
 			return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 		}
-		aggfunc, argMap := agg.New()
+		argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
+		if unmapped := argMap.Validate(); unmapped != nil {
+			return nil, fmt.Errorf("unmapped columns: %s", unmapped)
+		}
+		aggfunc := agg.New()
 
 		err = argMap.PrepareArguments(parameterList)
 		if err != nil {
@@ -389,12 +395,12 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 				len(literalList),
 			)
 		}
-		aggfunc.Init(literalList)
+		aggfunc.Init(argMap, literalList)
 
 		/*
 			Execute the aggregate function
 		*/
-		if err = aggfunc.Accum(tbk, csInput, catDir); err != nil {
+		if err = aggfunc.Accum(tbk, argMap, csInput, catDir); err != nil {
 			return nil, err
 		}
 		cs = aggfunc.Output()
