@@ -11,17 +11,17 @@ func Test_timeToNext(t *testing.T) {
 	tests := []struct {
 		name string
 		now  time.Time
-		hour int
+		hour time.Time
 		want time.Duration
 	}{
 		{"06:00 - 09:00 = 3hours",
 			time.Date(1970, 1, 1, 6, 0, 0, 0, time.UTC),
-			9,
+			time.Date(1970, 1, 1, 9, 0, 0, 0, time.UTC),
 			3 * time.Hour,
 		},
-		{"06:00 - 03:00 = 21hours",
+		{"06:00 - 03:00 = 21hours", // year, month, and day are not used in timeToNext func,
 			time.Date(1970, 1, 1, 6, 0, 0, 0, time.UTC),
-			3,
+			time.Date(1970, 1, 1, 3, 0, 0, 0, time.UTC),
 			21 * time.Hour,
 		},
 	}

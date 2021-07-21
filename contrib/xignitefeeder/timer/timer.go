@@ -8,8 +8,8 @@ import (
 )
 
 // RunEveryDayAt runs a specified function every day at a specified hour
-func RunEveryDayAt(ctx context.Context, hour int, f func()) {
-	timeToNextRun := timeToNext(time.Now(), hour)
+func RunEveryDayAt(ctx context.Context, t time.Time, f func()) {
+	timeToNextRun := timeToNext(time.Now(), t)
 
 	// run at a specified time on the next day
 	time.AfterFunc(timeToNextRun, f)
@@ -33,10 +33,12 @@ func RunEveryDayAt(ctx context.Context, hour int, f func()) {
 	return
 }
 
-// timeToNext returns the time duration from now to next {hour}:00:00
-// For example, when the current time is 8pm, timeToNext(16) = 20 * time.Hour
-func timeToNext(now time.Time, hour int) time.Duration {
-	n := time.Date(now.Year(), now.Month(), now.Day(), hour, 0, 0, 0, now.Location())
+// timeToNext returns the time duration from now to next {hour}:{minute}:{second}
+// For example, when the current time is 8pm, timeToNext(16:00:00) = 20 * time.Hour
+func timeToNext(now time.Time, next time.Time) time.Duration {
+	n := time.Date(now.Year(), now.Month(), now.Day(), next.Hour(), next.Minute(), next.Second(),
+		0, now.Location(),
+	)
 	if now.After(n) {
 		n = n.Add(24 * time.Hour)
 	}

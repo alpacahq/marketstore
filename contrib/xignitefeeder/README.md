@@ -2,7 +2,7 @@
 
 * This plugin retrieves quotes data for all symbols in (a) specified exchange(s) by [QUICK Xignite API](https://www.marketdata-cloud.quick-co.jp/Products/) and store it to the local marketstore server.
 * You need an API token to call Xignite API. Register to Xignite and generate your API token first.
-* This plugin is also able to collect daily candlestick chart data from a specified date and backfill it to the local marketstore. this historical backfill process can be executed when marketstore is started and the configurated time everyday (see `updatingHour` configuration )
+* This plugin is also able to collect daily candlestick chart data from a specified date and backfill it to the local marketstore. this historical backfill process can be executed when marketstore is started and the configured time everyday (see `update_time` config )
 
 ## Example configuration
 ```yaml
@@ -29,10 +29,12 @@ bgworkers:
         - IND_NIKKEI # NIKKEI INDICES
       # time when target symbols in the exchanges are updated everyday.
       # this time is also used for the historical data backfill (UTC)
-      updatingHour: 22 # (UTC). = every day at 07:00:00 (JST)
+      # This config can be manually overridden by "XIGNITE_FEEDER_UPDATE_TIME" environmental variable.
+      update_time: "22:00:00" # (UTC). = every day at 07:00:00 (JST)
       # XigniteFeeder writes data to "{identifier}/{timeframe}/TICK" TimeBucketKey
       timeframe: "1Sec"
       # Auth token for Xignite API
+      # This config can be manually overridden by "XIGNITE_FEEDER_API_TOKEN" environmental variable.
       token: "D***0"
       # Timeout [sec] for Xignite API
       timeout: 10
