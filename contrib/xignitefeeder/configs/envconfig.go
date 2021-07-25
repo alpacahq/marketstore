@@ -1,31 +1,20 @@
 package configs
 
 import (
-	"fmt"
+	"os"
 	"time"
-
-	"github.com/kelseyhightower/envconfig"
 )
 
-// EnvConfig is a struct that allows only certain settings to be overridden by environment variables
-// in order to flexibly re-run processes that are performed only at marketstore start-up/certain times of the day,
-// or strings that we do not want to directly write in the configuration file for security reasons.
-type EnvConfig struct {
-	APIToken   string `envconfig:"API_TOKEN"`
-	UpdateTime string `envconfig:"UPDATE_TIME"`
-}
+// APItoken and UpdateTime settings can be overridden by environment variables
+// to flexibly re-run processes that are performed only at marketstore start-up/certain times of the day
+// and not to write security-related configs directly in the configuration file.
 
 // envOverride updates some configs by environment variables.
 func envOverride(config *DefaultConfig) (*DefaultConfig, error) {
-	var env EnvConfig
-	err := envconfig.Process("XIGNITE_FEEDER", &env)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read env variables for Xignite Feeder plugin: %w", err)
-	}
-
 	// override UpdateTime
-	if env.UpdateTime != "" {
-		t, err := time.Parse(ctLayout, env.UpdateTime)
+	updateTime := os.Getenv("XIGNITE_FEEDER_UPDATE_TIME")
+	if updateTime != "" {
+		t, err := time.Parse(ctLayout, updateTime)
 		if err != nil {
 			return nil, err
 		}
@@ -33,8 +22,9 @@ func envOverride(config *DefaultConfig) (*DefaultConfig, error) {
 	}
 
 	// override APIToken
-	if env.APIToken != "" {
-		config.APIToken = env.APIToken
+	apiToken := os.Getenv("XIGNITE_FEEDER_API_TOKEN")
+	if apiToken != "" {
+		config.APIToken = apiToken
 	}
 
 	return config, nil

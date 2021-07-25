@@ -24,7 +24,6 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.10
-	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/klauspost/compress v1.10.4
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
