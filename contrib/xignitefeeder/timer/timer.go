@@ -37,11 +37,15 @@ func RunEveryDayAt(ctx context.Context, t time.Time, f func()) {
 // For example, when the current time is 8pm, timeToNext(16:00:00) = 20 * time.Hour
 func timeToNext(now time.Time, next time.Time) time.Duration {
 	n := time.Date(now.Year(), now.Month(), now.Day(), next.Hour(), next.Minute(), next.Second(),
-		0, now.Location(),
+		0, next.Location(),
 	)
-	if now.After(n) {
-		n = n.Add(24 * time.Hour)
-	}
+
 	d := n.Sub(now)
+	if d < 0 {
+		d += 24 * time.Hour
+	}
+	if d >= 24*time.Hour {
+		d -= 24 * time.Hour
+	}
 	return d
 }
