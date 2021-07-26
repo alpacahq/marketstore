@@ -47,7 +47,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	// every day
 	sm := symbols.NewManager(apiClient, config.Exchanges, config.IndexGroups)
 	sm.Update()
-	timer.RunEveryDayAt(ctx, config.UpdatingHour, sm.Update)
+	timer.RunEveryDayAt(ctx, config.UpdateTime, sm.Update)
 	log.Info("updated symbols in the target exchanges")
 
 	// init Quotes Writer & QuotesRange Writer
@@ -64,7 +64,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	// init QuotesRangeWriter to backfill daily chart data every day
 	if config.Backfill.Enabled {
 		bf := feed.NewBackfill(sm, apiClient, msqw, msqrw, time.Time(config.Backfill.Since))
-		timer.RunEveryDayAt(ctx, config.UpdatingHour, bf.Update)
+		timer.RunEveryDayAt(ctx, config.UpdateTime, bf.Update)
 		log.Info("backfilled daily chart in the target exchanges")
 	}
 
@@ -75,7 +75,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 			Timezone:          utils.InstanceConfig.Timezone,
 		}
 		rbf := feed.NewRecentBackfill(sm, timeChecker, apiClient, msbw, config.RecentBackfill.Days)
-		timer.RunEveryDayAt(ctx, config.UpdatingHour, rbf.Update)
+		timer.RunEveryDayAt(ctx, config.UpdateTime, rbf.Update)
 	}
 
 	return &feed.Worker{

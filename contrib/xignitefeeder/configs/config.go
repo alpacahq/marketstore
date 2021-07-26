@@ -22,12 +22,12 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // DefaultConfig is the configuration for XigniteFeeder you can define in
 // marketstore's config file through bgworker extension.
 type DefaultConfig struct {
-	Exchanges           []string `json:"exchanges"`
-	IndexGroups         []string `json:"index_groups"`
-	UpdatingHour        int      `json:"updatingHour"`
-	Timeframe           string   `json:"timeframe"`
-	APIToken            string   `json:"token"`
-	Timeout             int      `json:"timeout"`
+	Exchanges           []string  `json:"exchanges"`
+	IndexGroups         []string  `json:"index_groups"`
+	UpdateTime          time.Time `json:"update_time"`
+	Timeframe           string    `json:"timeframe"`
+	APIToken            string    `json:"token"`
+	Timeout             int       `json:"timeout"`
 	OpenTime            time.Time
 	CloseTime           time.Time
 	ClosedDaysOfTheWeek []time.Weekday
@@ -54,7 +54,7 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 		return nil, errors.Wrap(err, "failed to parse the config file through json marshal->unmarshal")
 	}
 
-	ret := DefaultConfig{}
+	ret := &DefaultConfig{}
 	if err := json.Unmarshal(data, &ret); err != nil {
 		return nil, err
 	}
@@ -63,7 +63,9 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 		return nil, errors.New("must have 1 or more stock exchanges or index group in the config file")
 	}
 
-	return &ret, nil
+	ret, err = envOverride(ret)
+
+	return ret, nil
 }
 
 // CustomTime is a date time object in the ctLayout format
@@ -73,13 +75,14 @@ type CustomTime time.Time
 const ctLayout = "15:04:05"
 
 // UnmarshalJSON parses the config data to the DefaultConfig object.
-// Because some parameters (OpenTime, ClosedDaysOfTheWeek, etc) have their original types and unmarshal methods,
+// Because some parameters (OpenTime, ClosedDaysOfTheWeek, etc) have their original types and unmarshal methods
 // but it's troublesome for other business logic to use those not-general types,
 // so this method parses the data to an auxiliary struct and cast the types first, then parse to the DefaultConfig object.
 func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	type Alias DefaultConfig
 
 	aux := &struct {
+		UpdateTime          CustomTime  `json:"update_time"`
 		OpenTime            CustomTime  `json:"openTime"`
 		CloseTime           CustomTime  `json:"closeTime"`
 		ClosedDaysOfTheWeek []weekday   `json:"closedDaysOfTheWeek"`
@@ -90,6 +93,7 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	if err := json.Unmarshal(input, &aux); err != nil {
 		return err
 	}
+	c.UpdateTime = time.Time(aux.UpdateTime)
 	c.OpenTime = time.Time(aux.OpenTime)
 	c.CloseTime = time.Time(aux.CloseTime)
 	c.ClosedDaysOfTheWeek = convertTime(aux.ClosedDaysOfTheWeek)
