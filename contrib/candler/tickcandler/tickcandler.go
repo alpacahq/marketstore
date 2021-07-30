@@ -55,9 +55,9 @@ func (ca *TickCandler) GetInitArgs() []io.DataShape {
 */
 func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 	cols io.ColumnInterface, _ *catalog.Directory,
-) error {
+) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return fmt.Errorf("Empty input to Accum")
+		return nil, fmt.Errorf("Empty input to Accum")
 	}
 	/*
 		Get the input column for "Price"
@@ -65,7 +65,7 @@ func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 	priceCols := argMap.GetMappedColumns(requiredColumns[0].Name)
 	price, err := candler.GetAverageColumnFloat32(cols, priceCols)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	/*
@@ -82,7 +82,7 @@ func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 		for _, name := range ca.AccumSumNames {
 			sumCols[name], err = uda.ColumnToFloat32(cols, name)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -98,5 +98,5 @@ func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 		}
 		candle.Count++
 	}
-	return nil
+	return ca.Output(), nil
 }

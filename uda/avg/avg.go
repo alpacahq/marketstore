@@ -24,8 +24,6 @@ var (
 type Avg struct {
 	uda.AggInterface
 
-	// Input arguments mapping
-
 	Avg   float64
 	Count int64
 }
@@ -43,23 +41,24 @@ func (av *Avg) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (av *Avg) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (av *Avg) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface, _ *catalog.Directory,
+) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return nil
+		return av.Output(), nil
 	}
 	inputColDSV := argMap.GetMappedColumns(requiredColumns[0].Name)
 	inputColName := inputColDSV[0].Name
 	inputCol, err := uda.ColumnToFloat32(cols, inputColName)
 	if err != nil {
 		fmt.Println("COLS: ", cols)
-		return err
+		return nil, err
 	}
 
 	for _, value := range inputCol {
 		av.Avg += float64(value)
 		av.Count++
 	}
-	return nil
+	return av.Output(), nil
 }
 
 /*
@@ -67,14 +66,14 @@ func (av *Avg) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.
 	for inputColumns and optionalInputColumns
 */
 func (m Avg) New() (out uda.AggInterface) {
-	av := NewCount(requiredColumns, optionalColumns)
+	av := NewAvg(requiredColumns, optionalColumns)
 	return av
 }
 
 /*
 CONCRETE - these may be suitable methods for general usage
 */
-func NewCount(inputColumns, optionalInputColumns []io.DataShape) (av *Avg) {
+func NewAvg(inputColumns, optionalInputColumns []io.DataShape) (av *Avg) {
 	av = new(Avg)
 	return av
 }

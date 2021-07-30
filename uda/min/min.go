@@ -41,15 +41,16 @@ func (mn *Min) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface, _ *catalog.Directory) error {
+func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface, _ *catalog.Directory,
+) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return nil
+		return mn.Output(), nil
 	}
 	inputColDSV := argMap.GetMappedColumns(requiredColumns[0].Name)
 	inputColName := inputColDSV[0].Name
 	inputCol, err := uda.ColumnToFloat32(cols, inputColName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !mn.IsInitialized {
@@ -61,7 +62,7 @@ func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.
 			mn.Min = value
 		}
 	}
-	return nil
+	return mn.Output(), nil
 }
 
 /*

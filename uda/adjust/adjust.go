@@ -89,10 +89,10 @@ func (adj *Adjust) Init(_ *functions.ArgumentMap, args ...interface{}) error {
 
 func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap,
 	cols io.ColumnInterface, catalogDir *catalog.Directory,
-) error {
+) (*io.ColumnSeries, error) {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
 	if !ok {
-		return errors.New("adjust: Input data must have an Epoch column")
+		return nil, errors.New("adjust: Input data must have an Epoch column")
 	}
 	adj.epochs = epochs
 	for _, ds := range cols.GetDataShapes() {
@@ -112,7 +112,7 @@ func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap,
 		catalogDir,
 	)
 	if len(rateChanges) == 0 {
-		return nil
+		return adj.Output(), nil
 	}
 
 	// always append a default no-op rate change to help avoid handling edge cases below
@@ -139,7 +139,7 @@ func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap,
 			}
 		}
 	}
-	return nil
+	return adj.Output(), nil
 }
 
 func (adj *Adjust) Output() *io.ColumnSeries {

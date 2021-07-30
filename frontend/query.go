@@ -400,10 +400,9 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 		/*
 			Execute the aggregate function
 		*/
-		if err = aggfunc.Accum(tbk, argMap, csInput, catDir); err != nil {
+		if cs, err = aggfunc.Accum(tbk, argMap, csInput, catDir); err != nil {
 			return nil, err
 		}
-		cs = aggfunc.Output()
 		if cs == nil {
 			return nil, fmt.Errorf(
 				"No result from aggregate %s",
