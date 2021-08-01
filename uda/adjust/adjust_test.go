@@ -77,9 +77,7 @@ func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) 
 	inputCs := toColumnSeries(testCase.input)
 
 	aggfunc.Init(am)
-	aggfunc.Accum(*tbk, am, inputCs, catDir)
-
-	outputCs := aggfunc.Output()
+	outputCs, _ := aggfunc.Accum(*tbk, am, inputCs, catDir)
 
 	outEpochs := outputCs.GetColumn("Epoch").([]int64)
 	outPrice := outputCs.GetColumn("Price").([]float64)

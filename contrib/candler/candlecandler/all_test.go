@@ -68,17 +68,17 @@ func TestCandleCandler(t *testing.T) {
 	scanner, err := executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, _ := scanner.Read()
+	var output *io.ColumnSeries
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
 		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
-		err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
+		output, err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
-	cols := cdl.Output()
-	assert.Equal(t, cols.Len(), 4)
-	vsum := cols.GetColumn("Volume_SUM")
-	vavg := cols.GetColumn("Volume_AVG")
+	assert.Equal(t, output.Len(), 4)
+	vsum := output.GetColumn("Volume_SUM")
+	vavg := output.GetColumn("Volume_AVG")
 	/*
 		There should be four 5Min candles in the interval 12:00 -> 12:15
 		12:00, 12:05, 12:10 and 12:15

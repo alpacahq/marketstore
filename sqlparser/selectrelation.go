@@ -533,11 +533,10 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 				} else {
 					tbk = *key
 				}
-				err := aggfunc.Accum(tbk, argMap, outputColumnSeries, catDir)
+				functionResult, err := aggfunc.Accum(tbk, argMap, outputColumnSeries, catDir)
 				if err != nil {
 					return nil, err
 				}
-				functionResult := aggfunc.Output()
 				if functionResult == nil {
 					return nil, fmt.Errorf(
 						"No result from aggregate %s",

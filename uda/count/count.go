@@ -48,9 +48,9 @@ func (ca *Count) GetInitArgs() []io.DataShape {
 */
 func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
 	cols io.ColumnInterface, _ *catalog.Directory,
-) error {
+) (*io.ColumnSeries, error) {
 	ca.Sum += int64(cols.Len())
-	return nil
+	return ca.Output(), nil
 }
 
 /*

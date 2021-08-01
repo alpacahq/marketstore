@@ -243,8 +243,7 @@ func TestAggregation(t *testing.T) {
 	dsPrice := io.DataShape{Name: "One", Type: io.FLOAT32}
 	argMap.MapRequiredColumn("CandlePrice", dsPrice)
 	assert.Nil(t, tickCandler.Init(argMap, "1Min"))
-	tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
-	result := tickCandler.Output()
+	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
 	r_epoch := result.GetColumn("Epoch").([]int64)
 	r_open := result.GetColumn("Open").([]float32)
 	r_high := result.GetColumn("High").([]float32)
@@ -296,8 +295,7 @@ func TestCount(t *testing.T) {
 	tickCandler := agg.New()
 	argMap.MapRequiredColumn("*", io.DataShape{Name: "Epoch", Type: io.INT64})
 	assert.Nil(t, tickCandler.Init(argMap))
-	tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
-	result := tickCandler.Output()
+	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
 	count := result.GetColumn("Count").([]int64)
 	assert.Equal(t, count[0], int64(5))
 

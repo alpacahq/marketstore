@@ -40,14 +40,12 @@ type AggInterface interface {
 	Init(argMap *functions.ArgumentMap, args ...interface{}) error
 	/*
 		Accum() sends new data to the aggregate
+		and returns the currently valid output of this aggregate
 	*/
 	//Accum(ts []time.Time, rows io.Rows)
+	// The io.ColumnInterface parameter is one of; ColumnSeries or Rows
 	Accum(io.TimeBucketKey, *functions.ArgumentMap, io.ColumnInterface, *catalog.Directory,
-	) error // The parameter is one of; ColumnSeries or Rows
-	/*
-		Output() returns the currently valid output of this aggregate
-	*/
-	Output() *io.ColumnSeries
+	) (*io.ColumnSeries, error)
 }
 
 //TODO: This is where we break out a UDF API

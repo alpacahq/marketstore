@@ -57,9 +57,9 @@ func (ca *CandleCandler) GetInitArgs() []io.DataShape {
 */
 func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 	cols io.ColumnInterface, _ *catalog.Directory,
-) error {
+) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return fmt.Errorf("Empty input to Accum")
+		return nil, fmt.Errorf("Empty input to Accum")
 	}
 	/*
 		Get the input column for "Price"
@@ -70,19 +70,19 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 	closeCols := argMap.GetMappedColumns(requiredColumns[3].Name)
 	open, err := candler.GetAverageColumnFloat32(cols, openCols)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	high, err := candler.GetAverageColumnFloat32(cols, highCols)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	low, err := candler.GetAverageColumnFloat32(cols, lowCols)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	close, err := candler.GetAverageColumnFloat32(cols, closeCols)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	/*
@@ -90,7 +90,7 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 	*/
 	ts, err := cols.GetTime()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	/*
 		Update each candle
@@ -102,7 +102,7 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 		for _, name := range ca.AccumSumNames {
 			sumCols[name], err = uda.ColumnToFloat32(cols, name)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -118,5 +118,5 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 		}
 		candle.Count++
 	}
-	return nil
+	return ca.Output(), nil
 }

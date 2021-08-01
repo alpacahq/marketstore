@@ -52,7 +52,7 @@ func TestTickCandler(t *testing.T) {
 	/*
 		We expect an error with an empty input arg set
 	*/
-	err = cdl.Accum(io.TimeBucketKey{}, am, &io.Rows{}, metadata.CatalogDir)
+	_, err = cdl.Accum(io.TimeBucketKey{}, am, &io.Rows{}, metadata.CatalogDir)
 	assert.NotNil(t, err)
 
 	/*
@@ -75,12 +75,12 @@ func TestTickCandler(t *testing.T) {
 	csm, err := reader.Read()
 	assert.Nil(t, err)
 	assert.Len(t, csm, 1)
+	var rows *io.ColumnSeries
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)
-		err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
+		rows, err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
-	rows := cdl.Output()
 	assert.Equal(t, rows.Len(), 4)
 	tsa, err := rows.GetTime()
 	tbase := time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
@@ -100,10 +100,9 @@ func TestTickCandler(t *testing.T) {
 	assert.Nil(t, err)
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)
-		err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
+		rows, err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
 		assert.Nil(t, err)
 	}
-	rows = cdl.Output()
 	assert.Equal(t, rows.Len(), 4)
 	tsa, err = rows.GetTime()
 	tbase = time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)

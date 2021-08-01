@@ -43,15 +43,15 @@ func (ma *Max) GetInitArgs() []io.DataShape {
 */
 func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 	cols io.ColumnInterface, _ *catalog.Directory,
-) error {
+) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return nil
+		return ma.Output(), nil
 	}
 	inputColDSV := argMap.GetMappedColumns(requiredColumns[0].Name)
 	inputColName := inputColDSV[0].Name
 	inputCol, err := uda.ColumnToFloat32(cols, inputColName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !ma.IsInitialized {
@@ -63,7 +63,7 @@ func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 			ma.Max = value
 		}
 	}
-	return nil
+	return ma.Output(), nil
 }
 
 /*
@@ -71,14 +71,14 @@ func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 	for inputColumns and optionalInputColumns
 */
 func (m Max) New() (out uda.AggInterface) {
-	ma := NewCount()
+	ma := NewMax()
 	return ma
 }
 
 /*
 CONCRETE - these may be suitable methods for general usage
 */
-func NewCount() (ma *Max) {
+func NewMax() (ma *Max) {
 	ma = new(Max)
 	return ma
 }

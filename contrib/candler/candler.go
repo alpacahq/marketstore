@@ -75,8 +75,8 @@ OVERRIDES - these methods should be overridden in a concrete implementation of t
 	OVERRIDE THIS METHOD
 	Accum() sends new data to the aggregate
 */
-func (ca *Candler) Accum(cols io.ColumnInterface) error {
-	return fmt.Errorf("Accum called from base class, must override implementation")
+func (ca *Candler) Accum(cols io.ColumnInterface) (*io.ColumnSeries, error) {
+	return nil, fmt.Errorf("Accum called from base class, must override implementation")
 }
 
 /*

@@ -59,18 +59,18 @@ func (g *Gap) GetInitArgs() []io.DataShape {
 // Use Zscore to find out the big hole in data.
 func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
 	cols io.ColumnInterface, _ *catalog.Directory,
-) error {
+) (*io.ColumnSeries, error) {
 	g.BigGapIdxs = []int{}
 	g.Input = &cols
 
 	if cols.Len() == 0 {
-		return nil
+		return g.Output(), nil
 	}
 
 	epochs, err := uda.ColumnToFloat64(cols, "Epoch")
 
 	if err != nil || epochs == nil || len(epochs) < 2 {
-		return nil
+		return g.Output(), nil
 	}
 
 	size := len(epochs)
@@ -105,7 +105,7 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
 
 	}
 
-	return nil
+	return g.Output(), nil
 }
 
 /*
