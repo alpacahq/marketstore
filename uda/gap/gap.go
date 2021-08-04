@@ -112,23 +112,12 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (g Gap) New() (out uda.AggInterface) {
-	gx := NewGap()
-	return gx
-}
-
-/*
-CONCRETE - these may be suitable methods for general usage
-*/
-func NewGap() (g *Gap) {
-	g = new(Gap)
-	return g
-}
-
-func (g *Gap) Init(_ *functions.ArgumentMap, args ...interface{}) error {
-	g.BigGapIdxs = []int{}
-	g.Input = nil
-	g.avgGapIntervalSeconds = -1
+func (g Gap) New(_ *functions.ArgumentMap, args ...interface{}) (out uda.AggInterface, err error) {
+	gx := &Gap{
+		BigGapIdxs:            []int{},
+		Input:                 nil,
+		avgGapIntervalSeconds: -1,
+	}
 
 	if len(args) > 0 {
 		var tfstring string
@@ -139,12 +128,12 @@ func (g *Gap) Init(_ *functions.ArgumentMap, args ...interface{}) error {
 			tfstring = *val
 		case *[]string:
 			if len(*val) != 1 {
-				return fmt.Errorf("Argument passed to Init() is not a string")
+				return nil, fmt.Errorf("Argument passed to Init() is not a string")
 			}
 			tfstring = (*val)[0]
 		case []string:
 			if len(val) != 1 {
-				return fmt.Errorf("Argument passed to Init() is not a string")
+				return nil, fmt.Errorf("Argument passed to Init() is not a string")
 			}
 			tfstring = val[0]
 		}
@@ -155,7 +144,7 @@ func (g *Gap) Init(_ *functions.ArgumentMap, args ...interface{}) error {
 		}
 	}
 
-	return nil
+	return gx, nil
 }
 
 /*

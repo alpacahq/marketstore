@@ -70,25 +70,15 @@ func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Max) New() (out uda.AggInterface) {
-	ma := NewMax()
-	return ma
-}
-
-/*
-CONCRETE - these may be suitable methods for general usage
-*/
-func NewMax() (ma *Max) {
-	ma = new(Max)
-	return ma
-}
-func (ma *Max) Init(argMap *functions.ArgumentMap, itf ...interface{}) error {
+func (m Max) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.AggInterface, err error) {
 	if unmapped := argMap.Validate(); unmapped != nil {
-		return fmt.Errorf("Unmapped columns: %s", unmapped)
+		return nil, fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
-	ma.Max = 0
-	ma.IsInitialized = false
-	return nil
+
+	return &Max{
+		IsInitialized: false,
+		Max:           0,
+	}, nil
 }
 
 /*

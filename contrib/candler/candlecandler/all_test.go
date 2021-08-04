@@ -40,7 +40,7 @@ func TestCandleCandler(t *testing.T) {
 	if unmapped := am.Validate(); unmapped != nil {
 		t.Fatalf("unmapped columns: %s", unmapped)
 	}
-	cdl := candlecandler.CandleCandler{}.New()
+	ca := candlecandler.CandleCandler{}
 	ds := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},
@@ -52,7 +52,7 @@ func TestCandleCandler(t *testing.T) {
 	am.MapRequiredColumn("High", ds[1])
 	am.MapRequiredColumn("Low", ds[2])
 	am.MapRequiredColumn("Close", ds[3])
-	err := cdl.Init(am, "5Min")
+	cdl, err := ca.New(am, "5Min")
 	assert.Nil(t, err)
 
 	// Test data range query - across year

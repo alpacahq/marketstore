@@ -35,9 +35,10 @@ type TickCandler struct {
 	*candler.Candler
 }
 
-func (c TickCandler) New() (ica uda.AggInterface) {
-	ca := &TickCandler{candler.NewCandler()}
-	return ca
+func (c TickCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (ica uda.AggInterface, err error) {
+	cl := candler.Candler{}
+	ca, err := cl.New(argMap, args...)
+	return &TickCandler{ca}, err
 }
 
 func (ca *TickCandler) GetRequiredArgs() []io.DataShape {

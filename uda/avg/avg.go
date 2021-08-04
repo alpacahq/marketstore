@@ -65,22 +65,11 @@ func (av *Avg) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Avg) New() (out uda.AggInterface) {
-	av := NewAvg(requiredColumns, optionalColumns)
-	return av
-}
-
-/*
-CONCRETE - these may be suitable methods for general usage
-*/
-func NewAvg(inputColumns, optionalInputColumns []io.DataShape) (av *Avg) {
-	av = new(Avg)
-	return av
-}
-func (av *Avg) Init(_ *functions.ArgumentMap, _ ...interface{}) error {
-	av.Avg = 0
-	av.Count = 0
-	return nil
+func (m Avg) New(_ *functions.ArgumentMap, _ ...interface{}) (out uda.AggInterface, err error) {
+	return &Avg{
+		Avg:   0,
+		Count: 0,
+	}, nil
 }
 
 /*

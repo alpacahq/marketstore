@@ -57,24 +57,14 @@ func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (c Count) New() (out uda.AggInterface) {
-	ca := NewCount()
-	return ca
-}
-
-/*
-CONCRETE - these may be suitable methods for general usage
-*/
-func NewCount() (ca *Count) {
-	ca = new(Count)
-	return ca
-}
-func (ca *Count) Init(argMap *functions.ArgumentMap, itf ...interface{}) error {
+func (c Count) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.AggInterface, err error) {
 	if unmapped := argMap.Validate(); unmapped != nil {
-		return fmt.Errorf("Unmapped columns: %s", unmapped)
+		return nil, fmt.Errorf("Unmapped columns: %s", unmapped)
 	}
-	ca.Sum = 0
-	return nil
+
+	return &Count{
+		Sum: 0,
+	}, nil
 }
 
 /*

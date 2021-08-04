@@ -69,25 +69,17 @@ func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Min) New() (out uda.AggInterface) {
-	mn := NewCount()
-	return mn
-}
-
-/*
-CONCRETE - these may be suitable methods for general usage
-*/
-func NewCount() (mn *Min) {
-	mn = new(Min)
-	return mn
-}
-func (mn *Min) Init(argMap *functions.ArgumentMap, itf ...interface{}) error {
-	if unmapped := argMap.Validate(); unmapped != nil {
-		return fmt.Errorf("Unmapped columns: %s", unmapped)
+func (m Min) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.AggInterface, err error) {
+	mn := &Min{
+		IsInitialized: false,
+		Min:           0,
 	}
-	mn.Min = 0
-	mn.IsInitialized = false
-	return nil
+
+	if unmapped := argMap.Validate(); unmapped != nil {
+		return nil, fmt.Errorf("Unmapped columns: %s", unmapped)
+	}
+
+	return mn, nil
 }
 
 /*

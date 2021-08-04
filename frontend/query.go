@@ -372,7 +372,6 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 		if unmapped := argMap.Validate(); unmapped != nil {
 			return nil, fmt.Errorf("unmapped columns: %s", unmapped)
 		}
-		aggfunc := agg.New()
 
 		err = argMap.PrepareArguments(parameterList)
 		if err != nil {
@@ -384,7 +383,7 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 				An agg may have init parameters, which are used only to initialize it
 				These are single value literals (like '1Min')
 		*/
-		requiredInitDSV := aggfunc.GetInitArgs()
+		requiredInitDSV := agg.GetInitArgs()
 		requiredInitNames := io.GetNamesFromDSV(requiredInitDSV)
 
 		if len(requiredInitNames) > len(literalList) {
@@ -395,7 +394,10 @@ func runAggFunctions(callChain []string, csInput *io.ColumnSeries, tbk io.TimeBu
 				len(literalList),
 			)
 		}
-		aggfunc.Init(argMap, literalList)
+		aggfunc, err := agg.New(argMap, literalList)
+		if err != nil {
+			return nil, fmt.Errorf("init aggfunc during query: %w", err)
+		}
 
 		/*
 			Execute the aggregate function
