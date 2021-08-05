@@ -1,7 +1,6 @@
 package count
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/utils/functions"
@@ -58,10 +57,6 @@ func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
 	for inputColumns and optionalInputColumns
 */
 func (c Count) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.AggInterface, err error) {
-	if unmapped := argMap.Validate(); unmapped != nil {
-		return nil, fmt.Errorf("Unmapped columns: %s", unmapped)
-	}
-
 	return &Count{
 		Sum: 0,
 	}, nil
