@@ -122,7 +122,7 @@ def test_csv_writer(symbol, timeframe, size, start, window, format):
     df = utils.generate_dataframe(size, start, end, random_data=False)
     # remove the nanoseconds to milliseconds
     if format == "ms":
-        total_ns = df.index.astype("i8")
+        total_ns = df.index.view("i8")
         df.index = pd.to_datetime(total_ns // 10 ** 3, unit="us", utc=True)
 
     result = write_with_csv_writer_from_filename(df, db_symbol, timeframe, format)
@@ -144,7 +144,7 @@ def write_with_csv_writer_from_filename(df, symbol, timeframe, format):
         # BUG: for some reason with pandas when formatting with "%Y%m%d %H:%M:%S %f"
         # it only output up to microseconds and not nanoseconds...
         str_dates = df.index.strftime("%Y%m%d %H:%M:%S")
-        str_ns = ["{:09d}".format(el) for el in (df.index.astype("i8") % (10 ** 9))]
+        str_ns = ["{:09d}".format(el) for el in (df.index.view("i8") % (10 ** 9))]
         formatted_df = df.copy()
         formatted_df["Epoch"] = str_dates + " " + str_ns
         formatted_df[["Epoch", "Ask", "Bid"]].to_csv(
@@ -237,8 +237,8 @@ def assert_query_result(df, symbol, size, timeframe, start, end):
 
         bad_locations = df.index != processed_out_df.index
         dilated_bad_locations = np.convolve(
-            bad_locations.astype(int), [1, 1, 1], mode="same"
-        ).astype(bool)
+            bad_locations.view(int), [1, 1, 1], mode="same"
+        ).view(bool)
         print("Show dilated bad locations".center(40, "-"))
         print("\ninput df")
         print(df.loc[dilated_bad_locations, :])

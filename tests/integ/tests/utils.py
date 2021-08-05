@@ -26,8 +26,8 @@ def build_dataframe(data, index, columns=None, nanoseconds=None) -> pd.DataFrame
 
     if nanoseconds is not None:
         df.index = pd.to_datetime(
-            df.index.values.astype("datetime64[s]")
-            + np.array(nanoseconds).astype("timedelta64[ns]"),
+            df.index.values.view("datetime64[s]")
+            + np.array(nanoseconds).view("timedelta64[ns]"),
             utc=True,
         )
 
@@ -51,13 +51,13 @@ def to_records(df: pd.DataFrame, extract_nanoseconds: bool = True) -> np.recarra
         Data in a suitable format to write with pymarketstore client.
     """
     df = df.copy()
-    total_ns = df.index.astype("i8")
+    total_ns = df.index.view("i8")
 
     if extract_nanoseconds:
         df["Nanoseconds"] = total_ns % (10 ** 9)
 
     if "Nanoseconds" in df.columns:
-        df.loc[:, "Nanoseconds"] = df["Nanoseconds"].astype("i4")
+        df.loc[:, "Nanoseconds"] = df["Nanoseconds"].view("i4")
 
     df.index = total_ns // (10 ** 9)
     df.index.name = "Epoch"
@@ -88,8 +88,8 @@ def process_query_result(df: pd.DataFrame, inplace: bool = True) -> pd.DataFrame
 
     if "Nanoseconds" in df.columns:
         df.index = pd.to_datetime(
-            df.index.values.astype("datetime64[s]")
-            + df["Nanoseconds"].values.astype("timedelta64[ns]"),
+            df.index.values.view("datetime64[s]")
+            + df["Nanoseconds"].values.view("timedelta64[ns]"),
             utc=True,
         )
         df.index.name = "Epoch"
@@ -122,13 +122,13 @@ def generate_dataframe(
     """
     if random_data:
         data = dict(
-            Bid=np.random.RandomState(0).random(size=size).astype(np.float32),
-            Ask=np.random.RandomState(0).random(size=size).astype(np.float32),
+            Bid=np.random.RandomState(0).random(size=size).view(np.float32),
+            Ask=np.random.RandomState(0).random(size=size).view(np.float32),
         )
     else:
         data = dict(
-            Bid=np.arange(size).astype(np.float32),
-            Ask=np.arange(size).astype(np.float32),
+            Bid=np.arange(size).view(np.float32),
+            Ask=np.arange(size).view(np.float32),
         )
 
     start_ts = pd.Timestamp(start).value

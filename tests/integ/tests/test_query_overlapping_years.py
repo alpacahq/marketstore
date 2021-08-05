@@ -98,8 +98,8 @@ def build_test(in_df, symbol, timeframe, start, end):
 
         bad_locations = df1.index != df2.index
         dilated_bad_locations = np.convolve(
-            bad_locations.astype(int), [1, 1, 1], mode="same"
-        ).astype(bool)
+            bad_locations.view(int), [1, 1, 1], mode="same"
+        ).view(bool)
         print("Show dilated bad locations".center(40, "-"))
         print("\ninput df")
         print(df1.loc[dilated_bad_locations, :])

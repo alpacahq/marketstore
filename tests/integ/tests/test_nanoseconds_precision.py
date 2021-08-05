@@ -39,8 +39,8 @@ def process_query_result(df: pd.DataFrame, inplace: bool = True) -> pd.DataFrame
 
     if "Nanoseconds" in df.columns:
         df.index = pd.to_datetime(
-            df.index.values.astype("datetime64[s]")
-            + df["Nanoseconds"].values.astype("timedelta64[ns]"),
+            df.index.values.view("datetime64[s]")
+            + df["Nanoseconds"].values.view("timedelta64[ns]"),
             utc=True,
         )
         df.index.name = "Epoch"
@@ -190,8 +190,8 @@ def build_test(in_df, symbol, timeframe, start, end):
 
         bad_locations = df1.index != df2.index
         dilated_bad_locations = np.convolve(
-            bad_locations.astype(int), [1, 1, 1], mode="same"
-        ).astype(bool)
+            bad_locations.view(int), [1, 1, 1], mode="same"
+        ).view(bool)
         # print("Show dilated bad locations".center(40, "-"))
         # print("\ninput df")
         # display(df1.loc[dilated_bad_locations, :])
