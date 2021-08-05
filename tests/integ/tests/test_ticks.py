@@ -29,7 +29,7 @@ def convert(data, with_nanoseconds=False):
           - add the nanesecond field to the index at query time: TODO
     """
     data = data.copy()
-    total_ns = data.index.astype(np.int64)
+    total_ns = data.index.view(np.int64)
 
     if with_nanoseconds:
         data['Nanoseconds'] = total_ns % (10 ** 9)
