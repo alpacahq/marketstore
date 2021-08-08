@@ -51,7 +51,7 @@ def to_records(df: pd.DataFrame, extract_nanoseconds: bool = True) -> np.recarra
         Data in a suitable format to write with pymarketstore client.
     """
     df = df.copy()
-    total_ns = df.index.astype("i8")
+    total_ns = df.index.view("i8")
 
     if extract_nanoseconds:
         df["Nanoseconds"] = total_ns % (10 ** 9)
