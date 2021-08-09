@@ -478,7 +478,6 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 				if unmapped := argMap.Validate(); unmapped != nil {
 					return nil, fmt.Errorf("unmapped columns: %s", unmapped)
 				}
-				aggfunc := agg.New()
 
 				if sl.FunctionCall.IsAsterisk {
 					/*
@@ -500,7 +499,7 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 						An agg may have init parameters, which are used only to initialize it
 						These are single value literals (like '1Min')
 				*/
-				requiredInitDSV := aggfunc.GetInitArgs()
+				requiredInitDSV := agg.GetInitArgs()
 				requiredInitNames := io.GetNamesFromDSV(requiredInitDSV)
 
 				initList := sl.FunctionCall.GetLiterals()
@@ -522,7 +521,10 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 						value,
 					)
 				}
-				aggfunc.Init(argMap, initArgList)
+				aggfunc, err := agg.New(argMap, initArgList)
+				if err != nil {
+					return nil, fmt.Errorf("init aggfunc: %w", err)
+				}
 
 				/*
 					Execute the aggregate function

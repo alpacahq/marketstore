@@ -27,17 +27,10 @@ of columns (and rows) depending on inputs.
 type AggInterface interface {
 	FunctionInterface
 	/*
-		Returns the required arguments with a validator
-		For example:
-		  ca, am = New()
-		  am.MapInputColumn("Price", "Bid", "Ask")
-		  if am.Validate() { Init(args) }
-	*/
-	New() AggInterface
-	/*
 		Input arguments, followed by a custom set of arguments
 	*/
-	Init(argMap *functions.ArgumentMap, args ...interface{}) error
+	New(argMap *functions.ArgumentMap, args ...interface{}) (AggInterface, error)
+
 	/*
 		Accum() sends new data to the aggregate
 		and returns the currently valid output of this aggregate

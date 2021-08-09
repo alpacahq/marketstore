@@ -5,6 +5,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
+
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 
 	"github.com/alpacahq/marketstore/v4/uda"
@@ -75,7 +77,8 @@ OVERRIDES - these methods should be overridden in a concrete implementation of t
 	OVERRIDE THIS METHOD
 	Accum() sends new data to the aggregate
 */
-func (ca *Candler) Accum(cols io.ColumnInterface) (*io.ColumnSeries, error) {
+func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.ColumnInterface, _ *catalog.Directory,
+) (*io.ColumnSeries, error) {
 	return nil, fmt.Errorf("Accum called from base class, must override implementation")
 }
 
@@ -84,23 +87,28 @@ func (ca *Candler) Accum(cols io.ColumnInterface) (*io.ColumnSeries, error) {
 	Creates a new candler using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (c Candler) New() (ca *Candler) {
-	ca = NewCandler()
-	return ca
-}
-
-/*
-CONCRETE - these may be suitable methods for general usage
-*/
-func NewCandler() (ca *Candler) {
-	ca = new(Candler)
-	return ca
-}
-func (ca *Candler) Init(argMap *functions.ArgumentMap, args ...interface{}) error {
+func (c Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (ca *Candler, err error) {
 	if len(args) != 1 {
-		return fmt.Errorf("Init requires a *utils.CandleDuration as the argument")
+		return nil, fmt.Errorf("Init requires a *utils.CandleDuration as the argument")
 	}
 
+	ca = &Candler{
+		MyCD:          nil,
+		CMap:          nil,
+		SumNames:      nil,
+		AvgNames:      nil,
+		AccumSumNames: nil,
+	}
+
+	err = ca.init(argMap, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return ca, nil
+}
+
+func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) error {
 	var tfstring string
 	switch val := args[0].(type) {
 	case string:

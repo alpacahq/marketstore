@@ -37,17 +37,16 @@ func TestTickCandler(t *testing.T) {
 	defer tearDown()
 
 	tc := tickcandler.TickCandler{}
-	cdl := tc.New()
-	am := functions.NewArgumentMap(cdl.GetRequiredArgs(), cdl.GetOptionalArgs()...)
+	am := functions.NewArgumentMap(tc.GetRequiredArgs(), tc.GetOptionalArgs()...)
 	ds := io.NewDataShapeVector([]string{"Bid", "Ask"}, []io.EnumElementType{io.FLOAT32, io.FLOAT32})
 	// Sum and Avg are optional inputs, let's map them arbitrarily
 	//am.MapInputColumn("Sum", ds[1:])
 	am.MapRequiredColumn("Sum", ds...)
 	am.MapRequiredColumn("Avg", ds...)
-	err := cdl.Init(am, "1Min")
+	cdl, err := tc.New(am, "1Min")
 	assert.NotNil(t, err)
 	am.MapRequiredColumn("CandlePrice", ds...)
-	err = cdl.Init(am, "1Min")
+	cdl, err = tc.New(am, "1Min")
 	assert.Nil(t, err)
 	/*
 		We expect an error with an empty input arg set
@@ -96,7 +95,7 @@ func TestTickCandler(t *testing.T) {
 	/*
 		Test Reset()
 	*/
-	err = cdl.Init(am, "1Min")
+	cdl, err = tc.New(am, "1Min")
 	assert.Nil(t, err)
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 200)

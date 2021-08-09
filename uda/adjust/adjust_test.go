@@ -66,7 +66,6 @@ func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) 
 	tbk := io.NewTimeBucketKeyFromString(tbkStr)
 	adj := Adjust{}
 	am := functions.NewArgumentMap(adj.GetRequiredArgs(), adj.GetOptionalArgs()...)
-	aggfunc := adj.New()
 
 	rateChangeCache[CacheKey{symbol, true, true}] = RateChangeCache{
 		Changes:   testCase.rateChanges,
@@ -76,7 +75,7 @@ func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) 
 
 	inputCs := toColumnSeries(testCase.input)
 
-	aggfunc.Init(am)
+	aggfunc, _ := adj.New(am)
 	outputCs, _ := aggfunc.Accum(*tbk, am, inputCs, catDir)
 
 	outEpochs := outputCs.GetColumn("Epoch").([]int64)

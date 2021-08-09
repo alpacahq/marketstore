@@ -239,10 +239,10 @@ func TestAggregation(t *testing.T) {
 	agg = sqlparser.AggRegistry[strings.ToLower("TickCandler")]
 	assert.NotNil(t, agg)
 	argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
-	tickCandler := agg.New()
 	dsPrice := io.DataShape{Name: "One", Type: io.FLOAT32}
 	argMap.MapRequiredColumn("CandlePrice", dsPrice)
-	assert.Nil(t, tickCandler.Init(argMap, "1Min"))
+	tickCandler, _ := agg.New(argMap, "1Min")
+	assert.NotNil(t, tickCandler)
 	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
 	r_epoch := result.GetColumn("Epoch").([]int64)
 	r_open := result.GetColumn("Open").([]float32)
@@ -292,9 +292,9 @@ func TestCount(t *testing.T) {
 	cs := makeTestCS()
 	agg := sqlparser.AggRegistry["count"]
 	argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
-	tickCandler := agg.New()
 	argMap.MapRequiredColumn("*", io.DataShape{Name: "Epoch", Type: io.INT64})
-	assert.Nil(t, tickCandler.Init(argMap))
+	tickCandler, _ := agg.New(argMap)
+	assert.NotNil(t, tickCandler)
 	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
 	count := result.GetColumn("Count").([]int64)
 	assert.Equal(t, count[0], int64(5))

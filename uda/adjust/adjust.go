@@ -47,16 +47,18 @@ func (adj *Adjust) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-func (adj *Adjust) New() uda.AggInterface {
+func (adj *Adjust) New(_ *functions.ArgumentMap, args ...interface{}) (uda.AggInterface, error) {
 	rn := &Adjust{
 		output:         map[io.DataShape]interface{}{},
 		skippedColumns: map[string]interface{}{},
 	}
 
-	return rn
+	err := rn.Init(args...)
+
+	return rn, err
 }
 
-func (adj *Adjust) Init(_ *functions.ArgumentMap, args ...interface{}) error {
+func (adj *Adjust) Init(args ...interface{}) error {
 	if len(args) == 0 {
 		adj.AdjustSplit = true
 		adj.AdjustDividend = true
