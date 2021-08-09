@@ -22,12 +22,14 @@ func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	instanceConfig, _, _ := executor.NewInstanceSetup(dir,
 		nil, nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
 	)
+	ar := sqlparser.NewDefaultAggRunner(instanceConfig.CatalogDir)
 	qs := frontend.NewQueryService(instanceConfig.CatalogDir)
 	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
 	if err != nil {
 		return nil, fmt.Errorf("init writer: %w", err)
 	}
-	return &LocalAPIClient{dir: dir, catalogDir: instanceConfig.CatalogDir, writer: writer, query: qs}, nil
+	return &LocalAPIClient{dir: dir, catalogDir: instanceConfig.CatalogDir, aggRunner: ar, writer: writer, query: qs},
+		nil
 }
 
 type LocalAPIClient struct {
@@ -35,6 +37,7 @@ type LocalAPIClient struct {
 	dir string
 	// catalogDir is an in-memory cache for directory structure under the /data directory
 	catalogDir *catalog.Directory
+	aggRunner  *sqlparser.AggRunner
 	writer     *executor.Writer
 	query      *frontend.QueryService
 }
@@ -48,7 +51,7 @@ func (lc *LocalAPIClient) Connect() error {
 }
 
 func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer, lc.query)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.aggRunner, lc.writer, lc.query)
 	err := ds.Write(nil, reqs, responses)
 	if err != nil {
 		return err
@@ -101,17 +104,17 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 }
 
 func (lc *LocalAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer, lc.query)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.aggRunner, lc.writer, lc.query)
 	return ds.Create(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *frontend.MultiServerResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer, lc.query)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.aggRunner, lc.writer, lc.query)
 	return ds.Destroy(nil, reqs, responses)
 }
 
 func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error {
-	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.writer, lc.query)
+	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.aggRunner, lc.writer, lc.query)
 	return ds.GetInfo(nil, reqs, responses)
 }
 
@@ -124,7 +127,7 @@ func (lc *LocalAPIClient) SQL(line string) (cs *io.ColumnSeries, err error) {
 	if err != nil {
 		return nil, err
 	}
-	cs, err = es.Materialize(lc.catalogDir)
+	cs, err = es.Materialize(lc.aggRunner, lc.catalogDir)
 	if err != nil {
 		return nil, err
 	}

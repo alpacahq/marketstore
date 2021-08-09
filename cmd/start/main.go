@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 
 	"github.com/pkg/errors"
@@ -141,6 +143,9 @@ func executeStart(_ *cobra.Command, _ []string) error {
 	metrics.StartupTime.Set(startupTime.Seconds())
 	log.Info("startup time: %s", startupTime)
 
+	// Aggregation Functions registry
+	aggRunner := sqlparser.NewDefaultAggRunner(instanceConfig.CatalogDir)
+
 	// init QueryService
 	qs := frontend.NewQueryService(instanceConfig.CatalogDir)
 
@@ -177,21 +182,21 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		// New server.
 		// WRITE is not allowed on a replica
 		errorWriter := &executor.ErrorWriter{}
-		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, errorWriter, qs)
+		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, aggRunner, errorWriter, qs)
 
 		// register grpc server
 		pb.RegisterMarketstoreServer(grpcServer,
 			frontend.NewGRPCService(config.RootDirectory,
-				instanceConfig.CatalogDir, errorWriter, qs),
+				instanceConfig.CatalogDir, aggRunner, errorWriter, qs),
 		)
 	} else {
 		// New server.
-		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, writer, qs)
+		server, _ = frontend.NewServer(config.RootDirectory, instanceConfig.CatalogDir, aggRunner, writer, qs)
 
 		// register grpc server
 		pb.RegisterMarketstoreServer(grpcServer,
 			frontend.NewGRPCService(config.RootDirectory,
-				instanceConfig.CatalogDir, writer, qs),
+				instanceConfig.CatalogDir, aggRunner, writer, qs),
 		)
 	}
 

@@ -13,7 +13,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/utils/test"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -58,7 +57,7 @@ func toColumnSeries(inputData []price) *io.ColumnSeries {
 	return cs
 }
 
-func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) {
+func evalCase(t *testing.T, testCase AdjustTestCase) {
 	t.Helper()
 
 	symbol := "AAPL"
@@ -76,7 +75,7 @@ func evalCase(t *testing.T, testCase AdjustTestCase, catDir *catalog.Directory) 
 	inputCs := toColumnSeries(testCase.input)
 
 	aggfunc, _ := adj.New(am)
-	outputCs, _ := aggfunc.Accum(*tbk, am, inputCs, catDir)
+	outputCs, _ := aggfunc.Accum(*tbk, am, inputCs)
 
 	outEpochs := outputCs.GetColumn("Epoch").([]int64)
 	outPrice := outputCs.GetColumn("Price").([]float64)
@@ -159,11 +158,11 @@ var testDifferentEvents = []AdjustTestCase{
 }
 
 func TestCase1(t *testing.T) {
-	tearDown, _, metadata := setup(t, "TestCase1")
+	tearDown, _, _ := setup(t, "TestCase1")
 	defer tearDown()
 
 	for _, testCase := range testDifferentEvents {
-		evalCase(t, testCase, metadata.CatalogDir)
+		evalCase(t, testCase)
 	}
 }
 
@@ -216,11 +215,11 @@ var testDifferentDates = []AdjustTestCase{
 }
 
 func TestCase2(t *testing.T) {
-	tearDown, _, metadata := setup(t, "TestCase1")
+	tearDown, _, _ := setup(t, "TestCase1")
 	defer tearDown()
 
 	for _, testCase := range testDifferentDates {
-		evalCase(t, testCase, metadata.CatalogDir)
+		evalCase(t, testCase)
 	}
 }
 
@@ -346,10 +345,10 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 }
 
 func TestMultipleEventsOnDifferentDates(t *testing.T) {
-	tearDown, _, metadata := setup(t, "TestMultipleEventsOnDifferentDates")
+	tearDown, _, _ := setup(t, "TestMultipleEventsOnDifferentDates")
 	defer tearDown()
 
 	for _, testCase := range testMultipleEventsOnDifferentDates {
-		evalCase(t, testCase, metadata.CatalogDir)
+		evalCase(t, testCase)
 	}
 }

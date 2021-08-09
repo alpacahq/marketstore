@@ -3,7 +3,6 @@ package candlecandler
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/candler"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
@@ -56,8 +55,7 @@ func (ca *CandleCandler) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
-	cols io.ColumnInterface, _ *catalog.Directory,
+func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
 		return nil, fmt.Errorf("Empty input to Accum")

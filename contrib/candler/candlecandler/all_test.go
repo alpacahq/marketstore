@@ -73,7 +73,7 @@ func TestCandleCandler(t *testing.T) {
 		epoch := cs.GetEpoch()
 		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
 		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
-		output, err = cdl.Accum(*tbk, am, cs, metadata.CatalogDir)
+		output, err = cdl.Accum(*tbk, am, cs)
 		assert.Nil(t, err)
 	}
 	assert.Equal(t, output.Len(), 4)

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
 
 	rpc "github.com/alpacahq/rpc/rpc2"
@@ -33,11 +35,13 @@ type QueryInterface interface {
 	) (io.ColumnSeriesMap, error)
 }
 
-func NewDataService(rootDir string, catDir *catalog.Directory, w Writer, q QueryInterface,
+func NewDataService(rootDir string, catDir *catalog.Directory, aggRunner *sqlparser.AggRunner,
+	w Writer, q QueryInterface,
 ) *DataService {
 	return &DataService{
 		rootDir:    rootDir,
 		catalogDir: catDir,
+		aggRunner:  aggRunner,
 		writer:     w,
 		query:      q,
 	}
@@ -46,6 +50,7 @@ func NewDataService(rootDir string, catDir *catalog.Directory, w Writer, q Query
 type DataService struct {
 	rootDir    string
 	catalogDir *catalog.Directory
+	aggRunner  *sqlparser.AggRunner
 	writer     Writer
 	query      QueryInterface
 }
@@ -63,7 +68,8 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics.RPCTotalRequestDuration.Observe(time.Since(start).Seconds())
 }
 
-func NewServer(rootDir string, catDir *catalog.Directory, w Writer, q QueryInterface,
+func NewServer(rootDir string, catDir *catalog.Directory, aggRunner *sqlparser.AggRunner,
+	w Writer, q QueryInterface,
 ) (*RpcServer, *DataService) {
 	s := &RpcServer{
 		Server: rpc.NewServer(),
@@ -73,7 +79,7 @@ func NewServer(rootDir string, catDir *catalog.Directory, w Writer, q QueryInter
 	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
 	s.RegisterInterceptFunc(intercept)
 	s.RegisterAfterFunc(after)
-	service := NewDataService(rootDir, catDir, w, q)
+	service := NewDataService(rootDir, catDir, aggRunner, w, q)
 	service.Init()
 	err := s.RegisterService(service, "")
 	if err != nil {

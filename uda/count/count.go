@@ -5,7 +5,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -45,8 +44,7 @@ func (ca *Count) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
-	cols io.ColumnInterface, _ *catalog.Directory,
+func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	ca.Sum += int64(cols.Len())
 	return ca.Output(), nil

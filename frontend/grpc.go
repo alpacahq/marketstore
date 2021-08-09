@@ -53,15 +53,18 @@ func toProtoDataType(elemType io.EnumElementType) proto.DataType {
 type GRPCService struct {
 	rootDir    string
 	catalogDir *catalog.Directory
+	aggRunner  *sqlparser.AggRunner
 	writer     Writer
 	query      QueryInterface
 }
 
-func NewGRPCService(rootDir string, catDir *catalog.Directory, w Writer, q QueryInterface,
+func NewGRPCService(rootDir string, catDir *catalog.Directory, aggRunner *sqlparser.AggRunner,
+	w Writer, q QueryInterface,
 ) *GRPCService {
 	return &GRPCService{
 		rootDir:    rootDir,
 		catalogDir: catDir,
+		aggRunner:  aggRunner,
 		writer:     w,
 		query:      q,
 	}
@@ -82,7 +85,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			if err != nil {
 				return nil, err
 			}
-			cs, err := es.Materialize(s.catalogDir)
+			cs, err := es.Materialize(s.aggRunner, s.catalogDir)
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +166,7 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 			*/
 			if len(req.Functions) != 0 {
 				for tbkStr, cs := range csm {
-					csOut, err := runAggFunctions(req.Functions, cs, tbkStr, s.catalogDir)
+					csOut, err := s.aggRunner.Run(req.Functions, cs, tbkStr)
 					if err != nil {
 						return nil, err
 					}

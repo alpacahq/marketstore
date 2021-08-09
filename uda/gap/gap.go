@@ -23,7 +23,6 @@ import (
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -57,9 +56,7 @@ func (g *Gap) GetInitArgs() []io.DataShape {
 
 // Accum() sends new data to the aggregate
 // Use Zscore to find out the big hole in data.
-func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap,
-	cols io.ColumnInterface, _ *catalog.Directory,
-) (*io.ColumnSeries, error) {
+func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface) (*io.ColumnSeries, error) {
 	g.BigGapIdxs = []int{}
 	g.Input = &cols
 
