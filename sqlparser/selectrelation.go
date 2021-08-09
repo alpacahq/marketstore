@@ -46,7 +46,8 @@ func convertUnitToNanosec(epoch int64) int64 {
 	return epoch * 1000000000
 }
 
-func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSeries *io.ColumnSeries, err error) {
+func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Directory,
+) (outputColumnSeries *io.ColumnSeries, err error) {
 	// Call Materialize on any child relations
 	//	fmt.Println("In SelectRelation Materialize")
 	var inputColumnSeries *io.ColumnSeries
@@ -63,7 +64,7 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 		case *SelectRelation:
 			//			fmt.Println("*SelectRelation")
 			//fmt.Println("Subquery found...")
-			inputColumnSeries, err = value.Materialize(catDir)
+			inputColumnSeries, err = value.Materialize(aggRunner, catDir)
 			if err != nil {
 				return nil, err
 			}
@@ -72,7 +73,7 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 	//	fmt.Printf("Materialize... %+v\n", sr)
 	if !sr.IsPrimary {
 		//		fmt.Println("Materializing subquery")
-		inputColumnSeries, err = sr.Subquery.Materialize(catDir)
+		inputColumnSeries, err = sr.Subquery.Materialize(aggRunner, catDir)
 		if err != nil {
 			return nil, err
 		}
@@ -469,7 +470,7 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 				// TODO: This only handles SRF
 				skipProjection = true
 				aggName := sl.FunctionCall.Name
-				agg := AggRegistry[strings.ToLower(aggName)]
+				agg := aggRunner.GetFunc(strings.ToLower(aggName))
 				if agg == nil {
 					return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
 				}
@@ -535,7 +536,7 @@ func (sr *SelectRelation) Materialize(catDir *catalog.Directory) (outputColumnSe
 				} else {
 					tbk = *key
 				}
-				functionResult, err := aggfunc.Accum(tbk, argMap, outputColumnSeries, catDir)
+				functionResult, err := aggfunc.Accum(tbk, argMap, outputColumnSeries)
 				if err != nil {
 					return nil, err
 				}

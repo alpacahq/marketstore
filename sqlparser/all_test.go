@@ -115,6 +115,7 @@ func TestVisitor(t *testing.T) {
 func TestExecutableStatement(t *testing.T) {
 	tearDown, metadata := setup(t, "TestExecutableStatement")
 	defer tearDown()
+	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
@@ -122,7 +123,7 @@ func TestExecutableStatement(t *testing.T) {
 	//PrintExplain(queryTree, stmt)
 	es, err := sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err := es.Materialize(metadata.CatalogDir)
+	cs, err := es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 29)
 
@@ -131,7 +132,7 @@ func TestExecutableStatement(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 29)
 
@@ -141,7 +142,7 @@ func TestExecutableStatement(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 0)
 	assert.Nil(t, err)
@@ -153,7 +154,7 @@ func TestExecutableStatement(t *testing.T) {
 	//PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 0)
 	assert.Nil(t, err)
@@ -165,7 +166,7 @@ func TestExecutableStatement(t *testing.T) {
 	//PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 29)
 	assert.Nil(t, err)
@@ -176,7 +177,7 @@ func TestExecutableStatement(t *testing.T) {
 	T_PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 1)
 	assert.Nil(t, err)
@@ -187,7 +188,7 @@ func TestExecutableStatement(t *testing.T) {
 	T_PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Nil(t, err)
 	assert.Equal(t, cs.Len(), 0)
@@ -195,19 +196,21 @@ func TestExecutableStatement(t *testing.T) {
 func TestStatementErrors(t *testing.T) {
 	tearDown, metadata := setup(t, "TestStatementErrors")
 	defer tearDown()
+	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "select * from `fooble`;"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
 	es, err := sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err := es.Materialize(metadata.CatalogDir)
+	cs, err := es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, true, stmt)
 	_ = cs
 }
 func TestInsertInto(t *testing.T) {
 	tearDown, metadata := setup(t, "TestInsertInto")
 	defer tearDown()
+	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "INSERT INTO `AAPL/5Min/OHLCV` SELECT * from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
@@ -215,7 +218,7 @@ func TestInsertInto(t *testing.T) {
 	//PrintExplain(queryTree, stmt)
 	es, err := sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err := es.Materialize(metadata.CatalogDir)
+	cs, err := es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 1)
 }
@@ -223,6 +226,7 @@ func TestInsertInto(t *testing.T) {
 func TestAggregation(t *testing.T) {
 	tearDown, metadata := setup(t, "TestAggregation")
 	defer tearDown()
+	aggRunner := sqlparser.NewDefaultAggRunner(metadata.CatalogDir)
 
 	cs := makeTestCS()
 	epoch := cs.GetColumn("Epoch").([]int64)
@@ -233,17 +237,17 @@ func TestAggregation(t *testing.T) {
 		fmt.Printf("%v\t%v\n", t, one[i])
 	}
 
-	agg := sqlparser.AggRegistry["blargle"] // aggregator not found
+	agg := aggRunner.GetFunc("blargle") // aggregator not found
 	assert.Nil(t, agg)
 
-	agg = sqlparser.AggRegistry[strings.ToLower("TickCandler")]
+	agg = aggRunner.GetFunc(strings.ToLower("TickCandler"))
 	assert.NotNil(t, agg)
 	argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
 	dsPrice := io.DataShape{Name: "One", Type: io.FLOAT32}
 	argMap.MapRequiredColumn("CandlePrice", dsPrice)
 	tickCandler, _ := agg.New(argMap, "1Min")
 	assert.NotNil(t, tickCandler)
-	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
+	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs)
 	r_epoch := result.GetColumn("Epoch").([]int64)
 	r_open := result.GetColumn("Open").([]float32)
 	r_high := result.GetColumn("High").([]float32)
@@ -269,7 +273,7 @@ func TestAggregation(t *testing.T) {
 	T_PrintExplain(queryTree, stmt)
 	es, err := sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 29)
 
@@ -279,7 +283,7 @@ func TestAggregation(t *testing.T) {
 	T_PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 6)
 	//fmt.Println(cs)
@@ -288,14 +292,15 @@ func TestAggregation(t *testing.T) {
 func TestCount(t *testing.T) {
 	tearDown, metadata := setup(t, "TestCount")
 	defer tearDown()
+	aggRunner := sqlparser.NewDefaultAggRunner(metadata.CatalogDir)
 
 	cs := makeTestCS()
-	agg := sqlparser.AggRegistry["count"]
+	agg := aggRunner.GetFunc("count")
 	argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
 	argMap.MapRequiredColumn("*", io.DataShape{Name: "Epoch", Type: io.INT64})
 	tickCandler, _ := agg.New(argMap)
 	assert.NotNil(t, tickCandler)
-	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs, metadata.CatalogDir)
+	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs)
 	count := result.GetColumn("Count").([]int64)
 	assert.Equal(t, count[0], int64(5))
 
@@ -307,7 +312,7 @@ func TestCount(t *testing.T) {
 	T_PrintExplain(queryTree, stmt)
 	es, err := sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	count = cs.GetColumn("Count").([]int64)
 	assert.Equal(t, count[0], int64(29))
@@ -321,7 +326,7 @@ func TestCount(t *testing.T) {
 	T_PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	count = cs.GetColumn("Count").([]int64)
 	assert.Equal(t, count[0], int64(1578240))
@@ -332,7 +337,7 @@ func TestCount(t *testing.T) {
 	T_PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	count = cs.GetColumn("Count").([]int64)
 	assert.Equal(t, count[0], int64(1))
@@ -345,7 +350,7 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(metadata.CatalogDir)
+	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, true, stmt)
 }
 

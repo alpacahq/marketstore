@@ -29,10 +29,10 @@ func NewInsertIntoStatement(tableName, queryText string, selectRelation *SelectR
 	return is
 }
 
-func (is *InsertIntoStatement) Materialize(catDir *catalog.Directory) (outputColumnSeries *io.ColumnSeries, err error) {
+func (is *InsertIntoStatement) Materialize(aggRunner *AggRunner, catDir *catalog.Directory) (outputColumnSeries *io.ColumnSeries, err error) {
 	// Call Materialize on any child relations.
 	// inputColumnSeries includes Epoch column
-	inputColumnSeries, err := is.SelectRelation.Materialize(catDir)
+	inputColumnSeries, err := is.SelectRelation.Materialize(aggRunner, catDir)
 	if err != nil {
 		return nil, err
 	}

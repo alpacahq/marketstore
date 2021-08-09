@@ -35,6 +35,8 @@ type Adjust struct {
 	epochs         []int64
 	output         map[io.DataShape]interface{}
 	skippedColumns map[string]interface{}
+
+	CatalogDir *catalog.Directory
 }
 
 func (adj *Adjust) GetRequiredArgs() []io.DataShape {
@@ -51,14 +53,15 @@ func (adj *Adjust) New(_ *functions.ArgumentMap, args ...interface{}) (uda.AggIn
 	rn := &Adjust{
 		output:         map[io.DataShape]interface{}{},
 		skippedColumns: map[string]interface{}{},
+		CatalogDir:     adj.CatalogDir,
 	}
 
-	err := rn.Init(args...)
+	err := rn.init(args...)
 
 	return rn, err
 }
 
-func (adj *Adjust) Init(args ...interface{}) error {
+func (adj *Adjust) init(args ...interface{}) error {
 	if len(args) == 0 {
 		adj.AdjustSplit = true
 		adj.AdjustDividend = true
@@ -89,8 +92,7 @@ func (adj *Adjust) Init(args ...interface{}) error {
 	return nil
 }
 
-func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap,
-	cols io.ColumnInterface, catalogDir *catalog.Directory,
+func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	epochs, ok := cols.GetColumn("Epoch").([]int64)
 	if !ok {
@@ -111,7 +113,7 @@ func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap,
 
 	symbol := tbk.GetItemInCategory("Symbol")
 	rateChanges := GetRateChanges(symbol, adj.AdjustSplit, adj.AdjustDividend,
-		catalogDir,
+		adj.CatalogDir,
 	)
 	if len(rateChanges) == 0 {
 		return adj.Output(), nil

@@ -5,7 +5,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -37,8 +36,7 @@ type AggInterface interface {
 	*/
 	//Accum(ts []time.Time, rows io.Rows)
 	// The io.ColumnInterface parameter is one of; ColumnSeries or Rows
-	Accum(io.TimeBucketKey, *functions.ArgumentMap, io.ColumnInterface, *catalog.Directory,
-	) (*io.ColumnSeries, error)
+	Accum(io.TimeBucketKey, *functions.ArgumentMap, io.ColumnInterface) (*io.ColumnSeries, error)
 }
 
 //TODO: This is where we break out a UDF API

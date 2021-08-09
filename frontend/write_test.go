@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/frontend"
@@ -16,7 +18,7 @@ func TestWrite(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestWrite")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
 	qargs := &frontend.MultiQueryRequest{

@@ -6,7 +6,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -41,8 +40,7 @@ func (ma *Max) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
-	cols io.ColumnInterface, _ *catalog.Directory,
+func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
 		return ma.Output(), nil

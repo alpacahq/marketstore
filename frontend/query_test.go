@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -37,7 +39,7 @@ func _TestQueryCustomTimeframes(t *testing.T) {
 	defer tearDown()
 
 	//TODO: Support custom timeframes
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -98,7 +100,7 @@ func TestQuery(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestQuery")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -134,7 +136,7 @@ func TestQueryFirstN(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryFirstN")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -168,7 +170,7 @@ func TestQueryRange(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryRange")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 	{
 		args := &frontend.MultiQueryRequest{
@@ -218,7 +220,7 @@ func TestQueryNpyMulti(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryNpyMulti")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -251,7 +253,7 @@ func TestQueryMulti(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryMulti")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
 	args := &frontend.MultiQueryRequest{
@@ -295,7 +297,7 @@ func TestListSymbols(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestListSymbols")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
 	var response frontend.ListSymbolsResponse
@@ -331,11 +333,13 @@ func TestFunctions(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "TestFunctions")
 	defer tearDown()
 
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, writer, q)
+	service := frontend.NewDataService(rootDir, metadata.CatalogDir,
+		sqlparser.NewDefaultAggRunner(metadata.CatalogDir), writer, q,
+	)
 	service.Init()
 
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
-	fname, l_list, p_list, err := frontend.ParseFunctionCall(call)
+	fname, l_list, p_list, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -343,7 +347,7 @@ func TestFunctions(t *testing.T) {
 	//	printFuncParams(fname, l_list, p_list)
 
 	call = "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
-	fname, l_list, p_list, err = frontend.ParseFunctionCall(call)
+	fname, l_list, p_list, err = sqlparser.ParseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()

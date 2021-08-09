@@ -39,23 +39,24 @@ func (es *ExecutableStatement) GetPendingStaticPredicateGroup() (spg StaticPredi
 	}
 }
 
-func (es *ExecutableStatement) Materialize(catDir *catalog.Directory) (cs *io.ColumnSeries, err error) {
+func (es *ExecutableStatement) Materialize(aggRunner *AggRunner, catDir *catalog.Directory,
+) (cs *io.ColumnSeries, err error) {
 	var child_cs *io.ColumnSeries
 	if es.GetChildCount() != 0 {
 		node := es.GetChild(0)
 		switch ctx := node.(type) {
 		case *ExecutableStatement:
 			//fmt.Println("Materialize Executable Statement")
-			child_cs, err = ctx.Materialize(catDir)
+			child_cs, err = ctx.Materialize(aggRunner, catDir)
 		case *SelectRelation:
 			//fmt.Println("Materialize Select Relation")
-			child_cs, err = ctx.Materialize(catDir)
+			child_cs, err = ctx.Materialize(aggRunner, catDir)
 		case *ExplainStatement:
 			//fmt.Println("Materialize Explain Statement")
 			child_cs, err = ctx.Materialize()
 		case *InsertIntoStatement:
 			//fmt.Println("Materialize InsertInto Statement")
-			child_cs, err = ctx.Materialize(catDir)
+			child_cs, err = ctx.Materialize(aggRunner, catDir)
 		}
 		if err != nil {
 			return nil, err
@@ -65,7 +66,7 @@ func (es *ExecutableStatement) Materialize(catDir *catalog.Directory) (cs *io.Co
 		switch ctx := es.nodeCursor.payload.(type) {
 		case *SelectRelation:
 			//			fmt.Println("Materialize Select Relation Statement (no children)")
-			cs, err = ctx.Materialize(catDir)
+			cs, err = ctx.Materialize(aggRunner, catDir)
 			return cs, err
 		default:
 			//			fmt.Println("Materialize Default (nil)")

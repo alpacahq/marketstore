@@ -5,7 +5,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/candler"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -54,8 +53,7 @@ func (ca *TickCandler) GetInitArgs() []io.DataShape {
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap,
-	cols io.ColumnInterface, _ *catalog.Directory,
+func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
 		return nil, fmt.Errorf("Empty input to Accum")
