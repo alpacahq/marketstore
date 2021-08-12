@@ -88,12 +88,12 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 			prevPaths = append(
 				prevPaths,
 				&ioFilePlan{
-					file.File,
-					startOffset,
-					length,
-					file.File.Path,
-					fileStartTime.Unix(),
-					false,
+					tbi:         file.File,
+					Offset:      startOffset,
+					Length:      length,
+					FullPath:    file.File.Path,
+					BaseTime:    fileStartTime.Unix(),
+					seekingLast: false,
 				},
 			)
 		} else if file.File.Year <= int16(pr.Range.End.Year()) {

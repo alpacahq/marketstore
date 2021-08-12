@@ -18,20 +18,15 @@ import (
 const Headersize = 37024
 const FileinfoVersion = int64(2.0)
 
-func daysInYear(year int) int {
-	testYear := time.Date(year, time.December, 31, 0, 0, 0, 0, time.Local)
-	return testYear.YearDay()
-}
-
 func nanosecondsInYear(year int) int64 {
 	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
 	end := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local)
-	return int64(end.Sub(start).Nanoseconds())
+	return end.Sub(start).Nanoseconds()
 }
 
 // FileSize returns the necessary size for a data file
 func FileSize(tf time.Duration, year int, recordSize int) int64 {
-	return Headersize + (nanosecondsInYear(year)/int64(tf.Nanoseconds()))*int64(recordSize)
+	return Headersize + (nanosecondsInYear(year)/tf.Nanoseconds())*int64(recordSize)
 }
 
 type TimeBucketInfo struct {
@@ -71,17 +66,18 @@ func AlignedSize(unalignedSize int) (alignedSize int) {
 
 func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16, dsv []DataShape, recordType EnumRecordType) (f *TimeBucketInfo) {
 	elementTypes, elementNames := CreateShapesForTimeBucketInfo(dsv)
-	f = new(TimeBucketInfo)
-	f.version = FileinfoVersion
-	f.Path = filepath.Join(path, strconv.Itoa(int(year))+".bin")
-	f.IsRead = true
-	f.timeframe = tf.Duration
-	f.description = description
-	f.Year = year
-	f.nElements = int32(len(elementTypes))
-	f.elementTypes = elementTypes
-	f.elementNames = elementNames
-	f.recordType = recordType
+	f = &TimeBucketInfo{
+		version:      FileinfoVersion,
+		Path:         filepath.Join(path, strconv.Itoa(int(year))+".bin"),
+		IsRead:       true,
+		timeframe:    tf.Duration,
+		description:  description,
+		Year:         year,
+		nElements:    int32(len(elementTypes)),
+		elementTypes: elementTypes,
+		elementNames: elementNames,
+		recordType:   recordType,
+	}
 	if f.recordType == FIXED {
 		f.recordLength = int32(AlignedSize(f.getFieldRecordLength())) + 8 // add an 8-byte epoch field
 	} else if f.recordType == VARIABLE {
