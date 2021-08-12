@@ -32,11 +32,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/frontend"
+
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/models"
 	modelsenum "github.com/alpacahq/marketstore/v4/models/enum"
-	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -375,21 +376,8 @@ func (s *OnDiskAggTrigger) query(
 	end := window.Ceil(tail).Add(-time.Second)
 
 	// Scan
-	q := planner.NewQuery(cDir)
-	q.AddTargetKey(tbk)
-	q.SetRange(start, end)
-
-	parsed, err := q.Parse()
-	if err != nil {
-		return nil, err
-	}
-
-	scanner, err := executor.NewReader(parsed)
-	if err != nil {
-		return nil, err
-	}
-
-	csm, err := scanner.Read()
+	qs := frontend.NewQueryService(cDir)
+	csm, err := qs.ExecuteQuery(tbk, start, end, 0, false, nil)
 	if err != nil {
 		return nil, err
 	}

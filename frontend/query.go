@@ -293,8 +293,8 @@ func NewQueryService(catDir *catalog.Directory) *QueryService {
 	}
 }
 
-func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time, LimitRecordCount int,
-	LimitFromStart bool, columns []string,
+func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time, limitRecordCount int,
+	limitFromStart bool, columns []string,
 ) (io.ColumnSeriesMap, error) {
 	query := planner.NewQuery(qs.catalogDir)
 
@@ -308,16 +308,16 @@ func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time
 	tbk.SetItemInCategory("Timeframe", queryableTimeframe)
 	query.AddTargetKey(tbk)
 
-	if LimitRecordCount != 0 {
+	if limitRecordCount != 0 {
 		direction := io.LAST
-		if LimitFromStart {
+		if limitFromStart {
 			direction = io.FIRST
 		}
 		query.SetRowLimit(
 			direction,
 			cd.QueryableNrecords(
 				queryableTimeframe,
-				LimitRecordCount,
+				limitRecordCount,
 			),
 		)
 	}
@@ -327,8 +327,8 @@ func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time
 	if err != nil {
 		// No results from query
 		if err.Error() == "No files returned from query parse" {
-			log.Info("No results returned from query: Target: %v, start, end: %v,%v LimitRecordCount: %v",
-				tbk.String(), start, end, LimitRecordCount)
+			log.Info("No results returned from query: Target: %v, start, end: %v,%v limitRecordCount: %v",
+				tbk.String(), start, end, limitRecordCount)
 		} else {
 			log.Error("Parsing query: %s\n", err)
 		}
