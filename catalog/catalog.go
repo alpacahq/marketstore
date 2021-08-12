@@ -13,8 +13,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-type dMap map[string]*Directory // General purpose map for storing directories
-
 type Directory struct {
 	sync.RWMutex
 
@@ -24,10 +22,10 @@ type Directory struct {
 	pathToItemName string
 	category       string
 
-	// DirectMap[Key]: Key is the directory path, including the rootPath and excluding filename
-	DirectMap dMap
+	// directMap[Key]: Key is the directory path, including the rootPath and excluding filename
+	directMap map[string]*Directory
 	// subDirs[Key]: Key is the name of the directory, aka "ItemName" which is an instance of the category
-	subDirs dMap
+	subDirs map[string]*Directory
 
 	catList map[string]int8
 	// datafile[Key]: Key is the fully specified path to the datafile, including rootPath and filename
@@ -40,17 +38,17 @@ type Directory struct {
 func NewDirectory(rootPath string) (*Directory, error) {
 	d := &Directory{
 		// Directmap will point to each directory node using a composite key
-		DirectMap: make(dMap),
+		directMap: make(map[string]*Directory),
 	}
 
 	// Load is single thread compatible - no concurrent access is anticipated
-	rootDmap := d.DirectMap
+	rootDmap := d.directMap
 	err := load(rootDmap, d, rootPath, rootPath)
 
 	return d, err
 }
 
-func load(rootDmap dMap, d *Directory, subPath, rootPath string) error {
+func load(rootDmap map[string]*Directory, d *Directory, subPath, rootPath string) error {
 	relPath, _ := filepath.Rel(rootPath, subPath)
 	d.itemName = filepath.Base(relPath)
 	d.pathToItemName = filepath.Clean(subPath)
@@ -63,7 +61,7 @@ func load(rootDmap dMap, d *Directory, subPath, rootPath string) error {
 	d.category = string(catname)
 
 	// Load up the child directories
-	d.subDirs = make(dMap)
+	d.subDirs = make(map[string]*Directory)
 	dirlist, err := ioutil.ReadDir(subPath)
 	for _, dirname := range dirlist {
 		leafPath := path.Clean(subPath + "/" + dirname.Name())
@@ -225,7 +223,7 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 			deleteMap[i] = true // This dir was deleted, we'll remove it from the parent's subdir list later
 		} else {
 			if deleteMap[i+1] {
-				tree[i].removeSubDir(tree[i+1].itemName, dRoot.DirectMap)
+				tree[i].removeSubDir(tree[i+1].itemName, dRoot.directMap)
 			}
 		}
 		if !tree[i].DirHasSubDirs() {
@@ -236,7 +234,7 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	if deleteMap[0] {
 		removeDirFiles(tree[0])
 		if dRoot != nil {
-			dRoot.removeSubDir(tree[0].itemName, dRoot.DirectMap)
+			dRoot.removeSubDir(tree[0].itemName, dRoot.directMap)
 		}
 	}
 	return nil
@@ -391,7 +389,7 @@ func (d *Directory) GetSubDirectoryAndAddFile(fullFilePath string, year int16) (
 	d.Lock()
 	defer d.Unlock()
 	dirPath := path.Dir(fullFilePath)
-	if dir, ok := d.DirectMap[dirPath]; ok {
+	if dir, ok := d.directMap[dirPath]; ok {
 		return dir.AddFile(year)
 	}
 	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
@@ -402,7 +400,7 @@ func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Director
 	dirPath := path.Dir(fullFilePath)
 	d.RLock()
 	defer d.RUnlock()
-	if dir, ok := d.DirectMap[dirPath]; ok {
+	if dir, ok := d.directMap[dirPath]; ok {
 		return dir, nil
 	}
 	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
@@ -627,15 +625,15 @@ func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	subDir.itemName = subDirItemName
 	d.catList = nil // Reset the category list
 	if d.subDirs == nil {
-		d.subDirs = make(dMap)
+		d.subDirs = make(map[string]*Directory)
 	}
 	d.subDirs[subDirItemName] = subDir
-	for key, val := range subDir.DirectMap {
-		d.DirectMap[key] = val
+	for key, val := range subDir.directMap {
+		d.directMap[key] = val
 	}
-	subDir.DirectMap = nil
+	subDir.directMap = nil
 }
-func (d *Directory) removeSubDir(subDirItemName string, directMap dMap) {
+func (d *Directory) removeSubDir(subDirItemName string, directMap map[string]*Directory) {
 	d.Lock()
 	defer d.Unlock()
 	if _, ok := d.subDirs[subDirItemName]; ok {

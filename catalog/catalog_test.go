@@ -31,13 +31,6 @@ func setup(t *testing.T, testName string,
 	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, catalogDir
 }
 
-func TestGetDirectMap(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGetDirectMap")
-	defer tearDown()
-
-	assert.Len(t, catalogDir.DirectMap, 18)
-}
-
 func TestGetCatList(t *testing.T) {
 	tearDown, _, catalogDir := setup(t, "TestGetCatList")
 	defer tearDown()
