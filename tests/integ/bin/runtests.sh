@@ -19,15 +19,15 @@ fi
 
 # import ticks-example-1.csv/yaml to TEST/1Min/TICK and check if the output of show commands match ticks-example-1-output.csv
 ./marketstore connect -d `pwd`/tests/integ/testdata/mktsdb <<- EOF
-\create TEST/24H/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
-\getinfo TEST/24H/TICK
-\load TEST/24H/TICK tests/integ/bin/ticks-example-1.csv tests/integ/bin/ticks-example-1.yaml
+\create TEST/1D/TICK:Symbol/Timeframe/AttributeGroup Bid,Ask/float32 variable
+\getinfo TEST/1D/TICK
+\load TEST/1D/TICK tests/integ/bin/ticks-example-1.csv tests/integ/bin/ticks-example-1.yaml
 \o test_ticks.csv
-\show TEST/24H/TICK 1970-01-01
+\show TEST/1D/TICK 1970-01-01
 EOF
 exit_if_failed $?
 
-diff -q tests/integ/bin/ticks-example-1-output-24H.csv test_ticks.csv && echo "Passed"
+diff -q tests/integ/bin/ticks-example-1-output-1D.csv test_ticks.csv && echo "Passed"
 exit_if_failed $?
 
 rm -f test_ticks.csv

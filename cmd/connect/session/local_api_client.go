@@ -68,35 +68,23 @@ func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *fro
 
 func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 ) (csm io.ColumnSeriesMap, err error) {
-	query := planner.NewQuery(lc.catalogDir)
-	query.AddTargetKey(tbk)
 
 	if start == nil && end == nil {
 		fmt.Println("No suitable date range supplied...")
 		return
-	} else if start == nil {
-		query.SetRange(planner.MinTime, *end)
-	} else if end == nil {
-		query.SetRange(*start, planner.MaxTime)
 	}
-
+	if start == nil {
+		start = &planner.MinTime
+	}
+	if end == nil {
+		end = &planner.MaxTime
+	}
 	fmt.Printf("Query range: %v to %v\n", start, end)
 
-	pr, err := query.Parse()
+	qs := frontend.NewQueryService(lc.catalogDir)
+	csm, err = qs.ExecuteQuery(tbk, *start, *end, 0, false, nil)
 	if err != nil {
-		fmt.Println("No results")
-		log.Error("Parsing query: %v", err)
-		return
-	}
-
-	scanner, err := executor.NewReader(pr)
-	if err != nil {
-		log.Error("Error return from query scanner: %v", err)
-		return
-	}
-	csm, err = scanner.Read()
-	if err != nil {
-		log.Error("Error return from query scanner: %v", err)
+		log.Error("Error return from query: %v", err)
 		return
 	}
 
