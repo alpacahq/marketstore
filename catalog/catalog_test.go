@@ -91,13 +91,10 @@ func TestPathToFileInfo(t *testing.T) {
 	defer tearDown()
 
 	fileInfo, err := catalogDir.PathToTimeBucketInfo("nil")
-	if err != nil {
-		if _, ok := err.(catalog.NotFoundError); ok {
-			assert.Equal(t, fileInfo, (*io.TimeBucketInfo)(nil))
-		} else {
-			t.Fail()
-		}
+	if _, ok := err.(catalog.NotFoundError); ok {
+		assert.Equal(t, fileInfo, (*io.TimeBucketInfo)(nil))
 	}
+
 	mypath := rootDir + "/EURUSD/1Min/OHLC/2001.bin"
 	fileInfo, err = catalogDir.PathToTimeBucketInfo(mypath)
 	if err != nil {
@@ -186,7 +183,7 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 }
 
 func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
-	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("catalog_test-TestAddAndRemoveDataItemFromEmptyDirectory"))
+	rootDir, _ := ioutil.TempDir("", "catalog_test-TestAddAndRemoveDataItemFromEmptyDirectory")
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	var e *catalog.ErrCategoryFileNotFound
 	if err != nil && !errors.As(err, &e) {
