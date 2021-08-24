@@ -9,16 +9,21 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+// Setter is an interface for prometheus metrics to improve unit-testability
+type Setter interface {
+	Set(m float64)
+}
+
 // StartDiskUsageMonitor retrieves the total disk usage of the provided directory at each provided time interval,
 // and set it as a prometheus metric.
-func StartDiskUsageMonitor(rootDir string, interval time.Duration){
-	TotalDiskUsageBytes.Set(float64(diskUsage(rootDir)))
+func StartDiskUsageMonitor(s Setter, rootDir string, interval time.Duration) {
+	s.Set(float64(diskUsage(rootDir)))
 
 	t := time.NewTicker(interval)
 	for {
 		select {
 		case <-t.C:
-			TotalDiskUsageBytes.Set(float64(diskUsage(rootDir)))
+			s.Set(float64(diskUsage(rootDir)))
 		}
 	}
 }
