@@ -139,6 +139,8 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		config.WALBypass,
 	)
 
+	go metrics.StartDiskUsageMonitor(metrics.TotalDiskUsageBytes, config.RootDirectory, 10 * time.Minute)
+
 	startupTime := time.Since(start)
 	metrics.StartupTime.Set(startupTime.Seconds())
 	log.Info("startup time: %s", startupTime)

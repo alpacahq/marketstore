@@ -55,4 +55,13 @@ var (
 		Help:      "WriteCSM call duration",
 		Buckets:   []float64{.0001, .001, .005, .01, .05, .1, .25, .5, 1},
 	})
+
+	// TotalDiskUsageBytes stores the total size of DB files managed by Marketstore
+	TotalDiskUsageBytes = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      "total_disk_usage_bytes",
+			Help:      "Total disk usage [bytes] of the Marketstore data files",
+		})
 )
