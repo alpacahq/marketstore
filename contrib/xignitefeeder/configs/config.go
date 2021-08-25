@@ -22,17 +22,17 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // DefaultConfig is the configuration for XigniteFeeder you can define in
 // marketstore's config file through bgworker extension.
 type DefaultConfig struct {
-	Exchanges            []string  `json:"exchanges"`
-	IndexGroups          []string  `json:"index_groups"`
-	UpdateTime           time.Time `json:"update_time"`
-	Timeframe            string    `json:"timeframe"`
-	APIToken             string    `json:"token"`
-	Timeout              int       `json:"timeout"`
-	OpenTime             time.Time
-	CloseTime            time.Time
-	ClosedDaysOfTheWeek  []time.Weekday
-	ClosedDays           []time.Time
-	Interval             int `json:"interval"`
+	Exchanges           []string  `json:"exchanges"`
+	IndexGroups         []string  `json:"index_groups"`
+	UpdateTime          time.Time `json:"update_time"`
+	Timeframe           string    `json:"timeframe"`
+	APIToken            string    `json:"token"`
+	Timeout             int       `json:"timeout"`
+	OpenTime            time.Time
+	CloseTime           time.Time
+	ClosedDaysOfTheWeek []time.Weekday
+	ClosedDays          []time.Time
+	Interval            int `json:"interval"`
 	// If a non-zero value is set for OffHoursInterval,
 	// the data-feeding is executed every offHoursInterval[minute] even when the market is closed.
 	OffHoursInterval int `json:"off_hours_interval"`
