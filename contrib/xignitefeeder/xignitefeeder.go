@@ -34,11 +34,18 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	apiClient := api.NewDefaultAPIClient(config.APIToken, config.Timeout)
 
 	// init Market Time Checker
-	timeChecker := feed.NewDefaultMarketTimeChecker(
+	var timeChecker feed.MarketTimeChecker
+	timeChecker = feed.NewDefaultMarketTimeChecker(
 		config.ClosedDaysOfTheWeek,
 		config.ClosedDays,
 		config.OpenTime,
 		config.CloseTime)
+	if config.OffHoursInterval != 0 {
+		timeChecker = feed.NewIntervalMarketTimeChecker(
+			&timeChecker,
+			time.Duration(config.OffHoursInterval)*time.Minute,
+		)
+	}
 
 	ctx := context.Background()
 	// init Symbols Manager to...

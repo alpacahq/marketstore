@@ -33,7 +33,12 @@ type DefaultMarketTimeChecker struct {
 }
 
 // NewDefaultMarketTimeChecker initializes the DefaultMarketTimeChecker object with the specifier parameters.s
-func NewDefaultMarketTimeChecker(closedDaysOfTheWeek []time.Weekday, closedDays []time.Time, openTime time.Time, closeTime time.Time) *DefaultMarketTimeChecker {
+func NewDefaultMarketTimeChecker(
+	closedDaysOfTheWeek []time.Weekday,
+	closedDays []time.Time,
+	openTime time.Time,
+	closeTime time.Time,
+) *DefaultMarketTimeChecker {
 	return &DefaultMarketTimeChecker{
 		ClosedDaysOfTheWeek: closedDaysOfTheWeek,
 		ClosedDays:          closedDays,
