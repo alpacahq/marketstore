@@ -42,7 +42,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		config.CloseTime)
 	if config.OffHoursInterval != 0 {
 		timeChecker = feed.NewIntervalMarketTimeChecker(
-			&timeChecker,
+			timeChecker,
 			time.Duration(config.OffHoursInterval)*time.Minute,
 		)
 	}

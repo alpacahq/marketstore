@@ -15,11 +15,11 @@ type IntervalMarketTimeChecker struct {
 }
 
 func NewIntervalMarketTimeChecker(
-	mtc *MarketTimeChecker,
+	mtc MarketTimeChecker,
 	interval time.Duration,
 ) *IntervalMarketTimeChecker {
 	return &IntervalMarketTimeChecker{
-		MarketTimeChecker: *mtc,
+		MarketTimeChecker: mtc,
 		LastTime:          time.Time{},
 		Interval:          interval,
 	}
@@ -31,7 +31,7 @@ func (c *IntervalMarketTimeChecker) IsOpen(t time.Time) bool {
 }
 
 func (c *IntervalMarketTimeChecker) intervalElapsed(t time.Time) bool {
-	elapsed := t.In(jst).Sub(c.LastTime) > c.Interval
+	elapsed := t.Sub(c.LastTime) >= c.Interval
 	if elapsed {
 		c.LastTime = t
 		log.Debug("[Xignite Feeder] interval elapsed since last time: " + t.String())
