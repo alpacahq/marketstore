@@ -33,7 +33,10 @@ type DefaultConfig struct {
 	ClosedDaysOfTheWeek []time.Weekday
 	ClosedDays          []time.Time
 	Interval            int `json:"interval"`
-	Backfill            struct {
+	// If a non-zero value is set for OffHoursInterval,
+	// the data-feeding is executed every offHoursInterval[minute] even when the market is closed.
+	OffHoursInterval int `json:"off_hours_interval"`
+	Backfill         struct {
 		Enabled   bool      `json:"enabled"`
 		Since     CustomDay `json:"since"`
 		Timeframe string    `json:"timeframe"`

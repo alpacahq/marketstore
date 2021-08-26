@@ -40,6 +40,9 @@ bgworkers:
       timeout: 10
       # Interval [sec] to call Xignite API
       interval: 10
+      # If a non-zero value is set for off_hours_interval,
+      # the data-feeding is executed every off_hours_interval[minute] even when the market is closed.
+      off_hours_interval: 5
       # XigniteFeeder runs from openTime ~ closeTime (UTC)
       openTime: "23:00:00" # 08:00 (JST)
       closeTime: "06:10:00" # 15:10 (JST)
