@@ -108,6 +108,7 @@ func TestBrokenWAL(t *testing.T) {
 	WALFileAfterWALFlush := make([]byte, fsize)
 	n, err := metadata.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
 	assert.Equal(t, int64(n), fsize)
+	assert.Nil(t, err)
 
 	err = metadata.WALFile.CreateCheckpoint()
 	if err != nil {
@@ -141,6 +142,7 @@ func TestBrokenWAL(t *testing.T) {
 
 	// Take over the broken WALFile and replay it
 	WALFile, err := executor.TakeOverWALFile(rootDir, BrokenWALFileName)
+	assert.Nil(t, err)
 	newTGC := executor.NewTransactionPipe()
 	assert.NotNil(t, newTGC)
 	err = WALFile.Replay(true)

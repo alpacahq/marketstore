@@ -350,7 +350,7 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
-	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
+	_, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, true, stmt)
 }
 
