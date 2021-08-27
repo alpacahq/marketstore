@@ -95,6 +95,8 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 		tf := utils.TimeframeFromString(dest)
 		if tf == nil {
 			log.Fatal("invalid destination: %s", dest)
+			return nil, errors.New("please specify valid timeframe for 'destinations' " +
+				"in the aggtrigger config. dest=" + dest)
 		}
 		tfs = append(tfs, *tf)
 	}

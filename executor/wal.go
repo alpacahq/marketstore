@@ -429,9 +429,9 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	}
 
 	// First pass of WAL Replay: determine transaction states and record locations of TG data
-	txnStateWAL := make(map[int64]TxnStatusEnum, 0)
-	txnStatePrimary := make(map[int64]TxnStatusEnum, 0)
-	offsetTGDataInWAL := make(map[int64]int64, 0)
+	txnStateWAL := make(map[int64]TxnStatusEnum)
+	txnStatePrimary := make(map[int64]TxnStatusEnum)
+	offsetTGDataInWAL := make(map[int64]int64)
 
 	fullRead := func(err error) bool {
 		// Check to see if we have read only partial data

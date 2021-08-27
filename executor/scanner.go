@@ -552,7 +552,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 
 	maxToBuffer := int32(len(readBuffer))
 	if finalBuffer == nil {
-		finalBuffer = make([]byte, bytesToRead, bytesToRead)
+		finalBuffer = make([]byte, bytesToRead)
 	}
 
 	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
