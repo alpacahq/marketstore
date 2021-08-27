@@ -1,6 +1,6 @@
 module github.com/alpacahq/marketstore/v4
 
-go 1.14
+go 1.17
 
 require (
 	cloud.google.com/go v0.26.0
