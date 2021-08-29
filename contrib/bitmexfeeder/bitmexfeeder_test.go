@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +37,15 @@ func TestNew(t *testing.T) {
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)
 	assert.Nil(t, err)
-	client := bitmex.Init()
+
+	hc := NewTestClient(func(req *http.Request) *http.Response {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       ioutil.NopCloser(bytes.NewBuffer([]byte(getInstrumentsResponseMock))),
+			Header:     make(http.Header),
+		}
+	})
+	client := bitmex.NewBitmexClient(hc)
 	symbols, err := client.GetInstruments()
 	assert.Nil(t, err)
 	assert.Equal(t, len(worker.symbols), len(symbols))

@@ -34,12 +34,10 @@ type BitmexClient struct {
 	bitmexBinSize map[string]string
 }
 
-// Init the BitmexClient
-func Init() BitmexClient {
-	return BitmexClient{
-		Client: &http.Client{
-			Timeout: time.Second * 10,
-		},
+// NewBitmexClient is the constructor of the BitmexClient
+func NewBitmexClient(hc *http.Client) *BitmexClient {
+	return &BitmexClient{
+		Client:  hc,
 		baseURL: "https://www.bitmex.com",
 		apiURL:  "/api/v1/",
 		bitmexBinSize: map[string]string{
