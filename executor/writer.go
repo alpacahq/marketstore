@@ -23,8 +23,8 @@ import (
 // range restriction.  If there is a date range restriction, the write() routine should produce
 // an error when an out-of-bounds write is tried.
 type Writer struct {
-	root    *catalog.Directory
-	walFile *WALFileType
+	rootCatDir *catalog.Directory
+	walFile    *WALFileType
 }
 
 func NewWriter(rootCatDir *catalog.Directory, walFile *WALFileType) (*Writer, error) {
@@ -35,8 +35,8 @@ func NewWriter(rootCatDir *catalog.Directory, walFile *WALFileType) (*Writer, er
 		return nil, err
 	}
 	return &Writer{
-		root:    rootCatDir,
-		walFile: walFile,
+		rootCatDir: rootCatDir,
+		walFile:    walFile,
 	}, nil
 }
 
@@ -92,7 +92,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 		year := int16(t.Year())
 		if year != tbi.Year {
 			// add a new year's file
-			tbi, err = w.root.GetSubDirectoryAndAddFile(tbi.Path, year)
+			tbi, err = w.rootCatDir.GetSubDirectoryAndAddFile(tbi.Path, year)
 			if err != nil {
 				return fmt.Errorf("add new year file. tbi=%v, err: %w", tbi, err)
 			}
@@ -264,7 +264,7 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			alignData = false
 		}
 
-		tbi, err := w.root.GetLatestTimeBucketInfoFromKey(&tbk)
+		tbi, err := w.rootCatDir.GetLatestTimeBucketInfoFromKey(&tbk)
 		if err != nil {
 			/*
 				If we can't get the info, we try here to add a new one
@@ -287,14 +287,14 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			year := int16(t[0].Year())
 			tbi = io.NewTimeBucketInfo(
 				*tf,
-				tbk.GetPathToYearFiles(w.root.GetPath()),
+				tbk.GetPathToYearFiles(w.rootCatDir.GetPath()),
 				"Created By Writer", year,
 				cs.GetDataShapes(), recordType)
 
 			/*
 				Verify there is an available TimeBucket for the destination
 			*/
-			if err := w.root.AddTimeBucket(&tbk, tbi); err != nil {
+			if err := w.rootCatDir.AddTimeBucket(&tbk, tbi); err != nil {
 				// If File Exists error, ignore it, otherwise return the error
 				if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
 					return err
