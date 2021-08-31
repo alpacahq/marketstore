@@ -702,6 +702,8 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 	defer cfp.Close()
 
 	for _, wtSet := range wtSets {
+		log.Debug(fmt.Sprintf("replaying tgID:%d, FilePath:%s", tgID, wtSet.FilePath))
+
 		fp, err := cfp.GetFP(wtSet.FilePath)
 		if err != nil {
 			return err
