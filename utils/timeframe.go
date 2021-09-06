@@ -48,15 +48,15 @@ func (tf *Timeframe) PeriodsPerDay() int {
 }
 
 func NewTimeframe(arg interface{}) (tf *Timeframe) {
-	tf = new(Timeframe)
 	//	switch reflect.TypeOf(arg).Kind() {
 	switch v := arg.(type) {
 	case string:
 		return TimeframeFromString(v)
 	case int64:
 		return TimeframeFromDuration(time.Duration(v))
+	default:
+		return new(Timeframe)
 	}
-	return nil
 }
 
 func TimeframeFromString(tf string) *Timeframe {

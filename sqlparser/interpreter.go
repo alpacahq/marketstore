@@ -32,9 +32,7 @@ func BuildQueryTree(sourceString string) (tree IMSTree, err error) {
 	//	fmt.Println(parser.Statements().ToStringTree([]string{"\n"}, parser))
 
 	tree = NewStatementsParse(parser.Statements(), sourceString)
-	if tree == nil {
-		return nil, fmt.Errorf("unable to create query tree from parse tree")
-	}
+
 	if parseErr.err != nil {
 		fmt.Println(parseErr.err.Error())
 		return nil, parseErr.err

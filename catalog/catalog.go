@@ -129,10 +129,10 @@ func writeCategoryNameFile(catName, dirName string) error {
 	}
 
 	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0770)
-	defer fp.Close()
 	if err != nil {
 		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 	}
+	defer fp.Close()
 	if _, err = fp.WriteString(catName); err != nil {
 		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 	}
@@ -677,6 +677,9 @@ func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err er
 	}
 	// Create the file
 	fp, err := os.OpenFile(newTimeBucketInfo.Path, os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return fmt.Errorf("open new time bucket info file %s: %w", newTimeBucketInfo.Path, err)
+	}
 	defer fp.Close()
 	if err != nil {
 		return UnableToCreateFile(err.Error())

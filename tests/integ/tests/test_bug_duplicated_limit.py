@@ -12,7 +12,6 @@ client = pymkts.Client(f"http://127.0.0.1:{os.getenv('MARKETSTORE_PORT',5993)}/r
                        grpc=(os.getenv("USE_GRPC", "false") == "true"))
 
 
-# limit_from_startによってこれがバグらないことも確認したほうが良さそう
 @pytest.mark.parametrize(
     "symbol, isvariablelength, timeframe",
     [
