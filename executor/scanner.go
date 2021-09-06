@@ -344,7 +344,6 @@ func (r *Reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 			dataLen := len(resultBuffer)
 			resultBuffer, finished, err = ex.readForward(resultBuffer,
 				fp,
-				iop.RecordLen,
 				limitBytes,
 				readBuffer)
 			if iop.RecordType == VARIABLE {
@@ -506,7 +505,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 	}
 }
 
-func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, recordLen, bytesToRead int32, readBuffer []byte) (
+func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead int32, readBuffer []byte) (
 	resultBuffer []byte, finished bool, err error) {
 
 	// log.Info("reading forward [recordLen: %v bytesToRead: %v]", recordLen, bytesToRead)
@@ -523,7 +522,7 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, recordLen, byt
 	}
 	defer f.Close()
 
-	if _, err = f.Seek(fp.Offset, os.SEEK_SET); err != nil {
+	if _, err = f.Seek(fp.Offset, io.SeekStart); err != nil {
 		log.Error("Read: seeking in %s\n%s", filePath, err)
 		return finalBuffer, false, err
 	}

@@ -218,6 +218,7 @@ func TestWALReplay(t *testing.T) {
 	newWALFilePath := rootDir + "/" + newWALFileName
 	os.Remove(newWALFilePath) // Remove it if it exists
 	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
+	assert.Nil(t, err)
 	// Replace PID with a bogus PID
 	for i, val := range [8]byte{1, 1, 1, 1, 1, 1, 1, 1} {
 		WALFileAfterWALFlush[3+i] = val

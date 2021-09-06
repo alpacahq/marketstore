@@ -1,6 +1,7 @@
 package sirs
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -55,10 +56,10 @@ func CollectSirsFiles(basePath string, currentDateStr string) ([]string, error) 
 // LoadSirsFile loads a single Security info file
 func LoadSirsFile(fileName string) ([]*SecurityMaster, error) {
 	file, err := os.Open(fileName)
-	defer file.Close()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open a security info file %s: %w", fileName, err)
 	}
+	defer file.Close()
 	return ParseFile(file)
 }
 

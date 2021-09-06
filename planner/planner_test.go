@@ -51,7 +51,7 @@ func TestQuery(t *testing.T) {
 
 	q = planner.NewQuery(catalogDir)
 	q.AddRestriction("YYYYYY", "BBBYYY")
-	pr, err = q.Parse()
+	_, err = q.Parse()
 	assert.NotNil(t, err)
 
 	q = planner.NewQuery(catalogDir)

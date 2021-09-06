@@ -187,8 +187,8 @@ func newReader() (*readline.Instance, error) {
 }
 
 func printHeaderLine(cs *dbio.ColumnSeries) {
-	fmt.Printf(formatHeader(cs, "="))
-	fmt.Printf("\n")
+	fmt.Print(formatHeader(cs, "="))
+	fmt.Print("\n")
 }
 func printColumnNames(cs *dbio.ColumnSeries) {
 	for _, name := range cs.GetColumnNames() {

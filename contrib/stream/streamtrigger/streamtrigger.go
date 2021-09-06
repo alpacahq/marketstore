@@ -152,9 +152,8 @@ func ColumnSeriesForPayload(cs *io.ColumnSeries) *map[string]interface{} {
 
 	for key, col := range cs.GetColumns() {
 		s := reflect.ValueOf(col)
-		for i := 0; i < s.Len(); i++ {
-			m[key] = s.Index(i).Interface()
-			break
+		if s.Len() > 0 {
+			m[key] = s.Index(0).Interface()
 		}
 	}
 
