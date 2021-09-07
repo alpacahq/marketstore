@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"time"
 
 	bitmex "github.com/alpacahq/marketstore/v4/contrib/bitmexfeeder/api"
@@ -47,7 +48,10 @@ func recast(config map[string]interface{}) *FetcherConfig {
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	client := bitmex.Init()
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
+	client := bitmex.NewBitmexClient(httpClient)
 	symbols, err := client.GetInstruments()
 	if err != nil {
 		return nil, err
@@ -81,7 +85,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timeframeStr = config.BaseTimeframe
 	}
 	return &BitmexFetcher{
-		client:        &client,
+		client:        client,
 		config:        conf,
 		symbols:       symbols,
 		queryStart:    queryStart,
@@ -203,7 +207,7 @@ func (gd *BitmexFetcher) Run() {
 }
 
 func main() {
-	client := bitmex.Init()
+	client := bitmex.NewBitmexClient(&http.Client{})
 	start := time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)
 	res, err := client.GetBuckets("XBTUSD", start, "5m")
 	fmt.Println(res, err)

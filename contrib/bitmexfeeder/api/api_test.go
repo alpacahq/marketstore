@@ -1,17 +1,15 @@
+// +build integration
+
 package api
 
 import (
+	"net/http"
 	"testing"
 	"time"
 )
 
-var client BitmexClient
-
-func init() {
-	client = Init()
-}
-
 func TestGetInstruments(t *testing.T) {
+	client := NewBitmexClient(&http.Client{})
 	symbols, err := client.GetInstruments()
 	if err != nil {
 		t.Error(err)
@@ -28,6 +26,7 @@ func TestGetInstruments(t *testing.T) {
 }
 
 func TestGetBucket(t *testing.T) {
+	client := NewBitmexClient(&http.Client{})
 	symbol := "XBTUSD"
 	startTime := time.Date(2017, 1, 0, 0, 0, 0, 0, time.UTC)
 	trades, err := client.GetBuckets(symbol, startTime, "1H")
