@@ -71,6 +71,9 @@ func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, 
 		Get the time column
 	*/
 	ts, err := cols.GetTime()
+	if err != nil {
+		return nil, fmt.Errorf("get time column for tick candler: %w", err)
+	}
 	/*
 		Update each candle
 		Prepare a consolidated map of columns for use in updating sums

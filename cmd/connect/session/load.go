@@ -106,7 +106,7 @@ func (c *Client) load(line string) {
 }
 
 func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err error) {
-	req := frontend.WriteRequest{npm, isVariable}
+	req := frontend.WriteRequest{Data: npm, IsVariableLength: isVariable}
 	reqs := &frontend.MultiWriteRequest{
 		Requests: []frontend.WriteRequest{req},
 	}

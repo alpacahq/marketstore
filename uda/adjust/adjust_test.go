@@ -30,8 +30,6 @@ func setup(t *testing.T, testName string,
 	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata
 }
 
-type inputData []price
-
 type price struct {
 	epoch int64
 	price float64

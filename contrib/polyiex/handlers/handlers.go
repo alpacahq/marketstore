@@ -237,10 +237,8 @@ func (w *writer) write() {
 			csm = io.NewColumnSeriesMap()
 
 			for tbk, bucket := range w.dataBuckets {
-				switch bucket.(type) {
+				switch b:= bucket.(type) {
 				case []*quote:
-					b := bucket.([]*quote)
-
 					for _, q := range b {
 						epoch = append(epoch, q.epoch)
 						nanos = append(nanos, q.nanos)
@@ -268,8 +266,6 @@ func (w *writer) write() {
 						w.dataBuckets[tbk] = b[:0]
 					}
 				case []*trade:
-					b := bucket.([]*trade)
-
 					for _, t := range b {
 						epoch = append(epoch, t.epoch)
 						nanos = append(nanos, t.nanos)

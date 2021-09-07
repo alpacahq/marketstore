@@ -55,12 +55,12 @@ func TestSQLSelect(t *testing.T) {
 	defer tearDown()
 
 	stmt := "SELECT dibble JOIN;" // Should err out
-	queryTree, err := sqlparser.BuildQueryTree(stmt)
+	_, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, true, stmt)
 
 	stmt = "SELECT Epoch, Open, High, Low, Close from `EURUSD/1Min/OHLC` WHERE Epoch BETWEEN '2000-01-01' AND '2002-01-01';"
 	//stmt = "SELECT Epoch, Open, High, Low, Close from `EURUSD/1Min/OHLC` WHERE Epoch BETWEEN '2016-01-01' AND '2017-01-01';"
-	queryTree, err = sqlparser.BuildQueryTree(stmt)
+	queryTree, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
 	T_PrintExplain(queryTree, stmt)
 

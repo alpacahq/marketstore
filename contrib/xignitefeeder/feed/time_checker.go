@@ -70,8 +70,8 @@ func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
 	}
 
 	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {
-		log.Debug(fmt.Sprintf("[Xignite Feeder] the market is not open."+
-			"openTime=%v:%v, closeTime=%v:%v, now=%v",
+		log.Debug(fmt.Sprintf("[Xignite Feeder] market is not open. "+
+			"openTime=%02d:%02d, closeTime=%02d:%02d, now=%v",
 			m.OpenTime.Hour(), m.OpenTime.Minute(), m.CloseTime.Hour(), m.CloseTime.Minute(), t))
 		return false
 	}

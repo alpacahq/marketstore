@@ -43,10 +43,10 @@ func TestTickCandler(t *testing.T) {
 	//am.MapInputColumn("Sum", ds[1:])
 	am.MapRequiredColumn("Sum", ds...)
 	am.MapRequiredColumn("Avg", ds...)
-	cdl, err := tc.New(am, "1Min")
+	_, err := tc.New(am, "1Min")
 	assert.NotNil(t, err)
 	am.MapRequiredColumn("CandlePrice", ds...)
-	cdl, err = tc.New(am, "1Min")
+	cdl, err := tc.New(am, "1Min")
 	assert.Nil(t, err)
 	/*
 		We expect an error with an empty input arg set

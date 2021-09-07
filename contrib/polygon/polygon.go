@@ -103,8 +103,8 @@ func (pf *PolygonFetcher) workBackfillBars() {
 			// make sure epoch value isn't nil (i.e. hasn't
 			// been backfilled already)
 			if value != nil {
+				wg.Add(1)
 				go func() {
-					wg.Add(1)
 					defer wg.Done()
 
 					// backfill the symbol in parallel

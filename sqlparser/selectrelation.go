@@ -385,6 +385,9 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 						nanosecCol := outputColumnSeries.GetColumn("Nanoseconds")
 						if nanosecCol != nil {
 							nanosecs, ok = nanosecCol.([]int32)
+							if !ok {
+								return nil, fmt.Errorf("invalid nanosec dtype %v", nanosecCol)
+							}
 						}
 					}
 

@@ -37,9 +37,8 @@ func Write(writeMap map[io.TimeBucketKey]interface{}) {
 	)
 	csm = io.NewColumnSeriesMap()
 	for tbk, bucket := range writeMap {
-		switch bucket.(type) {
+		switch b := bucket.(type) {
 		case []*quote:
-			b := bucket.([]*quote)
 			for _, q := range b {
 				epoch = append(epoch, q.epoch)
 				nanos = append(nanos, q.nanos)
@@ -64,7 +63,6 @@ func Write(writeMap map[io.TimeBucketKey]interface{}) {
 				askSz = askSz[:0]
 			}
 		case []*trade:
-			b := bucket.([]*trade)
 			for _, t := range b {
 				epoch = append(epoch, t.epoch)
 				nanos = append(nanos, t.nanos)

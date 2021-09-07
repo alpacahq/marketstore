@@ -20,11 +20,8 @@ func StartDiskUsageMonitor(s Setter, rootDir string, interval time.Duration) {
 	s.Set(float64(diskUsage(rootDir)))
 
 	t := time.NewTicker(interval)
-	for {
-		select {
-		case <-t.C:
-			s.Set(float64(diskUsage(rootDir)))
-		}
+	for range t.C {
+		s.Set(float64(diskUsage(rootDir)))
 	}
 }
 

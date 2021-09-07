@@ -8,6 +8,8 @@ package calendar
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"strconv"
 	"strings"
 	"time"
@@ -65,7 +67,11 @@ func ParseTime(tstr string) Time {
 func New(calendarJSON string) *Calendar {
 	cal := Calendar{days: map[int]MarketState{}}
 	cmap := calendarJson{}
-	json.Unmarshal([]byte(calendarJSON), &cmap)
+	err := json.Unmarshal([]byte(calendarJSON), &cmap)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("failed to unmarshal calendarJson:%s", calendarJSON))
+		return nil
+	}
 	for _, dateString := range cmap.NonTradingDays {
 		t, _ := time.Parse("2006-01-02", dateString)
 		cal.days[jd(t)] = Closed
