@@ -2,7 +2,6 @@ package streamtrigger
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -25,7 +24,6 @@ type StreamTriggerConfig struct {
 
 var (
 	_         trigger.Trigger = &StreamTrigger{}
-	loadError                 = fmt.Errorf("plugin load error")
 )
 
 func recast(config map[string]interface{}) *StreamTriggerConfig {

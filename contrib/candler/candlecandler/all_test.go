@@ -91,16 +91,3 @@ func TestCandleCandler(t *testing.T) {
 	assert.True(t, reflect.DeepEqual(cmpsum, vsum))
 	assert.True(t, reflect.DeepEqual(cmpavg, vavg))
 }
-
-/*
-Utility functions
-*/
-func printCandles(cols io.ColumnInterface) {
-	fmt.Println(cols.GetTime())
-	fmt.Println(cols.GetColumn("Open"))
-	fmt.Println(cols.GetColumn("High"))
-	fmt.Println(cols.GetColumn("Low"))
-	fmt.Println(cols.GetColumn("Close"))
-	fmt.Println(cols.GetColumn("Volume_SUM"))
-	fmt.Println(cols.GetColumn("Volume_AVG"))
-}

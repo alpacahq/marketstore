@@ -46,7 +46,7 @@ func TestSender_Run_Sender(t *testing.T) {
 
 	// --- then ---
 	// message should be sent to ReplicationService
-	if bytes.Compare(mockService.LastSentMessage, message) != 0 {
+	if !bytes.Equal(mockService.LastSentMessage, message) {
 		t.Errorf("message is not sent")
 	}
 }
@@ -74,7 +74,7 @@ func TestSender_Run_Context_Done(t *testing.T) {
 
 	// --- then ---
 	// message should not be sent because the goroutine is already finished
-	if bytes.Compare(mockService.LastSentMessage, message) == 0 {
+	if bytes.Equal(mockService.LastSentMessage, message) {
 		t.Errorf("sender goroutine is not finished")
 	}
 }

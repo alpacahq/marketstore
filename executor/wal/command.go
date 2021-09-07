@@ -26,7 +26,7 @@ type WriteCommand struct {
 }
 
 // Convert WriteCommand to string for debuging/presentation
-func (wc *WriteCommand) toString() string {
+func (wc *WriteCommand) String() string {
 	return fmt.Sprintf("WC[%v] WALKeyPath:%s (len:%d, off:%d, idx:%d, dsize:%d)", wc.RecordType, wc.WALKeyPath, wc.VarRecLen, wc.Offset, wc.Index, len(wc.Data))
 }
 

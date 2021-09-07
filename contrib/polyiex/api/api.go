@@ -61,18 +61,6 @@ func makeAction(action, params string) []byte {
 	return msg
 }
 
-func getStatus(raw []byte) string {
-	packet := map[string]string{}
-	json.Unmarshal(raw, &packet)
-	if ev, ok := packet["ev"]; ok && ev == "status" {
-		status, ok := packet["status"]
-		if ok {
-			return status
-		}
-	}
-	return "unrecognized message:" + string(raw)
-}
-
 func expectStatusEvent(conn *websocket.Conn, expected, name string) error {
 	_, reply, err := conn.ReadMessage()
 	if err != nil {

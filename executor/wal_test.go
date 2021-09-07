@@ -190,6 +190,7 @@ func TestWALReplay(t *testing.T) {
 	fsize := fstat.Size()
 	WALFileAfterWALFlush := make([]byte, fsize)
 	bytesWritten, err := metadata.WALFile.FilePtr.ReadAt(WALFileAfterWALFlush, 0)
+	assert.Nil(t, err)
 	assert.Equal(t, int64(bytesWritten), fsize)
 
 	err = metadata.WALFile.CreateCheckpoint()
@@ -230,6 +231,7 @@ func TestWALReplay(t *testing.T) {
 
 	// Take over the new WALFile and replay it into a new TG cache
 	WALFile, err := executor.TakeOverWALFile(rootDir, newWALFileName)
+	assert.Nil(t, err)
 	data, _ := ioutil.ReadFile(newWALFilePath)
 	ioutil.WriteFile("/tmp/wal", data, 0644)
 	newTGC := executor.NewTransactionPipe()

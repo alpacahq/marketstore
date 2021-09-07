@@ -283,7 +283,7 @@ func TestFileRead(t *testing.T) {
 	)
 	parsed, err := q.Parse()
 	if err != nil {
-		t.Fatalf(fmt.Sprintf("Failed to parse query"), err)
+		t.Fatalf("Failed to parse query: %s", err)
 	}
 	scanner, err := executor.NewReader(parsed)
 	assert.Nil(t, err)
@@ -363,7 +363,7 @@ func TestDelete(t *testing.T) {
 	q.SetRange(startTime.UTC(), endTime.UTC())
 	parsed, err := q.Parse()
 	if err != nil {
-		t.Fatalf(fmt.Sprintf("Failed to parse query"), err)
+		t.Fatalf("Failed to parse query: %s", err)
 	}
 
 	// Read the data before delete
@@ -666,7 +666,7 @@ func TestAddSymbolThenWrite(t *testing.T) {
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
-	pr, _ := q.Parse()
+	q.Parse()
 	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 	assert.Nil(t, err)
 	w, err := executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
@@ -681,7 +681,7 @@ func TestAddSymbolThenWrite(t *testing.T) {
 
 	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
-	pr, _ = q.Parse()
+	pr, _ := q.Parse()
 	rd, err := executor.NewReader(pr)
 	assert.Nil(t, err)
 	columnSeries, err := rd.Read()

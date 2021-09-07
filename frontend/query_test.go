@@ -339,7 +339,7 @@ func TestFunctions(t *testing.T) {
 	service.Init()
 
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
-	fname, l_list, p_list, err := sqlparser.ParseFunctionCall(call)
+	_, _, p_list, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -347,7 +347,7 @@ func TestFunctions(t *testing.T) {
 	//	printFuncParams(fname, l_list, p_list)
 
 	call = "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
-	fname, l_list, p_list, err = sqlparser.ParseFunctionCall(call)
+	fname, l_list, p_list, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()

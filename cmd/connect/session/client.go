@@ -330,7 +330,6 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 			fmt.Printf("\n")
 		} else {
 			writer.Write(row)
-			row = []string{}
 		}
 	}
 	if writer == nil {

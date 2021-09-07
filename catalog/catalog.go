@@ -63,6 +63,9 @@ func load(rootDmap map[string]*Directory, d *Directory, subPath, rootPath string
 	// Load up the child directories
 	d.subDirs = make(map[string]*Directory)
 	dirlist, err := ioutil.ReadDir(subPath)
+	if err != nil {
+		return fmt.Errorf("read dir %s: %w", subPath, err)
+	}
 	for _, dirname := range dirlist {
 		leafPath := path.Clean(subPath + "/" + dirname.Name())
 		if dirname.IsDir() && dirname.Name() != "metadata.db" {

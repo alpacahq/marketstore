@@ -141,7 +141,7 @@ func CastToByteSlice(sliceData interface{}) []byte {
 func DataToByteSlice(srcData interface{}) []byte {
 	value := reflect.ValueOf(srcData)
 	size := int(value.Type().Size())
-	buffer := make([]byte, size, size)
+	buffer := make([]byte, size)
 	(*reflect.SliceHeader)(unsafe.Pointer(&buffer)).Data =
 		uintptr(unsafe.Pointer((*(*MValue)(unsafe.Pointer(&value))).Ptr))
 	return buffer

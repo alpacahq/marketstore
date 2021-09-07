@@ -140,9 +140,9 @@ func (f *IEXFetcher) Run() {
 			start = time.Now()
 		} else {
 			iWorkers <- true
-			go func(wg *sync.WaitGroup) {
-				wg.Add(1)
-				defer wg.Done()
+			iWg.Add(1)
+			go func() {
+				defer iWg.Done()
 				defer func() { <-iWorkers }()
 
 				f.pollIntraday(batch)
@@ -150,7 +150,7 @@ func (f *IEXFetcher) Run() {
 				if runDaily {
 					f.pollDaily(batch)
 				}
-			}(&iWg)
+			}()
 
 			<-time.After(limiter())
 		}

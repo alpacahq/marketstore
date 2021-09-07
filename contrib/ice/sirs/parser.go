@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-const charactersPerLine = 80
-const minLines = 6
+// const charactersPerLine = 80
+// const minLines = 6
 
 type loader struct {
 	stg         *SecurityMaster
