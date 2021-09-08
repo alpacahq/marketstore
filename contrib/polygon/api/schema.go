@@ -38,7 +38,7 @@ Streaming Schema from Polygon
 Streaming data
 */
 type PolyTrade struct {
-	//eventType  string  `json:"-"` //ev
+	eventType  string  `json:"-"` //ev
 	Symbol     string  `json:"sym"`
 	//exchange   int     `json:"-"` //x
 	Price      float64 `json:"p"`
