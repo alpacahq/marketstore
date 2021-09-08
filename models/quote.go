@@ -17,8 +17,6 @@ const (
 // Quote defines schema and helper functions for storing Ask-Bid quote data
 type Quote struct {
 	Tbk         *io.TimeBucketKey
-	csm         io.ColumnSeriesMap
-	cs          *io.ColumnSeries
 	Epoch       []int64
 	Nanos       []int32
 	BidPrice    []float64

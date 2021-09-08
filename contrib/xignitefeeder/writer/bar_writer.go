@@ -92,43 +92,6 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []api.Bar, isIndexSymbo
 	return csm, nil
 }
 
-func (b *BarWriterImpl) convertIndexToCSM(symbol string, bars []api.Bar) (io.ColumnSeriesMap, error) {
-	var (
-		epochs  []int64
-		opens   []float32
-		closes  []float32
-		highs   []float32
-		lows    []float32
-		volumes []float32
-	)
-	csm := io.NewColumnSeriesMap()
-
-	for _, bar := range bars {
-		// skip the symbol which startDate or endDate is empty string and cannot be parsed,
-		// which means the symbols have never been executed
-		if time.Time(bar.StartDateTime) == (time.Time{}) || time.Time(bar.EndDateTime) == (time.Time{}) {
-			continue
-		}
-
-		// UTCOffset is used to adjust the time to UTC based on the config.
-		UTCOffset := time.Duration(-1*bar.UTCOffSet) * time.Hour
-
-		// Start time of each bar is used for "epoch"
-		// to align with the 1-day chart backfill. ("00:00:00"(starting time of a day) is used for epoch)
-		epochs = append(epochs, time.Time(bar.StartDateTime).Add(UTCOffset).In(b.Timezone).Unix())
-		opens = append(opens, bar.Open)
-		closes = append(closes, bar.Close)
-		highs = append(highs, bar.High)
-		lows = append(lows, bar.Low)
-		volumes = append(volumes, bar.Volume)
-	}
-
-	cs := b.newColumnSeries(epochs, opens, closes, highs, lows, volumes)
-	tbk := io.NewTimeBucketKey(symbol + "/" + b.Timeframe + "/OHLCV")
-	csm.AddColumnSeries(*tbk, cs)
-	return csm, nil
-}
-
 func (b BarWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows, volumes []float32) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epochs)

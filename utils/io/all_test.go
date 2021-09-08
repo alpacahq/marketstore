@@ -465,10 +465,7 @@ func TestApplyTimeQual(t *testing.T) {
 	cs := makeTestCS()
 
 	tq := func(epoch int64) bool {
-		if epoch == int64(2) {
-			return true
-		}
-		return false
+		return epoch == int64(2)
 	}
 
 	tqCS := cs.ApplyTimeQual(tq)

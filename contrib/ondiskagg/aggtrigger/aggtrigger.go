@@ -62,7 +62,6 @@ type OnDiskAggTrigger struct {
 
 var (
 	_         trigger.Trigger = &OnDiskAggTrigger{}
-	loadError                 = errors.New("plugin load error")
 )
 
 func recast(config map[string]interface{}) *AggTriggerConfig {
@@ -107,25 +106,6 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 		filter:       filter,
 		aggCache:     &sync.Map{},
 	}, nil
-}
-func minInt64(values []int64) int64 {
-	min := values[0]
-	for _, v := range values[1:] {
-		if v < min {
-			min = v
-		}
-	}
-	return min
-}
-
-func maxInt64(values []int64) int64 {
-	max := values[0]
-	for _, v := range values[1:] {
-		if v > max {
-			max = v
-		}
-	}
-	return max
 }
 
 // Fire implements trigger interface.

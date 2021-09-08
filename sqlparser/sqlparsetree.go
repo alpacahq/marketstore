@@ -43,10 +43,8 @@ type StatementParse struct {
 	qualifiedNames, tableElements, booleanExpressions                   []IMSTree
 	callArguments, privileges, explainOptions, identifiers, expressions []IMSTree
 	sortItems, transactionModes                                         []IMSTree
-	grantee, statement, tableProperties                                 IMSTree
+	statement, tableProperties                                          IMSTree
 	IsFrom, IsGrantOption, IsAll, IsExists                              bool
-	pattern                                                             string
-	limit                                                               int
 	QueryText                                                           string
 }
 

@@ -18,7 +18,6 @@ const (
 type Trade struct {
 	Tbk      *io.TimeBucketKey
 	csm      io.ColumnSeriesMap
-	cs       *io.ColumnSeries
 	Epoch    []int64
 	Nanos    []int32
 	Price    []enum.Price

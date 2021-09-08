@@ -339,7 +339,7 @@ func TestFunctions(t *testing.T) {
 	service.Init()
 
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
-	_, _, p_list, err := sqlparser.ParseFunctionCall(call)
+	_, _, _, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -388,14 +388,4 @@ func TestFunctions(t *testing.T) {
 	ti := time.Unix(lastTime, 0).UTC()
 	tref := time.Date(2002, time.December, 31, 23, 55, 0, 0, time.UTC)
 	assert.Equal(t, ti, tref)
-}
-
-func printFuncParams(fname string, l_list, p_list []string) {
-	fmt.Printf("LAL funcName=:%s:\n", fname)
-	for i, val := range l_list {
-		fmt.Printf("LAL literal[%d]=:%s:\n", i, val)
-	}
-	for i, val := range p_list {
-		fmt.Printf("LAL param[%d]=:%s:\n", i, val)
-	}
 }

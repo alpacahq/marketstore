@@ -112,9 +112,7 @@ func (f *TimeBucketInfo) GetDataShapesWithEpoch() (out []DataShape) {
 	ep := DataShape{Name: "Epoch", Type: INT64}
 	dsv := f.GetDataShapes()
 	out = append(out, ep)
-	for _, shape := range dsv {
-		out = append(out, shape)
-	}
+	out = append(out, dsv...)
 	return out
 }
 

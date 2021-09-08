@@ -80,7 +80,7 @@ func TestNewConfig(t *testing.T) {
 			}
 
 			// --- shutDown ---
-			for key, _ := range tt.envVars {
+			for key := range tt.envVars {
 				_ = os.Unsetenv(key)
 			}
 		})

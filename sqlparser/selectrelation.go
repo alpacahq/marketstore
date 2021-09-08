@@ -221,7 +221,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			Evaluate all predicates on final results set
 		*/
 		totalLength := outputColumnSeries.Len()
-		removalBitmap := make([]bool, totalLength, totalLength) // true means we ditch the value, default is keep
+		removalBitmap := make([]bool, totalLength) // true means we ditch the value, default is keep
 		for _, name := range outputColumnSeries.GetColumnNames() {
 			if sp, ok := sr.StaticPredicates[name]; ok {
 				i_col := outputColumnSeries.GetColumn(name)

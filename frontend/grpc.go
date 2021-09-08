@@ -34,20 +34,6 @@ var dataTypeMap = map[proto.DataType]io.EnumElementType{
 	proto.DataType_STRING16: io.STRING16,
 }
 
-var reverseMap = reverseDataTypeMap(dataTypeMap)
-
-func reverseDataTypeMap(m map[proto.DataType]io.EnumElementType) map[io.EnumElementType]proto.DataType {
-	n := map[io.EnumElementType]proto.DataType{}
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
-func toProtoDataType(elemType io.EnumElementType) proto.DataType {
-	return reverseMap[elemType]
-}
-
 // GRPCService is the implementation of GRPC API for Marketstore.
 // All grpc/protobuf-related logics and models are defined in this file.
 type GRPCService struct {

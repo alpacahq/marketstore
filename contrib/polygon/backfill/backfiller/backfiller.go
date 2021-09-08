@@ -42,7 +42,7 @@ var (
 	noIngest                            bool
 	unadjusted                          bool
 	// NY timezone
-	NY, _          = time.LoadLocation("America/New_York")
+	// NY, _          = time.LoadLocation("America/New_York")
 	configFilePath string
 
 	format = "2006-01-02"
@@ -245,7 +245,7 @@ func main() {
 	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
 	log.Info("[polygon] write time %s", backfill.WriteTime)
-	log.Info("[polygon] backfilling complete %s", time.Now().Sub(startTime))
+	log.Info("[polygon] backfilling complete %s", time.Since(startTime))
 }
 
 func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int) {
