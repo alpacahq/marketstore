@@ -40,7 +40,7 @@ Streaming data
 type PolyTrade struct {
 	eventType  string  `json:"-"` //ev
 	Symbol     string  `json:"sym"`
-	//exchange   int     `json:"-"` //x
+	exchange   int     `json:"-"` //x
 	Price      float64 `json:"p"`
 	Size       int     `json:"s"`
 	Timestamp  int64   `json:"t"`
