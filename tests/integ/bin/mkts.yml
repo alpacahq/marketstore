@@ -1,4 +1,4 @@
-root_directory: /tmp/mktsdb
+root_directory: /project/data/mktsdb
 listen_port: 5993
 grpc_listen_port: 5995
 polling_interval: 60
