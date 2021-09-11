@@ -281,7 +281,8 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 		recordType := fileRecordTypes[keyPath]
 		varRecLen := varRecLens[keyPath]
 		if err := wf.writePrimary(keyPath, writes, recordType, varRecLen); err != nil {
-			return err
+			// TODO: what should we do if the write commit partially failed?
+			log.Error(fmt.Sprintf("failed to write data to file %s: %s", keyPath, err.Error()))
 		}
 		for i, buffer := range writes {
 			wf.tpd.AppendRecord(keyPath, trigger.Record(buffer.IndexAndPayload()))
@@ -347,7 +348,7 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 	}
 	if err != nil {
 		// this is critical, in fact, since tx has been committed
-		log.Error("cannot open file %s for write: %v", fullPath, err)
+		log.Error("cannot open file %s for write transaction commit: %v", fullPath, err)
 		return err
 	}
 	defer fp.Close()
