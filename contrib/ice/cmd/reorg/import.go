@@ -1,6 +1,7 @@
 package reorg
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
@@ -38,7 +39,11 @@ var ImportCmd = &cobra.Command{
 		}
 		dataDir := args[0]
 		reorgDir := args[1]
-		executor.NewInstanceSetup(dataDir, nil, nil, 5, true, true, true, true)
+		_, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil, 5, true, true, true, true)
+		if err != nil {
+			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
+		}
+
 		reorg.Import(reorgDir, reimport, storeWithoutSymbols)
 		return nil
 	},

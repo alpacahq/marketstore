@@ -66,7 +66,7 @@ func init() {
 }
 
 // executeStart implements the start command.
-func executeStart(_ *cobra.Command, _ []string) error {
+func executeStart(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
 	globalCtx, globalCancel := context.WithCancel(ctx)
 
@@ -76,6 +76,9 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		globalCancel()
 		return fmt.Errorf("failed to read configuration file error: %s", err.Error())
 	}
+
+	// Don't output command usage if args(=only the filepath to mkts.yml at the moment) are correct
+	cmd.SilenceUsage = true
 
 	// Log config location.
 	log.Info("using %v for configuration", configFilePath)
@@ -121,14 +124,17 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		}
 
 		grpcReplicationServer = grpc.NewServer(opts...)
-		rs = initReplicationMaster(globalCtx, grpcReplicationServer, config.Replication.ListenPort)
+		rs, err = initReplicationMaster(globalCtx, grpcReplicationServer, config.Replication.ListenPort)
+		if err != nil {
+			return fmt.Errorf("failed to initialize replication master: %w", err)
+		}
 		log.Info("initialized replication master")
 	}
 
 	start := time.Now()
 
 	triggerMatchers := trigger.NewTriggerMatchers(config.Triggers)
-	instanceConfig, shutdownPending, walWG := executor.NewInstanceSetup(
+	instanceConfig, shutdownPending, walWG, err := executor.NewInstanceSetup(
 		config.RootDirectory,
 		rs,
 		triggerMatchers,
@@ -138,8 +144,11 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		config.BackgroundSync,
 		config.WALBypass,
 	)
+	if err != nil {
+		return fmt.Errorf("craete new instance setup: %w", err)
+	}
 
-	go metrics.StartDiskUsageMonitor(metrics.TotalDiskUsageBytes, config.RootDirectory, 10 * time.Minute)
+	go metrics.StartDiskUsageMonitor(metrics.TotalDiskUsageBytes, config.RootDirectory, 10*time.Minute)
 
 	startupTime := time.Since(start)
 	metrics.StartupTime.Set(startupTime.Seconds())
@@ -177,7 +186,8 @@ func executeStart(_ *cobra.Command, _ []string) error {
 			writer,
 		)
 		if err != nil {
-			log.Fatal("Unable to startup Replication", err)
+			log.Error("Unable to startup Replication", err)
+			return err
 		}
 		log.Info("initialized replication client")
 
@@ -289,14 +299,15 @@ func shutdown(shutdownPending *bool, walWaitGroup *sync.WaitGroup) {
 	os.Exit(0)
 }
 
-func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenPort int) *replication.Sender {
+func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenPort int) (*replication.Sender, error) {
 	grpcReplicationServer := replication.NewGRPCReplicationService()
 	pb.RegisterReplicationServer(grpcServer, grpcReplicationServer)
 
 	// start gRPC server for Replication
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", listenPort))
 	if err != nil {
-		log.Fatal("failed to listen a port for replication:" + err.Error())
+		log.Error("failed to listen a port for replication:" + err.Error())
+		return nil, fmt.Errorf("failed to listen a port for replication. listenPort=%d:%w", listenPort, err)
 	}
 	go func() {
 		log.Info("starting GRPC server for replication...")
@@ -308,7 +319,7 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenP
 	replicationSender := replication.NewSender(grpcReplicationServer)
 	replicationSender.Run(ctx)
 
-	return replicationSender
+	return replicationSender, nil
 }
 
 func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string,

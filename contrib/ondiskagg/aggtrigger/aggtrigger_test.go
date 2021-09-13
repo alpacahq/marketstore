@@ -109,9 +109,10 @@ func TestFireBars(t *testing.T) {
 
 	rootDir := filepath.Join(tempDir, "mktsdb")
 	os.MkdirAll(rootDir, 0777)
-	executor.NewInstanceSetup(
+	_, _, _, err := executor.NewInstanceSetup(
 		rootDir, nil, nil,
 		5, true, true, false, false)
+	assert.Nil(t, err)
 
 	ts := utils.TriggerSetting{
 		Module: "ondiskagg.so",

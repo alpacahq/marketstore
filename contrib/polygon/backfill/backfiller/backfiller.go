@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -75,7 +76,11 @@ func init() {
 
 func main() {
 	rootDir, triggers, walRotateInterval := initConfig()
-	instanceMeta, shutdownPending, walWG := initWriter(rootDir, triggers, walRotateInterval)
+	instanceMeta, shutdownPending, walWG,err := initWriter(rootDir, triggers, walRotateInterval)
+	if err != nil {
+		log.Error("failed to set up new instance config. err="+ err.Error())
+		os.Exit(1)
+	}
 
 	// free memory in the background every 1 minute for long running backfills with very high parallelism
 	go func() {
@@ -265,7 +270,7 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 }
 
 func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int,
-) (instanceConfig *executor.InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup) {
+) (instanceConfig *executor.InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
 	// if configured, also load the ondiskagg triggers
 	var tm []*trigger.TriggerMatcher
 	for _, triggerSetting := range triggers {
@@ -276,9 +281,13 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 		}
 	}
 
-	instanceConfig, shutdownPending, walWG = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval, true, true, true, true)
+	instanceConfig, shutdownPending, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
+		true, true, true, true)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
+	}
 
-	return instanceConfig, shutdownPending, walWG
+	return instanceConfig, shutdownPending, walWG, nil
 }
 
 func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {

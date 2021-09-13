@@ -28,7 +28,9 @@ func setup(t *testing.T, testName string,
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, shutdownPending, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, shutdownPending, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+		true, true, false)
+	assert.Nil(t, err)
 
 	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata, shutdownPending
 }
