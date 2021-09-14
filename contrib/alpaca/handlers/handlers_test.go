@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"testing"
 
@@ -15,7 +16,9 @@ func setup(t *testing.T, testName string) (tearDown func()) {
 	t.Helper()
 
 	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("handlers_test-%s", testName))
-	_, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true) // WAL Bypass
+	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+		true, true, false, true) // WAL Bypass
+	assert.Nil(t, err)
 
 	return func() { test.CleanupDummyDataDir(rootDir) }
 }

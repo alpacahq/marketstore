@@ -28,7 +28,8 @@ func setup(t *testing.T, testName string,
 	t.Helper()
 
 	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("stream_test-%s", testName))
-	_, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	assert.Nil(t, err)
 	stream.Initialize()
 
 	return func() { test.CleanupDummyDataDir(rootDir) }

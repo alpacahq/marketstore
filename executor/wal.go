@@ -71,7 +71,8 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 	}
 
 	if err = wf.createFile(rootDir); err != nil {
-		log.Fatal("%v: Can not create new WALFile - Error: %v", io.GetCallerFileContext(0), err)
+		log.Error("%v: Can not create new WALFile - Error: %v", io.GetCallerFileContext(0), err)
+		return nil, fmt.Errorf("can not create new WALFile: %w", err)
 	}
 	wf.WriteStatus(wal.OPEN, wal.NOTREPLAYED)
 
@@ -810,7 +811,7 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) error {
 	rootDir = filepath.Clean(rootDir)
 	files, err := ioutil.ReadDir(rootDir)
 	if err != nil {
-		return fmt.Errorf("Unable to read root directory %s: %w", rootDir, err)
+		return fmt.Errorf("unable to read root directory %s: %w", rootDir, err)
 	}
 	myFileBase := filepath.Base(wf.FilePtr.Name())
 	log.Info("My WALFILE: %s", myFileBase)

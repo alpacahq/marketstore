@@ -123,14 +123,14 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 
 	absoluteRootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
 	if aux.RootDirectory == "" || err != nil {
-		log.Fatal("Invalid root directory.")
-		return nil, errors.New("Invalid root directory.")
+		log.Error("Invalid root directory. rootDir=" + aux.RootDirectory)
+		return nil, errors.New(fmt.Sprintf("invalid root directory. rootDir=%s, err=%v", aux.RootDirectory, err))
 	}
 	m.RootDirectory = absoluteRootDir
 
 	if aux.ListenPort == "" {
-		log.Fatal("Invalid listen port.")
-		return nil, errors.New("Invalid listen port.")
+		log.Error("listen port can't be empty.")
+		return nil, errors.New("invalid listen port. Listen port can't be empty")
 	}
 
 	// GRPC is optional for now

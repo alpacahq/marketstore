@@ -220,7 +220,7 @@ func nextBatch(bars []*consolidator.Bar, index int) ([]*consolidator.Bar, int) {
 	return batch, len(bars)
 }
 
-func initWriter() {
+func initWriter() error {
 	utils.InstanceConfig.Timezone = NY
 	walRotateInterval := 5
 	instanceID := time.Now().UTC().UnixNano()
@@ -240,13 +240,17 @@ func initWriter() {
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
 
-	executor.NewInstanceSetup(
+	_, _, _, err = executor.NewInstanceSetup(
 		relRootDir, nil, triggerMatchers,
 		walRotateInterval, true, true, true, true)
+	if err != nil {
+		return fmt.Errorf("failed to create new instance setup for iex/backfill: %w", err)
+	}
 
 	log.Info(
 		"Initialized writer with InstanceID: %v - relRootDir: %v\n",
 		instanceID,
 		relRootDir,
 	)
+	return nil
 }

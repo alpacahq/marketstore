@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -22,7 +23,7 @@ type InstanceMetadata struct {
 
 func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.TriggerMatcher,
 	walRotateInterval int, options ...bool,
-) (metadata *InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup) {
+) (metadata *InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
 	/*
 		Defaults
 	*/
@@ -47,7 +48,6 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		ThisInstance = new(InstanceMetadata)
 	}
 
-	var err error
 	// rootDir is the absolute path to the data directory.
 	// e.g. rootDir = "/project/marketstore/data"
 	rootDir, err := filepath.Abs(filepath.Clean(relRootDir))
@@ -57,7 +57,8 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		log.Info("Root Directory: %s", rootDir)
 		err = os.Mkdir(rootDir, 0770)
 		if err != nil && !os.IsExist(err) {
-			log.Fatal("Could not create root directory: %s", err.Error())
+			log.Error("Could not create root directory: %s", err.Error())
+			return nil, nil, nil, err
 		}
 	}
 	instanceID := time.Now().UTC().UnixNano()
@@ -70,7 +71,8 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 			if errors.As(err, &e) {
 				log.Debug("new root directory found:" + rootDir)
 			} else {
-				log.Fatal("Could not create a catalog directory: %s.", err.Error())
+				log.Error("Could not create a catalog directory: %s.", err.Error())
+				return nil, nil, nil, err
 			}
 		}
 	}
@@ -89,7 +91,8 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 			WALBypass, &shutdownPend, walWG, tpd, txnPipe,
 		)
 		if err != nil {
-			log.Fatal("Unable to create WAL")
+			log.Error("Unable to create WAL. err="+ err.Error())
+			return nil, nil, nil, fmt.Errorf("unable to create WAL: %w", err)
 		}
 
 		// Allocate a new WALFile and cache
@@ -105,5 +108,5 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 			walWG.Add(1)
 		}
 	}
-	return ThisInstance, &shutdownPend, walWG
+	return ThisInstance, &shutdownPend, walWG, nil
 }
