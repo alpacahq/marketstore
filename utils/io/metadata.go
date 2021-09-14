@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"fmt"
@@ -18,6 +19,13 @@ import (
 const Headersize = 37024
 const FileinfoVersion = int64(2.0)
 
+type IsInitialized = uint32
+
+var (
+	TbiInitialized    IsInitialized = 1
+	TbiNotInitialized IsInitialized = 0
+)
+
 func nanosecondsInYear(year int) int64 {
 	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
 	end := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local)
@@ -30,12 +38,12 @@ func FileSize(tf time.Duration, year int, recordSize int) int64 {
 }
 
 type TimeBucketInfo struct {
-	// Year, Path and IsRead are all set on catalog startup
+	// Year, Path and IsInitialized are all set on catalog startup
 	Year int16
 	// Path is the absolute path to the data binary file.
 	// (e.g. "/project/marketstore/data/TEST/1Sec/Tick/2021.bin")
-	Path   string
-	IsRead bool
+	Path          string
+	IsInitialized IsInitialized
 
 	version     int64
 	description string
@@ -67,12 +75,12 @@ func AlignedSize(unalignedSize int) (alignedSize int) {
 func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16, dsv []DataShape, recordType EnumRecordType) (f *TimeBucketInfo) {
 	elementTypes, elementNames := CreateShapesForTimeBucketInfo(dsv)
 	f = &TimeBucketInfo{
-		Year:        year,
-		Path:        filepath.Join(path, strconv.Itoa(int(year))+".bin"),
-		IsRead:      true,
-		version:     FileinfoVersion,
-		description: description,
-		timeframe:   tf.Duration,
+		Year:          year,
+		Path:          filepath.Join(path, strconv.Itoa(int(year))+".bin"),
+		IsInitialized: 1,
+		version:       FileinfoVersion,
+		description:   description,
+		timeframe:     tf.Duration,
 
 		nElements:  int32(len(elementTypes)),
 		recordType: recordType,
@@ -104,7 +112,7 @@ func NewTimeBucketInfoFromHeader(hp *Header, path string) *TimeBucketInfo {
 	f := &TimeBucketInfo{
 		Year:                 int16(hp.Year),
 		Path:                 filepath.Clean(path),
-		IsRead:               true,
+		IsInitialized:        TbiInitialized,
 		version:              hp.Version,
 		description:          string(bytes.Trim(hp.Description[:], "\x00")),
 		timeframe:            time.Duration(hp.Timeframe),
@@ -161,11 +169,14 @@ func (f *TimeBucketInfo) getFieldRecordLength() (fieldRecordLength int) {
 
 // GetDeepCopy returns a copy of this TimeBucketInfo.
 func (f *TimeBucketInfo) GetDeepCopy() *TimeBucketInfo {
-	f.initFromFilePath()
+	err := f.initFromFile()
+	if err != nil {
+
+	}
 	fcopy := TimeBucketInfo{
 		Year:                 f.Year,
 		Path:                 f.Path,
-		IsRead:               f.IsRead,
+		IsInitialized:        f.IsInitialized,
 		version:              f.version,
 		description:          f.description,
 		timeframe:            f.timeframe,
@@ -181,12 +192,14 @@ func (f *TimeBucketInfo) GetDeepCopy() *TimeBucketInfo {
 	return &fcopy
 }
 
-// initFromFilePath retrieves all TimeBucketInfo parameters from f.filepath.
-// When catalog.Directory is loaded, new TimeBucketInfo struct is lazily constructed
-// with only f.filepath and f.isRead=False parameters so that it doesn't need to actually open files to get the params.
-// This function is called when the TimeBucketInfo is actually used to get the parameters.
-func (f *TimeBucketInfo) initFromFilePath() error {
-	if f.IsRead {
+// initFromFile retrieves all TimeBucketInfo parameters from f.filepath
+// if the tbi is not initialized.
+// Context: When catalog.Directory is loaded, new TimeBucketInfo struct is lazily constructed
+// with only f.filepath and f.isInitialized=io.TbiNotInitialized parameters
+// so that it doesn't need to actually open files to get the params.
+// This function is called when the TimeBucketInfo is actually used.
+func (f *TimeBucketInfo) initFromFile() error {
+	if atomic.LoadUint32(&f.IsInitialized) == TbiInitialized {
 		// do nothing if we found it already done
 		return nil
 	}
@@ -194,13 +207,13 @@ func (f *TimeBucketInfo) initFromFilePath() error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	// if not initialized yet, read the information from the file
 	tbi, err := NewTimeBucketInfoFromFile(f.Path)
 	if err != nil {
-		log.Fatal(err.Error())
+		return fmt.Errorf("failed to read TimeBucketInfo from file %s:%w", f.Path, err)
 	}
 	f.Year = tbi.Year
 	f.Path = tbi.Path
-	f.IsRead = true
 	f.version = tbi.version
 	f.description = tbi.description
 	f.timeframe = tbi.timeframe
@@ -213,66 +226,54 @@ func (f *TimeBucketInfo) initFromFilePath() error {
 	copy(f.elementNames, tbi.elementNames)
 	copy(f.elementTypes, tbi.elementTypes)
 
+	atomic.StoreUint32(&f.IsInitialized, TbiInitialized)
 	return nil
-}
-
-func (f *TimeBucketInfo) initFromFile() {
-	if f.IsRead {
-		// do nothing if we found it already done
-		return
-	}
-	tbi, err := NewTimeBucketInfoFromFile(f.Path)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	f = tbi
-	f.IsRead = true
 }
 
 // GetVersion returns the version number for the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetVersion() int64 {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.version
 }
 
 // GetDescription returns the description string contained in the
 // given TimeBucketInfo.
 func (f *TimeBucketInfo) GetDescription() string {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.description
 }
 
 // GetTimeframe returns the duration for which each record's data is valid.
 // This means for 1Min resolution data, GetTimeframe will return time.Minute.
 func (f *TimeBucketInfo) GetTimeframe() time.Duration {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.timeframe
 }
 
 // GetIntervals returns the number of records that can fit in a 24 hour day.
 func (f *TimeBucketInfo) GetIntervals() int64 {
-	f.initFromFilePath()
+	f.initFromFile()
 	return utils.Day.Nanoseconds() / f.timeframe.Nanoseconds()
 }
 
 // GetNelements returns the number of elements (data fields) for a given
 // TimeBucketInfo.
 func (f *TimeBucketInfo) GetNelements() int32 {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.nElements
 }
 
 // GetRecordLength returns the length of a single record in the file described
 // by the given TimeBucketInfo
 func (f *TimeBucketInfo) GetRecordLength() int32 {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.recordLength
 }
 
 // GetVariableRecordLength returns the length of a single record for a variable
 // length TimeBucketInfo file
 func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
-	f.initFromFilePath()
+	f.initFromFile()
 	if f.recordType == VARIABLE && f.variableRecordLength == 0 {
 		// Variable records use the raw element sizes plus a 4-byte trailer for interval ticks
 		f.variableRecordLength = int32(f.getFieldRecordLength()) + 4 // Variable records have a 4-byte trailer
@@ -283,21 +284,21 @@ func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
 // GetRecordType returns the type of the file described by the TimeBucketInfo
 // as an EnumRecordType
 func (f *TimeBucketInfo) GetRecordType() EnumRecordType {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.recordType
 }
 
 // GetElementNames returns the field names contained by the file described by
 // the given TimeBucketInfo
 func (f *TimeBucketInfo) GetElementNames() []string {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.elementNames
 }
 
 // GetElementTypes returns the field types contained by the file described by
 // the given TimeBucketInfo
 func (f *TimeBucketInfo) GetElementTypes() []EnumElementType {
-	f.initFromFilePath()
+	f.initFromFile()
 	return f.elementTypes
 }
 
