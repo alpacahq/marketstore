@@ -110,7 +110,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 	if err != nil {
 		return err
 	}
-	ApiCallTime += time.Now().Sub(t)
+	ApiCallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
@@ -333,7 +333,7 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 			quotes = append(quotes, resp.Ticks...)
 		}
 	}
-	ApiCallTime += time.Now().Sub(t)
+	ApiCallTime += time.Since(t)
 
 	if NoIngest {
 		return nil

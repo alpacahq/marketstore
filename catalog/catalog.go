@@ -476,7 +476,7 @@ func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
 	catListFunc := func(d *Directory, i_list interface{}) {
 		list := i_list.(map[string]map[string]int)
 		if list[d.category] == nil {
-			list[d.category] = make(map[string]int, 0)
+			list[d.category] = make(map[string]int)
 		}
 		if d.subDirs != nil {
 			for _, subdir := range d.subDirs {
@@ -489,7 +489,7 @@ func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
 			}
 		}
 	}
-	catList := make(map[string]map[string]int, 0)
+	catList := make(map[string]map[string]int)
 	d.recurse(catList, catListFunc)
 	return catList
 }
@@ -575,7 +575,7 @@ func (d *Directory) gatherCategoriesUpdateCache() map[string]int8 {
 		list := i_list.(map[string]int8)
 		list[d.category] = 0
 	}
-	newCatList := make(map[string]int8, 0)
+	newCatList := make(map[string]int8)
 	d.recurse(newCatList, catListFunc)
 	d.Lock()
 	d.catList = newCatList
@@ -583,28 +583,6 @@ func (d *Directory) gatherCategoriesUpdateCache() map[string]int8 {
 	return newCatList
 }
 
-func (d *Directory) getOwningSubDirectoryByRecursion(filePath string) (subDir *Directory, err error) {
-	// Locates the directory in the catalog that matches the path - note that this is O(N)
-	// Must be thread-safe for READ access
-	dirPath := path.Dir(filePath)
-	findDirectory := func(d *Directory, _ interface{}) {
-		if subDir != nil {
-			// We have already found our directory match
-			return
-		}
-		if d.pathToItemName == dirPath {
-			subDir = d
-			return
-		}
-	}
-
-	d.recurse(subDir, findDirectory)
-	if subDir == nil {
-		return nil, NotFoundError("")
-	} else {
-		return subDir, nil
-	}
-}
 func (d *Directory) GetLatestYearFile() (latestFile *io.TimeBucketInfo, err error) {
 	// Must be thread-safe for READ access
 	d.RLock()

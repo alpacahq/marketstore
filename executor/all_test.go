@@ -814,17 +814,6 @@ type OHLCVtest struct {
 	Volume                 int32
 }
 
-type testOHLC struct {
-	timestamp              int64
-	open, high, low, close float32
-}
-
-type testOHLCV struct {
-	Timestamp              int64
-	Open, High, Low, Close float32
-	Volume                 int32
-}
-
 func nearestSecond(seconds int64, nanos int32) int64 {
 	if nanos > 500000000 {
 		return seconds + 1
