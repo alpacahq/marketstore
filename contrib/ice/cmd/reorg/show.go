@@ -31,7 +31,10 @@ var ShowRecordsCmd = &cobra.Command{
 		}
 		cusip := args[1]
 		dataDir := args[0]
-		metadata, _, _ := executor.NewInstanceSetup(dataDir, nil, nil, 5, true, true, true, true)
+		metadata, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil, 5, true, true, true, true)
+		if err != nil {
+			return fmt.Errorf("failed to create new instance setup for Show command: %w", err)
+		}
 		showRecords(cusip, metadata.CatalogDir)
 		return nil
 	},

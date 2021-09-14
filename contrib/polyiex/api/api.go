@@ -95,7 +95,11 @@ func Stream(handler func(m []byte), prefix string, symbols []string) (err error)
 
 	// initial auth handshake
 	authMsg := makeAction("auth", apiKey)
-	conn.WriteMessage(websocket.TextMessage, authMsg)
+	err = conn.WriteMessage(websocket.TextMessage, authMsg)
+	if err != nil {
+		log.Error("%v", err)
+		return
+	}
 
 	if err = expectStatusEvent(conn, "success", "authentication"); err != nil {
 		log.Error("%v", err)

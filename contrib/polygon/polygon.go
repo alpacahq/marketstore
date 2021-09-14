@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 	"sync"
 	"time"
 
@@ -86,42 +85,6 @@ func (pf *PolygonFetcher) Run() {
 	}
 
 	select {}
-}
-
-func (pf *PolygonFetcher) workBackfillBars() {
-	ticker := time.NewTicker(30 * time.Second)
-
-	writerWP := worker.NewWorkerPool(1)
-	for range ticker.C {
-		wg := sync.WaitGroup{}
-		count := 0
-
-		// range over symbols that need backfilling, and
-		// backfill them from the last written record
-		backfill.BackfillM.Range(func(key, value interface{}) bool {
-			symbol := key.(string)
-			// make sure epoch value isn't nil (i.e. hasn't
-			// been backfilled already)
-			if value != nil {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-
-					// backfill the symbol in parallel
-					pf.backfillBars(symbol, time.Unix(*value.(*int64), 0), writerWP)
-					backfill.BackfillM.Store(key, nil)
-				}()
-			}
-
-			// limit 10 goroutines per CPU core
-			if count >= runtime.NumCPU()*10 {
-				return false
-			}
-
-			return true
-		})
-		wg.Wait()
-	}
 }
 
 func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *worker.WorkerPool) {

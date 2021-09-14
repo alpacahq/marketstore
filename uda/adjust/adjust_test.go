@@ -25,7 +25,8 @@ func setup(t *testing.T, testName string,
 	rounderNum = math.Pow(10, 3)
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("adjust_test-%s", testName))
-	metadata, _, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
+	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
+	assert.Nil(t, err)
 
 	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata
 }

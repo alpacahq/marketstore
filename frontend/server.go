@@ -21,8 +21,7 @@ import (
 )
 
 var (
-	queryableError = errors.New("Server is not queryable")
-	argsNilError   = errors.New("Arguments are nil, can not query using nil arguments")
+	queryableError = errors.New("server is not queryable")
 )
 
 type Writer interface {

@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -165,20 +163,6 @@ func makeBars(trades []*tops.TradeReportMessage, openTime, closeTime time.Time) 
 	return bars
 }
 
-func writeBar(bar *consolidator.Bar, w *csv.Writer) error {
-	row := []string{
-		bar.Symbol,
-		bar.OpenTime.Format(time.RFC3339),
-		strconv.FormatFloat(bar.Open, 'f', 4, 64),
-		strconv.FormatFloat(bar.High, 'f', 4, 64),
-		strconv.FormatFloat(bar.Low, 'f', 4, 64),
-		strconv.FormatFloat(bar.Close, 'f', 4, 64),
-		strconv.FormatInt(bar.Volume, 10),
-	}
-	log.Debug("write bar: %v", row)
-	return w.Write(row)
-}
-
 func writeBars(bars []*consolidator.Bar) error {
 	csm := NewColumnSeriesMap()
 
@@ -236,7 +220,7 @@ func nextBatch(bars []*consolidator.Bar, index int) ([]*consolidator.Bar, int) {
 	return batch, len(bars)
 }
 
-func initWriter() {
+func initWriter() error {
 	utils.InstanceConfig.Timezone = NY
 	walRotateInterval := 5
 	instanceID := time.Now().UTC().UnixNano()
@@ -256,13 +240,17 @@ func initWriter() {
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
 
-	executor.NewInstanceSetup(
+	_, _, _, err = executor.NewInstanceSetup(
 		relRootDir, nil, triggerMatchers,
 		walRotateInterval, true, true, true, true)
+	if err != nil {
+		return fmt.Errorf("failed to create new instance setup for iex/backfill: %w", err)
+	}
 
 	log.Info(
 		"Initialized writer with InstanceID: %v - relRootDir: %v\n",
 		instanceID,
 		relRootDir,
 	)
+	return nil
 }

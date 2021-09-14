@@ -48,31 +48,31 @@ type PolyTrade struct {
 }
 
 type PolyQuote struct {
-	eventType   string  `json:"-"` //ev
+	//eventType   string  `json:"-"` //ev
 	Symbol      string  `json:"sym"`
-	bidExchange int     `json:"-"`
+	//bidExchange int     `json:"-"`
 	BidPrice    float64 `json:"bp"`
 	BidSize     int     `json:"bs"`
-	askExchange int     `json:"-"`
+	//askExchange int     `json:"-"`
 	AskPrice    float64 `json:"ap"`
 	AskSize     int     `json:"as"`
-	condition   int     `json:"-"`
+	//condition   int     `json:"-"`
 	Timestamp   int64   `json:"t"`
 }
 
 type PolyAggregate struct {
-	eventType    string  `json:"-"` //ev
+	//eventType    string  `json:"-"` //ev
 	Symbol       string  `json:"sym"`
 	Volume       int     `json:"v"`
-	accumVolume  int     `json:"-"`
-	officialOpen float64 `json:"-"`
-	vWAP         float64 `json:"-"`
+	//accumVolume  int     `json:"-"`
+	//officialOpen float64 `json:"-"`
+	//vWAP         float64 `json:"-"`
 	Open         float64 `json:"o"`
 	Close        float64 `json:"c"`
 	High         float64 `json:"h"`
 	Low          float64 `json:"l"`
 	EpochMillis  int64   `json:"s"`
-	endTime      int64   `json:"-"`
+	//endTime      int64   `json:"-"`
 }
 
 /*

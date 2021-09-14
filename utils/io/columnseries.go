@@ -446,10 +446,8 @@ func GetNamesFromDSV(dataShapes []DataShape) (out []string) {
 	return out
 }
 func GetDSVFromInterface(i_dsv interface{}) (out []DataShape) {
-	if i_dsv != nil {
-		if _, ok := i_dsv.([]DataShape); ok {
-			return i_dsv.([]DataShape)
-		}
+	if _, ok := i_dsv.([]DataShape); ok {
+		return i_dsv.([]DataShape)
 	}
 	return nil
 }

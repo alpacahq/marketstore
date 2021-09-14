@@ -128,7 +128,7 @@ func CastToByteSlice(sliceData interface{}) []byte {
 	elemSize := elemType.Size()
 
 	bufLen := sliceLen * int(elemSize)
-	buffer := make([]byte, 0, 0)
+	buffer := make([]byte, 0)
 	bufHeader := (*reflect.SliceHeader)(unsafe.Pointer(&buffer))
 	bufHeader.Len = bufLen
 	bufHeader.Cap = bufLen

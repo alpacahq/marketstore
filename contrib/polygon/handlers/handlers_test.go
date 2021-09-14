@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -20,7 +21,8 @@ func setup(t *testing.T, testName string,
 	t.Helper()
 
 	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("handlers_test-%s", testName))
-	executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
+	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
+	assert.Nil(t, err)
 
 	return func() { test.CleanupDummyDataDir(rootDir) }
 }

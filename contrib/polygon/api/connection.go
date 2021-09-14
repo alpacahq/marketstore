@@ -139,7 +139,6 @@ func (p *PolygonWebSocket) receiveMessages(out chan []byte) {
 	}
 ErrorOut:
 	out <- nil
-	return
 }
 
 func (p *PolygonWebSocket) connect() (err error) {
@@ -176,7 +175,6 @@ func (p *PolygonWebSocket) disconnect() {
 	}
 
 	p.conn = nil
-	return
 }
 
 func (p *PolygonWebSocket) readMsg() string {

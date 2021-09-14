@@ -173,7 +173,7 @@ func TestWALReplay(t *testing.T) {
 	// Get the base files associated with this cache so that we can verify later
 	// Note that at this point the files are unmodified
 	allFileContents := createBufferFromFiles(t, queryFiles2002)
-	fileContentsOriginal2002 := make(map[string][]byte, 0)
+	fileContentsOriginal2002 := make(map[string][]byte)
 	for filePath, buffer := range allFileContents {
 		if filepath.Base(filePath) == "2002.bin" {
 			fileContentsOriginal2002[filePath] = buffer
@@ -276,7 +276,7 @@ func createBufferFromFiles(t *testing.T, queryFiles []string) (originalFileConte
 	t.Helper()
 
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
-	originalFileContents = make(map[string][]byte, 0)
+	originalFileContents = make(map[string][]byte)
 	for _, filePath := range queryFiles {
 		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
 		assert.Nil(t, err)

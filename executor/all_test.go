@@ -28,7 +28,9 @@ func setup(t *testing.T, testName string,
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, shutdownPending, _ = executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, shutdownPending, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+		true, true, false)
+	assert.Nil(t, err)
 
 	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata, shutdownPending
 }
@@ -810,17 +812,6 @@ type OHLCtest struct {
 
 type OHLCVtest struct {
 	Epoch                  int64
-	Open, High, Low, Close float32
-	Volume                 int32
-}
-
-type testOHLC struct {
-	timestamp              int64
-	open, high, low, close float32
-}
-
-type testOHLCV struct {
-	Timestamp              int64
 	Open, High, Low, Close float32
 	Volume                 int32
 }
