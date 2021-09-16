@@ -490,7 +490,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 
 				// Update lastKnown only once the first time
 				if fp.seekingLast {
-					if offset, err := f.Seek(0, os.SEEK_CUR); err == nil {
+					if offset, err := f.Seek(0, io.SeekCurrent); err == nil {
 						offset = offset - nn + int64(i)*recordSize64
 					}
 					fp.seekingLast = false
@@ -562,7 +562,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	defer f.Close()
 
 	// Seek to the right end of the search set
-	f.Seek(beginPos+fp.Length, os.SEEK_SET)
+	f.Seek(beginPos+fp.Length, io.SeekStart)
 	// Seek backward one buffer size (max)
 	maxToRead, curpos, err := seekBackward(f, maxToBuffer, beginPos)
 	if err != nil {
@@ -624,7 +624,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 
 func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt int64, curpos int64, err error) {
 	// Find the current file position
-	curpos, err = f.Seek(0, os.SEEK_CUR)
+	curpos, err = f.Seek(0, io.SeekCurrent)
 	if err != nil {
 		log.Error("Read: cannot find current file position: %s", err)
 		return 0, curpos, err
@@ -635,7 +635,7 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 	} else {
 		seekAmt = int64(relative_offset)
 	}
-	curpos, err = f.Seek(-seekAmt, os.SEEK_CUR)
+	curpos, err = f.Seek(-seekAmt, io.SeekCurrent)
 	if err != nil {
 		err = fmt.Errorf("Error: seeking to rel offset: %d lowerBound: %d | %s",
 			relative_offset, lowerBound, err)

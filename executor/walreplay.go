@@ -47,18 +47,6 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	txnStatePrimary := make(map[int64]TxnStatusEnum)
 	offsetTGDataInWAL := make(map[int64]int64)
 
-	fullRead := func(err error) bool {
-		// Check to see if we have read only partial data
-		if err != nil {
-			if _, ok := err.(wal.ShortReadError); ok {
-				log.Info("Partial Read")
-				return false
-			} else {
-				log.Fatal(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
-			}
-		}
-		return true
-	}
 	log.Info("Beginning WAL Replay")
 	if !writeData {
 		log.Info("Debugging mode enabled - no writes will be performed...")
@@ -192,4 +180,18 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 	wf.CreateCheckpoint()
 
 	return nil
+}
+
+func fullRead(err error) bool {
+	// Check to see if we have read only partial data
+	if err != nil {
+		if _, ok := err.(wal.ShortReadError); ok {
+			log.Info(fmt.Sprintf("Partial Read. err=%v", err))
+			return false
+		} else {
+			log.Fatal(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
+
+		}
+	}
+	return true
 }

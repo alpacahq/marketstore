@@ -421,10 +421,10 @@ func (wf *WALFileType) WriteStatus(FileStatus wal.FileStatusEnum, ReplayState wa
 	buffer, _ = io.Serialize(buffer, int8(wf.FileStatus))
 	buffer, _ = io.Serialize(buffer, int8(wf.ReplayState))
 	buffer, _ = io.Serialize(buffer, wf.OwningInstanceID)
-	wf.FilePtr.Seek(0, os.SEEK_SET)
+	wf.FilePtr.Seek(0, goio.SeekStart)
 	wf.FilePtr.Write(buffer)
 	wf.FilePtr.Sync()
-	wf.FilePtr.Seek(0, os.SEEK_END)
+	wf.FilePtr.Seek(0, goio.SeekEnd)
 }
 func (wf *WALFileType) write(buffer []byte) {
 	wf.FilePtr.Write(buffer)
@@ -668,31 +668,42 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) error {
 	myFileBase := filepath.Base(wf.FilePtr.Name())
 	log.Info("My WALFILE: %s", myFileBase)
 	for _, file := range files {
-		if !file.IsDir() {
-			filename := file.Name()
-			if filepath.Ext(filename) == ".walfile" {
-				if filename != myFileBase {
-					log.Info("Found a WALFILE: %s, entering replay...", filename)
-					filePath := filepath.Join(rootDir, filename)
-					fi, _ := os.Stat(filePath)
-					if fi.Size() < 11 {
-						log.Info("WALFILE: %s is empty, removing it...", filename)
-						os.Remove(filePath)
-					} else {
-						w, err := TakeOverWALFile(rootDir, filename)
-						if err != nil {
-							return fmt.Errorf("opening %s: %w", filename, err)
-						}
-						if err = w.Replay(true); err != nil {
-							return fmt.Errorf("unable to replay %s: %w", filename, err)
-						}
+		// ignore directories
+		if file.IsDir() {
+			// ignore
+			continue
+		}
 
-						if err = w.Delete(wf.OwningInstanceID); err != nil {
-							return err
-						}
-					}
-				}
-			}
+		// ignore files except wal
+		filename := file.Name()
+		if filepath.Ext(filename) != ".walfile" {
+			continue
+		}
+
+		// ignore the newest wal file
+		if filename == myFileBase {
+			continue
+		}
+
+		log.Info("Found a WALFILE: %s, entering replay...", filename)
+		filePath := filepath.Join(rootDir, filename)
+		fi, _ := os.Stat(filePath)
+		if fi.Size() < 11 {
+			log.Info("WALFILE: %s is empty, removing it...", filename)
+			os.Remove(filePath)
+			continue
+		}
+
+		w, err := TakeOverWALFile(rootDir, filename)
+		if err != nil {
+			return fmt.Errorf("opening %s: %w", filename, err)
+		}
+		if err = w.Replay(true); err != nil {
+			return fmt.Errorf("unable to replay %s: %w", filename, err)
+		}
+
+		if err = w.Delete(wf.OwningInstanceID); err != nil {
+			return err
 		}
 	}
 	return nil

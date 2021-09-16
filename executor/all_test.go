@@ -574,7 +574,7 @@ func TestLastN(t *testing.T) {
 		fmt.Println("Filename: ", filename)
 		fp, err := os.OpenFile(filename, os.O_RDWR, 0600)
 		c.Assert(err == nil, Equals, true)
-		fp.Seek(io.Headersize, os.SEEK_SET)
+		fp.Seek(io.Headersize, io.SeekStart)
 		OneDayOfMinutes := int(24 * 60 * 24)
 		buffer = make([]byte, OneDayOfMinutes)
 		n, _ := fp.Write(buffer)
