@@ -2,6 +2,7 @@ package wal
 
 import (
 	"fmt"
+	io2 "io"
 	"os"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -36,13 +37,13 @@ func Read(fp *os.File, targetOffset int64, buffer []byte) (result []byte, newOff
 		Read from the WAL file
 			targetOffset: -1 will read from current position
 	*/
-	offset, err := fp.Seek(0, os.SEEK_CUR)
+	offset, err := fp.Seek(0, io2.SeekCurrent)
 	if err != nil {
 		log.Fatal(io.GetCallerFileContext(0) + ": Unable to seek in WALFile")
 	}
 	if targetOffset != -1 {
 		if offset != targetOffset {
-			fp.Seek(targetOffset, os.SEEK_SET)
+			fp.Seek(targetOffset, io2.SeekStart)
 		}
 	}
 	numToRead := len(buffer)

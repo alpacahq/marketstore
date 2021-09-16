@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strconv"
@@ -167,7 +168,7 @@ func DummyDataFromText(rootDir, symbol, timeframe, data string) {
 				c:     candle.c,
 			}
 			data := SwapSliceData([]ohlc{ondisk}, byte(0)).([]byte)
-			file.Seek(offset, os.SEEK_SET)
+			file.Seek(offset, io.SeekStart)
 			_, err = file.Write(data)
 			checkfail(err, "Unable to write data to: "+fileName)
 		}

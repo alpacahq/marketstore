@@ -2,6 +2,7 @@ package io
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"sync"
 	"unsafe"
@@ -265,7 +266,7 @@ func (f *TimeBucketInfo) readHeader(path string) (err error) {
 		return err
 	}
 	// Read past empty element name space
-	file.Seek(1024*32-secondReadSize, os.SEEK_CUR)
+	file.Seek(1024*32-secondReadSize, io.SeekCurrent)
 
 	// Read element types
 	start := 312 + 1024*32
