@@ -85,7 +85,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 			}
 			// Mark this as a pending Fileinfo reference
 			d.datafile[leafPath] = new(io.TimeBucketInfo)
-			d.datafile[leafPath].IsRead = false
+			d.datafile[leafPath].IsInitialized = io.TbiNotInitialized
 			d.datafile[leafPath].Path = leafPath
 			yearFileBase := filepath.Base(leafPath)
 			yearString := yearFileBase[:len(yearFileBase)-4]
