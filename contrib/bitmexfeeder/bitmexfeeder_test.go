@@ -21,23 +21,6 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	var config = getConfig(`{
-        "symbols": ["XBTUSD"]
-        }`)
-	var worker *BitmexFetcher
-	var ret bgworker.BgWorker
-	var err error
-	ret, err = NewBgWorker(config)
-	worker = ret.(*BitmexFetcher)
-	assert.Equal(t, len(worker.symbols), 1)
-	assert.Equal(t, worker.symbols[0], "XBTUSD")
-	assert.Nil(t, err)
-
-	config = getConfig(``)
-	ret, err = NewBgWorker(config)
-	worker = ret.(*BitmexFetcher)
-	assert.Nil(t, err)
-
 	hc := NewTestClient(func(req *http.Request) *http.Response {
 		return &http.Response{
 			StatusCode: http.StatusOK,
@@ -45,6 +28,26 @@ func TestNew(t *testing.T) {
 			Header:     make(http.Header),
 		}
 	})
+
+	var config = getConfig(`{
+        "symbols": ["XBTUSD"]
+        }`)
+	config["httpClient"] = hc // inject http client
+	var worker *BitmexFetcher
+	var ret bgworker.BgWorker
+	var err error
+	ret, err = NewBgWorker(config)
+	worker = ret.(*BitmexFetcher)
+	assert.Equal(t, 1, len(worker.symbols))
+	assert.Equal(t, "XBTUSD", worker.symbols[0])
+	assert.Nil(t, err)
+
+	config = getConfig(``)
+	config = map[string]interface{}{"httpClient": hc} // inject http client
+	ret, err = NewBgWorker(config)
+	worker = ret.(*BitmexFetcher)
+	assert.Nil(t, err)
+
 	client := bitmex.NewBitmexClient(hc)
 	symbols, err := client.GetInstruments()
 	assert.Nil(t, err)
@@ -53,6 +56,7 @@ func TestNew(t *testing.T) {
 	config = getConfig(`{
 	    "query_start": "2017-01-02 00:00"
 		}`)
+	config["httpClient"] = hc // inject http client
 	ret, err = NewBgWorker(config)
 	if err != nil {
 		fmt.Println(err)

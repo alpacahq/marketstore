@@ -48,9 +48,21 @@ func recast(config map[string]interface{}) *FetcherConfig {
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
 // for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	httpClient := &http.Client{
-		Timeout: time.Second * 10,
+	var (
+		httpClient *http.Client
+		ok         bool
+	)
+	// inject httpClient (mainly for testing)
+	if hc, found := conf["httpClient"]; found {
+		httpClient, ok = hc.(*http.Client)
+		delete(conf, "httpClient") // without delete, err occurs when recast conf
 	}
+	if !ok {
+		httpClient = &http.Client{
+			Timeout: time.Second * 10,
+		}
+	}
+
 	client := bitmex.NewBitmexClient(httpClient)
 	symbols, err := client.GetInstruments()
 	if err != nil {
