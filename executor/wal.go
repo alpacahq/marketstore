@@ -2,6 +2,7 @@ package executor
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	goio "io"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
-	"sort"
 
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
@@ -131,8 +131,12 @@ func (wf *WALFileType) close(ReplayStatus wal.ReplayStateEnum) {
 	wf.FilePtr.Close()
 }
 func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
-	if !wf.canDeleteSafely(callersInstanceID) {
-		log.Fatal("BUG: cannot delete the current instance's WALfile: %s", wf.FilePtr.Name())
+	canDeleteSafely, err := wf.canDeleteSafely(callersInstanceID)
+	if err != nil {
+		return fmt.Errorf("check if wal file can be deleted safely. WALfile=%s: %w", wf.FilePtr.Name(), err)
+	}
+	if !canDeleteSafely {
+		return errors.New("BUG: cannot delete the current instance's WALfile:" + wf.FilePtr.Name())
 	}
 
 	if !wf.IsOpen() {
@@ -143,7 +147,12 @@ func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
 		log.Warn(io.GetCallerFileContext(0) + ": Can not delete active WALFile")
 		return fmt.Errorf("WAL File is active")
 	}
-	if wf.NeedsReplay() {
+
+	needsReplay, err := wf.NeedsReplay()
+	if err != nil {
+		return fmt.Errorf("read if wal needs replay:%w", err)
+	}
+	if needsReplay {
 		log.Warn(io.GetCallerFileContext(0) + ": WALFile needs replay, can not delete")
 		return fmt.Errorf("WAL File needs replay")
 	}
@@ -211,7 +220,9 @@ func (wf *WALFileType) FlushToWAL() (err error) {
 	}
 
 	if !wf.walBypass {
-		if !wf.CanWrite("WriteTG", wf.OwningInstanceID) {
+		canWrite, err := wf.CanWrite("WriteTG", wf.OwningInstanceID)
+		// TODO: error handling to move walFile to a temporary file and create a new one when walFile is corrupted.
+		if err != nil || !canWrite {
 			panic("Failed attempt to write to WAL")
 		}
 
@@ -402,149 +413,6 @@ func (tgl TGIDlist) Len() int           { return len(tgl) }
 func (tgl TGIDlist) Less(i, j int) bool { return tgl[i] < tgl[j] }
 func (tgl TGIDlist) Swap(i, j int)      { tgl[i], tgl[j] = tgl[j], tgl[i] }
 
-func (wf *WALFileType) Replay(writeData bool) error {
-	/*
-		Replay this WAL File's unwritten transactions.
-		We will do this in two passes, in the first pass we will collect the Transaction Group IDs that are
-		not yet durably written to the primary store. In the second pass, we write the data into the
-		Primary Store directly and then flush the results.
-		Finally we close the WAL File and mark it completely written.
-
-		1) First WAL Pass: Locate unwritten TGIDs
-		2) Second WAL Pass: Load the open TG data into the Primary Data files
-		3) Flush the TG Cache to primary and mark this WAL File completely processed
-
-		Note that the TG Data for any given TGID should appear in the WAL only once. We verify it in the first
-		pass.
-	*/
-
-	// Make sure this file needs replay
-	if !wf.NeedsReplay() {
-		err := fmt.Errorf("WALFileType.NeedsReplay No Replay Needed")
-		log.Info(err.Error())
-		return err
-	}
-
-	// Take control of this file and set the status
-	if writeData {
-		wf.WriteStatus(wal.OPEN, wal.REPLAYINPROCESS)
-	}
-
-	// First pass of WAL Replay: determine transaction states and record locations of TG data
-	txnStateWAL := make(map[int64]TxnStatusEnum)
-	txnStatePrimary := make(map[int64]TxnStatusEnum)
-	offsetTGDataInWAL := make(map[int64]int64)
-
-	fullRead := func(err error) bool {
-		// Check to see if we have read only partial data
-		if err != nil {
-			if _, ok := err.(wal.ShortReadError); ok {
-				log.Info("Partial Read")
-				return false
-			} else {
-				log.Fatal(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
-			}
-		}
-		return true
-	}
-	log.Info("Beginning WAL Replay")
-	if !writeData {
-		log.Info("Debugging mode enabled - no writes will be performed...")
-	}
-	// Create a map to store the TG Data prior to replay
-	TGData := make(map[int64][]byte)
-
-	wf.FilePtr.Seek(0, goio.SeekStart)
-	continueRead := true
-	for continueRead {
-		MID, err := wf.readMessageID()
-		if continueRead = fullRead(err); !continueRead {
-			break // Break out of read loop
-		}
-		switch MID {
-		case TGDATA:
-			// Read a TGData
-			offset, _ := wf.FilePtr.Seek(0, goio.SeekCurrent)
-			TGID, TG_Serialized, err := wf.readTGData()
-			TGData[TGID] = TG_Serialized
-			if continueRead = fullRead(err); !continueRead {
-				break // Break out of switch
-			}
-			// Throw FATAL if there is already a TG data location in this WAL
-			if _, ok := offsetTGDataInWAL[TGID]; ok {
-				log.Fatal(io.GetCallerFileContext(0) + ": Duplicate TG Data in WAL")
-			}
-			//			log.Info("Successfully read past TG data for TGID: %v", TGID)
-			// Save the offset of this TG Data for the second pass
-			offsetTGDataInWAL[TGID] = offset
-		case TXNINFO:
-			// Read a TXNInfo
-			TGID, destination, txnStatus, err := wf.readTransactionInfo()
-			if continueRead = fullRead(err); !continueRead {
-				break // Break out of switch
-			}
-			switch destination {
-			case WAL:
-				txnStateWAL[TGID] = txnStatus
-			case CHECKPOINT:
-				if _, ok := TGData[TGID]; ok && txnStatus == COMMITCOMPLETE {
-					// Remove all TGData for TGID less than this complete one
-					for tgid := range TGData {
-						if tgid <= TGID {
-							TGData[tgid] = nil
-							delete(TGData, tgid)
-						}
-					}
-				} else {
-					// Record this txnStatus for later analysis
-					txnStatePrimary[TGID] = txnStatus
-				}
-			}
-		case STATUS:
-			// Read the status - note that this message should only be at the file beginning
-			_, _, _, err := wal.ReadStatus(wf.FilePtr)
-			if continueRead = fullRead(err); !continueRead {
-				break // Break out of switch
-			}
-		default:
-			log.Warn("Unknown meessage id %d", MID)
-		}
-	}
-
-	// Second Pass of WAL Replay: Find any pending transactions based on the state and load the TG data into cache
-	log.Info("Entering replay of TGData")
-	// We need to replay TGs in descending TGID order
-
-	// StringSlice attaches the methods of Interface to []string, sorting in increasing order.
-
-	var sortedTGIDs TGIDlist
-	for tgid := range TGData {
-		sortedTGIDs = append(sortedTGIDs, tgid)
-	}
-	sort.Sort(sortedTGIDs)
-
-	//for tgid, TG_Serialized := range TGData {
-	for _, tgid := range sortedTGIDs {
-		TG_Serialized := TGData[tgid]
-		if TG_Serialized != nil {
-			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
-			if writeData {
-				rootDir := filepath.Dir(wf.FilePtr.Name())
-				tgID, wtSets := ParseTGData(TG_Serialized, rootDir)
-				if err := wf.replayTGData(tgID, wtSets); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	log.Info("Replay of WAL file %s finished", wf.FilePtr.Name())
-	if writeData {
-		wf.WriteStatus(wal.OPEN, wal.REPLAYED)
-	}
-
-	log.Info("Finished replay of TGData")
-	return nil
-}
 func (wf *WALFileType) WriteStatus(FileStatus wal.FileStatusEnum, ReplayState wal.ReplayStateEnum) {
 	wf.FileStatus = FileStatus
 	wf.ReplayState = ReplayState
@@ -695,42 +563,6 @@ func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wa
 	return TGID, wtSets
 }
 
-func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) {
-	if len(wtSets) == 0 {
-		return nil
-	}
-
-	cfp := NewCachedFP() // Cached open file pointer
-	defer cfp.Close()
-
-	for _, wtSet := range wtSets {
-		fp, err := cfp.GetFP(wtSet.FilePath)
-		if err != nil {
-			return err
-		}
-		switch wtSet.RecordType {
-		case io.FIXED:
-			if err = WriteBufferToFile(fp, wtSet.Buffer); err != nil {
-				return err
-			}
-		case io.VARIABLE:
-			// Find the record length - we need it to use the time column as a sort key later
-			if err = WriteBufferToFileIndirect(fp,
-				wtSet.Buffer,
-				wtSet.VarRecLen,
-			); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("Error: Record Type is incorrect from WALFile, invalid/outdated WAL file?")
-		}
-	}
-	wf.lastCommittedTGID = tgID
-	wf.CreateCheckpoint()
-
-	return nil
-}
-
 func (wf *WALFileType) IsOpen() bool {
 	_, err := wf.FilePtr.Stat()
 	if err != nil {
@@ -743,17 +575,20 @@ func (wf *WALFileType) IsOpen() bool {
 	}
 	return true
 }
-func (wf *WALFileType) syncStatusRead() {
+func (wf *WALFileType) syncStatusRead() error {
 	_, err := wf.FilePtr.Stat()
 	if err != nil {
-		log.Fatal(io.GetCallerFileContext(0) + ": File stat failed")
+		log.Error(io.GetCallerFileContext(0) + ": File stat failed")
+		return fmt.Errorf("failed to read walFile status. trace=%s: %w", io.GetCallerFileContext(0), err)
 	}
 	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = readStatus(wf.FilePtr)
+
+	return nil
 }
 
 func readStatus(filePtr *os.File) (fileStatus wal.FileStatusEnum, replayStatus wal.ReplayStateEnum, owningInstanceID int64) {
 	// Read from beginning of file +1 to skip over the MID
-	filePtr.Seek(1, os.SEEK_SET)
+	filePtr.Seek(1, goio.SeekStart)
 	var err error
 	fileStatus, replayStatus, owningInstanceID, err = wal.ReadStatus(filePtr)
 	if err != nil {
@@ -761,7 +596,7 @@ func readStatus(filePtr *os.File) (fileStatus wal.FileStatusEnum, replayStatus w
 	}
 	//	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = fileStatus, replayStatus, owningInstanceID
 	// Reset the file pointer to the end of the file
-	filePtr.Seek(0, os.SEEK_END)
+	filePtr.Seek(0, goio.SeekEnd)
 	return fileStatus, replayStatus, owningInstanceID
 }
 
@@ -774,32 +609,49 @@ func (wf *WALFileType) isActive(callersInstanceID int64) bool {
 	rState := wf.ReplayState
 	return wf.IsOpen() && wf.callerOwnsFile(callersInstanceID) && rState == wal.NOTREPLAYED
 }
-func (wf *WALFileType) NeedsReplay() bool {
-	wf.syncStatusRead()
-	if wf.ReplayState == wal.NOTREPLAYED || wf.ReplayState == wal.REPLAYINPROCESS {
-		return true
+func (wf *WALFileType) NeedsReplay() (bool, error) {
+	err := wf.syncStatusRead()
+	if err != nil {
+		return false, fmt.Errorf("wal syncStatuRead: %w", err)
 	}
-	return false
+
+	if wf.ReplayState == wal.NOTREPLAYED || wf.ReplayState == wal.REPLAYINPROCESS {
+		return true, nil
+	}
+	return false, nil
 }
-func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) bool {
-	wf.syncStatusRead()
+func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) (bool, error) {
+	err := wf.syncStatusRead()
+	if err != nil {
+		return false, fmt.Errorf("read syncStatus:%w", err)
+	}
 	if !wf.isActive(callersInstanceID) {
 		log.Warn(io.GetCallerFileContext(0) + ": Inactive WALFile")
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
-func (wf *WALFileType) canDeleteSafely(callersInstanceID int64) bool {
-	wf.syncStatusRead()
+func (wf *WALFileType) canDeleteSafely(callersInstanceID int64) (bool, error) {
+	err := wf.syncStatusRead()
+	if err != nil {
+		return false, fmt.Errorf("failed to read wal sync status. callersInstanceID=%d:%w",
+			callersInstanceID, err)
+	}
+
 	if wf.isActive(callersInstanceID) {
 		log.Warn(io.GetCallerFileContext(0) + ": WALFile is active, can not delete")
-		return false
+		return false, nil
 	}
-	if wf.NeedsReplay() {
+	needsReplay, err := wf.NeedsReplay()
+	if err != nil {
+		return false, fmt.Errorf("failed to check if wal needs replay: %w", err)
+	}
+	if needsReplay {
 		log.Warn(io.GetCallerFileContext(0) + ": WALFile needs replay, can not delete")
-		return false
+		return false, nil
 	}
-	return true
+
+	return true, nil
 }
 func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 	// As a sanity check, get the file size to ensure that TGLen is reasonable prior to buffer allocations

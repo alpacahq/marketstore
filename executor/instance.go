@@ -99,6 +99,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		if !WALBypass {
 			err = ThisInstance.WALFile.cleanupOldWALFiles(rootDir)
 			if err != nil {
+				// TODO: error handling to move walfile to a temporary file and create a new one when walfile is corrupted
 				log.Fatal("Unable to startup Cache and WAL")
 			}
 		}
