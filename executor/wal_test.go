@@ -72,7 +72,10 @@ func TestWALWrite(t *testing.T) {
 	assert.False(t, compareFileToBuf(t, originalFileContents, queryFiles))
 
 	assert.True(t, metadata.WALFile.IsOpen())
-	assert.True(t, metadata.WALFile.CanWrite("WALTest", mockInstanceID))
+
+	canWrite, err := metadata.WALFile.CanWrite("WALTest", mockInstanceID)
+	assert.True(t, canWrite)
+	assert.Nil(t, err)
 	metadata.WALFile.WriteStatus(wal.OPEN, wal.REPLAYED)
 
 	metadata.WALFile.Delete(mockInstanceID)
