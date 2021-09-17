@@ -10,22 +10,18 @@ import (
 	"sort"
 )
 
-func (wf *WALFileType) Replay(writeData bool) error {
-	/*
-		Replay this WAL File's unwritten transactions.
-		We will do this in two passes, in the first pass we will collect the Transaction Group IDs that are
-		not yet durably written to the primary store. In the second pass, we write the data into the
-		Primary Store directly and then flush the results.
-		Finally we close the WAL File and mark it completely written.
-
-		1) First WAL Pass: Locate unwritten TGIDs
-		2) Second WAL Pass: Load the open TG data into the Primary Data files
-		3) Flush the TG Cache to primary and mark this WAL File completely processed
-
-		Note that the TG Data for any given TGID should appear in the WAL only once. We verify it in the first
-		pass.
-	*/
-
+// Replay loads this WAL File's unwritten transactions to primary store and mark it completely processed.
+// We will do this in two passes, in the first pass we will collect the Transaction Group IDs that are
+// not yet durably written to the primary store. In the second pass, we write the data into the
+// Primary Store directly and then flush the results.
+// Finally we close the WAL File and mark it completely written.
+//
+// 1) First WAL Pass: Locate unwritten TGIDs
+// 2) Second WAL Pass: Load the open TG data into the Primary Data files
+// 3) Flush the TG Cache to primary and mark this WAL File completely processed
+//
+// Note that the TG Data for any given TGID should appear in the WAL only once. We verify it in the first pass.
+func (wf *WALFileType) Replay(dryRun bool) error {
 	// Make sure this file needs replay
 	needsReplay, err := wf.NeedsReplay()
 	if err != nil {
@@ -38,7 +34,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	}
 
 	// Take control of this file and set the status
-	if writeData {
+	if !dryRun {
 		wf.WriteStatus(wal.OPEN, wal.REPLAYINPROCESS)
 	}
 
@@ -48,35 +44,42 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	offsetTGDataInWAL := make(map[int64]int64)
 
 	log.Info("Beginning WAL Replay")
-	if !writeData {
+	if dryRun {
 		log.Info("Debugging mode enabled - no writes will be performed...")
 	}
 	// Create a map to store the TG Data prior to replay
-	TGData := make(map[int64][]byte)
+	tgData := make(map[int64][]byte)
 
-	wf.FilePtr.Seek(0, goio.SeekStart)
+	_, err = wf.FilePtr.Seek(0, goio.SeekStart)
+	if err != nil {
+		return fmt.Errorf("seek wal from start for replay:%w", err)
+	}
 	continueRead := true
 	for continueRead {
-		MID, err := wf.readMessageID()
+		msgID, err := wf.readMessageID()
 		if continueRead = fullRead(err); !continueRead {
 			break // Break out of read loop
 		}
-		switch MID {
+		switch msgID {
 		case TGDATA:
 			// Read a TGData
 			offset, _ := wf.FilePtr.Seek(0, goio.SeekCurrent)
-			TGID, TG_Serialized, err := wf.readTGData()
-			TGData[TGID] = TG_Serialized
+			tgID, tgSerialized, err := wf.readTGData()
+			tgData[tgID] = tgSerialized
 			if continueRead = fullRead(err); !continueRead {
 				break // Break out of switch
 			}
-			// Throw FATAL if there is already a TG data location in this WAL
-			if _, ok := offsetTGDataInWAL[TGID]; ok {
-				log.Fatal(io.GetCallerFileContext(0) + ": Duplicate TG Data in WAL")
+			// give up Replay if there is already a TG data location in this WAL
+			if _, ok := offsetTGDataInWAL[tgID]; ok {
+				log.Error(io.GetCallerFileContext(0) + ": Duplicate TG Data in WAL")
+				return WALReplayError{
+					msg:        fmt.Sprintf("Duplicate TG Data in WAL. tgID=%d", tgID),
+					skipReplay: true,
+				}
 			}
-			//			log.Info("Successfully read past TG data for TGID: %v", TGID)
+			// log.Info("Successfully read past TG data for tgID: %v", tgID)
 			// Save the offset of this TG Data for the second pass
-			offsetTGDataInWAL[TGID] = offset
+			offsetTGDataInWAL[tgID] = offset
 		case TXNINFO:
 			// Read a TXNInfo
 			TGID, destination, txnStatus, err := wf.readTransactionInfo()
@@ -87,12 +90,12 @@ func (wf *WALFileType) Replay(writeData bool) error {
 			case WAL:
 				txnStateWAL[TGID] = txnStatus
 			case CHECKPOINT:
-				if _, ok := TGData[TGID]; ok && txnStatus == COMMITCOMPLETE {
-					// Remove all TGData for TGID less than this complete one
-					for tgid := range TGData {
+				if _, ok := tgData[TGID]; ok && txnStatus == COMMITCOMPLETE {
+					// Remove all TGData for tgID less than this complete one
+					for tgid := range tgData {
 						if tgid <= TGID {
-							TGData[tgid] = nil
-							delete(TGData, tgid)
+							tgData[tgid] = nil
+							delete(tgData, tgid)
 						}
 					}
 				} else {
@@ -107,7 +110,7 @@ func (wf *WALFileType) Replay(writeData bool) error {
 				break // Break out of switch
 			}
 		default:
-			log.Warn("Unknown meessage id %d", MID)
+			log.Warn("Unknown meessage id %d", msgID)
 		}
 	}
 
@@ -118,27 +121,28 @@ func (wf *WALFileType) Replay(writeData bool) error {
 	// StringSlice attaches the methods of Interface to []string, sorting in increasing order.
 
 	var sortedTGIDs TGIDlist
-	for tgid := range TGData {
+	for tgid := range tgData {
 		sortedTGIDs = append(sortedTGIDs, tgid)
 	}
 	sort.Sort(sortedTGIDs)
 
-	//for tgid, TG_Serialized := range TGData {
+	//for tgid, TG_Serialized := range tgData {
 	for _, tgid := range sortedTGIDs {
-		TG_Serialized := TGData[tgid]
-		if TG_Serialized != nil {
+		tgSerialized := tgData[tgid]
+		if tgSerialized != nil {
 			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
-			if writeData {
+			if !dryRun {
 				rootDir := filepath.Dir(wf.FilePtr.Name())
-				tgID, wtSets := ParseTGData(TG_Serialized, rootDir)
+				tgID, wtSets := ParseTGData(tgSerialized, rootDir)
 				if err := wf.replayTGData(tgID, wtSets); err != nil {
-					return err
+					return fmt.Errorf("replay transaction group data. tgID=%d, "+
+						"write transaction size=%d:%w", tgID, len(wtSets), err)
 				}
 			}
 		}
 	}
 	log.Info("Replay of WAL file %s finished", wf.FilePtr.Name())
-	if writeData {
+	if !dryRun {
 		wf.WriteStatus(wal.OPEN, wal.REPLAYED)
 	}
 
@@ -152,7 +156,12 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 	}
 
 	cfp := NewCachedFP() // Cached open file pointer
-	defer cfp.Close()
+	defer func() {
+		err := cfp.Close()
+		if err != nil {
+			log.Error(fmt.Sprintf("failed to close cached file pointer %s: %v", cfp, err))
+		}
+	}()
 
 	for _, wtSet := range wtSets {
 		fp, err := cfp.GetFP(wtSet.FilePath)
@@ -173,25 +182,78 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 				return err
 			}
 		default:
-			return fmt.Errorf("Error: Record Type is incorrect from WALFile, invalid/outdated WAL file?")
+			return fmt.Errorf("record Type is incorrect from WALFile, may be invalid/outdated WAL file")
 		}
 	}
 	wf.lastCommittedTGID = tgID
-	wf.CreateCheckpoint()
+	err = wf.CreateCheckpoint()
+	if err != nil {
+		return fmt.Errorf("create checkpoint of wal:%w", err)
+	}
 
 	return nil
 }
 
+// fullRead checks an error to see if we have read only partial data
 func fullRead(err error) bool {
-	// Check to see if we have read only partial data
-	if err != nil {
-		if _, ok := err.(wal.ShortReadError); ok {
-			log.Info(fmt.Sprintf("Partial Read. err=%v", err))
-			return false
-		} else {
-			log.Fatal(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
-
-		}
+	if err == nil {
+		return true
 	}
+
+	if _, ok := err.(wal.ShortReadError); ok {
+		log.Info(fmt.Sprintf("Partial Read. err=%v", err))
+		return false
+	} else {
+		log.Error(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
+	}
+
 	return true
+}
+
+func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
+	var buffer [1]byte
+	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
+	if err != nil {
+		return 0, wal.ShortReadError("WALFileType.ReadMessageID. err:" + err.Error())
+	}
+	MID := MIDEnum(buf[0])
+	switch MID {
+	case TGDATA, TXNINFO, STATUS:
+		return MID, nil
+	}
+	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d:%w", MID, err)
+}
+
+func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error) {
+	tgLenSerialized := make([]byte, 8)
+	tgLenSerialized, _, err = wal.Read(wf.FilePtr, tgLenSerialized)
+	if err != nil {
+		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0))
+	}
+	TGLen := io.ToInt64(tgLenSerialized)
+
+	if !sanityCheckValue(wf.FilePtr, TGLen) {
+		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", TGLen))
+	}
+
+	// Read the data
+	tgSerialized = make([]byte, TGLen)
+	n, err := wf.FilePtr.Read(tgSerialized)
+	if int64(n) != TGLen || err != nil {
+		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
+	}
+	TGID = io.ToInt64(tgSerialized[:7])
+
+	// Read the checksum
+	checkBuf := make([]byte, 16)
+	n, err = wf.FilePtr.Read(checkBuf)
+	if n != 16 || err != nil {
+		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
+	}
+
+	if err := validateCheckSum(tgLenSerialized, tgSerialized, checkBuf); err != nil {
+		return 0, nil, err
+	}
+
+	return TGID, tgSerialized, nil
 }

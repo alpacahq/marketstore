@@ -1,6 +1,9 @@
 package executor
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type CachedFP struct {
 	fileName string
@@ -30,4 +33,8 @@ func (cfp *CachedFP) Close() error {
 		return cfp.fp.Close()
 	}
 	return nil
+}
+
+func (cfp *CachedFP) String() string {
+	return fmt.Sprintf("CachedFP(fileName: %s)", cfp.fileName)
 }

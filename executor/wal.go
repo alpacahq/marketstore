@@ -438,7 +438,7 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 }
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
 	var buffer [10]byte
-	buf, _, err := wal.Read(wf.FilePtr, -1, buffer[:])
+	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
 	if err != nil {
 		return 0, 0, 0, wal.ShortReadError("WALFileType.readTransactionInfo")
 	}
@@ -464,52 +464,6 @@ func (wf *WALFileType) initMessage(mid MIDEnum) []byte {
 }
 func (wf *WALFileType) writeMessageID(mid MIDEnum) {
 	wf.write(wf.initMessage(mid))
-}
-func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
-	var buffer [1]byte
-	buf, _, err := wal.Read(wf.FilePtr, -1, buffer[:])
-	if err != nil {
-		return 0, wal.ShortReadError("WALFileType.ReadMessageID")
-	}
-	MID := MIDEnum(buf[0])
-	switch MID {
-	case TGDATA, TXNINFO, STATUS:
-		return MID, nil
-	}
-	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d", MID)
-}
-func (wf *WALFileType) readTGData() (TGID int64, TG_Serialized []byte, err error) {
-	TGLen_Serialized := make([]byte, 8)
-	TGLen_Serialized, _, err = wal.Read(wf.FilePtr, -1, TGLen_Serialized)
-	if err != nil {
-		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0))
-	}
-	TGLen := io.ToInt64(TGLen_Serialized)
-
-	if !sanityCheckValue(wf.FilePtr, TGLen) {
-		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", TGLen))
-	}
-
-	// Read the data
-	TG_Serialized = make([]byte, TGLen)
-	n, err := wf.FilePtr.Read(TG_Serialized)
-	if int64(n) != TGLen || err != nil {
-		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
-	}
-	TGID = io.ToInt64(TG_Serialized[:7])
-
-	// Read the checksum
-	checkBuf := make([]byte, 16)
-	n, err = wf.FilePtr.Read(checkBuf)
-	if n != 16 || err != nil {
-		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
-	}
-
-	if err := validateCheckSum(TGLen_Serialized, TG_Serialized, checkBuf); err != nil {
-		return 0, nil, err
-	}
-
-	return TGID, TG_Serialized, nil
 }
 
 func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
@@ -698,7 +652,7 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) error {
 		if err != nil {
 			return fmt.Errorf("opening %s: %w", filename, err)
 		}
-		if err = w.Replay(true); err != nil {
+		if err = w.Replay(false); err != nil {
 			return fmt.Errorf("unable to replay %s: %w", filename, err)
 		}
 

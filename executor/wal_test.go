@@ -148,7 +148,7 @@ func TestBrokenWAL(t *testing.T) {
 	assert.Nil(t, err)
 	newTGC := executor.NewTransactionPipe()
 	assert.NotNil(t, newTGC)
-	err = WALFile.Replay(true)
+	err = WALFile.Replay(false)
 	assert.Nil(t, err)
 
 	err = WALFile.Delete(WALFile.OwningInstanceID)
@@ -243,7 +243,7 @@ func TestWALReplay(t *testing.T) {
 	assert.True(t, compareFileToBuf(t, fileContentsOriginal2002, queryFiles2002))
 
 	// Replay the WALFile into the new cache
-	err = WALFile.Replay(true)
+	err = WALFile.Replay(false)
 	assert.Nil(t, err)
 
 	// Verify that the files are in the correct state after replay
