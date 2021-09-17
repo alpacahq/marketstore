@@ -28,9 +28,11 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 		return fmt.Errorf("check if walfile needs to be replayed: %w", err)
 	}
 	if !needsReplay {
-		err := fmt.Errorf("WALFileType.NeedsReplay No Replay Needed")
-		log.Info(err.Error())
-		return err
+		log.Info("No WAL Replay needed.")
+		return WALReplayError{
+			msg:        "WALFileType.NeedsReplay No Replay Needed",
+			skipReplay: true,
+		}
 	}
 
 	// Take control of this file and set the status
@@ -63,7 +65,10 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 		switch msgID {
 		case TGDATA:
 			// Read a TGData
-			offset, _ := wf.FilePtr.Seek(0, goio.SeekCurrent)
+			offset, err := wf.FilePtr.Seek(0, goio.SeekCurrent)
+			if err != nil {
+				return fmt.Errorf("seek error: %w", err)
+			}
 			tgID, tgSerialized, err := wf.readTGData()
 			tgData[tgID] = tgSerialized
 			if continueRead = fullRead(err); !continueRead {
@@ -129,18 +134,24 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 	//for tgid, TG_Serialized := range tgData {
 	for _, tgid := range sortedTGIDs {
 		tgSerialized := tgData[tgid]
-		if tgSerialized != nil {
-			// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
-			if !dryRun {
-				rootDir := filepath.Dir(wf.FilePtr.Name())
-				tgID, wtSets := ParseTGData(tgSerialized, rootDir)
-				if err := wf.replayTGData(tgID, wtSets); err != nil {
-					return fmt.Errorf("replay transaction group data. tgID=%d, "+
-						"write transaction size=%d:%w", tgID, len(wtSets), err)
-				}
-			}
+		if tgSerialized == nil {
+			continue
 		}
+
+		if dryRun {
+			continue
+		}
+
+		// Note that only TG data that did not have a COMMITCOMPLETE record are replayed
+		rootDir := filepath.Dir(wf.FilePtr.Name())
+		tgID, wtSets := ParseTGData(tgSerialized, rootDir)
+		if err := wf.replayTGData(tgID, wtSets); err != nil {
+			return fmt.Errorf("replay transaction group data. tgID=%d, "+
+				"write transaction size=%d:%w", tgID, len(wtSets), err)
+		}
+
 	}
+
 	log.Info("Replay of WAL file %s finished", wf.FilePtr.Name())
 	if !dryRun {
 		wf.WriteStatus(wal.OPEN, wal.REPLAYED)

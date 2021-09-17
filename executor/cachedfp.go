@@ -22,7 +22,7 @@ func (cfp *CachedFP) GetFP(fileName string) (fp *os.File, err error) {
 	}
 	cfp.fp, err = os.OpenFile(fileName, os.O_RDWR, 0700)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open cached filepath: %w", err)
 	}
 	cfp.fileName = fileName
 	return cfp.fp, nil
