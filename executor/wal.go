@@ -641,10 +641,17 @@ func (wf *WALFileType) cleanupOldWALFiles(rootDir string) error {
 
 		log.Info("Found a WALFILE: %s, entering replay...", filename)
 		filePath := filepath.Join(rootDir, filename)
-		fi, _ := os.Stat(filePath)
+		fi, err := os.Stat(filePath)
+		if err != nil {
+			log.Error("failed to get fileStat of " + filePath)
+			continue
+		}
 		if fi.Size() < 11 {
 			log.Info("WALFILE: %s is empty, removing it...", filename)
-			os.Remove(filePath)
+			err = os.Remove(filePath)
+			if err != nil {
+				log.Error("failed to remove an empty WALfile", filename)
+			}
 			continue
 		}
 
