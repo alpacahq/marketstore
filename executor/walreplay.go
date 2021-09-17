@@ -210,25 +210,23 @@ func fullRead(err error) bool {
 	return true
 }
 
-const ReadFromCurrentPos = -1
-
 func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	var buffer [1]byte
-	buf, _, err := wal.Read(wf.FilePtr, ReadFromCurrentPos, buffer[:])
+	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
 	if err != nil {
-		return 0, wal.ShortReadError("WALFileType.ReadMessageID")
+		return 0, wal.ShortReadError("WALFileType.ReadMessageID. err:" + err.Error())
 	}
 	MID := MIDEnum(buf[0])
 	switch MID {
 	case TGDATA, TXNINFO, STATUS:
 		return MID, nil
 	}
-	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d", MID)
+	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d:%w", MID, err)
 }
 
 func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error) {
 	tgLenSerialized := make([]byte, 8)
-	tgLenSerialized, _, err = wal.Read(wf.FilePtr, ReadFromCurrentPos, tgLenSerialized)
+	tgLenSerialized, _, err = wal.Read(wf.FilePtr, tgLenSerialized)
 	if err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0))
 	}

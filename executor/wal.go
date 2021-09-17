@@ -438,7 +438,7 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 }
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
 	var buffer [10]byte
-	buf, _, err := wal.Read(wf.FilePtr, ReadFromCurrentPos, buffer[:])
+	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
 	if err != nil {
 		return 0, 0, 0, wal.ShortReadError("WALFileType.readTransactionInfo")
 	}
