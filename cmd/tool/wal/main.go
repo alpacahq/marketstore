@@ -51,5 +51,5 @@ func executeWAL(cmd *cobra.Command, args []string) error {
 	wf.FilePtr = filePtr
 
 	// Execute.
-	return wf.Replay(false)
+	return wf.Replay(true)
 }
