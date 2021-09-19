@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -55,7 +58,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 	catFilePath := subPath + "/" + "category_name"
 	catname, err := ioutil.ReadFile(catFilePath)
 	if err != nil {
-		return &ErrCategoryFileNotFound{filePath: catFilePath, msg: io.GetCallerFileContext(0) + err.Error()}
+		return ErrCategoryFileNotFound{filePath: catFilePath, msg: io.GetCallerFileContext(0) + err.Error()}
 	}
 	d.category = string(catname)
 
@@ -76,7 +79,13 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 
 			d.datafile = nil
 			if err := load(rootDmap, d.subDirs[itemName], leafPath, rootPath); err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + ", " + err.Error())
+				var e ErrCategoryFileNotFound
+				if errors.As(err, &e) {
+					log.Warn(fmt.Sprintf("category_name file not found under the directory."+
+						"%s will be ignored:%v", leafPath, err.Error()))
+				} else {
+					return fmt.Errorf(io.GetCallerFileContext(0) + ", " + err.Error())
+				}
 			}
 		} else if filepath.Ext(leafPath) == ".bin" {
 			rootDmap.Store(d.pathToItemName, d)

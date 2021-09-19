@@ -185,7 +185,7 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	rootDir, _ := ioutil.TempDir("", "catalog_test-TestAddAndRemoveDataItemFromEmptyDirectory")
 	catalogDir, err := catalog.NewDirectory(rootDir)
-	var e *catalog.ErrCategoryFileNotFound
+	var e catalog.ErrCategoryFileNotFound
 	if err != nil && !errors.As(err, &e) {
 		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 		return

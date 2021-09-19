@@ -70,7 +70,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 	if initCatalog {
 		ThisInstance.CatalogDir, err = catalog.NewDirectory(rootDir)
 		if err != nil {
-			var e *catalog.ErrCategoryFileNotFound
+			var e catalog.ErrCategoryFileNotFound
 			if errors.As(err, &e) {
 				log.Debug("new root directory found:" + rootDir)
 			} else {

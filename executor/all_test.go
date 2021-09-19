@@ -43,7 +43,7 @@ func TestAddDir(t *testing.T) {
 
 	// make catelog directory
 	catDir, err := NewDirectory(tempRootDir)
-	var e *ErrCategoryFileNotFound
+	var e ErrCategoryFileNotFound
 	if err != nil && !errors.As(err, &e) {
 		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 		return
