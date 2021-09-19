@@ -2,8 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"strconv"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -61,18 +59,6 @@ type WALWriteError string
 
 func (msg WALWriteError) Error() string {
 	return errReport("%s: Error Writing to WAL", string(msg))
-}
-
-// WALReplayError is used when the WALfile Replay process fails.
-// If skipReplay:true, it will attempt to give up the Replay process,
-// move the walfile to a temporary file, and continue with other marketstore processing.
-type WALReplayError struct {
-	msg        string
-	skipReplay bool
-}
-
-func (e WALReplayError) Error() string {
-	return errReport("%s: Error Replaying WAL. skipReplay="+strconv.FormatBool(e.skipReplay), e.msg)
 }
 
 func errReport(base string, msg string) string {

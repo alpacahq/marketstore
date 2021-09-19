@@ -2,10 +2,13 @@ package executor
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 
 	"github.com/pkg/errors"
 
@@ -91,16 +94,28 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 			WALBypass, &shutdownPend, walWG, tpd, txnPipe,
 		)
 		if err != nil {
-			log.Error("Unable to create WAL. err="+ err.Error())
+			log.Error("Unable to create WAL. err=" + err.Error())
 			return nil, nil, nil, fmt.Errorf("unable to create WAL: %w", err)
 		}
 
 		// Allocate a new WALFile and cache
 		if !WALBypass {
-			err = ThisInstance.WALFile.cleanupOldWALFiles(rootDir)
+			//ignoreFile := filepath.Base(ThisInstance.WALFile.FilePtr.Name())
+			ignoreFile := ThisInstance.WALFile.FilePtr.Name()
+			myInstanceID := ThisInstance.WALFile.OwningInstanceID
+
+			finder := wal.NewFinder(ioutil.ReadDir)
+			walFileAbsPaths, err := finder.Find(filepath.Clean(rootDir))
 			if err != nil {
-				// TODO: error handling to move walfile to a temporary file and create a new one when walfile is corrupted
-				log.Fatal("Unable to startup Cache and WAL")
+				walFileAbsPaths = []string{}
+				log.Error("failed to find wal files under %s: %w", filepath.Clean(rootDir), err)
+			}
+
+			c := NewWALCleaner(ignoreFile, myInstanceID)
+			err = c.CleanupOldWALFiles(walFileAbsPaths)
+			// err = ThisInstance.WALFile.cleanupOldWALFiles(rootDir)
+			if err != nil {
+				log.Fatal("Unable to startup Cache and WAL:" + err.Error())
 			}
 		}
 		if backgroundSync {

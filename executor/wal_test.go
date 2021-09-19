@@ -144,7 +144,7 @@ func TestBrokenWAL(t *testing.T) {
 	fp.Close()
 
 	// Take over the broken WALFile and replay it
-	WALFile, err := executor.TakeOverWALFile(rootDir, BrokenWALFileName)
+	WALFile, err := executor.TakeOverWALFile(filepath.Join(rootDir, BrokenWALFileName))
 	assert.Nil(t, err)
 	newTGC := executor.NewTransactionPipe()
 	assert.NotNil(t, newTGC)
@@ -233,7 +233,7 @@ func TestWALReplay(t *testing.T) {
 	io.Syncfs()
 
 	// Take over the new WALFile and replay it into a new TG cache
-	WALFile, err := executor.TakeOverWALFile(rootDir, newWALFileName)
+	WALFile, err := executor.TakeOverWALFile(filepath.Join(rootDir, newWALFileName))
 	assert.Nil(t, err)
 	data, _ := ioutil.ReadFile(newWALFilePath)
 	ioutil.WriteFile("/tmp/wal", data, 0644)
