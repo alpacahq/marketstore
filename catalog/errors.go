@@ -59,6 +59,6 @@ type ErrCategoryFileNotFound struct {
 	msg      string
 }
 
-func (e *ErrCategoryFileNotFound) Error() string {
+func (e ErrCategoryFileNotFound) Error() string {
 	return "Could not find a category_name file under:" + e.filePath + ", msg=" + e.msg
 }
