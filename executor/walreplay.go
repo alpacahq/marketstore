@@ -2,12 +2,13 @@ package executor
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/executor/wal"
-	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	goio "io"
 	"path/filepath"
 	"sort"
+
+	"github.com/alpacahq/marketstore/v4/executor/wal"
+	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // Replay loads this WAL File's unwritten transactions to primary store and mark it completely processed.
@@ -29,9 +30,9 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 	}
 	if !needsReplay {
 		log.Info("No WAL Replay needed.")
-		return WALReplayError{
-			msg:        "WALFileType.NeedsReplay No Replay Needed",
-			skipReplay: true,
+		return wal.ReplayError{
+			Msg:  "WALFileType.NeedsReplay No Replay Needed",
+			Cont: true,
 		}
 	}
 
@@ -77,9 +78,9 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 			// give up Replay if there is already a TG data location in this WAL
 			if _, ok := offsetTGDataInWAL[tgID]; ok {
 				log.Error(io.GetCallerFileContext(0) + ": Duplicate TG Data in WAL")
-				return WALReplayError{
-					msg:        fmt.Sprintf("Duplicate TG Data in WAL. tgID=%d", tgID),
-					skipReplay: true,
+				return wal.ReplayError{
+					Msg:  fmt.Sprintf("Duplicate TG Data in WAL. tgID=%d", tgID),
+					Cont: true,
 				}
 			}
 			// log.Info("Successfully read past TG data for tgID: %v", tgID)

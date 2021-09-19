@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"bytes"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
@@ -80,10 +79,10 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 }
 
 // TakeOverWALFile opens an existing wal file and returns WALFileType for it.
-func TakeOverWALFile(rootDir, fileName string) (wf *WALFileType, err error) {
+func TakeOverWALFile(filePath string) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
-	filePath := filepath.Join(rootDir, fileName)
+	//filePath := filepath.Join(rootDir, fileName)
 
 	err = wf.open(filePath)
 	if err != nil {
@@ -131,21 +130,19 @@ func (wf *WALFileType) close(ReplayStatus wal.ReplayStateEnum) {
 	wf.FilePtr.Close()
 }
 func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
-	canDeleteSafely, err := wf.canDeleteSafely(callersInstanceID)
+	err = wf.syncStatusRead()
 	if err != nil {
-		return fmt.Errorf("check if wal file can be deleted safely. WALfile=%s: %w", wf.FilePtr.Name(), err)
-	}
-	if !canDeleteSafely {
-		return errors.New("BUG: cannot delete the current instance's WALfile:" + wf.FilePtr.Name())
+		return fmt.Errorf("cannot delete wal because failed to read wal sync status. callersInstanceID=%d:%w",
+			callersInstanceID, err)
 	}
 
 	if !wf.IsOpen() {
 		log.Warn(io.GetCallerFileContext(0) + ": Can not delete open WALFile")
-		return fmt.Errorf("WAL File is open")
+		return errors.New("WAL File is open")
 	}
 	if wf.isActive(callersInstanceID) {
 		log.Warn(io.GetCallerFileContext(0) + ": Can not delete active WALFile")
-		return fmt.Errorf("WAL File is active")
+		return errors.New("WAL File is active")
 	}
 
 	needsReplay, err := wf.NeedsReplay()
@@ -154,7 +151,7 @@ func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
 	}
 	if needsReplay {
 		log.Warn(io.GetCallerFileContext(0) + ": WALFile needs replay, can not delete")
-		return fmt.Errorf("WAL File needs replay")
+		return errors.New("WAL File needs replay, can not delete")
 	}
 
 	wf.close(wal.REPLAYED)
@@ -541,7 +538,7 @@ func (wf *WALFileType) syncStatusRead() error {
 }
 
 func readStatus(filePtr *os.File) (fileStatus wal.FileStatusEnum, replayStatus wal.ReplayStateEnum, owningInstanceID int64) {
-	// Read from beginning of file +1 to skip over the MID
+	// Read from beginning of file +1 to cont over the MID
 	filePtr.Seek(1, goio.SeekStart)
 	var err error
 	fileStatus, replayStatus, owningInstanceID, err = wal.ReadStatus(filePtr)
@@ -585,89 +582,12 @@ func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) (bool, erro
 	}
 	return true, nil
 }
-func (wf *WALFileType) canDeleteSafely(callersInstanceID int64) (bool, error) {
-	err := wf.syncStatusRead()
-	if err != nil {
-		return false, fmt.Errorf("failed to read wal sync status. callersInstanceID=%d:%w",
-			callersInstanceID, err)
-	}
 
-	if wf.isActive(callersInstanceID) {
-		log.Warn(io.GetCallerFileContext(0) + ": WALFile is active, can not delete")
-		return false, nil
-	}
-	needsReplay, err := wf.NeedsReplay()
-	if err != nil {
-		return false, fmt.Errorf("failed to check if wal needs replay: %w", err)
-	}
-	if needsReplay {
-		log.Warn(io.GetCallerFileContext(0) + ": WALFile needs replay, can not delete")
-		return false, nil
-	}
-
-	return true, nil
-}
 func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 	// As a sanity check, get the file size to ensure that TGLen is reasonable prior to buffer allocations
 	fstat, _ := fp.Stat()
 	sanityLen := 1000 * fstat.Size()
 	return value < sanityLen
-}
-func (wf *WALFileType) cleanupOldWALFiles(rootDir string) error {
-	rootDir = filepath.Clean(rootDir)
-	files, err := ioutil.ReadDir(rootDir)
-	if err != nil {
-		return fmt.Errorf("unable to read root directory %s: %w", rootDir, err)
-	}
-	myFileBase := filepath.Base(wf.FilePtr.Name())
-	log.Info("My WALFILE: %s", myFileBase)
-	for _, file := range files {
-		// ignore directories
-		if file.IsDir() {
-			// ignore
-			continue
-		}
-
-		// ignore files except wal
-		filename := file.Name()
-		if filepath.Ext(filename) != ".walfile" {
-			continue
-		}
-
-		// ignore the newest wal file
-		if filename == myFileBase {
-			continue
-		}
-
-		log.Info("Found a WALFILE: %s, entering replay...", filename)
-		filePath := filepath.Join(rootDir, filename)
-		fi, err := os.Stat(filePath)
-		if err != nil {
-			log.Error("failed to get fileStat of " + filePath)
-			continue
-		}
-		if fi.Size() < 11 {
-			log.Info("WALFILE: %s is empty, removing it...", filename)
-			err = os.Remove(filePath)
-			if err != nil {
-				log.Error("failed to remove an empty WALfile", filename)
-			}
-			continue
-		}
-
-		w, err := TakeOverWALFile(rootDir, filename)
-		if err != nil {
-			return fmt.Errorf("opening %s: %w", filename, err)
-		}
-		if err = w.Replay(false); err != nil {
-			return fmt.Errorf("unable to replay %s: %w", filename, err)
-		}
-
-		if err = w.Delete(wf.OwningInstanceID); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 var haveWALWriter = false
