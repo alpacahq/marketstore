@@ -178,7 +178,12 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 	for _, wtSet := range wtSets {
 		fp, err := cfp.GetFP(wtSet.FilePath)
 		if err != nil {
-			return err
+			return wal.ReplayError{
+				Msg: fmt.Sprintf("failed to open a filepath %s in write transaction set:%v",
+					wtSet.FilePath, err.Error(),
+				),
+				Cont: true,
+			}
 		}
 		switch wtSet.RecordType {
 		case io.FIXED:

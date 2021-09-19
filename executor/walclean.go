@@ -3,9 +3,9 @@ package executor
 import (
 	"errors"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"os"
 
-	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -47,25 +47,29 @@ func (c *WALCleaner) CleanupOldWALFiles(walfileAbsPaths []string) error {
 			return fmt.Errorf("opening %s: %w", fp, err)
 		}
 		if err = w.Replay(false); err != nil {
-			return fmt.Errorf("unable to replay %s: %w", fp, err)
+			// ---  move walfile to a temporary file and skip replay to continue other marketstore process
+			var walReplayErr wal.ReplayError
+			if !errors.As(err, &walReplayErr) {
+				return fmt.Errorf("unable to replay %s: %w", fp, err)
+			}
+			if walReplayErr.Cont {
+				tmpFP := fp + ".tmp"
+				if err := wal.Move(fp, tmpFP); err != nil {
+					return fmt.Errorf("failed to move old wal file %s to a tmp file:%w", fp, err)
+				}
+				log.Info(fmt.Sprintf("Unable to replay. moved an old WAL file %s to a temporary file %s",
+					fp, tmpFP))
+			}
+
+			continue
 		}
 
+		// delete if replay succeeds
 		//if err = w.Delete(wf.OwningInstanceID); err != nil {
 		if err = w.Delete(c.myInstanceID); err != nil {
 			return fmt.Errorf("failed to delete wal file after replay:%w", err)
 		}
 
-		// ---  move walfile to a temporary file and ignore to continue other marketstore process
-		var walReplayErr *wal.ReplayError
-		if !errors.As(err, &walReplayErr) {
-			continue
-		}
-		if !walReplayErr.Cont {
-			continue
-		}
-		if err := wal.Move(fp, fp+".tmp"); err != nil {
-			return fmt.Errorf("failed to move old wal file %s to a tmp file:%w", fp, err)
-		}
 	}
 	return nil
 }

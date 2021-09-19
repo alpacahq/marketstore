@@ -33,8 +33,11 @@ func (c *IntervalMarketTimeChecker) IsOpen(t time.Time) bool {
 func (c *IntervalMarketTimeChecker) intervalElapsed(t time.Time) bool {
 	elapsed := t.Sub(c.LastTime) >= c.Interval
 	if elapsed {
+		// log if this is not the first time
+		if !c.LastTime.IsZero() {
+			log.Debug("[Xignite Feeder] interval elapsed since last time: " + t.String())
+		}
 		c.LastTime = t
-		log.Debug("[Xignite Feeder] interval elapsed since last time: " + t.String())
 	}
 	return elapsed
 }

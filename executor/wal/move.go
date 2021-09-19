@@ -12,6 +12,6 @@ func Move(oldFP, newFP string) error {
 	if err != nil {
 		return fmt.Errorf("failed to move %s to %s:%w", oldFP, newFP, err)
 	}
-	log.Info(fmt.Sprintf("moved %s to %s", oldFP, newFP))
+	log.Debug(fmt.Sprintf("moved %s to %s", oldFP, newFP))
 	return nil
 }

@@ -11,7 +11,7 @@ import (
 type ShortReadError string
 
 func (msg ShortReadError) Error() string {
-	return errReport("%s: Unexpectedly short read", string(msg))
+	return errReport("Unexpectedly short read:%s", string(msg))
 }
 
 // ReplayError is used when the WALfile Replay process fails.
@@ -23,11 +23,11 @@ type ReplayError struct {
 }
 
 func (e ReplayError) Error() string {
-	return errReport("%s: Error Replaying WAL. Cont="+strconv.FormatBool(e.Cont), e.Msg)
+	return errReport("Error Replaying WAL. Cont="+strconv.FormatBool(e.Cont)+":%s", e.Msg)
 }
 
 func errReport(base string, msg string) string {
 	base = io.GetCallerFileContext(2) + ":" + base
-	log.Error(base, msg)
+	log.Warn(base, msg)
 	return fmt.Sprintf(base, msg)
 }
