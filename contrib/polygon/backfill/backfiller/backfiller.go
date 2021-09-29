@@ -256,13 +256,13 @@ func main() {
 func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int) {
 	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		log.Fatal("failed to read configuration file error: %s", err.Error())
+		log.Error("failed to read configuration file error: %s", err.Error())
 		os.Exit(1)
 	}
 
 	config, err := utils.InstanceConfig.Parse(data)
 	if err != nil {
-		log.Fatal("failed to parse configuration file error: %v", err.Error())
+		log.Error("failed to parse configuration file error: %v", err.Error())
 		os.Exit(1)
 	}
 

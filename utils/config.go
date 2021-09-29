@@ -155,8 +155,8 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
 	m.Timezone, err = time.LoadLocation(aux.Timezone)
 	if err != nil {
-		log.Fatal("Invalid timezone.")
-		return nil, errors.New("Invalid timezone")
+		log.Error("Invalid timezone.")
+		return nil, fmt.Errorf("invalid timezone:%s", aux.Timezone)
 	}
 
 	if aux.WALRotateInterval == 0 {

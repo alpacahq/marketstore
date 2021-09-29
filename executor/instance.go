@@ -113,9 +113,10 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 
 			c := NewWALCleaner(ignoreFile, myInstanceID)
 			err = c.CleanupOldWALFiles(walFileAbsPaths)
-			// err = ThisInstance.WALFile.cleanupOldWALFiles(rootDir)
 			if err != nil {
-				log.Fatal("Unable to startup Cache and WAL:" + err.Error())
+				log.Error("Unable to startup Cache and WAL:" + err.Error())
+				return nil, nil, nil,
+					fmt.Errorf("unable to startup Cache and WAL:%w", err)
 			}
 		}
 		if backgroundSync {

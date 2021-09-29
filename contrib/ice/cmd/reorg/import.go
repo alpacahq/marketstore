@@ -44,7 +44,10 @@ var ImportCmd = &cobra.Command{
 			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
 		}
 
-		reorg.Import(reorgDir, reimport, storeWithoutSymbols)
+		err = reorg.Import(reorgDir, reimport, storeWithoutSymbols)
+		if err != nil {
+			return fmt.Errorf("failed to import: %w", err)
+		}
 		return nil
 	},
 }
