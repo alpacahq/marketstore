@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -46,12 +47,14 @@ func main() {
 
 	start, err := time.Parse(format, from)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Error(err.Error())
+		os.Exit(1)
 	}
 
 	end, err := time.Parse(format, to)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Error(err.Error())
+		os.Exit(1)
 	}
 
 	log.Info("backfilling from %v to %v", start.Format(format), end.Format(format))

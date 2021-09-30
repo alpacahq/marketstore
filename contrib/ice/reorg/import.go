@@ -14,10 +14,10 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) {
+func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) error {
 	reorgFiles, err := fileList(reorgDir, enum.ReorgFilePrefix, reimport)
 	if err != nil {
-		log.Fatal("Cannot read reorg files directory - dir: %s, error: %v", reorgDir, err)
+		return fmt.Errorf("cannot read reorg files directory - dir=%s: %w", reorgDir, err)
 	}
 	log.Info("Parsing %d new files", len(reorgFiles))
 	for _, reorgFile := range reorgFiles {
@@ -27,12 +27,12 @@ func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) {
 
 		announcements, err := readAnnouncements(pathToReorgFile)
 		if err != nil {
-			log.Fatal("Error occured while reading reorg file: %s", reorgFile)
+			return fmt.Errorf("error occured while reading reorg file=%s: %w", reorgFile, err)
 		}
 
 		sirsFiles, err := sirs.CollectSirsFiles(reorgDir, reorgFileDate)
 		if err != nil {
-			log.Fatal("Cannot load sirs files: %+v", err)
+			return fmt.Errorf("cannot load sirs files: %w", err)
 		}
 		if !storeWithoutSymbol && len(sirsFiles) == 0 {
 			log.Warn("No sirs files loaded, skip to next reorg file")
@@ -40,16 +40,21 @@ func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) {
 		}
 		cusipSymbolMap, err := sirs.BuildSecurityMasterMap(sirsFiles)
 		if err != nil {
-			log.Fatal("Cannot read security info data: %v", err)
+			return fmt.Errorf("cannot read security info data: %w", err)
 		}
 		err = storeAnnouncements(*announcements, cusipSymbolMap, storeWithoutSymbol)
 		if err != nil {
-			log.Fatal("Error occured while processing announcements from %s", reorgFile)
+			return fmt.Errorf("error occured while processing announcements from %s: %w", reorgFile, err)
 		}
 		if !reimport {
-			os.Rename(pathToReorgFile, pathToReorgFile+enum.ProcessedFlag)
+			err = os.Rename(pathToReorgFile, pathToReorgFile+enum.ProcessedFlag)
+			if err != nil {
+				return fmt.Errorf("failed to rename reorgfile from %s to %s: %w",
+					pathToReorgFile, pathToReorgFile+enum.ProcessedFlag, err)
+			}
 		}
 	}
+	return nil
 }
 
 func datePartOfFilename(filename string) string {

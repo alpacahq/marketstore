@@ -69,7 +69,7 @@ func New(calendarJSON string) *Calendar {
 	cmap := calendarJson{}
 	err := json.Unmarshal([]byte(calendarJSON), &cmap)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("failed to unmarshal calendarJson:%s", calendarJSON))
+		log.Error(fmt.Sprintf("failed to unmarshal calendarJson:%s", calendarJSON))
 		return nil
 	}
 	for _, dateString := range cmap.NonTradingDays {
