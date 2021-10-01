@@ -89,6 +89,7 @@ func makeYearFiles(root string, years []string, withdata bool, withGaps bool, tf
 		checkfail(err, "Unable to write header to: "+filename)
 		if withdata {
 			(*itemsWritten)[filename], err = WriteDummyData(file, year, tf, withGaps, isStock)
+			checkfail(err, "Unable to write dummy data")
 			//			fmt.Printf("File: %s Number: %d\n", filename, (*itemsWritten)[filename])
 		}
 	}
@@ -190,7 +191,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 	var yr int
 	n, err := fmt.Sscanf(year, "%d", &yr)
 	if n != 1 || err != nil {
-		log.Fatal("Failed to convert string year to int - Error: %v", err)
+		return 0, fmt.Errorf("failed to convert string year=%s to int: %w", year, err)
 	}
 	var candlesCurrency []ohlc
 	var candlesStock []ohlcv

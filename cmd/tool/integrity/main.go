@@ -223,9 +223,17 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 			}
 			wg.Add(1)
 			if parallel {
-				go processChunk(chunkNum, offset, readBuffers[chunkNum][:bufferSize], fp, checkFile, &wg)
+				go func() {
+					err = processChunk(chunkNum, offset, readBuffers[chunkNum][:bufferSize], fp, checkFile, &wg)
+					if err != nil {
+						log.Error("failed to processChunk async: %w", err)
+					}
+				}()
 			} else {
-				processChunk(chunkNum, offset, readBuffers[chunkNum][:bufferSize], fp, checkFile, &wg)
+				err = processChunk(chunkNum, offset, readBuffers[chunkNum][:bufferSize], fp, checkFile, &wg)
+				if err != nil {
+					return fmt.Errorf("failed to processChunk sync: %w", err)
+				}
 			}
 			chunkNum++
 		}
@@ -246,17 +254,19 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 	return nil
 }
 
-func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filename string, wg *sync.WaitGroup) {
+func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filename string, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	//		nread, err := fp.ReadAt(buffer, int64(myChunk*chunkSize))
 	nread, err := fp.ReadAt(buffer, offset)
 	if err != nil {
 		if err.Error() != "EOF" {
-			log.Fatal("Error reading " + fp.Name() + ": " + err.Error())
+			log.Error("Error reading " + fp.Name() + ": " + err.Error())
+			return fmt.Errorf("reading %s: %w", fp.Name(), err)
 		}
 	}
 	if nread == 0 {
-		log.Fatal("Short read " + fp.Name())
+		log.Error("Short read " + fp.Name())
+		return fmt.Errorf("short read %s: %w", fp.Name(), err)
 	}
 	// Align the checksum range to 8-bytes
 	sumRange := io.AlignedSize(nread)
@@ -277,6 +287,7 @@ func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filenam
 	if fixHeaders && myChunk == 0 {
 		fixKnownHeaderProblems(buffer, fp.Name())
 	}
+	return nil
 }
 
 func fixKnownHeaderProblems(buffer []byte, filePath string) {

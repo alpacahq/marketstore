@@ -65,7 +65,8 @@ func TestAgg(t *testing.T) {
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 
-	outCs := aggregate(cs, aggTbk, baseTbk, "TEST")
+	outCs, err := aggregate(cs, aggTbk, baseTbk, "TEST")
+	assert.Nil(t, err)
 	assert.Equal(t, outCs.Len(), 3)
 	assert.Equal(t, outCs.GetColumn("Open").([]float32)[0], float32(1.))
 	assert.Equal(t, outCs.GetColumn("High").([]float32)[1], float32(4.1))
@@ -90,7 +91,8 @@ func TestAgg(t *testing.T) {
 	cs.AddColumn("Low", low)
 	cs.AddColumn("Close", close)
 
-	outCs = aggregate(cs, aggTbk, baseTbk, "TEST")
+	outCs, err = aggregate(cs, aggTbk, baseTbk, "TEST")
+	assert.Nil(t, err)
 	assert.Equal(t, outCs.Len(), 2)
 	d1 := time.Date(2017, 12, 15, 0, 0, 0, 0, utils.InstanceConfig.Timezone)
 	d2 := time.Date(2017, 12, 16, 0, 0, 0, 0, utils.InstanceConfig.Timezone)

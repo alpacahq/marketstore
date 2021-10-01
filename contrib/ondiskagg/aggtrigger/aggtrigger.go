@@ -61,7 +61,7 @@ type OnDiskAggTrigger struct {
 }
 
 var (
-	_         trigger.Trigger = &OnDiskAggTrigger{}
+	_ trigger.Trigger = &OnDiskAggTrigger{}
 )
 
 func recast(config map[string]interface{}) *AggTriggerConfig {
@@ -256,16 +256,24 @@ func (s *OnDiskAggTrigger) writeAggregates(
 		// normally this will always be true, but when there are random bars
 		// on the weekend, it won't be, so checking to avoid panic
 		if len(tqSlc.GetEpoch()) > 0 {
-			csm.AddColumnSeries(*aggTbk, aggregate(tqSlc, aggTbk, baseTbk, symbol))
+			cs, err := aggregate(tqSlc, aggTbk, baseTbk, symbol)
+			if err != nil {
+				return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err)
+			}
+			csm.AddColumnSeries(*aggTbk, cs)
 		}
 	} else {
-		csm.AddColumnSeries(*aggTbk, aggregate(&slc, aggTbk, baseTbk, symbol))
+		cs, err := aggregate(&slc, aggTbk, baseTbk, symbol)
+		if err != nil {
+			return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err)
+		}
+		csm.AddColumnSeries(*aggTbk, cs)
 	}
 
 	return executor.WriteCSM(csm, false)
 }
 
-func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) *io.ColumnSeries {
+func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) (*io.ColumnSeries, error) {
 	timeWindow := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
 	var params []accumParam
 
@@ -299,10 +307,13 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 				condition...)
 		}
 
-		bar := models.FromTrades(trades, symbol, timeWindow.String)
+		bar, err := models.FromTrades(trades, symbol, timeWindow.String)
+		if err != nil {
+			return nil, fmt.Errorf("get bar for ondiskagg: %w", err)
+		}
 		cs := bar.GetCs()
 
-		return cs
+		return cs, nil
 	} else {
 		// bars to bars
 		params = []accumParam{
@@ -341,7 +352,7 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 		outCs := io.NewColumnSeries()
 		outCs.AddColumn("Epoch", outEpoch)
 		accumGroup.addColumns(outCs)
-		return outCs
+		return outCs, nil
 	}
 }
 

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -187,7 +188,7 @@ func conditionToUpdateInfo(conditions []enum.TradeCondition) ConsolidatedUpdateI
 	return r
 }
 
-func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
+func FromTrades(trades *Trade, symbol string, timeframe string) (*Bar, error) {
 	bar := NewBar(symbol, timeframe, len(trades.Epoch))
 
 	var bucketDuration time.Duration
@@ -201,8 +202,7 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 	case "1D":
 		bucketDuration = 24 * time.Hour
 	default:
-		log.Fatal("unsupported timeframe: %v", timeframe)
-		return nil
+		return nil, fmt.Errorf("unsupported timeframe: %v", timeframe)
 	}
 
 	var epoch int64
@@ -302,5 +302,5 @@ func FromTrades(trades *Trade, symbol string, timeframe string) *Bar {
 		bar.Add(epoch, open, high, low, close_, volume)
 	}
 
-	return bar
+	return bar, nil
 }

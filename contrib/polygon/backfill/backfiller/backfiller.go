@@ -103,11 +103,13 @@ func main() {
 	}()
 
 	if apiKey == "" {
-		log.Fatal("[polygon] api key is required")
+		log.Error("[polygon] api key is required")
+		os.Exit(1)
 	}
 
 	if noIngest && cacheDir == "" {
-		log.Fatal("[polygon] no-ingest should only be specified when cache-dir is set")
+		log.Error("[polygon] no-ingest should only be specified when cache-dir is set")
+		os.Exit(1)
 	}
 	backfill.NoIngest = noIngest
 
@@ -115,33 +117,39 @@ func main() {
 
 	start, err := time.Parse(format, from)
 	if err != nil {
-		log.Fatal("[polygon] failed to parse from timestamp (%v)", err)
+		log.Error("[polygon] failed to parse from timestamp (%v)", err)
+		os.Exit(1)
 	}
 
 	end, err := time.Parse(format, to)
 	if err != nil {
-		log.Fatal("[polygon] failed to parse to timestamp (%v)", err)
+		log.Error("[polygon] failed to parse to timestamp (%v)", err)
+		os.Exit(1)
 	}
 
 	tradePeriodDuration, err := parseAndValidateDuration(tradePeriod, 60*24*time.Hour, 24*time.Hour)
 	if err != nil {
-		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
+		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
+		os.Exit(1)
 	}
 
 	quotePeriodDuration, err := parseAndValidateDuration(quotePeriod, 60*24*time.Hour, 24*time.Hour)
 	if err != nil {
-		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
+		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
+		os.Exit(1)
 	}
 
 	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*24*time.Hour, 24*time.Hour)
 	if err != nil {
-		log.Fatal("[polygon] failed to parse trade-period duration (%v)", err)
+		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
+		os.Exit(1)
 	}
 
 	if cacheDir != "" {
 		err = os.MkdirAll(cacheDir, 0777)
 		if err != nil {
-			log.Fatal("[polygon] cannot create json dump directory (%v)", err)
+			log.Error("[polygon] cannot create json dump directory (%v)", err)
+			os.Exit(1)
 		}
 		log.Info("[polygon] using %s to dump polygon's replies", cacheDir)
 		api.CacheDir = cacheDir
@@ -169,7 +177,8 @@ func main() {
 	symbolList = unique(symbolList)
 	sort.Strings(symbolList)
 	if len(symbolList) == 0 {
-		log.Fatal("no symbol selected")
+		log.Error("no symbol selected")
+		os.Exit(1)
 	}
 	log.Info("[polygon] selected %v symbols", len(symbolList))
 
@@ -178,7 +187,8 @@ func main() {
 		for _, exchangeIDStr := range strings.Split(exchanges, ",") {
 			exchangeIDInt, err := strconv.Atoi(exchangeIDStr)
 			if err != nil {
-				log.Fatal("Invalid exchange ID: %v", exchangeIDStr)
+				log.Error("Invalid exchange ID: %v", exchangeIDStr)
+				os.Exit(1)
 			}
 
 			exchangeIDs = append(exchangeIDs, exchangeIDInt)

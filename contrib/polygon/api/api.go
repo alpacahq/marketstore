@@ -275,7 +275,10 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 			if err != nil {
 				return nil, err
 			}
-			jsonDump(body, filename)
+			err = jsonDump(body, filename)
+			if err != nil {
+				return nil, fmt.Errorf("jsonDump")
+			}
 		}
 
 		trades := &HistoricTrades{}
@@ -293,7 +296,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 		if len(trades.Results) == batchSize {
 			offset = trades.Results[len(trades.Results)-1].SipTimestamp
 			if offset == 0 {
-				log.Fatal("Unable to paginate: Timestamp was empty for %v @ %v", symbol, date)
+				return nil, fmt.Errorf("unable to paginate: Timestamp was empty for %v @ %v", symbol, date)
 			}
 		} else {
 			break
@@ -439,9 +442,12 @@ func jsonDump(body []byte, filename string) error {
 	writer := gzip.NewWriter(f)
 	defer writer.Close()
 
-	writer.Write(body)
+	_, err = writer.Write(body)
+	if err != nil {
+		return fmt.Errorf("failed to write gzip: %w", err)
+	}
 	log.Info("[polygon] saved: %s", filename)
-	return err
+	return nil
 }
 
 func readFromCache(filename string) (bytes []byte, err error) {
