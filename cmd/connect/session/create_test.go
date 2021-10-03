@@ -2,7 +2,11 @@ package session
 
 import (
 	"errors"
+	"reflect"
 	"testing"
+	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/io"
 
 	"github.com/golang/mock/gomock"
 
@@ -84,6 +88,92 @@ func TestClient_create(t *testing.T) {
 			c := NewClient(mockClient)
 			if gotOk := c.create(tt.line); gotOk != tt.wantOk {
 				t.Errorf("create() = %v, want %v", gotOk, tt.wantOk)
+			}
+		})
+	}
+}
+
+func TestClient_GetBucketInfo(t *testing.T) {
+	t.Parallel()
+	var (
+		testGetInfoResponse = frontend.GetInfoResponse{
+			LatestYear: 2021,
+			TimeFrame:  1 * time.Minute,
+			DSV:        []io.DataShape{{Name: "Epoch", Type: io.INT64}, {Name: "Ask", Type: io.FLOAT32}},
+			RecordType: io.VARIABLE,
+			ServerResp: frontend.ServerResponse{},
+		}
+
+		testGetInfoErrResponse = frontend.GetInfoResponse{
+			ServerResp: frontend.ServerResponse{Error: "error!"},
+		}
+	)
+
+	tests := []struct {
+		name     string
+		key      io.TimeBucketKey
+		resp     *frontend.MultiGetInfoResponse
+		err      error
+		wantResp *frontend.GetInfoResponse
+		wantErr  bool
+	}{
+		{
+			name:     "success/bucket info returned",
+			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			resp:     &frontend.MultiGetInfoResponse{Responses: []frontend.GetInfoResponse{testGetInfoResponse}},
+			wantResp: &testGetInfoResponse,
+		},
+		{
+			name:     "error/no bucket info is returned",
+			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			resp:     &frontend.MultiGetInfoResponse{Responses: []frontend.GetInfoResponse{}}, // empty
+			wantResp: nil,
+			wantErr:  true,
+		},
+		{
+			name:     "error/error is passed",
+			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			err:      errors.New("error"),
+			wantResp: nil,
+			wantErr:  true,
+		},
+		{
+			name:     "error/error in Server Response struct is passed",
+			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			resp:     &frontend.MultiGetInfoResponse{Responses: []frontend.GetInfoResponse{testGetInfoErrResponse}},
+			wantResp: nil,
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// --- given ---
+			mockCtrl := gomock.NewController(t)
+			mockClient := mock.NewMockAPIClient(mockCtrl)
+			mockClient.EXPECT().GetBucketInfo(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error {
+					if responses != nil && tt.resp != nil {
+						*responses = *tt.resp
+					}
+					return tt.err
+				},
+			)
+
+			c := &Client{apiClient: mockClient}
+
+			// --- when ---
+			gotResp, err := c.GetBucketInfo(tt.key)
+
+			// --- then ---
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetBucketInfo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResp, tt.wantResp) {
+				t.Errorf("GetBucketInfo() gotResp = %v, want %v", gotResp, tt.wantResp)
 			}
 		})
 	}
