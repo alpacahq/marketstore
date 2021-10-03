@@ -590,6 +590,11 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 			if numRead <= bytesToRead {
 				bytesToRead -= numRead
 				copy(finalBuffer[bytesToRead:], fileBuffer)
+
+				// read enough data
+				if bytesToRead == 0 {
+					break
+				}
 			} else {
 				copy(finalBuffer, fileBuffer[numRead-bytesToRead:])
 				bytesToRead = 0
