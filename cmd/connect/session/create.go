@@ -187,6 +187,9 @@ func (c *Client) GetBucketInfo(key io.TimeBucketKey) (resp *frontend.GetInfoResp
 	/*
 		Process the single response
 	*/
+	if len(responses.Responses) == 0 {
+		return nil, fmt.Errorf("no BucketInfo is returned for %v", key)
+	}
 	resp = &responses.Responses[0]
 	if len(resp.ServerResp.Error) != 0 {
 		return nil, fmt.Errorf("%s", resp.ServerResp.Error)
