@@ -587,7 +587,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 		// Copy the found data into the final buffer in reverse order
 		if numRead != 0 {
 			bytesRead += numRead
-			if numRead <= bytesToRead {
+			if numRead < bytesToRead {
 				bytesToRead -= numRead
 				copy(finalBuffer[bytesToRead:], fileBuffer)
 			} else {
