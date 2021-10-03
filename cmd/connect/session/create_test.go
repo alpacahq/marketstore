@@ -131,6 +131,13 @@ func TestClient_GetBucketInfo(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name:     "error/nil response is returned",
+			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			resp:     nil,
+			wantResp: nil,
+			wantErr:  true,
+		},
+		{
 			name:     "error/error is passed",
 			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
 			err:      errors.New("error"),
