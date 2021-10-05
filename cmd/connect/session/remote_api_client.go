@@ -42,10 +42,18 @@ func (rc *RemoteAPIClient) PrintConnectInfo() {
 func (rc *RemoteAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
 	var respI interface{}
 	respI, err := rc.rpcClient.DoRPC("Write", reqs)
-	if respI != nil {
-		*responses = *respI.(*frontend.MultiServerResponse)
+	if err != nil {
+		return fmt.Errorf("DoRPC:Write error:%w", err)
 	}
-	return err
+
+	if respI != nil {
+		if val, ok := respI.(*frontend.MultiServerResponse); ok {
+			*responses = *val
+		} else {
+			return fmt.Errorf("[bug] unexpected data type returned from DoRPC:Write func. resp=%v", respI)
+		}
+	}
+	return nil
 }
 
 func (rc *RemoteAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time) (csm io.ColumnSeriesMap, err error) {
@@ -66,48 +74,69 @@ func (rc *RemoteAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time) (c
 		Requests: []frontend.QueryRequest{req},
 	}
 
-	resp, err := rc.rpcClient.DoRPC("Query", args)
+	respI, err := rc.rpcClient.DoRPC("Query", args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("DoRPC:Query error:%w", err)
 	}
 
-	return *resp.(*io.ColumnSeriesMap), nil
+	if respI == nil {
+		return io.ColumnSeriesMap{}, nil
+	}
+
+	if val, ok := respI.(*io.ColumnSeriesMap); ok {
+		return *val, nil
+	} else {
+		return nil, fmt.Errorf("[bug] unexpected data type returned from DoRPC:Query func. resp=%v",
+			respI,
+		)
+	}
 }
 
 func (rc *RemoteAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error {
 	var respI interface{}
 	respI, err := rc.rpcClient.DoRPC("Create", reqs)
-	if respI != nil {
-		*responses = *respI.(*frontend.MultiServerResponse)
+	if err != nil {
+		return fmt.Errorf("DoRPC:Create error:%w", err)
 	}
-	return err
-
+	if respI != nil {
+		if val, ok := respI.(*frontend.MultiServerResponse); ok {
+			*responses = *val
+		} else {
+			return fmt.Errorf("[bug] unexpected data type returned from DoRPC:Create func. resp=%v", respI)
+		}
+	}
+	return nil
 }
 
 func (rc *RemoteAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *frontend.MultiServerResponse) error {
 	var respI interface{}
 	respI, err := rc.rpcClient.DoRPC("Destroy", reqs)
-	if respI != nil {
-		*responses = *respI.(*frontend.MultiServerResponse)
+	if err != nil {
+		return fmt.Errorf("DoRPC:Destroy error:%w", err)
 	}
-	return err
+	if respI != nil {
+		if val, ok := respI.(*frontend.MultiServerResponse); ok {
+			*responses = *val
+		} else {
+			return fmt.Errorf("[bug] unexpected data type returned from DoRPC:Destroy func. resp=%v", respI)
+		}
+	}
+	return nil
 }
 
 func (rc *RemoteAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse,
 ) error {
-	var (
-		respI interface{}
-	)
+	var respI interface{}
 	respI, err := rc.rpcClient.DoRPC("GetInfo", reqs)
 	if err != nil {
-		return fmt.Errorf("DoRPC:GetInfo error:%w", err)
+		return fmt.Errorf("DoRPC:GetBucketInfo error:%w", err)
 	}
 
 	if respI != nil {
 		if val, ok := respI.(*frontend.MultiGetInfoResponse); ok {
 			*responses = *val
 		} else {
-			return fmt.Errorf("[bug] unexpected data type returned from DoRPC func. resp=%v", respI)
+			return fmt.Errorf("[bug] unexpected data type returned from DoRPC:GetBucketInfo func. resp=%v", respI)
 		}
 	}
 	return nil
@@ -122,12 +151,16 @@ func (rc *RemoteAPIClient) SQL(line string) (cs *io.ColumnSeries, err error) {
 
 	resp, err := rc.rpcClient.DoRPC("Query", args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("DoRPC:Query SQL error: %w", err)
 	}
 
-	for _, sub := range *resp.(*io.ColumnSeriesMap) {
-		cs = sub
-		break
+	if val, ok := resp.(*io.ColumnSeriesMap); ok {
+		for _, sub := range *val {
+			cs = sub
+			break
+		}
+	} else {
+		return nil, fmt.Errorf("[bug] unexpected data type returned from DoRPC:SQL func. resp=%v", resp)
 	}
 	return cs, err
 }
