@@ -44,8 +44,6 @@ type Client struct {
 type APIClient interface {
 	// PrintConnectInfo prints connection information to stdout.
 	PrintConnectInfo()
-	// Connect initializes a client connection.
-	Connect() error
 	// Create creates a new bucket in the marketstore server
 	Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error
 	// Write executes a write operation to the marketstore server.
@@ -58,10 +56,6 @@ type APIClient interface {
 	GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error
 	// SQL executes the specified sql statement
 	SQL(line string) (cs *dbio.ColumnSeries, err error)
-}
-
-func (c *Client) Connect() error {
-	return c.apiClient.Connect()
 }
 
 // RPCClient is a marketstore API client interface.

@@ -10,12 +10,10 @@ import (
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-
-	"github.com/alpacahq/marketstore/v4/frontend/client"
 )
 
 // NewRemoteAPIClient generates a new client struct.
-func NewRemoteAPIClient(url string) (rc *RemoteAPIClient, err error) {
+func NewRemoteAPIClient(url string, client RPCClient) (rc *RemoteAPIClient, err error) {
 	// TODO: validate url using go core packages.
 	splits := strings.Split(url, ":")
 	if len(splits) != 2 {
@@ -24,7 +22,7 @@ func NewRemoteAPIClient(url string) (rc *RemoteAPIClient, err error) {
 	}
 	// build url.
 	url = "http://" + url
-	return &RemoteAPIClient{url: url}, nil
+	return &RemoteAPIClient{url: url, rpcClient: client}, nil
 }
 
 // RemoteAPIClient represents an agent that manages a database
@@ -40,23 +38,12 @@ type RemoteAPIClient struct {
 func (rc *RemoteAPIClient) PrintConnectInfo() {
 	fmt.Fprintf(os.Stderr, "Connected to remote instance at: %v\n", rc.url)
 }
-func (rc *RemoteAPIClient) Connect() error {
-	// Attempt connection to remote host.
-	cli, err := client.NewClient(rc.url)
-	if err != nil {
-		return err
-	}
-	rc.rpcClient = cli
-
-	// Success.
-	return nil
-}
 
 func (rc *RemoteAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
 	var respI interface{}
 	respI, err := rc.rpcClient.DoRPC("Write", reqs)
 	if respI != nil {
-		responses = respI.(*frontend.MultiServerResponse)
+		*responses = *respI.(*frontend.MultiServerResponse)
 	}
 	return err
 }
@@ -91,7 +78,7 @@ func (rc *RemoteAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *
 	var respI interface{}
 	respI, err := rc.rpcClient.DoRPC("Create", reqs)
 	if respI != nil {
-		responses = respI.(*frontend.MultiServerResponse)
+		*responses = *respI.(*frontend.MultiServerResponse)
 	}
 	return err
 
@@ -101,19 +88,29 @@ func (rc *RemoteAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *fr
 	var respI interface{}
 	respI, err := rc.rpcClient.DoRPC("Destroy", reqs)
 	if respI != nil {
-		responses = respI.(*frontend.MultiServerResponse)
+		*responses = *respI.(*frontend.MultiServerResponse)
 	}
 	return err
 }
 
 func (rc *RemoteAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse,
 ) error {
-	var respI interface{}
+	var (
+		respI interface{}
+	)
 	respI, err := rc.rpcClient.DoRPC("GetInfo", reqs)
-	if respI != nil {
-		responses = respI.(*frontend.MultiGetInfoResponse)
+	if err != nil {
+		return fmt.Errorf("DoRPC:GetInfo error:%w", err)
 	}
-	return err
+
+	if respI != nil {
+		if val, ok := respI.(*frontend.MultiGetInfoResponse); ok {
+			*responses = *val
+		} else {
+			return fmt.Errorf("[bug] unexpected data type returned from DoRPC func. resp=%v", respI)
+		}
+	}
+	return nil
 }
 
 func (rc *RemoteAPIClient) SQL(line string) (cs *io.ColumnSeries, err error) {

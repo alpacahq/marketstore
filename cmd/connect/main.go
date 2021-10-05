@@ -3,6 +3,8 @@ package connect
 import (
 	"errors"
 
+	"github.com/alpacahq/marketstore/v4/frontend/client"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
@@ -86,7 +88,13 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 
 	// Attempt remote mode.
 	if len(url) != 0 {
-		conn, err = session.NewRemoteAPIClient(url)
+		// Attempt connection to remote host.
+		rpcClient, err := client.NewClient(url)
+		if err != nil {
+			return err
+		}
+
+		conn, err = session.NewRemoteAPIClient(url, rpcClient)
 		if err != nil {
 			return err
 		}
@@ -96,13 +104,8 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 		utils.InstanceConfig.DisableVariableCompression = true
 	}
 
-	c = session.NewClient(conn)
-
 	// Initialize connection.
-	err = c.Connect()
-	if err != nil {
-		return err
-	}
+	c = session.NewClient(conn)
 
 	// Enter command loop
 	err = c.Read()
