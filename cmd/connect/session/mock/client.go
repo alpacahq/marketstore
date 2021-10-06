@@ -8,50 +8,35 @@ import (
 	reflect "reflect"
 	time "time"
 
-	gomock "github.com/golang/mock/gomock"
-
 	frontend "github.com/alpacahq/marketstore/v4/frontend"
 	io "github.com/alpacahq/marketstore/v4/utils/io"
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockAPIClient is a mock of APIClient interface
+// MockAPIClient is a mock of APIClient interface.
 type MockAPIClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockAPIClientMockRecorder
 }
 
-// MockAPIClientMockRecorder is the mock recorder for MockAPIClient
+// MockAPIClientMockRecorder is the mock recorder for MockAPIClient.
 type MockAPIClientMockRecorder struct {
 	mock *MockAPIClient
 }
 
-// NewMockAPIClient creates a new mock instance
+// NewMockAPIClient creates a new mock instance.
 func NewMockAPIClient(ctrl *gomock.Controller) *MockAPIClient {
 	mock := &MockAPIClient{ctrl: ctrl}
 	mock.recorder = &MockAPIClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAPIClient) EXPECT() *MockAPIClientMockRecorder {
 	return m.recorder
 }
 
-// Connect mocks base method
-func (m *MockAPIClient) Connect() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Connect")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Connect indicates an expected call of Connect
-func (mr *MockAPIClientMockRecorder) Connect() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connect", reflect.TypeOf((*MockAPIClient)(nil).Connect))
-}
-
-// Create mocks base method
+// Create mocks base method.
 func (m *MockAPIClient) Create(arg0 *frontend.MultiCreateRequest, arg1 *frontend.MultiServerResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
@@ -59,13 +44,13 @@ func (m *MockAPIClient) Create(arg0 *frontend.MultiCreateRequest, arg1 *frontend
 	return ret0
 }
 
-// Create indicates an expected call of Create
+// Create indicates an expected call of Create.
 func (mr *MockAPIClientMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockAPIClient)(nil).Create), arg0, arg1)
 }
 
-// Destroy mocks base method
+// Destroy mocks base method.
 func (m *MockAPIClient) Destroy(arg0 *frontend.MultiKeyRequest, arg1 *frontend.MultiServerResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Destroy", arg0, arg1)
@@ -73,13 +58,13 @@ func (m *MockAPIClient) Destroy(arg0 *frontend.MultiKeyRequest, arg1 *frontend.M
 	return ret0
 }
 
-// Destroy indicates an expected call of Destroy
+// Destroy indicates an expected call of Destroy.
 func (mr *MockAPIClientMockRecorder) Destroy(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Destroy", reflect.TypeOf((*MockAPIClient)(nil).Destroy), arg0, arg1)
 }
 
-// GetBucketInfo mocks base method
+// GetBucketInfo mocks base method.
 func (m *MockAPIClient) GetBucketInfo(arg0 *frontend.MultiKeyRequest, arg1 *frontend.MultiGetInfoResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBucketInfo", arg0, arg1)
@@ -87,25 +72,25 @@ func (m *MockAPIClient) GetBucketInfo(arg0 *frontend.MultiKeyRequest, arg1 *fron
 	return ret0
 }
 
-// GetBucketInfo indicates an expected call of GetBucketInfo
+// GetBucketInfo indicates an expected call of GetBucketInfo.
 func (mr *MockAPIClientMockRecorder) GetBucketInfo(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketInfo", reflect.TypeOf((*MockAPIClient)(nil).GetBucketInfo), arg0, arg1)
 }
 
-// PrintConnectInfo mocks base method
+// PrintConnectInfo mocks base method.
 func (m *MockAPIClient) PrintConnectInfo() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "PrintConnectInfo")
 }
 
-// PrintConnectInfo indicates an expected call of PrintConnectInfo
+// PrintConnectInfo indicates an expected call of PrintConnectInfo.
 func (mr *MockAPIClientMockRecorder) PrintConnectInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrintConnectInfo", reflect.TypeOf((*MockAPIClient)(nil).PrintConnectInfo))
 }
 
-// SQL mocks base method
+// SQL mocks base method.
 func (m *MockAPIClient) SQL(arg0 string) (*io.ColumnSeries, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SQL", arg0)
@@ -114,13 +99,13 @@ func (m *MockAPIClient) SQL(arg0 string) (*io.ColumnSeries, error) {
 	return ret0, ret1
 }
 
-// SQL indicates an expected call of SQL
+// SQL indicates an expected call of SQL.
 func (mr *MockAPIClientMockRecorder) SQL(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SQL", reflect.TypeOf((*MockAPIClient)(nil).SQL), arg0)
 }
 
-// Show mocks base method
+// Show mocks base method.
 func (m *MockAPIClient) Show(arg0 *io.TimeBucketKey, arg1, arg2 *time.Time) (io.ColumnSeriesMap, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Show", arg0, arg1, arg2)
@@ -129,13 +114,13 @@ func (m *MockAPIClient) Show(arg0 *io.TimeBucketKey, arg1, arg2 *time.Time) (io.
 	return ret0, ret1
 }
 
-// Show indicates an expected call of Show
+// Show indicates an expected call of Show.
 func (mr *MockAPIClientMockRecorder) Show(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Show", reflect.TypeOf((*MockAPIClient)(nil).Show), arg0, arg1, arg2)
 }
 
-// Write mocks base method
+// Write mocks base method.
 func (m *MockAPIClient) Write(arg0 *frontend.MultiWriteRequest, arg1 *frontend.MultiServerResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Write", arg0, arg1)
@@ -143,7 +128,7 @@ func (m *MockAPIClient) Write(arg0 *frontend.MultiWriteRequest, arg1 *frontend.M
 	return ret0
 }
 
-// Write indicates an expected call of Write
+// Write indicates an expected call of Write.
 func (mr *MockAPIClientMockRecorder) Write(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockAPIClient)(nil).Write), arg0, arg1)

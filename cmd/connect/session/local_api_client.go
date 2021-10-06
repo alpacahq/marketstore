@@ -49,10 +49,6 @@ type LocalAPIClient struct {
 func (lc *LocalAPIClient) PrintConnectInfo() {
 	fmt.Fprintf(os.Stderr, "Connected to local instance at path: %v\n", lc.dir)
 }
-func (lc *LocalAPIClient) Connect() error {
-	// Nothing to do here yet..
-	return nil
-}
 
 func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *frontend.MultiServerResponse) error {
 	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.aggRunner, lc.writer, lc.query)
