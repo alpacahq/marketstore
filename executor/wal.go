@@ -89,7 +89,10 @@ func TakeOverWALFile(filePath string) (wf *WALFileType, err error) {
 		return nil, WALTakeOverError("TakeOverFile" + err.Error())
 	}
 
-	fileStatus, replayState, owningInstanceID := readStatus(wf.FilePtr)
+	fileStatus, replayState, owningInstanceID, err := readStatus(wf.FilePtr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read walfile(%s) status: %w", wf.FilePtr.Name(), err)
+	}
 	if wf.callerOwnsFile(owningInstanceID) {
 		return nil, WALTakeOverError("TakeOver: File file is owned by calling process")
 	}
@@ -156,7 +159,8 @@ func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
 
 	wf.close(wal.REPLAYED)
 	if err = os.Remove(wf.FilePtr.Name()); err != nil {
-		log.Fatal(io.GetCallerFileContext(0) + ": Can not remove WALFile")
+		log.Error(io.GetCallerFileContext(0) + ": Can not remove WALFile")
+		return fmt.Errorf("cannot remove WALFile %s: %w", wf.FilePtr.Name(), err)
 	}
 
 	return nil
@@ -532,23 +536,27 @@ func (wf *WALFileType) syncStatusRead() error {
 		log.Error(io.GetCallerFileContext(0) + ": File stat failed")
 		return fmt.Errorf("failed to read walFile status. trace=%s: %w", io.GetCallerFileContext(0), err)
 	}
-	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = readStatus(wf.FilePtr)
+	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID, err = readStatus(wf.FilePtr)
+	if err != nil {
+		return fmt.Errorf("failed to read Status of %s: %w", wf.FilePtr.Name(), err)
+	}
 
 	return nil
 }
 
-func readStatus(filePtr *os.File) (fileStatus wal.FileStatusEnum, replayStatus wal.ReplayStateEnum, owningInstanceID int64) {
+func readStatus(filePtr *os.File,
+) (fileStatus wal.FileStatusEnum, replayStatus wal.ReplayStateEnum, owningInstanceID int64, err error) {
 	// Read from beginning of file +1 to cont over the MID
 	filePtr.Seek(1, goio.SeekStart)
-	var err error
 	fileStatus, replayStatus, owningInstanceID, err = wal.ReadStatus(filePtr)
 	if err != nil {
-		log.Fatal(io.GetCallerFileContext(0) + ": Unable to ReadStatus()")
+		log.Error(io.GetCallerFileContext(0) + ": Unable to ReadStatus()")
+		return 0, 0, 0, fmt.Errorf("unable to read status: %w", err)
 	}
 	//	wf.FileStatus, wf.ReplayState, wf.OwningInstanceID = fileStatus, replayStatus, owningInstanceID
 	// Reset the file pointer to the end of the file
 	filePtr.Seek(0, goio.SeekEnd)
-	return fileStatus, replayStatus, owningInstanceID
+	return fileStatus, replayStatus, owningInstanceID, nil
 }
 
 func (wf *WALFileType) callerOwnsFile(callersInstanceID int64) bool {
@@ -608,18 +616,18 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 			select {
 			case <-tickerWAL.C:
 				if err := wf.FlushToWAL(); err != nil {
-					log.Fatal(err.Error())
+					log.Error("[tickerWAL] failed to FlushToWAL: " + err.Error())
 				}
 			case f := <-wf.txnPipe.flushChannel:
 				if err := wf.FlushToWAL(); err != nil {
-					log.Fatal(err.Error())
+					log.Error("[txnPipe.flushChannel] failed to FlushToWAL: " + err.Error())
 				}
 				f <- struct{}{}
 			case <-tickerCheck.C:
 				queued := len(wf.txnPipe.writeChannel)
 				if float64(queued)/float64(chanCap) >= 0.8 {
 					if err := wf.FlushToWAL(); err != nil {
-						log.Fatal(err.Error())
+						log.Error("[tickerCheck] failed to FlushToWAL: " + err.Error())
 					}
 				}
 			case <-tickerPrimary.C:
@@ -635,9 +643,15 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 		} else {
 			haveWALWriter = false
 			log.Info("Flushing to WAL...")
-			wf.FlushToWAL()
+			err := wf.FlushToWAL()
+			if err != nil {
+				log.Error("[shutdown] failed to flush to WAL: " + err.Error())
+			}
 			log.Info("Flushing to disk...")
-			wf.CreateCheckpoint()
+			err = wf.CreateCheckpoint()
+			if err != nil {
+				log.Error("[shutdown] failed to createCheckpoint in WAL: " + err.Error())
+			}
 			wf.walWaitGroup.Done()
 			return
 		}

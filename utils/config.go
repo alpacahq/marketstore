@@ -135,7 +135,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 
 	// GRPC is optional for now
 	// if aux.GRPCListenPort == "" {
-	// 	log.Fatal("Invalid GRPC listen port.")
+	// 	log.Error("Invalid GRPC listen port.")
 	// 	return errors.New("Invalid GRPC listen port.")
 	// }
 	if aux.GRPCMaxSendMsgSize == 0 {

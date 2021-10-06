@@ -1,6 +1,7 @@
 package reorg
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -17,7 +18,7 @@ func safeCall(v reflect.Value, fun string, lines []string) (out string) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			log.Fatal("%+v died while parsing: %s", fun, strings.Join(lines, "\n"))
+			log.Error("%+v died while parsing: %s", fun, strings.Join(lines, "\n"))
 			out = ""
 		}
 	}()
@@ -26,7 +27,7 @@ func safeCall(v reflect.Value, fun string, lines []string) (out string) {
 		outValues := fn.Call(args)
 		out = outValues[0].String()
 	} else {
-		log.Fatal("custom parser method not found: %s", strings.TrimSpace(fun))
+		log.Error("custom parser method not found: %s", strings.TrimSpace(fun))
 		out = ""
 	}
 	return out
@@ -39,7 +40,7 @@ func readRecord(lines []string, it interface{}) {
 		v = t.Elem()
 	default:
 		if reflect.TypeOf(it).Kind() != reflect.Ptr {
-			log.Fatal("readRecord: use & when passing a struct for readRecord")
+			log.Error("readRecord: use & when passing a struct for readRecord")
 		}
 		v = reflect.Indirect(reflect.ValueOf(t))
 	}
@@ -65,10 +66,10 @@ func readRecord(lines []string, it interface{}) {
 	}
 }
 
-func readRecords(content string, slicePtr interface{}) {
+func readRecords(content string, slicePtr interface{}) error {
 	if !(reflect.TypeOf(slicePtr).Kind() == reflect.Ptr &&
 		reflect.TypeOf(slicePtr).Elem().Kind() == reflect.Slice) {
-		log.Fatal("readRecords: target must be a pointer to a slice!!")
+		return fmt.Errorf("readRecords: target must be a pointer to a slice")
 	}
 	sliceValue := reflect.ValueOf(slicePtr).Elem()
 	elementType := sliceValue.Type().Elem()
@@ -85,7 +86,8 @@ func readRecords(content string, slicePtr interface{}) {
 			sliceValue.Set(reflect.Append(sliceValue, rec.Elem()))
 			content = content[len(result):]
 		} else {
-			log.Fatal("file parsing error, please check for file corruption or format change", content)
+			return fmt.Errorf("file parsing error, please check for file corruption or format change: %v", content)
 		}
 	}
+	return nil
 }

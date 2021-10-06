@@ -35,7 +35,8 @@ func TestFromTradesFieldExcludes(t *testing.T) {
 	)
 
 	// When converted to bars
-	bars := FromTrades(trades, symbol, "1Min")
+	bars, err := FromTrades(trades, symbol, "1Min")
+	assert.Nil(t, err)
 
 	assert.NotNil(t, bars)
 	assert.Len(t, bars.Epoch, 2)
@@ -85,7 +86,8 @@ func TestFromTradesDailyRollup(t *testing.T) {
 	)
 
 	// When converted to bars
-	bars := FromTrades(trades, symbol, "1D")
+	bars, err := FromTrades(trades, symbol, "1D")
+	assert.Nil(t, err)
 
 	// Then the daily close price should match to the specified
 	assert.NotNil(t, bars)

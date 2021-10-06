@@ -84,7 +84,10 @@ func readAnnouncements(path string) (*[]Announcement, error) {
 	}
 	content := string(buff)
 	var announcements = []Announcement{}
-	readRecords(content, &announcements)
+	err = readRecords(content, &announcements)
+	if err != nil {
+		return nil, fmt.Errorf("failed to readRecords: %w", err)
+	}
 	log.Info(fmt.Sprintf("Read %d records", len(announcements)))
 	return &announcements, nil
 }
@@ -125,8 +128,7 @@ func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string, 
 			}
 			if symbol != "" {
 				if err := storeAnnouncement(symbol, &note); err != nil {
-					log.Fatal("Unable to store Announcement: %+v %+v", err, note)
-					return err
+					return fmt.Errorf("unable to store Announcement: %w %+v", err, note)
 				}
 			} else {
 				log.Warn("Cannot map CUSIP %s to Symbol", note.TargetCusip)

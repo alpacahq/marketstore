@@ -69,7 +69,11 @@ func main() {
 				defer func() { <-sem }()
 				log.Info("backfilling %v...", t.Format("2006-01-02"))
 				s := time.Now()
-				pullDate(t)
+				err := pullDate(t)
+				if err != nil {
+					log.Error(fmt.Sprintf("failed to pullDate(%v). err=%v", t, err))
+					return
+				}
 				log.Info("Done %v (in %s)", t.Format("2006-01-02"), time.Now().Sub(s).String())
 			}(end)
 		}
@@ -83,7 +87,7 @@ func main() {
 	}
 }
 
-func pullDate(t time.Time) {
+func pullDate(t time.Time) error {
 	client := iex.NewClient(http.DefaultClient)
 
 	histData, err := client.GetHIST(t)
@@ -91,9 +95,9 @@ func pullDate(t time.Time) {
 		// no file for this day
 		if strings.Contains(err.Error(), "404") {
 			log.Warn("404 for date: %v", t)
-			return
+			return nil
 		}
-		panic(err)
+		return fmt.Errorf("failed to getHIST: %w", err)
 	} else if len(histData) == 0 {
 		panic(fmt.Errorf("Found %v available data feeds", len(histData)))
 	}
@@ -108,7 +112,7 @@ func pullDate(t time.Time) {
 
 	packetSource, err := iex.NewPacketDataSource(resp.Body)
 	if err != nil {
-		log.Fatal(err.Error())
+		return fmt.Errorf("failed to create NewPacketDataSource: %w", err)
 	}
 
 	scanner := iex.NewPcapScanner(packetSource)
@@ -126,7 +130,7 @@ func pullDate(t time.Time) {
 				break
 			}
 
-			log.Fatal(err.Error())
+			return fmt.Errorf("failed to scan next message: %w", err)
 		}
 
 		if msg, ok := msg.(*tops.TradeReportMessage); ok {
@@ -139,7 +143,7 @@ func pullDate(t time.Time) {
 				bars := makeBars(trades, openTime, closeTime)
 
 				if err := writeBars(bars); err != nil {
-					log.Fatal(err.Error())
+					return fmt.Errorf("failed to writeBars: %w", err)
 				}
 
 				trades = trades[:0]
@@ -150,6 +154,7 @@ func pullDate(t time.Time) {
 			trades = append(trades, msg)
 		}
 	}
+	return nil
 }
 
 func makeBars(trades []*tops.TradeReportMessage, openTime, closeTime time.Time) []*consolidator.Bar {
@@ -236,7 +241,7 @@ func initWriter() error {
 
 	trig, err := aggtrigger.NewTrigger(config)
 	if err != nil {
-		log.Fatal(err.Error())
+		return fmt.Errorf("failed to create a new aggtrigger: %w", err)
 	}
 
 	triggerMatchers := []*trigger.TriggerMatcher{
