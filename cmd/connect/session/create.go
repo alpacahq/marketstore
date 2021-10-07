@@ -151,6 +151,15 @@ func (c *Client) destroy(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "destroy"
 
+	if len(args) == 0 {
+		fmt.Printf("Please specify a bucket to destroy. (e.g. \\destroy TEST/1D/TICK)\n")
+		return
+	}
+	if len(args) >= 2 {
+		fmt.Printf("Only one bucket can be deleted at a time.\n")
+		return
+	}
+
 	req := frontend.KeyRequest{Key: args[0]}
 	reqs := &frontend.MultiKeyRequest{
 		Requests: []frontend.KeyRequest{req},
