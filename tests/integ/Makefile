@@ -83,6 +83,11 @@ test-grpc: clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test-grpc
 
+# run all integration tests for remote CLI (= tests using `marketstore connect --url {remote marketstore host:port}`)
+.PHONY: test-remote-cli
+test-remote-cli: clean run connect
+	@bin/cli_remote_test.sh
+
 # run all integration tests for the contrib/ice plugin
 .PHONY: test-contrib
 test-contrib: INCLUDE_PLUGINS = true

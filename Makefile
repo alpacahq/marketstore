@@ -55,6 +55,9 @@ unit-test:
 import-csv-test:
 	@tests/integ/bin/runtests.sh
 
+remote-cli-test:
+	$(MAKE) -C tests/integ test-remote-cli
+
 integration-test-jsonrpc:
 	$(MAKE) -C tests/integ test-jsonrpc
 
