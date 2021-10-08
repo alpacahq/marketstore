@@ -43,6 +43,7 @@ jobs:
   remote-cli-test:
     executor: golang
     steps:
+      - setup_remote_docker
       - run: make remote-cli-test
 
   integration-test-jsonrpc:
