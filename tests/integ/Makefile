@@ -21,9 +21,9 @@ connect: run
 	-H 'Content-Type: application/json' http://localhost:5993/rpc ; \
 	\
 	if [ $$? -ne 0 ]; then \
-		echo "Failed"; \
+		echo "Failed: ListSymbols rpc call for connection check"; \
 	else \
-		echo "Passed"; \
+		echo "Passed: ListSymbols rpc call for connection check"; \
 	fi
 
 .PHONY: run
