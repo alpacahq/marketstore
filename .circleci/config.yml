@@ -40,12 +40,6 @@ jobs:
     steps:
       - run: make import-csv-test
 
-  remote-cli-test:
-    executor: golang
-    steps:
-      - setup_remote_docker
-      - run: make remote-cli-test
-
   integration-test-jsonrpc:
     executor: golang
     steps:
@@ -96,14 +90,6 @@ workflows:
             - checkout
           filters: *all
       - import-csv-test:
-          requires:
-            - build
-          pre-steps:
-            - checkout
-            - attach_workspace:
-                at: ~/github.com/alpacahq/marketstore
-          filters: *all
-      - remote-cli-test:
           requires:
             - build
           pre-steps:
