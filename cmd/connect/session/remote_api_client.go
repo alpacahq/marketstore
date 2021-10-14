@@ -1,10 +1,8 @@
 package session
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/frontend"
@@ -13,16 +11,8 @@ import (
 )
 
 // NewRemoteAPIClient generates a new client struct.
-func NewRemoteAPIClient(url string, client RPCClient) (rc *RemoteAPIClient, err error) {
-	// TODO: validate url using go core packages.
-	splits := strings.Split(url, ":")
-	if len(splits) != 2 {
-		msg := fmt.Sprintf("incorrect URL, need \"hostname:port\", have: %s\n", url)
-		return nil, errors.New(msg)
-	}
-	// build url.
-	url = "http://" + url
-	return &RemoteAPIClient{url: url, rpcClient: client}, nil
+func NewRemoteAPIClient(url string, client RPCClient) *RemoteAPIClient {
+	return &RemoteAPIClient{url: url, rpcClient: client}
 }
 
 // RemoteAPIClient represents an agent that manages a database

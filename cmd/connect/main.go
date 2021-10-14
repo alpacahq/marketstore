@@ -2,6 +2,8 @@ package connect
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/alpacahq/marketstore/v4/frontend/client"
 
@@ -88,16 +90,21 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 
 	// Attempt remote mode.
 	if len(url) != 0 {
+		// TODO: validate url using go core packages.
+		splits := strings.Split(url, ":")
+		if len(splits) != 2 {
+			return fmt.Errorf("incorrect URL, need \"hostname:port\", have: %s\n", url)
+		}
+		// build url.
+		url = "http://" + url
+
 		// Attempt connection to remote host.
 		rpcClient, err := client.NewClient(url)
 		if err != nil {
 			return err
 		}
 
-		conn, err = session.NewRemoteAPIClient(url, rpcClient)
-		if err != nil {
-			return err
-		}
+		conn = session.NewRemoteAPIClient(url, rpcClient)
 	}
 
 	if varCompOff {
