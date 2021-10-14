@@ -5,7 +5,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 	"time"
@@ -66,12 +65,11 @@ func TestRemoteAPIClient_GetBucketInfo(t *testing.T) {
 			t.Parallel()
 
 			// --- given ---
-			rc, err := session.NewRemoteAPIClient("exampleurl:1234", tt.rpcClient)
-			assert.Nil(t, err)
+			rc := session.NewRemoteAPIClient("exampleurl:1234", tt.rpcClient)
 
 			// --- when ---
 			responses := &frontend.MultiGetInfoResponse{}
-			err = rc.GetBucketInfo(tt.reqs, responses)
+			err := rc.GetBucketInfo(tt.reqs, responses)
 
 			// --- then ---
 			if (err != nil) != tt.wantErr {

@@ -104,10 +104,7 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		conn, err = session.NewRemoteAPIClient(url, rpcClient)
-		if err != nil {
-			return err
-		}
+		conn = session.NewRemoteAPIClient(url, rpcClient)
 	}
 
 	if varCompOff {

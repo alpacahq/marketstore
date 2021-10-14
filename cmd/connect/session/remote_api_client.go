@@ -11,8 +11,8 @@ import (
 )
 
 // NewRemoteAPIClient generates a new client struct.
-func NewRemoteAPIClient(url string, client RPCClient) (rc *RemoteAPIClient, err error) {
-	return &RemoteAPIClient{url: url, rpcClient: client}, nil
+func NewRemoteAPIClient(url string, client RPCClient) *RemoteAPIClient {
+	return &RemoteAPIClient{url: url, rpcClient: client}
 }
 
 // RemoteAPIClient represents an agent that manages a database
