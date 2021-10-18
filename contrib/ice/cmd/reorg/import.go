@@ -2,6 +2,7 @@ package reorg
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
@@ -44,6 +45,7 @@ var ImportCmd = &cobra.Command{
 			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
 		}
 
+		utils.InstanceConfig.DisableVariableCompression = true
 		err = reorg.Import(reorgDir, reimport, storeWithoutSymbols)
 		if err != nil {
 			return fmt.Errorf("failed to import: %w", err)
