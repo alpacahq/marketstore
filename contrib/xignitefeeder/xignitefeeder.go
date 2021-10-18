@@ -40,7 +40,20 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		config.ClosedDays,
 		config.OpenTime,
 		config.CloseTime)
-	if config.OffHoursInterval != 0 {
+	if config.OffHoursSchedule != "" {
+		scheduleMin, err := feed.ParseSchedule(config.OffHoursSchedule)
+		if err != nil {
+			return nil, fmt.Errorf("parse off_hours_schedule %s: %w", config.OffHoursSchedule, err)
+		}
+		log.Info(fmt.Sprintf("[Xignite Feeder] off_hours_schedule=%s[min] is set. "+
+			"The data will be retrieved at %s [minute] even when the market is closed.",
+			config.OffHoursSchedule, config.OffHoursSchedule),
+		)
+		timeChecker = feed.NewScheduledMarketTimeChecker(
+			timeChecker,
+			scheduleMin,
+			)
+	} else if config.OffHoursInterval != 0 {
 		log.Info(fmt.Sprintf("[Xignite Feeder] off_hours_interval=%dmin is set. "+
 			"The data will be retrieved every %d minutes even when the market is closed.",
 			config.OffHoursInterval, config.OffHoursInterval),
