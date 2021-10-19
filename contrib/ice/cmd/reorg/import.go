@@ -2,6 +2,7 @@ package reorg
 
 import (
 	"fmt"
+
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/spf13/cobra"
 
@@ -11,6 +12,7 @@ import (
 
 var reimport bool
 var storeWithoutSymbols bool
+var disableVarComp bool
 
 // ImportCmd provides a command line interface for importing corporate action entries from ICE's data files
 // without --reimport option it only imports unprocessed data files (those without .processed suffix)
@@ -45,7 +47,7 @@ var ImportCmd = &cobra.Command{
 			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
 		}
 
-		utils.InstanceConfig.DisableVariableCompression = true
+		utils.InstanceConfig.DisableVariableCompression = disableVarComp
 		err = reorg.Import(reorgDir, reimport, storeWithoutSymbols)
 		if err != nil {
 			return fmt.Errorf("failed to import: %w", err)
@@ -57,4 +59,12 @@ var ImportCmd = &cobra.Command{
 func init() {
 	ImportCmd.Flags().BoolVarP(&reimport, "reimport", "r", false, "reimport")
 	ImportCmd.Flags().BoolVarP(&storeWithoutSymbols, "fallback-to-cusip", "c", false, "fallback-to-cusip")
+	// Please set the same value as disable_variable_compression in the marketstore's mkts.yml
+	// where this plugin is running.
+	// Different disable_variable_compression values between this plugin and mkts.yml
+	// causes unexpected data inconsistency issue.
+	// We need some refactor to prevent it from occurring due to this manual setting.
+	ImportCmd.Flags().BoolVarP(&disableVarComp, "disable-variable-compression", "d", false,
+		"disable variable compression feature",
+	)
 }
