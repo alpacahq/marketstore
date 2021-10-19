@@ -10,7 +10,7 @@ mkts_copy_data:
 	docker cp ${PLUGIN_ROOT}/data ${MKTS_CONTAINER_NAME}:/project/data/contrib/ice/
 
 mkts_import_ca:
-	docker exec ${MKTS_CONTAINER_NAME} bash -c "/bin/ice reorg import /project/data/mktsdb /project/data/contrib/ice/data --fallback-to-cusip"
+	docker exec ${MKTS_CONTAINER_NAME} bash -c "/bin/ice reorg import /project/data/mktsdb /project/data/contrib/ice/data --fallback-to-cusip --disable-variable-compression"
 
 mkts_import_price:
 	docker exec ${MKTS_CONTAINER_NAME} bash -x /project/data/contrib/ice/data/load_price.sh
