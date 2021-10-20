@@ -98,12 +98,8 @@ workflows:
                 at: ~/github.com/alpacahq/marketstore
           filters: *all
       - integration-test-jsonrpc:
-          requires:
-            - build
           pre-steps:
             - checkout
-            - attach_workspace:
-                at: ~/github.com/alpacahq/marketstore
           filters: *all
       - integration-test-grpc:
           pre-steps:
