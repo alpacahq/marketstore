@@ -13,3 +13,9 @@ SELECT [ ALL | DISTINCT ] select_expr [, ...]
 -- example
 SELECT * FROM `gdax_BTC-USD/1D/OHLCV`; --escape dashes by wrapping it with backticks
 ```
+
+#### Aggregate functions supported are the following:
+- COUNT
+- AVG
+- MAX
+- MIN
