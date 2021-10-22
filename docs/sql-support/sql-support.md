@@ -8,4 +8,3 @@ The SQL grammar is mainly based on Facebook Presto DB. Currently the SQL support
 
 - [SELECT statement](./select-statement.md)
 - [INSERT statement](./insert-statement.md)
-- 
