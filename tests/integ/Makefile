@@ -76,6 +76,8 @@ _start_pyclient_container:
 test-jsonrpc: clean run _start_pyclient_container connect
 	TEST_FILENAME='/project/tests/$@.py'; \
 	make -C dockerfiles/pyclient test-jsonrpc
+	# tests for remote CLI (= tests using `marketstore connect --url {remote marketstore host:port}`)
+	docker exec ${CONTAINER_NAME} /project/bin/cli_remote_test.sh
 
 # run all integration tests by grpc client
 .PHONY: test-grpc
