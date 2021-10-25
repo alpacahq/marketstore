@@ -106,8 +106,6 @@ queryable | bool | polling-onlyモードで起動する場合はfalseにしま�
 stop_grace_period | int | SIGINT シグナルを受信してから終了するまでに待つ時間
 wal_rotate_interval | int | ディスクにフラッシュしてWALファイルがトリムされる頻度[分]
 stale_threshold | int | MarketStoreがシンボルを古いものと認識するしきい値[日]
-enable_add | bool | `/write` APIを通じてシンボルを新規作成することを許可するかどうか
-enable_remove | bool | `/write/ APIを通じてシンボルを削除することを許可するかどうか  
 triggers | slice | triggerプラグインのリスト
 bgworkers | slice | background workerプラグインのリスト
 
@@ -121,8 +119,6 @@ queryable: true
 stop_grace_period: 0
 wal_rotate_interval: 5
 stale_threshold: 5
-enable_add: true
-enable_remove: false
 ```
 
 

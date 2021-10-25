@@ -54,8 +54,6 @@ type MktsConfig struct {
 	Queryable                  bool
 	StopGracePeriod            time.Duration
 	WALRotateInterval          int
-	EnableAdd                  bool
-	EnableRemove               bool
 	DisableVariableCompression bool
 	InitCatalog                bool
 	InitWALCache               bool
@@ -85,8 +83,6 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 			Queryable                  string `yaml:"queryable"`
 			StopGracePeriod            int    `yaml:"stop_grace_period"`
 			WALRotateInterval          int    `yaml:"wal_rotate_interval"`
-			EnableAdd                  string `yaml:"enable_add"`
-			EnableRemove               string `yaml:"enable_remove"`
 			DisableVariableCompression string `yaml:"disable_variable_compression"`
 			InitCatalog                string `yaml:"init_catalog"`
 			InitWALCache               string `yaml:"init_wal_cache"`
@@ -193,24 +189,6 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 
 	if aux.StopGracePeriod > 0 {
 		m.StopGracePeriod = time.Duration(aux.StopGracePeriod) * time.Second
-	}
-
-	if aux.EnableAdd != "" {
-		enableAdd, err := strconv.ParseBool(aux.EnableAdd)
-		if err != nil {
-			log.Error("Invalid value: %v for enable_add. Disabling add...", aux.EnableAdd)
-		} else {
-			m.EnableAdd = enableAdd
-		}
-	}
-
-	if aux.EnableRemove != "" {
-		enableRemove, err := strconv.ParseBool(aux.EnableRemove)
-		if err != nil {
-			log.Error("Invalid value: %v for enable_add. Disabling remove...", aux.EnableRemove)
-		} else {
-			m.EnableRemove = enableRemove
-		}
 	}
 
 	if aux.DisableVariableCompression != "" {
