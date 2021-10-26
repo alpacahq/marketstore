@@ -53,15 +53,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 			timeChecker,
 			scheduleMin,
 			)
-	} else if config.OffHoursInterval != 0 {
-		log.Info(fmt.Sprintf("[Xignite Feeder] off_hours_interval=%dmin is set. "+
-			"The data will be retrieved every %d minutes even when the market is closed.",
-			config.OffHoursInterval, config.OffHoursInterval),
-		)
-		timeChecker = feed.NewIntervalMarketTimeChecker(
-			timeChecker,
-			time.Duration(config.OffHoursInterval)*time.Minute,
-		)
 	}
 
 	ctx := context.Background()
