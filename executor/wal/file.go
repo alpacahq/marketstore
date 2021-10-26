@@ -32,7 +32,8 @@ func ReadStatus(filePtr *os.File) (fileStatus FileStatusEnum, replayStatus Repla
 	return FileStatusEnum(buf[0]), ReplayStateEnum(buf[1]), io.ToInt64(buf[2:]), err
 }
 
-// Read reads the WAL file from current position
+// Read reads the WAL file from current position.
+// At end of file, Read returns io.EOF error.
 func Read(fp *os.File, buffer []byte) (result []byte, newOffset int64, err error) {
 	offset, err := fp.Seek(0, io2.SeekCurrent)
 	if err != nil {
@@ -42,6 +43,9 @@ func Read(fp *os.File, buffer []byte) (result []byte, newOffset int64, err error
 
 	numToRead := len(buffer)
 	n, err := fp.Read(buffer)
+	if err == io2.EOF {
+		return result, newOffset, io2.EOF
+	}
 	if n != numToRead {
 		msg := fmt.Sprintf("Read: Expected: %d Got: %d", numToRead, n)
 		err = ShortReadError(msg)
