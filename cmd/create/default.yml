@@ -9,8 +9,6 @@ log_level: info                     # log level (info|warn|error)
 queryable: true                     # allow database to be queried through a client connection
 stop_grace_period: 0
 wal_rotate_interval: 5
-enable_add: true                    # allow creating new time bucket keys
-enable_remove: false                # allow removing existing time bucket keys
 # timezone: "America/New_York"      # timezone to use for timestamps (default UTC)
 # utilities_url: "localhost:5994"   # enable debugging pprof and heartbeat endpoints
 
