@@ -217,6 +217,11 @@ func fullRead(err error) bool {
 		return true
 	}
 
+	if err == goio.EOF {
+		log.Debug("fullRead: read until the end of WAL file")
+		return false
+	}
+
 	if _, ok := err.(wal.ShortReadError); ok {
 		log.Info(fmt.Sprintf("Partial Read. err=%v", err))
 		return false
@@ -227,10 +232,16 @@ func fullRead(err error) bool {
 	return true
 }
 
+// readMessageID reads 1 byte from the current offset of WALfile and return it as a MessageID.
+// If it's at the end of wal file, readMessageID returns 0, io.EOF error.
+// If it's not at the end of wal file but couldn't read 1 byte, readMessageID returns 0, wal.ShortReadError.
 func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	var buffer [1]byte
 	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
 	if err != nil {
+		if err == goio.EOF {
+			return 0, goio.EOF
+		}
 		return 0, wal.ShortReadError("WALFileType.ReadMessageID. err:" + err.Error())
 	}
 	MID := MIDEnum(buf[0])
