@@ -236,7 +236,7 @@ marketstore connect --url <address>
 接続後はsqlセッションを通じてコマンドを実行することができます。
 
 ## Plugins
-Goにおけるプラグインは Go 1.10以上(Linux)で最適に動きます。プラグインについての詳細は [plugins package](./contrib/plugins/) をご覧ください。
+Goにおけるプラグインは Go 1.10以上(Linux)で最適に動きます。プラグインについての詳細は [plugins package](./plugins/) をご覧ください。
 ここでは特に取り上げたいいくつかのプラグインについてご紹介します。
 
 ### Streaming

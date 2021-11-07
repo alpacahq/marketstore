@@ -9,7 +9,7 @@ Read this in [日本語(Japanese)](README.ja.md)
 MarketStore is a database server optimized for financial time-series data.
 You can think of it as an extensible DataFrame service that is accessible from anywhere in your system, at higher scalability.
 
-It is designed from the ground up to address scalability issues around handling large amounts of financial market data used in algorithmic trading backtesting, charting, and analyzing price history with data spanning many years, and granularity down to tick-level for the all US equities or the exploding crypto currencies space. If you are struggling with managing lots of HDF5 files, this is perfect solution to your problem.
+It is designed from the ground up to address scalability issues around handling large amounts of financial market data used in algorithmic trading backtesting, charting, and analyzing price history with data spanning many years, and granularity down to tick-level for the all US equities or the exploding cryptocurrencies space. If you are struggling with managing lots of HDF5 files, this is perfect solution to your problem.
 
 The batteries are included with the basic install - you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates) and writing it to the db with a simple [plugin](#plugins) configuration.
 
@@ -155,7 +155,7 @@ timezone | string | System timezone by name of TZ database (e.g. America/New_Yor
 log_level | string  | Allows the user to specify the log level (info | warning | error)
 queryable | bool | Allows the user to run MarketStore in polling-only mode, where it will not respond to query
 stop_grace_period | int | Sets the amount of time MarketStore will wait to shutdown after a SIGINT signal is received
-wal_rotate_interval | int | Frequency (in mintues) at which the WAL file will be trimmed after being flushed to disk  
+wal_rotate_interval | int | Frequency (in minutes) at which the WAL file will be trimmed after being flushed to disk  
 stale_threshold | int | Threshold (in days) by which MarketStore will declare a symbol stale
 disable_variable_compression | bool | disables the default compression of variable data
 triggers | slice | List of trigger plugins
@@ -290,7 +290,7 @@ pushes the data.  Take a look at [the package](./contrib/stream/)
 for more details.
 
 ### GDAX Data Feeder
-The batteries are included so you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates)
+The batteries are included, so you can start pulling crypto price data from [GDAX](https://docs.gdax.com/#get-historic-rates)
 right after you install MarketStore. Then you can query DataFrame content
 over the network at as low latency as your local HDF5 files from disk, and
 appending new data to the end is two orders of magnitude faster than
@@ -345,7 +345,7 @@ Please be sure to start the master instance first when you want to replicate dat
 - When replication is enabled on a replica instance, the instance is set to read-only mode and  write API call(s) to the instance will fail.
 
 ## Development
-If you are interested in improving MarketStore, you are more than welcome! Just file issues or requests in github or contact oss@alpaca.markets. Before opening a PR please be sure tests pass-
+If you are interested in improving MarketStore, you are more than welcome! Just file issues or requests in GitHub or contact oss@alpaca.markets. Before opening a PR please be sure tests pass-
 
 ``` sh
 make unittest
