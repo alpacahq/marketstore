@@ -6,7 +6,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var (
@@ -79,10 +78,10 @@ func TestBarWriterImpl_Write(t *testing.T) {
 	}
 
 	// Time Bucket Key Name check
-	timeBucketKeyStr := string(m.WrittenCSM.GetMetadataKeys()[0].Key)
-	if timeBucketKeyStr != "1234/5Min/OHLCV:"+io.DefaultTimeBucketSchema {
+	timeBucketKeyStr := m.WrittenCSM.GetMetadataKeys()[0].GetItemKey()
+	if timeBucketKeyStr != "1234/5Min/OHLCV" {
 		t.Errorf("TimeBucketKey name is invalid. got=%v, want = %v",
-			timeBucketKeyStr, "1234/5Min/OHLCV:"+io.DefaultTimeBucketSchema)
+			timeBucketKeyStr, "1234/5Min/OHLCV")
 	}
 }
 
