@@ -39,12 +39,11 @@ func (c *Client) load(line string) {
 	if dataFD != nil {
 		defer dataFD.Close()
 	}
-	tbk := *tbk_p
 
 	/*
 		Verify the presence of a bucket with the input key
 	*/
-	resp, err := c.GetBucketInfo(tbk)
+	resp, err := c.GetBucketInfo(tbk_p)
 	if err != nil {
 		fmt.Printf("Error finding existing bucket: %v\n", err)
 		return
@@ -67,7 +66,7 @@ func (c *Client) load(line string) {
 		chunkSize := 1000000
 		// chunkSize := 100
 
-		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, tbk, cvm, chunkSize, resp.RecordType == io.VARIABLE)
+		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, *tbk_p, cvm, chunkSize, resp.RecordType == io.VARIABLE)
 		if err != nil {
 			fmt.Println("Error: ", err.Error())
 			return

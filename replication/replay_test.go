@@ -102,7 +102,7 @@ func TestReplayerImpl_Replay(t *testing.T) {
 			writeErr: false,
 			wantCSM: io.ColumnSeriesMap(
 				map[io.TimeBucketKey]*io.ColumnSeries{
-					{Key: "AMZN/1Min/OHLC:Symbol/Timeframe/AttributeGroup"}: makeMockOHLCColumnSeries(
+					*io.NewTimeBucketKey("AMZN/1Min/OHLC"): makeMockOHLCColumnSeries(
 						time.Date(2020, 01, 01, 00, 00, 00, 0, time.UTC),
 						1, 2, 3, 4,
 					),
@@ -134,7 +134,7 @@ func TestReplayerImpl_Replay(t *testing.T) {
 			writeErr: false,
 			wantCSM: io.ColumnSeriesMap(
 				map[io.TimeBucketKey]*io.ColumnSeries{
-					{Key: "AMZN/1Sec/OHLC:Symbol/Timeframe/AttributeGroup"}: makeMockOHLCColumnSeries(variableRecordDate, 1, 2, 3, 4),
+					*io.NewTimeBucketKey("AMZN/1Sec/OHLC"): makeMockOHLCColumnSeries(variableRecordDate, 1, 2, 3, 4),
 				},
 			),
 			wantIsVariableLength: true,

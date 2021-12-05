@@ -13,7 +13,9 @@ import (
 )
 
 type TimeBucketKey struct {
-	Key string `msgpack:"key"` // Key is the appended form, suitable for exported usage
+	// Key is the appended form, suitable for exported usage
+	// e.g. Key="AAPL/1Min/OHLC:Symbol/Timeframe/AttributeGroup"
+	key string `msgpack:"key"`
 	/*
 		itemKey     string
 		categoryKey string
@@ -66,20 +68,20 @@ func (mk *TimeBucketKey) String() (stringKey string) {
 	/*
 		return mk.itemKey + ":" + mk.categoryKey
 	*/
-	return mk.Key
+	return mk.key
 }
 func (mk *TimeBucketKey) GetCatKey() (catKey string) {
 	/*
 		return mk.categoryKey
 	*/
-	splitKey := strings.Split(mk.Key, ":")
+	splitKey := strings.Split(mk.key, ":")
 	return splitKey[1]
 }
 func (mk *TimeBucketKey) GetItemKey() (itemKey string) {
 	/*
 		return mk.itemKey
 	*/
-	splitKey := strings.Split(mk.Key, ":")
+	splitKey := strings.Split(mk.key, ":")
 	return splitKey[0]
 }
 func (mk *TimeBucketKey) GetCategories() (cats []string) {
@@ -141,7 +143,7 @@ func (mk *TimeBucketKey) SetItemInCategory(catName string, itemName string) {
 			itemKey += "/"
 		}
 	}
-	mk.Key = itemKey + ":" + mk.GetCatKey()
+	mk.key = itemKey + ":" + mk.GetCatKey()
 }
 
 func (mk *TimeBucketKey) GetTimeFrame() (tf *utils.Timeframe, err error) {

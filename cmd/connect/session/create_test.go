@@ -111,7 +111,7 @@ func TestClient_GetBucketInfo(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		key      io.TimeBucketKey
+		key      *io.TimeBucketKey
 		resp     *frontend.MultiGetInfoResponse
 		err      error
 		wantResp *frontend.GetInfoResponse
@@ -119,34 +119,34 @@ func TestClient_GetBucketInfo(t *testing.T) {
 	}{
 		{
 			name:     "success/bucket info returned",
-			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			key:      io.NewTimeBucketKey("TEST/1Min/TICK"),
 			resp:     &frontend.MultiGetInfoResponse{Responses: []frontend.GetInfoResponse{testGetInfoResponse}},
 			wantResp: &testGetInfoResponse,
 		},
 		{
 			name:     "error/no bucket info is returned",
-			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			key:      io.NewTimeBucketKey("TEST/1Min/TICK"),
 			resp:     &frontend.MultiGetInfoResponse{Responses: []frontend.GetInfoResponse{}}, // empty
 			wantResp: nil,
 			wantErr:  true,
 		},
 		{
 			name:     "error/nil response is returned",
-			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			key:      io.NewTimeBucketKey("TEST/1Min/TICK"),
 			resp:     nil,
 			wantResp: nil,
 			wantErr:  true,
 		},
 		{
 			name:     "error/error is passed",
-			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			key:      io.NewTimeBucketKey("TEST/1Min/TICK"),
 			err:      errors.New("error"),
 			wantResp: nil,
 			wantErr:  true,
 		},
 		{
 			name:     "error/error in Server Response struct is passed",
-			key:      io.TimeBucketKey{Key: "TEST/1Min/TICK"},
+			key:      io.NewTimeBucketKey("TEST/1Min/TICK"),
 			resp:     &frontend.MultiGetInfoResponse{Responses: []frontend.GetInfoResponse{testGetInfoErrResponse}},
 			wantResp: nil,
 			wantErr:  true,
