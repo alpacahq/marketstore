@@ -328,6 +328,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	}
 	if writer == nil {
 		printHeaderLine(cs)
+		fmt.Printf("(%d rows * %d columns)\n", len(epoch), len(cs.GetColumnNames()))
 	} else {
 		writer.Flush()
 	}
