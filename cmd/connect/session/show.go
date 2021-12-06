@@ -61,11 +61,13 @@ func (c *Client) show(line string) {
 }
 
 func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, end *time.Time) {
-	tbk = io.NewTimeBucketKey(args[0])
-	if tbk == nil {
-		fmt.Println(`Key is not in proper format, see "\help show" `)
+	// args[0] must be "Symbol/Timeframe/AttributeGroup" format (e.g. "AAPL/1Min/OHLC" )
+	if itemKeys := strings.Split(args[0], "/"); len(itemKeys) != 3 {
+		fmt.Println(`Key is not in {Symbol/Timeframe/AttributeGroup} format (e.g. "AAPL/1Min/OHLCV)", see "\help show" `)
 		return
 	}
+	tbk = io.NewTimeBucketKey(args[0])
+
 	parsedTime := false
 	for _, arg := range args[1:] {
 		switch strings.ToLower(arg) {
