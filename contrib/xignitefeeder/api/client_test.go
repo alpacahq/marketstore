@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -47,23 +48,73 @@ func NewMockClient(t *testing.T, expectedResponse interface{}) *http.Client {
 	}
 }
 
-func TestDefaultAPIClient_GetRealTimeQuotes_Success(t *testing.T) {
+func TestDefaultClient_GetRealTimeQuotes(t *testing.T) {
 	t.Parallel()
-	// --- given ---
-	SUT := &DefaultClient{
-		// return "Outcome: Success" response body
-		httpClient: NewMockClient(t, GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}}}),
-		token:      DummyXigniteToken}
 
-	// --- when ---
-	got, err := SUT.GetRealTimeQuotes([]string{"hoge"})
-
-	// --- then ---
-	if err != nil {
-		t.Fatalf("Error should be nil. Err = %v", err)
+	tests := []struct {
+		name         string
+		httpClient   *http.Client
+		identifiers  []string
+		wantResponse GetQuotesResponse
+		wantErr      bool
+	}{
+		{
+			name:         "Success",
+			httpClient:   NewMockClient(t, GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}}}),
+			identifiers:  []string{"foo"},
+			wantResponse: GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}}},
+			wantErr:      false,
+		},
+		{
+			name: "SystemError",
+			httpClient: NewMockClient(t, GetQuotesResponse{
+				ArrayOfEquityQuote: []EquityQuote{
+					{
+						Outcome: "SystemError",
+						Message: "An unexpected error occurred.",
+					},
+				},
+			}),
+			identifiers: []string{"foo"},
+			wantResponse: GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{
+				{Outcome: "SystemError", Message: "An unexpected error occurred."},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "3 identifiers are requested but only 2 equity quotes are returned",
+			httpClient: NewMockClient(t, GetQuotesResponse{
+				ArrayOfEquityQuote: []EquityQuote{
+					{Outcome: "Success", Message: "Success1"},
+					{Outcome: "SystemError", Message: "An unexpected error occurred."},
+				},
+			}),
+			identifiers: []string{"foo", "bar", "fizz"},
+			wantResponse: GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{
+				{Outcome: "Success", Message: "Success1"},
+				{Outcome: "SystemError", Message: "An unexpected error occurred."},
+			}},
+			wantErr: false,
+		},
 	}
-	if got.ArrayOfEquityQuote[0].Outcome != "Success" {
-		t.Errorf("Outcome = %v, want %v", got.ArrayOfEquityQuote[0].Outcome, "Success")
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := &DefaultClient{
+				httpClient: tt.httpClient,
+				token:      DummyXigniteToken,
+			}
+			gotResponse, err := c.GetRealTimeQuotes(tt.identifiers)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetRealTimeQuotes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResponse, tt.wantResponse) {
+				t.Errorf("GetRealTimeQuotes() gotResponse = %v, want %v", gotResponse, tt.wantResponse)
+			}
+		})
 	}
 }
 

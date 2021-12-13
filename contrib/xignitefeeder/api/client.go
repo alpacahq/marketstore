@@ -88,8 +88,22 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 	if err != nil {
 		return response, err
 	}
-
 	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in GetQuotes response= %f", response.DelaySec))
+
+	// log not-successful responses
+	if len(identifiers) != len(response.ArrayOfEquityQuote) {
+		log.Error(fmt.Sprintf("The len(ArrayOfEquityQuotes) returned by GetQuotes API is different "+
+			"from len(identifiers) requested. returned=%d, requested=%d, error response=%v",
+			len(response.ArrayOfEquityQuote), len(identifiers), response))
+		return response, nil
+	}
+
+	for i, equityQuote := range response.ArrayOfEquityQuote {
+		if equityQuote.Outcome != "Success" {
+			log.Error(fmt.Sprintf("GetQuotes API returned an error. identifier=%s, response=%v",
+				identifiers[i], equityQuote))
+		}
+	}
 
 	return response, nil
 }
