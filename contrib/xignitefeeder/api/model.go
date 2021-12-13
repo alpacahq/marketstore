@@ -8,6 +8,8 @@ import (
 // GetQuotesResponse is a response model for Get Quotes endpoint
 type GetQuotesResponse struct {
 	DelaySec           float32       `json:"Delay"`
+	Message            string        `json:"Message"`
+	ExceptionMessage   string        `json:"ExceptionMessage"`
 	ArrayOfEquityQuote []EquityQuote `json:"ArrayOfEquityQuote"`
 }
 
