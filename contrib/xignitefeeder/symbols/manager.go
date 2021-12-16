@@ -92,7 +92,7 @@ func (m ManagerImpl) UpdateIndexSymbols() {
 
 		// if ListSymbols API returns an error, don't update the target symbols
 		if err != nil || resp.Outcome != "Success" {
-			log.Warn("err=%v, API response=%v", err, resp)
+			log.Error("UpdateIndexSymbols err=%v, API response=%v", err, resp)
 			return
 		}
 

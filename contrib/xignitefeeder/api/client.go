@@ -29,14 +29,14 @@ const (
 	// /QUICKEquityRealTime.json/ListSymbols : list symbols for a exchange
 	// /QUICKIndexHistorical.json/ListSymbols : list index symbols for an index group (ex. TOPIX)
 	ListIndexSymbolsURL = XigniteBaseURL + "/QUICKIndexHistorical.json/ListSymbols"
-	// GetQuotesRangeURL is the URL of Get Quotes Range endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityHistorical/Overview/GetQuotesRange)
 	// GetBarsURL is the URL of Get Bars endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetBars)
 	GetBarsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/GetBars"
 	// GetIndexBarsURL is the URL of QuickIndexRealTime/GetBars endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexRealTime/Overview/GetBars)
-	GetIndexBarsURL   = XigniteBaseURL + "/QUICKIndexRealTime.json/GetBars"
+	GetIndexBarsURL = XigniteBaseURL + "/QUICKIndexRealTime.json/GetBars"
+	// GetQuotesRangeURL is the URL of Get Quotes Range endpoint
+	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityHistorical/Overview/GetQuotesRange)
 	GetQuotesRangeURL = XigniteBaseURL + "/QUICKEquityHistorical.json/GetQuotesRange"
 	// GetIndexQuotesRangeURL is the URL of Get Index Quotes Range endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/GetQuotesRange)
@@ -62,7 +62,7 @@ func NewDefaultAPIClient(token string, timeoutSec int) *DefaultClient {
 	}
 }
 
-// DefaultClient is the Xignite API client object.
+// DefaultClient is the Xignite API client with a default http client.
 type DefaultClient struct {
 	httpClient *http.Client
 	token      string
@@ -84,11 +84,11 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
+	log.Info("GetRealTimeQuotes API request: IdentifierType=Symbol, num_identifiers=%d",len(identifiers))
 	err = c.execute(req, &response)
 	if err != nil {
 		return response, err
 	}
-	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in GetQuotes response= %f", response.DelaySec))
 
 	// log not-successful responses
 	if len(identifiers) != len(response.ArrayOfEquityQuote) {
@@ -125,7 +125,7 @@ func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsRespon
 	}
 
 	if response.Outcome != "Success" {
-		return response, errors.Errorf("error response is returned from Xignite. %v", response)
+		return response, fmt.Errorf("error from Xignite API(ListSymbols) %v", response)
 	}
 
 	return response, nil

@@ -8,13 +8,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// json iter supports marshal/unmarshal of map[interface{}]interface{] type.
-// when the config file contains (a) nested structure(s) like follows:
+// Use json iter because it supports marshal/unmarshal of map[interface{}]interface{} type.
+// When the config file contains (a) nested structure(s) like follows:
 //
 // backfill:
 //   enabled: true
 //
-// the standard "encoding/json" library cannot marshal the structure
+// ,the standard "encoding/json" library cannot marshal the structure
 // because the config is parsed from a yaml file (mkts.yaml) to map[string]interface{} and passed to this file,
 // and config["backfill"] object has map[interface{}]interface{} type.
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
