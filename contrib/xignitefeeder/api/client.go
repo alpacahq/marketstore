@@ -84,12 +84,11 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
+	log.Info("GetRealTimeQuotes API request: IdentifierType=Symbol, num_identifiers=%d",len(identifiers))
 	err = c.execute(req, &response)
 	if err != nil {
 		return response, err
 	}
-	log.Info("GetRealTimeQuotes API: DelaySec=%f, Message=%s, ExceptionMessage=%s, num_equity_quotes=%d",
-		response.DelaySec, response.Message, response.ExceptionMessage, len(response.ArrayOfEquityQuote))
 
 	// log not-successful responses
 	if len(identifiers) != len(response.ArrayOfEquityQuote) {
