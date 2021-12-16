@@ -62,10 +62,6 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 		UTCOffset := time.Duration(-1*eq.Quote.UTCOffSet) * time.Hour
 		latestDateTime = latestDateTime.Add(UTCOffset).In(q.Timezone)
 
-		//if !q.needToWrite(eq.Security.Symbol, dateTime) {
-		//	continue
-		//}
-
 		cs := q.newColumnSeries(latestDateTime.Unix(), eq)
 		tbk := io.NewTimeBucketKey(eq.Security.Symbol + "/" + q.Timeframe + "/TICK")
 		csm.AddColumnSeries(*tbk, cs)

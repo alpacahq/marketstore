@@ -77,12 +77,10 @@ func (cd *XigniteDateTime) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// --------------------------
-
 // XigniteDay is a date (yyyy/mm/dd) in XigniteDateTimeLayout format
 type XigniteDay time.Time
 
-// XigniteDay is a layout of Datetime string returned from Xignite GetQuotesRange API
+// XigniteDayLayout is a layout of Datetime string returned from Xignite GetQuotesRange API
 const XigniteDayLayout = "2006/01/02"
 
 // UnmarshalJSON parses a string in the XigniteDay Layout
@@ -102,8 +100,6 @@ func (cd *XigniteDay) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// --------------------------
-
 // ListSymbolsResponse is a response model for the /QUICKEquityRealTime.json/ListSymbols endpoint
 type ListSymbolsResponse struct {
 	Outcome                    string                `json:"Outcome"`
@@ -116,7 +112,6 @@ type SecurityDescription struct {
 	Symbol string `json:"Symbol"`
 }
 
-// --------------------------
 // ListIndexSymbolsResponse is a response model for the /QUICKIndexHistorical.json/ListSymbols endpoint
 type ListIndexSymbolsResponse struct {
 	Outcome      string  `json:"Outcome"`
@@ -129,7 +124,6 @@ type Index struct {
 	Symbol string `json:"Symbol"`
 }
 
-// --------------------------
 type GetBarsResponse struct {
 	Outcome    string    `json:"Outcome"`
 	DelaySec   float32   `json:"Delay"`
@@ -149,7 +143,6 @@ type Bar struct {
 	Volume        float32         `json:"Volume"` // Get Bars API returns a float value for Volume, not int
 }
 
-// --------------------------
 type GetIndexBarsResponse struct {
 	Outcome       string    `json:"Outcome"`
 	DelaySec      float32   `json:"Delay"`
@@ -158,7 +151,6 @@ type GetIndexBarsResponse struct {
 	ArrayOfBar    []Bar     `json:"ArrayOfBar"`
 }
 
-// --------------------------
 // GetQuotesRangeResponse is a response model for the QUICKEquityHistorical/GetQuotesRange endpoint
 type GetQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
@@ -182,9 +174,7 @@ type EndOfDayQuote struct {
 	PercentChangeFromPreviousClose float32    `json:"PercentChangeFromPreviousClose"`
 }
 
-// --------------------------
-
-// GetQuotesRangeResponse is a response model for the QuickIndexHistorical/GetQuotesRange endpoint
+// GetIndexQuotesRangeResponse is a response model for the QuickIndexHistorical/GetQuotesRange endpoint
 type GetIndexQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
 	Message              string          `json:"Message"`
