@@ -88,7 +88,8 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 	if err != nil {
 		return response, err
 	}
-	log.Debug(fmt.Sprintf("[Xignite API] Delay(sec) in GetQuotes response= %f", response.DelaySec))
+	log.Info("GetRealTimeQuotes API: DelaySec=%f, Message=%s, ExceptionMessage=%s, num_equity_quotes=%d",
+		response.DelaySec, response.Message, response.ExceptionMessage, len(response.ArrayOfEquityQuote))
 
 	// log not-successful responses
 	if len(identifiers) != len(response.ArrayOfEquityQuote) {
