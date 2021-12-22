@@ -22,6 +22,7 @@ bgworkers:
         # - NYSE
         - NASDAQ
         # - NYSEARCA
+        # - OTC
       # time when target symbols in the exchanges are updated every day.
       # this time is also used for the historical data back-fill.
       # This config can be manually overridden by "ALPACA_BROKER_FEEDER_UPDATE_TIME" environmental variable.

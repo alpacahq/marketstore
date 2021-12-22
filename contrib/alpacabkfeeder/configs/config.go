@@ -22,11 +22,11 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // DefaultConfig is the configuration for Alpaca Broker API Feeder you can define in
 // marketstore's config file through bgworker extension.
 type DefaultConfig struct {
-	Exchanges           []string  `json:"exchanges"`
-	UpdateTime          time.Time `json:"update_time"`
-	Timeframe           string    `json:"timeframe"`
-	APIKeyID            string    `json:"api_key_id"`
-	APISecretKey        string    `json:"api_secret_key"`
+	Exchanges           []Exchange `json:"exchanges"`
+	UpdateTime          time.Time  `json:"update_time"`
+	Timeframe           string     `json:"timeframe"`
+	APIKeyID            string     `json:"api_key_id"`
+	APISecretKey        string     `json:"api_secret_key"`
 	OpenTime            time.Time
 	CloseTime           time.Time
 	ClosedDaysOfTheWeek []time.Weekday

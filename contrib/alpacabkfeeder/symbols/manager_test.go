@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
+
 	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
@@ -41,7 +43,7 @@ func (mac *MockListAssetsAPIClient) ListAssets(_ *string) ([]alpaca.Asset, error
 func TestManagerImpl_UpdateSymbols(t *testing.T) {
 	t.Parallel()
 	// --- given ---
-	SUT := NewManager(&MockListAssetsAPIClient{}, []string{"NASDAQ", "NYSE"})
+	SUT := NewManager(&MockListAssetsAPIClient{}, []configs.Exchange{"NASDAQ", "NYSE"})
 
 	// --- when ---
 	SUT.UpdateSymbols()
