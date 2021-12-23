@@ -13,8 +13,12 @@ var testConfig = map[string]interface{}{
 	"api_key_id":     "hello",
 	"api_secret_key": "world",
 	"update_time":    "12:34:56",
-	"exchanges":      []string{"foo"},
+	"exchanges":      []string{"AMEX", "ARCA", "BATS", "NYSE", "NASDAQ", "NYSEARCA", "OTC"},
 	"index_groups":   []string{"bar"},
+}
+
+var configWithInvalidExchange = map[string]interface{}{
+	"exchanges": []string{"invalid_exchange"},
 }
 
 func TestNewConfig(t *testing.T) {
@@ -34,7 +38,8 @@ func TestNewConfig(t *testing.T) {
 				"ALPACA_BROKER_FEEDER_UPDATE_TIME":    "20:00:00",
 			},
 			want: &configs.DefaultConfig{
-				Exchanges:           []string{"foo"},
+				Exchanges: []configs.Exchange{configs.AMEX, configs.ARCA, configs.BATS, configs.NYSE,
+					configs.NASDAQ, configs.NYSEARCA, configs.OTC},
 				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
 				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
 				UpdateTime:          time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC),
@@ -47,7 +52,8 @@ func TestNewConfig(t *testing.T) {
 			config:  testConfig,
 			envVars: map[string]string{},
 			want: &configs.DefaultConfig{
-				Exchanges:           []string{"foo"},
+				Exchanges: []configs.Exchange{configs.AMEX, configs.ARCA, configs.BATS, configs.NYSE,
+					configs.NASDAQ, configs.NYSEARCA, configs.OTC},
 				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
 				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
 				UpdateTime:          time.Date(0, 1, 1, 12, 34, 56, 0, time.UTC),
@@ -55,6 +61,12 @@ func TestNewConfig(t *testing.T) {
 				APISecretKey:        "world",
 			},
 			wantErr: false,
+		},
+		"ng/ error when unknown exchange name is provided": {
+			config:  configWithInvalidExchange,
+			envVars: map[string]string{},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 	for name, tt := range tests {
