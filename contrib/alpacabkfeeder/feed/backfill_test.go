@@ -17,19 +17,19 @@ import (
 
 var testBars = map[string][]alpaca.Bar{
 	"AAPL": {
-		{Time: time.Now().Add(-48 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 1},
-		{Time: time.Now().Add(-24 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 2},
-		{Time: time.Now().Add(-0 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 3},
+		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 1},
+		{Time: time.Now().Add(-48 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 2},
+		{Time: time.Now().Add(-24 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 3},
 	},
 	"AMZN": {
-		{Time: time.Now().Add(-48 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 4},
-		{Time: time.Now().Add(-24 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 5},
-		{Time: time.Now().Add(-0 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 6},
+		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 4},
+		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 5},
+		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 6},
 	},
 	"FB": {
-		{Time: time.Now().Add(-48 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 7},
-		{Time: time.Now().Add(-24 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 8},
-		{Time: time.Now().Add(-0 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 9},
+		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 7},
+		{Time: time.Now().Add(-48 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 8},
+		{Time: time.Now().Add(-24 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 9},
 	},
 }
 
@@ -52,13 +52,15 @@ func (mac *MockErrorAPIClient) ListBars(symbols []string, opts alpaca.ListBarPar
 
 			// filter by time
 			for _, bar := range bars {
-				barTime := time.Unix(bar.Time, 0).Round(24 * time.Hour).Unix() // 00:00:00 of the bar time
-				// (e.g. startDt=12/14, endDt=12/14 -> return 12/14 data,
-				// (startDt=12/14, endDt=12/16 -> return 12/14 and 12/15 data)
-				if barTime == opts.StartDt.Unix() || (barTime >= opts.StartDt.Unix() && bar.Time < opts.EndDt.Unix()) {
+				barTime := time.Unix(bar.Time, 0).UTC().Truncate(24 * time.Hour) // 00:00:00 of the bar time
+				startDt := opts.StartDt.UTC().Truncate(24 * time.Hour)
+				endDt := opts.EndDt.UTC().Truncate(24 * time.Hour)
+
+				if barTime.Equal(startDt) || (barTime.After(startDt) && barTime.Before(startDt)) || barTime.Equal(endDt) {
 					barPage = append(barPage, bar)
 				}
 			}
+			//TODO: limit behavior
 			ret[symbl] = barPage
 		}
 	}
@@ -95,16 +97,16 @@ func TestBackfill_UpdateSymbols(t *testing.T) {
 			testBars:            testBars,
 			maxBarsPerReq:       2,
 			maxSymbolsPerReq:    2,
-			since:               time.Now().Add(-48 * time.Hour),
+			since:               time.Now().Add(-72 * time.Hour),
 			wantWrittenBarCount: 9,
 		},
 		{
-			name:                "OK/Pagination parameters doesn't affect total written count",
+			name:                "OK/Pagination parameters don't affect total written count",
 			smbls:               []string{"AAPL", "AMZN", "FB"},
 			testBars:            testBars,
 			maxBarsPerReq:       1,
 			maxSymbolsPerReq:    3,
-			since:               time.Now().Add(-48 * time.Hour),
+			since:               time.Now().Add(-72 * time.Hour),
 			wantWrittenBarCount: 9,
 		},
 		{
@@ -113,7 +115,7 @@ func TestBackfill_UpdateSymbols(t *testing.T) {
 			testBars:         testBars,
 			maxBarsPerReq:    2,
 			maxSymbolsPerReq: 2,
-			since:            time.Now().Add(-48 * time.Hour),
+			since:            time.Now().Add(-72 * time.Hour),
 			// firstPage=[AMZN, AAPL] so all data succeed.
 			// secondPage=[error FB] so all data result in error.
 			wantWrittenBarCount: 6,

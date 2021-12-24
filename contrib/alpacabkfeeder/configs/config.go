@@ -43,7 +43,8 @@ type DefaultConfig struct {
 	// off_hours_interval will be ignored.
 	OffHoursSchedule string `json:"off_hours_schedule"`
 	Backfill         struct {
-		Enabled   bool      `json:"enabled"`
+		Enabled bool `json:"enabled"`
+		// Since has only year, month, and day (00:00:00, UTC)
 		Since     CustomDay `json:"since"`
 		Timeframe string    `json:"timeframe"`
 	} `json:"backfill"`
@@ -136,7 +137,7 @@ func (ct *CustomTime) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// CustomDay is a date time object in the cdLayout format
+// CustomDay is a date time object (UTC) in the cdLayout format.
 type CustomDay time.Time
 
 // Custom Date. yyyy-mm-dd only

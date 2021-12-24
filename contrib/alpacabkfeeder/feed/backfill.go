@@ -41,15 +41,17 @@ func NewBackfill(symbolManager symbols.Manager, apiClient ListBarsAPIClient, bar
 // UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore
 func (b *Backfill) UpdateSymbols() {
 	allSymbols := b.symbolManager.GetAllSymbols()
+	y, m, d := time.Now().Date()
+	until := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 
 	// paginate symbols & paginate bars
 	for idx := range pageIndex(len(allSymbols), b.maxSymbolsPerReq) {
-		for dateRange := range datePageIndex(b.since, time.Now().UTC(), b.maxBarsPerReq) {
+		for dateRange := range datePageIndex(b.since, until, b.maxBarsPerReq) {
 			// fmt.Printf("start=%v, end=%v, symbols=%v\n", dateRange.From, dateRange.To, allSymbols[idx.From:idx.To])
 			params := alpaca.ListBarParams{
 				Timeframe: backfillTimeframe,
-				StartDt:   &dateRange.From,
-				EndDt:     &dateRange.To,
+				StartDt:   time230000utc(dateRange.From),
+				EndDt:     time230000utc(dateRange.To),
 				Limit:     &b.maxBarsPerReq,
 			}
 
@@ -72,6 +74,18 @@ func (b *Backfill) UpdateSymbols() {
 	}
 
 	log.Info("[Alpaca Broker Feeder] daily chart backfill is successfully done.")
+}
+
+// Alpaca ListBars API returns daily chart data based on US time.
+// e.g. When 1D bar is requested with time.Date(2021, 12,1,0,0,0,0,time.UTC),
+// the API returns a daily chart for 2021-11-30 because 2021-12-01 00:00:00 UTC is 2021-11-30 19:00:00 EST.
+// So it's safe to always provide yyyy-mm-dd 23:00:00 UTC to the API when daily chart is necessary
+// because it can be considered that the market for the day is already closed at 23:00:00 UTC
+// regardless of the US timezones (EST, EDT)
+func time230000utc(time2 time.Time) *time.Time {
+	y, m, d := time2.Date()
+	t := time.Date(y, m, d, 23, 0, 0, 0, time.UTC)
+	return &t
 }
 
 // utilities for pagination
@@ -101,20 +115,36 @@ type dateRange struct {
 	From, To time.Time
 }
 
+// datePageIndex returns a channel with paginated date ranges.
+// datePageIndex assumes that start and end have only year, month, and day information
+// like time.Date(yyyy, mm, dd, 0,0,0,0, time.UTC)
+// e.g. start = 2021-12-01, end = 2021-12-05, pageDays = 2
+// -> chan will return
+// [
+//	{From:2021-12-01, To:2021-12-02},
+//	{From:2021-12-03, To:2021-12-04},
+//	{From:2021-12-05, To:2021-12-05}
+// ]
 func datePageIndex(start, end time.Time, pageDays int) <-chan dateRange {
 	ch := make(chan dateRange)
 
 	go func() {
 		defer close(ch)
-		startDayBegin := start.Round(24 * time.Hour)
-		endDayBegin := end.Round(24 * time.Hour)
-		for i := startDayBegin; endDayBegin.Unix() >= i.Unix(); i = i.AddDate(0, 0, pageDays) {
-			idx := dateRange{i, i.AddDate(0, 0, pageDays)}
 
-			if idx.To.After(endDayBegin) {
-				idx.To = endDayBegin
+		i := start
+		for {
+			pageStart := i
+			pageEnd := i.AddDate(0, 0, pageDays-1)
+			if pageEnd.After(end) {
+				pageEnd = end
 			}
-			ch <- idx
+			page := dateRange{From: pageStart, To: pageEnd}
+			ch <- page
+
+			i = i.AddDate(0, 0, pageDays)
+			if i.After(end) {
+				break
+			}
 		}
 	}()
 
