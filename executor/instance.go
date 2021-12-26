@@ -44,7 +44,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 	case len(options) == 1:
 		initCatalog = options[0]
 	}
-	log.Info("WAL Setup: initCatalog %v, initWALCache %v, backgroundSync %v, WALBypass %v: \n",
+	log.Info("WAL Setup: initCatalog %v, initWALCache %v, backgroundSync %v, WALBypass %v",
 		initCatalog, initWALCache, backgroundSync, WALBypass)
 
 	if ThisInstance == nil {

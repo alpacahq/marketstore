@@ -43,6 +43,7 @@ plugins:
 	$(MAKE) -C contrib/polygon
 	$(MAKE) -C contrib/stream
 	$(MAKE) -C contrib/xignitefeeder
+	$(MAKE) -C contrib/alpacabkfeeder
 
 fmt:
 	GOFLAGS=$(GOFLAGS) go fmt ./...
