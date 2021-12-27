@@ -187,7 +187,6 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				&proto.QueryResponse{
 					Result: ToProtoNumpyMultiDataSet(nmds),
 				})
-
 		}
 	}
 	return &response, nil

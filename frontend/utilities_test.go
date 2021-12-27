@@ -33,7 +33,6 @@ func TestHandler(t *testing.T) {
 		},
 	}
 	for key, val := range TestValues {
-
 		switch key {
 		case "Success":
 			atomic.StoreUint32(&Queryable, uint32(1))

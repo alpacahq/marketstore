@@ -352,7 +352,6 @@ func getBars(start time.Time, end time.Time, period time.Duration, symbol string
 func getQuotes(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
 	log.Info("[polygon] backfilling quotes for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
@@ -369,7 +368,6 @@ func getQuotes(start time.Time, end time.Time, period time.Duration, symbol stri
 func getTrades(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
 	log.Info("[polygon] backfilling trades for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}

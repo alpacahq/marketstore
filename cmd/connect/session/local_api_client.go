@@ -68,7 +68,6 @@ func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *fro
 
 func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 ) (csm io.ColumnSeriesMap, err error) {
-
 	if start == nil && end == nil {
 		fmt.Println("No suitable date range supplied...")
 		return

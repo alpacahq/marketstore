@@ -141,7 +141,6 @@ func (cl *Client) Subscribe(
 	handler func(pl stream.Payload) error,
 	cancel <-chan struct{},
 	streams ...string) (done <-chan struct{}, err error) {
-
 	u, _ := url.Parse(cl.BaseURL + "/ws")
 	u.Scheme = "ws"
 
@@ -185,7 +184,6 @@ func streamConn(
 	c *websocket.Conn,
 	handler func(pl stream.Payload) error,
 	cancel <-chan struct{}) <-chan struct{} {
-
 	done := make(chan struct{}, 1)
 
 	go func() {

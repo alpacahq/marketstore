@@ -45,8 +45,13 @@ plugins:
 	$(MAKE) -C contrib/xignitefeeder
 	$(MAKE) -C contrib/alpacabkfeeder
 
-fmt:
-	GOFLAGS=$(GOFLAGS) go fmt ./...
+.PHONY: lint
+lint: ## run linter
+	@golangci-lint version
+	@golangci-lint run ./...
+
+lint-fix: ## try to fix lint error(s)
+	@golangci-lint run --fix ./...
 
 unit-test:
 	# marketstore/contrib/stream/shelf/shelf_test.go fails if "-race" enabled...

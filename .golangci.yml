@@ -1,0 +1,186 @@
+# golangci-lint configuration file
+# see: https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  skip-dirs:
+    - ./docs/
+    - ./data/
+    - ./tests/ # most of the tests are written in python
+  #  build-tags:
+  #    -
+
+linters-settings:
+  depguard:
+    list-type: blacklist
+    include-go-root: false
+    packages:
+      - github.com/magiconair/properties/assert
+      - github.com/smartystreets/assertions/assert
+    packages-with-error-message:
+      - github.com/magiconair/properties/assert: "assertion is only allowed with stretchr/testify"
+      - github.com/smartystreets/assertions/assert: "assertion is only allowed with stretchr/testify"
+  dupl:
+    threshold: 100
+  errorlint:
+    errorf: true
+  funlen:
+    lines: 80
+    statements: 40
+  gocognit:
+    min-complexity: 30
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    disabled-checks:
+      - wrapperFunc
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  gocyclo:
+    min-complexity: 15
+  godot:
+    check-all: false
+  gofumpt:
+    extra-rules: true
+  goimports:
+    local-prefixes: github.com/alpacahq/marketstore/v4
+  gomnd:
+    settings:
+      mnd:
+        checks:
+          - argument
+          - case
+          - condition
+          - operation
+          - return
+          - assign
+  govet:
+    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment
+  lll:
+    line-length: 120
+  maligned:
+    suggest-new: true
+  misspell:
+    locale: US
+  nakedret:
+    max-func-lines: 0
+  nestif:
+    min-complexity: 4
+  nolintlint:
+    allow-unused: false
+    require-explanation: true
+    require-specific: true
+  prealloc:
+    for-loops: true
+    range-loops: true
+
+# All linter links can be found here: https://golangci-lint.run/usage/linters/
+linters:
+  disable-all: true
+  enable:
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    - asciicheck
+    - bodyclose
+    - cyclop
+    - depguard
+    - dogsled
+    - dupl
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - exhaustivestruct
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - gofumpt
+    #- goheader # This repository currently doesn't have license headers.
+    #- golint # replaced by revive.
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - ifshort
+    - importas
+    - lll
+    - makezero
+    - misspell
+    - nakedret
+    - nestif
+    - noctx
+    - nolintlint
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - stylecheck
+    - tagliatelle
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - wastedassign
+    - whitespace
+    - wrapcheck
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # Exclude lll issues for long lines with go:generate
+    - source: "^//go:generate "
+      linters:
+        - lll
+
+    # Exclude lll for URLs, as they can sometimes be very long
+    - source: "http(s)?://"
+      linters:
+        - lll
+
+    # Exclude test type File from LLL, as compacting file contents on 1 line can be better for test readability
+    - source: "File\\(\""
+      path: _test\.go
+      linters:
+        - lll
+
+    # Exclude godox check for TODOs, FIXMEs, and BUGs
+    - text: "Line contains TODO/BUG/FIXME:"
+      linters:
+        - godox
+
+    # Exclude some linters from running on test files
+    - path: _test\.go
+      linters:
+        - dupl
+        - funlen
+        - gomnd

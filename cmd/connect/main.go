@@ -73,7 +73,6 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 
 // executeConnect implements the connect command.
 func executeConnect(cmd *cobra.Command, args []string) error {
-
 	var (
 		c    *session.Client
 		conn session.APIClient
