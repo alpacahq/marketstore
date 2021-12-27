@@ -60,7 +60,7 @@ func TestBarWriterImpl_Write(t *testing.T) {
 	}
 
 	// Time Bucket Key Name check
-	timeBucketKeyStr := m.WrittenCSM.GetMetadataKeys()[0].Key
+	timeBucketKeyStr := m.WrittenCSM.GetMetadataKeys()[0].String()
 	if timeBucketKeyStr != "1234/5Min/OHLCV:"+io.DefaultTimeBucketSchema {
 		t.Errorf("TimeBucketKey name is invalid. got=%v, want = %v",
 			timeBucketKeyStr, "1234/5Min/OHLCV:"+io.DefaultTimeBucketSchema)
