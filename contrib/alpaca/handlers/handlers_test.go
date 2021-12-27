@@ -7,8 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/handlers"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/test"

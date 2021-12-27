@@ -9,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
 	"github.com/alpacahq/marketstore/v4/executor"

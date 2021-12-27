@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
-
 	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
