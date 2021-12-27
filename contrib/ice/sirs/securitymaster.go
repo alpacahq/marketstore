@@ -4,7 +4,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
 )
 
-//SecurityMaster is model for database column mapping
+//SecurityMaster is model for database column mapping.
 type SecurityMaster struct {
 	Symbol                        string
 	Cusip                         string

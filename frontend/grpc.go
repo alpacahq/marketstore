@@ -187,7 +187,6 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				&proto.QueryResponse{
 					Result: ToProtoNumpyMultiDataSet(nmds),
 				})
-
 		}
 	}
 	return &response, nil
@@ -205,8 +204,8 @@ func (s GRPCService) Write(ctx context.Context, reqs *proto.MultiWriteRequest) (
 			appendResponse(&response, err)
 			continue
 		}
-		//TODO: There should be an error response for every server request, need to add the below commented line
-		//appendResponse(err, response)
+		// TODO: There should be an error response for every server request, need to add the below commented line
+		// appendResponse(err, response)
 	}
 	return &response, nil
 }
@@ -253,7 +252,7 @@ func convertIntMap(m map[string]int) map[string]int32 {
 	return ret
 }
 
-// NewDataShapeVector returns a new array of io.DataShape for the given array of proto.DataShape inputs
+// NewDataShapeVector returns a new array of io.DataShape for the given array of proto.DataShape inputs.
 func NewDataShapeVector(dataShapes []*proto.DataShape) (dsv []io.DataShape, err error) {
 	for _, ds := range dataShapes {
 		elemType, ok := io.TypeStrToElemType(ds.Type)

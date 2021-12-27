@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	announcement "github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 )
 
@@ -57,14 +56,14 @@ func (i Announcement) ParseDeleteTextNumber(lines []string) string {
 }
 
 func (i Announcement) ParseNewRate(lines []string) string {
-	if i.Is(enum.StockSplit) || i.Is(enum.ReverseStockSplit) {
+	if i.Is(announcement.StockSplit) || i.Is(announcement.ReverseStockSplit) {
 		return lines[7][56:69]
 	}
 	return lines[4][5:15]
 }
 
 func (i Announcement) ParseOldRate(lines []string) string {
-	if i.Is(enum.StockSplit) || i.Is(enum.ReverseStockSplit) {
+	if i.Is(announcement.StockSplit) || i.Is(announcement.ReverseStockSplit) {
 		return lines[8][56:69]
 	}
 	return lines[4][23:32]

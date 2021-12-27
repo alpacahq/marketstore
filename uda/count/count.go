@@ -3,14 +3,13 @@ package count
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 /*
-This is filled in for example purposes, should be overridden in implementation
+This is filled in for example purposes, should be overridden in implementation.
 */
 var requiredColumns = []io.DataShape{
 	{Name: "*", Type: io.INT64},
@@ -19,7 +18,7 @@ var requiredColumns = []io.DataShape{
 /*
 For the optional inputs, we'll postpend the input names mapped to each optional
 for output, for example: if we map user input "Volume" to "Sum", the output
-will be "Sum_Volume"
+will be "Sum_Volume".
 */
 var optionalColumns = []io.DataShape{}
 
@@ -34,9 +33,11 @@ type Count struct {
 func (ca *Count) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (ca *Count) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (ca *Count) GetInitArgs() []io.DataShape {
 	return initArgs
 }

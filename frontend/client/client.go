@@ -23,7 +23,7 @@ type Client struct {
 	BaseURL string
 }
 
-// NewClient intializes a new MarketStore RPC client
+// NewClient intializes a new MarketStore RPC client.
 func NewClient(baseurl string) (cl *Client, err error) {
 	cl = new(Client)
 	_, err = url.Parse(baseurl)
@@ -34,7 +34,7 @@ func NewClient(baseurl string) (cl *Client, err error) {
 	return cl, nil
 }
 
-// DoRPC makes an RPC request to MarketStore's API
+// DoRPC makes an RPC request to MarketStore's API.
 func (cl *Client) DoRPC(functionName string, args interface{}) (response interface{}, err error) {
 	/*
 		Does a remote procedure call using the msgpack2 protocol for RPC that return a QueryReply
@@ -141,12 +141,10 @@ func (cl *Client) Subscribe(
 	handler func(pl stream.Payload) error,
 	cancel <-chan struct{},
 	streams ...string) (done <-chan struct{}, err error) {
-
 	u, _ := url.Parse(cl.BaseURL + "/ws")
 	u.Scheme = "ws"
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +183,6 @@ func streamConn(
 	c *websocket.Conn,
 	handler func(pl stream.Payload) error,
 	cancel <-chan struct{}) <-chan struct{} {
-
 	done := make(chan struct{}, 1)
 
 	go func() {
@@ -233,7 +230,6 @@ func read(c *websocket.Conn, done chan struct{}, count int) chan []byte {
 		defer close(bufC)
 		for {
 			msgType, buf, err := c.ReadMessage()
-
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 					log.Error("unexpected websocket closure (%v)", err)

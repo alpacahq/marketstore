@@ -10,7 +10,6 @@ import (
 
 func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey, csvRows [][]string, columnIndex []int,
 	dataShapes []io.DataShape) (csm io.ColumnSeriesMap) {
-
 	if csmInit == nil {
 		csm = io.NewColumnSeriesMap()
 	} else {
@@ -98,9 +97,7 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 					return nil
 				}
 				csm.AddColumn(key, shape.Name, col)
-
 			}
-
 		}
 	}
 	return csm

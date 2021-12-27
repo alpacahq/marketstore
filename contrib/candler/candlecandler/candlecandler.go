@@ -45,9 +45,11 @@ func (c CandleCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (
 func (ca *CandleCandler) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (ca *CandleCandler) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (ca *CandleCandler) GetInitArgs() []io.DataShape {
 	return initArgs
 }

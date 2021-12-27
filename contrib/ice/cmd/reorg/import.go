@@ -3,16 +3,18 @@ package reorg
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils"
 )
 
-var reimport bool
-var storeWithoutSymbols bool
-var disableVarComp bool
+var (
+	reimport            bool
+	storeWithoutSymbols bool
+	disableVarComp      bool
+)
 
 // ImportCmd provides a command line interface for importing corporate action entries from ICE's data files
 // without --reimport option it only imports unprocessed data files (those without .processed suffix)

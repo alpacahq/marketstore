@@ -58,15 +58,19 @@ type MockFile struct {
 func (m MockFile) Name() string {
 	return m.name
 }
+
 func (m MockFile) Size() int64 {
 	return m.size
 }
+
 func (m MockFile) Mode() os.FileMode {
 	return m.mode
 }
+
 func (m MockFile) ModTime() time.Time {
 	return m.modTime
 }
+
 func (m MockFile) IsDir() bool {
 	return m.isDir
 }

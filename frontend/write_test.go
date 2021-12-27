@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -104,5 +103,4 @@ func TestWrite(t *testing.T) {
 		tref := time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
 		assert.Equal(t, ti, tref)
 	}
-
 }

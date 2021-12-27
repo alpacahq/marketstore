@@ -44,7 +44,7 @@ func executeWAL(cmd *cobra.Command, args []string) error {
 	wfPath := filepath.Clean(walfilePath)
 	// Read in WALFile.
 	wf := &executor.WALFileType{}
-	filePtr, err := os.OpenFile(wfPath, os.O_RDONLY, 0600)
+	filePtr, err := os.OpenFile(wfPath, os.O_RDONLY, 0o600)
 	if err != nil {
 		return err
 	}

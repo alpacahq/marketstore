@@ -18,7 +18,6 @@ var flagPrintVersion bool
 
 // Execute builds the command tree and executes commands.
 func Execute() error {
-
 	// c is the root command.
 	c := &cobra.Command{
 		Use: "marketstore",

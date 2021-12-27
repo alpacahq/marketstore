@@ -2,12 +2,13 @@ package session_test
 
 import (
 	"errors"
-	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
-	"github.com/alpacahq/marketstore/v4/frontend"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
+	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var exampleGetInfoResponse = frontend.GetInfoResponse{

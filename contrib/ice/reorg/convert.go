@@ -11,18 +11,20 @@ import (
 
 var TIME = reflect.TypeOf(time.Time{}).Name()
 
-var UINT = reflect.TypeOf(uint(1)).Name()
-var UINT8 = reflect.TypeOf(uint8(1)).Name()
-var UINT16 = reflect.TypeOf(uint16(1)).Name()
-var UINT32 = reflect.TypeOf(uint32(1)).Name()
-var UINT64 = reflect.TypeOf(uint64(1)).Name()
-var INT = reflect.TypeOf(1).Name()
-var INT8 = reflect.TypeOf(int8(1)).Name()
-var INT16 = reflect.TypeOf(int16(1)).Name()
-var INT32 = reflect.TypeOf(int32(1)).Name()
-var INT64 = reflect.TypeOf(int64(1)).Name()
-var FLOAT = reflect.TypeOf(1.2).Name()
-var STRING = reflect.TypeOf("").Name()
+var (
+	UINT   = reflect.TypeOf(uint(1)).Name()
+	UINT8  = reflect.TypeOf(uint8(1)).Name()
+	UINT16 = reflect.TypeOf(uint16(1)).Name()
+	UINT32 = reflect.TypeOf(uint32(1)).Name()
+	UINT64 = reflect.TypeOf(uint64(1)).Name()
+	INT    = reflect.TypeOf(1).Name()
+	INT8   = reflect.TypeOf(int8(1)).Name()
+	INT16  = reflect.TypeOf(int16(1)).Name()
+	INT32  = reflect.TypeOf(int32(1)).Name()
+	INT64  = reflect.TypeOf(int64(1)).Name()
+	FLOAT  = reflect.TypeOf(1.2).Name()
+	STRING = reflect.TypeOf("").Name()
+)
 
 type typeConverter func(str string, v reflect.Value, format string) error
 
@@ -118,7 +120,7 @@ func getFormatter(t reflect.Type) string {
 	return format
 }
 
-func convert(input string, format string, def string, v reflect.Value) {
+func convert(input, format, def string, v reflect.Value) {
 	cleanInput := strings.TrimSpace(input)
 	if len(cleanInput) == 0 && len(def) > 0 {
 		cleanInput = strings.TrimSpace(def)

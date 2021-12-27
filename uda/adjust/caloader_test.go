@@ -463,5 +463,4 @@ func TestCache(t *testing.T) {
 
 		assert.Len(t, rateChangeCache, 1)
 	}
-
 }

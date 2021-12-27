@@ -5,19 +5,18 @@ import (
 	"time"
 
 	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
-
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// SnapshotWriter is an interface to write the realtime stock data to the marketstore
+// SnapshotWriter is an interface to write the realtime stock data to the marketstore.
 type SnapshotWriter interface {
 	Write(snapshots map[string]*v2.Snapshot) error
 }
 
-// SnapshotWriterImpl is an implementation of the SnapshotWriter interface
+// SnapshotWriterImpl is an implementation of the SnapshotWriter interface.
 type SnapshotWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
 	Timeframe         string

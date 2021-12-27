@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpaca/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/config"
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/handlers"
-
-	"github.com/alpacahq/marketstore/v4/contrib/alpaca/api"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 )
 

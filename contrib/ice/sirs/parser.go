@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
-
 	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
 )
 
 // const charactersPerLine = 80
@@ -21,10 +21,9 @@ type loader struct {
 }
 
 func ParseFile(r io.Reader) ([]*SecurityMaster, error) {
-
 	l := &loader{}
 
-	//read file
+	// read file
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		l.lineReader(scanner.Text())
@@ -75,7 +74,7 @@ func (l *loader) lineReader(currentLine string) error {
 }
 
 func (l *loader) saveRecord() error {
-	//set listing exchange values
+	// set listing exchange values
 	if l.stg.ExchangeCode1 != "" && l.stg.ExchangeCode1 == l.stg.ExchangeCode {
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode1
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate1
@@ -98,7 +97,7 @@ func (l *loader) saveRecord() error {
 		l.stg.ListingExchangeTicker = strings.Replace(l.stg.Ticker2, "-", ".PR", 1)
 	}
 
-	//set symbol
+	// set symbol
 	l.stg.Symbol = l.stg.ListingExchangeTicker
 	if l.stg.TickerSymbolExt == "W" {
 		l.stg.Symbol = l.stg.Symbol + ".W"

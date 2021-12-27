@@ -11,9 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type Directory struct {
@@ -139,7 +138,7 @@ func writeCategoryNameFile(catName, dirName string) error {
 		return nil
 	}
 
-	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0770)
+	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o770)
 	if err != nil {
 		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 	}
@@ -165,7 +164,7 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	for i, dataDirName := range datakeySplit {
 		subdirname := filepath.Join(dirname, dataDirName)
 		if !fileExists(subdirname) {
-			if err = os.Mkdir(subdirname, 0770); err != nil {
+			if err = os.Mkdir(subdirname, 0o770); err != nil {
 				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
 			}
 		}
@@ -562,6 +561,7 @@ func (d *Directory) GatherDirectories() []string {
 	d.recurse(&dirList, dirListFunc)
 	return dirList
 }
+
 func (d *Directory) GatherFilePaths() []string {
 	// Must be thread-safe for READ access
 	filePathListFunc := func(d *Directory, i_list interface{}) {
@@ -608,12 +608,14 @@ func (d *Directory) GetLatestYearFile() (latestFile *io.TimeBucketInfo, err erro
 	}
 	return latestFile, nil
 }
+
 func (d *Directory) pathToKey(fullPath string) (key string) {
 	dirPath := path.Dir(fullPath)
 	key = strings.Replace(dirPath, d.pathToItemName, "", 1)
 	key = strings.TrimLeft(key, "/")
 	return key
 }
+
 func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	subDir.itemName = subDirItemName
 	d.catList = nil // Reset the category list
@@ -622,13 +624,14 @@ func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	}
 	d.subDirs[subDirItemName] = subDir
 	if subDir.directMap != nil {
-		subDir.directMap.Range(func(key interface{}, val interface{}) bool {
+		subDir.directMap.Range(func(key, val interface{}) bool {
 			d.directMap.Store(key, val)
 			return true
 		})
 	}
 	subDir.directMap = nil
 }
+
 func (d *Directory) removeSubDir(subDirItemName string, directMap *sync.Map) {
 	d.Lock()
 	defer d.Unlock()
@@ -675,7 +678,7 @@ func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err er
 		return FileAlreadyExists("Can not overwrite file")
 	}
 	// Create the file
-	fp, err := os.OpenFile(newTimeBucketInfo.Path, os.O_CREATE|os.O_RDWR, 0600)
+	fp, err := os.OpenFile(newTimeBucketInfo.Path, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return fmt.Errorf("open new time bucket info file %s: %w", newTimeBucketInfo.Path, err)
 	}

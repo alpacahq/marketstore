@@ -2,22 +2,19 @@ package candlecandler_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/candler/candlecandler"
-	"github.com/alpacahq/marketstore/v4/utils/test"
-
-	"io/ioutil"
-
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func setup(t *testing.T, testName string,
@@ -26,7 +23,7 @@ func setup(t *testing.T, testName string,
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("candlecandler_test-%s", testName))
 	itemsWritten = test.MakeDummyStockDir(rootDir, true, false)
-	metadata, _, _,err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
 	assert.Nil(t, err)
 
 	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata

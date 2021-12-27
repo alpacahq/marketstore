@@ -33,7 +33,7 @@ func (c *Client) trim(line string) {
 	for _, info := range fInfos {
 		if info.Year == int16(trimDate.Year()) {
 			offset := io.TimeToOffset(trimDate, info.GetTimeframe(), info.GetRecordLength())
-			fp, err := os.OpenFile(info.Path, os.O_CREATE|os.O_RDWR, 0600)
+			fp, err := os.OpenFile(info.Path, os.O_CREATE|os.O_RDWR, 0o600)
 			if err != nil {
 				log.Error("Failed to open file %v - Error: %v", info.Path, err)
 				continue

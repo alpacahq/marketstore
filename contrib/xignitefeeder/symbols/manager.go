@@ -9,7 +9,7 @@ import (
 
 // Manager manages symbols in the target stock exchanges.
 // symbol(s) can be newly registered / removed from the exchange,
-// so target symbols should be update periodically
+// so target symbols should be update periodically.
 type Manager interface {
 	GetAllIdentifiers() []string
 	GetAllIndexIdentifiers() []string
@@ -27,13 +27,15 @@ type ManagerImpl struct {
 }
 
 // NewManager initializes the SymbolManager object with the specified parameters.
-func NewManager(apiClient api.Client, targetExchanges []string, targetIndexGroups []string) *ManagerImpl {
-	return &ManagerImpl{APIClient: apiClient, TargetExchanges: targetExchanges, TargetIndexGroups: targetIndexGroups,
-		Identifiers: map[string][]string{}, IndexIdentifiers: map[string][]string{}}
+func NewManager(apiClient api.Client, targetExchanges, targetIndexGroups []string) *ManagerImpl {
+	return &ManagerImpl{
+		APIClient: apiClient, TargetExchanges: targetExchanges, TargetIndexGroups: targetIndexGroups,
+		Identifiers: map[string][]string{}, IndexIdentifiers: map[string][]string{},
+	}
 }
 
 // GetAllIdentifiers returns Identifiers for the target symbols for all the target exchanges
-// identifier = {exchange}.{symbol} (ex. "XTKS.1301")
+// identifier = {exchange}.{symbol} (ex. "XTKS.1301").
 func (m ManagerImpl) GetAllIdentifiers() []string {
 	var identifiers []string
 	for _, exchange := range m.TargetExchanges {
@@ -43,7 +45,7 @@ func (m ManagerImpl) GetAllIdentifiers() []string {
 }
 
 // GetAllIndexIdentifiers returns Identifiers for the target index symbols for all the index groups
-// identifier = {exchange}.{symbol} (ex. "XTKS.1301")
+// identifier = {exchange}.{symbol} (ex. "XTKS.1301").
 func (m ManagerImpl) GetAllIndexIdentifiers() []string {
 	var identifiers []string
 	for _, exchange := range m.TargetIndexGroups {
@@ -52,13 +54,13 @@ func (m ManagerImpl) GetAllIndexIdentifiers() []string {
 	return identifiers
 }
 
-// Update calls UpdateSymbols and UpdateIndexSymbols sequentially
+// Update calls UpdateSymbols and UpdateIndexSymbols sequentially.
 func (m ManagerImpl) Update() {
 	m.UpdateSymbols()
 	m.UpdateIndexSymbols()
 }
 
-// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers and store them to the Identifiers map
+// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers and store them to the Identifiers map.
 func (m ManagerImpl) UpdateSymbols() {
 	for _, exchange := range m.TargetExchanges {
 		resp, err := m.APIClient.ListSymbols(exchange)
@@ -85,7 +87,7 @@ func (m ManagerImpl) UpdateSymbols() {
 }
 
 // UpdateIndexSymbols calls the ListIndexSymbols endpoint, convert the index symbols to the Identifiers
-// and store them to the Identifiers map
+// and store them to the Identifiers map.
 func (m ManagerImpl) UpdateIndexSymbols() {
 	for _, indexGroup := range m.TargetIndexGroups {
 		resp, err := m.APIClient.ListIndexSymbols(indexGroup)

@@ -232,7 +232,6 @@ func (gd *GdaxFetcher) Run() {
 }
 
 func main() {
-
 	client := gdax.NewClient("", "", "")
 	params := gdax.GetHistoricRatesParams{
 		Start:       time.Date(2017, 12, 1, 0, 0, 0, 0, time.UTC),

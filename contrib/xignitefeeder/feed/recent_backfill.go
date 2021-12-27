@@ -10,7 +10,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// RecentBackfill aggregates daily chart data using Xignite API and store it to
+// RecentBackfill aggregates daily chart data using Xignite API and store it to.
 type RecentBackfill struct {
 	symbolManager     symbols.Manager
 	marketTimeChecker MarketTimeChecker
@@ -19,7 +19,7 @@ type RecentBackfill struct {
 	days              int
 }
 
-// NewRecentBackfill initializes the module to backfill the historical 5-minute chart data to marketstore
+// NewRecentBackfill initializes the module to backfill the historical 5-minute chart data to marketstore.
 func NewRecentBackfill(sm symbols.Manager, mtc MarketTimeChecker, ac api.Client, writer writer.BarWriter, days int,
 ) *RecentBackfill {
 	return &RecentBackfill{symbolManager: sm, marketTimeChecker: mtc, apiClient: ac, writer: writer, days: days}
@@ -30,7 +30,7 @@ func (b *RecentBackfill) Update() {
 	b.UpdateIndexSymbols()
 }
 
-// UpdateSymbols aggregates recent chart data for the past X business days and store it to "{symbol}/5Min/OHLCV" bucket in marketstore
+// UpdateSymbols aggregates recent chart data for the past X business days and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
 func (b *RecentBackfill) UpdateSymbols() {
 	endDate := time.Now().UTC()
 	// get the date of {b.days} business days ago
@@ -43,7 +43,6 @@ func (b *RecentBackfill) UpdateSymbols() {
 	for _, identifier := range b.symbolManager.GetAllIdentifiers() {
 		// call a Xignite API to get the historical data
 		resp, err := b.apiClient.GetRealTimeBars(identifier, startDate, endDate)
-
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
@@ -67,7 +66,7 @@ func (b *RecentBackfill) UpdateSymbols() {
 	log.Info("Recent Data backfill has successfully been done.")
 }
 
-// UpdateIndexSymbols aggregates recent chart data of index symbols for the past X business days and store it to "{symbol}/5Min/OHLCV" bucket in marketstore
+// UpdateIndexSymbols aggregates recent chart data of index symbols for the past X business days and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
 func (b *RecentBackfill) UpdateIndexSymbols() {
 	endDate := time.Now().UTC()
 	// get the date of {b.days} business days ago
@@ -80,7 +79,6 @@ func (b *RecentBackfill) UpdateIndexSymbols() {
 	for _, identifier := range b.symbolManager.GetAllIndexIdentifiers() {
 		// call a Xignite API to get the historical data
 		resp, err := b.apiClient.GetIndexBars(identifier, startDate, endDate)
-
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)

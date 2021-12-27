@@ -140,12 +140,10 @@ func init() {
 			chunkNames[i] = strconv.Itoa(i + 1)
 		}
 	}
-
 }
 
 // executeIntegrity implements the integrity tool.
 func executeIntegrity(cmd *cobra.Command, args []string) error {
-
 	log.SetLevel(log.INFO)
 
 	log.Info("Root directory: %v", rootDirPath)
@@ -167,7 +165,7 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 			return fmt.Errorf("Incorrect start or end dates")
 		}
 
-		//Subtract the header size to get our gross chunksize
+		// Subtract the header size to get our gross chunksize
 		size := fi.Size() - io.Headersize
 		// Size the chunk buffer to be a multiple of 8-bytes
 		chunkSize := io.AlignedSize(int(size/int64(numChunksPerFile) + size%int64(numChunksPerFile)))
@@ -272,7 +270,7 @@ func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filenam
 	sumRange := io.AlignedSize(nread)
 	if sumRange > nread {
 		// Zero out padding bytes
-		//fmt.Println("sumRange, nread = ", sumRange, nread)
+		// fmt.Println("sumRange, nread = ", sumRange, nread)
 		for i := nread; i < sumRange; i++ {
 			buffer[i] = 0
 		}
@@ -305,7 +303,7 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 	/*
 		Write the new fileinfo to the file header
 	*/
-	fp, err := os.OpenFile(filePath, os.O_WRONLY, 0777)
+	fp, err := os.OpenFile(filePath, os.O_WRONLY, 0o777)
 	if err != nil {
 		fmt.Println("Unable to write new header to file, terminating...")
 		os.Exit(1)
@@ -332,6 +330,7 @@ func exists(path string) bool {
 	}
 	return true
 }
+
 func isDir(path string) bool {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -342,6 +341,7 @@ func isDir(path string) bool {
 	}
 	return true
 }
+
 func isFile(path string) bool {
 	fi, err := os.Stat(path)
 	if err != nil {

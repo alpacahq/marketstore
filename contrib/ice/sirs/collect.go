@@ -21,8 +21,8 @@ func previousFriday(t time.Time) (time.Time, error) {
 
 // CollectSirsFilesFor returns a list of security master files for a given date.
 // File names start from last Friday (the latest complete snapshot) and includes
-// all incremental updates till we reach the date encoded in the reorg filename
-func CollectSirsFiles(basePath string, currentDateStr string) ([]string, error) {
+// all incremental updates till we reach the date encoded in the reorg filename.
+func CollectSirsFiles(basePath, currentDateStr string) ([]string, error) {
 	currentDate, err := time.Parse("20060102", currentDateStr)
 	if err != nil {
 		log.Error("Unable to parse date: %s", currentDateStr)
@@ -38,7 +38,7 @@ func CollectSirsFiles(basePath string, currentDateStr string) ([]string, error) 
 
 	filenames := make([]string, 0)
 	filenames = append(filenames, masterfile)
-	// begining from last friday we find each incremental update, and add them to the list.
+	// beginning from last friday we find each incremental update, and add them to the list.
 	t := begin
 	for {
 		t = t.AddDate(0, 0, 1)
@@ -53,7 +53,7 @@ func CollectSirsFiles(basePath string, currentDateStr string) ([]string, error) 
 	return filenames, nil
 }
 
-// LoadSirsFile loads a single Security info file
+// LoadSirsFile loads a single Security info file.
 func LoadSirsFile(fileName string) ([]*SecurityMaster, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -64,7 +64,7 @@ func LoadSirsFile(fileName string) ([]*SecurityMaster, error) {
 }
 
 // BuildSecurityMasterMap loads the listed security files and returns a map of cusipid -> symbol pairs.
-// The first element of the input slice should be a complete snapshot (sirs.refresh.YYYYMMDD), and the following entries updates for this file (sirs.YYYYMMDD)
+// The first element of the input slice should be a complete snapshot (sirs.refresh.YYYYMMDD), and the following entries updates for this file (sirs.YYYYMMDD).
 func BuildSecurityMasterMap(sirsFiles []string) (map[string]string, error) {
 	master := map[string]string{}
 	for _, filename := range sirsFiles {

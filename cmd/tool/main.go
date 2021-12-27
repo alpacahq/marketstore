@@ -14,16 +14,14 @@ const (
 	example = "marketstore tool wal --file <path>"
 )
 
-var (
-	// Cmd is the tool command.
-	Cmd = &cobra.Command{
-		Use:        usage,
-		Short:      short,
-		Long:       long,
-		SuggestFor: []string{"wal", "integrity"},
-		Example:    example,
-	}
-)
+// Cmd is the tool command.
+var Cmd = &cobra.Command{
+	Use:        usage,
+	Short:      short,
+	Long:       long,
+	SuggestFor: []string{"wal", "integrity"},
+	Example:    example,
+}
 
 func init() {
 	Cmd.AddCommand(integrity.Cmd)

@@ -81,7 +81,6 @@ func TestWALWrite(t *testing.T) {
 	metadata.WALFile.Delete(mockInstanceID)
 
 	assert.False(t, metadata.WALFile.IsOpen())
-
 }
 
 func TestBrokenWAL(t *testing.T) {
@@ -131,12 +130,12 @@ func TestBrokenWAL(t *testing.T) {
 		WALBuffer[3+i] = val
 	}
 	BrokenWAL := WALBuffer[:(3 * len(WALBuffer) / 4)]
-	//BrokenWAL := WALBuffer[:]
+	// BrokenWAL := WALBuffer[:]
 	BrokenWALFileName := "BrokenWAL"
 	BrokenWALFilePath := rootDir + "/" + BrokenWALFileName
 
 	os.Remove(BrokenWALFilePath)
-	fp, err := os.OpenFile(BrokenWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
+	fp, err := os.OpenFile(BrokenWALFilePath, os.O_CREATE|os.O_RDWR, 0o600)
 	assert.Nil(t, err)
 	_, err = fp.Write(BrokenWAL)
 	assert.Nil(t, err)
@@ -207,12 +206,12 @@ func TestWALReplay(t *testing.T) {
 
 	// Verify that the file contents have changed for year 2002
 	for key, buf := range fileContentsOriginal2002 {
-		//fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(modifiedFileContents[key]))
+		// fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(modifiedFileContents[key]))
 		assert.False(t, bytes.Equal(buf, modifiedFileContents[key]))
 	}
 
 	// Re-write the original files
-	//fmt.Println("Rewrite")
+	// fmt.Println("Rewrite")
 	rewriteFilesFromBuffer(t, fileContentsOriginal2002)
 	// At this point, we should have our original files
 	assert.True(t, compareFileToBuf(t, fileContentsOriginal2002, queryFiles2002))
@@ -221,7 +220,7 @@ func TestWALReplay(t *testing.T) {
 	newWALFileName := "ReplayWAL"
 	newWALFilePath := rootDir + "/" + newWALFileName
 	os.Remove(newWALFilePath) // Remove it if it exists
-	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
+	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0o600)
 	assert.Nil(t, err)
 	// Replace PID with a bogus PID
 	for i, val := range [8]byte{1, 1, 1, 1, 1, 1, 1, 1} {
@@ -236,7 +235,7 @@ func TestWALReplay(t *testing.T) {
 	WALFile, err := executor.TakeOverWALFile(filepath.Join(rootDir, newWALFileName))
 	assert.Nil(t, err)
 	data, _ := ioutil.ReadFile(newWALFilePath)
-	ioutil.WriteFile("/tmp/wal", data, 0644)
+	ioutil.WriteFile("/tmp/wal", data, 0o644)
 	newTGC := executor.NewTransactionPipe()
 	assert.NotNil(t, newTGC)
 	// Verify that our files are in original state prior to replay
@@ -251,7 +250,7 @@ func TestWALReplay(t *testing.T) {
 	for key, buf := range modifiedFileContents {
 		if filepath.Base(key) == "2002.bin" {
 			buf2 := postReplayFileContents[key]
-			//fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
+			// fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
 			if !bytes.Equal(buf, postReplayFileContents[key]) {
 				for i, val := range buf {
 					if val != buf2[i] {
@@ -281,7 +280,7 @@ func createBufferFromFiles(t *testing.T, queryFiles []string) (originalFileConte
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
 	originalFileContents = make(map[string][]byte)
 	for _, filePath := range queryFiles {
-		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
+		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0o600)
 		assert.Nil(t, err)
 		fstat, err := fp.Stat()
 		assert.Nil(t, err)
@@ -300,7 +299,7 @@ func rewriteFilesFromBuffer(t *testing.T, originalFileContents map[string][]byte
 
 	// Replace the file contents with the contents of the buffer
 	for filePath := range originalFileContents {
-		fp, err := os.OpenFile(filePath, os.O_RDWR, 0600)
+		fp, err := os.OpenFile(filePath, os.O_RDWR, 0o600)
 		assert.Nil(t, err)
 		n, err := fp.WriteAt(originalFileContents[filePath], 0)
 		assert.Nil(t, err)
@@ -314,7 +313,7 @@ func compareFileToBuf(t *testing.T, originalFileContents map[string][]byte, quer
 	t.Helper()
 
 	for _, filePath := range queryFiles {
-		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
+		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0o600)
 		assert.Nil(t, err)
 		fstat, err := fp.Stat()
 		assert.Nil(t, err)

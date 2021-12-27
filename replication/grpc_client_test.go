@@ -19,7 +19,6 @@ func TestGRPCReplicationClient_Connect(t *testing.T) {
 
 	// --- when ---
 	err := client.Connect(context.Background())
-
 	// --- then ---
 	if err != nil {
 		t.Error("Connect should succeed")

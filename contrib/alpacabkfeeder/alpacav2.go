@@ -7,9 +7,6 @@ import (
 
 	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 	"github.com/alpacahq/alpaca-trade-api-go/common"
-
-	"github.com/alpacahq/marketstore/v4/utils"
-
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
@@ -18,6 +15,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/timer"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 

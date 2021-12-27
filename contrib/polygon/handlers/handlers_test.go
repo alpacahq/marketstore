@@ -3,17 +3,16 @@ package handlers_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
-	"github.com/alpacahq/marketstore/v4/utils/test"
-
-	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func setup(t *testing.T, testName string,
@@ -38,6 +37,7 @@ func getTestTradeArray() []api.PolyTrade {
 		},
 	}
 }
+
 func getTestQuoteArray() []api.PolyQuote {
 	return []api.PolyQuote{
 		{
@@ -50,6 +50,7 @@ func getTestQuoteArray() []api.PolyQuote {
 		},
 	}
 }
+
 func TestHandlers(t *testing.T) {
 	tearDown := setup(t, "TestHandlers")
 	defer tearDown()

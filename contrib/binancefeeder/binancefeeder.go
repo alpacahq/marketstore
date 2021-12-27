@@ -27,7 +27,7 @@ var suffixBinanceDefs = map[string]string{
 	"W":   "w",
 }
 
-// ExchangeInfo exchange info
+// ExchangeInfo exchange info.
 type ExchangeInfo struct {
 	Symbols []struct {
 		Symbol     string `json:"symbol"`
@@ -37,9 +37,9 @@ type ExchangeInfo struct {
 	} `json:"symbols"`
 }
 
-// getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
+// getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json.
 func getJSON(url string, target interface{}) error {
-	var myClient = &http.Client{Timeout: 10 * time.Second}
+	myClient := &http.Client{Timeout: 10 * time.Second}
 	r, err := myClient.Get(url)
 	if err != nil {
 		return err
@@ -49,10 +49,10 @@ func getJSON(url string, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
-// For ConvertStringToFloat function and Run() function to making exiting easier
+// For ConvertStringToFloat function and Run() function to making exiting easier.
 var errorsConversion []error
 
-// FetcherConfig is a structure of binancefeeder's parameters
+// FetcherConfig is a structure of binancefeeder's parameters.
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
 	BaseCurrencies []string `json:"base_currencies"`
@@ -60,7 +60,7 @@ type FetcherConfig struct {
 	BaseTimeframe  string   `json:"base_timeframe"`
 }
 
-// BinanceFetcher is the main worker for Binance
+// BinanceFetcher is the main worker for Binance.
 type BinanceFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
@@ -69,7 +69,7 @@ type BinanceFetcher struct {
 	baseTimeframe  *utils.Timeframe
 }
 
-// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
+// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure.
 func recast(config map[string]interface{}) *FetcherConfig {
 	data, _ := json.Marshal(config)
 	ret := FetcherConfig{}
@@ -78,10 +78,10 @@ func recast(config map[string]interface{}) *FetcherConfig {
 	return &ret
 }
 
-//Convert string to float64 using strconv
+//Convert string to float64 using strconv.
 func convertStringToFloat(str string) float64 {
 	convertedString, err := strconv.ParseFloat(str, 64)
-	//Store error in string array which will be checked in main fucntion later to see if there is a need to exit
+	// Store error in string array which will be checked in main fucntion later to see if there is a need to exit
 	if err != nil {
 		log.Error("String to float error: %v", err)
 		errorsConversion = append(errorsConversion, err)
@@ -89,7 +89,7 @@ func convertStringToFloat(str string) float64 {
 	return convertedString
 }
 
-//Checks time string and returns correct time format
+//Checks time string and returns correct time format.
 func queryTime(query string) time.Time {
 	trials := []string{
 		"2006-01-02 03:04:05",
@@ -101,15 +101,15 @@ func queryTime(query string) time.Time {
 	for _, layout := range trials {
 		qs, err := time.Parse(layout, query)
 		if err == nil {
-			//Returns time in correct time.Time object once it matches correct time format
+			// Returns time in correct time.Time object once it matches correct time format
 			return qs.In(utils.InstanceConfig.Timezone)
 		}
 	}
-	//Return null if no time matches time format
+	// Return null if no time matches time format
 	return time.Time{}
 }
 
-//Convert time from milliseconds to Unix
+//Convert time from milliseconds to Unix.
 func convertMillToTime(originalTime int64) time.Time {
 	i := time.Unix(0, originalTime*int64(time.Millisecond))
 	return i
@@ -126,7 +126,7 @@ func appendIfMissing(slice []string, s string) ([]string, bool) {
 	return append(slice, s), true
 }
 
-//Gets all symbols from binance
+//Gets all symbols from binance.
 func getAllSymbols(quoteAssets []string) []string {
 	symbol := make([]string, 0)
 	status := make([]string, 0)
@@ -154,7 +154,7 @@ func getAllSymbols(quoteAssets []string) []string {
 			}
 		}
 
-		//Check status and append to symbols list if valid
+		// Check status and append to symbols list if valid
 		for index, s := range status {
 			if s == "TRADING" {
 				tradingSymbols = append(tradingSymbols, symbol[index])
@@ -196,7 +196,7 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	return ts[0]
 }
 
-// NewBgWorker registers a new background worker
+// NewBgWorker registers a new background worker.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config := recast(conf)
 	var queryStart time.Time
@@ -212,7 +212,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		queryStart = queryTime(config.QueryStart)
 	}
 
-	//First see if config has symbols, if not retrieve all from binance as default
+	// First see if config has symbols, if not retrieve all from binance as default
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	} else {
@@ -454,7 +454,6 @@ func (bn *BinanceFetcher) Run() {
 			// Binance rate limit is 20 reequests per second so this shouldn't be an issue.
 			time.Sleep(time.Second)
 		}
-
 	}
 }
 

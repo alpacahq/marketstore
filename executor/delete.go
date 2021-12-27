@@ -53,11 +53,11 @@ func (de *deleter) Delete() (err error) {
 	return err
 }
 
-// Deletes the selected time range, preserving the file holes
+// Deletes the selected time range, preserving the file holes.
 func (de *deleter) delete(iop *ioplan) (err error) {
 	for _, fp := range iop.FilePlan {
 		filePath := fp.FullPath
-		f, err := os.OpenFile(filePath, os.O_RDWR, 0666)
+		f, err := os.OpenFile(filePath, os.O_RDWR, 0o666)
 		if err != nil {
 			log.Error("Read: opening %s\n%s", filePath, err)
 			return err

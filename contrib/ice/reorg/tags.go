@@ -25,11 +25,13 @@ type parseInfo struct {
 
 var parseMap = map[reflect.Type][]parseInfo{}
 
-var lineMatcher = regexp.MustCompile(`line:([0-9]+)`)
-var posMatcher = regexp.MustCompile(`pos:([^\s]+)`)
-var formatMatcher = regexp.MustCompile(`format:([^\s]+)`)
-var defaultMatcher = regexp.MustCompile(`default:([^\s]+)`)
-var funcMatcher = regexp.MustCompile(`func:([^\s]+)`)
+var (
+	lineMatcher    = regexp.MustCompile(`line:([0-9]+)`)
+	posMatcher     = regexp.MustCompile(`pos:([^\s]+)`)
+	formatMatcher  = regexp.MustCompile(`format:([^\s]+)`)
+	defaultMatcher = regexp.MustCompile(`default:([^\s]+)`)
+	funcMatcher    = regexp.MustCompile(`func:([^\s]+)`)
+)
 
 func newParseInfo() parseInfo {
 	return parseInfo{}

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// GetQuotesResponse is a response model for Get Quotes endpoint
+// GetQuotesResponse is a response model for Get Quotes endpoint.
 type GetQuotesResponse struct {
 	DelaySec           float32       `json:"Delay"`
 	Message            string        `json:"Message"`
@@ -13,7 +13,7 @@ type GetQuotesResponse struct {
 	ArrayOfEquityQuote []EquityQuote `json:"ArrayOfEquityQuote"`
 }
 
-// EquityQuote object in GetQuotesResponse
+// EquityQuote object in GetQuotesResponse.
 type EquityQuote struct {
 	Outcome  string    `json:"Outcome"`
 	Message  string    `json:"Message"`
@@ -21,12 +21,12 @@ type EquityQuote struct {
 	Quote    *Quote    `json:"Quote"`
 }
 
-// Security object in EquityQuote object
+// Security object in EquityQuote object.
 type Security struct {
 	Symbol string `json:"Symbol"`
 }
 
-// Quote object in Equity Quote object
+// Quote object in Equity Quote object.
 type Quote struct {
 	DateTime    XigniteDateTime `json:"DateTime,omitempty"`
 	Ask         float32         `json:"Ask"`
@@ -54,13 +54,13 @@ type Quote struct {
 	UTCOffSet                      int     `json:"UTCOffSet"`
 }
 
-// XigniteDateTime is a date time in XigniteDateTimeLayout format
+// XigniteDateTime is a date time in XigniteDateTimeLayout format.
 type XigniteDateTime time.Time
 
-// XigniteDateTimeLayout is a layout of Datetime string returned from Xignite API
+// XigniteDateTimeLayout is a layout of Datetime string returned from Xignite API.
 const XigniteDateTimeLayout = "2006/01/02 15:04:05"
 
-// UnmarshalJSON parses a string in the XigniteDateTime Layout
+// UnmarshalJSON parses a string in the XigniteDateTime Layout.
 func (cd *XigniteDateTime) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "" {
@@ -77,13 +77,13 @@ func (cd *XigniteDateTime) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// XigniteDay is a date (yyyy/mm/dd) in XigniteDateTimeLayout format
+// XigniteDay is a date (yyyy/mm/dd) in XigniteDateTimeLayout format.
 type XigniteDay time.Time
 
-// XigniteDayLayout is a layout of Datetime string returned from Xignite GetQuotesRange API
+// XigniteDayLayout is a layout of Datetime string returned from Xignite GetQuotesRange API.
 const XigniteDayLayout = "2006/01/02"
 
-// UnmarshalJSON parses a string in the XigniteDay Layout
+// UnmarshalJSON parses a string in the XigniteDay Layout.
 func (cd *XigniteDay) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "" {
@@ -100,26 +100,26 @@ func (cd *XigniteDay) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// ListSymbolsResponse is a response model for the /QUICKEquityRealTime.json/ListSymbols endpoint
+// ListSymbolsResponse is a response model for the /QUICKEquityRealTime.json/ListSymbols endpoint.
 type ListSymbolsResponse struct {
 	Outcome                    string                `json:"Outcome"`
 	Message                    string                `json:"Message"`
 	ArrayOfSecurityDescription []SecurityDescription `json:"ArrayOfSecurityDescription"`
 }
 
-// SecurityDescription object in ListSymbolsResponse
+// SecurityDescription object in ListSymbolsResponse.
 type SecurityDescription struct {
 	Symbol string `json:"Symbol"`
 }
 
-// ListIndexSymbolsResponse is a response model for the /QUICKIndexHistorical.json/ListSymbols endpoint
+// ListIndexSymbolsResponse is a response model for the /QUICKIndexHistorical.json/ListSymbols endpoint.
 type ListIndexSymbolsResponse struct {
 	Outcome      string  `json:"Outcome"`
 	Message      string  `json:"Message"`
 	ArrayOfIndex []Index `json:"ArrayOfIndex"`
 }
 
-// Index object in ListIndexSymbolsResponse
+// Index object in ListIndexSymbolsResponse.
 type Index struct {
 	Symbol string `json:"Symbol"`
 }
@@ -151,7 +151,7 @@ type GetIndexBarsResponse struct {
 	ArrayOfBar    []Bar     `json:"ArrayOfBar"`
 }
 
-// GetQuotesRangeResponse is a response model for the QUICKEquityHistorical/GetQuotesRange endpoint
+// GetQuotesRangeResponse is a response model for the QUICKEquityHistorical/GetQuotesRange endpoint.
 type GetQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
 	Message              string          `json:"Message"`
@@ -159,7 +159,7 @@ type GetQuotesRangeResponse struct {
 	ArrayOfEndOfDayQuote []EndOfDayQuote `json:"ArrayOfEndOfDayQuote"`
 }
 
-// EndOfDayQuote object in GetQuotesRangeResponse
+// EndOfDayQuote object in GetQuotesRangeResponse.
 type EndOfDayQuote struct {
 	Date                           XigniteDay `json:"Date"`
 	Open                           float32    `json:"Open"`
@@ -174,7 +174,7 @@ type EndOfDayQuote struct {
 	PercentChangeFromPreviousClose float32    `json:"PercentChangeFromPreviousClose"`
 }
 
-// GetIndexQuotesRangeResponse is a response model for the QuickIndexHistorical/GetQuotesRange endpoint
+// GetIndexQuotesRangeResponse is a response model for the QuickIndexHistorical/GetQuotesRange endpoint.
 type GetIndexQuotesRangeResponse struct {
 	Outcome              string          `json:"Outcome"`
 	Message              string          `json:"Message"`

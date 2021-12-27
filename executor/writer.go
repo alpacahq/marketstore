@@ -8,15 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/klauspost/compress/snappy"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-
-	"github.com/klauspost/compress/snappy"
 )
 
 // Writer is produced that complies with the parsed query results, including a possible date
@@ -57,7 +56,6 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 	outBuf = append(buf, row...)
 	outBuf = appendIntervalTicks(outBuf, t, index, intervalsPerDay)
 	return outBuf
-
 }
 
 // WriteRecords creates a WriteCommand from the supplied timestamp and data buffer,
@@ -65,7 +63,7 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 // The caller should assume that by calling WriteRecords directly, the data will be written
 // to the file regardless if it satisfies the on-disk data shape, possible corrupting
 // the data files. It is recommended to call WriteCSM() for any writes as it is safer.
-func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape, tbi *io.TimeBucketInfo) error {
+func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []io.DataShape, tbi *io.TimeBucketInfo) error {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
@@ -97,14 +95,14 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 				return fmt.Errorf("add new year file. tbi=%v, err: %w", tbi, err)
 			}
 		}
-		index := TimeToIndex(t, tbi.GetTimeframe())
-		offset := IndexToOffset(index, tbi.GetRecordLength())
+		index := io.TimeToIndex(t, tbi.GetTimeframe())
+		offset := io.IndexToOffset(index, tbi.GetRecordLength())
 
 		// first row
 		if i == 0 {
 			prevIndex = index
 			prevYear = year
-			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == io.VARIABLE)
 			cc = w.walFile.WriteCommand(rt, tbi.Path, int(vrl), offset, index, outBuf, dsWithEpoch)
 			continue
 		}
@@ -115,7 +113,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			/*
 				This is the interior of a multi-row write buffer
 			*/
-			outBuf = formatRecord(outBuf, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord(outBuf, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == io.VARIABLE)
 			cc.Data = outBuf
 			continue
 		}
@@ -126,7 +124,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			w.walFile.QueueWriteCommand(cc)
 			// Setup next command
 			prevIndex = index
-			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == io.VARIABLE)
 			cc = w.walFile.WriteCommand(
 				tbi.GetRecordType(), tbi.Path, int(tbi.GetVariableRecordLength()), offset, index,
 				outBuf, dsWithEpoch)
@@ -140,8 +138,8 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 }
 
 func appendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
-	iticks := GetIntervalTicks32Bit(t, index, intervalsPerDay)
-	postdata, _ := Serialize([]byte{}, iticks)
+	iticks := io.GetIntervalTicks32Bit(t, index, intervalsPerDay)
+	postdata, _ := io.Serialize([]byte{}, iticks)
 	outBuf = append(buf, postdata...)
 	return outBuf
 }
@@ -177,7 +175,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	if _, err = fp.Read(idBuf); err != nil {
 		return err
 	}
-	currentRecInfo := SwapSliceByte(idBuf, IndirectRecordInfo{}).([]IndirectRecordInfo)[0]
+	currentRecInfo := io.SwapSliceByte(idBuf, IndirectRecordInfo{}).([]IndirectRecordInfo)[0]
 	/*
 		Read the data from the previously written location, if it exists
 	*/
@@ -227,14 +225,14 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 		}
 	}
 
-	//log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
+	// log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
 
 	/*
 		Write the indirect record info at the primaryOffset
 	*/
 	targetRecInfo := IndirectRecordInfo{Index: index, Offset: endOfFileOffset, Len: dataLen}
 	odata := []int64{targetRecInfo.Index, targetRecInfo.Offset, targetRecInfo.Len}
-	obuf := SwapSliceData(odata, byte(0)).([]byte)
+	obuf := io.SwapSliceData(odata, byte(0)).([]byte)
 
 	fp.Seek(primaryOffset, stdio.SeekStart)
 	_, err = fp.Write(obuf)
@@ -308,7 +306,7 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 		if len(dbDSV) != len(csDSV) {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
-		missing, coercion := GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
+		missing, coercion := io.GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
 		if missing != nil {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
@@ -316,7 +314,7 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 		if coercion != nil {
 			for _, dbDS := range coercion {
 				if err := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err != nil {
-					csType := GetElementType(cs.GetColumn(dbDS.Name))
+					csType := io.GetElementType(cs.GetColumn(dbDS.Name))
 					log.Error("[%s] error coercing %s from %s to %s", tbk.GetItemKey(), dbDS.Name, csType.String(), dbDS.Type.String())
 					return err
 				}

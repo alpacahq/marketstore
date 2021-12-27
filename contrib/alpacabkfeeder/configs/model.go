@@ -17,11 +17,10 @@ const (
 	OTC      = Exchange("OTC")
 )
 
-var (
-	validExchanges = map[string]struct{}{string(AMEX): {}, string(ARCA): {}, string(BATS): {}, string(NYSE): {},
-		string(NASDAQ): {}, string(NYSEARCA): {}, string(OTC): {},
-	}
-)
+var validExchanges = map[string]struct{}{
+	string(AMEX): {}, string(ARCA): {}, string(BATS): {}, string(NYSE): {},
+	string(NASDAQ): {}, string(NYSEARCA): {}, string(OTC): {},
+}
 
 func (e *Exchange) Valid() error {
 	if _, found := validExchanges[string(*e)]; !found {

@@ -18,9 +18,9 @@ func TestNewTimeBucketKeyFromWalKeyPath(t *testing.T) {
 		{
 			name:       "Success",
 			walKeyPath: "/project/marketstore/data/AMZN/1Min/TICK/2017.bin",
-			wantTbk: io.NewTimeBucketKey("AMZN/1Min/TICK"),
-			wantYear: 2017,
-			wantErr:  false,
+			wantTbk:    io.NewTimeBucketKey("AMZN/1Min/TICK"),
+			wantYear:   2017,
+			wantErr:    false,
 		},
 		{
 			name:       "Invalid format of WalKeyPath",

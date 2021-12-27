@@ -5,7 +5,7 @@ import (
 )
 
 // Pool is a basic work pool - I didn't like any
-// of the ones I found, so I made one
+// of the ones I found, so I made one.
 type Pool struct {
 	workerQ chan struct{}
 	f       func(input interface{})
@@ -13,7 +13,7 @@ type Pool struct {
 }
 
 // NewPool creates a new worker pool with a goroutine limit
-// and a job function to execute on the incoming data
+// and a job function to execute on the incoming data.
 func NewPool(routines int, job func(input interface{})) *Pool {
 	q := make(chan struct{}, routines)
 	for i := 0; i < routines; i++ {
@@ -27,7 +27,7 @@ func NewPool(routines int, job func(input interface{})) *Pool {
 }
 
 // Work is a blocking call that starts the
-// pool working on a data input channel
+// pool working on a data input channel.
 func (p *Pool) Work(c <-chan interface{}) {
 	for v := range c {
 		<-p.workerQ
@@ -40,7 +40,7 @@ func (p *Pool) Work(c <-chan interface{}) {
 	}
 }
 
-// Wait waits until the pool is finished
+// Wait waits until the pool is finished.
 func (p *Pool) Wait() {
 	p.wg.Wait()
 }

@@ -29,7 +29,7 @@ type BufferedFile struct {
 const DefaultBlockSize = 32 * 1024
 
 func New(filePath string) (*BufferedFile, error) {
-	fp, err := os.OpenFile(filePath, os.O_RDWR, 0700)
+	fp, err := os.OpenFile(filePath, os.O_RDWR, 0o700)
 	if err != nil {
 		return nil, err
 	}

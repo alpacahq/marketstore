@@ -9,10 +9,11 @@ package calendar
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type MarketState int
@@ -98,13 +99,13 @@ func (calendar *Calendar) IsMarketDay(t time.Time) bool {
 	return true
 }
 
-// EpochIsMarketOpen returns true if epoch in calendar's timezone is in the market hours
+// EpochIsMarketOpen returns true if epoch in calendar's timezone is in the market hours.
 func (calendar *Calendar) EpochIsMarketOpen(epoch int64) bool {
 	t := time.Unix(epoch, 0).In(calendar.tz)
 	return calendar.IsMarketOpen(t)
 }
 
-// IsMarketOpen returns true if t is in the market hours
+// IsMarketOpen returns true if t is in the market hours.
 func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 	wd := t.Weekday()
 	if wd == time.Saturday || wd == time.Sunday {

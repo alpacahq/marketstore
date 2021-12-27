@@ -6,9 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/frontend"
-
 	"github.com/alpacahq/marketstore/v4/cmd/connect/loader"
+	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 

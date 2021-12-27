@@ -29,7 +29,7 @@ func TimeAndHeap(n int, f func()) (t int64, h uint64) {
 	return time_after - time_before, ah_after - ah_before
 }
 
-// TestRewriteBuffer checks the compatibility of C and Go implementations of rewrite buffer
+// TestRewriteBuffer checks the compatibility of C and Go implementations of rewrite buffer.
 func TestRewriteBuffer(t *testing.T) {
 	t.Parallel()
 	// --- given ---

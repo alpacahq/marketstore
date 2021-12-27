@@ -68,9 +68,11 @@ func (rows *Rows) GetColumn(colname string) (col interface{}) {
 func (rows *Rows) GetDataShapes() []DataShape {
 	return rows.dataShape
 }
+
 func (rows *Rows) Len() int {
 	return rows.GetNumRows()
 }
+
 func (rows *Rows) GetTime() ([]time.Time, error) {
 	ep := rows.GetColumn("Epoch").([]int64)
 	ts := make([]time.Time, len(ep))
@@ -97,6 +99,7 @@ func (rows *Rows) SetRowLen(rowLen int) {
 	}
 	rows.rowLen = rowLen
 }
+
 func (rows *Rows) GetRowLen() (len int) {
 	/*
 		rowLen can be set directly to allow for alignment, etc, or this will set it based on sum of DataShape
@@ -108,6 +111,7 @@ func (rows *Rows) GetRowLen() (len int) {
 	}
 	return rows.rowLen
 }
+
 func (rows *Rows) GetNumRows() int {
 	mylen := rows.GetRowLen()
 	if mylen == 0 || len(rows.data) == 0 {
@@ -115,15 +119,18 @@ func (rows *Rows) GetNumRows() int {
 	}
 	return len(rows.data) / mylen
 }
+
 func (rows *Rows) GetData() []byte {
 	return rows.data
 }
+
 func (rows *Rows) GetRow(i int) []byte {
 	rowLen := rows.GetRowLen()
 	start := i * rowLen
 	end := start + rowLen
 	return rows.data[start:end]
 }
+
 func (rows *Rows) ToColumnSeries() *ColumnSeries {
 	cs := NewColumnSeries()
 	cs.AddColumn("Epoch", rows.GetColumn("Epoch").([]int64))
@@ -173,27 +180,35 @@ func (rs *RowSeries) GetMetadataKey() TimeBucketKey {
 func (rs *RowSeries) GetRow(i int) []byte {
 	return rs.rows.GetRow(i)
 }
+
 func (rs *RowSeries) GetData() []byte {
 	return rs.rows.GetData()
 }
+
 func (rs *RowSeries) GetNumRows() int {
 	return rs.rows.GetNumRows()
 }
+
 func (rs *RowSeries) GetRowLen() int {
 	return rs.rows.GetRowLen()
 }
+
 func (rs *RowSeries) SetRowLen(rowLen int) {
 	rs.rows.SetRowLen(rowLen)
 }
+
 func (rs *RowSeries) GetColumn(colname string) (col interface{}) {
 	return rs.rows.GetColumn(colname)
 }
+
 func (rs *RowSeries) GetDataShapes() (ds []DataShape) {
 	return rs.rows.GetDataShapes()
 }
+
 func (rs *RowSeries) Len() int {
 	return rs.GetNumRows()
 }
+
 func (rs *RowSeries) GetTime() ([]time.Time, error) {
 	return rs.rows.GetTime()
 }

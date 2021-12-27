@@ -129,7 +129,6 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 		}
 
 		from = time.Unix(epoch[len(epoch)-1], 0)
-
 	} else {
 		for _, layout := range []string{
 			"2006-01-02 03:04:05",

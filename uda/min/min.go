@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -30,9 +29,11 @@ type Min struct {
 func (mn *Min) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (mn *Min) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (mn *Min) GetInitArgs() []io.DataShape {
 	return initArgs
 }

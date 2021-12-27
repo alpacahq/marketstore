@@ -13,7 +13,7 @@ func TestAsCanonical(t *testing.T) {
 	aggToMinute := string(enums.AggToMinute)
 	q := string(enums.Quote)
 	tr := string(enums.Trade)
-	var tests = []struct {
+	tests := []struct {
 		sub      Subscription
 		expected []string
 	}{
@@ -77,7 +77,7 @@ func TestAsCanonical(t *testing.T) {
 
 func TestFlatten(t *testing.T) {
 	t.Parallel()
-	var tests = []struct {
+	tests := []struct {
 		lists    [][]string
 		expected []string
 	}{
@@ -107,7 +107,7 @@ func TestFlatten(t *testing.T) {
 func TestPrefixStrings(t *testing.T) {
 	t.Parallel()
 	aggToMinute := string(enums.AggToMinute)
-	var tests = []struct {
+	tests := []struct {
 		list     []string
 		prefix   enums.Prefix
 		expected []string
@@ -138,7 +138,7 @@ func TestPrefixStrings(t *testing.T) {
 
 func TestNormalizeSubscriptions(t *testing.T) {
 	t.Parallel()
-	var tests = []struct {
+	tests := []struct {
 		list     []string
 		expected []string
 	}{
@@ -166,7 +166,7 @@ func TestNormalizeSubscriptions(t *testing.T) {
 
 func TestContainsWildcard(t *testing.T) {
 	t.Parallel()
-	var tests = []struct {
+	tests := []struct {
 		list     []string
 		expected bool
 	}{

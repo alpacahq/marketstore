@@ -8,9 +8,11 @@ import (
 	"time"
 )
 
-const Day = 24 * time.Hour
-const Week = 7 * Day
-const Year = 365 * Day
+const (
+	Day  = 24 * time.Hour
+	Week = 7 * Day
+	Year = 365 * Day
+)
 
 var timeframeDefs = []Timeframe{
 	{"S", time.Second},

@@ -11,12 +11,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// BarWriter is an interface to write chart data to the marketstore
+// BarWriter is an interface to write chart data to the marketstore.
 type BarWriter interface {
 	Write(symbol string, bars []api.Bar, isIndexSymbol bool) error
 }
 
-// BarWriterImpl is an implementation of the BarWriter interface
+// BarWriterImpl is an implementation of the BarWriter interface.
 type BarWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
 	Timeframe         string
@@ -25,7 +25,7 @@ type BarWriterImpl struct {
 }
 
 // Write converts the Response of the GetBars API to a ColumnSeriesMap and write it to the local marketstore server.
-// When "isIndexSymbol" is true, bar data with "Volume=0" symbol will also be written to marketstore
+// When "isIndexSymbol" is true, bar data with "Volume=0" symbol will also be written to marketstore.
 func (b BarWriterImpl) Write(symbol string, bars []api.Bar, isIndexSymbol bool) error {
 	// convert Bar Data to CSM (ColumnSeriesMap)
 	csm, err := b.convertToCSM(symbol, bars, isIndexSymbol)

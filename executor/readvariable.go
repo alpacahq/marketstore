@@ -6,7 +6,6 @@ import (
 	"github.com/klauspost/compress/snappy"
 
 	"github.com/alpacahq/marketstore/v4/utils"
-
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -24,7 +23,7 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 		indexBuffer := md.Data
 
 		// Open the file to read the data
-		fp, err := os.OpenFile(file, os.O_RDONLY, 0666)
+		fp, err := os.OpenFile(file, os.O_RDONLY, 0o666)
 		if err != nil {
 			return nil, err
 		}
@@ -49,7 +48,7 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 		}
 
 		numIndexRecords = len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
-		//rb = make([]byte, 0)
+		// rb = make([]byte, 0)
 		rb = make([]byte, totalDatalen)
 		var rbCursor int
 		for i := 0; i < numIndexRecords; i++ {
@@ -76,7 +75,7 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 			rbTemp := RewriteBuffer(buffer,
 				uint32(varRecLen), uint32(numVarRecords), uint32(md.Intervals), uint64(intervalStartEpoch))
 
-			//rb = append(rb, rbTemp...)
+			// rb = append(rb, rbTemp...)
 			if (rbCursor + len(rbTemp)) > totalDatalen {
 				totalDatalen += totalDatalen
 				rb2 := make([]byte, totalDatalen)
@@ -85,7 +84,6 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 			}
 			copy(rb[rbCursor:], rbTemp)
 			rbCursor += len(rbTemp)
-
 		}
 		rb = rb[:rbCursor]
 		fp.Close()

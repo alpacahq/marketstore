@@ -10,10 +10,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -25,12 +24,12 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	var config = getConfig(`{
+	config := getConfig(`{
         "destinations": ["5Min", "1D"],
         "filter": "something"
         }`)
-	var ret, err = NewTrigger(config)
-	var trig = ret.(*OnDiskAggTrigger)
+	ret, err := NewTrigger(config)
+	trig := ret.(*OnDiskAggTrigger)
 	assert.Len(t, trig.destinations, 2)
 	assert.Equal(t, trig.filter, "")
 	assert.Nil(t, err)
@@ -110,7 +109,7 @@ func TestFireBars(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	rootDir := filepath.Join(tempDir, "mktsdb")
-	os.MkdirAll(rootDir, 0777)
+	os.MkdirAll(rootDir, 0o777)
 	_, _, _, err := executor.NewInstanceSetup(
 		rootDir, nil, nil,
 		5, true, true, false, false)

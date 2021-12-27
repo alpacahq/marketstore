@@ -61,7 +61,7 @@ func (r *ReplayerImpl) Replay(transactionGroup []byte) error {
 	return nil
 }
 
-// WTSetToCSM converts wal.WTSet to ColumnSeriesMap
+// WTSetToCSM converts wal.WTSet to ColumnSeriesMap.
 func WTSetToCSM(wtSet *wal.WTSet) (io.ColumnSeriesMap, error) {
 	csm := io.NewColumnSeriesMap()
 	cs, tbk, err := wtSetToCS(wtSet)
@@ -126,7 +126,7 @@ func wtSetToCS(wtSet *wal.WTSet) (*io.ColumnSeries, *io.TimeBucketKey, error) {
 	return cs, tbk, nil
 }
 
-// serializeVariableRecord serializes variableLength record(s) data in a WTSet to []byte
+// serializeVariableRecord serializes variableLength record(s) data in a WTSet to []byte.
 func serializeVariableRecords(epoch time.Time, intervalsPerDay uint32, wtSet *wal.WTSet) ([]byte, error) {
 	const (
 		EpochBytes         = 8

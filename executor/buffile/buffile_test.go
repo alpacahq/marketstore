@@ -18,7 +18,7 @@ func TestBufferedFile(t *testing.T) {
 	defer test.CleanupDummyDataDir(tempDir)
 
 	filePath := filepath.Join(tempDir, "test.bin")
-	fp, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0700)
+	fp, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o700)
 	assert.Nil(t, err)
 	err = fp.Truncate(1024 * 1024)
 	assert.Nil(t, err)

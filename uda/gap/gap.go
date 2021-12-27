@@ -6,7 +6,7 @@
  * Last Modified:
  * Modified By:
  * -----
- * Copyright (c) 2019 QK Captial
+ * Copyright (c) 2019 QK Capital
  *
  * Description:
  *
@@ -18,13 +18,12 @@ import (
 	"math"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -47,9 +46,11 @@ type Gap struct {
 func (g *Gap) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (g *Gap) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (g *Gap) GetInitArgs() []io.DataShape {
 	return initArgs
 }
@@ -99,7 +100,6 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.Column
 				g.BigGapIdxs = append(g.BigGapIdxs, i)
 			}
 		}
-
 	}
 
 	return g.Output(), nil

@@ -22,9 +22,7 @@ type StreamTriggerConfig struct {
 	Filter string `json:"filter"`
 }
 
-var (
-	_         trigger.Trigger = &StreamTrigger{}
-)
+var _ trigger.Trigger = &StreamTrigger{}
 
 func recast(config map[string]interface{}) *StreamTriggerConfig {
 	data, _ := json.Marshal(config)
@@ -44,7 +42,8 @@ func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 	}
 
 	return &StreamTrigger{
-		shelf.NewShelf(shelf.NewShelfHandler(stream.Push)), filter}, nil
+		shelf.NewShelf(shelf.NewShelfHandler(stream.Push)), filter,
+	}, nil
 }
 
 type StreamTrigger struct {
@@ -63,7 +62,7 @@ func maxInt64(values []int64) int64 {
 }
 
 // Fire is the hook to retrieve the latest written data
-// and stream it over the websocket
+// and stream it over the websocket.
 func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 	indexes := make([]int64, len(records))
 	for i, record := range records {

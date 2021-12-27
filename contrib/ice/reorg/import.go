@@ -14,7 +14,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) error {
+func Import(reorgDir string, reimport, storeWithoutSymbol bool) error {
 	reorgFiles, err := fileList(reorgDir, enum.ReorgFilePrefix, reimport)
 	if err != nil {
 		return fmt.Errorf("cannot read reorg files directory - dir=%s: %w", reorgDir, err)
@@ -27,7 +27,7 @@ func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) error {
 
 		announcements, err := readAnnouncements(pathToReorgFile)
 		if err != nil {
-			return fmt.Errorf("error occured while reading reorg file=%s: %w", reorgFile, err)
+			return fmt.Errorf("error occurred while reading reorg file=%s: %w", reorgFile, err)
 		}
 
 		sirsFiles, err := sirs.CollectSirsFiles(reorgDir, reorgFileDate)
@@ -44,7 +44,7 @@ func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) error {
 		}
 		err = storeAnnouncements(*announcements, cusipSymbolMap, storeWithoutSymbol)
 		if err != nil {
-			return fmt.Errorf("error occured while processing announcements from %s: %w", reorgFile, err)
+			return fmt.Errorf("error occurred while processing announcements from %s: %w", reorgFile, err)
 		}
 		if !reimport {
 			err = os.Rename(pathToReorgFile, pathToReorgFile+enum.ProcessedFlag)
@@ -62,7 +62,7 @@ func datePartOfFilename(filename string) string {
 	return ext[1:]
 }
 
-func fileList(path string, prefix string, reimport bool) (out []string, err error) {
+func fileList(path, prefix string, reimport bool) (out []string, err error) {
 	localfiles, err := ioutil.ReadDir(path)
 	if err == nil {
 		for _, file := range localfiles {
@@ -83,7 +83,7 @@ func readAnnouncements(path string) (*[]Announcement, error) {
 		return nil, err
 	}
 	content := string(buff)
-	var announcements = []Announcement{}
+	announcements := []Announcement{}
 	err = readRecords(content, &announcements)
 	if err != nil {
 		return nil, fmt.Errorf("failed to readRecords: %w", err)

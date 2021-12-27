@@ -28,7 +28,7 @@ func ToSystemTimezone(t time.Time) time.Time {
 // TimeToIndex converts a given time.Time to a file index based upon the supplied
 // timeframe (time.Duration). TimeToIndex takes into account the system timzeone,
 // and converts the supplied timestamp to the system timezone specified in the
-// MarketStore configuration file (or UTC by default),
+// MarketStore configuration file (or UTC by default),.
 func TimeToIndex(t time.Time, tf time.Duration) int64 {
 	tLocal := ToSystemTimezone(t)
 	// special 1D case (maximum supported on-disk size)

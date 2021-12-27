@@ -25,7 +25,7 @@ func TestParseTime(t *testing.T) {
 func TestParseTimestamp(t *testing.T) {
 	t.Parallel()
 
-	tt := time.Date(2017, 11, 07, 07, 8, 23, 383000000, time.UTC)
+	tt := time.Date(2017, 11, 7, 7, 8, 23, 383000000, time.UTC)
 	var fAdj int
 	timeFormat := "timestamp"
 	dateTime := "1510038503.383"
@@ -34,7 +34,7 @@ func TestParseTimestamp(t *testing.T) {
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, tt == tTest, true)
 
-	tt1 := time.Date(2017, 11, 07, 07, 8, 23, 0, time.UTC)
+	tt1 := time.Date(2017, 11, 7, 7, 8, 23, 0, time.UTC)
 	dateTime = "1510038503"
 	tTest, err = parseTime(timeFormat, dateTime, tzLoc, fAdj)
 	assert.Equal(t, err == nil, true)

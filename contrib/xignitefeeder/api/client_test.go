@@ -124,11 +124,11 @@ func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
 		httpClient: NewMockClient(t, ListSymbolsResponse{Outcome: "Success"}),
-		token:      DummyXigniteToken}
+		token:      DummyXigniteToken,
+	}
 
 	// --- when ---
 	got, err := SUT.ListSymbols("foobar")
-
 	// --- then ---
 	if err != nil {
 		t.Errorf("Error should be nil. Err = %v", err)
@@ -144,11 +144,11 @@ func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
 		httpClient: NewMockClient(t, GetQuotesRangeResponse{Outcome: "Success"}),
-		token:      DummyXigniteToken}
+		token:      DummyXigniteToken,
+	}
 
 	// --- when ---
 	got, err := SUT.GetQuotesRange("foobar", time.Time{}, time.Time{})
-
 	// --- then ---
 	if err != nil {
 		t.Errorf("Error should be nil. Err = %v", err)
@@ -158,14 +158,15 @@ func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
 	}
 }
 
-// When Xignite returns Outcome:"SystemError", throw an error
+// When Xignite returns Outcome:"SystemError", throw an error.
 func TestDefaultAPIClient_ListSymbols_Error(t *testing.T) {
 	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: SystemError" response body
 		httpClient: NewMockClient(t, ListSymbolsResponse{Outcome: "SystemError"}),
-		token:      DummyXigniteToken}
+		token:      DummyXigniteToken,
+	}
 
 	// --- when ---
 	_, err := SUT.ListSymbols("foobar")
@@ -176,14 +177,15 @@ func TestDefaultAPIClient_ListSymbols_Error(t *testing.T) {
 	}
 }
 
-// When Xignite returns Outcome:"SystemError" to ListIndexSymbols API, throw an error
+// When Xignite returns Outcome:"SystemError" to ListIndexSymbols API, throw an error.
 func TestDefaultAPIClient_ListIndexSymbols_Error(t *testing.T) {
 	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: SystemError" response body
 		httpClient: NewMockClient(t, ListIndexSymbolsResponse{Outcome: "SystemError"}),
-		token:      DummyXigniteToken}
+		token:      DummyXigniteToken,
+	}
 
 	// --- when ---
 	_, err := SUT.ListIndexSymbols("exampleIndexGroup")
@@ -200,11 +202,11 @@ func TestDefaultAPIClient_GetRealTimeBars_Success(t *testing.T) {
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
 		httpClient: NewMockClient(t, GetBarsResponse{Outcome: "Success", ArrayOfBar: []Bar{}}),
-		token:      DummyXigniteToken}
+		token:      DummyXigniteToken,
+	}
 
 	// --- when ---
 	got, err := SUT.GetRealTimeBars("foobar", time.Now(), time.Now())
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("Error should be nil. Err = %v", err)
@@ -220,11 +222,11 @@ func TestDefaultAPIClient_GetIndexBars_Success(t *testing.T) {
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
 		httpClient: NewMockClient(t, GetIndexBarsResponse{Outcome: "Success", ArrayOfBar: []Bar{}}),
-		token:      DummyXigniteToken}
+		token:      DummyXigniteToken,
+	}
 
 	// --- when ---
 	got, err := SUT.GetIndexBars("foobar", time.Now(), time.Now())
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("Error should be nil. Err = %v", err)
@@ -234,14 +236,15 @@ func TestDefaultAPIClient_GetIndexBars_Success(t *testing.T) {
 	}
 }
 
-// When Xignite returns Outcome:"SystemError", throw an error
+// When Xignite returns Outcome:"SystemError", throw an error.
 func TestDefaultAPIClient_GetQuotesRange_Error(t *testing.T) {
 	t.Parallel()
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: SystemError" response body
 		httpClient: NewMockClient(t, GetQuotesRangeResponse{Outcome: "SystemError"}),
-		token:      DummyXigniteToken}
+		token:      DummyXigniteToken,
+	}
 
 	// --- when ---
 	_, err := SUT.GetQuotesRange("foobar", time.Time{}, time.Time{})

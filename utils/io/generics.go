@@ -57,6 +57,7 @@ func (as *AnySet) Add(i_elem interface{}) {
 	}
 	as.orderedElems = v_slice.Interface()
 }
+
 func (as *AnySet) Del(i_elem interface{}) {
 	/*
 		Single element as input - must be of same type as existing
@@ -85,7 +86,7 @@ func (as *AnySet) Del(i_elem interface{}) {
 	}
 }
 
-// Intersect provides a list of all elements in both this object and input
+// Intersect provides a list of all elements in both this object and input.
 func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 	/*
 		Slice as input - must be of same type as existing
@@ -117,7 +118,7 @@ func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 	return newSlice.Interface()
 }
 
-// Subtract provides a list of all elements in this object and not in input
+// Subtract provides a list of all elements in this object and not in input.
 func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 	/*
 		Slice as input - must be of same type as existing
@@ -165,7 +166,7 @@ func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 	return newSlice.Interface()
 }
 
-// Contains returns True if the set fully contains the input
+// Contains returns True if the set fully contains the input.
 func (as *AnySet) Contains(input interface{}) bool {
 	/*
 		Slice as input - must be of same type as existing
@@ -198,7 +199,7 @@ func DownSizeSlice(i_slice interface{}, newLen int, direction DirectionEnum) (i_
 		return nil, fmt.Errorf("Unable to resize non-slice type")
 	}
 
-	var oldLen = refValue.Len()
+	oldLen := refValue.Len()
 	if oldLen <= newLen {
 		return i_slice, nil
 	}
@@ -315,7 +316,7 @@ func GetValueAsInt64(i_value interface{}) (val int64, err error) {
 }
 
 /*
-Utility datatypes
+Utility datatypes.
 */
 type ComparisonOperatorEnum uint8
 

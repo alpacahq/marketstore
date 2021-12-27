@@ -184,6 +184,7 @@ func printHeaderLine(cs *dbio.ColumnSeries) {
 	fmt.Print(formatHeader(cs, "="))
 	fmt.Print("\n")
 }
+
 func printColumnNames(cs *dbio.ColumnSeries) {
 	for _, name := range cs.GetColumnNames() {
 		col := cs.GetByName(name)
@@ -206,9 +207,7 @@ func printColumnNames(cs *dbio.ColumnSeries) {
 	fmt.Printf("\n")
 }
 
-//func printResult(queryText string, cs *dbio.ColumnSeries, optional_writer ...*csv.Writer) (err error) {
 func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string) (err error) {
-
 	var oFile string
 	if len(optionalFile) != 0 {
 		// Might be a real filename
@@ -217,7 +216,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	var writer *csv.Writer
 	if len(oFile) != 0 {
 		var file *os.File
-		file, err = os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, 0755)
+		file, err = os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, 0o755)
 		if err != nil {
 			return err
 		}
@@ -335,7 +334,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	return err
 }
 
-// runesToString converts rune array (not slice) in reflect.Value to string
+// runesToString converts rune array (not slice) in reflect.Value to string.
 func runesToString(runes reflect.Value) string {
 	length := runes.Len()
 

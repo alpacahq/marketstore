@@ -50,7 +50,7 @@ type DefaultConfig struct {
 	} `json:"backfill"`
 }
 
-// NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal
+// NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal.
 func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	data, err := json.Marshal(config)
 	if err != nil {
@@ -71,10 +71,10 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	return ret, nil
 }
 
-// CustomTime is a date time object in the ctLayout format
+// CustomTime is a date time object in the ctLayout format.
 type CustomTime time.Time
 
-// Custom Time. hh:mm:ss only
+// Custom Time. hh:mm:ss only.
 const ctLayout = "15:04:05"
 
 // UnmarshalJSON parses the config data to the DefaultConfig object.
@@ -105,7 +105,7 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// convertSliceType converts a slice of weekday to a slice of time.weekday
+// convertSliceType converts a slice of weekday to a slice of time.weekday.
 func convertTime(w []weekday) []time.Weekday {
 	d := make([]time.Weekday, 1)
 	for _, v := range w {
@@ -122,7 +122,7 @@ func convertDate(cd []CustomDay) []time.Time {
 	return d
 }
 
-// UnmarshalJSON parses a string in the ctLayout
+// UnmarshalJSON parses a string in the ctLayout.
 func (ct *CustomTime) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "null" {
@@ -140,10 +140,10 @@ func (ct *CustomTime) UnmarshalJSON(input []byte) error {
 // CustomDay is a date time object (UTC) in the cdLayout format.
 type CustomDay time.Time
 
-// Custom Date. yyyy-mm-dd only
+// Custom Date. yyyy-mm-dd only.
 const cdLayout = "2006-01-02"
 
-// UnmarshalJSON parses a string in the cdLayout
+// UnmarshalJSON parses a string in the cdLayout.
 func (cd *CustomDay) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "null" {
@@ -160,7 +160,7 @@ func (cd *CustomDay) UnmarshalJSON(input []byte) error {
 
 type weekday time.Weekday
 
-// UnmarshalJSON parses a string for a day of the week
+// UnmarshalJSON parses a string for a day of the week.
 func (wd *weekday) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 

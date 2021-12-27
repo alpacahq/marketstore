@@ -7,7 +7,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// RunEveryDayAt runs a specified function every day at a specified hour
+// RunEveryDayAt runs a specified function every day at a specified hour.
 func RunEveryDayAt(ctx context.Context, t time.Time, f func()) {
 	timeToNextRun := timeToNext(time.Now(), t)
 
@@ -34,8 +34,8 @@ func RunEveryDayAt(ctx context.Context, t time.Time, f func()) {
 }
 
 // timeToNext returns the time duration from now to next {hour}:{minute}:{second}
-// For example, when the current time is 8pm, timeToNext(16:00:00) = 20 * time.Hour
-func timeToNext(now time.Time, next time.Time) time.Duration {
+// For example, when the current time is 8pm, timeToNext(16:00:00) = 20 * time.Hour.
+func timeToNext(now, next time.Time) time.Duration {
 	n := time.Date(now.Year(), now.Month(), now.Day(), next.Hour(), next.Minute(), next.Second(),
 		0, next.Location(),
 	)

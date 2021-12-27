@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -98,7 +97,7 @@ func (is *InsertIntoStatement) Materialize(aggRunner *AggRunner, catDir *catalog
 	}
 
 	// Get the time with nanoseconds included if available, prior to projection
-	//indexTime, err := inputColumnSeries.GetTime()
+	// indexTime, err := inputColumnSeries.GetTime()
 
 	// Columns are matched - Now project out all but the target column names
 	inputColumnSeries.Project(targetColumnNames)

@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Cmd is the parent for other Reorg related commands
+// Cmd is the parent for other Reorg related commands.
 var Cmd = &cobra.Command{
 	Use:          "reorg",
 	Short:        "Functions for handling ICE's reorg files",

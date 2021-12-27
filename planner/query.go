@@ -1,5 +1,5 @@
 package planner
 
-// Method for composing simple queries
+// Method for composing simple queries.
 func Query() {
 }

@@ -5,19 +5,18 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
-
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// BarWriter is an interface to write chart data to the marketstore
+// BarWriter is an interface to write chart data to the marketstore.
 type BarWriter interface {
 	Write(symbol string, bars []alpaca.Bar) error
 }
 
-// BarWriterImpl is an implementation of the BarWriter interface
+// BarWriterImpl is an implementation of the BarWriter interface.
 type BarWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
 	Timeframe         string

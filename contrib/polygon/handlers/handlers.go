@@ -35,7 +35,7 @@ func conditionsPresent(conditions []int) (skip bool) {
 }
 
 // TradeHandler handles a Polygon WS trade
-// message and stores it to the cache
+// message and stores it to the cache.
 func TradeHandler(msg []byte) {
 	if msg == nil {
 		return
@@ -73,7 +73,7 @@ func TradeHandler(msg []byte) {
 }
 
 // QuoteHandler handles a Polygon WS quote
-// message and stores it to the cache
+// message and stores it to the cache.
 func QuoteHandler(msg []byte) {
 	if msg == nil {
 		return

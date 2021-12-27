@@ -164,6 +164,7 @@ func (p *PolygonWebSocket) connect() (err error) {
 	}
 	return
 }
+
 func (p *PolygonWebSocket) disconnect() {
 	if p.conn == nil {
 		log.Warn("connection was already nil")
@@ -184,6 +185,7 @@ func (p *PolygonWebSocket) readMsg() string {
 	}
 	return string(pp)
 }
+
 func (p *PolygonWebSocket) subscribe() (connected bool) {
 	var (
 		err  error

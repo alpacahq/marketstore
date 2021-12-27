@@ -30,29 +30,32 @@ var tfIntervals = map[string]int{
 	"1D":    1,
 }
 
-func makeCatFile(dir string, catname string) {
+func makeCatFile(dir, catname string) {
 	file, err := os.OpenFile(path.Join(dir, "category_name"), os.O_CREATE|os.O_RDWR,
-		0777)
+		0o777)
 	checkfail(err, "makeCatFile: Unable to open category file for writing ")
 	file.Write([]byte(catname))
 }
+
 func makeRootDir(root string) {
-	err := os.Mkdir(root, 0777)
+	err := os.Mkdir(root, 0o777)
 	if !os.IsExist(err) {
 		checkfail(err, "makeRootDir: Unable to create directory: "+root)
 	}
 }
-func makeCatDir(root string, catname string, items []string) {
+
+func makeCatDir(root, catname string, items []string) {
 	base := root + "/"
 	makeCatFile(base, catname)
 	for _, name := range items {
-		err := os.Mkdir(base+name, 0777)
+		err := os.Mkdir(base+name, 0o777)
 		if !os.IsExist(err) {
 			checkfail(err, "makeCatDir: Unable to create directory: "+name)
 		}
 	}
 }
-func makeFakeFileInfoCurrency(year string, filePath string, timeFrame string) *TimeBucketInfo {
+
+func makeFakeFileInfoCurrency(year, filePath, timeFrame string) *TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
 	yr, _ := strconv.Atoi(year)
 	dsv := NewDataShapeVector(
@@ -62,7 +65,7 @@ func makeFakeFileInfoCurrency(year string, filePath string, timeFrame string) *T
 	return NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, FIXED)
 }
 
-func makeFakeFileInfoStock(year string, filePath string, timeFrame string) *TimeBucketInfo {
+func makeFakeFileInfoStock(year, filePath, timeFrame string) *TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
 	yr, _ := strconv.Atoi(year)
 	dsv := NewDataShapeVector(
@@ -72,12 +75,12 @@ func makeFakeFileInfoStock(year string, filePath string, timeFrame string) *Time
 	return NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, FIXED)
 }
 
-func makeYearFiles(root string, years []string, withdata bool, withGaps bool, tf string, itemsWritten *map[string]int, isStock bool) {
+func makeYearFiles(root string, years []string, withdata, withGaps bool, tf string, itemsWritten *map[string]int, isStock bool) {
 	base := root + "/"
 	makeCatFile(base, "Year")
 	for _, year := range years {
 		filename := base + year + ".bin"
-		file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0777)
+		file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0o777)
 		checkfail(err, "Unable to create file: "+filename)
 		var f *TimeBucketInfo
 		if isStock {
@@ -153,7 +156,7 @@ func DummyDataFromText(rootDir, symbol, timeframe, data string) {
 	for y, candles := range yearCandles {
 		year := fmt.Sprintf("%d", y)
 		fileName := attbase + "/" + year + ".bin"
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0644)
+		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0o644)
 		checkfail(err, "Unable to create file: "+fileName)
 		fileInfo := makeFakeFileInfoCurrency(year, fileName, timeframe)
 		err = WriteHeader(file, fileInfo)
@@ -201,7 +204,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 	var o, h, l, c float32
 	var v int32
 	var numberNotEmpty int
-	//fmt.Printf("Year: %s Yr: %d NDays: %d Intervals: %d\n",year, yr, numDays, numDays*tfIntervals[tf])
+	// fmt.Printf("Year: %s Yr: %d NDays: %d Intervals: %d\n",year, yr, numDays, numDays*tfIntervals[tf])
 	index = 1 // First interval is 1
 	for i := 0; i < numDays*tfIntervals[tf]; i++ {
 		fi := float32(1 + i%15)
@@ -239,11 +242,11 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 		buffer = SwapSliceData(candlesCurrency, byte(0)).([]byte)
 	}
 	_, err = f.Write(buffer)
-	//fmt.Printf("num: %d\n",numberNotEmpty)
+	// fmt.Printf("num: %d\n",numberNotEmpty)
 	return numberNotEmpty, err
 }
 
-func MakeDummyCurrencyDir(root string, withdata bool, withGaps bool) map[string]int {
+func MakeDummyCurrencyDir(root string, withdata, withGaps bool) map[string]int {
 	itemsWritten := make(map[string]int, 0)
 	makeRootDir(root)
 	symbols := []string{"EURUSD", "USDJPY", "NZDUSD"}
@@ -269,7 +272,7 @@ func MakeDummyCurrencyDir(root string, withdata bool, withGaps bool) map[string]
 	return itemsWritten
 }
 
-func MakeDummyStockDir(root string, withdata bool, withGaps bool) map[string]int {
+func MakeDummyStockDir(root string, withdata, withGaps bool) map[string]int {
 	itemsWritten := make(map[string]int, 0)
 	makeRootDir(root)
 	symbols := []string{"AAPL", "BBPL", "CCPL"}

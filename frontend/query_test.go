@@ -8,12 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
@@ -39,7 +38,7 @@ func _TestQueryCustomTimeframes(t *testing.T) {
 	tearDown, rootDir, metadata, writer, q := setup(t, "_TestQueryCustomTimeframes")
 	defer tearDown()
 
-	//TODO: Support custom timeframes
+	// TODO: Support custom timeframes
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 

@@ -60,7 +60,7 @@ func TestNewConfig(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			// avoid env vars being used by multiple tests in parallel
-			//t.Parallel()
+			// t.Parallel()
 
 			// --- given ---
 			for key, value := range tt.envVars {

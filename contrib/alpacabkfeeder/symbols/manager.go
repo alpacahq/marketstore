@@ -2,23 +2,24 @@ package symbols
 
 import (
 	"fmt"
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
-	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
 
+	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
+
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // memo: enum for status should be defined, but since the ListAssets function of the Alpaca SDK
 // has *string as an argument instead of string, the enum for *string type cannot be defined,
-// resulting in a variable declaration as the following:
+// resulting in a variable declaration as the following:.
 var (
 	activeStatus = "active"
-	//inactiveStatus = "inactive"
+	//inactiveStatus = "inactive".
 )
 
 // Manager manages symbols in the target stock exchanges.
 // symbol(s) can be newly registered / removed from the exchange,
-// so target symbols should be updated periodically
+// so target symbols should be updated periodically.
 type Manager interface {
 	GetAllSymbols() []string
 }
@@ -42,19 +43,20 @@ func NewManager(apiClient APIClient, targetExchanges []configs.Exchange) *Manage
 		exchanges[exchange] = struct{}{}
 	}
 
-	return &ManagerImpl{APIClient: apiClient, TargetExchanges: exchanges,
-		Symbols: []string{}}
+	return &ManagerImpl{
+		APIClient: apiClient, TargetExchanges: exchanges,
+		Symbols: []string{},
+	}
 }
 
-// GetAllSymbols returns Symbols for all the target exchanges
+// GetAllSymbols returns Symbols for all the target exchanges.
 func (m *ManagerImpl) GetAllSymbols() []string {
 	return m.Symbols
 }
 
-// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Symbols and store them to the Symbols map
+// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Symbols and store them to the Symbols map.
 func (m *ManagerImpl) UpdateSymbols() {
 	assets, err := m.APIClient.ListAssets(&activeStatus)
-
 	// if ListAssets API returns an error, don't update the target symbols
 	if err != nil {
 		log.Error(fmt.Sprintf("ListAssets: err=%v, API response=%v", err, assets))

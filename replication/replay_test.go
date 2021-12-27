@@ -11,16 +11,15 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/alpacahq/marketstore/v4/utils"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var (
 	offset = []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	// index starts from 1
+	// index starts from 1.
 	index = []byte{1, 0, 0, 0, 0, 0, 0, 0}
 	// tbk=AMMZN:1Min:OHLC, year=2020, epoch=2020-01-01 00:00:00
-	// Open: 1, High: 2, Low: 3, Close: 4
+	// Open: 1, High: 2, Low: 3, Close: 4.
 	buffer32           = []byte{1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0}
 	recordSize         = int32(32)
 	variableRecordDate = time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
@@ -103,7 +102,7 @@ func TestReplayerImpl_Replay(t *testing.T) {
 			wantCSM: io.ColumnSeriesMap(
 				map[io.TimeBucketKey]*io.ColumnSeries{
 					*io.NewTimeBucketKey("AMZN/1Min/OHLC"): makeMockOHLCColumnSeries(
-						time.Date(2020, 01, 01, 00, 00, 00, 0, time.UTC),
+						time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 						1, 2, 3, 4,
 					),
 				},

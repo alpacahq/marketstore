@@ -1,6 +1,6 @@
 package enum
 
-// Exchange identifies the exchange
+// Exchange identifies the exchange.
 type Exchange byte
 
 // List of exchanges
@@ -32,10 +32,10 @@ const (
 	UndefinedExchange Exchange = 0
 )
 
-// Tape identifies the modern "ticker tape"
+// Tape identifies the modern "ticker tape".
 type Tape byte
 
-// Tapes
+// Tapes.
 const (
 	TapeA         Tape = 'A' // NYSE
 	TapeB         Tape = 'B' // NYSE
@@ -43,13 +43,15 @@ const (
 	UndefinedTape Tape = 0
 )
 
-// TradeCondition is the type of trade transaction
+// TradeCondition is the type of trade transaction.
 type TradeCondition byte
 
-type Price float64
-type Size uint64
+type (
+	Price float64
+	Size  uint64
+)
 
-// List of all trade conditions
+// List of all trade conditions.
 const (
 	Acquisition                TradeCondition = 'A'
 	AutomaticExecution         TradeCondition = 'E'
@@ -89,12 +91,12 @@ const (
 	UnknownTradeCondition      TradeCondition = 0xFF
 )
 
-// QuoteCondition is the type of the quote
+// QuoteCondition is the type of the quote.
 type QuoteCondition byte
 
 // Quote conditions UTP - Nasdaq
 // http://www.utpplan.com/DOC/uqdfspecification.pdf
-// 7.5.2.2. Quote Condition
+// 7.5.2.2. Quote Condition.
 const (
 	ManualAskAutomatedBid    QuoteCondition = 'A'
 	ManualBidAutomatedAsk    QuoteCondition = 'B'
@@ -115,7 +117,7 @@ const (
 
 // Quote conditions CTA - NYSE
 // https://www.ctaplan.com/publicdocs/ctaplan/CQS_Pillar_Output_Specification.pdf
-// Appendix G
+// Appendix G.
 const (
 	SlowQuoteOfferSide       QuoteCondition = 'A'
 	SlowQuoteBidSide         QuoteCondition = 'B'
@@ -128,7 +130,7 @@ const (
 	ClosingQuote             QuoteCondition = 'C'
 	MarketMakerQuotesClosed  QuoteCondition = 'L'
 	SlowQuoteLRPBidAndOffer  QuoteCondition = 'U'
-	//NonFirmQuote            QuoteCondition = 'N' // Same as Nasdaq
-	//OnDemandIntraDayAuction QuoteCondition = '4' // Same as Nasdaq
+	// NonFirmQuote            QuoteCondition = 'N' // Same as Nasdaq
+	// OnDemandIntraDayAuction QuoteCondition = '4' // Same as Nasdaq
 
 )

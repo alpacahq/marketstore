@@ -20,7 +20,7 @@ func (cfp *CachedFP) GetFP(fileName string) (fp *os.File, err error) {
 	} else if len(cfp.fileName) != 0 {
 		cfp.fp.Close()
 	}
-	cfp.fp, err = os.OpenFile(fileName, os.O_RDWR, 0700)
+	cfp.fp, err = os.OpenFile(fileName, os.O_RDWR, 0o700)
 	if err != nil {
 		return nil, fmt.Errorf("open cached filepath: %w", err)
 	}

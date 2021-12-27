@@ -132,7 +132,7 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 	}
 	sort.Sort(sortedTGIDs)
 
-	//for tgid, TG_Serialized := range tgData {
+	// for tgid, TG_Serialized := range tgData {
 	for _, tgid := range sortedTGIDs {
 		tgSerialized := tgData[tgid]
 		if tgSerialized == nil {
@@ -150,7 +150,6 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 			return fmt.Errorf("replay transaction group data. tgID=%d, "+
 				"write transaction size=%d:%w", tgID, len(wtSets), err)
 		}
-
 	}
 
 	log.Info("Replay of WAL file %s finished", wf.FilePtr.Name())
@@ -211,7 +210,7 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 	return nil
 }
 
-// fullRead checks an error to see if we have read only partial data
+// fullRead checks an error to see if we have read only partial data.
 func fullRead(err error) bool {
 	if err == nil {
 		return true

@@ -14,17 +14,20 @@ func Test_timeToNext(t *testing.T) {
 		hour time.Time
 		want time.Duration
 	}{
-		{"06:00 - 09:00 = 3hours",
+		{
+			"06:00 - 09:00 = 3hours",
 			time.Date(1970, 1, 1, 6, 0, 0, 0, time.UTC),
 			time.Date(1970, 1, 1, 9, 0, 0, 0, time.UTC),
 			3 * time.Hour,
 		},
-		{"06:12:33 - 03:34:44 = 21h22m11s", // year, month, and day are not used in timeToNext func,
+		{
+			"06:12:33 - 03:34:44 = 21h22m11s", // year, month, and day are not used in timeToNext func,
 			time.Date(1970, 1, 1, 6, 12, 33, 0, time.UTC),
 			time.Date(1970, 1, 1, 3, 34, 44, 0, time.UTC),
 			21*time.Hour + 22*time.Minute + 11*time.Second,
 		},
-		{"08:00:00(JST) - 23:00:00(UTC) = 0sec", // run in Japan
+		{
+			"08:00:00(JST) - 23:00:00(UTC) = 0sec", // run in Japan
 			time.Date(1970, 1, 1, 8, 0, 0, 0, time.FixedZone("JST", +9*60*60)),
 			time.Date(1970, 1, 1, 23, 0, 0, 0, time.UTC),
 			0,

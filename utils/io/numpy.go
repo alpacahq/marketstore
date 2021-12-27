@@ -8,21 +8,19 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-var (
-	typeMap = map[EnumElementType]string{
-		BYTE:     "i1",
-		INT16:    "i2",
-		INT32:    "i4",
-		INT64:    "i8",
-		UINT8:    "u1",
-		UINT16:   "u2",
-		UINT32:   "u4",
-		UINT64:   "u8",
-		FLOAT32:  "f4",
-		FLOAT64:  "f8",
-		STRING16: "U16",
-	}
-)
+var typeMap = map[EnumElementType]string{
+	BYTE:     "i1",
+	INT16:    "i2",
+	INT32:    "i4",
+	INT64:    "i8",
+	UINT8:    "u1",
+	UINT16:   "u2",
+	UINT32:   "u4",
+	UINT64:   "u8",
+	FLOAT32:  "f4",
+	FLOAT64:  "f8",
+	STRING16: "U16",
+}
 
 var typeStrMap = func() map[string]EnumElementType {
 	m := map[string]EnumElementType{}
@@ -33,7 +31,7 @@ var typeStrMap = func() map[string]EnumElementType {
 }()
 
 // TypeStrToElemType converts a numpy type string (e.g. "i8", "f4") to an element type
-// ok=false is returned when unknown string is specified
+// ok=false is returned when unknown string is specified.
 func TypeStrToElemType(typeStr string) (elemType EnumElementType, ok bool) {
 	elemType, ok = typeStrMap[typeStr]
 	return elemType, ok
@@ -49,7 +47,7 @@ type NumpyDataset struct {
 	ColumnTypes []string `msgpack:"types"`
 	// a list of column names
 	ColumnNames []string `msgpack:"names"`
-	// two dimentional byte arrays holding the column data.
+	// two dimensional byte arrays holding the column data.
 	// if there are multiple rows in a DataSet, ColumnData[columnIndex] is concatenation of the byte representation of each row.
 	// (e.g. row1 of columnA = "\x01\x02\x03\x04", row2 of columnA = "\x05\x06\x07\x08"
 	// => ColumnData[index of columnA] = "\x01\x02\x03\x04\x05\x06\x07\x08"

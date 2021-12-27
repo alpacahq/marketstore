@@ -5,16 +5,17 @@ import (
 	"math"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-const calcSplit = "split"
-const calcDividend = "dividend"
-const roundToDecimals = 4
+const (
+	calcSplit       = "split"
+	calcDividend    = "dividend"
+	roundToDecimals = 4
+)
 
 var (
 	requiredColumns = []io.DataShape{}
@@ -42,9 +43,11 @@ type Adjust struct {
 func (adj *Adjust) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (adj *Adjust) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (adj *Adjust) GetInitArgs() []io.DataShape {
 	return initArgs
 }

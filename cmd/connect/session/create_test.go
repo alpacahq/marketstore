@@ -6,16 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/io"
-
 	"github.com/golang/mock/gomock"
 
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session/mock"
 	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-const exampleCommandFixed = `\create TEST/1Min/OHLCV Open,High,Low,Close/float32:Volume/int64 fixed`
-const exampleCommandVariable = `\create TEST/1Sec/Tick Bid,Ask/float32 variable`
+const (
+	exampleCommandFixed    = `\create TEST/1Min/OHLCV Open,High,Low,Close/float32:Volume/int64 fixed`
+	exampleCommandVariable = `\create TEST/1Sec/Tick Bid,Ask/float32 variable`
+)
 
 func TestClient_create(t *testing.T) {
 	t.Parallel()
@@ -60,7 +61,8 @@ func TestClient_create(t *testing.T) {
 			err:    errors.New("error"),
 			wantOk: false,
 		},
-		{name: "error/Create API error",
+		{
+			name:   "error/Create API error",
 			line:   exampleCommandFixed,
 			resp:   &frontend.MultiServerResponse{Responses: []frontend.ServerResponse{{Error: "API errors!"}}},
 			err:    nil,

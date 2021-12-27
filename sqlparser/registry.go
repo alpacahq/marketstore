@@ -112,7 +112,7 @@ func (ar *AggRunner) Run(callChain []string, csInput *io.ColumnSeries, tbk io.Ti
 
 // ParseFunctionCall parses a string to call an aggregator function.
 // e.g. "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
-// -> funcName="FuncName" , literalList=["Lit1", "Lit2"], parameterList=["P1","P2","P3","P4","Sum::P5", "Avg::P6"]
+// -> funcName="FuncName" , literalList=["Lit1", "Lit2"], parameterList=["P1","P2","P3","P4","Sum::P5", "Avg::P6"].
 func ParseFunctionCall(call string) (funcName string, literalList, parameterList []string, err error) {
 	call = strings.Trim(call, " ")
 	left := strings.Index(call, "(")

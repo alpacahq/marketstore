@@ -7,15 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/stretchr/testify/assert"
-
-	"github.com/alpacahq/marketstore/v4/utils/test"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func setup(t *testing.T, testName string,

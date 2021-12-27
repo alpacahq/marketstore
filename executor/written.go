@@ -4,9 +4,8 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type TriggerPluginDispatcher struct {

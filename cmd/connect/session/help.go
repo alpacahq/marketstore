@@ -16,7 +16,6 @@ func (c *Client) functionHelp(line string) {
 		helpKey = args[0]
 	}
 	switch helpKey {
-
 	case "help":
 		fmt.Println(`
 		Usage: \help command_name

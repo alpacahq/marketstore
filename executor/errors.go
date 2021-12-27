@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -18,7 +19,7 @@ func (msg SingleTargetRequiredForWriter) Error() string {
 	return errReport("%s: There can be only one target directory for a writer, change your query", string(msg))
 }
 
-// WAL Messages
+// WAL Messages.
 type CacheEntryAlreadyOpenError string
 
 func (msg CacheEntryAlreadyOpenError) Error() string {
@@ -61,7 +62,7 @@ func (msg WALWriteError) Error() string {
 	return errReport("%s: Error Writing to WAL", string(msg))
 }
 
-func errReport(base string, msg string) string {
+func errReport(base, msg string) string {
 	base = io.GetCallerFileContext(2) + ":" + base
 	log.Error(base, msg)
 	return fmt.Sprintf(base, msg)

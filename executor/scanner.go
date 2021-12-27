@@ -263,7 +263,7 @@ func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []b
 	return dest
 }
 
-func TimeOfVariableRecord(buf []byte, cursor int, rowLength int) time.Time {
+func TimeOfVariableRecord(buf []byte, cursor, rowLength int) time.Time {
 	epoch := ToInt64(buf[cursor : cursor+8])
 	nanos := ToInt32(buf[cursor+rowLength-4 : cursor+rowLength])
 	return ToSystemTimezone(time.Unix(epoch, int64(nanos)))
@@ -296,7 +296,7 @@ type bufferMeta struct {
 }
 
 // Reads the data from files, removing holes. The resulting buffer will be packed
-// Uses the index that prepends each row to identify filled rows versus holes
+// Uses the index that prepends each row to identify filled rows versus holes.
 func (r *Reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 	// Number of bytes to buffer, some multiple of record length
 	// This should be at least bigger than 4096 and be better multiple of 4KB,
@@ -507,7 +507,6 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 
 func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead int32, readBuffer []byte) (
 	resultBuffer []byte, finished bool, err error) {
-
 	// log.Info("reading forward [recordLen: %v bytesToRead: %v]", recordLen, bytesToRead)
 	filePath := fp.FullPath
 
@@ -515,7 +514,7 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 		finalBuffer = make([]byte, 0, len(readBuffer))
 	}
 	// Forward scan
-	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
 	if err != nil {
 		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, err
@@ -530,7 +529,6 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 	if err = ex.packingReader(&finalBuffer, f, readBuffer, fp.Length, fp); err != nil {
 		log.Error("Read: reading data from %s\n%s", filePath, err)
 		return finalBuffer, false, err
-
 	}
 	//			fmt.Printf("Length of final buffer: %d\n",len(finalBuffer))
 	if int32(len(finalBuffer)) >= bytesToRead {
@@ -541,9 +539,8 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 }
 
 func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
-	recordLen, bytesToRead int32, readBuffer []byte, fileBuffer []byte) (
+	recordLen, bytesToRead int32, readBuffer, fileBuffer []byte) (
 	result []byte, finished bool, bytesRead int32, err error) {
-
 	// log.Info("reading backward [recordLen: %v bytesToRead: %v offset: %v]", recordLen, bytesToRead, fp.Offset)
 
 	filePath := fp.FullPath
@@ -554,7 +551,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 		finalBuffer = make([]byte, bytesToRead)
 	}
 
-	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
 	if err != nil {
 		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, 0, err
@@ -577,7 +574,6 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 			&fileBuffer,
 			f, readBuffer,
 			maxToRead, fp); err != nil {
-
 			log.Error("Read: reading data from %s\n%s", filePath, err)
 			return nil, false, 0, err
 		}
@@ -614,7 +610,6 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 		} else {
 			break
 		}
-
 	}
 	if bytesToRead == 0 {
 		return finalBuffer, true, bytesRead, nil
@@ -622,7 +617,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	return finalBuffer, false, bytesRead, nil
 }
 
-func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt int64, curpos int64, err error) {
+func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt, curpos int64, err error) {
 	// Find the current file position
 	curpos, err = f.Seek(0, io.SeekCurrent)
 	if err != nil {

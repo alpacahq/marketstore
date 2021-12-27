@@ -183,7 +183,7 @@ func TestWriteVariable(t *testing.T) {
 			checkSecs := inputTime[i].Unix()
 			checkNanos := inputTime[i].Nanosecond()
 			secs := nearestSecond(ep, nanos[i])
-			//fmt.Println("ep, nanos, checkSecs, checkNanos =", ep, nanos[i], checkSecs, checkNanos)
+			// fmt.Println("ep, nanos, checkSecs, checkNanos =", ep, nanos[i], checkSecs, checkNanos)
 			assert.Equal(t, checkSecs, secs)
 			assert.True(t, math.Abs(float64(int32(checkNanos)-nanos[i])) < 100)
 		}
@@ -271,6 +271,7 @@ func TestWriteVariable(t *testing.T) {
 		break
 	}
 }
+
 func TestFileRead(t *testing.T) {
 	tearDown, _, itemsWritten, metadata, _ := setup(t, "TestFileRead")
 	defer tearDown()
@@ -302,7 +303,7 @@ func TestFileRead(t *testing.T) {
 				minYear = year
 			}
 			if year == 2001 {
-				//fmt.Printf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
+				// fmt.Printf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
 				nitems += itemsWritten[fp.FullPath]
 				recordlen = int(iop.RecordLen)
 			}
@@ -446,7 +447,7 @@ func TestSortedFiles(t *testing.T) {
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		assert.Len(t, epoch, nitems)
-		//printoutCandles(cs, 0, 0)
+		// printoutCandles(cs, 0, 0)
 	}
 
 	// Test Limit Query - First N
@@ -466,11 +467,11 @@ func TestSortedFiles(t *testing.T) {
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 
-		//printoutCandles(cs, 0, 0)
-		//length := len(epoch)
-		//printoutCandles(cs, length-1, length-1)
+		// printoutCandles(cs, 0, 0)
+		// length := len(epoch)
+		// printoutCandles(cs, length-1, length-1)
 
-		//fmt.Printf("Length: %d\n", length)
+		// fmt.Printf("Length: %d\n", length)
 		assert.Len(t, epoch, 200)
 	}
 
@@ -508,7 +509,7 @@ func TestSortedFiles(t *testing.T) {
 	csm, err = scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		//printoutCandles(cs, -1, -1)
+		// printoutCandles(cs, -1, -1)
 		assert.Len(t, epoch, 2)
 	}
 }
@@ -531,7 +532,7 @@ func TestCrossYear(t *testing.T) {
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		//printoutCandles(cs, -1, 1)
+		// printoutCandles(cs, -1, 1)
 		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
 		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
 	}
@@ -642,7 +643,7 @@ func TestLastN(t *testing.T) {
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		t.Log(epoch)
-		//printoutCandles(cs, 0, -1)
+		// printoutCandles(cs, 0, -1)
 		assert.Len(t, epoch, 2)
 	}
 }
@@ -757,7 +758,7 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 		assert.Nil(t, err)
 		RefColumnSet[key] = cs
 		epoch := cs.GetEpoch()
-		//fmt.Println("Total number of rows: ", len(epoch))
+		// fmt.Println("Total number of rows: ", len(epoch))
 		assert.Len(t, epoch, numRecs)
 	}
 
@@ -778,7 +779,7 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 	for key, cs := range csm {
 		assert.Nil(t, err)
 		epoch := cs.GetEpoch()
-		//fmt.Println("Total number of rows: ", len(epoch))
+		// fmt.Println("Total number of rows: ", len(epoch))
 		assert.Len(t, epoch, numRecs)
 		if !isEqual(RefColumnSet[key], cs) {
 			epoch, r_epoch := cs.GetEpoch(), RefColumnSet[key].GetEpoch()

@@ -65,7 +65,6 @@ func TestBarWriterImpl_Write(t *testing.T) {
 
 	// --- when ---
 	err := SUT.Write(apiResponse.Security.Symbol, apiResponse.ArrayOfBar, false)
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
@@ -114,7 +113,6 @@ func TestBarWriterImpl_Write_IndexSymbol(t *testing.T) {
 
 	// --- when ---
 	err := SUT.Write(apiResponse.Security.Symbol, apiResponse.ArrayOfBar, true)
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("error should be nil. got=%v", err)

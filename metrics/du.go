@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// Setter is an interface for prometheus metrics to improve unit-testability
+// Setter is an interface for prometheus metrics to improve unit-testability.
 type Setter interface {
 	Set(m float64)
 }

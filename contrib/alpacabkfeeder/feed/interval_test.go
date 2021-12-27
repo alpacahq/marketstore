@@ -22,6 +22,7 @@ type mockMarketTimeChecker struct {
 func (m *mockMarketTimeChecker) IsOpen(_ time.Time) bool {
 	return m.isOpen
 }
+
 func (m *mockMarketTimeChecker) Sub(_ time.Time, _ int) (time.Time, error) {
 	panic("not implemented")
 }

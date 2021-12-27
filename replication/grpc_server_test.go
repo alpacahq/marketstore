@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/replication/mock"
 )
 
-// listen messages -> wait 500ms -> put a test message to a channel -> wait 100ms -> the message should be sent
+// listen messages -> wait 500ms -> put a test message to a channel -> wait 100ms -> the message should be sent.
 func TestGRPCReplicationServer_GetWALStream_success(t *testing.T) {
 	// --- given ---
 	t.Parallel()
