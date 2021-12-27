@@ -16,7 +16,7 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	var config = getConfig(`{
+	config := getConfig(`{
 		"symbols": ["ETH"],
 		"base_currencies": ["USDT", "BTC"]
         }`)
@@ -32,8 +32,8 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, worker.baseCurrencies[1], "BTC")
 	assert.Nil(t, err)
 
-	//The symbols from the biannce API can very well change so
-	//if this test fails, consider that the API might of changed with more symbols
+	// The symbols from the biannce API can very well change so
+	// if this test fails, consider that the API might of changed with more symbols
 
 	// config = getConfig(``)
 	// ret, err = NewBgWorker(config)

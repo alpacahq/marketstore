@@ -44,9 +44,11 @@ func NewSubscription(config config.Config) (s *Subscription) {
 func (s *Subscription) resetHandled() {
 	atomic.StoreInt64(&s.handled, 0)
 }
+
 func (s *Subscription) incrementHandled() {
 	atomic.AddInt64(&s.handled, 1)
 }
+
 func (s *Subscription) getHandled() int {
 	return int(atomic.LoadInt64(&s.handled))
 }

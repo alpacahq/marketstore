@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/utils/io"
-
 	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 // getinfo gets information about a bucket in the database.
@@ -145,7 +144,7 @@ func toColumns(dataShapeStr string) (columnNames, columnTypeStrs []string, err e
 	return columnNames, columnTypeStrs, nil
 }
 
-// destroy removes the subdirectories and buckets for a provided key
+// destroy removes the subdirectories and buckets for a provided key.
 func (c *Client) destroy(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "destroy"

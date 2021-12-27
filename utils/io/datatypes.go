@@ -55,30 +55,28 @@ const (
 	STRING16
 )
 
-var (
-	attributeMap = map[EnumElementType]struct {
-		typ    reflect.Kind
-		name   string
-		size   int
-		typeOf reflect.Type
-	}{
-		FLOAT32:  {reflect.Float32, "float32", 4, reflect.TypeOf(float32(0))},
-		INT32:    {reflect.Int32, "int32", 4, reflect.TypeOf(int32(0))},
-		FLOAT64:  {reflect.Float64, "float64", 8, reflect.TypeOf(float64(0))},
-		INT64:    {reflect.Int64, "int64", 8, reflect.TypeOf(int64(0))},
-		EPOCH:    {reflect.Int64, "epoch", 8, reflect.TypeOf(int64(0))},
-		BYTE:     {reflect.Int8, "byte", 1, reflect.TypeOf(byte(0))},
-		BOOL:     {reflect.Bool, "bool", 1, reflect.TypeOf(false)},
-		NONE:     {reflect.Invalid, "none", 0, reflect.TypeOf(byte(0))},
-		STRING:   {reflect.String, "string", 0, reflect.TypeOf("")},
-		INT16:    {reflect.Int16, "int16", 2, reflect.TypeOf(int16(0))},
-		UINT8:    {reflect.Uint8, "uint8", 1, reflect.TypeOf(uint8(0))},
-		UINT16:   {reflect.Uint16, "uint16", 2, reflect.TypeOf(uint16(0))},
-		UINT32:   {reflect.Uint32, "uint32", 4, reflect.TypeOf(uint32(0))},
-		UINT64:   {reflect.Uint64, "uint64", 8, reflect.TypeOf(uint64(0))},
-		STRING16: {reflect.Array, "string16", 64, reflect.TypeOf([16]rune{})},
-	}
-)
+var attributeMap = map[EnumElementType]struct {
+	typ    reflect.Kind
+	name   string
+	size   int
+	typeOf reflect.Type
+}{
+	FLOAT32:  {reflect.Float32, "float32", 4, reflect.TypeOf(float32(0))},
+	INT32:    {reflect.Int32, "int32", 4, reflect.TypeOf(int32(0))},
+	FLOAT64:  {reflect.Float64, "float64", 8, reflect.TypeOf(float64(0))},
+	INT64:    {reflect.Int64, "int64", 8, reflect.TypeOf(int64(0))},
+	EPOCH:    {reflect.Int64, "epoch", 8, reflect.TypeOf(int64(0))},
+	BYTE:     {reflect.Int8, "byte", 1, reflect.TypeOf(byte(0))},
+	BOOL:     {reflect.Bool, "bool", 1, reflect.TypeOf(false)},
+	NONE:     {reflect.Invalid, "none", 0, reflect.TypeOf(byte(0))},
+	STRING:   {reflect.String, "string", 0, reflect.TypeOf("")},
+	INT16:    {reflect.Int16, "int16", 2, reflect.TypeOf(int16(0))},
+	UINT8:    {reflect.Uint8, "uint8", 1, reflect.TypeOf(uint8(0))},
+	UINT16:   {reflect.Uint16, "uint16", 2, reflect.TypeOf(uint16(0))},
+	UINT32:   {reflect.Uint32, "uint32", 4, reflect.TypeOf(uint32(0))},
+	UINT64:   {reflect.Uint64, "uint64", 8, reflect.TypeOf(uint64(0))},
+	STRING16: {reflect.Array, "string16", 64, reflect.TypeOf([16]rune{})},
+}
 
 func EnumElementTypeFromName(name string) EnumElementType {
 	// O(N)
@@ -190,7 +188,7 @@ type DirectionEnum uint8
 
 const (
 	// limit_from_start=true -> FIRST
-	// limit_from_start=false -> LAST (default)
+	// limit_from_start=false -> LAST (default).
 	FIRST DirectionEnum = iota
 	LAST
 )
@@ -214,6 +212,7 @@ func getFloat32Column(offset, reclen, nrecs int, data []byte) (col []float32) {
 	}
 	return col
 }
+
 func getFloat64Column(offset, reclen, nrecs int, data []byte) (col []float64) {
 	col = make([]float64, nrecs)
 	if nrecs == 0 {
@@ -255,6 +254,7 @@ func getInt32Column(offset, reclen, nrecs int, data []byte) (col []int32) {
 	}
 	return col
 }
+
 func getInt64Column(offset, reclen, nrecs int, data []byte) (col []int64) {
 	col = make([]int64, nrecs)
 	if nrecs == 0 {
@@ -268,6 +268,7 @@ func getInt64Column(offset, reclen, nrecs int, data []byte) (col []int64) {
 	}
 	return col
 }
+
 func getUInt8Column(offset, reclen, nrecs int, data []byte) (col []uint8) {
 	col = make([]uint8, nrecs)
 	if nrecs == 0 {
@@ -309,6 +310,7 @@ func getUInt32Column(offset, reclen, nrecs int, data []byte) (col []uint32) {
 	}
 	return col
 }
+
 func getUInt64Column(offset, reclen, nrecs int, data []byte) (col []uint64) {
 	col = make([]uint64, nrecs)
 	if nrecs == 0 {

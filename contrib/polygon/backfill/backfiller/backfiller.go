@@ -13,18 +13,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-
-	"github.com/gobwas/glob"
-
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-
 	"code.cloudfoundry.org/bytefmt"
+	"github.com/gobwas/glob"
 
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -43,7 +40,7 @@ var (
 	noIngest                            bool
 	unadjusted                          bool
 	// NY timezone
-	// NY, _          = time.LoadLocation("America/New_York")
+	// NY, _          = time.LoadLocation("America/New_York").
 	configFilePath string
 
 	format = "2006-01-02"
@@ -76,9 +73,9 @@ func init() {
 
 func main() {
 	rootDir, triggers, walRotateInterval := initConfig()
-	instanceMeta, shutdownPending, walWG,err := initWriter(rootDir, triggers, walRotateInterval)
+	instanceMeta, shutdownPending, walWG, err := initWriter(rootDir, triggers, walRotateInterval)
 	if err != nil {
-		log.Error("failed to set up new instance config. err="+ err.Error())
+		log.Error("failed to set up new instance config. err=" + err.Error())
 		os.Exit(1)
 	}
 
@@ -146,7 +143,7 @@ func main() {
 	}
 
 	if cacheDir != "" {
-		err = os.MkdirAll(cacheDir, 0777)
+		err = os.MkdirAll(cacheDir, 0o777)
 		if err != nil {
 			log.Error("[polygon] cannot create json dump directory (%v)", err)
 			os.Exit(1)
@@ -229,7 +226,6 @@ func main() {
 		apiCallerWP.CloseAndWait()
 		log.Info("[polygon] wait for writer workers")
 		writerWP.CloseAndWait()
-
 	}
 
 	if trades {
@@ -320,14 +316,13 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	symbolListMux.Unlock()
 }
 
-func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool, writerWP *worker.WorkerPool) {
+func getBars(start, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool, writerWP *worker.WorkerPool) {
 	if len(exchangeIDs) != 0 && period != 24*time.Hour {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
 		period = 24 * time.Hour
 	}
 	log.Info("[polygon] backfilling bars for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
@@ -349,10 +344,9 @@ func getBars(start time.Time, end time.Time, period time.Duration, symbol string
 	}
 }
 
-func getQuotes(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+func getQuotes(start, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
 	log.Info("[polygon] backfilling quotes for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
@@ -366,10 +360,9 @@ func getQuotes(start time.Time, end time.Time, period time.Duration, symbol stri
 	}
 }
 
-func getTrades(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+func getTrades(start, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
 	log.Info("[polygon] backfilling trades for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
@@ -381,11 +374,9 @@ func getTrades(start time.Time, end time.Time, period time.Duration, symbol stri
 
 		start = start.Add(period)
 	}
-
 }
 
-func parseAndValidateDuration(durationString string, max time.Duration, min time.Duration) (time.Duration, error) {
-
+func parseAndValidateDuration(durationString string, max, min time.Duration) (time.Duration, error) {
 	duration, err := time.ParseDuration(durationString)
 	if err != nil {
 		return 0, err

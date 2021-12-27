@@ -44,7 +44,7 @@ func NewTimeBucketKeyFromString(itemCategoryString string) (mk *TimeBucketKey) {
 	return NewTimeBucketKey(splitKey[0], splitKey[1])
 }
 
-// e.g. "/project/marketstore/data/AMZN/1Min/TICK/2017.bin" -> (AMZN/1Min/TICK/2017.bin), (AMZN), (1Min), (TICK), (2017)
+// e.g. "/project/marketstore/data/AMZN/1Min/TICK/2017.bin" -> (AMZN/1Min/TICK/2017.bin), (AMZN), (1Min), (TICK), (2017).
 var wkpRegex = regexp.MustCompile(`([^/]+)/([^/]+)/([^/]+)/([^/]+)\.bin$`)
 
 // NewTimeBucketKeyFromWalKeyPath converts a string in walKeyPath format
@@ -70,6 +70,7 @@ func (mk *TimeBucketKey) String() (stringKey string) {
 	*/
 	return mk.key
 }
+
 func (mk *TimeBucketKey) GetCatKey() (catKey string) {
 	/*
 		return mk.categoryKey
@@ -77,6 +78,7 @@ func (mk *TimeBucketKey) GetCatKey() (catKey string) {
 	splitKey := strings.Split(mk.key, ":")
 	return splitKey[1]
 }
+
 func (mk *TimeBucketKey) GetItemKey() (itemKey string) {
 	/*
 		return mk.itemKey
@@ -84,12 +86,14 @@ func (mk *TimeBucketKey) GetItemKey() (itemKey string) {
 	splitKey := strings.Split(mk.key, ":")
 	return splitKey[0]
 }
+
 func (mk *TimeBucketKey) GetCategories() (cats []string) {
 	/*
 		return strings.Split(mk.categoryKey, "/")
 	*/
 	return strings.Split(mk.GetCatKey(), "/")
 }
+
 func (mk *TimeBucketKey) GetItems() (items []string) {
 	/*
 		return strings.Split(mk.itemKey, "/")
@@ -117,7 +121,7 @@ func (mk *TimeBucketKey) GetMultiItemInCategory(catName string) (items []string)
 	return nil
 }
 
-func (mk *TimeBucketKey) SetItemInCategory(catName string, itemName string) {
+func (mk *TimeBucketKey) SetItemInCategory(catName, itemName string) {
 	cats := mk.GetCategories()
 	items := mk.GetItems()
 	for i, cat := range cats {

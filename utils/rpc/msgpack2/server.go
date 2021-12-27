@@ -14,7 +14,7 @@ import (
 	msgpack "github.com/vmihailenco/msgpack"
 )
 
-// var null = json.RawMessage([]byte("null"))
+// var null = json.RawMessage([]byte("null")).
 var Version = "2.0"
 
 // ----------------------------------------------------------------------------
@@ -161,7 +161,6 @@ func (c *CodecRequest) ReadRequest(args interface{}) error {
 				}
 			}
 		}
-
 	}
 	return c.err
 }
@@ -198,7 +197,6 @@ func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverRes
 		w.Header().Set("Content-Type", "application/x-msgpack")
 		encoder := msgpack.NewEncoder(c.encoder.Encode(w))
 		err := encoder.Encode(res)
-
 		// Not sure in which case will this happen. But seems harmless.
 		if err != nil {
 			rpc.WriteError(w, 400, err.Error())
@@ -206,5 +204,4 @@ func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverRes
 	}
 }
 
-type EmptyResponse struct {
-}
+type EmptyResponse struct{}

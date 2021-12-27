@@ -16,17 +16,15 @@ const (
 	example = "marketstore init"
 )
 
-var (
-	// Cmd is the init command.
-	Cmd = &cobra.Command{
-		Use:        usage,
-		Short:      short,
-		Long:       long,
-		SuggestFor: []string{"create", "new"},
-		Example:    example,
-		RunE:       executeInit,
-	}
-)
+// Cmd is the init command.
+var Cmd = &cobra.Command{
+	Use:        usage,
+	Short:      short,
+	Long:       long,
+	SuggestFor: []string{"create", "new"},
+	Example:    example,
+	RunE:       executeInit,
+}
 
 // executeInit implements the init command.
 func executeInit(*cobra.Command, []string) error {
@@ -42,7 +40,7 @@ func executeInit(*cobra.Command, []string) error {
 		return err
 	}
 	// write mkts.yml to current directory.
-	err = ioutil.WriteFile("mkts.yml", data, 0644)
+	err = ioutil.WriteFile("mkts.yml", data, 0o644)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// readTimeColumns retuns the epoch and nano columns of a csv file.
+// readTimeColumns returns the epoch and nano columns of a csv file.
 func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (epochCol []int64, nanosCol []int32) {
 	var err error
 	epochCol = make([]int64, len(csvData))

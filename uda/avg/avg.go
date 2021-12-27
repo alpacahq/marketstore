@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -30,9 +29,11 @@ type Avg struct {
 func (av *Avg) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (av *Avg) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (av *Avg) GetInitArgs() []io.DataShape {
 	return initArgs
 }

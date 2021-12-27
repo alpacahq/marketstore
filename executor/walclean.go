@@ -3,9 +3,10 @@ package executor
 import (
 	"errors"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"os"
 
+
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -65,11 +66,10 @@ func (c *WALCleaner) CleanupOldWALFiles(walfileAbsPaths []string) error {
 		}
 
 		// delete if replay succeeds
-		//if err = w.Delete(wf.OwningInstanceID); err != nil {
+		// if err = w.Delete(wf.OwningInstanceID); err != nil {
 		if err = w.Delete(c.myInstanceID); err != nil {
 			return fmt.Errorf("failed to delete wal file after replay:%w", err)
 		}
-
 	}
 	return nil
 }

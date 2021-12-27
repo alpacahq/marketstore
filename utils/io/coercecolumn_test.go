@@ -125,7 +125,7 @@ func TestColumnSeries_CoerceColumnType(t *testing.T) {
 	}
 }
 
-// assertType fails if the column values can't be asserted as a specified ElementType
+// assertType fails if the column values can't be asserted as a specified ElementType.
 func assertType(t *testing.T, cs *ColumnSeries, typ EnumElementType) {
 	t.Helper()
 

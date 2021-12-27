@@ -25,8 +25,8 @@ import (
 // rbTemp (= temporary result buffer)
 // +--------------------+--VarRecLen + 8 [byte]-----+-------------------+
 // + EpochSecond(8byte) | Actual Data(Ask,Bid, etc) | Nanosecond(4byte) |
-// +--------------------+----------------------------+------------------+
-func RewriteBuffer(buffer []byte, varRecLen, numVarRecords uint32, intervalsPerDay uint32, intervalStartEpoch uint64) []byte {
+// +--------------------+----------------------------+------------------+.
+func RewriteBuffer(buffer []byte, varRecLen, numVarRecords, intervalsPerDay uint32, intervalStartEpoch uint64) []byte {
 	// temporary result buffer
 	rbTemp := make([]byte, numVarRecords*(varRecLen+8)) // Add the extra space for epoch
 
@@ -34,7 +34,6 @@ func RewriteBuffer(buffer []byte, varRecLen, numVarRecords uint32, intervalsPerD
 	b := make([]byte, 8)
 	n := make([]byte, 4)
 	for j = 0; j < numVarRecords; j++ {
-
 		intervalTicks := buffer[(j+1)*varRecLen-4 : (j+1)*varRecLen]
 		it := io.ToUInt32(intervalTicks)
 
@@ -65,12 +64,12 @@ func RewriteBuffer(buffer []byte, varRecLen, numVarRecords uint32, intervalsPerD
 
 // GetTimeFromTicks Takes two time components, the start of the interval and the number of
 // interval ticks to the timestamp and returns an epoch time (seconds) and
-// the number of nanoseconds of fractional time within the last second as a remainder
+// the number of nanoseconds of fractional time within the last second as a remainder.
 func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint32) (sec uint64, nanosec uint32) {
 	const ticksPerIntervalDivSecsPerDay float64 = 49710.269629629629629629629629629
 
-	var fractionalSeconds = float64(intervalTicks) / (float64(intervalsPerDay) * ticksPerIntervalDivSecsPerDay)
-	var subseconds = 1000000000 * (fractionalSeconds - math.Floor(fractionalSeconds))
+	fractionalSeconds := float64(intervalTicks) / (float64(intervalsPerDay) * ticksPerIntervalDivSecsPerDay)
+	subseconds := 1000000000 * (fractionalSeconds - math.Floor(fractionalSeconds))
 	if subseconds >= 1000000000 {
 		subseconds -= 1000000000
 		fractionalSeconds += 1

@@ -22,7 +22,7 @@ func TestTimeToIntervals(t *testing.T) {
 	index = io.TimeToIndex(t2, time.Minute)
 	assert.Equal(t, index, int64(366*1440))
 
-	//20161230 21:59:20 383000
+	// 20161230 21:59:20 383000
 	t1 := time.Date(2016, 12, 30, 21, 59, 20, 383000000, time.UTC)
 	fmt.Println("LAL t1 = ", t1)
 
@@ -31,7 +31,7 @@ func TestTimeToIntervals(t *testing.T) {
 	index = io.TimeToIndex(t1, time.Minute)
 
 	o_t1 := io.IndexToTime(index, time.Minute, 2016)
-	//fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
+	// fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
 	assert.Equal(t, o_t1.Hour(), 21)
 	assert.Equal(t, o_t1.Minute(), 59)
 	assert.Equal(t, o_t1.Second(), 0)

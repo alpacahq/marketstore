@@ -1,9 +1,10 @@
 package writer
 
 import (
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -29,26 +30,25 @@ func TestBarWriterImpl_Write(t *testing.T) {
 	symbol := "1234"
 	bars := []alpaca.Bar{
 		{
-			Time: barTimestamp1.Unix(),
-			Open:      12.3,
-			Close:     45.6,
-			High:      78.9,
-			Low:       0.12,
-			Volume:    100,
+			Time:   barTimestamp1.Unix(),
+			Open:   12.3,
+			Close:  45.6,
+			High:   78.9,
+			Low:    0.12,
+			Volume: 100,
 		},
 		{
-			Time: barTimestamp2.Unix(),
-			Open:      1.2,
-			Close:     3.4,
-			High:      5.6,
-			Low:       7.8,
-			Volume:    100,
+			Time:   barTimestamp2.Unix(),
+			Open:   1.2,
+			Close:  3.4,
+			High:   5.6,
+			Low:    7.8,
+			Volume: 100,
 		},
 	}
 
 	// --- when ---
 	err := SUT.Write(symbol, bars)
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
@@ -60,7 +60,7 @@ func TestBarWriterImpl_Write(t *testing.T) {
 	}
 
 	// Time Bucket Key Name check
-	timeBucketKeyStr := m.WrittenCSM.GetMetadataKeys()[0].Key
+	timeBucketKeyStr := m.WrittenCSM.GetMetadataKeys()[0].String()
 	if timeBucketKeyStr != "1234/5Min/OHLCV:"+io.DefaultTimeBucketSchema {
 		t.Errorf("TimeBucketKey name is invalid. got=%v, want = %v",
 			timeBucketKeyStr, "1234/5Min/OHLCV:"+io.DefaultTimeBucketSchema)

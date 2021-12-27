@@ -88,7 +88,6 @@ func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, en
 				start = &t
 				parsedTime = true
 			}
-
 		}
 	}
 

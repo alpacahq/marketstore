@@ -23,7 +23,7 @@ type BgWorker interface {
 	Run()
 }
 
-// SymbolLoader is an interface to retrieve symbol object from plugin
+// SymbolLoader is an interface to retrieve symbol object from plugin.
 type SymbolLoader interface {
 	LoadSymbol(symbolName string) (interface{}, error)
 }

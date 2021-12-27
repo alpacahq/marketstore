@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-
-	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 )
 
 var (
@@ -63,12 +62,12 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 					BidDateTime:    api.XigniteDateTime(time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)),
 					LastMarketDate: api.XigniteDay(LastMarketDate),
 				},
-			}},
+			},
+		},
 	}
 
 	// --- when ---
 	err := SUT.Write(apiResponse)
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
@@ -131,7 +130,6 @@ func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
 
 	// --- when ---
 	err := SUT.Write(apiResponse)
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("error should be nil. got=%v", err)

@@ -1,9 +1,8 @@
 package frontend
 
 import (
-	"net/http"
-
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -43,8 +42,8 @@ func (s *DataService) Write(r *http.Request, reqs *MultiWriteRequest, response *
 			response.appendResponse(err)
 			continue
 		}
-		//TODO: There should be an error response for every server request, need to add the below commented line
-		//appendResponse(err, response)
+		// TODO: There should be an error response for every server request, need to add the below commented line
+		// appendResponse(err, response)
 	}
 	return nil
 }
@@ -61,6 +60,7 @@ type CreateRequest struct {
 	ColumnNames      []string `msgpack:"column_names"`
 	IsVariableLength bool     `msgpack:"is_variable_length"`
 }
+
 type MultiCreateRequest struct {
 	Requests []CreateRequest `msgpack:"requests"`
 }
@@ -128,6 +128,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 type KeyRequest struct {
 	Key string `msgpack:"key"`
 }
+
 type MultiKeyRequest struct {
 	Requests []KeyRequest `msgpack:"requests"`
 }

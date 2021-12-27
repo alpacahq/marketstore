@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/frontend/client"
-
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
+	"github.com/alpacahq/marketstore/v4/frontend/client"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (
 	// Command
-	// -------------
+	// -------------.
 	usage   = "connect"
 	short   = "Open an interactive session with an existing marketstore database"
 	long    = "This command opens an interactive session with an existing marketstore database"
@@ -52,7 +51,7 @@ var (
 	url string
 	// dir set via flag for local directory location.
 	dir string
-	// turns compression of variable data off
+	// turns compression of variable data off.
 	varCompOff bool
 )
 
@@ -73,7 +72,6 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 
 // executeConnect implements the connect command.
 func executeConnect(cmd *cobra.Command, args []string) error {
-
 	var (
 		c    *session.Client
 		conn session.APIClient

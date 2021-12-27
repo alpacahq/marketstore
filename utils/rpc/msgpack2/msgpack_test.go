@@ -93,8 +93,7 @@ type Service1Response struct {
 	Result int
 }
 
-type Service1 struct {
-}
+type Service1 struct{}
 
 const Service1DefaultResponse = 9999
 
@@ -128,7 +127,7 @@ func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) e
 	return DecodeClientResponse(w.Body, res)
 }
 
-func executeRaw(t *testing.T, s *rpc.Server, req interface{}, res interface{}) error {
+func executeRaw(t *testing.T, s *rpc.Server, req, res interface{}) error {
 	j, _ := msgpack.Marshal(req)
 	r, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewBuffer(j))
 	r.Header.Set("Content-Type", "application/x-msgpack")

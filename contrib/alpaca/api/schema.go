@@ -10,7 +10,7 @@ type AlpacaMessage struct {
 	Data Message `json:"data"`
 }
 
-// Trade is a trade
+// Trade is a trade.
 type Trade struct {
 	// event name, always “T”
 	eventType string `json:"-"` // ev
@@ -33,12 +33,12 @@ type Trade struct {
 }
 
 // AlpacaTrade is the message
-// from Alpaca that contains the trade
+// from Alpaca that contains the trade.
 type AlpacaTrade struct {
 	Data Trade `json:"data"`
 }
 
-// Quote is a quote
+// Quote is a quote.
 type Quote struct {
 	// event name, always “Q”
 	eventType string `json:"-"` // ev
@@ -64,12 +64,12 @@ type Quote struct {
 }
 
 // AlpacaQuote is the message
-// from Alpaca that contains the quote
+// from Alpaca that contains the quote.
 type AlpacaQuote struct {
 	Data Quote `json:"data"`
 }
 
-// AggregateToMinute is a minute aggregate
+// AggregateToMinute is a minute aggregate.
 type AggregateToMinute struct {
 	// event name, always “AM”
 	eventType string `json:"-"` // ev
@@ -79,7 +79,7 @@ type AggregateToMinute struct {
 	Volume uint64 `json:"v"`
 	// accumulated volume (shares)
 	accumVolume uint64 `json:"-"` // av
-	//official open price of the bar
+	// official open price of the bar
 	officialOpen float64 `json:"-"` // op
 	// VWAP (Volume Weighted Average Price)
 	VWAP float64 `json:"vw"`
@@ -100,7 +100,7 @@ type AggregateToMinute struct {
 }
 
 // AlpacaAggregateToMinute is the message
-// from Alpaca that contains the minute aggregate
+// from Alpaca that contains the minute aggregate.
 type AlpacaAggregateToMinute struct {
 	Data AggregateToMinute `json:"data"`
 }

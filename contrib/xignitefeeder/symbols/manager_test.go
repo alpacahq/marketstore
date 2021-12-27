@@ -60,5 +60,4 @@ func TestManagerImpl_UpdateSymbols(t *testing.T) {
 	) {
 		t.Errorf("Identifier: want=%v, got=%v", expectedIdentifiers, SUT.Identifiers)
 	}
-
 }

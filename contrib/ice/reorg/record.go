@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// last \n intentionally not included, as it would include an extra empy line after split
+// last \n intentionally not included, as it would include an extra empy line after split.
 var recordMatcher = regexp.MustCompile(`\.{59} [[:ascii:]]+?[^\*]\*\* +?\n`)
 
 var fileEndMatcher = regexp.MustCompile(`^\*+? +\n`)

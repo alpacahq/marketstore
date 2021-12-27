@@ -19,7 +19,7 @@ func NewFinder(dirRead func(dir string) ([]fs.FileInfo, error)) *Finder {
 // Find returns all absolute paths to "*.walfile" files directly under the directory.
 func (f *Finder) Find(dir string) ([]string, error) {
 	var ret []string
-	//files, err := ioutil.ReadDir(rootDir)
+	// files, err := ioutil.ReadDir(rootDir)
 	files, err := f.dirRead(dir)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read the directory %s: %w", dir, err)

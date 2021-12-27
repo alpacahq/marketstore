@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils"
-
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
@@ -16,6 +14,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/timer"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 

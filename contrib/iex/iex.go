@@ -155,7 +155,6 @@ func (f *IEXFetcher) Run() {
 			<-time.After(limiter())
 		}
 	}
-
 }
 
 func (f *IEXFetcher) pollIntraday(symbols []string) {
@@ -387,7 +386,7 @@ func limiter() time.Duration {
 	return time.Second / 50
 }
 
-func onceDaily(lastDailyRunDate *int, runHour int, runMinute int) bool {
+func onceDaily(lastDailyRunDate *int, runHour, runMinute int) bool {
 	now := time.Now()
 
 	if *lastDailyRunDate == 0 || (*lastDailyRunDate != now.Day() && runHour == now.Hour() && runMinute <= now.Minute()) {
@@ -401,7 +400,6 @@ func onceDaily(lastDailyRunDate *int, runHour int, runMinute int) bool {
 func main() {
 	api.SetToken(os.Getenv("IEXTOKEN"))
 	resp, err := api.GetBars([]string{"AAPL", "AMD", "X", "NVDA", "AMPY", "IBM", "GOOG"}, oneDay, nil, 5)
-
 	if err != nil {
 		panic(err)
 	}

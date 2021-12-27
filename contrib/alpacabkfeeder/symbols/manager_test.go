@@ -4,10 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
-
 	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 )
 
@@ -57,5 +56,4 @@ func TestManagerImpl_UpdateSymbols(t *testing.T) {
 	) {
 		t.Errorf("Symbols: want=%v, got=%v", expectedSymbols, SUT.Symbols)
 	}
-
 }

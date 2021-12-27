@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/klauspost/compress/snappy"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/alpacahq/marketstore/v4/utils/io"
+	. "github.com/alpacahq/marketstore/v4/utils/io"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-
-	"github.com/klauspost/compress/snappy"
 )
 
 // Writer is produced that complies with the parsed query results, including a possible date
@@ -57,7 +57,6 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 	outBuf = append(buf, row...)
 	outBuf = appendIntervalTicks(outBuf, t, index, intervalsPerDay)
 	return outBuf
-
 }
 
 // WriteRecords creates a WriteCommand from the supplied timestamp and data buffer,
@@ -227,7 +226,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 		}
 	}
 
-	//log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
+	// log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
 
 	/*
 		Write the indirect record info at the primaryOffset

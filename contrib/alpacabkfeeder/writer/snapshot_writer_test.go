@@ -4,11 +4,10 @@ import (
 	"testing"
 	"time"
 
+	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
 	"github.com/pkg/errors"
-
 	"github.com/stretchr/testify/require"
 
-	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )

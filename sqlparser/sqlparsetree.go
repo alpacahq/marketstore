@@ -25,6 +25,7 @@ func NewStatementsParse(node antlr.Tree, queryText string) (term *StatementsPars
 	term.AddChild(NewStatementParse(ctx.Statement(), queryText))
 	return term
 }
+
 func (sp *StatementsParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -74,6 +75,7 @@ func NewStatementParse(node antlr.Tree, queryText string) (term *StatementParse)
 	}
 	return term
 }
+
 func (sp *StatementParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.query, level+1)...)
 	out = append(out, Explain(sp.columnAliases, level+1)...)
@@ -105,6 +107,7 @@ func NewQueryParse(node antlr.Tree) (term *QueryParse) {
 	term.queryNoWith = NewQueryNoWithParse(ctx.QueryNoWith())
 	return term
 }
+
 func (sp *QueryParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.queryNoWith, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -130,6 +133,7 @@ func NewQueryNoWithParse(node antlr.Tree) (term *QueryNoWithParse) {
 	}
 	return term
 }
+
 func (sp *QueryNoWithParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.queryTerm, level+1)...)
 	out = append(out, ExplainAllItemsInList(sp.sortItems, level+1)...)
@@ -172,6 +176,7 @@ func NewQueryTermParse(node antlr.Tree) (term *QueryTermParse) {
 
 	return term
 }
+
 func (sp *QueryTermParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.left, level+1)...)
 	out = append(out, Explain(sp.right, level+1)...)
@@ -203,6 +208,7 @@ func NewQueryPrimaryParse(node antlr.Tree) (term *QueryPrimaryParse) {
 
 	return term
 }
+
 func (sp *QueryPrimaryParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.querySpec, level+1)...)
 	out = append(out, Explain(sp.tableName, level+1)...)
@@ -240,6 +246,7 @@ func NewSortItemParse(node antlr.Tree) (term *SortItemParse) {
 	}
 	return term
 }
+
 func (sp *SortItemParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.expression, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -283,6 +290,7 @@ func NewQuerySpecificationParse(node antlr.Tree) (term *QuerySpecificationParse)
 	}
 	return term
 }
+
 func (sp *QuerySpecificationParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.having, level+1)...)
 	out = append(out, Explain(sp.groupBy, level+1)...)
@@ -316,6 +324,7 @@ func NewGroupByParse(node antlr.Tree) (term *GroupByParse) {
 	}
 	return term
 }
+
 func (sp *GroupByParse) String(level int) (out []string) {
 	out = append(out, ExplainAllItemsInList(sp.groupingElements, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -351,6 +360,7 @@ func NewGroupingElementParse(node antlr.Tree) (term *GroupingElementParse) {
 	}
 	return term
 }
+
 func (sp *GroupingElementParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.groupingExp, level+1)...)
 	out = append(out, ExplainAllItemsInList(sp.rollupNames, level+1)...)
@@ -373,6 +383,7 @@ func NewGroupingExpressionsParse(node antlr.Tree) (term *GroupingExpressionsPars
 	}
 	return term
 }
+
 func (sp *GroupingExpressionsParse) String(level int) (out []string) {
 	out = append(out, ExplainAllItemsInList(sp.expressions, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -392,6 +403,7 @@ func NewGroupingSetParse(node antlr.Tree) (term *GroupingSetParse) {
 	}
 	return term
 }
+
 func (sp *GroupingSetParse) String(level int) (out []string) {
 	out = append(out, ExplainAllItemsInList(sp.qualifiedNames, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -420,6 +432,7 @@ func NewSelectItemParse(node antlr.Tree) (term *SelectItemParse) {
 	}
 	return term
 }
+
 func (sp *SelectItemParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.expression, level+1)...)
 	out = append(out, Explain(sp.alias, level+1)...)
@@ -460,6 +473,7 @@ func NewRelationParse(node antlr.Tree) (term *RelationParse) {
 	}
 	return term
 }
+
 func (sp *RelationParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.left, level+1)...)
 	out = append(out, Explain(sp.right, level+1)...)
@@ -483,6 +497,7 @@ func NewJoinCriteriaParse(node antlr.Tree) (term *JoinCriteriaParse) {
 	}
 	return term
 }
+
 func (sp *JoinCriteriaParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.onExpression, level+1)...)
 	out = append(out, ExplainAllItemsInList(sp.identifiers, level+1)...)
@@ -512,6 +527,7 @@ func NewSampledRelationParse(node antlr.Tree) (term *SampledRelationParse) {
 	}
 	return term
 }
+
 func (sp *SampledRelationParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.aliasedRelation, level+1)...)
 	out = append(out, Explain(sp.percentage, level+1)...)
@@ -538,6 +554,7 @@ func NewAliasedRelationParse(node antlr.Tree) (term *AliasedRelationParse) {
 	}
 	return term
 }
+
 func (sp *AliasedRelationParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.relationPrimary, level+1)...)
 	out = append(out, Explain(sp.identifier, level+1)...)
@@ -555,6 +572,7 @@ func NewColumnAliasesParse(node antlr.Tree) (term *ColumnAliasesParse) {
 	}
 	return term
 }
+
 func (sp *ColumnAliasesParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -562,7 +580,7 @@ func (sp *ColumnAliasesParse) String(level int) (out []string) {
 /*
 ================================================
 RelationPrimary block
-================================================
+================================================.
 */
 type RelationPrimaryParse struct {
 	MSTree
@@ -592,6 +610,7 @@ func NewRelationPrimaryParse(node antlr.Tree) (term *RelationPrimaryParse) {
 	}
 	return term
 }
+
 func (sp *RelationPrimaryParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -603,7 +622,7 @@ func (sp *RelationPrimaryParse) String(level int) (out []string) {
 /*
 ================================================
 Expression block
-================================================
+================================================.
 */
 type ExpressionParse struct {
 	MSTree
@@ -624,6 +643,7 @@ func NewExpressionParse(node antlr.Tree) (term *ExpressionParse) {
 	}
 	return term
 }
+
 func (sp *ExpressionParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -635,7 +655,7 @@ func (sp *ExpressionParse) String(level int) (out []string) {
 /*
 ================================================
 BooleanExpression block
-================================================
+================================================.
 */
 type BooleanExpressionParse struct {
 	MSTree
@@ -687,6 +707,7 @@ func NewBooleanExpressionParse(node antlr.Tree) (term *BooleanExpressionParse) {
 	}
 	return term
 }
+
 func (sp *BooleanExpressionParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.predicate, level+1)...)
 	out = append(out, Explain(sp.left, level+1)...)
@@ -701,7 +722,7 @@ func (sp *BooleanExpressionParse) String(level int) (out []string) {
 /*
 ================================================
 Predicate block
-================================================
+================================================.
 */
 type PredicateParse struct{ MSTree }
 
@@ -728,6 +749,7 @@ func NewPredicateParse(node antlr.Tree) (term *PredicateParse) {
 
 	return term
 }
+
 func (sp *PredicateParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -746,6 +768,7 @@ func NewComparisonParse(node antlr.Tree) (term *ComparisonParse) {
 	term.right = NewValueExpressionParse(ctx.ValueExpression())
 	return term
 }
+
 func (sp *ComparisonParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.right, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -768,6 +791,7 @@ func NewQuantifiedComparisonParse(node antlr.Tree) (term *QuantifiedComparisonPa
 	term.query = NewQueryParse(ctx.Query())
 	return term
 }
+
 func (sp *QuantifiedComparisonParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.query, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -789,6 +813,7 @@ func NewBetweenParse(node antlr.Tree) (term *BetweenParse) {
 	}
 	return term
 }
+
 func (sp *BetweenParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.lower, level+1)...)
 	out = append(out, Explain(sp.upper, level+1)...)
@@ -812,6 +837,7 @@ func NewInListParse(node antlr.Tree) (term *InListParse) {
 	}
 	return term
 }
+
 func (sp *InListParse) String(level int) (out []string) {
 	out = append(out, ExplainAllItemsInList(sp.inlist, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -832,6 +858,7 @@ func NewInSubqueryParse(node antlr.Tree) (term *InSubqueryParse) {
 	}
 	return term
 }
+
 func (sp *InSubqueryParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.query, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -852,6 +879,7 @@ func NewLikeParse(node antlr.Tree) (term *LikeParse) {
 	}
 	return term
 }
+
 func (sp *LikeParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.pattern, level+1)...)
 	out = append(out, Explain(sp.escape, level+1)...)
@@ -871,6 +899,7 @@ func NewNullPredicateParse(node antlr.Tree) (term *NullPredicateParse) {
 	}
 	return term
 }
+
 func (sp *NullPredicateParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -890,6 +919,7 @@ func NewDistinctFromParse(node antlr.Tree) (term *DistinctFromParse) {
 	}
 	return term
 }
+
 func (sp *DistinctFromParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.right, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -924,6 +954,7 @@ func NewValueExpressionParse(node antlr.Tree) (term *ValueExpressionParse) {
 	}
 	return term
 }
+
 func (sp *ValueExpressionParse) String(level int) (out []string) {
 	//	out = append(out, Explain(sp.primaryExpression, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -941,6 +972,7 @@ func NewAtTimeZoneParse(node antlr.Tree) (term *AtTimeZoneParse) {
 	term.timezone = NewTimeZoneSpecifierParse(ctx.TimeZoneSpecifier())
 	return term
 }
+
 func (sp *AtTimeZoneParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.value, level+1)...)
 	out = append(out, Explain(sp.timezone, level+1)...)
@@ -964,6 +996,7 @@ func NewArithmeticUnaryParse(node antlr.Tree) (term *ArithmeticUnaryParse) {
 	term.value = NewValueExpressionParse(ctx.ValueExpression())
 	return term
 }
+
 func (sp *ArithmeticUnaryParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.value, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -994,6 +1027,7 @@ func NewArithmeticBinaryParse(node antlr.Tree) (term *ArithmeticBinaryParse) {
 	term.right = NewValueExpressionParse(ctx.GetRight())
 	return term
 }
+
 func (sp *ArithmeticBinaryParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.left, level+1)...)
 	out = append(out, Explain(sp.right, level+1)...)
@@ -1012,6 +1046,7 @@ func NewConcatParse(node antlr.Tree) (term *ConcatenationParse) {
 	term.right = NewValueExpressionParse(ctx.GetRight())
 	return term
 }
+
 func (sp *ConcatenationParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.left, level+1)...)
 	out = append(out, Explain(sp.right, level+1)...)
@@ -1024,7 +1059,7 @@ func (sp *ConcatenationParse) String(level int) (out []string) {
 /*
 ================================================
 PrimaryExpression block
-================================================
+================================================.
 */
 type PrimaryExpressionParse struct {
 	MSTree
@@ -1142,6 +1177,7 @@ func NewPrimaryExpressionParse(node antlr.Tree) (term *PrimaryExpressionParse) {
 	}
 	return term
 }
+
 func (sp *PrimaryExpressionParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1184,6 +1220,7 @@ func NewFunctionCallParse(node antlr.Tree) (term *FunctionCallParse) {
 	}
 	return term
 }
+
 func (sp *FunctionCallParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.qualifiedName, level+1)...)
 	out = append(out, Explain(sp.filter, level+1)...)
@@ -1207,6 +1244,7 @@ func NewLambdaParse(node antlr.Tree) (term *LambdaParse) {
 	}
 	return term
 }
+
 func (sp *LambdaParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.expression, level+1)...)
 	out = append(out, ExplainAllItemsInList(sp.identifiers, level+1)...)
@@ -1232,6 +1270,7 @@ func NewSimpleCaseParse(node antlr.Tree) (term *SimpleCaseParse) {
 	}
 	return term
 }
+
 func (sp *SimpleCaseParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.valueExpression, level+1)...)
 	out = append(out, Explain(sp.elseExpression, level+1)...)
@@ -1257,6 +1296,7 @@ func NewSearchedCaseParse(node antlr.Tree) (term *SearchedCaseParse) {
 	}
 	return term
 }
+
 func (sp *SearchedCaseParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.elseExpression, level+1)...)
 	out = append(out, ExplainAllItemsInList(sp.whenClause, level+1)...)
@@ -1275,6 +1315,7 @@ func NewCastParse(node antlr.Tree) (term *CastParse) {
 	term.type_t = NewTypeTParse(ctx.Type_t())
 	return term
 }
+
 func (sp *CastParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.expression, level+1)...)
 	out = append(out, Explain(sp.type_t, level+1)...)
@@ -1293,6 +1334,7 @@ func NewSubscriptParse(node antlr.Tree) (term *SubscriptParse) {
 	term.index = NewValueExpressionParse(ctx.GetIndex())
 	return term
 }
+
 func (sp *SubscriptParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.value, level+1)...)
 	out = append(out, Explain(sp.index, level+1)...)
@@ -1311,6 +1353,7 @@ func NewDereferenceParse(node antlr.Tree) (term *DereferenceParse) {
 	term.fieldName = NewIDParse(ctx.GetFieldName())
 	return term
 }
+
 func (sp *DereferenceParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.base, level+1)...)
 	out = append(out, Explain(sp.fieldName, level+1)...)
@@ -1344,6 +1387,7 @@ func NewSpecialDateTimeFunctionParse(node antlr.Tree) (term *SpecialDateTimeFunc
 	}
 	return term
 }
+
 func (sp *SpecialDateTimeFunctionParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1363,6 +1407,7 @@ func NewSubstringParse(node antlr.Tree) (term *SubstringParse) {
 	}
 	return term
 }
+
 func (sp *SubstringParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.subTerm, level+1)...)
 	out = append(out, Explain(sp.baseTerm, level+1)...)
@@ -1394,6 +1439,7 @@ func NewNormalizeParse(node antlr.Tree) (term *NormalizeParse) {
 	term.value = NewValueExpressionParse(ctx.ValueExpression())
 	return term
 }
+
 func (sp *NormalizeParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.value, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -1411,6 +1457,7 @@ func NewExtractParse(node antlr.Tree) (term *ExtractParse) {
 	term.right = NewIDParse(ctx.ValueExpression())
 	return term
 }
+
 func (sp *ExtractParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.left, level+1)...)
 	out = append(out, Explain(sp.right, level+1)...)
@@ -1418,7 +1465,7 @@ func (sp *ExtractParse) String(level int) (out []string) {
 }
 
 /*
-================================================
+================================================.
 */
 type TimeZoneSpecifierParse struct {
 	MSTree
@@ -1437,6 +1484,7 @@ func NewTimeZoneSpecifierParse(node antlr.Tree) (term *TimeZoneSpecifierParse) {
 	}
 	return term
 }
+
 func (sp *TimeZoneSpecifierParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.intervalZone, level+1)...)
 	return append(out, PrependLevel(GetStructString(sp), level))
@@ -1465,6 +1513,7 @@ func NewIntervalParse(node antlr.Tree) (term *IntervalParse) {
 	}
 	return term
 }
+
 func (sp *IntervalParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.fromField, level+1)...)
 	out = append(out, Explain(sp.toField, level+1)...)
@@ -1495,6 +1544,7 @@ func NewIntervalFieldParse(node antlr.Tree) (term *IntervalFieldParse) {
 	}
 	return term
 }
+
 func (sp *IntervalFieldParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1531,6 +1581,7 @@ func NewTypeTParse(node antlr.Tree) (term *TypeTParse) {
 	}
 	return term
 }
+
 func (sp *TypeTParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.array, level+1)...)
 	out = append(out, Explain(sp.baseType, level+1)...)
@@ -1555,6 +1606,7 @@ func NewTypeParameterParse(node antlr.Tree) (term *TypeParameterParse) {
 	}
 	return term
 }
+
 func (sp *TypeParameterParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1579,6 +1631,7 @@ func NewBaseTypeParse(node antlr.Tree) (term *BaseTypeParse) {
 	}
 	return term
 }
+
 func (sp *BaseTypeParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1595,6 +1648,7 @@ func NewWhenParse(node antlr.Tree) (term *WhenParse) {
 	term.result = NewExpressionParse(ctx.GetResult())
 	return term
 }
+
 func (sp *WhenParse) String(level int) (out []string) {
 	out = append(out, Explain(sp.condition, level+1)...)
 	out = append(out, Explain(sp.result, level+1)...)
@@ -1611,6 +1665,7 @@ func NewFilterParse(node antlr.Tree) (term *FilterParse) {
 	term.AddChild(NewBooleanExpressionParse(ctx.BooleanExpression()))
 	return term
 }
+
 func (sp *FilterParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1634,6 +1689,7 @@ func NewOverParse(node antlr.Tree) (term *OverParse) {
 	}
 	return term
 }
+
 func (sp *OverParse) String(level int) (out []string) {
 	out = append(out, ExplainAllItemsInList(sp.partitions, level+1)...)
 	out = append(out, ExplainAllItemsInList(sp.sortItems, level+1)...)
@@ -1658,6 +1714,7 @@ func NewWindowFrameParse(node antlr.Tree) (term *WindowFrameParse) {
 	}
 	return term
 }
+
 func (sp *WindowFrameParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1692,6 +1749,7 @@ func NewFrameBoundParse(node antlr.Tree) (term *FrameBoundParse) {
 	}
 	return term
 }
+
 func (sp *FrameBoundParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1713,6 +1771,7 @@ func NewExplainOptionParse(node antlr.Tree) (term *ExplainOptionParse) {
 	}
 	return term
 }
+
 func (sp *ExplainOptionParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1726,6 +1785,7 @@ func NewQualifiedNameParse(node antlr.Tree) (term *QualifiedNameParse) {
 	}
 	return term
 }
+
 func (sp *QualifiedNameParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
@@ -1748,12 +1808,13 @@ func NewIDParse(node antlr.Tree) (term *IDParse) {
 	}
 	return term
 }
+
 func (sp *IDParse) String(level int) (out []string) {
 	return append(out, PrependLevel(GetStructString(sp), level))
 }
 
 /*
-Utility Functions
+Utility Functions.
 */
 type IMSTree interface {
 	GetParent() IMSTree
@@ -1779,6 +1840,7 @@ var _ IMSTreeVisitor = &BaseMSTreeVisitor{}
 func (mst *BaseMSTreeVisitor) Visit(tree IMSTree) interface{} {
 	return tree.Accept(mst)
 }
+
 func (mst *BaseMSTreeVisitor) VisitChildren(tree IMSTree) interface{} {
 	for _, child := range tree.GetChildren() {
 		retval := child.Accept(mst)
@@ -1800,27 +1862,34 @@ type MSTree struct {
 func (pt *MSTree) GetParent() IMSTree {
 	return pt.parent
 }
+
 func (pt *MSTree) SetParent(arg IMSTree) {
 	pt.parent = arg
 }
+
 func (pt *MSTree) GetPayload() interface{} {
 	return pt.payload
 }
+
 func (pt *MSTree) GetChild(i int) IMSTree {
 	if len(pt.children) < i+1 {
 		return nil
 	}
 	return pt.children[i]
 }
+
 func (pt *MSTree) GetChildCount() int {
 	return len(pt.children)
 }
+
 func (pt *MSTree) GetChildren() []IMSTree {
 	return pt.children
 }
+
 func (pt *MSTree) AddChild(arg IMSTree) {
 	pt.children = append(pt.children, arg)
 }
+
 func (pt *MSTree) String(level int) (out []string) {
 	if pt != nil {
 		return []string{PrependLevel(GetStructString(pt), level)}
@@ -1858,7 +1927,7 @@ func PrependLevel(msg string, level int) string {
 }
 
 func GetStructString(sp interface{}) string {
-	var removeMSTree = func(input string) (output string) {
+	removeMSTree := func(input string) (output string) {
 		begin := strings.Index(input, "MSTree:{")
 		if begin == -1 {
 			return input
@@ -1900,6 +1969,7 @@ func GetStructString(sp interface{}) string {
 		return ""
 	}
 }
+
 func ExplainAllItemsInList(items []IMSTree, level int) (out []string) {
 	for _, item := range items {
 		out = append(out, Explain(item, level+1)...)
@@ -1908,7 +1978,7 @@ func ExplainAllItemsInList(items []IMSTree, level int) (out []string) {
 }
 
 func PrintExplain(stmt string, input []string) {
-	var printFiller = func(num int) {
+	printFiller := func(num int) {
 		for i := 0; i < num; i++ {
 			fmt.Printf("=")
 		}

@@ -11,7 +11,7 @@ import (
 )
 
 // MessageHandler handles incoming messages
-// from the websocket
+// from the websocket.
 func MessageHandler(msg []byte) {
 	if msg == nil {
 		return
@@ -64,21 +64,21 @@ func MessageHandler(msg []byte) {
 }
 
 // tradeHandler handles a Trade
-// and stores it to the cache
+// and stores it to the cache.
 func tradeHandler(t *api.Trade) {
 	writeTrade(t)
 	updateMetrics("trade", time.Unix(0, t.Timestamp))
 }
 
 // quoteHandler handles a Quote
-// and stores it to the cache
+// and stores it to the cache.
 func quoteHandler(q *api.Quote) {
 	writeQuote(q)
 	updateMetrics("quote", time.Unix(0, q.Timestamp))
 }
 
 // aggregateToMinuteHandler handles an AggregateToMinute
-// and stores it to the cache
+// and stores it to the cache.
 func aggregateToMinuteHandler(agg *api.AggregateToMinute) {
 	writeAggregateToMinute(agg)
 	updateMetrics("minute_bar", time.Unix(0, int64(1e6*agg.EndTime)))

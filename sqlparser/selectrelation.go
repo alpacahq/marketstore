@@ -7,12 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/catalog"
-
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -55,7 +53,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		//		fmt.Printf("Child nodes present...")
 		switch value := node.(type) {
 		case Relation: // Interface type
-			//fmt.Println("Subquery Interface found...")
+			// fmt.Println("Subquery Interface found...")
 			//			fmt.Println("Relation")
 			inputColumnSeries, err = value.Materialize()
 			if err != nil {
@@ -63,7 +61,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			}
 		case *SelectRelation:
 			//			fmt.Println("*SelectRelation")
-			//fmt.Println("Subquery found...")
+			// fmt.Println("Subquery found...")
 			inputColumnSeries, err = value.Materialize(aggRunner, catDir)
 			if err != nil {
 				return nil, err
@@ -137,7 +135,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				allMissing, allTable)
 		}
 	}
-	//fmt.Println("Valid, Missing, Keeplist:", valid, missing, keepList)
+	// fmt.Println("Valid, Missing, Keeplist:", valid, missing, keepList)
 
 	/*
 		Get input results, either by query or using input results
@@ -654,6 +652,7 @@ func (spg StaticPredicateGroup) Add(column *ColumnReference) *StaticPredicate {
 	}
 	return spg[name]
 }
+
 func (spg StaticPredicateGroup) AddComparison(column *ColumnReference,
 	op io.ComparisonOperatorEnum, value interface{}) {
 	sp := spg.Add(column) // Will add if not already present
@@ -736,8 +735,8 @@ func (sp *StaticPredicate) SetMin(newMin interface{}, inclusive bool) {
 	if inclusive {
 		sp.ContentsEnum.AddOption(INCLUSIVEMIN)
 	}
-
 }
+
 func (sp *StaticPredicate) SetMax(newMax interface{}, inclusive bool) {
 	sp.max = newMax
 	sp.ContentsEnum.AddOption(MAXBOUND)
@@ -745,15 +744,18 @@ func (sp *StaticPredicate) SetMax(newMax interface{}, inclusive bool) {
 		sp.ContentsEnum.AddOption(INCLUSIVEMAX)
 	}
 }
+
 func (sp *StaticPredicate) SetEqual(newEQ interface{}) {
 	sp.equal = newEQ
 	sp.ContentsEnum.AddOption(EQUALITY)
 }
+
 func (sp *StaticPredicate) SetLike(pattern, esc string) {
 	sp.likePattern = pattern
 	sp.likeEsc = esc
 	sp.ContentsEnum.AddOption(LIKEPATTERN)
 }
+
 func (sp *StaticPredicate) SetInlist(inlist []interface{}) {
 	sp.inlist = inlist
 	sp.ContentsEnum.AddOption(INLIST)
@@ -775,9 +777,11 @@ const (
 func (cat *StaticPredicateContentsEnum) AddOption(option StaticPredicateContentsEnum) {
 	*cat |= option
 }
+
 func (cat *StaticPredicateContentsEnum) DelOption(option StaticPredicateContentsEnum) {
 	*cat &= ^option
 }
+
 func (cat *StaticPredicateContentsEnum) IsSet(checkOption ...StaticPredicateContentsEnum) bool {
 	/*
 		Returns true if all supplied options are set
@@ -789,6 +793,7 @@ func (cat *StaticPredicateContentsEnum) IsSet(checkOption ...StaticPredicateCont
 	}
 	return true
 }
+
 func (cat *StaticPredicateContentsEnum) AnySet(checkOption ...StaticPredicateContentsEnum) bool {
 	/*
 		Returns true if any of the supplied options are set
@@ -857,14 +862,17 @@ func NewAliasedIdentifier(name ...string) (ai *AliasedIdentifier) {
 func (ai *AliasedIdentifier) AddRuntimeExpression(ep *ExpressionParse) {
 	ai.RuntimeExpression = ep
 }
+
 func (ai *AliasedIdentifier) AddFunctionCall(fc *FunctionCallReference) {
 	ai.FunctionCall = fc
 	ai.IsFunctionCall = true
 }
+
 func (ai *AliasedIdentifier) AddAlias(alias string) {
 	ai.IsAliased = true
 	ai.Alias = alias
 }
+
 func (ai *AliasedIdentifier) String() (out string) {
 	var buffer bytes.Buffer
 	buffer.WriteString("Identifier: ")

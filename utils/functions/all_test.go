@@ -11,13 +11,13 @@ import (
 
 func TestParameters(t *testing.T) {
 	t.Parallel()
-	var requiredColumns = []io.DataShape{
+	requiredColumns := []io.DataShape{
 		{Name: "A", Type: io.FLOAT32},
 		{Name: "B", Type: io.FLOAT32},
 		{Name: "C", Type: io.FLOAT32},
 		{Name: "D", Type: io.FLOAT32},
 	}
-	var optionalColumns = []io.DataShape{
+	optionalColumns := []io.DataShape{
 		{Name: "E", Type: io.FLOAT32},
 		{Name: "F", Type: io.FLOAT32},
 	}

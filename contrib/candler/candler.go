@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -63,9 +61,11 @@ type Candler struct {
 func (ca *Candler) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (ca *Candler) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (ca *Candler) GetInitArgs() []io.DataShape {
 	return initArgs
 }
@@ -243,12 +243,13 @@ func (ca *Candler) GetCandle(t time.Time, cndl ...*Candle) *Candle {
 - Always has Open, High, Low, Close prices defined within
 - Optionally has averaged and summed quantities inside
 - Has a starting time representing the candle, it begins the interval
-*********************************** Candle *******************************************
+*********************************** Candle *******************************************.
 */
 type EOHLCStruct struct {
 	Epoch                  int64
 	Open, High, Low, Close float32
 }
+
 type Candle struct {
 	StartTime time.Time
 	Duration  *utils.CandleDuration
@@ -347,12 +348,12 @@ func (ca *Candle) SerializeToRowData(sumNames, avgNames []string) (rowBuf []byte
 }
 
 /*
-Map of start times to active candles
+Map of start times to active candles.
 */
 type CandleMap map[time.Time]*Candle
 
 /*
-Utility Functions
+Utility Functions.
 */
 func GetAverageColumnFloat32(cols io.ColumnInterface, srcCols []io.DataShape) (avgCol []float32, err error) {
 	numberCols := len(srcCols)

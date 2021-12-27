@@ -87,7 +87,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	if NumYears == 1 {
 		yearStr = "year"
 	}
-	var sizes = []string{"KB", "MB", "GB", "TB", "PB", "EB"}
+	sizes := []string{"KB", "MB", "GB", "TB", "PB", "EB"}
 	for i := range sizes {
 		sizeBytes := math.Pow(10, float64((i+1)*3))
 

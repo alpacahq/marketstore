@@ -25,7 +25,7 @@ func setup(t *testing.T, testName string) (tearDown func(), testPluginLib, oldGo
 	}
 
 	binDirName := filepath.Join(dirName, "bin")
-	os.MkdirAll(binDirName, 0777)
+	os.MkdirAll(binDirName, 0o777)
 	testFileName := "plugin.go"
 	testFilePath := filepath.Join(dirName, testFileName)
 	testPluginLib = "plugin.so"

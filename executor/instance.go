@@ -8,11 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/executor/wal"
-
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -58,7 +57,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		log.Error("Cannot take absolute path of root directory %s", err.Error())
 	} else {
 		log.Info("Root Directory: %s", rootDir)
-		err = os.Mkdir(rootDir, 0770)
+		err = os.Mkdir(rootDir, 0o770)
 		if err != nil && !os.IsExist(err) {
 			log.Error("Could not create root directory: %s", err.Error())
 			return nil, nil, nil, err
@@ -100,7 +99,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 
 		// Allocate a new WALFile and cache
 		if !WALBypass {
-			//ignoreFile := filepath.Base(ThisInstance.WALFile.FilePtr.Name())
+			// ignoreFile := filepath.Base(ThisInstance.WALFile.FilePtr.Name())
 			ignoreFile := ThisInstance.WALFile.FilePtr.Name()
 			myInstanceID := ThisInstance.WALFile.OwningInstanceID
 

@@ -6,19 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
-	"github.com/alpacahq/marketstore/v4/catalog"
-	"github.com/alpacahq/marketstore/v4/utils/test"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
-
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func setup(t *testing.T, testName string,
@@ -41,7 +38,7 @@ func TestTickCandler(t *testing.T) {
 	am := functions.NewArgumentMap(tc.GetRequiredArgs(), tc.GetOptionalArgs()...)
 	ds := io.NewDataShapeVector([]string{"Bid", "Ask"}, []io.EnumElementType{io.FLOAT32, io.FLOAT32})
 	// Sum and Avg are optional inputs, let's map them arbitrarily
-	//am.MapInputColumn("Sum", ds[1:])
+	// am.MapInputColumn("Sum", ds[1:])
 	am.MapRequiredColumn("Sum", ds...)
 	am.MapRequiredColumn("Avg", ds...)
 	_, err := tc.New(am, "1Min")
@@ -111,10 +108,9 @@ func TestTickCandler(t *testing.T) {
 }
 
 /*
-Utility functions
+Utility functions.
 */
 func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, wf *executor.WALFileType) {
-
 	// Create a new variable data bucket
 	tbk := io.NewTimeBucketKey(symbol + "/1Min/TICK")
 	tf := utils.NewTimeframe("1Min")

@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"strings"
-
-	"os"
-	"path/filepath"
-
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/matryer/try.v1"
@@ -263,7 +261,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 		}
 
 		u.RawQuery = q.Encode()
-		var filename = fmt.Sprintf(tradeFileName, symbol, date, offset, batchSize)
+		filename := fmt.Sprintf(tradeFileName, symbol, date, offset, batchSize)
 		var body []byte
 		var err error
 
@@ -432,7 +430,7 @@ func jsonDump(body []byte, filename string) error {
 		return nil
 	}
 	filename = filepath.Join(CacheDir, filename)
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0o755)
 	if err != nil {
 		log.Error("[polygon] cannot create file: %s (%v)", filename, err)
 		return err

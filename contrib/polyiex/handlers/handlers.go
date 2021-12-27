@@ -14,7 +14,6 @@ import (
 )
 
 func handleTrade(raw []byte) {
-
 	symbol, _ := jsonparser.GetString(raw, "S")
 
 	price, _ := jsonparser.GetFloat(raw, "p")
@@ -36,7 +35,8 @@ func handleTrade(raw []byte) {
 			nanos: int32(timestamp.Nanosecond()),
 			px:    float32(price),
 			sz:    int32(size),
-		}}
+		},
+	}
 	Write(pkt)
 }
 
@@ -95,7 +95,8 @@ func handleBook(raw []byte) {
 			askPx: a.Price,
 			bidSz: b.Size,
 			askSz: a.Size,
-		}}
+		},
+	}
 
 	Write(pkt)
 }
@@ -136,9 +137,11 @@ func Tick(raw []byte) {
 	})
 }
 
-// orderBooks is a map of OrderBook with symbol key
-var orderBooks = map[string]*orderbook.OrderBook{}
-var obMutex sync.Mutex
+// orderBooks is a map of OrderBook with symbol key.
+var (
+	orderBooks = map[string]*orderbook.OrderBook{}
+	obMutex    sync.Mutex
+)
 
 func getOrderBook(symbol string) *orderbook.OrderBook {
 	obMutex.Lock()
@@ -237,7 +240,7 @@ func (w *writer) write() {
 			csm = io.NewColumnSeriesMap()
 
 			for tbk, bucket := range w.dataBuckets {
-				switch b:= bucket.(type) {
+				switch b := bucket.(type) {
 				case []*quote:
 					for _, q := range b {
 						epoch = append(epoch, q.epoch)

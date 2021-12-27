@@ -3,9 +3,8 @@ package planner
 import (
 	"fmt"
 	"math"
-	"time"
-
 	"strings"
+	"time"
 
 	. "github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils"
@@ -13,12 +12,17 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-type TimeQualFunc func(epoch int64) bool
-type RestrictionList map[string][]string                     //Key is category, items list is target
+type (
+	TimeQualFunc    func(epoch int64) bool
+	RestrictionList map[string][]string // Key is category, items list is target
+)
+
 func (r RestrictionList) GetRestrictionMap() RestrictionList { return r }
-func (r RestrictionList) AddRestriction(category string, item string) {
+
+func (r RestrictionList) AddRestriction(category, item string) {
 	r[category] = append(r[category], item)
 }
+
 func (r RestrictionList) getItemList(category string) []string {
 	if p_list, ok := r[category]; ok {
 		return p_list
@@ -26,6 +30,7 @@ func (r RestrictionList) getItemList(category string) []string {
 		return nil
 	}
 }
+
 func NewRestrictionList() RestrictionList {
 	return make(RestrictionList)
 }
@@ -34,8 +39,10 @@ type DateRange struct {
 	Start, End time.Time
 }
 
-var MinTime = time.Unix(0, 0)
-var MaxTime = time.Unix(1<<63-62135596801, 999999999)
+var (
+	MinTime = time.Unix(0, 0)
+	MaxTime = time.Unix(1<<63-62135596801, 999999999)
+)
 
 func NewDateRange() *DateRange {
 	return &DateRange{
@@ -186,7 +193,7 @@ func (q *query) SetEnd(end time.Time) {
 	q.Range.End = end
 }
 
-func (q *query) AddRestriction(category string, item string) {
+func (q *query) AddRestriction(category, item string) {
 	q.Restriction.AddRestriction(category, item)
 }
 
@@ -292,7 +299,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	pr.Range = q.Range
 	pr.Limit = q.Limit
 	// If the query expressed no time range, set the parsed result to include all years in the qualified files
-	//timeRange := (q.Range.Start != time.Time{} && q.Range.End != MaxTime)
+	// timeRange := (q.Range.Start != time.Time{} && q.Range.End != MaxTime)
 	timeRange := q.Range.Start != MinTime || q.Range.End != MaxTime
 	if !timeRange {
 		var startYear, endYear int16

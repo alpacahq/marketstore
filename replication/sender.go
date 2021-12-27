@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	// the maximum number of transaction messages that a replicator can hold
+	// the maximum number of transaction messages that a replicator can hold.
 	defaultSenderChannelSize = 500
 )
 
@@ -17,7 +17,7 @@ type Service interface {
 
 type Sender struct {
 	replService Service
-	//ReplicaHosts []string
+	// ReplicaHosts []string
 	channel chan []byte
 }
 

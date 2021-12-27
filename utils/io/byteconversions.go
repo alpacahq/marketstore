@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-func CopySliceByte(ib interface{}, is interface{}) interface{} {
+func CopySliceByte(ib, is interface{}) interface{} {
 	buffer := ib.([]byte)
 
 	structValue := reflect.ValueOf(is)
@@ -28,13 +28,13 @@ func CopySliceByte(ib interface{}, is interface{}) interface{} {
 	return structSlice.Interface()
 }
 
-// This is a *copy* of the "Value" struct inside the reflect package
+// This is a *copy* of the "Value" struct inside the reflect package.
 type MValue struct {
 	typ uintptr
 	Ptr unsafe.Pointer
 }
 
-func SwapSliceByte(src_byte_slice interface{}, target_type interface{}) interface{} {
+func SwapSliceByte(src_byte_slice, target_type interface{}) interface{} {
 	buffer := src_byte_slice.([]byte)
 
 	structValue := reflect.ValueOf(target_type)
@@ -57,43 +57,54 @@ func SwapSliceByte(src_byte_slice interface{}, target_type interface{}) interfac
 func ToUint8(b []byte) uint8 {
 	return *(*uint8)(unsafe.Pointer(&b[0]))
 }
+
 func ToInt8(b []byte) int8 {
 	return *(*int8)(unsafe.Pointer(&b[0]))
 }
+
 func ToInt16(b []byte) int16 {
 	return *(*int16)(unsafe.Pointer(&b[0]))
 }
+
 func ToUInt16(b []byte) uint16 {
 	return *(*uint16)(unsafe.Pointer(&b[0]))
 }
+
 func ToInt32(b []byte) int32 {
 	return *(*int32)(unsafe.Pointer(&b[0]))
 }
+
 func ToUInt32(b []byte) uint32 {
 	return *(*uint32)(unsafe.Pointer(&b[0]))
 }
+
 func ToInt64(b []byte) int64 {
 	return *(*int64)(unsafe.Pointer(&b[0]))
 }
+
 func ToUInt64(b []byte) uint64 {
 	return *(*uint64)(unsafe.Pointer(&b[0]))
 }
+
 func ToFloat32(b []byte) float32 {
 	return *(*float32)(unsafe.Pointer(&b[0]))
 }
+
 func ToFloat64(b []byte) float64 {
 	return *(*float64)(unsafe.Pointer(&b[0]))
 }
+
 func ToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
+
 func ToRune(b []byte) rune {
 	return *(*rune)(unsafe.Pointer(&b[0]))
 }
 
 // SwapSliceData generically converts a slice of the type into a slice of the target type
-// without copying each value in the slice
-func SwapSliceData(srcSlice interface{}, targetType interface{}) interface{} {
+// without copying each value in the slice.
+func SwapSliceData(srcSlice, targetType interface{}) interface{} {
 	src := reflect.ValueOf(srcSlice)
 	srcLen := src.Len()
 	srcElementType := src.Type().Elem()
@@ -106,7 +117,7 @@ func SwapSliceData(srcSlice interface{}, targetType interface{}) interface{} {
 	targetSize := targetValueType.Size()
 	targetLen := (srcLen * int(srcElementTypeSize)) / int(targetSize)
 
-	//targetSize := binary.Size(target_type)
+	// targetSize := binary.Size(target_type)
 	targetSliceType := reflect.SliceOf(targetValueType)
 
 	//	fmt.Printf("LeftType: %s LeftLen: %d LeftSize: %d RightSize: %d\n",srcElementType, leftLen, srcElementTypeSize, targetSize)
@@ -137,7 +148,7 @@ func CastToByteSlice(sliceData interface{}) []byte {
 	return buffer
 }
 
-// Takes a primary (non slice, non pointer) type and returns a []byte of the base type data
+// Takes a primary (non slice, non pointer) type and returns a []byte of the base type data.
 func DataToByteSlice(srcData interface{}) []byte {
 	value := reflect.ValueOf(srcData)
 	size := int(value.Type().Size())

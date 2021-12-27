@@ -1,16 +1,16 @@
 package feed_test
 
 import (
-	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 
 	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
-
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
 )
@@ -40,7 +40,7 @@ type MockErrorAPIClient struct {
 	internal.MockAPIClient
 }
 
-// ListBars returns an error if symbol:"ERROR" is included, but returns data to other symbols
+// ListBars returns an error if symbol:"ERROR" is included, but returns data to other symbols.
 func (mac *MockErrorAPIClient) ListBars(symbols []string, opts alpaca.ListBarParams) (map[string][]alpaca.Bar, error) {
 	ret := make(map[string][]alpaca.Bar, 0)
 	for _, symbl := range symbols {
@@ -60,7 +60,7 @@ func (mac *MockErrorAPIClient) ListBars(symbols []string, opts alpaca.ListBarPar
 					barPage = append(barPage, bar)
 				}
 			}
-			//TODO: limit behavior
+			// TODO: limit behavior
 			ret[symbl] = barPage
 		}
 	}
@@ -73,7 +73,7 @@ type MockBarWriter struct {
 }
 
 func (mbw *MockBarWriter) Write(symbol string, bars []alpaca.Bar) error {
-	// in order to assert the number of writen bars in the test
+	// in order to assert the number of written bars in the test
 	mbw.WriteCount += len(bars)
 	return nil
 }

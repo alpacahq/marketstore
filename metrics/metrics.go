@@ -5,11 +5,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var namespace = "alpaca"
-var subsystem = "marketstore"
+var (
+	namespace = "alpaca"
+	subsystem = "marketstore"
+)
 
 var (
-	// StartupTime stores how long the startup took (in seconds)
+	// StartupTime stores how long the startup took (in seconds).
 	StartupTime = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -19,7 +21,7 @@ var (
 		},
 	)
 
-	// RPCTotalRequestDuration stores the processing time for every request
+	// RPCTotalRequestDuration stores the processing time for every request.
 	RPCTotalRequestDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
@@ -28,7 +30,7 @@ var (
 	})
 
 	// RPCSuccessfulRequestDuration stores the processing time for successful
-	// requests partitioned by method
+	// requests partitioned by method.
 	RPCSuccessfulRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
@@ -36,7 +38,7 @@ var (
 		Help:      "RPC request processing time for successful requests partitioned by method",
 	}, []string{"method"})
 
-	// WSConnections keeps track of the number of currently established WS connections
+	// WSConnections keeps track of the number of currently established WS connections.
 	WSConnections = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -47,7 +49,7 @@ var (
 	)
 
 	// WriteCSMDuration stores the WriteCSM call durations for writes
-	// that didn't result in an error
+	// that didn't result in an error.
 	WriteCSMDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
@@ -56,7 +58,7 @@ var (
 		Buckets:   []float64{.0001, .001, .005, .01, .05, .1, .25, .5, 1},
 	})
 
-	// TotalDiskUsageBytes stores the total size of DB files managed by Marketstore
+	// TotalDiskUsageBytes stores the total size of DB files managed by Marketstore.
 	TotalDiskUsageBytes = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,

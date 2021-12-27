@@ -1,9 +1,10 @@
 package feed
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func date(year, month, day int) time.Time {

@@ -64,5 +64,4 @@ func TestOrderBook(t *testing.T) {
 		assert.Equal(t, float32(154.05), a.Price)
 		assert.Equal(t, int32(200), a.Size)
 	}
-
 }

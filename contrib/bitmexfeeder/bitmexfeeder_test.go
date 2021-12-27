@@ -29,7 +29,7 @@ func TestNew(t *testing.T) {
 		}
 	})
 
-	var config = getConfig(`{
+	config := getConfig(`{
         "symbols": ["XBTUSD"]
         }`)
 	config["httpClient"] = hc // inject http client

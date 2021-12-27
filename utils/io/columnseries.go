@@ -110,15 +110,18 @@ func (cs *ColumnSeries) AddColumn(name string, columnData interface{}) (outname 
 	cs.columns[name] = columnData
 	return name
 }
+
 func (cs *ColumnSeries) IsEmpty() bool {
 	return len(cs.orderedNames) == 0
 }
+
 func (cs *ColumnSeries) GetNumColumns() (length int) {
 	if cs.IsEmpty() {
 		return 0
 	}
 	return len(cs.orderedNames)
 }
+
 func (cs *ColumnSeries) Rename(newName, oldName string) error {
 	/*
 		Renames one column named "targetName" for another named "srcName"
@@ -160,6 +163,7 @@ func (cs *ColumnSeries) Replace(targetName string, col interface{}) error {
 	cs.AddColumn(targetName, col)
 	return nil
 }
+
 func (cs *ColumnSeries) Remove(targetName string) error {
 	if !cs.Exists(targetName) {
 		return fmt.Errorf("Error: Source column named %s does not exist\n", targetName)
@@ -174,6 +178,7 @@ func (cs *ColumnSeries) Remove(targetName string) error {
 	delete(cs.columns, targetName)
 	return nil
 }
+
 func (cs *ColumnSeries) Project(keepList []string) error {
 	newCols := make(map[string]interface{})
 	var newNames []string
@@ -191,7 +196,7 @@ func (cs *ColumnSeries) Project(keepList []string) error {
 }
 
 /*
-RestrictLength applies a FIRST/LAST length restriction to this series
+RestrictLength applies a FIRST/LAST length restriction to this series.
 */
 func (cs *ColumnSeries) RestrictLength(newLen int, direction DirectionEnum) (err error) {
 	for key, col := range cs.columns {
@@ -391,6 +396,7 @@ func NewColumnSeriesMap() ColumnSeriesMap {
 func (csm ColumnSeriesMap) IsEmpty() bool {
 	return len(csm) == 0
 }
+
 func (csm ColumnSeriesMap) GetMetadataKeys() (keys []TimeBucketKey) {
 	keys = make([]TimeBucketKey, 0)
 	for key := range csm {
@@ -404,6 +410,7 @@ func (csm ColumnSeriesMap) AddColumnSeries(key TimeBucketKey, cs *ColumnSeries) 
 		csm.AddColumn(key, name, cs.columns[name])
 	}
 }
+
 func (csm ColumnSeriesMap) AddColumn(key TimeBucketKey, name string, columnData interface{}) {
 	if _, ok := csm[key]; !ok {
 		csm[key] = NewColumnSeries()
@@ -445,12 +452,14 @@ func GetNamesFromDSV(dataShapes []DataShape) (out []string) {
 	}
 	return out
 }
+
 func GetDSVFromInterface(i_dsv interface{}) (out []DataShape) {
 	if _, ok := i_dsv.([]DataShape); ok {
 		return i_dsv.([]DataShape)
 	}
 	return nil
 }
+
 func GetStringSliceFromInterface(i_ss interface{}) (out []string) {
 	if i_ss != nil {
 		if _, ok := i_ss.([]string); ok {
@@ -506,7 +515,7 @@ func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (mi
 	case len(missingDSV) == len(allMissingNames):
 		return ExtractDatashapesByNames(requiredDSV, allMissingNames), nil
 	case len(missingDSV) != len(allMissingNames):
-		//We have to coerce types
+		// We have to coerce types
 		missingDSVNamesSet, _ := NewAnySet(GetNamesFromDSV(missingDSV))
 		i_needCoercionCols := missingDSVNamesSet.Subtract(allMissingNames)
 		needCoercionCols := GetStringSliceFromInterface(i_needCoercionCols)

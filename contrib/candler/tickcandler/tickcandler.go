@@ -3,10 +3,9 @@ package tickcandler
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/contrib/candler"
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -43,9 +42,11 @@ func (c TickCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (ic
 func (ca *TickCandler) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (ca *TickCandler) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (ca *TickCandler) GetInitArgs() []io.DataShape {
 	return initArgs
 }

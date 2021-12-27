@@ -13,7 +13,7 @@ import (
 
 const backfillTimeframe = "1D"
 
-// Backfill aggregates daily chart data using Alpava v2 API and store it to marketstore
+// Backfill aggregates daily chart data using Alpava v2 API and store it to marketstore.
 type Backfill struct {
 	symbolManager    symbols.Manager
 	apiClient        ListBarsAPIClient
@@ -29,16 +29,17 @@ type ListBarsAPIClient interface {
 
 // NewBackfill initializes the module to backfill the historical daily chart data to marketstore.
 // Alpaca API spec: maxBarsPerRequest: 1000 bars per symbol per request at maximum
-// Alpaca API spec: maxSymbolsPerRequest: 100 symbols per request at maximum
+// Alpaca API spec: maxSymbolsPerRequest: 100 symbols per request at maximum.
 func NewBackfill(symbolManager symbols.Manager, apiClient ListBarsAPIClient, barWriter writer.BarWriter, Since time.Time,
 	maxBarsPerReq, maxSymbolsPerReq int,
 ) *Backfill {
-	return &Backfill{symbolManager: symbolManager, apiClient: apiClient, barWriter: barWriter, since: Since,
+	return &Backfill{
+		symbolManager: symbolManager, apiClient: apiClient, barWriter: barWriter, since: Since,
 		maxBarsPerReq: maxBarsPerReq, maxSymbolsPerReq: maxSymbolsPerReq,
 	}
 }
 
-// UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore
+// UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
 func (b *Backfill) UpdateSymbols() {
 	allSymbols := b.symbolManager.GetAllSymbols()
 	y, m, d := time.Now().Date()
@@ -81,19 +82,19 @@ func (b *Backfill) UpdateSymbols() {
 // the API returns a daily chart for 2021-11-30 because 2021-12-01 00:00:00 UTC is 2021-11-30 19:00:00 EST.
 // So it's safe to always provide yyyy-mm-dd 23:00:00 UTC to the API when daily chart is necessary
 // because it can be considered that the market for the day is already closed at 23:00:00 UTC
-// regardless of the US timezones (EST, EDT)
+// regardless of the US timezones (EST, EDT).
 func time230000utc(time2 time.Time) *time.Time {
 	y, m, d := time2.Date()
 	t := time.Date(y, m, d, 23, 0, 0, 0, time.UTC)
 	return &t
 }
 
-// utilities for pagination
+// utilities for pagination.
 type index struct {
 	From, To int
 }
 
-func pageIndex(length int, pageSize int) <-chan index {
+func pageIndex(length, pageSize int) <-chan index {
 	ch := make(chan index)
 
 	go func() {
@@ -124,7 +125,7 @@ type dateRange struct {
 //	{From:2021-12-01, To:2021-12-02},
 //	{From:2021-12-03, To:2021-12-04},
 //	{From:2021-12-05, To:2021-12-05}
-// ]
+// ].
 func datePageIndex(start, end time.Time, pageDays int) <-chan dateRange {
 	ch := make(chan dateRange)
 

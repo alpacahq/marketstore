@@ -2,9 +2,10 @@ package feed
 
 import (
 	"fmt"
-	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
 	"time"
 
+
+	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/symbols"
@@ -22,7 +23,7 @@ type Worker struct {
 	Interval          int
 }
 
-type GetSnapShotsAPIClient interface{
+type GetSnapShotsAPIClient interface {
 	GetSnapshots(symbols []string) (map[string]*v2.Snapshot, error)
 }
 
@@ -36,7 +37,7 @@ func (w *Worker) Run() {
 	}
 }
 
-// tryPrintErr tries and write the error log
+// tryPrintErr tries and write the error log.
 func (w *Worker) tryPrintErr() {
 	if err := w.try(); err != nil {
 		log.Error(err.Error())
@@ -50,7 +51,7 @@ func (w *Worker) tryPrintErr() {
 	}()
 }
 
-// try calls GetQuotes endpoint of Alpaca API, convert the API response to a ColumnSeriesMap and write it to the marketstore
+// try calls GetQuotes endpoint of Alpaca API, convert the API response to a ColumnSeriesMap and write it to the marketstore.
 func (w *Worker) try() error {
 	// check if it needs to work now
 	if !w.MarketTimeChecker.IsOpen(time.Now().UTC()) {

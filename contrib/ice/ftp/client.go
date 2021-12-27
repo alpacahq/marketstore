@@ -18,7 +18,7 @@ type FtpClient interface {
 var _ FtpClient = (*goftp.Client)(nil)
 
 // NewClient is a thin wrapper around goftp.DialConfig. Connects instantly to the specified server.
-func NewClient(username string, password string, ftp_host string) (FtpClient, error) {
+func NewClient(username, password, ftp_host string) (FtpClient, error) {
 	config := goftp.Config{
 		User:     username,
 		Password: password,

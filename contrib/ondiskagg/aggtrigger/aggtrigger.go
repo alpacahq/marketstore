@@ -32,10 +32,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/frontend"
-
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/models"
 	modelsenum "github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
@@ -60,9 +59,7 @@ type OnDiskAggTrigger struct {
 	aggCache *sync.Map
 }
 
-var (
-	_ trigger.Trigger = &OnDiskAggTrigger{}
-)
+var _ trigger.Trigger = &OnDiskAggTrigger{}
 
 func recast(config map[string]interface{}) *AggTriggerConfig {
 	data, _ := json.Marshal(config)
@@ -171,7 +168,6 @@ func (s *OnDiskAggTrigger) write(
 	cs *io.ColumnSeries,
 	tail, head time.Time,
 	elements []string) {
-
 	for _, dest := range s.destinations {
 		symbol := elements[0]
 		attributeGroup := elements[2]
@@ -205,7 +201,6 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	dest utils.Timeframe,
 	head, tail time.Time,
 	symbol string) error {
-
 	csm := io.NewColumnSeriesMap()
 
 	window := utils.CandleDurationFromString(dest.String)
@@ -360,7 +355,6 @@ func (s *OnDiskAggTrigger) query(
 	tbk *io.TimeBucketKey,
 	window *utils.CandleDuration,
 	head, tail time.Time) (*io.ColumnSeriesMap, error) {
-
 	cDir := executor.ThisInstance.CatalogDir
 
 	start := window.Truncate(head)

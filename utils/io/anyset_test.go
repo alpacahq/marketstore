@@ -129,7 +129,6 @@ func TestAnySet(t *testing.T) {
 	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2Empty)
 	sgAAA.Add(DataShape{Name: "2020202020", Type: FLOAT32})
 	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2twentyFloat32)
-
 }
 
 func TestGetMissingColumns(t *testing.T) {

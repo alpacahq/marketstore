@@ -15,25 +15,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
 	"github.com/alpacahq/marketstore/v4/metrics"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	pb "github.com/alpacahq/marketstore/v4/proto"
 	"github.com/alpacahq/marketstore/v4/replication"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 const (

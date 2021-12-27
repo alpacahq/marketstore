@@ -15,7 +15,7 @@ import (
 const WriteChannelCommandDepth = 1000000
 
 // TransactionPipe stores the contents of the current pending Transaction Group
-// and writes it to WAL when flush() is called
+// and writes it to WAL when flush() is called.
 type TransactionPipe struct {
 	tgID         int64                  // Current transaction group ID
 	writeChannel chan *wal.WriteCommand // Channel for write commands
@@ -23,7 +23,7 @@ type TransactionPipe struct {
 }
 
 // NewTransactionPipe creates a new transaction pipe that channels all
-// of the write transactions to the WAL and primary writers
+// of the write transactions to the WAL and primary writers.
 func NewTransactionPipe() *TransactionPipe {
 	return &TransactionPipe{
 		tgID: time.Now().UTC().UnixNano(),
@@ -33,12 +33,12 @@ func NewTransactionPipe() *TransactionPipe {
 	}
 }
 
-// IncrementTGID increments the transaction group ID and returns the new value
+// IncrementTGID increments the transaction group ID and returns the new value.
 func (tgc *TransactionPipe) IncrementTGID() int64 {
 	return atomic.AddInt64(&tgc.tgID, 1)
 }
 
-// TGID returns the latest transaction group ID
+// TGID returns the latest transaction group ID.
 func (tgc *TransactionPipe) TGID() int64 {
 	return atomic.LoadInt64(&tgc.tgID)
 }

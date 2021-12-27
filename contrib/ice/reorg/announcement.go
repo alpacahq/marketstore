@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
+	announcement "github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	announcement "github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 )
 

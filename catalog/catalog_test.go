@@ -38,6 +38,7 @@ func TestGetCatList(t *testing.T) {
 	CatList := catalogDir.GatherCategoriesFromCache()
 	assert.Len(t, CatList, 4)
 }
+
 func TestGetCatItemMap(t *testing.T) {
 	tearDown, _, catalogDir := setup(t, "TestGetCatItemMap")
 	defer tearDown()
@@ -59,6 +60,7 @@ func TestGetCatItemMap(t *testing.T) {
 	*/
 	assert.Len(t, catList, 4)
 }
+
 func TestGetDirList(t *testing.T) {
 	tearDown, _, catalogDir := setup(t, "TestGetDirList")
 	defer tearDown()
@@ -66,6 +68,7 @@ func TestGetDirList(t *testing.T) {
 	dirList := catalogDir.GatherDirectories()
 	assert.Len(t, dirList, 40)
 }
+
 func TestGatherFilePaths(t *testing.T) {
 	tearDown, _, catalogDir := setup(t, "TestGatherFilePaths")
 	defer tearDown()
@@ -76,6 +79,7 @@ func TestGatherFilePaths(t *testing.T) {
 	//	}
 	assert.Len(t, filePathList, 54)
 }
+
 func TestGatherFileInfo(t *testing.T) {
 	tearDown, _, catalogDir := setup(t, "TestGatherFileInfo")
 	defer tearDown()
@@ -86,6 +90,7 @@ func TestGatherFileInfo(t *testing.T) {
 	//}
 	assert.Len(t, fileInfoList, 54)
 }
+
 func TestPathToFileInfo(t *testing.T) {
 	tearDown, rootDir, catalogDir := setup(t, "TestPathToFileInfo")
 	defer tearDown()
@@ -103,6 +108,7 @@ func TestPathToFileInfo(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, fileInfo.Path, mypath)
 }
+
 func TestAddFile(t *testing.T) {
 	tearDown, _, catalogDir := setup(t, "TestAddFile")
 	defer tearDown()

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -46,16 +45,16 @@ func (es *ExecutableStatement) Materialize(aggRunner *AggRunner, catDir *catalog
 		node := es.GetChild(0)
 		switch ctx := node.(type) {
 		case *ExecutableStatement:
-			//fmt.Println("Materialize Executable Statement")
+			// fmt.Println("Materialize Executable Statement")
 			child_cs, err = ctx.Materialize(aggRunner, catDir)
 		case *SelectRelation:
-			//fmt.Println("Materialize Select Relation")
+			// fmt.Println("Materialize Select Relation")
 			child_cs, err = ctx.Materialize(aggRunner, catDir)
 		case *ExplainStatement:
-			//fmt.Println("Materialize Explain Statement")
+			// fmt.Println("Materialize Explain Statement")
 			child_cs, err = ctx.Materialize()
 		case *InsertIntoStatement:
-			//fmt.Println("Materialize InsertInto Statement")
+			// fmt.Println("Materialize InsertInto Statement")
 			child_cs, err = ctx.Materialize(aggRunner, catDir)
 		}
 		if err != nil {
@@ -78,6 +77,7 @@ func (es *ExecutableStatement) Materialize(aggRunner *AggRunner, catDir *catalog
 func (es *ExecutableStatement) Visit(tree IMSTree) interface{} {
 	return tree.Accept(es)
 }
+
 func (es *ExecutableStatement) VisitChildren(tree IMSTree) interface{} {
 	for _, child := range tree.GetChildren() {
 		retval := child.Accept(es)
@@ -92,6 +92,7 @@ func (es *ExecutableStatement) VisitStatementsParse(ctx *StatementsParse) interf
 	child := ctx.GetChild(0)
 	return es.Visit(child)
 }
+
 func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interface{} {
 	switch ctx.statementType {
 	case QUERY_STMT:
@@ -171,6 +172,7 @@ func QueryWalk(es *ExecutableStatement, i_ctx IMSTree) interface{} {
 func (es *ExecutableStatement) VisitQueryParse(ctx *QueryParse) interface{} {
 	return ctx.queryNoWith
 }
+
 func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) interface{} {
 	if ctx.sortItems != nil {
 		// TODO: Support ORDER BY
@@ -183,6 +185,7 @@ func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) inte
 	es.nodeCursor.payload = sr // For retrieval of the dynamic type later
 	return ctx.queryTerm
 }
+
 func (es *ExecutableStatement) VisitQueryTermParse(ctx *QueryTermParse) interface{} {
 	if ctx.queryPrimary == nil {
 		// TODO: Support JOIN
@@ -190,6 +193,7 @@ func (es *ExecutableStatement) VisitQueryTermParse(ctx *QueryTermParse) interfac
 	}
 	return ctx.queryPrimary
 }
+
 func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) interface{} {
 	if ctx.querySpec == nil {
 		// TODO: Support TABLE, INLINE TABLE and SUBQUERY
@@ -198,7 +202,7 @@ func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) in
 	sr := es.nodeCursor.payload.(*SelectRelation)
 	sr.IsPrimary = true
 	if ctx.subquery != nil {
-		//fmt.Println("Visit Query Primary subquery")
+		// fmt.Println("Visit Query Primary subquery")
 		sr.IsPrimary = false
 		node, err := NewExecutableStatement(ctx.subquery)
 		if err != nil {
@@ -208,6 +212,7 @@ func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) in
 	}
 	return ctx.querySpec
 }
+
 func (es *ExecutableStatement) VisitQuerySpecificationParse(ctx *QuerySpecificationParse) interface{} {
 	/*
 		This is a terminal node for the current executable statement
@@ -268,12 +273,12 @@ func (es *ExecutableStatement) VisitQuerySpecificationParse(ctx *QuerySpecificat
 	*/
 	for _, item := range ctx.relations {
 		i_tableName := es.nodeCursor.Visit(item)
-		//fmt.Println("Gathering relations: ", i_tableName, item, reflect.ValueOf(item).Type())
+		// fmt.Println("Gathering relations: ", i_tableName, item, reflect.ValueOf(item).Type())
 		switch value := i_tableName.(type) {
 		case string:
 			sr.PrimaryTargetName = append(sr.PrimaryTargetName, value)
 		case *SelectRelation:
-			//fmt.Println("Gathered subquery")
+			// fmt.Println("Gathered subquery")
 			sr.IsPrimary = false
 			sr.Subquery = value
 		case error:
@@ -299,12 +304,14 @@ func (es *ExecutableStatement) VisitQuerySpecificationParse(ctx *QuerySpecificat
 	}
 	return nil
 }
+
 func (es *ExecutableStatement) VisitExpressionParse(ctx *ExpressionParse) interface{} {
 	/*
 		1 Child, one of ValueExpression or BooleanExpression
 	*/
 	return es.nodeCursor.Visit(ctx.GetChild(0))
 }
+
 func (es *ExecutableStatement) VisitValueExpressionParse(ctx *ValueExpressionParse) interface{} {
 	/*
 		1 Child, 5 options
@@ -318,6 +325,7 @@ func (es *ExecutableStatement) VisitValueExpressionParse(ctx *ValueExpressionPar
 		return fmt.Errorf("Only Primary Expressions supported")
 	}
 }
+
 func (es *ExecutableStatement) VisitPrimaryExpressionParse(ctx *PrimaryExpressionParse) interface{} {
 	/*
 		1 Child, lots of options
@@ -350,15 +358,19 @@ func (es *ExecutableStatement) VisitPrimaryExpressionParse(ctx *PrimaryExpressio
 			ctx.primaryType.String())
 	}
 }
+
 func (es *ExecutableStatement) VisitIDParse(ctx *IDParse) interface{} {
 	return ctx.name
 }
+
 func (es *ExecutableStatement) VisitRelationParse(ctx *RelationParse) interface{} {
 	return es.nodeCursor.Visit(ctx.sampled)
 }
+
 func (es *ExecutableStatement) VisitSampledRelationParse(ctx *SampledRelationParse) interface{} {
 	return es.nodeCursor.Visit(ctx.aliasedRelation)
 }
+
 func (es *ExecutableStatement) VisitAliasedRelationParse(ctx *AliasedRelationParse) interface{} {
 	if ctx.hasAliases {
 		// TODO: Support table aliases
@@ -366,6 +378,7 @@ func (es *ExecutableStatement) VisitAliasedRelationParse(ctx *AliasedRelationPar
 	}
 	return es.nodeCursor.Visit(ctx.relationPrimary)
 }
+
 func (es *ExecutableStatement) VisitRelationPrimaryParse(ctx *RelationPrimaryParse) interface{} {
 	switch {
 	case ctx.IsTableName || ctx.IsRelation:
@@ -403,6 +416,7 @@ func (es *ExecutableStatement) VisitRelationPrimaryParse(ctx *RelationPrimaryPar
 	}
 	return nil
 }
+
 func (es *ExecutableStatement) VisitQualifiedNameParse(ctx *QualifiedNameParse) interface{} {
 	var buffer bytes.Buffer
 	numberElements := ctx.GetChildCount()
@@ -473,11 +487,11 @@ func (es *ExecutableStatement) VisitBooleanExpressionParse(ctx *BooleanExpressio
 			default:
 				return fmt.Errorf("Unknown type: %s", reflect.ValueOf(value).Type())
 			}
-
 		}
 	}
 	return nil
 }
+
 func (es *ExecutableStatement) VisitPredicateParse(ctx *PredicateParse) interface{} {
 	node := ctx.GetChild(0)
 	switch node.(type) {
@@ -576,7 +590,7 @@ func (es *ExecutableStatement) VisitFunctionCallParse(ctx *FunctionCallParse) in
 }
 
 /*
-Primary Expression Datatypes
+Primary Expression Datatypes.
 */
 type FunctionCallReference struct {
 	Name       string
@@ -622,9 +636,11 @@ func NewColumnReference(name string) (cr *ColumnReference) {
 	cr.Value = NewAliasedIdentifier(name)
 	return cr
 }
+
 func (cr *ColumnReference) GetName() string {
 	return cr.Value.PrimaryName
 }
+
 func (cr *ColumnReference) GetAlias() string {
 	return cr.Value.Alias
 }
@@ -642,7 +658,7 @@ func NewLiteral(value interface{}, pType PrimaryExpressionEnum) (li *Literal) {
 }
 
 /*
-Utility Structs and Functions
+Utility Structs and Functions.
 */
 func CoerceToNumeric(literal *Literal) (err error) {
 	switch literal.Type {

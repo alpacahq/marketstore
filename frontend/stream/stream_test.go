@@ -10,17 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
-	"github.com/alpacahq/marketstore/v4/frontend/stream"
-	"github.com/alpacahq/marketstore/v4/utils/test"
-
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/vmihailenco/msgpack"
 
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/frontend/stream"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func setup(t *testing.T, testName string,
@@ -97,7 +95,6 @@ func TestStream(t *testing.T) {
 	go func() {
 		for {
 			msgType, buf, err := conn.ReadMessage()
-
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 					log.Error("unexpected websocket closure (%v)", err)

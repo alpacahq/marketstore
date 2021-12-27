@@ -16,7 +16,7 @@ func getConfig(data string) (ret map[string]interface{}) {
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	var config = getConfig(`{
+	config := getConfig(`{
         "symbols": ["BTC-USD"]
         }`)
 	var worker *GdaxFetcher

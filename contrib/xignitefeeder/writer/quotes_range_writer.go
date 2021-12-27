@@ -10,12 +10,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-// QuotesRangeWriter is an interface to write the historical daily chart data to the marketstore
+// QuotesRangeWriter is an interface to write the historical daily chart data to the marketstore.
 type QuotesRangeWriter interface {
 	Write(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool) error
 }
 
-// QuotesRangeWriterImpl is an implementation of the QuotesRangeWriter interface
+// QuotesRangeWriterImpl is an implementation of the QuotesRangeWriter interface.
 type QuotesRangeWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
 	Timeframe         string

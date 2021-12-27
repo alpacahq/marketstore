@@ -1,6 +1,5 @@
 package main
 
-
 const getInstrumentsResponseMock = `
 [
    {

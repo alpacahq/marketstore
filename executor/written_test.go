@@ -24,7 +24,7 @@ func NewFakeTrigger(toPanic bool) *FakeTrigger {
 	}
 }
 
-// Fire sends a message to fireC channel when a record is triggered
+// Fire sends a message to fireC channel when a record is triggered.
 func (t *FakeTrigger) Fire(keyPath string, records []trigger.Record) {
 	defer func() { t.fireC <- struct{}{} }()
 
@@ -32,7 +32,6 @@ func (t *FakeTrigger) Fire(keyPath string, records []trigger.Record) {
 		panic("panic")
 	}
 	t.calledWith = append(t.calledWith, []interface{}{keyPath, records})
-
 }
 
 func TestTriggerPluginDispatcher(t *testing.T) {

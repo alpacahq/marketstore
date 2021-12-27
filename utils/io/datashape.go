@@ -13,7 +13,7 @@ type DataShape struct {
 }
 
 // NewDataShapeVector returns a new array of DataShapes for the given array of
-// names and element types
+// names and element types.
 func NewDataShapeVector(names []string, etypes []EnumElementType) (dsv []DataShape) {
 	for i, name := range names {
 		dsv = append(dsv, DataShape{name, etypes[i]})
@@ -21,18 +21,18 @@ func NewDataShapeVector(names []string, etypes []EnumElementType) (dsv []DataSha
 	return dsv
 }
 
-// Len returns the length of the DataShape
+// Len returns the length of the DataShape.
 func (ds *DataShape) Len() (out int) {
 	return ds.Type.Size()
 }
 
-// String returns the colon-separated string of the DataShapes name and type
+// String returns the colon-separated string of the DataShapes name and type.
 func (ds *DataShape) String() (st string) {
 	return ds.Name + ":" + ds.Type.String()
 }
 
 // Equal compares both the name and type of two DataShapes, only returning true
-// if both are equal
+// if both are equal.
 func (ds *DataShape) Equal(shape DataShape) bool {
 	return ds.Name == shape.Name && ds.Type == shape.Type
 }
@@ -87,7 +87,7 @@ func (ds *DataShape) toBytes() ([]byte, error) {
 	return buffer, nil
 }
 
-// dsFromBytes deserializes bytes into a DataShape and return it with its byte length
+// dsFromBytes deserializes bytes into a DataShape and return it with its byte length.
 func dsFromBytes(buf []byte) (DataShape, int) {
 	cursor := 0
 	dsNameLen := int(ToUint8(buf[cursor : cursor+1]))
@@ -101,7 +101,7 @@ func dsFromBytes(buf []byte) (DataShape, int) {
 }
 
 // DSVFromBytes deserializes bytes into an array of datashape (=Data Shape Vector)
-// and return it with its byte length
+// and return it with its byte length.
 func DSVFromBytes(buf []byte) ([]DataShape, int) {
 	if buf == nil {
 		return nil, 0
@@ -121,9 +121,9 @@ func DSVFromBytes(buf []byte) ([]DataShape, int) {
 	return ret, cursor
 }
 
-// DSVToBytes serializes an array of DataShape (=Data Shape Vector) into []byte
+// DSVToBytes serializes an array of DataShape (=Data Shape Vector) into []byte.
 func DSVToBytes(dss []DataShape) ([]byte, error) {
-	var dsLen = uint8(len(dss))
+	dsLen := uint8(len(dss))
 	if dsLen == 0 {
 		return nil, nil
 	}

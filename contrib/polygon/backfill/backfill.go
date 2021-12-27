@@ -24,10 +24,12 @@ type ConsolidatedUpdateInfo struct {
 	UpdateVolume  bool
 }
 
-var WriteTime time.Duration
-var ApiCallTime time.Duration
-var WaitTime time.Duration
-var NoIngest bool
+var (
+	WriteTime   time.Duration
+	ApiCallTime time.Duration
+	WaitTime    time.Duration
+	NoIngest    bool
+)
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
@@ -74,7 +76,7 @@ var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 	// 41: {?, ?, ?}, // Trade Thru Exempt
 	// 42: {?, ?, ?}, // NonEligible
 	// 43: {?, ?, ?}, // NonEligible Extended
-	// 44: {?, ?, ?}, // Cancelled
+	// 44: {?, ?, ?}, // Canceled
 	// 45: {?, ?, ?}, // Recovery
 	// 46: {?, ?, ?}, // Correction
 	// 47: {?, ?, ?}, // As of
@@ -91,7 +93,7 @@ var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 }
 
 var (
-	// NY timezone
+	// NY timezone.
 	NY, _     = time.LoadLocation("America/New_York")
 	ErrRetry  = fmt.Errorf("retry error")
 	BackfillM *sync.Map
@@ -272,7 +274,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 }
 
-func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+func Trades(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
 	trades := make([]api.TradeTick, 0)
 	t := time.Now()
 	for date := from; to.After(date); date = date.Add(24 * time.Hour) {

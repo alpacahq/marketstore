@@ -29,9 +29,8 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/plugins"
 	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // Trigger is an interface every trigger plugin has to implement.
@@ -52,21 +51,21 @@ type TriggerMatcher struct {
 	On string
 }
 
-// SymbolLoader is an interface to retrieve symbol object from plugin
+// SymbolLoader is an interface to retrieve symbol object from plugin.
 type SymbolLoader interface {
 	LoadSymbol(symbolName string) (interface{}, error)
 }
 
 // Record represents a serialized byte buffer
-// for a record written to the DB
+// for a record written to the DB.
 type Record []byte
 
-// Bytes returns the raw record buffer
+// Bytes returns the raw record buffer.
 func (r *Record) Bytes() []byte {
 	return *r
 }
 
-// Index returns the index of the record
+// Index returns the index of the record.
 func (r *Record) Index() int64 {
 	if r == nil {
 		return 0
@@ -75,7 +74,7 @@ func (r *Record) Index() int64 {
 }
 
 // Payload returns the data payload of the record,
-// excluding the index
+// excluding the index.
 func (r *Record) Payload() []byte {
 	if r == nil {
 		return nil
@@ -92,7 +91,6 @@ func RecordsToColumnSeries(
 	tf time.Duration,
 	year int16,
 	records []Record) *io.ColumnSeries {
-
 	cs := io.NewColumnSeries()
 
 	index := 0

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//TradeBucketedResponse json from bitMEX bucketed trade API
+//TradeBucketedResponse json from bitMEX bucketed trade API.
 type TradeBucketedResponse struct {
 	Timestamp       string  `json:"timestamp"`
 	Symbol          string  `json:"symbol"`
@@ -26,7 +26,7 @@ type TradeBucketedResponse struct {
 	ForeignNotional float64 `json:"foreignNotional"`
 }
 
-// BitmexClient with direct API methods
+// BitmexClient with direct API methods.
 type BitmexClient struct {
 	Client        *http.Client
 	baseURL       string
@@ -34,7 +34,7 @@ type BitmexClient struct {
 	bitmexBinSize map[string]string
 }
 
-// NewBitmexClient is the constructor of the BitmexClient
+// NewBitmexClient is the constructor of the BitmexClient.
 func NewBitmexClient(hc *http.Client) *BitmexClient {
 	return &BitmexClient{
 		Client:  hc,
@@ -49,7 +49,7 @@ func NewBitmexClient(hc *http.Client) *BitmexClient {
 	}
 }
 
-// GetInstruments from bitmex API
+// GetInstruments from bitmex API.
 func (c *BitmexClient) GetInstruments() ([]string, error) {
 	reqURL := c.baseURL + c.apiURL + "/instrument/active"
 	res, err := c.Client.Get(reqURL)
@@ -71,7 +71,7 @@ func (c *BitmexClient) GetInstruments() ([]string, error) {
 	return symbols, nil
 }
 
-// GetBuckets from bitmex Trade API
+// GetBuckets from bitmex Trade API.
 func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedResponse, error) {
 	resp := []TradeBucketedResponse{}
 

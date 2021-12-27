@@ -6,23 +6,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
-	"github.com/alpacahq/marketstore/v4/utils/io"
-
 	rpc "github.com/alpacahq/rpc/rpc2"
 	"github.com/alpacahq/rpc/rpc2/json2"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/metrics"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 )
 
-var (
-	queryableError = errors.New("server is not queryable")
-)
+var queryableError = errors.New("server is not queryable")
 
 type Writer interface {
 	WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error

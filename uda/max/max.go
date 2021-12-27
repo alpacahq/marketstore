@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -30,9 +29,11 @@ type Max struct {
 func (ma *Max) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (ma *Max) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (ma *Max) GetInitArgs() []io.DataShape {
 	return initArgs
 }

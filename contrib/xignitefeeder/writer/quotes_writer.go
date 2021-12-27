@@ -11,12 +11,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// QuotesWriter is an interface to write the realtime stock data to the marketstore
+// QuotesWriter is an interface to write the realtime stock data to the marketstore.
 type QuotesWriter interface {
 	Write(resp api.GetQuotesResponse) error
 }
 
-// QuotesWriterImpl is an implementation of the QuotesWriter interface
+// QuotesWriterImpl is an implementation of the QuotesWriter interface.
 type QuotesWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
 	Timeframe         string
@@ -52,7 +52,7 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 		}
 
 		// choose a latest time among askDateTime, BidDatetime and DateTime
-		var latestDateTime = getLatestTime(
+		latestDateTime := getLatestTime(
 			time.Time(eq.Quote.DateTime),
 			time.Time(eq.Quote.AskDateTime),
 			time.Time(eq.Quote.BidDateTime),
@@ -93,7 +93,7 @@ func (q QuotesWriterImpl) newColumnSeries(epoch int64, eq api.EquityQuote) *io.C
 	return cs
 }
 
-// getLatestTime return the latest time among 3 datetimes
+// getLatestTime return the latest time among 3 datetimes.
 func getLatestTime(dt1, dt2, dt3 time.Time) time.Time {
 	u1, u2, u3 := dt1.Unix(), dt2.Unix(), dt3.Unix()
 	if u1 > u2 {

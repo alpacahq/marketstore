@@ -159,7 +159,6 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	var resp GetBarsResponse
 
 	body, err := ioutil.ReadAll(res.Body)
-
 	if err != nil {
 		return nil, err
 	}

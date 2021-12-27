@@ -38,8 +38,10 @@ func TestNewConfig(t *testing.T) {
 				"ALPACA_BROKER_FEEDER_UPDATE_TIME":    "20:00:00",
 			},
 			want: &configs.DefaultConfig{
-				Exchanges: []configs.Exchange{configs.AMEX, configs.ARCA, configs.BATS, configs.NYSE,
-					configs.NASDAQ, configs.NYSEARCA, configs.OTC},
+				Exchanges: []configs.Exchange{
+					configs.AMEX, configs.ARCA, configs.BATS, configs.NYSE,
+					configs.NASDAQ, configs.NYSEARCA, configs.OTC,
+				},
 				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
 				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
 				UpdateTime:          time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC),
@@ -52,8 +54,10 @@ func TestNewConfig(t *testing.T) {
 			config:  testConfig,
 			envVars: map[string]string{},
 			want: &configs.DefaultConfig{
-				Exchanges: []configs.Exchange{configs.AMEX, configs.ARCA, configs.BATS, configs.NYSE,
-					configs.NASDAQ, configs.NYSEARCA, configs.OTC},
+				Exchanges: []configs.Exchange{
+					configs.AMEX, configs.ARCA, configs.BATS, configs.NYSE,
+					configs.NASDAQ, configs.NYSEARCA, configs.OTC,
+				},
 				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
 				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
 				UpdateTime:          time.Date(0, 1, 1, 12, 34, 56, 0, time.UTC),
@@ -74,7 +78,7 @@ func TestNewConfig(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			// avoid env vars being used by multiple tests in parallel
-			//t.Parallel()
+			// t.Parallel()
 
 			// --- given ---
 			for key, value := range tt.envVars {

@@ -5,16 +5,15 @@ import (
 	"math"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/models/enum"
-
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const barSuffix = "OHLCV"
 
-// Bar is a data model to persist arrays of Ask-Bid quotes
+// Bar is a data model to persist arrays of Ask-Bid quotes.
 type Bar struct {
 	Tbk                    *io.TimeBucketKey
 	Csm                    io.ColumnSeriesMap
@@ -24,12 +23,12 @@ type Bar struct {
 	WriteTime              time.Duration
 }
 
-// BarBucketKey returns a string bucket key for a given symbol and timeframe
+// BarBucketKey returns a string bucket key for a given symbol and timeframe.
 func BarBucketKey(symbol, timeframe string) string {
 	return symbol + "/" + timeframe + "/" + barSuffix
 }
 
-// NewBar creates a new Bar object and initializes it's internal column buffers to the given capacity
+// NewBar creates a new Bar object and initializes it's internal column buffers to the given capacity.
 func NewBar(symbol, timeframe string, capacity int) *Bar {
 	model := &Bar{
 		Tbk: io.NewTimeBucketKey(BarBucketKey(symbol, timeframe)),
@@ -39,17 +38,17 @@ func NewBar(symbol, timeframe string, capacity int) *Bar {
 	return model
 }
 
-// Key returns the key of the model's time bucket
+// Key returns the key of the model's time bucket.
 func (model Bar) Key() string {
 	return model.Tbk.GetItemKey()
 }
 
-// Len returns the length of the internal column buffers
+// Len returns the length of the internal column buffers.
 func (model *Bar) Len() int {
 	return len(model.Epoch)
 }
 
-// Symbol returns the Symbol part if the TimeBucketKey of this model
+// Symbol returns the Symbol part if the TimeBucketKey of this model.
 func (model *Bar) Symbol() string {
 	return model.Tbk.GetItemInCategory("Symbol")
 }
@@ -64,7 +63,7 @@ func (model *Bar) make(capacity int) {
 	model.Volume = make([]enum.Size, 0, capacity)
 }
 
-// Add adds a new data point to the internal buffers, and increment the internal index by one
+// Add adds a new data point to the internal buffers, and increment the internal index by one.
 func (model *Bar) Add(epoch int64, open, high, low, close enum.Price, volume enum.Size) {
 	model.Epoch = append(model.Epoch, epoch)
 	model.Open = append(model.Open, open)
@@ -86,7 +85,7 @@ func (model *Bar) GetCs() *io.ColumnSeries {
 }
 
 // BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
-// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk
+// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk.
 func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 	cs := model.GetCs()
@@ -158,7 +157,7 @@ var ConditionToUpdateInfo = map[enum.TradeCondition]ConsolidatedUpdateInfo{
 	// 41: {?, ?, ?}, // Trade Thru Exempt
 	// 42: {?, ?, ?}, // NonEligible
 	// 43: {?, ?, ?}, // NonEligible Extended
-	// 44: {?, ?, ?}, // Cancelled
+	// 44: {?, ?, ?}, // Canceled
 	// 45: {?, ?, ?}, // Recovery
 	// 46: {?, ?, ?}, // Correction
 	// 47: {?, ?, ?}, // As of
@@ -188,7 +187,7 @@ func conditionToUpdateInfo(conditions []enum.TradeCondition) ConsolidatedUpdateI
 	return r
 }
 
-func FromTrades(trades *Trade, symbol string, timeframe string) (*Bar, error) {
+func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 	bar := NewBar(symbol, timeframe, len(trades.Epoch))
 
 	var bucketDuration time.Duration
@@ -295,7 +294,6 @@ func FromTrades(trades *Trade, symbol string, timeframe string) (*Bar, error) {
 				volume += trades.Size[i]
 			}
 		}
-
 	}
 
 	if open != 0 && volume != 0 {

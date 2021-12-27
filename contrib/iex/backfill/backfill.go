@@ -29,7 +29,7 @@ var (
 	from string
 	to   string
 
-	// NY timezone
+	// NY timezone.
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
 )

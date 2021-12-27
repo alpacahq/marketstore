@@ -2,13 +2,12 @@ package ftp
 
 import (
 	"io/ioutil"
-
-	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type Downloader struct {
@@ -21,7 +20,7 @@ type Downloader struct {
 
 type FileInfoMap map[string]os.FileInfo
 
-func NewDownloader(client FtpClient, ftpPath string, storagePath string, filePrefix string) *Downloader {
+func NewDownloader(client FtpClient, ftpPath, storagePath, filePrefix string) *Downloader {
 	return &Downloader{
 		client:        client,
 		ftpPath:       ftpPath,

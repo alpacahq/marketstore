@@ -3,11 +3,10 @@ package frontend_test
 import (
 	"testing"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 )
 
 func TestNewServer(t *testing.T) {

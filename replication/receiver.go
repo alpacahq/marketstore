@@ -13,7 +13,7 @@ type Receiver struct {
 	replayer   Replayer
 }
 
-// GRPCClient is an interface to abstract GRPCReplicationClient
+// GRPCClient is an interface to abstract GRPCReplicationClient.
 type GRPCClient interface {
 	Connect(ctx context.Context) error
 	Recv() ([]byte, error)

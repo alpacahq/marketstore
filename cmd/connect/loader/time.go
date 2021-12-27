@@ -8,7 +8,6 @@ import (
 )
 
 func parseTime(format, dateTime string, tzLoc *time.Location, formatFixupState int) (parsedTime time.Time, err error) {
-
 	dateString := dateTime[:len(dateTime)-formatFixupState]
 	if format == "timestamp" {
 		parts := strings.Split(dateTime, ".")

@@ -25,7 +25,7 @@ type FetcherConfig struct {
 	BaseURL string `json:"base_url"`
 }
 
-// NewBgWorker creates a new bgworker for polygon/IEX
+// NewBgWorker creates a new bgworker for polygon/IEX.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}

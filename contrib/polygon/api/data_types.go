@@ -4,7 +4,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/models/enum"
 )
 
-// mapping between Polygon's integer exchange codes and Marketstore's internal representation
+// mapping between Polygon's integer exchange codes and Marketstore's internal representation.
 var exchangeCodeMapping = map[int]enum.Exchange{
 	1:  enum.NYSEAmerican,
 	2:  enum.NasdaqOMXBX,
@@ -27,7 +27,7 @@ var exchangeCodeMapping = map[int]enum.Exchange{
 	19: enum.CboeBZX,
 }
 
-// ConvertExchangeCode converts a Polygon exchange id to the internal representation
+// ConvertExchangeCode converts a Polygon exchange id to the internal representation.
 func ConvertExchangeCode(exchange int) enum.Exchange {
 	val, ok := exchangeCodeMapping[exchange]
 	if !ok {
@@ -42,7 +42,7 @@ var tapeCodeMapping = map[int]enum.Tape{
 	3: enum.TapeC,
 }
 
-// ConvertTapeCode converts between Polygons' TapeID and Marketstore's internal representation
+// ConvertTapeCode converts between Polygons' TapeID and Marketstore's internal representation.
 func ConvertTapeCode(tape int) enum.Tape {
 	t, ok := tapeCodeMapping[tape]
 	if !ok {
@@ -51,7 +51,7 @@ func ConvertTapeCode(tape int) enum.Tape {
 	return t
 }
 
-// TradeConditionMapping provides a mapping from Polygon integer format to Marketstore's internal representation
+// TradeConditionMapping provides a mapping from Polygon integer format to Marketstore's internal representation.
 var TradeConditionMapping = map[int]enum.TradeCondition{
 	0:  enum.RegularSale,
 	1:  enum.Acquisition,
@@ -87,7 +87,7 @@ var TradeConditionMapping = map[int]enum.TradeCondition{
 	53: enum.QualifiedContingentTrade,
 }
 
-// ConvertTradeCondition converts between Polygon trade condition format and Marketstore's internal represention
+// ConvertTradeCondition converts between Polygon trade condition format and Marketstore's internal represention.
 func ConvertTradeCondition(condition int) enum.TradeCondition {
 	val, ok := TradeConditionMapping[condition]
 	if !ok {
@@ -113,17 +113,17 @@ var QuoteConditionMapping = map[int]enum.QuoteCondition{
 	13: enum.OpeningQuote,
 	14: enum.ClosingQuote,
 	15: enum.ClosedQuote,
-	//16: enum.Resume,
+	// 16: enum.Resume,
 	17: enum.FastTrading,
-	//18: enum.TradingRangeIndication,
+	// 18: enum.TradingRangeIndication,
 	19: enum.MarketMakerQuotesClosed,
 	20: enum.NonFirmQuote,
-	//21: enum.NewsDissemination,
+	// 21: enum.NewsDissemination,
 	22: enum.OrderInflux,
 	23: enum.OrderImbalance,
-	//24: enum.DueToRelatedSecurityNewsDissemination,
-	//25: enum.DueToRelatedSecurityNewsPending,
-	//26: enum.AdditionalInformation,
+	// 24: enum.DueToRelatedSecurityNewsDissemination,
+	// 25: enum.DueToRelatedSecurityNewsPending,
+	// 26: enum.AdditionalInformation,
 	// 27: enum.NewsPending,
 	// 28: enum.AdditionalInformationDueToRelatedSecurity,
 	// 29: enum.DueToRelatedSecurity,
@@ -144,7 +144,7 @@ var QuoteConditionMapping = map[int]enum.QuoteCondition{
 	// 71: enum.SlowDueLRPBidAsk,
 }
 
-// ConvertQuoteCondition converts between Polygon trade condition format and Marketstore's internal represention
+// ConvertQuoteCondition converts between Polygon trade condition format and Marketstore's internal represention.
 func ConvertQuoteCondition(condition int) enum.QuoteCondition {
 	val, ok := QuoteConditionMapping[condition]
 	if !ok {

@@ -10,7 +10,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// Backfill aggregates daily chart data using Xignite API and store it to
+// Backfill aggregates daily chart data using Xignite API and store it to.
 type Backfill struct {
 	symbolManager symbols.Manager
 	apiClient     api.Client
@@ -19,16 +19,17 @@ type Backfill struct {
 	since         time.Time
 }
 
-// NewBackfill initializes the module to backfill the historical daily chart data to marketstore
+// NewBackfill initializes the module to backfill the historical daily chart data to marketstore.
 func NewBackfill(symbolManager symbols.Manager, apiClient api.Client, writer writer.QuotesWriter,
 	rangeWriter writer.QuotesRangeWriter, Since time.Time,
 ) *Backfill {
-	return &Backfill{symbolManager: symbolManager, apiClient: apiClient,
+	return &Backfill{
+		symbolManager: symbolManager, apiClient: apiClient,
 		writer: writer, rangeWriter: rangeWriter, since: Since,
 	}
 }
 
-// Update calls UpdateSymbols and UpdateIndexSymbols functions sequentially
+// Update calls UpdateSymbols and UpdateIndexSymbols functions sequentially.
 func (b *Backfill) Update() {
 	b.UpdateSymbols()
 	b.UpdateIndexSymbols()
@@ -36,13 +37,12 @@ func (b *Backfill) Update() {
 	b.UpdateClosingPrice()
 }
 
-// UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore
+// UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
 func (b *Backfill) UpdateSymbols() {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIdentifiers() {
 		// call a Xignite API to get the historical data
 		resp, err := b.apiClient.GetQuotesRange(identifier, b.since, endDate)
-
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
@@ -67,13 +67,12 @@ func (b *Backfill) UpdateSymbols() {
 }
 
 // UpdateIndexSymbols aggregates daily chart data of index symbols
-// since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore
+// since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
 func (b *Backfill) UpdateIndexSymbols() {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIndexIdentifiers() {
 		// call a Xignite API to get the historical data
 		resp, err := b.apiClient.GetIndexQuotesRange(identifier, b.since, endDate)
-
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)

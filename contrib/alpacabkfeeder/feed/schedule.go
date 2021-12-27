@@ -19,7 +19,7 @@ import (
 // "20" -> [20] (00:10, 01:10, ..., 23:10)
 // "100" -> error (minute must be between 0 and 59)
 // "One" -> error (numbers must be used)
-// "0-10" -> error (range is not supported)
+// "0-10" -> error (range is not supported).
 func ParseSchedule(s string) ([]int, error) {
 	if s == "" {
 		log.Debug("[alpaca] no schedule is set for off_hours")

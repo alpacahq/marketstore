@@ -117,7 +117,7 @@ TEL: 800 680-0661
 **********************************************************************          
 99999999999999999999999999999999999999999999999999999999999999999999999999999999
 `
-	var announcements = []Announcement{}
+	announcements := []Announcement{}
 	readRecords(input, &announcements)
 
 	assert.Equal(t, len(announcements), 2)

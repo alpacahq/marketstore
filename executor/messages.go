@@ -1,7 +1,7 @@
 package executor
 
 // Message Types for WAL Messages
-// --- Message ID
+// --- Message ID.
 type MIDEnum int8
 
 const (
@@ -10,7 +10,7 @@ const (
 	STATUS
 )
 
-// --- Destination ID
+// --- Destination ID.
 type DestEnum int8
 
 const (
@@ -18,7 +18,7 @@ const (
 	CHECKPOINT
 )
 
-// --- Status
+// --- Status.
 type TxnStatusEnum int8
 
 const (

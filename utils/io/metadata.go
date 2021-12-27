@@ -2,22 +2,23 @@ package io
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
-	"sync"
-	"unsafe"
-
-	"fmt"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const Headersize = 37024
-const FileinfoVersion = int64(2.0)
+const (
+	Headersize      = 37024
+	FileinfoVersion = int64(2.0)
+)
 
 func nanosecondsInYear(year int) int64 {
 	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
@@ -25,8 +26,8 @@ func nanosecondsInYear(year int) int64 {
 	return end.Sub(start).Nanoseconds()
 }
 
-// FileSize returns the necessary size for a data file
-func FileSize(tf time.Duration, year int, recordSize int) int64 {
+// FileSize returns the necessary size for a data file.
+func FileSize(tf time.Duration, year, recordSize int) int64 {
 	return Headersize + (nanosecondsInYear(year)/tf.Nanoseconds())*int64(recordSize)
 }
 
@@ -191,14 +192,14 @@ func (f *TimeBucketInfo) GetNelements() int32 {
 }
 
 // GetRecordLength returns the length of a single record in the file described
-// by the given TimeBucketInfo
+// by the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetRecordLength() int32 {
 	f.once.Do(f.initFromFile)
 	return f.recordLength
 }
 
 // GetVariableRecordLength returns the length of a single record for a variable
-// length TimeBucketInfo file
+// length TimeBucketInfo file.
 func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
 	f.once.Do(f.initFromFile)
 
@@ -210,28 +211,28 @@ func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
 }
 
 // GetRecordType returns the type of the file described by the TimeBucketInfo
-// as an EnumRecordType
+// as an EnumRecordType.
 func (f *TimeBucketInfo) GetRecordType() EnumRecordType {
 	f.once.Do(f.initFromFile)
 	return f.recordType
 }
 
 // GetElementNames returns the field names contained by the file described by
-// the given TimeBucketInfo
+// the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetElementNames() []string {
 	f.once.Do(f.initFromFile)
 	return f.elementNames
 }
 
 // GetElementTypes returns the field types contained by the file described by
-// the given TimeBucketInfo
+// the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetElementTypes() []EnumElementType {
 	f.once.Do(f.initFromFile)
 	return f.elementTypes
 }
 
 // SetElementTypes sets the field types contained by the file described by
-// the given TimeBucketInfo
+// the given TimeBucketInfo.
 func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 	if len(newTypes) != len(f.elementTypes) {
 		return fmt.Errorf("Element count not equal")
@@ -307,14 +308,14 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	}
 }
 
-// NewTimeBucketInfoFromHeader creates a TimeBucketInfo from a given Header
+// NewTimeBucketInfoFromHeader creates a TimeBucketInfo from a given Header.
 func NewTimeBucketInfoFromHeader(hp *Header, path string) *TimeBucketInfo {
 	tbi := new(TimeBucketInfo)
 	tbi.load(hp, path)
 	return tbi
 }
 
-// Header is the on-disk byte representation of the file header
+// Header is the on-disk byte representation of the file header.
 type Header struct {
 	Version      int64
 	Description  [256]byte
@@ -340,7 +341,7 @@ func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 	return err
 }
 
-// Load loads the header information from a given TimeBucketInfo
+// Load loads the header information from a given TimeBucketInfo.
 func (hp *Header) Load(f *TimeBucketInfo) {
 	if f.GetVersion() != FileinfoVersion {
 		log.Warn(

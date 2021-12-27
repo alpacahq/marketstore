@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils/test"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockMetricsSetter struct {
@@ -31,7 +32,7 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 			" regardless of the allocated filesize": {
 			setFilesFunc: func(tt testCase, rootDir string) error {
 				fileName := rootDir + "/example"
-				fp, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0600)
+				fp, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0o600)
 				assert.Nil(t, err)
 
 				// truncate => allocate the filesize, writeBuffer => write actual data
@@ -61,7 +62,6 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 
 			// --- tearDown ---
 			test.CleanupDummyDataDir(rootDir)
-
 		})
 	}
 }
