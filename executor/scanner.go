@@ -313,7 +313,7 @@ func (r *Reader) read(iop *ioplan) (resultBuffer []byte, err error) {
 	} else {
 		limitBytes = math.MaxInt32
 		if direction == LAST {
-			return nil, fmt.Errorf("Reverse scan only supported with a limited result set")
+			return nil, fmt.Errorf("reverse scan only supported with a limited result set")
 		}
 	}
 

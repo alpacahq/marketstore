@@ -5,7 +5,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package msgpack2
+package msgpack2_test
 
 import (
 	"bytes"
@@ -13,6 +13,8 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+
+	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 
 	rpc "github.com/alpacahq/rpc/rpc2"
 	msgpack "github.com/vmihailenco/msgpack"
@@ -112,11 +114,13 @@ func (t *Service1) ResponseError(r *http.Request, req *Service1Request, res *Ser
 }
 
 func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) error {
+	t.Helper()
+
 	if !s.HasMethod(method) {
 		t.Fatal("Expected to be registered:", method)
 	}
 
-	buf, _ := EncodeClientRequest(method, req)
+	buf, _ := msgpack2.EncodeClientRequest(method, req)
 	body := bytes.NewBuffer(buf)
 	r, _ := http.NewRequest("POST", "http://localhost:8080/", body)
 	r.Header.Set("Content-Type", "application/x-msgpack")
@@ -124,7 +128,7 @@ func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) e
 	w := NewRecorder()
 	s.ServeHTTP(w, r)
 
-	return DecodeClientResponse(w.Body, res)
+	return msgpack2.DecodeClientResponse(w.Body, res)
 }
 
 func executeRaw(t *testing.T, s *rpc.Server, req, res interface{}) error {
@@ -135,13 +139,13 @@ func executeRaw(t *testing.T, s *rpc.Server, req, res interface{}) error {
 	w := NewRecorder()
 	s.ServeHTTP(w, r)
 
-	return DecodeClientResponse(w.Body, res)
+	return msgpack2.DecodeClientResponse(w.Body, res)
 }
 
 func TestService(t *testing.T) {
 	t.Parallel()
 	s := rpc.NewServer()
-	s.RegisterCodec(NewCodec(), "application/x-msgpack")
+	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
 	s.RegisterService(new(Service1), "")
 
 	var res Service1Response
@@ -196,9 +200,9 @@ func TestDecodeNullResult(t *testing.T) {
 	reader := bytes.NewReader(data)
 	var result interface{}
 
-	err := DecodeClientResponse(reader, &result)
+	err := msgpack2.DecodeClientResponse(reader, &result)
 
-	if err != ErrNullResult {
+	if err != msgpack2.ErrNullResult {
 		t.Error("Expected err no be ErrNullResult, but got:", err)
 	}
 

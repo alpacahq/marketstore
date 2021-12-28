@@ -33,7 +33,7 @@ func Load(loader SymbolLoader, config map[string]interface{}) (BgWorker, error) 
 	symbolName := "NewBgWorker"
 	sym, err := loader.LoadSymbol(symbolName)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to load %s", symbolName)
+		return nil, fmt.Errorf("unable to load %s", symbolName)
 	}
 
 	newFunc, ok := sym.(func(map[string]interface{}) (BgWorker, error))

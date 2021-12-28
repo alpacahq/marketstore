@@ -104,7 +104,7 @@ func parseTime(t string) (out time.Time, err error) {
 	*/
 	switch len(t) {
 	case 0:
-		return out, fmt.Errorf("Zero length time string")
+		return out, fmt.Errorf("zero length time string")
 	case 10:
 		return time.Parse("2006-01-02", t)
 	case 16:
@@ -112,6 +112,6 @@ func parseTime(t string) (out time.Time, err error) {
 	case 18:
 		return time.Parse("20060102 150405999", t)
 	default:
-		return out, errors.New("Invalid time format")
+		return out, errors.New("invalid time format")
 	}
 }

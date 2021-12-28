@@ -99,7 +99,7 @@ func pullDate(t time.Time) error {
 		}
 		return fmt.Errorf("failed to getHIST: %w", err)
 	} else if len(histData) == 0 {
-		panic(fmt.Errorf("Found %v available data feeds", len(histData)))
+		panic(fmt.Errorf("found %v available data feeds", len(histData)))
 	}
 
 	// Fetch the pcap dump for that date and iterate through its messages.

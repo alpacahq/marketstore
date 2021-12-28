@@ -185,7 +185,7 @@ func (cs *ColumnSeries) Project(keepList []string) error {
 	for _, name := range keepList {
 		col := cs.GetByName(name)
 		if col == nil {
-			return fmt.Errorf("Column named: %s not found", name)
+			return fmt.Errorf("column named: %s not found", name)
 		}
 		newCols[name] = col
 		newNames = append(newNames, name)

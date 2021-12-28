@@ -51,7 +51,7 @@ func (is *InsertIntoStatement) Materialize(aggRunner *AggRunner, catDir *catalog
 	*/
 	targetMK := io.NewTimeBucketKey(is.TableName)
 	if targetMK == nil {
-		return nil, fmt.Errorf("Table name must be in the format `one/two/three`, have: %s",
+		return nil, fmt.Errorf("table name must be in the format `one/two/three`, have: %s",
 			is.TableName)
 	}
 

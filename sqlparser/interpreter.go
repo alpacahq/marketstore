@@ -62,5 +62,5 @@ type DescriptiveErrorListener struct {
 
 func (de *DescriptiveErrorListener) SyntaxError(recognizer Recognizer, offendingSymbol interface{},
 	line, column int, msg string, e RecognitionException) {
-	de.err = fmt.Errorf("Syntax Error[%d:%d]: %s", line, column, msg)
+	de.err = fmt.Errorf("syntax Error[%d:%d]: %s", line, column, msg)
 }

@@ -1,8 +1,10 @@
-package pool
+package pool_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/pool"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +16,7 @@ func TestPool(t *testing.T) {
 	job := func(input interface{}) {
 		jobCount++
 	}
-	p := NewPool(10, job)
+	p := pool.NewPool(10, job)
 
 	cc := make(chan interface{})
 	go p.Work(cc)

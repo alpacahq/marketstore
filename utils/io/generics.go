@@ -19,11 +19,11 @@ func NewAnySet(i_elems interface{}) (as *AnySet, err error) {
 
 	if !(refValue.Kind() == reflect.Slice ||
 		refValue.Kind() == reflect.Array) {
-		return nil, fmt.Errorf("Unable to build set from non-slice type")
+		return nil, fmt.Errorf("unable to build set from non-slice type")
 	}
 
 	if refValue.Len() == 0 {
-		return nil, fmt.Errorf("Empty input to AnySet")
+		return nil, fmt.Errorf("empty input to AnySet")
 	}
 
 	firstElement := refValue.Index(0)
@@ -101,11 +101,11 @@ func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 
 	if !(refValue.Kind() == reflect.Slice ||
 		refValue.Kind() == reflect.Array) {
-		return fmt.Errorf("Unable to do intersect of a non-slice type")
+		return fmt.Errorf("unable to do intersect of a non-slice type")
 	}
 
 	if refValue.Len() == 0 {
-		return fmt.Errorf("Empty input to intersect")
+		return fmt.Errorf("empty input to intersect")
 	}
 
 	emptyValue := reflect.ValueOf(nil)
@@ -133,7 +133,7 @@ func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 
 	if !(refValue.Kind() == reflect.Slice ||
 		refValue.Kind() == reflect.Array) {
-		return fmt.Errorf("Unable to do intersect of a non-slice type")
+		return fmt.Errorf("unable to do intersect of a non-slice type")
 	}
 
 	if refValue.Len() == 0 {
@@ -196,7 +196,7 @@ func DownSizeSlice(i_slice interface{}, newLen int, direction DirectionEnum) (i_
 
 	if !(refValue.Kind() == reflect.Slice ||
 		refValue.Kind() == reflect.Array) {
-		return nil, fmt.Errorf("Unable to resize non-slice type")
+		return nil, fmt.Errorf("unable to resize non-slice type")
 	}
 
 	oldLen := refValue.Len()
@@ -244,7 +244,7 @@ func GenericComparison(left, right interface{},
 	if err == nil {
 		r_float, err = GetValueAsFloat64(right)
 		if err != nil {
-			return false, fmt.Errorf("Left and right values do not match")
+			return false, fmt.Errorf("left and right values do not match")
 		}
 		switch op {
 		case LT:
@@ -262,7 +262,7 @@ func GenericComparison(left, right interface{},
 	if err == nil {
 		r_int, err = GetValueAsInt64(right)
 		if err != nil {
-			return false, fmt.Errorf("Left and right values do not match")
+			return false, fmt.Errorf("left and right values do not match")
 		}
 		switch op {
 		case LT:
@@ -292,7 +292,7 @@ func GetValueAsFloat64(i_value interface{}) (val float64, err error) {
 	case float64:
 		val = value
 	default:
-		return 0, fmt.Errorf("Not a float")
+		return 0, fmt.Errorf("not a float")
 	}
 	return val, nil
 }
@@ -310,7 +310,7 @@ func GetValueAsInt64(i_value interface{}) (val int64, err error) {
 	case float64:
 		val = int64(value)
 	default:
-		return 0, fmt.Errorf("Not an int")
+		return 0, fmt.Errorf("not an int")
 	}
 	return val, nil
 }

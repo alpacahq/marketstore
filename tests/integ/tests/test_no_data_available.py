@@ -224,7 +224,7 @@ def test_symbol_does_not_exist(symbol, timeframe, start, end):
 
     param = pymkts.Params([symbol], "1Sec", "TICK", start=start, end=end)
     with pytest.raises(Exception) as excinfo:
-        # resp = {'error': {'code': -32000, 'data': None, 'message': 'No files returned from query parse'}, 'id': '1', 'jsonrpc': '2.0'} # noqa
+        # resp = {'error': {'code': -32000, 'data': None, 'message': 'no files returned from query parse'}, 'id': '1', 'jsonrpc': '2.0'} # noqa
         # pymarketstore/jsonrpc.py:48: Exception
         client.query(param)
     assert "No files returned from query parse" in str(excinfo.value)

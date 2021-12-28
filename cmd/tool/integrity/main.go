@@ -162,7 +162,7 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 		checkFile = checkFile[:len(checkFile)-4]
 		year, _ := strconv.Atoi(filepath.Base(checkFile))
 		if year < yearStart || year > yearEnd {
-			return fmt.Errorf("Incorrect start or end dates")
+			return fmt.Errorf("incorrect start or end dates")
 		}
 
 		// Subtract the header size to get our gross chunksize

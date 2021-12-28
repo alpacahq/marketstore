@@ -170,13 +170,13 @@ func (nmds *NumpyMultiDataset) ToColumnSeriesMap() (csm ColumnSeriesMap, err err
 
 func (nmds *NumpyMultiDataset) Append(cs *ColumnSeries, tbk TimeBucketKey) (err error) {
 	if len(nmds.ColumnData) != cs.GetNumColumns() {
-		err = errors.New("Length of columns mismatch with NumpyMultiDataset")
+		err = errors.New("length of columns mismatch with NumpyMultiDataset")
 		return
 	}
 	colSeriesNames := cs.GetColumnNames()
 	for idx, name := range nmds.ColumnNames {
 		if name != colSeriesNames[idx] {
-			err = errors.New("Data shape mismatch of ColumnSeries and NumpyMultiDataset")
+			err = errors.New("data shape mismatch of ColumnSeries and NumpyMultiDataset")
 			return
 		}
 	}

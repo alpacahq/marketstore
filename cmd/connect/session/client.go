@@ -239,12 +239,12 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	}
 	i_epoch := cs.GetByName("Epoch")
 	if i_epoch == nil {
-		return fmt.Errorf("Epoch column not present in output")
+		return fmt.Errorf("epoch column not present in output")
 	}
 	var epoch []int64
 	var ok bool
 	if epoch, ok = i_epoch.([]int64); !ok {
-		return fmt.Errorf("Unable to convert Epoch column")
+		return fmt.Errorf("unable to convert Epoch column")
 	}
 
 	if writer == nil {

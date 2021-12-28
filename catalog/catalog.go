@@ -133,7 +133,7 @@ func writeCategoryNameFile(catName, dirName string) error {
 		}
 		catNameFromFile := string(buffer)
 		if catNameFromFile != catName {
-			return fmt.Errorf("Category name does not match on-disk name")
+			return fmt.Errorf("category name does not match on-disk name")
 		}
 		return nil
 	}
@@ -670,7 +670,7 @@ func removeDirFiles(td *Directory) {
 
 func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err error) {
 	if newTimeBucketInfo == nil {
-		return fmt.Errorf("Null fileinfo")
+		return fmt.Errorf("null fileinfo")
 	}
 
 	// If file already exists in this directory, return an error

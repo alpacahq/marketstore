@@ -93,11 +93,11 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		dsv = inputColumnSeries.GetDataShapes()
 	} else {
 		if len(sr.PrimaryTargetName) == 0 {
-			return nil, fmt.Errorf("Unable to retrieve table name")
+			return nil, fmt.Errorf("unable to retrieve table name")
 		}
 		key = io.NewTimeBucketKey(sr.PrimaryTargetName[0], "Symbol/Timeframe/AttributeGroup")
 		if key == nil {
-			return nil, fmt.Errorf("Table name must match \"one/two/three\" for three directory levels")
+			return nil, fmt.Errorf("table name must match \"one/two/three\" for three directory levels")
 		}
 		dsv, err = catDir.GetDataShapes(key)
 		if err != nil {
@@ -153,7 +153,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			if sp.ContentsEnum.IsSet(MINBOUND) {
 				val, err := io.GetValueAsInt64(sp.min)
 				if err != nil {
-					return nil, fmt.Errorf("Non date predicate found for Epoch")
+					return nil, fmt.Errorf("non date predicate found for Epoch")
 				}
 				if sp.ContentsEnum.IsSet(INCLUSIVEMIN) {
 					val += 1
@@ -163,7 +163,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			if sp.ContentsEnum.IsSet(MAXBOUND) {
 				val, err := io.GetValueAsInt64(sp.max)
 				if err != nil {
-					return nil, fmt.Errorf("Non date predicate found for Epoch")
+					return nil, fmt.Errorf("non date predicate found for Epoch")
 				}
 				if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
 					val -= 1
@@ -473,7 +473,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				aggName := sl.FunctionCall.Name
 				agg := aggRunner.GetFunc(strings.ToLower(aggName))
 				if agg == nil {
-					return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
+					return nil, fmt.Errorf("no function in the UDA Registry named \"%s\"", aggName)
 				}
 
 				argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
@@ -507,7 +507,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				initList := sl.FunctionCall.GetLiterals()
 				if len(requiredInitNames) > len(initList) {
 					return nil, fmt.Errorf(
-						"Not enough init arguments for %s, need %d have %d",
+						"not enough init arguments for %s, need %d have %d",
 						aggName,
 						len(requiredInitNames),
 						len(initList),
@@ -543,7 +543,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				}
 				if functionResult == nil {
 					return nil, fmt.Errorf(
-						"No result from aggregate %s",
+						"no result from aggregate %s",
 						aggName)
 				}
 
@@ -665,7 +665,7 @@ func (spg StaticPredicateGroup) Merge(sp *StaticPredicate, IsOr bool) error {
 		TODO: Implement OR predicate logic in the Static Predicate
 	*/
 	if sp == nil {
-		return fmt.Errorf("Nil static predicate argumen")
+		return fmt.Errorf("nil static predicate argumen")
 	}
 	tgtSP := spg.Add(sp.Column) // Adds a new SP if not already there
 	if sp.ContentsEnum.IsSet(MINBOUND) {

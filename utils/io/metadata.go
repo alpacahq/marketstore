@@ -235,7 +235,7 @@ func (f *TimeBucketInfo) GetElementTypes() []EnumElementType {
 // the given TimeBucketInfo.
 func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 	if len(newTypes) != len(f.elementTypes) {
-		return fmt.Errorf("Element count not equal")
+		return fmt.Errorf("element count not equal")
 	}
 	for i, val := range newTypes {
 		f.elementTypes[i] = val

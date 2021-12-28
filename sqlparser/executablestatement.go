@@ -32,7 +32,7 @@ func NewExecutableStatement(qtree ...IMSTree,
 
 func (es *ExecutableStatement) GetPendingStaticPredicateGroup() (spg StaticPredicateGroup, err error) {
 	if sr, ok := es.nodeCursor.payload.(*SelectRelation); !ok {
-		return nil, fmt.Errorf("No Select Relation in progress")
+		return nil, fmt.Errorf("no Select Relation in progress")
 	} else {
 		return sr.StaticPredicates, nil
 	}
@@ -107,7 +107,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 		var err error
 		es.nodeCursor, err = NewExecutableStatement(ctx.query)
 		if err != nil {
-			return fmt.Errorf("Unable to create executable query")
+			return fmt.Errorf("unable to create executable query")
 		}
 		retval := QueryWalk(es.nodeCursor, ctx.query)
 		if err, ok := retval.(error); ok {
@@ -132,7 +132,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 
 		es.AddChild(is)
 	default:
-		return fmt.Errorf("Unsupported statement type: %s", ctx.statementType.String())
+		return fmt.Errorf("unsupported statement type: %s", ctx.statementType.String())
 	}
 	return nil
 }
@@ -141,7 +141,7 @@ func QueryWalk(es *ExecutableStatement, i_ctx IMSTree) interface{} {
 	var ctx *QueryParse
 	var ok bool
 	if ctx, ok = i_ctx.(*QueryParse); !ok {
-		return fmt.Errorf("Unable to get *QueryParse")
+		return fmt.Errorf("unable to get *QueryParse")
 	}
 	var retval interface{}
 	retval = es.nodeCursor.Visit(ctx)
@@ -176,7 +176,7 @@ func (es *ExecutableStatement) VisitQueryParse(ctx *QueryParse) interface{} {
 func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) interface{} {
 	if ctx.sortItems != nil {
 		// TODO: Support ORDER BY
-		return fmt.Errorf("Unsupported statement type: %s", "Query with ORDER BY")
+		return fmt.Errorf("unsupported statement type: %s", "Query with ORDER BY")
 	}
 
 	sr := NewSelectRelation()
@@ -189,7 +189,7 @@ func (es *ExecutableStatement) VisitQueryNoWithParse(ctx *QueryNoWithParse) inte
 func (es *ExecutableStatement) VisitQueryTermParse(ctx *QueryTermParse) interface{} {
 	if ctx.queryPrimary == nil {
 		// TODO: Support JOIN
-		return fmt.Errorf("Unsupported statement type: %s", "Join")
+		return fmt.Errorf("unsupported statement type: %s", "Join")
 	}
 	return ctx.queryPrimary
 }
@@ -197,7 +197,7 @@ func (es *ExecutableStatement) VisitQueryTermParse(ctx *QueryTermParse) interfac
 func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) interface{} {
 	if ctx.querySpec == nil {
 		// TODO: Support TABLE, INLINE TABLE and SUBQUERY
-		return fmt.Errorf("Unsupported statement type: %s", "TABLE, INLINE TABLE or SUBQUERY")
+		return fmt.Errorf("unsupported statement type: %s", "TABLE, INLINE TABLE or SUBQUERY")
 	}
 	sr := es.nodeCursor.payload.(*SelectRelation)
 	sr.IsPrimary = true
@@ -265,7 +265,7 @@ func (es *ExecutableStatement) VisitQuerySpecificationParse(ctx *QuerySpecificat
 		}
 	}
 	if sr.IsSelectAll && len(ctx.selectItems) > 1 {
-		return fmt.Errorf("Unsupported option: Multiple select items specified along with an asterisk for all")
+		return fmt.Errorf("unsupported option: Multiple select items specified along with an asterisk for all")
 	}
 
 	/*
@@ -322,7 +322,7 @@ func (es *ExecutableStatement) VisitValueExpressionParse(ctx *ValueExpressionPar
 		return es.nodeCursor.Visit(cctx)
 	default:
 		// TODO: Support non primary expressions
-		return fmt.Errorf("Only Primary Expressions supported")
+		return fmt.Errorf("only Primary Expressions supported")
 	}
 }
 
@@ -340,7 +340,7 @@ func (es *ExecutableStatement) VisitPrimaryExpressionParse(ctx *PrimaryExpressio
 			cr := NewColumnReference(value)
 			return cr
 		default:
-			return fmt.Errorf("Non string returned as column reference")
+			return fmt.Errorf("non string returned as column reference")
 		}
 	case FUNCTION_CALL:
 		retval := es.nodeCursor.Visit(ctx.GetChild(0))
@@ -348,13 +348,13 @@ func (es *ExecutableStatement) VisitPrimaryExpressionParse(ctx *PrimaryExpressio
 		case *FunctionCallReference:
 			return value
 		default:
-			return fmt.Errorf("Unexpected non FunctionCall returned")
+			return fmt.Errorf("unexpected non FunctionCall returned")
 		}
 	case PARENTHESIZED_EXPRESSION:
 		return es.nodeCursor.Visit(ctx.GetChild(0))
 	default:
 		// TODO: Support other than column refs
-		return fmt.Errorf("Unsupported primary expression found: %s",
+		return fmt.Errorf("unsupported primary expression found: %s",
 			ctx.primaryType.String())
 	}
 }
@@ -374,7 +374,7 @@ func (es *ExecutableStatement) VisitSampledRelationParse(ctx *SampledRelationPar
 func (es *ExecutableStatement) VisitAliasedRelationParse(ctx *AliasedRelationParse) interface{} {
 	if ctx.hasAliases {
 		// TODO: Support table aliases
-		return fmt.Errorf("Table Aliases not supported")
+		return fmt.Errorf("table Aliases not supported")
 	}
 	return es.nodeCursor.Visit(ctx.relationPrimary)
 }
@@ -412,7 +412,7 @@ func (es *ExecutableStatement) VisitRelationPrimaryParse(ctx *RelationPrimaryPar
 			}
 		}
 	default:
-		return fmt.Errorf("Unsupported Primary Relation type")
+		return fmt.Errorf("unsupported Primary Relation type")
 	}
 	return nil
 }
@@ -485,7 +485,7 @@ func (es *ExecutableStatement) VisitBooleanExpressionParse(ctx *BooleanExpressio
 			case nil:
 				done = true
 			default:
-				return fmt.Errorf("Unknown type: %s", reflect.ValueOf(value).Type())
+				return fmt.Errorf("unknown type: %s", reflect.ValueOf(value).Type())
 			}
 		}
 	}
@@ -498,10 +498,10 @@ func (es *ExecutableStatement) VisitPredicateParse(ctx *PredicateParse) interfac
 	case *ComparisonParse, *BetweenParse:
 		return es.nodeCursor.Visit(node)
 	case *QuantifiedComparisonParse:
-		return fmt.Errorf("Quantified Comparisons (ALL/ANY/SOME) not supported")
+		return fmt.Errorf("quantified Comparisons (ALL/ANY/SOME) not supported")
 	case *InListParse, *InSubqueryParse, *LikeParse, *NullPredicateParse, *DistinctFromParse:
 		// TODO: Implement dynamic predicates (and inlist)
-		return fmt.Errorf("Unsupported predicate type, only static types are supported")
+		return fmt.Errorf("unsupported predicate type, only static types are supported")
 	}
 	return nil
 }
@@ -509,7 +509,7 @@ func (es *ExecutableStatement) VisitPredicateParse(ctx *PredicateParse) interfac
 func (es *ExecutableStatement) VisitBetweenParse(ctx *BetweenParse) interface{} {
 	i_literal := es.nodeCursor.Visit(ctx.lower)
 	if literal, ok := i_literal.(*Literal); !ok {
-		return fmt.Errorf("Dynamic predicate bounds not supported")
+		return fmt.Errorf("dynamic predicate bounds not supported")
 	} else {
 		/*
 			Make sure that the literal represents a numeric quantity
@@ -527,7 +527,7 @@ func (es *ExecutableStatement) VisitBetweenParse(ctx *BetweenParse) interface{} 
 
 	i_literal = es.nodeCursor.Visit(ctx.upper)
 	if literal, ok := i_literal.(*Literal); !ok {
-		return fmt.Errorf("Dynamic predicate bounds not supported")
+		return fmt.Errorf("dynamic predicate bounds not supported")
 	} else {
 		/*
 			Make sure that the literal represents a numeric quantity
@@ -548,7 +548,7 @@ func (es *ExecutableStatement) VisitBetweenParse(ctx *BetweenParse) interface{} 
 func (es *ExecutableStatement) VisitComparisonParse(ctx *ComparisonParse) interface{} {
 	i_literal := es.nodeCursor.Visit(ctx.right)
 	if literal, ok := i_literal.(*Literal); !ok {
-		return fmt.Errorf("Dynamic predicate bounds not supported")
+		return fmt.Errorf("dynamic predicate bounds not supported")
 	} else {
 		/*
 			Make sure that the literal represents a numeric quantity
@@ -566,7 +566,7 @@ func (es *ExecutableStatement) VisitFunctionCallParse(ctx *FunctionCallParse) in
 	i_name := es.nodeCursor.Visit(ctx.qualifiedName)
 	name, ok := i_name.(string)
 	if !ok {
-		return fmt.Errorf("Error parsing function name")
+		return fmt.Errorf("error parsing function name")
 	}
 
 	var args []interface{}
@@ -583,7 +583,7 @@ func (es *ExecutableStatement) VisitFunctionCallParse(ctx *FunctionCallParse) in
 		case *Literal:
 			args = append(args, value)
 		default:
-			return fmt.Errorf("Error parsing column ref")
+			return fmt.Errorf("error parsing column ref")
 		}
 	}
 	return NewFunctionCallReference(name, args)
@@ -686,7 +686,7 @@ func CoerceToNumeric(literal *Literal) (err error) {
 			}
 		}
 		if err != nil {
-			return fmt.Errorf("Unable to convert string to date: %s",
+			return fmt.Errorf("unable to convert string to date: %s",
 				value)
 		}
 		literal.Value = t.UnixNano()
