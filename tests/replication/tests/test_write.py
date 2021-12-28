@@ -84,12 +84,12 @@ def test_write_not_allowed_on_replica():
                     dtype=[('Epoch', 'i8'), ('High', 'f4'), ('Low', 'f4')])
     replica_client.write(data, 'REPL/1Min/OHLCV')
 
-    # --- query and assert "no files returned..." error is returned ---
+    # --- query and assert "No files returned..." error is returned ---
     with pytest.raises(Exception) as excinfo:
-        # resp = {'error': {'code': -32000, 'data': None, 'message': 'no files returned from query parse'}, 'id': '1', 'jsonrpc': '2.0'} # noqa
+        # resp = {'error': {'code': -32000, 'data': None, 'message': 'No files returned from query parse'}, 'id': '1', 'jsonrpc': '2.0'} # noqa
         # pymarketstore/jsonrpc.py:48: Exception
         replica_client.query(pymkts.Params('REPL', '1Min', 'OHLCV'))
-    assert "no files returned from query parse" in str(excinfo.value)
+    assert "No files returned from query parse" in str(excinfo.value)
 
     # --- destroy ---
     destroy("REPL/1Min/OHLCV")
