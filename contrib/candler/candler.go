@@ -2,9 +2,10 @@ package candler
 
 import (
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"sort"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/catalog"
 
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"

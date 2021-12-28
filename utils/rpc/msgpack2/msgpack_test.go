@@ -11,9 +11,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 	"net/http"
 	"testing"
+
+	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 
 	rpc "github.com/alpacahq/rpc/rpc2"
 	msgpack "github.com/vmihailenco/msgpack"

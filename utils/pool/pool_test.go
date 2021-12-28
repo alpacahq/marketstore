@@ -1,9 +1,10 @@
 package pool_test
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils/pool"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/pool"
 
 	"github.com/stretchr/testify/assert"
 )
