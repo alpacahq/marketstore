@@ -157,7 +157,7 @@ func (mk *TimeBucketKey) GetTimeFrame() (tf *utils.Timeframe, err error) {
 	}
 
 	if tf = utils.TimeframeFromString(tfs); tf == nil {
-		err = fmt.Errorf("Error: Unable to get timeframe from key")
+		err = fmt.Errorf("error: Unable to get timeframe from key")
 	}
 
 	return

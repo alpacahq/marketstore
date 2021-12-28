@@ -278,7 +278,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	*/
 	getFileList(q.DataDir, &pr.QualifiedFiles, "", "")
 	if len(pr.QualifiedFiles) == 0 {
-		return pr, fmt.Errorf("No files returned from query parse")
+		return pr, fmt.Errorf("no files returned from query parse")
 	}
 
 	/*
@@ -291,7 +291,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 			pr.IntervalsPerDay = qf.File.GetIntervals()
 		}
 		if pr.IntervalsPerDay != qf.File.GetIntervals() {
-			return pr, fmt.Errorf("Timeframe not the same in result set - File: %v", qf.File.Path)
+			return pr, fmt.Errorf("timeframe not the same in result set - File: %v", qf.File.Path)
 		}
 	}
 

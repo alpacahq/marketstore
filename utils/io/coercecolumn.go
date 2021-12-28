@@ -15,7 +15,7 @@ func isIterable(i interface{}) bool {
 // CoerceColumnType replaces the data type of values in a column that has the specified name to the specified elementType.
 func (cs *ColumnSeries) CoerceColumnType(columnName string, elementType EnumElementType) (err error) {
 	if elementType == BOOL || elementType == STRING || elementType == STRING16 {
-		return fmt.Errorf("Can not cast to boolean or string")
+		return fmt.Errorf("can not cast to boolean or string")
 	}
 
 	iCol := cs.GetByName(columnName)

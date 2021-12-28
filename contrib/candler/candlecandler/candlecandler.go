@@ -60,7 +60,7 @@ func (ca *CandleCandler) GetInitArgs() []io.DataShape {
 func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return nil, fmt.Errorf("Empty input to Accum")
+		return nil, fmt.Errorf("empty input to Accum")
 	}
 	/*
 		Get the input column for "Price"

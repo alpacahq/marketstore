@@ -2,10 +2,10 @@ package candler
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"sort"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
@@ -73,10 +73,8 @@ func (ca *Candler) GetInitArgs() []io.DataShape {
 /*
 OVERRIDES - these methods should be overridden in a concrete implementation of this class
 */
-/*
-	OVERRIDE THIS METHOD
-	Accum() sends new data to the aggregate
-*/
+
+// Accum sends new data to the aggregate
 func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.ColumnInterface, _ *catalog.Directory,
 ) (*io.ColumnSeries, error) {
 	return nil, fmt.Errorf("Accum called from base class, must override implementation")
@@ -89,7 +87,7 @@ func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.Colu
 */
 func (c Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (ca *Candler, err error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("Init requires a *utils.CandleDuration as the argument")
+		return nil, fmt.Errorf("init requires a *utils.CandleDuration as the argument")
 	}
 
 	ca = &Candler{
@@ -117,25 +115,25 @@ func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) erro
 		tfstring = *val
 	case *[]string:
 		if len(*val) != 1 {
-			return fmt.Errorf("Argument passed to Init() is not a string")
+			return fmt.Errorf("argument passed to Init() is not a string")
 		}
 		tfstring = (*val)[0]
 	case []string:
 		if len(val) != 1 {
-			return fmt.Errorf("Argument passed to Init() is not a string")
+			return fmt.Errorf("argument passed to Init() is not a string")
 		}
 		tfstring = val[0]
 	}
 	cd := utils.CandleDurationFromString(tfstring)
 
 	if ca == nil {
-		return fmt.Errorf("Init called without calling New()")
+		return fmt.Errorf("init called without calling New()")
 	}
 	if cd == nil {
-		return fmt.Errorf("No suitable timeframe provided")
+		return fmt.Errorf("no suitable timeframe provided")
 	}
 	if unmapped := argMap.Validate(); unmapped != nil {
-		return fmt.Errorf("Unmapped columns: %s", unmapped)
+		return fmt.Errorf("unmapped columns: %s", unmapped)
 	}
 
 	ca.MyCD = cd

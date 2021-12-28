@@ -122,7 +122,7 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 			4) Invalid case - no place is available to find DB column names
 	*/
 	if !cvm.Config.FirstRowHasColumnNames && cvm.Config.ColumnNameMap == nil {
-		return nil, nil, fmt.Errorf("Not enough info to map DB column names to csv file")
+		return nil, nil, fmt.Errorf("not enough info to map DB column names to csv file")
 	}
 
 	csvReader = csv.NewReader(dataFD)
@@ -156,7 +156,7 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 			Implement column renaming
 		*/
 		if len(cvm.Config.ColumnNameMap) > len(inputColNames) {
-			err = fmt.Errorf("Error: ColumnNameMap from conf file has more entries than the column names from the input file")
+			err = fmt.Errorf("error: ColumnNameMap from conf file has more entries than the column names from the input file")
 			fmt.Println(err.Error())
 			return nil, nil, err
 		}
@@ -200,7 +200,7 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 		}
 	}
 	if fail {
-		return nil, nil, fmt.Errorf("Unable to match all csv file columns to DB columns")
+		return nil, nil, fmt.Errorf("unable to match all csv file columns to DB columns")
 	}
 
 	return csvReader, cvm, nil

@@ -552,6 +552,8 @@ func T_PrintExplain(mtree sqlparser.IMSTree, stmt string) {
 }
 
 func evalAndPrint(t *testing.T, err error, shouldErr bool, msg ...string) {
+	t.Helper()
+
 	if err != nil {
 		if len(msg) == 0 { // Default is to print only the error
 			fmt.Printf("\n%s\n", err.Error())
@@ -565,6 +567,8 @@ func evalAndPrint(t *testing.T, err error, shouldErr bool, msg ...string) {
 }
 
 func parseAndPrintError(t *testing.T, stmt string, shouldErr bool) {
+	t.Helper()
+
 	_, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, shouldErr, stmt)
 }

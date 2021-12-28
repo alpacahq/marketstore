@@ -9,7 +9,7 @@ import (
 func ColumnToFloat32(cols io.ColumnInterface, name string) (outCol []float32, err error) {
 	ccol := cols.GetColumn(name)
 	if ccol == nil {
-		return nil, fmt.Errorf("Unable to retrieve column named %s", name)
+		return nil, fmt.Errorf("unable to retrieve column named %s", name)
 	}
 	switch cc := ccol.(type) {
 	case []float32:
@@ -41,7 +41,7 @@ func ColumnToFloat32(cols io.ColumnInterface, name string) (outCol []float32, er
 func ColumnToFloat64(cols io.ColumnInterface, name string) (outCol []float64, err error) {
 	ccol := cols.GetColumn(name)
 	if ccol == nil {
-		return nil, fmt.Errorf("Unable to retrieve column named %s", name)
+		return nil, fmt.Errorf("unable to retrieve column named %s", name)
 	}
 	switch cc := ccol.(type) {
 	case []float64:

@@ -14,7 +14,6 @@ import (
 	msgpack "github.com/vmihailenco/msgpack"
 )
 
-// var null = json.RawMessage([]byte("null")).
 var Version = "2.0"
 
 // ----------------------------------------------------------------------------

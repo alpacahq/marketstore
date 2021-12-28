@@ -22,7 +22,7 @@ var configWithInvalidExchange = map[string]interface{}{
 }
 
 func TestNewConfig(t *testing.T) {
-	t.Parallel()
+	// avoid t.Parallel() as env vars are used.
 
 	tests := map[string]struct {
 		config  map[string]interface{}
@@ -77,9 +77,6 @@ func TestNewConfig(t *testing.T) {
 		tt := tt
 
 		t.Run(name, func(t *testing.T) {
-			// avoid env vars being used by multiple tests in parallel
-			// t.Parallel()
-
 			// --- given ---
 			for key, value := range tt.envVars {
 				_ = os.Setenv(key, value)

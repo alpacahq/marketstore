@@ -125,7 +125,7 @@ func (g Gap) New(_ *functions.ArgumentMap, args ...interface{}) (out uda.AggInte
 			tfstring = *val
 		case *[]string:
 			if len(*val) != 1 {
-				return nil, fmt.Errorf("Argument passed to Init() is not a string")
+				return nil, fmt.Errorf("argument passed to Init() is not a string")
 			}
 			tfstring = (*val)[0]
 		case []string:

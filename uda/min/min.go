@@ -38,9 +38,7 @@ func (mn *Min) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-/*
-	Accum() sends new data to the aggregate
-*/
+// Accum sends new data to the aggregate
 func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
@@ -76,7 +74,7 @@ func (m Min) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.Agg
 	}
 
 	if unmapped := argMap.Validate(); unmapped != nil {
-		return nil, fmt.Errorf("Unmapped columns: %s", unmapped)
+		return nil, fmt.Errorf("unmapped columns: %s", unmapped)
 	}
 
 	return mn, nil

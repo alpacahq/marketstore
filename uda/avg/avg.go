@@ -38,9 +38,7 @@ func (av *Avg) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-/*
-	Accum() sends new data to the aggregate
-*/
+// Accum sends new data to the aggregate
 func (av *Avg) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {

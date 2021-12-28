@@ -21,7 +21,6 @@ import (
 
 // NewBgWorker returns the new instance of Alpaca Broker API Feeder.
 // See configs.Config for the details of available configurations.
-// nolint
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config, err := configs.NewConfig(conf)
 

@@ -17,6 +17,8 @@ import (
 )
 
 func setup(t *testing.T, testName string) (tearDown func(), testPluginLib, oldGoPath, absTestPluginLib string) {
+	t.Helper()
+
 	dirName, _ := ioutil.TempDir("", fmt.Sprintf("plugins_test-%s", testName))
 
 	osType := runtime.GOOS
