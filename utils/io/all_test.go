@@ -181,7 +181,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 		Unaligned case
 	*/
 	UnalignedBytesPerRow := 8 + 4 + 8 + 4 + 8 + 1
-	data, reclen := SerializeColumnsToRows(csA, dsv, false)
+	data, reclen, err := SerializeColumnsToRows(csA, dsv, false)
+	assert.Nil(t, err)
 	assert.True(t, reclen == UnalignedBytesPerRow)
 	assert.True(t, reclen*3 == len(data))
 
@@ -189,7 +190,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 		Aligned case
 	*/
 	AlignedBytesPerRow := AlignedSize(UnalignedBytesPerRow)
-	data, reclen = SerializeColumnsToRows(csA, dsv, true)
+	data, reclen, err = SerializeColumnsToRows(csA, dsv, true)
+	assert.Nil(t, err)
 	assert.True(t, reclen == AlignedBytesPerRow)
 	assert.True(t, reclen*3 == len(data))
 
@@ -207,13 +209,14 @@ func TestSerializeColumnsToRows(t *testing.T) {
 	}
 	expectedLen = AlignedSize(expectedLen)
 
-	data, reclen = SerializeColumnsToRows(csA, dsvProjected, true)
+	data, reclen, err = SerializeColumnsToRows(csA, dsvProjected, true)
+	assert.Nil(t, err)
 	assert.True(t, reclen == expectedLen)
 	assert.True(t, reclen*3 == len(data))
 	/*
 		Type Coercion case
 	*/
-	csB.CoerceColumnType("Two", BYTE) // Is currently FLOAT64
+	err = csB.CoerceColumnType("Two", BYTE) // Is currently FLOAT64
 	dsvProjected = csB.GetDataShapes()
 
 	// Expected record length
@@ -223,7 +226,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 	}
 	expectedLen = AlignedSize(expectedLen)
 
-	data, reclen = SerializeColumnsToRows(csA, dsvProjected, true)
+	data, reclen, err = SerializeColumnsToRows(csA, dsvProjected, true)
+	assert.Nil(t, err)
 	assert.True(t, reclen == expectedLen)
 	assert.True(t, reclen*3 == len(data))
 }
