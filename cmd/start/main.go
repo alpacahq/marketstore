@@ -84,7 +84,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	config, err := utils.InstanceConfig.Parse(data)
 	if err != nil {
 		globalCancel()
-		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
+		return fmt.Errorf("failed to parse configuration file error: %w", err)
 	}
 
 	// New gRPC stream server for replication.
@@ -241,7 +241,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		grpcLn, err := net.Listen("tcp", config.GRPCListenURL)
 		if err != nil {
 			globalCancel()
-			return fmt.Errorf("failed to start GRPC server - error: %s", err.Error())
+			return fmt.Errorf("failed to start GRPC server - error: %w", err)
 		}
 		go func() {
 			err := grpcServer.Serve(grpcLn)
@@ -281,7 +281,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGINT, syscall.SIGTERM)
 
 	if err := http.ListenAndServe(config.ListenURL, nil); err != nil {
-		return fmt.Errorf("failed to start server - error: %s", err.Error())
+		return fmt.Errorf("failed to start server - error: %w", err)
 	}
 
 	return nil

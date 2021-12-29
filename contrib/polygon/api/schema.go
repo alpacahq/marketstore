@@ -109,7 +109,7 @@ type HistoricTrades struct {
 	Success      bool        `json:"success"`
 	ResultsCount int         `json:"results_count"`
 	Results      []TradeTick `json:"results"`
-	DbLatency    int         `json:"db_latency"`
+	DBLatency    int         `json:"db_latency"`
 	// `map` is excluded as it only contains variable shortening info for ticks
 }
 
@@ -118,7 +118,7 @@ type HistoricTrades struct {
 type TradeTick struct {
 	ParticipantTimestamp int64   `json:"y"` // Participant/Exchange timestamp
 	TrfTimestamp         int64   `json:"f"`
-	SipTimestamp         int64   `json:"t"` // Optional
+	SIPTimestamp         int64   `json:"t"` // Optional
 	Price                float64 `json:"p"`
 	Size                 int     `json:"s"`
 	Exchange             int     `json:"x"`

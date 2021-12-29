@@ -54,7 +54,7 @@ func (c *BitmexClient) GetInstruments() ([]string, error) {
 	reqURL := c.baseURL + c.apiURL + "/instrument/active"
 	res, err := c.Client.Get(reqURL)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get active instruments: %v", err)
+		return nil, fmt.Errorf("unable to get active instruments: %w", err)
 	}
 	defer res.Body.Close()
 	instruments := []struct {

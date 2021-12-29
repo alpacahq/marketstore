@@ -21,19 +21,19 @@ func TestTicksToBars(t *testing.T) {
 		// Given a set of TradeTicks from three exchanges, a symbol and limited set of exchanges
 		ticks := []api.TradeTick{
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano(),
 				Price:        300,
 				Size:         100,
 				Exchange:     9,
 			},
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 1, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 1, 0, NY).UnixNano(),
 				Price:        299.9,
 				Size:         50,
 				Exchange:     8,
 			},
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 3, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 3, 0, NY).UnixNano(),
 				Price:        300.1,
 				Size:         80,
 				Exchange:     17,
@@ -86,7 +86,7 @@ func TestTicksToBars(t *testing.T) {
 	{
 		ticks := []api.TradeTick{
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano(),
 				Price:        300,
 				Size:         100,
 				Exchange:     9,
@@ -116,14 +116,14 @@ func TestTicksToBars(t *testing.T) {
 	{
 		ticks := []api.TradeTick{
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 0, NY).UnixNano(),
 				Price:        300,
 				Size:         100,
 				Exchange:     9,
 				Conditions:   []int{0},
 			},
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 4, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 4, NY).UnixNano(),
 				Price:        305.2,
 				Size:         10,
 				Exchange:     9,
@@ -153,35 +153,35 @@ func TestTicksToBars(t *testing.T) {
 	{
 		ticks := []api.TradeTick{
 			{ // Should be included
-				SipTimestamp: time.Date(2020, 1, 21, 8, 30, 0, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 8, 30, 0, 0, NY).UnixNano(),
 				Price:        300,
 				Size:         100,
 				Exchange:     9,
 				Conditions:   []int{12},
 			},
 			{ // Should be excluded: odd-lot
-				SipTimestamp: time.Date(2020, 1, 21, 8, 30, 2, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 8, 30, 2, 0, NY).UnixNano(),
 				Price:        314,
 				Size:         99,
 				Exchange:     9,
 				Conditions:   []int{12, 37},
 			},
 			{ // Should be included
-				SipTimestamp: time.Date(2020, 1, 21, 8, 30, 2, 0, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 8, 30, 2, 0, NY).UnixNano(),
 				Price:        299,
 				Size:         77,
 				Exchange:     8,
 				Conditions:   []int{12},
 			},
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 4, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 0, 4, NY).UnixNano(),
 				Price:        305.2,
 				Size:         10,
 				Exchange:     9,
 				Conditions:   []int{14},
 			},
 			{
-				SipTimestamp: time.Date(2020, 1, 21, 9, 30, 1, 4, NY).UnixNano(),
+				SIPTimestamp: time.Date(2020, 1, 21, 9, 30, 1, 4, NY).UnixNano(),
 				Price:        315.2,
 				Size:         17,
 				Exchange:     8,

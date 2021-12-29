@@ -327,7 +327,7 @@ func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time
 	if err != nil {
 		// No results from query
 		if err.Error() == "No files returned from query parse" {
-			log.Info("No results returned from query: Target: %v, start, end: %v,%v limitRecordCount: %v",
+			log.Info("no results returned from query: Target: %v, start, end: %v,%v limitRecordCount: %v",
 				tbk.String(), start, end, limitRecordCount)
 		} else {
 			log.Error("Parsing query: %s\n", err)

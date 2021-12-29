@@ -225,7 +225,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	}
 
 	if cs == nil {
-		fmt.Println("No results returned from query")
+		fmt.Println("no results returned from query")
 		return
 	}
 	/*

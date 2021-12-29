@@ -153,7 +153,7 @@ func (mk *TimeBucketKey) SetItemInCategory(catName, itemName string) {
 func (mk *TimeBucketKey) GetTimeFrame() (tf *utils.Timeframe, err error) {
 	tfs := mk.GetItemInCategory("Timeframe")
 	if len(tfs) == 0 {
-		return &utils.Timeframe{}, fmt.Errorf("Error: Unable to get timeframe from key")
+		return &utils.Timeframe{}, fmt.Errorf("error: Unable to get timeframe from key")
 	}
 
 	if tf = utils.TimeframeFromString(tfs); tf == nil {

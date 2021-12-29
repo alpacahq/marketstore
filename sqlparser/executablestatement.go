@@ -692,7 +692,7 @@ func CoerceToNumeric(literal *Literal) (err error) {
 		literal.Value = t.UnixNano()
 		literal.Type = INTEGER_LITERAL
 	case NULL_LITERAL:
-		return fmt.Errorf("Unable to convert NULL to a numeric")
+		return fmt.Errorf("unable to convert NULL to a numeric")
 	}
 	return nil
 }

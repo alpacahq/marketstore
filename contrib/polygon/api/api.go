@@ -292,7 +292,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 		}
 
 		if len(trades.Results) == batchSize {
-			offset = trades.Results[len(trades.Results)-1].SipTimestamp
+			offset = trades.Results[len(trades.Results)-1].SIPTimestamp
 			if offset == 0 {
 				return nil, fmt.Errorf("unable to paginate: Timestamp was empty for %v @ %v", symbol, date)
 			}

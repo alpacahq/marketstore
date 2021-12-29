@@ -30,23 +30,23 @@ type Count struct {
 	Sum int64
 }
 
-func (ca *Count) GetRequiredArgs() []io.DataShape {
+func (c *Count) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
 
-func (ca *Count) GetOptionalArgs() []io.DataShape {
+func (c *Count) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
 
-func (ca *Count) GetInitArgs() []io.DataShape {
+func (c *Count) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
 // Accum sends new data to the aggregate
-func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface,
+func (c *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
-	ca.Sum += int64(cols.Len())
-	return ca.Output(), nil
+	c.Sum += int64(cols.Len())
+	return c.Output(), nil
 }
 
 /*
@@ -62,9 +62,9 @@ func (c Count) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.A
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (ca *Count) Output() *io.ColumnSeries {
+func (c *Count) Output() *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{time.Now().UTC().Unix()})
-	cs.AddColumn("Count", []int64{ca.Sum})
+	cs.AddColumn("Count", []int64{c.Sum})
 	return cs
 }
