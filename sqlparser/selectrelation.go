@@ -207,7 +207,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			return nil, err
 		}
 		if len(csm) == 0 {
-			return nil, fmt.Errorf("No results returned from query")
+			return nil, fmt.Errorf("no results returned from query")
 		}
 
 		outputColumnSeries = csm[*key]
@@ -917,7 +917,7 @@ func SourceValidator(sourceDSV []io.DataShape, selectList []*AliasedIdentifier) 
 	sourceNames := io.GetNamesFromDSV(sourceDSV)
 	targetNamesSet, err := io.NewAnySet(keepList)
 	if err != nil {
-		return false, nil, nil, nil, fmt.Errorf("Unable to build set for target")
+		return false, nil, nil, nil, fmt.Errorf("unable to build set for target")
 	}
 	i_missingIDs := targetNamesSet.Subtract(sourceNames)
 	var missingIDs []string

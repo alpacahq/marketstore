@@ -112,6 +112,7 @@ type ConsolidatedUpdateInfo struct {
 }
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
+
 var ConditionToUpdateInfo = map[enum.TradeCondition]ConsolidatedUpdateInfo{
 	enum.NoTradeCondition:   {true, true, true},
 	enum.RegularSale:        {true, true, true},   // Regular Sale

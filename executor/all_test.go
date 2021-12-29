@@ -250,7 +250,7 @@ func TestWriteVariable(t *testing.T) {
 		fmt.Println("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
-		nanos := cs.GetByName("Nanoseconds").([]int32)
+		nanos,_ := cs.GetByName("Nanoseconds").([]int32)
 		assert.True(t, math.Abs(float64(nanos[9]-600000000)) < 50., true)
 		break
 	}
@@ -388,7 +388,7 @@ func TestDelete(t *testing.T) {
 	asserter(t, err, true)
 
 	// Read back the data, should have zero records
-	csm, err = r.Read()
+	csm, _ = r.Read()
 	for _, cs := range csm {
 		if cs.Len() != 0 {
 			assert.Failf(t, "error: number of rows read back after delete is incorrect",
@@ -691,11 +691,11 @@ func TestAddSymbolThenWrite(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, len(columnSeries) != 0)
 	for _, cs := range columnSeries {
-		open := cs.GetByName("Open").([]float32)
-		high := cs.GetByName("High").([]float32)
-		low := cs.GetByName("Low").([]float32)
-		close := cs.GetByName("Close").([]float32)
-		volume := cs.GetByName("Volume").([]int32)
+		open, _ := cs.GetByName("Open").([]float32)
+		high, _ := cs.GetByName("High").([]float32)
+		low, _ := cs.GetByName("Low").([]float32)
+		close, _ := cs.GetByName("Close").([]float32)
+		volume, _ := cs.GetByName("Volume").([]int32)
 		assert.Equal(t, open[0], row.Open)
 		assert.Equal(t, high[0], row.High)
 		assert.Equal(t, low[0], row.Low)

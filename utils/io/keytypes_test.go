@@ -8,6 +8,7 @@ import (
 )
 
 func TestNewTimeBucketKeyFromWalKeyPath(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		walKeyPath string

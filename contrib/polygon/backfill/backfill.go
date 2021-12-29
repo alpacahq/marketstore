@@ -32,6 +32,7 @@ var (
 )
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
+
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 	0: {true, true, true},   // Regular Sale
 	1: {true, true, true},   // Acquisition
@@ -208,7 +209,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 		}
 
 		price := tick.Price
-		timestamp := time.Unix(0, tick.SipTimestamp)
+		timestamp := time.Unix(0, tick.SIPTimestamp)
 		bucketTimestamp := timestamp.Truncate(time.Minute)
 
 		if bucketTimestamp.Before(lastBucketTimestamp) {
@@ -296,7 +297,7 @@ func Trades(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 		model := models.NewTrade(symbol, len(trades))
 		for _, tick := range trades {
 			// type conversions
-			timestamp := time.Unix(0, tick.SipTimestamp)
+			timestamp := time.Unix(0, tick.SIPTimestamp)
 			conditions := make([]modelsenum.TradeCondition, len(tick.Conditions))
 			for i, cond := range tick.Conditions {
 				conditions[i] = api.ConvertTradeCondition(cond)

@@ -26,23 +26,23 @@ type Min struct {
 	Min           float32
 }
 
-func (mn *Min) GetRequiredArgs() []io.DataShape {
+func (m *Min) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
 
-func (mn *Min) GetOptionalArgs() []io.DataShape {
+func (m *Min) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
 
-func (mn *Min) GetInitArgs() []io.DataShape {
+func (m *Min) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
 // Accum sends new data to the aggregate
-func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
+func (m *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return mn.Output(), nil
+		return m.Output(), nil
 	}
 	inputColDSV := argMap.GetMappedColumns(requiredColumns[0].Name)
 	inputColName := inputColDSV[0].Name
@@ -51,16 +51,16 @@ func (mn *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.
 		return nil, err
 	}
 
-	if !mn.IsInitialized {
-		mn.Min = inputCol[0]
-		mn.IsInitialized = true
+	if !m.IsInitialized {
+		m.Min = inputCol[0]
+		m.IsInitialized = true
 	}
 	for _, value := range inputCol {
-		if value < mn.Min {
-			mn.Min = value
+		if value < m.Min {
+			m.Min = value
 		}
 	}
-	return mn.Output(), nil
+	return m.Output(), nil
 }
 
 /*
