@@ -56,7 +56,7 @@ func TestQuery(t *testing.T) {
 
 	q = planner.NewQuery(catalogDir)
 	q.AddRestriction("AttributeGroup", "OHLC")
-	pr, err = q.Parse()
+	pr, _ = q.Parse()
 	qfs := pr.QualifiedFiles
 	assert.Len(t, qfs, 54)
 }

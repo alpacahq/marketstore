@@ -82,6 +82,7 @@ func TestStream(t *testing.T) {
 	assert.Nil(t, conn.WriteMessage(websocket.BinaryMessage, buf))
 
 	_, buf, err = conn.ReadMessage()
+	assert.Nil(t, err)
 
 	subRespMsg := &stream.SubscribeMessage{}
 	err = msgpack.Unmarshal(buf, subRespMsg)

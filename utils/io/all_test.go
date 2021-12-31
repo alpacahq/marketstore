@@ -217,6 +217,7 @@ func TestSerializeColumnsToRows(t *testing.T) {
 		Type Coercion case
 	*/
 	err = csB.CoerceColumnType("Two", BYTE) // Is currently FLOAT64
+	assert.Nil(t, err)
 	dsvProjected = csB.GetDataShapes()
 
 	// Expected record length

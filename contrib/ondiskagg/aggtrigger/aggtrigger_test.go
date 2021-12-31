@@ -163,6 +163,7 @@ func TestFireBars(t *testing.T) {
 	assert.Nil(t, err)
 	rowData := rs.GetData()
 	times, err := rs.GetTime()
+	assert.Nil(t, err)
 	numRows := len(times)
 	rowLen := len(rowData) / numRows
 

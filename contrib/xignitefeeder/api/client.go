@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -77,7 +78,8 @@ func (c *DefaultClient) GetRealTimeQuotes(identifiers []string) (response GetQuo
 		"_token":         {c.token},
 		"Identifiers":    {strings.Join(identifiers, ",")},
 	}
-	req, err := http.NewRequest("POST", GetQuotesURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(),
+		"POST", GetQuotesURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
@@ -136,7 +138,7 @@ func (c *DefaultClient) ListSymbols(exchange string) (response ListSymbolsRespon
 // indexGroup: INDXJPX, IND_NIKKEI.
 func (c *DefaultClient) ListIndexSymbols(indexGroup string) (response ListIndexSymbolsResponse, err error) {
 	apiURL := ListIndexSymbolsURL + fmt.Sprintf("?_token=%s&GroupName=%s", c.token, indexGroup)
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", apiURL, nil)
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
@@ -197,7 +199,8 @@ func (c *DefaultClient) GetIndexBars(identifier string, start, end time.Time) (r
 		"AdjustmentMethod": {"All"},
 		"Language":         {"Japanese"},
 	}
-	req, err := http.NewRequest("POST", GetIndexBarsURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(),
+		"POST", GetIndexBarsURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
@@ -260,7 +263,8 @@ func (c *DefaultClient) GetIndexQuotesRange(identifier string, startDate, endDat
 		"StartOfDate": {fmt.Sprintf("%d/%02d/%02d", startDate.Year(), startDate.Month(), startDate.Day())},
 		"EndOfDate":   {fmt.Sprintf("%d/%02d/%02d", endDate.Year(), endDate.Month(), endDate.Day())},
 	}
-	req, err := http.NewRequest("POST", GetIndexQuotesRangeURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(),
+		"POST", GetIndexQuotesRangeURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}

@@ -133,7 +133,7 @@ func (act *Actions) Load(catalogDir *catalog.Directory) error {
 
 	parseResult, err := query.Parse()
 	if err != nil {
-		if err.Error() == "No files returned from query parse" {
+		if err.Error() == "no files returned from query parse" {
 			return nil
 		}
 		log.Error("Unable to create parser: %s", err)

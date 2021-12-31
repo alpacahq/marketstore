@@ -78,7 +78,7 @@ OVERRIDES - these methods should be overridden in a concrete implementation of t
 // Accum sends new data to the aggregate
 func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.ColumnInterface, _ *catalog.Directory,
 ) (*io.ColumnSeries, error) {
-	return nil, fmt.Errorf("Accum called from base class, must override implementation")
+	return nil, fmt.Errorf("accum called from base class, must override implementation")
 }
 
 /*
@@ -86,12 +86,12 @@ func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.Colu
 	Creates a new candler using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (c Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (ca *Candler, err error) {
+func (ca Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (c *Candler, err error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("init requires a *utils.CandleDuration as the argument")
 	}
 
-	ca = &Candler{
+	c = &Candler{
 		MyCD:          nil,
 		CMap:          nil,
 		SumNames:      nil,
@@ -99,12 +99,12 @@ func (c Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (ca *Ca
 		AccumSumNames: nil,
 	}
 
-	err = ca.init(argMap, args...)
+	err = c.init(argMap, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return ca, nil
+	return c, nil
 }
 
 func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) error {

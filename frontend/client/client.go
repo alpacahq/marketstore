@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -48,7 +49,7 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 		return nil, err
 	}
 	reqURL := cl.BaseURL + "/rpc"
-	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(message))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", reqURL, bytes.NewBuffer(message))
 	if err != nil {
 		return nil, err
 	}

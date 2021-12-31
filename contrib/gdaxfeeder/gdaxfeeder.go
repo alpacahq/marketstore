@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -57,7 +58,12 @@ type gdaxProduct struct {
 }
 
 func getSymbols() ([]string, error) {
-	resp, err := http.Get("https://api.pro.coinbase.com/products")
+	req, err := http.NewRequestWithContext(context.Background(),
+		"GET", "https://api.pro.coinbase.com/products", nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +134,10 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 		return time.Time{}
 	}
 	reader, err := executor.NewReader(parsed)
+	if err != nil {
+		log.Error(fmt.Sprintf("create query reader for tbk=%s", tbk))
+		return time.Time{}
+	}
 	csm, err := reader.Read()
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {

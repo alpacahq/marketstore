@@ -73,6 +73,7 @@ func makeMockOHLCColumnSeries(epoch time.Time, open, high, low, close int64) *io
 }
 
 func TestReplayerImpl_Replay(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                 string
 		wtSets               []wal.WTSet

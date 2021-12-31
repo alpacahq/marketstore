@@ -246,6 +246,7 @@ func TestWriteVariable(t *testing.T) {
 	reader, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = reader.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		fmt.Println("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
@@ -261,6 +262,7 @@ func TestWriteVariable(t *testing.T) {
 	reader, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = reader.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		fmt.Println("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
@@ -372,6 +374,7 @@ func TestDelete(t *testing.T) {
 	// Read the data before delete
 	r, err := executor.NewReader(parsed)
 	csm, err := r.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		if cs.Len() != 1000 {
 			assert.Failf(t, "error: number of rows read back from write is incorrect",
@@ -382,6 +385,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	de, err := executor.NewDeleter(parsed)
+	assert.Nil(t, err)
 	err = de.Delete()
 	asserter(t, err, true)
 	err = de.Delete()
@@ -444,6 +448,7 @@ func TestSortedFiles(t *testing.T) {
 	assert.Equal(t, sortedFiles[1].File.Year, int16(2001))
 	assert.Equal(t, sortedFiles[2].File.Year, int16(2002))
 	csm, err := scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		assert.Len(t, epoch, nitems)
@@ -464,6 +469,7 @@ func TestSortedFiles(t *testing.T) {
 	scanner, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 
@@ -489,6 +495,7 @@ func TestSortedFiles(t *testing.T) {
 	scanner, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		assert.Len(t, epoch, 200)
@@ -504,6 +511,7 @@ func TestSortedFiles(t *testing.T) {
 		time.Date(2001, time.January, 15, 12, 5, 0, 0, time.UTC),
 	)
 	parsed, err = q.Parse()
+	assert.Nil(t, err)
 	scanner, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = scanner.Read()

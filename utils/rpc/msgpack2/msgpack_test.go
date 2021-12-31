@@ -9,6 +9,7 @@ package msgpack2_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -122,7 +123,7 @@ func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) e
 
 	buf, _ := msgpack2.EncodeClientRequest(method, req)
 	body := bytes.NewBuffer(buf)
-	r, _ := http.NewRequest("POST", "http://localhost:8080/", body)
+	r, _ := http.NewRequestWithContext(context.Background(), "POST", "http://localhost:8080/", body)
 	r.Header.Set("Content-Type", "application/x-msgpack")
 
 	w := NewRecorder()
@@ -133,7 +134,8 @@ func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) e
 
 func executeRaw(t *testing.T, s *rpc.Server, req, res interface{}) error {
 	j, _ := msgpack.Marshal(req)
-	r, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewBuffer(j))
+	r, _ := http.NewRequestWithContext(context.Background(),
+		"POST", "http://localhost:8080/", bytes.NewBuffer(j))
 	r.Header.Set("Content-Type", "application/x-msgpack")
 
 	w := NewRecorder()
