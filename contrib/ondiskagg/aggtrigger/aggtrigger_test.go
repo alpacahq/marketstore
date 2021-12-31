@@ -159,7 +159,8 @@ func TestFireBars(t *testing.T) {
 	err = executor.WriteCSM(csm, false)
 	assert.Nil(t, err)
 
-	rs := cs.ToRowSeries(*tbk, true)
+	rs, err := cs.ToRowSeries(*tbk, true)
+	assert.Nil(t, err)
 	rowData := rs.GetData()
 	times, err := rs.GetTime()
 	numRows := len(times)

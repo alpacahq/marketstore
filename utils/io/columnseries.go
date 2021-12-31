@@ -232,11 +232,15 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 	}
 }
 
-func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries) {
+func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries, err error) {
 	dsv := cs.GetDataShapes()
-	data, recordLen := SerializeColumnsToRows(cs, dsv, alignData)
+	data, recordLen, err := SerializeColumnsToRows(cs, dsv, alignData)
+	if err != nil {
+		return nil,
+			fmt.Errorf("serialize columns to rows(itemKey=%v, alignData=%v): %w", itemKey, alignData, err)
+	}
 	rs = NewRowSeries(itemKey, data, dsv, recordLen, NOTYPE)
-	return rs
+	return rs, nil
 }
 
 func (cs *ColumnSeries) AddNullColumn(ds DataShape) {
@@ -418,14 +422,6 @@ func (csm ColumnSeriesMap) AddColumn(key TimeBucketKey, name string, columnData 
 	csm[key].AddColumn(name, columnData)
 }
 
-func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]DataShape, alignData bool) (rsMap map[TimeBucketKey]*RowSeries) {
-	rsMap = make(map[TimeBucketKey]*RowSeries)
-	for key, columns := range csm {
-		rsMap[key] = columns.ToRowSeries(key, alignData)
-	}
-	return rsMap
-}
-
 // FilterColumns removes columns other than the specified columns from all ColumnSeries in a ColumnSeriesMap.
 func (csm *ColumnSeriesMap) FilterColumns(columns []string) {
 	if len(columns) == 0 {
@@ -483,7 +479,7 @@ func ExtractDatashapesByNames(dsv []DataShape, names []string) (out []DataShape)
 }
 
 func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (missing,
-	coercion []DataShape) {
+	coercion []DataShape, err error) {
 	/*
 		We need to find out which columns are missing and which are present,
 		but of the wrong type (Type Mismatch).
@@ -491,21 +487,34 @@ func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (mi
 		- For missing cols, we will add columns with null data of the correct
 		  type
 	*/
-	availableDSVSet, _ := NewAnySet(availableDSV)
+	availableDSVSet, err := NewAnySet(availableDSV)
+	if err != nil {
+		return nil, nil,
+			fmt.Errorf("make set from the available datashape values %v: %w", availableDSVSet, err)
+	}
 	if availableDSVSet.Contains(requiredDSV) {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// The required datashapes are not found in the cols
-	requiredDSVSet, _ := NewAnySet(requiredDSV)
+	requiredDSVSet, err := NewAnySet(requiredDSV)
+	if err != nil {
+		return nil, nil,
+			fmt.Errorf("make set from the required datashape values %v: %w", requiredDSV, err)
+	}
 	// missingDSV reflects both missing columns and ones with incorrect type
-	i_missingDSV := requiredDSVSet.Subtract(availableDSV)
-	missingDSV := GetDSVFromInterface(i_missingDSV)
+	iMissingDSV := requiredDSVSet.Subtract(availableDSV)
+	missingDSV := GetDSVFromInterface(iMissingDSV)
 
 	// Find the missing column names
-	requiredNamesSet, _ := NewAnySet(GetNamesFromDSV(requiredDSV))
-	i_allMissingNames := requiredNamesSet.Subtract(GetNamesFromDSV(availableDSV))
-	allMissingNames := GetStringSliceFromInterface(i_allMissingNames)
+	dsNames := GetNamesFromDSV(requiredDSV)
+	requiredNamesSet, err := NewAnySet(dsNames)
+	if err != nil {
+		return nil, nil,
+			fmt.Errorf("make set from the available datashape names %v: %w", dsNames, err)
+	}
+	iAllMissingNames := requiredNamesSet.Subtract(GetNamesFromDSV(availableDSV))
+	allMissingNames := GetStringSliceFromInterface(iAllMissingNames)
 	/*
 		If the number of missing (name+types) is not the same as the missing names
 		then we know that there are more (name+types) than names missing, so
@@ -513,30 +522,35 @@ func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (mi
 	*/
 	switch {
 	case len(missingDSV) == len(allMissingNames):
-		return ExtractDatashapesByNames(requiredDSV, allMissingNames), nil
+		return ExtractDatashapesByNames(requiredDSV, allMissingNames), nil, nil
 	case len(missingDSV) != len(allMissingNames):
 		// We have to coerce types
 		missingDSVNamesSet, _ := NewAnySet(GetNamesFromDSV(missingDSV))
 		i_needCoercionCols := missingDSVNamesSet.Subtract(allMissingNames)
 		needCoercionCols := GetStringSliceFromInterface(i_needCoercionCols)
 		return ExtractDatashapesByNames(requiredDSV, allMissingNames),
-			ExtractDatashapesByNames(requiredDSV, needCoercionCols)
+			ExtractDatashapesByNames(requiredDSV, needCoercionCols), nil
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
-func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bool) (data []byte, recordLen int) {
+func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bool,
+) (data []byte, recordLen int, err error) {
 	/*
 		The columns data shapes may or may not contain the Epoch column
 	*/
 	var shapesContainsEpoch bool
 
 	// Find out how much of the required datashapes are contained in the Column Series
-	missing, needcoercion := GetMissingAndTypeCoercionColumns(
+	missing, needcoercion, err := GetMissingAndTypeCoercionColumns(
 		dataShapes,
 		cs.GetDataShapes(),
 	)
+	if err != nil {
+		return nil, 0,
+			fmt.Errorf("find missing and type coercion columns from datashape=%v: %w", dataShapes, err)
+	}
 
 	// Add in the null columns needed to complete the set
 	for _, shape := range missing {
@@ -544,7 +558,10 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	}
 	// Coerce column types as needed
 	for _, shape := range needcoercion {
-		cs.CoerceColumnType(shape.Name, shape.Type)
+		err = cs.CoerceColumnType(shape.Name, shape.Type)
+		if err != nil {
+
+		}
 	}
 
 	/*
@@ -561,7 +578,7 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		colInBytesList = append(colInBytesList, colInBytes)
 	}
 	if !shapesContainsEpoch {
-		return nil, 0
+		return nil, 0, fmt.Errorf("datashape doesn't contain Epoch column: %v", dataShapes)
 	}
 
 	/*
@@ -604,5 +621,5 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	//  ], ("Epoch", "Ask")),
 	// => data = \x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x13\x14
 	// (Epoch1-Ask1-Epoch2-Ask2)
-	return data, recordLen
+	return data, recordLen, nil
 }

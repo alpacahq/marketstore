@@ -306,7 +306,10 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 		if len(dbDSV) != len(csDSV) {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
-		missing, coercion := io.GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
+		missing, coercion, err := io.GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
+		if err != nil {
+			return fmt.Errorf("find missing and type coercion columns: %w", err)
+		}
 		if missing != nil {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
@@ -321,8 +324,15 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			}
 		}
 
-		rowData := cs.ToRowSeries(tbk, alignData).GetData()
-		w.WriteRecords(times, rowData, dbDSV, tbi)
+		rs, err := cs.ToRowSeries(tbk, alignData)
+		if err != nil {
+			return fmt.Errorf("convert column series to row series. tbk=%s: %w", tbk, err)
+		}
+		rowData := rs.GetData()
+		err = w.WriteRecords(times, rowData, dbDSV, tbi)
+		if err != nil {
+			return fmt.Errorf("write records to %v: %w", tbi, err)
+		}
 	}
 
 	w.walFile.RequestFlush()
