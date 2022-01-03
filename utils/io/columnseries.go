@@ -560,7 +560,7 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	for _, shape := range needcoercion {
 		err = cs.CoerceColumnType(shape.Name, shape.Type)
 		if err != nil {
-
+			log.Error(fmt.Sprintf("failed to coerce column (name=%s, type=%s)", shape.Name, shape.Type))
 		}
 	}
 

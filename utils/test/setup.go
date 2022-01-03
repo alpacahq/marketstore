@@ -246,6 +246,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 	return numberNotEmpty, err
 }
 
+// MakeDummyCurrencyDir makes dummy data directories for 3 symbols * 6 timeframes * 3 years (= 54 directories)
 func MakeDummyCurrencyDir(root string, withdata, withGaps bool) map[string]int {
 	itemsWritten := make(map[string]int, 0)
 	makeRootDir(root)

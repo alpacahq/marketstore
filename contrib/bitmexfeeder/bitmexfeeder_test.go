@@ -42,7 +42,7 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, "XBTUSD", worker.symbols[0])
 	assert.Nil(t, err)
 
-	config = getConfig(``)
+	getConfig(``)
 	config = map[string]interface{}{"httpClient": hc} // inject http client
 	ret, err = NewBgWorker(config)
 	worker = ret.(*BitmexFetcher)

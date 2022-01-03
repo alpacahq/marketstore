@@ -67,7 +67,7 @@ func (m *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.C
 	Creates a new count using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (m Min) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.AggInterface, err error) {
+func (m Min) New(argMap *functions.ArgumentMap, _ ...interface{}) (out uda.AggInterface, err error) {
 	mn := &Min{
 		IsInitialized: false,
 		Min:           0,
@@ -83,9 +83,9 @@ func (m Min) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.Agg
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (mn *Min) Output() *io.ColumnSeries {
+func (m *Min) Output() *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{time.Now().UTC().Unix()})
-	cs.AddColumn("Min", []float32{mn.Min})
+	cs.AddColumn("Min", []float32{m.Min})
 	return cs
 }

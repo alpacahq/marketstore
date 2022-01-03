@@ -41,6 +41,7 @@ func TestBufferedFile(t *testing.T) {
 	bf.Close()
 
 	fp, err = os.Open(filePath)
+	assert.Nil(t, err)
 	checkFunc := func(offset int64, size int) {
 		outData := make([]byte, size+2)
 		fp.ReadAt(outData, offset-1)

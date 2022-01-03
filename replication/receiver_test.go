@@ -48,6 +48,7 @@ func (mr *MockReplayer) Replay(transactionGroup []byte) error {
 }
 
 func TestReceiver_Run(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name             string
 		mockConnectFunc  func(ctx context.Context) error

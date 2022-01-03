@@ -363,6 +363,10 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 			// Add this result data to the overall
 			csm[key] = cs
 			tbi, err := root.GetLatestTimeBucketInfoFromKey(&key)
+			if err != nil {
+				fmt.Printf("Failed to GetLatestTimeBucketInfoFromKey")
+				return nil, err
+			}
 			tbiByKey[key] = tbi
 			writerByKey[key], err = executor.NewWriter(root, walFile)
 			if err != nil {

@@ -28,6 +28,7 @@ func (mc mockRpcClient) DoRPC(_ string, args interface{}) (response interface{},
 }
 
 func TestRemoteAPIClient_GetBucketInfo(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		rpcClient     session.RPCClient

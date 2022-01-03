@@ -211,6 +211,7 @@ func (q *query) AddTimeQual(timeQual TimeQualFunc) {
 }
 
 func (q *query) Parse() (pr *ParseResult, err error) {
+	const notFoundErrMsg = "no files returned from query parse"
 	// Check to see that the categories in the query are present in the DB directory
 	CatList := q.DataDir.GatherCategoriesFromCache()
 	for key := range q.Restriction.GetRestrictionMap() {
@@ -278,13 +279,12 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 	*/
 	getFileList(q.DataDir, &pr.QualifiedFiles, "", "")
 	if len(pr.QualifiedFiles) == 0 {
-		//nolint:stylecheck This error message is already used for error handling at some places
-		return pr, fmt.Errorf("No files returned from query parse")
+		return pr, fmt.Errorf("no files returned from query parse")
 	}
 
 	/*
 		Obtain the Timeframe from the qualified files and validate that the files all share the same timeframe
-		This is necessary because the IO plan will use timeeframe / interval information to target the data
+		This is necessary because the IO plan will use timeframe / interval information to target the data
 		location directly
 	*/
 	for i, qf := range pr.QualifiedFiles {

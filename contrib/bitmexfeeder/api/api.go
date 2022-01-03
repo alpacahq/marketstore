@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -52,7 +53,11 @@ func NewBitmexClient(hc *http.Client) *BitmexClient {
 // GetInstruments from bitmex API.
 func (c *BitmexClient) GetInstruments() ([]string, error) {
 	reqURL := c.baseURL + c.apiURL + "/instrument/active"
-	res, err := c.Client.Get(reqURL)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create http req for %s: %w", reqURL, err)
+	}
+	res, err := c.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get active instruments: %w", err)
 	}
@@ -89,7 +94,7 @@ func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string)
 	}
 	uri.RawQuery = values.Encode()
 	reqURL := uri.String()
-	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
 	if err != nil {
 		return nil, err
 	}
