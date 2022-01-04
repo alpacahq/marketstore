@@ -55,8 +55,8 @@ func (c *WALCleaner) CleanupOldWALFiles(walfileAbsPaths []string) error {
 			}
 			if walReplayErr.Cont {
 				tmpFP := fp + ".tmp"
-				if err := wal.Move(fp, tmpFP); err != nil {
-					return fmt.Errorf("failed to move old wal file %s to a tmp file:%w", fp, err)
+				if err2 := wal.Move(fp, tmpFP); err2 != nil {
+					return fmt.Errorf("failed to move old wal file %s to a tmp file:%w", fp, err2)
 				}
 				log.Info(fmt.Sprintf("Unable to replay. moved an old WAL file %s to a temporary file %s",
 					fp, tmpFP))

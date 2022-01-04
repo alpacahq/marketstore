@@ -168,9 +168,9 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 
 	cfp := NewCachedFP() // Cached open file pointer
 	defer func() {
-		err := cfp.Close()
-		if err != nil {
-			log.Error(fmt.Sprintf("failed to close cached file pointer %s: %v", cfp, err))
+		err2 := cfp.Close()
+		if err2 != nil {
+			log.Error(fmt.Sprintf("failed to close cached file pointer %s: %v", cfp, err2))
 		}
 	}()
 

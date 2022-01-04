@@ -63,10 +63,10 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 
 	// Handle any error in the RPC call
 	if resp.StatusCode != 200 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err2 := ioutil.ReadAll(resp.Body)
 		var errText string
-		if err != nil {
-			errText = err.Error()
+		if err2 != nil {
+			errText = err2.Error()
 		} else {
 			if bodyBytes != nil {
 				errText = string(bodyBytes)

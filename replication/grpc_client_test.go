@@ -45,11 +45,8 @@ func TestGRPCReplicationClient_Recv_streamNotInitialized(t *testing.T) {
 	client := replication.NewGRPCReplicationClient(&mock.ReplicationClient{})
 	// _ = client.Connect(context.Background()) // Not Connected yet
 
-	// --- when ---
-	_, err := client.Recv()
-
-	// --- then ---
-	if err == nil {
+	// --- when & then ---
+	if 	_, err := client.Recv(); err == nil {
 		t.Errorf("Recv() call should fail before connect")
 	}
 }

@@ -335,8 +335,8 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 ) (queryFiles []string, err error) {
 	// Create some data via a query
 	symbols := []string{"NZDUSD", "USDJPY", "EURUSD"}
-	tbiByKey := make(map[io.TimeBucketKey]*io.TimeBucketInfo, 0)
-	writerByKey := make(map[io.TimeBucketKey]*executor.Writer, 0)
+	tbiByKey := make(map[io.TimeBucketKey]*io.TimeBucketInfo)
+	writerByKey := make(map[io.TimeBucketKey]*executor.Writer)
 	csm := io.NewColumnSeriesMap()
 	queryFiles = make([]string, 0)
 

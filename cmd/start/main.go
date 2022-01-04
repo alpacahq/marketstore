@@ -103,17 +103,17 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	if config.Replication.Enabled {
 		// Enable TLS for all incoming connections if configured
 		if config.Replication.TLSEnabled {
-			cert, err := tls.LoadX509KeyPair(
+			cert, err2 := tls.LoadX509KeyPair(
 				config.Replication.CertFile,
 				config.Replication.KeyFile,
 			)
-			if err != nil {
+			if err2 != nil {
 				globalCancel()
 				return fmt.Errorf("failed to load server certificates for replication:"+
 					" certFile:%v, keyFile:%v, err:%v",
 					config.Replication.CertFile,
 					config.Replication.KeyFile,
-					err.Error(),
+					err2.Error(),
 				)
 			}
 			opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
@@ -123,6 +123,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		grpcReplicationServer = grpc.NewServer(opts...)
 		rs, err = initReplicationMaster(globalCtx, grpcReplicationServer, config.Replication.ListenPort)
 		if err != nil {
+			globalCancel()
 			return fmt.Errorf("failed to initialize replication master: %w", err)
 		}
 		log.Info("initialized replication master")
@@ -142,6 +143,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		config.WALBypass,
 	)
 	if err != nil {
+		globalCancel()
 		return fmt.Errorf("craete new instance setup: %w", err)
 	}
 
@@ -184,6 +186,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		)
 		if err != nil {
 			log.Error("Unable to startup Replication", err)
+			globalCancel()
 			return err
 		}
 		log.Info("initialized replication client")
@@ -252,7 +255,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	}
 
 	// Spawn a goroutine and listen for a signal.
-	signalChan := make(chan os.Signal)
+	signalChan := make(chan os.Signal, 10)
 	go func() {
 		for s := range signalChan {
 			switch s {

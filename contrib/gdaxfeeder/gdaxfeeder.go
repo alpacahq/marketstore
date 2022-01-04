@@ -139,11 +139,19 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 		return time.Time{}
 	}
 	csm, err := reader.Read()
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to read a query for %s", tbk))
+		return time.Time{}
+	}
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
 	}
 	ts, err := cs.GetTime()
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to get time from a query for %s", tbk))
+		return time.Time{}
+	}
 	return ts[0]
 }
 

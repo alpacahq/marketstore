@@ -80,6 +80,7 @@ func TestTickCandler(t *testing.T) {
 	}
 	assert.Equal(t, rows.Len(), 4)
 	tsa, err := rows.GetTime()
+	assert.Nil(t, err)
 	tbase := time.Date(2016, time.December, 31, 2, 59, 0, 0, time.UTC)
 	assert.Equal(t, tsa[0], tbase)
 	assert.Equal(t, rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200})

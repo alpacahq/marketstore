@@ -154,13 +154,10 @@ Query:
 		return
 	}
 
-	cs := (*csm)[*tbk]
-
-	if cs != nil {
+	if cs := (*csm)[*tbk]; cs != nil {
 		s.write(tbk, cs, tail, head, elements)
 	}
 
-	return
 }
 
 func (s *OnDiskAggTrigger) write(
@@ -306,9 +303,9 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 		if err != nil {
 			return nil, fmt.Errorf("get bar for ondiskagg: %w", err)
 		}
-		cs := bar.GetCs()
+		cs2 := bar.GetCs()
 
-		return cs, nil
+		return cs2, nil
 	} else {
 		// bars to bars
 		params = []accumParam{

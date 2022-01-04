@@ -47,10 +47,8 @@ func TestBarWriterImpl_Write(t *testing.T) {
 		},
 	}
 
-	// --- when ---
-	err := SUT.Write(symbol, bars)
-	// --- then ---
-	if err != nil {
+	// --- when & then ---
+	if err := SUT.Write(symbol, bars); err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
 	}
 

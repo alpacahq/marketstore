@@ -373,7 +373,7 @@ func TestFunctions(t *testing.T) {
 	}
 
 	var response frontend.MultiQueryResponse
-	if err := service.Query(nil, args, &response); err != nil {
+	if err2 := service.Query(nil, args, &response); err2 != nil {
 		t.Fatalf("error returned: %s", err)
 	}
 

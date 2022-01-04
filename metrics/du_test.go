@@ -73,8 +73,7 @@ func writeBuffer(fp *os.File, size int) error {
 		b[i] = 1
 	}
 
-	_, err := fp.WriteAt(b, 0)
-	if err != nil {
+	if _, err := fp.WriteAt(b, 0); err != nil {
 		return err
 	}
 

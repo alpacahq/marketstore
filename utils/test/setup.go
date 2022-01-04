@@ -248,7 +248,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 
 // MakeDummyCurrencyDir makes dummy data directories for 3 symbols * 6 timeframes * 3 years (= 54 directories)
 func MakeDummyCurrencyDir(root string, withdata, withGaps bool) map[string]int {
-	itemsWritten := make(map[string]int, 0)
+	itemsWritten := make(map[string]int)
 	makeRootDir(root)
 	symbols := []string{"EURUSD", "USDJPY", "NZDUSD"}
 	timeframes := []string{"1Min", "5Min", "15Min", "1H", "4H", "1D"}
@@ -300,8 +300,7 @@ func MakeDummyStockDir(root string, withdata, withGaps bool) map[string]int {
 }
 
 func CleanupDummyDataDir(root string) {
-	err := os.RemoveAll(root)
-	if err != nil {
+	if err := os.RemoveAll(root); err != nil {
 		log.Error("Failed to clean up dummy data directory - Error: %v", err)
 	}
 }

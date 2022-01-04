@@ -66,10 +66,8 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 		},
 	}
 
-	// --- when ---
-	err := SUT.Write(apiResponse)
-	// --- then ---
-	if err != nil {
+	// --- when & then ---
+	if err := SUT.Write(apiResponse); err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
 	}
 
@@ -128,10 +126,8 @@ func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
 		},
 	}
 
-	// --- when ---
-	err := SUT.Write(apiResponse)
-	// --- then ---
-	if err != nil {
+	// --- when & then ---
+	if err := SUT.Write(apiResponse); err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
 	}
 

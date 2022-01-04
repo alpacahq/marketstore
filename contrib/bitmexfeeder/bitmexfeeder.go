@@ -118,12 +118,24 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 		return time.Time{}
 	}
 	reader, err := executor.NewReader(parsed)
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to create a new reader for %s", tbk))
+		return time.Time{}
+	}
 	csm, err := reader.Read()
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to read a query for %s", tbk))
+		return time.Time{}
+	}
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
 	}
 	ts, err := cs.GetTime()
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to get time from query for %s", tbk))
+		return time.Time{}
+	}
 	return ts[0]
 }
 
@@ -211,7 +223,7 @@ func (gd *BitmexFetcher) Run() {
 		if toSleep > 0 {
 			log.Info("sleep for %v", toSleep)
 			time.Sleep(toSleep)
-		} else if time.Now().Sub(lastTime) < time.Hour {
+		} else if time.Since(lastTime) < time.Hour {
 			// let's not go too fast if the catch up is less than an hour
 			time.Sleep(time.Second)
 		}

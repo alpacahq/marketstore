@@ -19,10 +19,8 @@ func TestPrintResult(t *testing.T) {
 	},
 	)
 
-	// --- when ---
-	err := printResult("", cs)
-	// --- then ---
-	if err != nil {
+	// --- when & then ---
+	if err := printResult("", cs); err != nil {
 		t.Fatal(err)
 	}
 }

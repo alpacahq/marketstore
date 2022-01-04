@@ -56,7 +56,7 @@ func TradeHandler(msg []byte) {
 		}
 		// Polygon time is in milliseconds since the Unix epoch
 		timestamp := time.Unix(0, int64(1000*1000*float64(rt.Timestamp)))
-		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
+		lagOnReceipt := time.Since(timestamp).Seconds()
 		t := trade{
 			epoch: timestamp.Unix(),
 			nanos: int32(timestamp.Nanosecond()),
@@ -89,7 +89,7 @@ func QuoteHandler(msg []byte) {
 	writeMap := make(map[io.TimeBucketKey]interface{})
 	for _, rq := range qq {
 		timestamp := time.Unix(0, int64(1000*1000*float64(rq.Timestamp)))
-		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
+		lagOnReceipt := time.Since(timestamp).Seconds()
 		q := quote{
 			epoch: timestamp.Unix(),
 			nanos: int32(timestamp.Nanosecond()),
@@ -121,7 +121,7 @@ func BarsHandler(msg []byte) {
 	}
 	for _, bar := range am {
 		timestamp := time.Unix(0, int64(1000*1000*float64(bar.EpochMillis)))
-		lagOnReceipt := time.Now().Sub(timestamp).Seconds()
+		lagOnReceipt := time.Since(timestamp).Seconds()
 
 		epoch := bar.EpochMillis / 1000
 

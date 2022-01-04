@@ -45,9 +45,9 @@ func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
 
 func (de *deleter) Delete() (err error) {
 	for _, iop := range de.IOPMap {
-		err := de.delete(iop)
-		if err != nil {
-			return err
+		err2 := de.delete(iop)
+		if err2 != nil {
+			return err2
 		}
 	}
 	return err
@@ -72,8 +72,8 @@ func (de *deleter) delete(iop *ioplan) (err error) {
 			return nil
 		}
 
-		if err := seekerFunc(fp.Offset); err != nil {
-			return err
+		if err2 := seekerFunc(fp.Offset); err2 != nil {
+			return err2
 		}
 
 		/*

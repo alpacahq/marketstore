@@ -103,9 +103,9 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 		q.SetRowLimit(io.LAST, 1)
 		q.SetEnd(end.Add(-1 * time.Minute))
 
-		parsed, err := q.Parse()
-		if err != nil {
-			log.Error("[polygon] query parse failure (%v)", err)
+		parsed, err2 := q.Parse()
+		if err2 != nil {
+			log.Error("[polygon] query parse failure (%v)", err2)
 			return
 		}
 

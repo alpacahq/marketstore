@@ -146,16 +146,16 @@ func serializeVariableRecords(epoch time.Time, intervalsPerDay uint32, wtSet *wa
 	cursor := 0
 	for i := 0; i < numRows; i++ {
 		// serialize Epoch (variable length records in a WTSet have the same Epoch value)
-		buf, err := io.Serialize(buf[:cursor], epoch.Unix())
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
+		buf, err2 := io.Serialize(buf[:cursor], epoch.Unix())
+		if err2 != nil {
+			return nil, errors.Wrap(err2, "failed to serialize Epoch to buffer:"+epoch.String())
 		}
 		cursor += EpochBytes
 
 		// append the payload (= columns + intervalTicks) for a record
-		buf, err = io.Serialize(buf[:cursor], payload[i*varRecLen:(i+1)*varRecLen])
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to serialize Payload to buffer:"+epoch.String())
+		buf, err2 = io.Serialize(buf[:cursor], payload[i*varRecLen:(i+1)*varRecLen])
+		if err2 != nil {
+			return nil, errors.Wrap(err2, "failed to serialize Payload to buffer:"+epoch.String())
 		}
 
 		// last 4 byte of each record is an intervalTick
@@ -163,9 +163,9 @@ func serializeVariableRecords(epoch time.Time, intervalsPerDay uint32, wtSet *wa
 		// expand intervalTicks(32bit) to Epoch and Nanosecond
 		_, nanosecond := executor.GetTimeFromTicks(uint64(epoch.Unix()), intervalsPerDay, intervalTicks)
 		// replace intervalTick with Nanosecond
-		buf, err = io.Serialize(buf[:len(buf)-IntervalTicksBytes], int32(nanosecond))
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to serialize Payload to buffer:"+epoch.String())
+		buf, err2 = io.Serialize(buf[:len(buf)-IntervalTicksBytes], int32(nanosecond))
+		if err2 != nil {
+			return nil, errors.Wrap(err2, "failed to serialize Payload to buffer:"+epoch.String())
 		}
 
 		cursor += varRecLen
