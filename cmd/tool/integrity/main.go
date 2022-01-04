@@ -157,8 +157,7 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 		return fmt.Errorf("%s is not a file", filePath)
 	}
 	checkFile, _ := filepath.Rel(rootDirPath, filePath)
-	ext := filepath.Ext(checkFile)
-	if ext == ".bin" {
+	if ext := filepath.Ext(checkFile); ext == ".bin" {
 		checkFile = checkFile[:len(checkFile)-4]
 		year, _ := strconv.Atoi(filepath.Base(checkFile))
 		if year < yearStart || year > yearEnd {

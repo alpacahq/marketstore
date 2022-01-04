@@ -75,7 +75,7 @@ func main() {
 					log.Error(fmt.Sprintf("failed to pullDate(%v). err=%v", t, err))
 					return
 				}
-				log.Info("Done %v (in %s)", t.Format("2006-01-02"), time.Now().Sub(s).String())
+				log.Info("Done %v (in %s)", t.Format("2006-01-02"), time.Since(s).String())
 			}(end)
 		}
 

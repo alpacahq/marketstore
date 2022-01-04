@@ -161,8 +161,8 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				q.SetStart(time.Unix(val/1000000000, val%1000000000))
 			}
 			if sp.ContentsEnum.IsSet(MAXBOUND) {
-				val, err := io.GetValueAsInt64(sp.max)
-				if err != nil {
+				val, err2 := io.GetValueAsInt64(sp.max)
+				if err2 != nil {
 					return nil, fmt.Errorf("non date predicate found for Epoch")
 				}
 				if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
@@ -194,9 +194,9 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			}
 		}
 
-		parsed, err := q.Parse()
-		if err != nil {
-			return nil, err
+		parsed, err2 := q.Parse()
+		if err2 != nil {
+			return nil, err2
 		}
 		scanner, err := executor.NewReader(parsed)
 		if err != nil {
@@ -696,9 +696,7 @@ func (spg StaticPredicateGroup) Merge(sp *StaticPredicate, IsOr bool) error {
 	}
 	if sp.ContentsEnum.IsSet(INLIST) {
 		tgtSP.ContentsEnum.AddOption(INLIST)
-		for _, item := range sp.inlist {
-			tgtSP.inlist = append(tgtSP.inlist, item)
-		}
+		tgtSP.inlist = append(tgtSP.inlist, sp.inlist...)
 	}
 	return nil
 }

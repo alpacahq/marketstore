@@ -21,8 +21,7 @@ func setup(t *testing.T, testName string) (tearDown func(), testPluginLib, oldGo
 
 	dirName, _ := ioutil.TempDir("", fmt.Sprintf("plugins_test-%s", testName))
 
-	osType := runtime.GOOS
-	if osType != "linux" {
+	if osType := runtime.GOOS; osType != "linux" {
 		t.Skip("Only linux runs plugins")
 	}
 

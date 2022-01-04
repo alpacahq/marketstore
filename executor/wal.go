@@ -112,8 +112,8 @@ func (wf *WALFileType) createFile(rootDir string) error {
 	filePath := filepath.Join(rootDir, "WALFile")
 	filePath = fmt.Sprintf("%s.%d.walfile", filePath, nowNano)
 	// Try to open the file for writing, creating it in the process if it doesn't exist
-	err := wf.open(filePath)
-	if err != nil {
+
+	if err := wf.open(filePath); err != nil {
 		return WALCreateError("CreateFile" + err.Error())
 	}
 	return nil
@@ -524,8 +524,8 @@ func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wa
 }
 
 func (wf *WALFileType) IsOpen() bool {
-	_, err := wf.FilePtr.Stat()
-	if err != nil {
+
+	if _, err := wf.FilePtr.Stat(); err != nil {
 		log.Info(io.GetCallerFileContext(0) + ": File stat failed, file probably deleted: " + err.Error())
 		return false
 	}
@@ -577,8 +577,7 @@ func (wf *WALFileType) isActive(callersInstanceID int64) bool {
 }
 
 func (wf *WALFileType) NeedsReplay() (bool, error) {
-	err := wf.syncStatusRead()
-	if err != nil {
+	if err := wf.syncStatusRead(); err != nil {
 		return false, fmt.Errorf("wal syncStatuRead: %w", err)
 	}
 
@@ -589,8 +588,7 @@ func (wf *WALFileType) NeedsReplay() (bool, error) {
 }
 
 func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) (bool, error) {
-	err := wf.syncStatusRead()
-	if err != nil {
+	if err := wf.syncStatusRead(); err != nil {
 		return false, fmt.Errorf("read syncStatus:%w", err)
 	}
 	if !wf.isActive(callersInstanceID) {

@@ -68,7 +68,7 @@ func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, en
 	}
 	tbk = io.NewTimeBucketKey(args[0])
 
-	parsedTime := false
+	var parsedTime bool
 	for _, arg := range args[1:] {
 		switch strings.ToLower(arg) {
 		case "between":

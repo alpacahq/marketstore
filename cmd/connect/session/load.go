@@ -100,7 +100,6 @@ func (c *Client) load(line string) {
 		}
 	}
 
-	return
 }
 
 func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err error) {

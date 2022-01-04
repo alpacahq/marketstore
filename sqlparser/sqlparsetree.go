@@ -1906,15 +1906,13 @@ func Explain(ctx IMSTree, o_level ...int) (out []string) {
 	if len(o_level) != 0 {
 		level = o_level[0]
 	}
-	if ctx != nil {
-		for _, child := range ctx.GetChildren() {
-			result := Explain(child, level+1)
-			out = append(out, result...)
-		}
-		out = append(out, ctx.String(level)...)
-	} else {
-		out = []string{""}
+
+	for _, child := range ctx.GetChildren() {
+		result := Explain(child, level+1)
+		out = append(out, result...)
 	}
+	out = append(out, ctx.String(level)...)
+
 	return out
 }
 

@@ -40,7 +40,7 @@ type MockErrorAPIClient struct {
 
 // ListBars returns an error if symbol:"ERROR" is included, but returns data to other symbols.
 func (mac *MockErrorAPIClient) ListBars(symbols []string, opts alpaca.ListBarParams) (map[string][]alpaca.Bar, error) {
-	ret := make(map[string][]alpaca.Bar, 0)
+	ret := make(map[string][]alpaca.Bar)
 	for _, symbl := range symbols {
 		if symbl == errorSymbol {
 			return nil, errors.New("error")

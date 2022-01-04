@@ -184,8 +184,8 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 			return err
 		}
 		oldData := make([]byte, currentRecInfo.Len)
-		if _, err := fp.Read(oldData); err != nil {
-			return err
+		if _, err2 := fp.Read(oldData); err2 != nil {
+			return err2
 		}
 		if !utils.InstanceConfig.DisableVariableCompression {
 			oldData, err = snappy.Decode(nil, oldData)
@@ -274,9 +274,9 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 				recordType = io.FIXED
 			}
 
-			t, err := cs.GetTime()
-			if err != nil {
-				return err
+			t, err2 := cs.GetTime()
+			if err2 != nil {
+				return err2
 			}
 			if len(t) == 0 {
 				continue
@@ -314,13 +314,11 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
 
-		if coercion != nil {
-			for _, dbDS := range coercion {
-				if err := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err != nil {
-					csType := io.GetElementType(cs.GetColumn(dbDS.Name))
-					log.Error("[%s] error coercing %s from %s to %s", tbk.GetItemKey(), dbDS.Name, csType.String(), dbDS.Type.String())
-					return err
-				}
+		for _, dbDS := range coercion {
+			if err2 := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err2 != nil {
+				csType := io.GetElementType(cs.GetColumn(dbDS.Name))
+				log.Error("[%s] error coercing %s from %s to %s", tbk.GetItemKey(), dbDS.Name, csType.String(), dbDS.Type.String())
+				return err2
 			}
 		}
 

@@ -105,7 +105,6 @@ func handleStatus(raw []byte) {
 	status, _ := jsonparser.GetString(raw, "status")
 	message, _ := jsonparser.GetString(raw, "message")
 	log.Info("[polyiex] status = '%s', message = '%s'", status, message)
-	return
 }
 
 func handleUnknown(raw []byte) {

@@ -55,8 +55,8 @@ func TestStream(t *testing.T) {
 
 	handler := func(buf []byte) error {
 		var payload *stream.Payload
-		err := msgpack.Unmarshal(buf, &payload)
-		assert.Nil(t, err)
+		err2 := msgpack.Unmarshal(buf, &payload)
+		assert.Nil(t, err2)
 
 		payload.Key = strings.Replace(payload.Key, "NVDA", "*", 1)
 		if count, ok := streamCount[payload.Key]; !ok {
