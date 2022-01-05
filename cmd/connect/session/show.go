@@ -14,7 +14,9 @@ import (
 func (c *Client) show(line string) {
 	args := strings.Split(line, " ")
 	args = args[1:]
-	if !(len(args) >= 2) {
+	// need bucket name and date
+	const argLen = 1
+	if !(len(args) > argLen) {
 		fmt.Println("Not enough arguments, see \"\\help show\" ")
 		return
 	}
@@ -62,7 +64,8 @@ func (c *Client) show(line string) {
 
 func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, end *time.Time) {
 	// args[0] must be "Symbol/Timeframe/AttributeGroup" format (e.g. "AAPL/1Min/OHLC" )
-	if itemKeys := strings.Split(args[0], "/"); len(itemKeys) != 3 {
+	const itemKeyLen = 3
+	if itemKeys := strings.Split(args[0], "/"); len(itemKeys) != itemKeyLen {
 		fmt.Println(`Key is not in {Symbol/Timeframe/AttributeGroup} format (e.g. "AAPL/1Min/OHLCV)", see "\help show" `)
 		return
 	}
@@ -102,14 +105,19 @@ func parseTime(t string) (out time.Time, err error) {
 	/*
 		Implements a variety of format choices that key on string length
 	*/
+	const (
+		formatLen1 = 10 // = len("2006-01-02")
+		formatLen2 = 16 // = len("2006-01-02T15:04")
+		formatLen3 = 18 // = len("20060102 150405999")
+	)
 	switch len(t) {
 	case 0:
 		return out, fmt.Errorf("zero length time string")
-	case 10:
+	case formatLen1:
 		return time.Parse("2006-01-02", t)
-	case 16:
+	case formatLen2:
 		return time.Parse("2006-01-02T15:04", t)
-	case 18:
+	case formatLen3:
 		return time.Parse("20060102 150405999", t)
 	default:
 		return out, errors.New("invalid time format")

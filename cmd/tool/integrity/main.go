@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/spf13/cobra"
@@ -112,29 +113,29 @@ func init() {
 		switch i {
 		case 0:
 			chunkNames[i] = "Hdr"
-		case 1:
+		case int(time.January):
 			chunkNames[i] = "Jan"
-		case 2:
+		case int(time.February):
 			chunkNames[i] = "Feb"
-		case 3:
+		case int(time.March):
 			chunkNames[i] = "Mar"
-		case 4:
+		case int(time.April):
 			chunkNames[i] = "Apr"
-		case 5:
+		case int(time.May):
 			chunkNames[i] = "May"
-		case 6:
+		case int(time.June):
 			chunkNames[i] = "Jun"
-		case 7:
+		case int(time.July):
 			chunkNames[i] = "Jul"
-		case 8:
+		case int(time.August):
 			chunkNames[i] = "Aug"
-		case 9:
+		case int(time.September):
 			chunkNames[i] = "Sep"
-		case 10:
+		case int(time.October):
 			chunkNames[i] = "Oct"
-		case 11:
+		case int(time.November):
 			chunkNames[i] = "Nov"
-		case 12:
+		case int(time.December):
 			chunkNames[i] = "Dec"
 		default:
 			chunkNames[i] = strconv.Itoa(i + 1)
@@ -302,7 +303,8 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 	/*
 		Write the new fileinfo to the file header
 	*/
-	fp, err := os.OpenFile(filePath, os.O_WRONLY, 0o777)
+	const allowAll = 0o777
+	fp, err := os.OpenFile(filePath, os.O_WRONLY, allowAll)
 	if err != nil {
 		fmt.Println("Unable to write new header to file, terminating...")
 		os.Exit(1)

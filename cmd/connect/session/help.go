@@ -76,7 +76,8 @@ func (c *Client) functionHelp(line string) {
 
 	case "create", "destroy":
 		fmt.Println(`
-		The create command generates new subdirectories and buckets for a database, and requires specially formatted schema keys as arguments.
+		The create command generates new subdirectories and buckets for a database, 
+        and requires specially formatted schema keys as arguments.
 		Syntax:
 			>> \create <full-schema-key> <row-data-shape> <row-type>
 		Example: We create a new DB entry to store 1 minute candles for TSLA:

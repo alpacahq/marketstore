@@ -100,7 +100,8 @@ func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *fro
 	return ds.Destroy(nil, reqs, responses)
 }
 
-func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error {
+func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse,
+) error {
 	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.aggRunner, lc.writer, lc.query)
 	return ds.GetInfo(nil, reqs, responses)
 }

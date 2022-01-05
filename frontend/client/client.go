@@ -20,6 +20,10 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 )
 
+const (
+	streamSubscribeTimeout = 10 * time.Second
+)
+
 type Client struct {
 	BaseURL string
 }
@@ -171,7 +175,7 @@ func (cl *Client) Subscribe(
 			conn.Close()
 			return nil, fmt.Errorf("marketstore stream subscribe failed")
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(streamSubscribeTimeout):
 		// timeout
 		conn.Close()
 		return nil, fmt.Errorf("marketstore stream subscribe timed out")

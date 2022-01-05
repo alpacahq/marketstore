@@ -38,10 +38,11 @@ func isNanosec(epoch int64) bool {
 }
 
 func convertUnitToNanosec(epoch int64) int64 {
+	const nanosec = 1000000000
 	if isNanosec(epoch) {
 		return epoch
 	}
-	return epoch * 1000000000
+	return epoch * nanosec
 }
 
 func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Directory,

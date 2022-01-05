@@ -30,7 +30,7 @@ func (c *Client) load(line string) {
 		return
 	}
 
-	tbk_p, dataFD, loaderFD, err := parseLoadArgs(args)
+	tbkP, dataFD, loaderFD, err := parseLoadArgs(args)
 	if err != nil {
 		fmt.Printf("Error while parsing arguments: %v\n", err)
 		return
@@ -42,7 +42,7 @@ func (c *Client) load(line string) {
 	/*
 		Verify the presence of a bucket with the input key
 	*/
-	resp, err := c.GetBucketInfo(tbk_p)
+	resp, err := c.GetBucketInfo(tbkP)
 	if err != nil {
 		fmt.Printf("Error finding existing bucket: %v\n", err)
 		return
@@ -65,7 +65,7 @@ func (c *Client) load(line string) {
 		chunkSize := 1000000
 		// chunkSize := 100
 
-		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, *tbk_p, cvm, chunkSize, resp.RecordType == io.VARIABLE)
+		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, *tbkP, cvm, chunkSize, resp.RecordType == io.VARIABLE)
 		if err != nil {
 			fmt.Println("Error: ", err.Error())
 			return
@@ -99,7 +99,6 @@ func (c *Client) load(line string) {
 			break
 		}
 	}
-
 }
 
 func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err error) {
@@ -124,7 +123,8 @@ func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err erro
 }
 
 func parseLoadArgs(args []string) (mk *io.TimeBucketKey, inputFD, controlFD *os.File, err error) {
-	if len(args) < 2 {
+	const argLen = 2
+	if len(args) < argLen {
 		return nil, nil, nil, errors.New(`not enough arguments, see "\help load"`)
 	}
 	mk = io.NewTimeBucketKey(args[0])

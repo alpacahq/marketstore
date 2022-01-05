@@ -208,15 +208,16 @@ func printColumnNames(cs *dbio.ColumnSeries) {
 }
 
 func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string) (err error) {
+	const perm755 = 0o755
 	var oFile string
 	if len(optionalFile) != 0 {
 		// Might be a real filename
 		oFile = optionalFile[0]
 	}
 	var writer *csv.Writer
-	if len(oFile) != 0 {
+	if oFile != "" {
 		var file *os.File
-		file, err = os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, 0o755)
+		file, err = os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, perm755)
 		if err != nil {
 			return err
 		}
@@ -226,24 +227,27 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 
 	if cs == nil {
 		fmt.Println("no results returned from query")
-		return
+		return nil
 	}
 	/*
 		Check if this is an EXPLAIN output
 	*/
-	i_explain := cs.GetByName("explain-output")
-	if i_explain != nil {
-		explain := i_explain.([]string)
+	iExplain := cs.GetByName("explain-output")
+	if iExplain != nil {
+		explain, ok := iExplain.([]string)
+		if !ok {
+			return fmt.Errorf("format explain-output column to string(val=%v)", iExplain)
+		}
 		sqlparser.PrintExplain(queryText, explain)
-		return
+		return nil
 	}
-	i_epoch := cs.GetByName("Epoch")
-	if i_epoch == nil {
+	iEpoch := cs.GetByName("Epoch")
+	if iEpoch == nil {
 		return fmt.Errorf("epoch column not present in output")
 	}
 	var epoch []int64
 	var ok bool
-	if epoch, ok = i_epoch.([]int64); !ok {
+	if epoch, ok = iEpoch.([]int64); !ok {
 		return fmt.Errorf("unable to convert Epoch column")
 	}
 
@@ -252,6 +256,10 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		printColumnNames(cs)
 		printHeaderLine(cs)
 	}
+	const (
+		decimal   = 10
+		bitSize32 = 32
+	)
 	for i, ts := range epoch {
 		row := []string{}
 		var element string
@@ -264,34 +272,34 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 				switch colType {
 				case reflect.Float32:
 					val := col.([]float32)[i]
-					element = strconv.FormatFloat(float64(val), 'f', -1, 32)
+					element = strconv.FormatFloat(float64(val), 'f', -1, bitSize32)
 				case reflect.Float64:
 					val := col.([]float64)[i]
-					element = strconv.FormatFloat(val, 'f', -1, 32)
+					element = strconv.FormatFloat(val, 'f', -1, bitSize32)
 				case reflect.Int8:
 					val := col.([]int8)[i]
-					element = strconv.FormatInt(int64(val), 10)
+					element = strconv.FormatInt(int64(val), decimal)
 				case reflect.Int16:
 					val := col.([]int16)[i]
-					element = strconv.FormatInt(int64(val), 10)
+					element = strconv.FormatInt(int64(val), decimal)
 				case reflect.Int32:
 					val := col.([]int32)[i]
-					element = strconv.FormatInt(int64(val), 10)
+					element = strconv.FormatInt(int64(val), decimal)
 				case reflect.Int64:
 					val := col.([]int64)[i]
-					element = strconv.FormatInt(val, 10)
+					element = strconv.FormatInt(val, decimal)
 				case reflect.Uint8:
 					val := col.([]uint8)[i]
-					element = strconv.FormatUint(uint64(val), 10)
+					element = strconv.FormatUint(uint64(val), decimal)
 				case reflect.Uint16:
 					val := col.([]uint16)[i]
-					element = strconv.FormatUint(uint64(val), 10)
+					element = strconv.FormatUint(uint64(val), decimal)
 				case reflect.Uint32:
 					val := col.([]uint32)[i]
-					element = strconv.FormatUint(uint64(val), 10)
+					element = strconv.FormatUint(uint64(val), decimal)
 				case reflect.Uint64:
 					val := col.([]uint64)[i]
-					element = strconv.FormatUint(val, 10)
+					element = strconv.FormatUint(val, decimal)
 				case reflect.Bool:
 					val := col.([]bool)[i]
 					if val {
@@ -347,42 +355,28 @@ func runesToString(runes reflect.Value) string {
 }
 
 func columnFormatLength(colName string, col interface{}) int {
+	const (
+		defaultColumnLength = 10
+		// = len("2021-12-21 21:00:37 +0000 UTC") = 29
+		epochColumnLength = 29
+	)
 	if strings.EqualFold(colName, "Epoch") {
-		return 29
+		return epochColumnLength
 	}
 
 	colType := reflect.TypeOf(col).Elem().Kind()
 	switch colType {
-	case reflect.Float32:
-		fallthrough
-	case reflect.Float64:
-		fallthrough
-	case reflect.Int8:
-		fallthrough
-	case reflect.Int16:
-		fallthrough
-	case reflect.Int32:
-		fallthrough
-	case reflect.Int64:
-		fallthrough
-	case reflect.Uint8:
-		fallthrough
-	case reflect.Uint16:
-		fallthrough
-	case reflect.Uint32:
-		fallthrough
-	case reflect.Uint64:
-		fallthrough
-	case reflect.String:
+	case reflect.Float32, reflect.Float64, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint8,
+		reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.String:
 		fallthrough
 	case reflect.Bool:
-		return 10
+		return defaultColumnLength
 	case reflect.Array:
 		// e.g. STRING16 column has colType=[16]rune
 		return reflect.TypeOf(col).Elem().Len()
 	}
 	// default
-	return 10
+	return defaultColumnLength
 }
 
 func formatHeader(cs *dbio.ColumnSeries, printChar string) string {

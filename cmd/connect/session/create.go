@@ -1,7 +1,6 @@
 package session
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -37,12 +36,12 @@ func (c *Client) getinfo(line string) {
 		}
 	*/
 
-	tbk_p := io.NewTimeBucketKey(args[0])
-	if tbk_p == nil {
+	tbkP := io.NewTimeBucketKey(args[0])
+	if tbkP == nil {
 		fmt.Printf("Failed to convert argument to key: %s\n", args[0])
 		return
 	}
-	resp, err := c.GetBucketInfo(tbk_p)
+	resp, err := c.GetBucketInfo(tbkP)
 	if err != nil {
 		fmt.Printf("Failed with error: %s\n", err.Error())
 		return
@@ -70,7 +69,8 @@ func (c *Client) create(line string) (ok bool) {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
 	// args[0]:tbk, args[1]:dataTypeStr, args[2]:"fixed" or "variable"
-	if len(args) < 3 {
+	const argLen = 3
+	if len(args) < argLen {
 		fmt.Println(`Not enough arguments - need "\create [tbk] [dataTypeStr] [recordType('fixed' or 'variable')]"`)
 		fmt.Println(`example usage: "\create TEST/1Min/OHLCV:Symbol/Timeframe/AttributeGroup ` +
 			`Open,High,Low,Close/float32:Volume/int64 variable"`)
@@ -112,7 +112,7 @@ func (c *Client) create(line string) (ok bool) {
 	}
 
 	for _, resp := range responses.Responses {
-		if len(resp.Error) != 0 {
+		if resp.Error != "" {
 			fmt.Printf("Failed with error: %v\n", resp.Error)
 			return false
 		}
@@ -135,7 +135,7 @@ func toColumns(dataShapeStr string) (columnNames, columnTypeStrs []string, err e
 		typeStr, ok := io.ToTypeStr(ds.Type) // e.g. i8, f4
 		if !ok {
 			return nil, nil,
-				errors.New(fmt.Sprintf("type:%v is not supported", ds.Type))
+				fmt.Errorf("type:%v is not supported", ds.Type)
 		}
 
 		columnTypeStrs[i] = typeStr
@@ -147,13 +147,13 @@ func toColumns(dataShapeStr string) (columnNames, columnTypeStrs []string, err e
 // destroy removes the subdirectories and buckets for a provided key.
 func (c *Client) destroy(line string) {
 	args := strings.Split(line, " ")
-	args = args[1:] // chop off the first word which should be "destroy"
-
+	args = args[1:]  // chop off the first word which should be "destroy"
+	const argLen = 1 // arg[0] should be a bucket name
 	if len(args) == 0 {
 		fmt.Printf("Please specify a bucket to destroy. (e.g. \\destroy TEST/1D/TICK)\n")
 		return
 	}
-	if len(args) >= 2 {
+	if len(args) > argLen {
 		fmt.Printf("Only one bucket can be deleted at a time.\n")
 		return
 	}
@@ -171,7 +171,7 @@ func (c *Client) destroy(line string) {
 	}
 
 	for _, resp := range responses.Responses {
-		if len(resp.Error) != 0 {
+		if resp.Error != "" {
 			fmt.Printf("Failed with error: %s\n", resp.Error)
 			return
 		}
@@ -198,7 +198,7 @@ func (c *Client) GetBucketInfo(key *io.TimeBucketKey) (resp *frontend.GetInfoRes
 		return nil, fmt.Errorf("no BucketInfo is returned for %v", key)
 	}
 	resp = &responses.Responses[0]
-	if len(resp.ServerResp.Error) != 0 {
+	if resp.ServerResp.Error != "" {
 		return nil, fmt.Errorf("%s", resp.ServerResp.Error)
 	}
 
