@@ -21,7 +21,9 @@ func (c *Client) trim(line string) {
 
 	log.Info("Trimming...")
 	args := strings.Split(line, " ")
-	if len(args) < 3 {
+	// need \trim {key} {date}
+	const argLen = 3
+	if len(args) < argLen {
 		fmt.Println("Not enough arguments - need \"trim key date\"")
 		return
 	}
@@ -29,19 +31,23 @@ func (c *Client) trim(line string) {
 	if err != nil {
 		log.Error("Failed to parse trim date - Error: %v", trimDate)
 	}
+
+	const ownerReadWritePerm = 0o600
 	fInfos := cli.catalogDir.GatherTimeBucketInfo()
 	for _, info := range fInfos {
-		if info.Year == int16(trimDate.Year()) {
-			offset := io.TimeToOffset(trimDate, info.GetTimeframe(), info.GetRecordLength())
-			fp, err := os.OpenFile(info.Path, os.O_CREATE|os.O_RDWR, 0o600)
-			if err != nil {
-				log.Error("Failed to open file %v - Error: %v", info.Path, err)
-				continue
-			}
-			fp.Seek(offset, io2.SeekStart)
-			zeroes := make([]byte, io.FileSize(info.GetTimeframe(), int(info.Year), int(info.GetRecordLength()))-offset)
-			fp.Write(zeroes)
-			fp.Close()
+		if info.Year != int16(trimDate.Year()) {
+			continue
 		}
+
+		offset := io.TimeToOffset(trimDate, info.GetTimeframe(), info.GetRecordLength())
+		fp, err := os.OpenFile(info.Path, os.O_CREATE|os.O_RDWR, ownerReadWritePerm)
+		if err != nil {
+			log.Error("Failed to open file %v - Error: %v", info.Path, err)
+			continue
+		}
+		fp.Seek(offset, io2.SeekStart)
+		zeroes := make([]byte, io.FileSize(info.GetTimeframe(), int(info.Year), int(info.GetRecordLength()))-offset)
+		fp.Write(zeroes)
+		fp.Close()
 	}
 }

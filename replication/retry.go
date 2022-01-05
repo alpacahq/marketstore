@@ -38,6 +38,7 @@ func NewRetryer(retryFunc func(ctx context.Context) error, interval time.Duratio
 
 // Run tries the retryer until it succeeds, it returns unretriable error, or the context is canceled.
 func (r *retryer) Run(ctx context.Context) error {
+	const decimal = 10
 	cnt := -1
 	for {
 		cnt++
@@ -55,7 +56,7 @@ func (r *retryer) Run(ctx context.Context) error {
 				// retryable error. continue
 				interval := retryInterval(r.interval, r.backoffCoeff, cnt)
 				log.Warn("caught a retryable error. It will be retried after an interval:" +
-					strconv.FormatInt(interval.Milliseconds(), 10) + "[ms], err=" + err.Error())
+					strconv.FormatInt(interval.Milliseconds(), decimal) + "[ms], err=" + err.Error())
 				time.Sleep(interval)
 				continue
 			} else {

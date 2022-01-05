@@ -40,6 +40,8 @@ const (
 	example               = "marketstore start --config <path>"
 	defaultConfigFilePath = "./mkts.yml"
 	configDesc            = "set the path for the marketstore YAML configuration file"
+
+	diskUsageMonitorInterval = 10 * time.Minute
 )
 
 var (
@@ -147,7 +149,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("craete new instance setup: %w", err)
 	}
 
-	go metrics.StartDiskUsageMonitor(metrics.TotalDiskUsageBytes, config.RootDirectory, 10*time.Minute)
+	go metrics.StartDiskUsageMonitor(metrics.TotalDiskUsageBytes, config.RootDirectory, diskUsageMonitorInterval)
 
 	startupTime := time.Since(start)
 	metrics.StartupTime.Set(startupTime.Seconds())

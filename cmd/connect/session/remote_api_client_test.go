@@ -18,12 +18,12 @@ var exampleGetInfoResponse = frontend.GetInfoResponse{
 	RecordType: io.FIXED,
 }
 
-type mockRpcClient struct {
+type mockRPCClient struct {
 	resp interface{}
 	err  error
 }
 
-func (mc mockRpcClient) DoRPC(_ string, args interface{}) (response interface{}, err error) {
+func (mc mockRPCClient) DoRPC(_ string, args interface{}) (response interface{}, err error) {
 	return mc.resp, mc.err
 }
 
@@ -38,7 +38,7 @@ func TestRemoteAPIClient_GetBucketInfo(t *testing.T) {
 	}{
 		{
 			name: "Success",
-			rpcClient: mockRpcClient{
+			rpcClient: mockRPCClient{
 				resp: &frontend.MultiGetInfoResponse{
 					Responses: []frontend.GetInfoResponse{exampleGetInfoResponse},
 				}, err: nil,
@@ -50,13 +50,13 @@ func TestRemoteAPIClient_GetBucketInfo(t *testing.T) {
 		},
 		{
 			name:          "error/unexpected interface returned from DoRPC",
-			rpcClient:     mockRpcClient{resp: "aaaaa", err: nil},
+			rpcClient:     mockRPCClient{resp: "aaaaa", err: nil},
 			wantResponses: &frontend.MultiGetInfoResponse{},
 			wantErr:       true,
 		},
 		{
 			name:          "error/error returned from DoRPC",
-			rpcClient:     mockRpcClient{resp: nil, err: errors.New("some error")},
+			rpcClient:     mockRPCClient{resp: nil, err: errors.New("some error")},
 			wantResponses: &frontend.MultiGetInfoResponse{},
 			wantErr:       true,
 		},

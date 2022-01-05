@@ -15,7 +15,7 @@ debug:
 	$(MAKE) debug -C contrib/binancefeeder
 	$(MAKE) debug -C contrib/bitmexfeeder
 	$(MAKE) debug -C contrib/gdaxfeeder
-	${MAKE} debug -C contrib/ice
+	$(MAKE) debug -C contrib/ice
 	$(MAKE) debug -C contrib/iex
 	$(MAKE) debug -C contrib/ondiskagg
 	$(MAKE) debug -C contrib/polygon

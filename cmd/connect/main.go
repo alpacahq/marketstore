@@ -64,7 +64,7 @@ func init() {
 // validateArgs returns an error that prevents cmd execution if
 // the custom validation fails.
 func validateArgs(cmd *cobra.Command, args []string) error {
-	if len(dir) == 0 && len(url) == 0 {
+	if dir != "" && url != "" {
 		return errors.New("cannot connect to database, use a flag to set location")
 	}
 	return nil
@@ -79,7 +79,7 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 	)
 
 	// Attempt local mode.
-	if len(dir) != 0 {
+	if dir != "" {
 		conn, err = session.NewLocalAPIClient(dir)
 		if err != nil {
 			return err
@@ -87,19 +87,20 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 	}
 
 	// Attempt remote mode.
-	if len(url) != 0 {
+	if url != "" {
 		// TODO: validate url using go core packages.
+		const colonSeparatedURLSliceLen = 2
 		splits := strings.Split(url, ":")
-		if len(splits) != 2 {
-			return fmt.Errorf("incorrect URL, need \"hostname:port\", have: %s\n", url)
+		if len(splits) != colonSeparatedURLSliceLen {
+			return fmt.Errorf("incorrect URL, need \"hostname:port\", have: %s", url)
 		}
 		// build url.
 		url = "http://" + url
 
 		// Attempt connection to remote host.
-		rpcClient, err := client.NewClient(url)
-		if err != nil {
-			return err
+		rpcClient, err2 := client.NewClient(url)
+		if err2 != nil {
+			return err2
 		}
 
 		conn = session.NewRemoteAPIClient(url, rpcClient)
