@@ -56,17 +56,21 @@ func (m *DefaultMarketTimeChecker) IsOpen(t time.Time) bool {
 
 // isOpenTime returns true if the specified time is between the OpenTime and the CloseTime.
 func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
-	minFrom12am := t.Hour()*60 + t.Minute()
+	const (
+		minutesInHour = 60
+		hoursInDay    = 24
+	)
+	minFrom12am := t.Hour()*minutesInHour + t.Minute()
 
-	openMinFrom12am := m.OpenTime.Hour()*60 + m.OpenTime.Minute()
-	closeMinFrom12am := m.CloseTime.Hour()*60 + m.CloseTime.Minute()
+	openMinFrom12am := m.OpenTime.Hour()*minutesInHour + m.OpenTime.Minute()
+	closeMinFrom12am := m.CloseTime.Hour()*minutesInHour + m.CloseTime.Minute()
 
 	// if the open hour is later than the close hour (i.e. open=23h, close=6h), +1day
 	if closeMinFrom12am < openMinFrom12am {
-		closeMinFrom12am += 24 * 60
+		closeMinFrom12am += hoursInDay * minutesInHour
 	}
 	if minFrom12am < openMinFrom12am {
-		minFrom12am += 24 * 60
+		minFrom12am += hoursInDay * minutesInHour
 	}
 
 	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {

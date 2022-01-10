@@ -68,7 +68,6 @@ type MktsConfig struct {
 
 func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	var (
-		err error
 		aux struct {
 			// RootDirectory can be either a relative or absolute path
 			RootDirectory              string `yaml:"root_directory"`
@@ -134,16 +133,22 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	// 	log.Error("Invalid GRPC listen port.")
 	// 	return errors.New("Invalid GRPC listen port.")
 	// }
+	const (
+		defaultGRPCMaxSendMsgSize     = 1024 // MB
+		defaultGRPCMaxRecvMsgSize     = 1024 // MB
+		recommendedMinGRPCSendMsgSize = 64
+		recommendedMinGRPCRecvMsgSize = 64
+	)
 	if aux.GRPCMaxSendMsgSize == 0 {
-		aux.GRPCMaxSendMsgSize = 1024
-	} else if aux.GRPCMaxSendMsgSize < 64 {
+		aux.GRPCMaxSendMsgSize = defaultGRPCMaxSendMsgSize
+	} else if aux.GRPCMaxSendMsgSize < recommendedMinGRPCSendMsgSize {
 		log.Warn("WARNING: Low grpc_max_send_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxSendMsgSize)
 	}
 	m.GRPCMaxSendMsgSize = aux.GRPCMaxSendMsgSize * (1 << 20)
 
 	if aux.GRPCMaxRecvMsgSize == 0 {
-		aux.GRPCMaxRecvMsgSize = 1024
-	} else if aux.GRPCMaxRecvMsgSize < 64 {
+		aux.GRPCMaxRecvMsgSize = defaultGRPCMaxRecvMsgSize
+	} else if aux.GRPCMaxRecvMsgSize < recommendedMinGRPCRecvMsgSize {
 		log.Warn("WARNING: Low grpc_max_recv_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxRecvMsgSize)
 	}
 	m.GRPCMaxRecvMsgSize = aux.GRPCMaxRecvMsgSize * (1 << 20)
@@ -162,8 +167,8 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	}
 
 	if aux.Queryable != "" {
-		queryable, err := strconv.ParseBool(aux.Queryable)
-		if err != nil {
+		queryable, err2 := strconv.ParseBool(aux.Queryable)
+		if err2 != nil {
 			log.Error("Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
 		} else {
 			m.Queryable = queryable
@@ -238,16 +243,22 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 		}
 	}
 
+	const (
+		// default listen port for Replication master
+		defaultListenPort        = 5996
+		defaultRetryBackoffCoeff = 2
+		defaultRetryInterval     = 10 * time.Second
+	)
 	m.Replication = ReplicationSetting{
 		Enabled:    false,
 		TLSEnabled: false,
 		CertFile:   "",
 		KeyFile:    "",
-		ListenPort: 5996, // default listen port for Replication master
+		ListenPort: defaultListenPort,
 		MasterHost: "",
 		// default retry intervals are 10s -> 20s -> 40s -> ...
-		RetryInterval:     10 * time.Second,
-		RetryBackoffCoeff: 2,
+		RetryInterval:     defaultRetryInterval,
+		RetryBackoffCoeff: defaultRetryBackoffCoeff,
 	}
 
 	if aux.Replication.ListenPort != 0 {
@@ -256,19 +267,10 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	if aux.Replication.Enabled != false {
 		m.Replication.Enabled = true
 	}
-	if aux.Replication.TLSEnabled != false {
-		m.Replication.TLSEnabled = true
-	}
-	if aux.Replication.CertFile != "" {
-		m.Replication.CertFile = aux.Replication.CertFile
-	}
-	if aux.Replication.KeyFile != "" {
-		m.Replication.KeyFile = aux.Replication.KeyFile
-	}
-	if aux.Replication.MasterHost != "" {
-		m.Replication.MasterHost = aux.Replication.MasterHost
-	}
-
+	m.Replication.TLSEnabled = aux.Replication.TLSEnabled
+	m.Replication.CertFile = aux.Replication.CertFile
+	m.Replication.KeyFile = aux.Replication.KeyFile
+	m.Replication.MasterHost = aux.Replication.MasterHost
 	if aux.Replication.RetryInterval != 0 {
 		m.Replication.RetryInterval = aux.Replication.RetryInterval
 	}

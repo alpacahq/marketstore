@@ -350,14 +350,17 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 		goio.WriterAt
 		goio.Closer
 	}
-	const batchThreshold = 100
+	const (
+		batchThreshold = 100
+		ownerAllPerm   = 0o700
+	)
 	var fp WriteAtCloser
 	rootDir := filepath.Dir(wf.FilePtr.Name())
 	fullPath := walKeyToFullPath(rootDir, keyPath)
 	if recordType == io.FIXED && len(writes) >= batchThreshold {
 		fp, err = buffile.New(fullPath)
 	} else {
-		fp, err = os.OpenFile(fullPath, os.O_RDWR, 0o700)
+		fp, err = os.OpenFile(fullPath, os.O_RDWR, ownerAllPerm)
 	}
 	if err != nil {
 		// this is critical, in fact, since tx has been committed
@@ -611,10 +614,11 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 	/*
 	   Example: syncWAL(500 * time.Millisecond, 15 * time.Minute)
 	*/
+	const numTickerCheckPerWALRefresh = 100
 	haveWALWriter = true
 	tickerWAL := time.NewTicker(WALRefresh)
 	tickerPrimary := time.NewTicker(PrimaryRefresh)
-	tickerCheck := time.NewTicker(WALRefresh / 100)
+	tickerCheck := time.NewTicker(WALRefresh / numTickerCheckPerWALRefresh)
 	primaryFlushCounter := 0
 
 	chanCap := cap(wf.txnPipe.writeChannel)
@@ -687,6 +691,7 @@ func (wf *WALFileType) RequestFlush() {
 // FinishAndWait closes the writtenIndexes channel, and waits
 // for the remaining triggers to fire, returning.
 func (wf *WALFileType) FinishAndWait() {
+	const tryCloseInterval = 500 * time.Millisecond
 	wf.tpd.triggerWg.Wait()
 	for {
 		if len(wf.txnPipe.writeChannel) == 0 && len(wf.tpd.c) == 0 {
@@ -694,6 +699,6 @@ func (wf *WALFileType) FinishAndWait() {
 			<-wf.tpd.done
 			return
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(tryCloseInterval)
 	}
 }

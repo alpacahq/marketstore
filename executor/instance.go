@@ -57,7 +57,8 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		log.Error("Cannot take absolute path of root directory %s", err.Error())
 	} else {
 		log.Info("Root Directory: %s", rootDir)
-		err = os.Mkdir(rootDir, 0o770)
+		const ownerGroupAll = 0o770
+		err = os.Mkdir(rootDir, ownerGroupAll)
 		if err != nil && !os.IsExist(err) {
 			log.Error("Could not create root directory: %s", err.Error())
 			return nil, nil, nil, err
@@ -120,7 +121,13 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		}
 		if backgroundSync {
 			// Startup the WAL and Primary cache flushers
-			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, walRotateInterval)
+			const (
+				defaultWalSyncInterval            = 500 * time.Millisecond
+				defaultPrimaryDiskRefreshInterval = 5 * time.Minute
+			)
+			go ThisInstance.WALFile.SyncWAL(defaultWalSyncInterval, defaultPrimaryDiskRefreshInterval,
+				walRotateInterval,
+			)
 			walWG.Add(1)
 		}
 	}

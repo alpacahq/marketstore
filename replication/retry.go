@@ -22,22 +22,22 @@ func (re RetryableError) Is(err error) bool {
 	return err == RetryableError("")
 }
 
-type retryer struct {
+type Retryer struct {
 	retryFunc    func(ctx context.Context) error
 	interval     time.Duration
 	backoffCoeff int
 }
 
-func NewRetryer(retryFunc func(ctx context.Context) error, interval time.Duration, backoffCoeff int) *retryer {
-	return &retryer{
+func NewRetryer(retryFunc func(ctx context.Context) error, interval time.Duration, backoffCoeff int) *Retryer {
+	return &Retryer{
 		retryFunc:    retryFunc,
 		interval:     interval,
 		backoffCoeff: backoffCoeff,
 	}
 }
 
-// Run tries the retryer until it succeeds, it returns unretriable error, or the context is canceled.
-func (r *retryer) Run(ctx context.Context) error {
+// Run tries the Retryer until it succeeds, it returns unretriable error, or the context is canceled.
+func (r *Retryer) Run(ctx context.Context) error {
 	const decimal = 10
 	cnt := -1
 	for {
