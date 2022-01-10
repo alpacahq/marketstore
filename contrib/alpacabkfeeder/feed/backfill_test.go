@@ -18,7 +18,7 @@ var (
 	d = time.Date(dYear, dMonth, dDay, 0, 0, 0, 0, time.UTC)
 	d2Year, d2Month, d2Day = time.Now().Add(-48 * time.Hour).Date()
 	d2 = time.Date(d2Year, d2Month, d2Day, 0, 0, 0, 0, time.UTC)
-	d3Year, d3Month, d3Day = time.Now().Add(-48 * time.Hour).Date()
+	d3Year, d3Month, d3Day = time.Now().Add(-72 * time.Hour).Date()
 	d3 = time.Date(d3Year, d3Month, d3Day, 0, 0, 0, 0, time.UTC)
 )
 
