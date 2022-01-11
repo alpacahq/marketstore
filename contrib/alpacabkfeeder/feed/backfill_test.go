@@ -13,21 +13,31 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
 )
 
+var (
+	dYear, dMonth, dDay = time.Now().Add(-24 * time.Hour).Date()
+	d = time.Date(dYear, dMonth, dDay, 0, 0, 0, 0, time.UTC)
+	d2Year, d2Month, d2Day = time.Now().Add(-48 * time.Hour).Date()
+	d2 = time.Date(d2Year, d2Month, d2Day, 0, 0, 0, 0, time.UTC)
+	d3Year, d3Month, d3Day = time.Now().Add(-72 * time.Hour).Date()
+	d3 = time.Date(d3Year, d3Month, d3Day, 0, 0, 0, 0, time.UTC)
+)
+
+
 var testBars = map[string][]alpaca.Bar{
 	"AAPL": {
-		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 1},
-		{Time: time.Now().Add(-48 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 2},
-		{Time: time.Now().Add(-24 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 3},
+		{Time: d3.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 1},
+		{Time: d2.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 2},
+		{Time: d.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 3},
 	},
 	"AMZN": {
-		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 4},
-		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 5},
-		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 6},
+		{Time: d3.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 4},
+		{Time: d2.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 5},
+		{Time: d.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 6},
 	},
 	"FB": {
-		{Time: time.Now().Add(-72 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 7},
-		{Time: time.Now().Add(-48 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 8},
-		{Time: time.Now().Add(-24 * time.Hour).Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 9},
+		{Time: d3.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 7},
+		{Time: d2.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 8},
+		{Time: d.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 9},
 	},
 }
 

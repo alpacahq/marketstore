@@ -63,7 +63,8 @@ func (msg WALWriteError) Error() string {
 }
 
 func errReport(base, msg string) string {
-	base = io.GetCallerFileContext(2) + ":" + base
+	const defaultStackTraceLevel = 2
+	base = io.GetCallerFileContext(defaultStackTraceLevel) + ":" + base
 	log.Error(base, msg)
 	return fmt.Sprintf(base, msg)
 }

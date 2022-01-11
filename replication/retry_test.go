@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/replication"
 )
 
-// retryer succeeds at a certain trial.
+// Retryer succeeds at a certain trial.
 type retryer struct {
 	Count     int
 	SucceedAt int

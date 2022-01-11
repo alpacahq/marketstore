@@ -507,6 +507,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 
 func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead int32, readBuffer []byte) (
 	resultBuffer []byte, finished bool, err error) {
+	const readWriteAll = 0o666
 	// log.Info("reading forward [recordLen: %v bytesToRead: %v]", recordLen, bytesToRead)
 	filePath := fp.FullPath
 
@@ -514,7 +515,7 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 		finalBuffer = make([]byte, 0, len(readBuffer))
 	}
 	// Forward scan
-	f, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
+	f, err := os.OpenFile(filePath, os.O_RDONLY, readWriteAll)
 	if err != nil {
 		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, err
@@ -541,6 +542,7 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	recordLen, bytesToRead int32, readBuffer, fileBuffer []byte) (
 	result []byte, finished bool, bytesRead int32, err error) {
+	const readWriteAll = 0o666
 	// log.Info("reading backward [recordLen: %v bytesToRead: %v offset: %v]", recordLen, bytesToRead, fp.Offset)
 
 	filePath := fp.FullPath
@@ -551,7 +553,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 		finalBuffer = make([]byte, bytesToRead)
 	}
 
-	f, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
+	f, err := os.OpenFile(filePath, os.O_RDONLY, readWriteAll)
 	if err != nil {
 		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, 0, err

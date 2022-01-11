@@ -37,7 +37,7 @@ var Timeframes = []*Timeframe{
 	{"4H", 4 * time.Hour},
 	{"2H", 2 * time.Hour},
 	{"1D", Day},
-	//{"24H", 24 * time.Hour},
+	// {"24H", 24 * time.Hour},
 }
 
 type Timeframe struct {
@@ -67,11 +67,10 @@ func TimeframeFromString(tf string) *Timeframe {
 			t, err := strconv.ParseInt(strings.Split(tf, def.String)[0], 10, 32)
 			if err != nil || t <= 0 {
 				return nil
-			} else {
-				return &Timeframe{
-					String:   tf,
-					Duration: def.Duration * time.Duration(t),
-				}
+			}
+			return &Timeframe{
+				String:   tf,
+				Duration: def.Duration * time.Duration(t),
 			}
 		}
 	}
@@ -111,6 +110,7 @@ type CandleDuration struct {
 }
 
 func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
+	const monthsInYear = 12
 	switch cd.suffix {
 	case "D":
 		yy0, mm0, dd0 := ts.Date()
@@ -129,13 +129,10 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 			} else if ts.Month() < start.Month() {
 				return false
 			} else {
-				if int(ts.Month())-int(start.Month()) < cd.multiplier {
-					return true
-				}
-				return false
+				return int(ts.Month())-int(start.Month()) < cd.multiplier
 			}
 		} else if ts.Year() > start.Year() {
-			if int(ts.Month())-(12-int(start.Month())) < cd.multiplier {
+			if int(ts.Month())-(monthsInYear-int(start.Month())) < cd.multiplier {
 				return true
 			}
 			return false

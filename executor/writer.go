@@ -155,6 +155,8 @@ type IndirectRecordInfo struct {
 	Index, Offset, Len int64
 }
 
+const indexOffsetLengthBytes = 24
+
 func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRecLen int,
 ) (err error) {
 	/*
@@ -171,7 +173,7 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 		First we read the file at the index location to see if this is an incremental write
 	*/
 	fp.Seek(primaryOffset, stdio.SeekStart)
-	idBuf := make([]byte, 24) // {Index, Offset, Len}
+	idBuf := make([]byte, indexOffsetLengthBytes) // {Index, Offset, Len}
 	if _, err = fp.Read(idBuf); err != nil {
 		return err
 	}

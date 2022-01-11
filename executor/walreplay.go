@@ -251,8 +251,15 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d:%w", MID, err)
 }
 
+const (
+	// see /docs/durable_writes_design.txt for definition
+	tgLenBytes    = 8
+	tgIDBytes     = 8
+	checkSumBytes = 16
+)
+
 func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error) {
-	tgLenSerialized := make([]byte, 8)
+	tgLenSerialized := make([]byte, tgLenBytes)
 	tgLenSerialized, _, err = wal.Read(wf.FilePtr, tgLenSerialized)
 	if err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0))
@@ -269,12 +276,12 @@ func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error)
 	if int64(n) != TGLen || err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
 	}
-	TGID = io.ToInt64(tgSerialized[:7])
+	TGID = io.ToInt64(tgSerialized[:tgIDBytes-1])
 
 	// Read the checksum
-	checkBuf := make([]byte, 16)
+	checkBuf := make([]byte, checkSumBytes)
 	n, err = wf.FilePtr.Read(checkBuf)
-	if n != 16 || err != nil {
+	if n != checkSumBytes || err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
 	}
 

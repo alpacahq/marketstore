@@ -23,7 +23,8 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 		indexBuffer := md.Data
 
 		// Open the file to read the data
-		fp, err := os.OpenFile(file, os.O_RDONLY, 0o666)
+		const readWriteAll = 0o666
+		fp, err := os.OpenFile(file, os.O_RDONLY, readWriteAll)
 		if err != nil {
 			return nil, err
 		}
