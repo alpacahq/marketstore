@@ -139,10 +139,10 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		rs,
 		triggerMatchers,
 		config.WALRotateInterval,
-		config.InitCatalog,
-		config.InitWALCache,
-		config.BackgroundSync,
-		config.WALBypass,
+		executor.InitCatalog(config.InitCatalog),
+		executor.InitWALCache(config.InitWALCache),
+		executor.BackgroundSync(config.BackgroundSync),
+		executor.WALBypass(config.WALBypass),
 	)
 	if err != nil {
 		globalCancel()

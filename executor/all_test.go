@@ -29,7 +29,7 @@ func setup(t *testing.T, testName string,
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
 	metadata, shutdownPending, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
-		true, true, false)
+		executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
 	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata, shutdownPending
@@ -251,7 +251,7 @@ func TestWriteVariable(t *testing.T) {
 		fmt.Println("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
-		nanos,_ := cs.GetByName("Nanoseconds").([]int32)
+		nanos, _ := cs.GetByName("Nanoseconds").([]int32)
 		assert.True(t, math.Abs(float64(nanos[9]-600000000)) < 50., true)
 		break
 	}

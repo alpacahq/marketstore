@@ -23,28 +23,52 @@ type InstanceMetadata struct {
 	WALFile    *WALFileType
 }
 
-func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.TriggerMatcher,
-	walRotateInterval int, options ...bool,
-) (metadata *InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
-	/*
-		Defaults
-	*/
-	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, true, false
-	switch {
-	case len(options) >= 4:
-		WALBypass = options[3]
-		fallthrough
-	case len(options) == 3:
-		backgroundSync = options[2]
-		fallthrough
-	case len(options) == 2:
-		initWALCache = options[1]
-		fallthrough
-	case len(options) == 1:
-		initCatalog = options[0]
+type InstanceMetadataOptions struct {
+	initCatalog    bool
+	initWALCache   bool
+	backgroundSync bool
+	walBypass      bool
+}
+type Option func(option *InstanceMetadataOptions)
+
+func InitCatalog(f bool) Option {
+	return func(s *InstanceMetadataOptions) {
+		s.initCatalog = f
 	}
+}
+func InitWALCache(f bool) Option {
+	return func(s *InstanceMetadataOptions) {
+		s.initWALCache = f
+	}
+}
+func BackgroundSync(f bool) Option {
+	return func(s *InstanceMetadataOptions) {
+		s.backgroundSync = f
+	}
+}
+func WALBypass(f bool) Option {
+	return func(s *InstanceMetadataOptions) {
+		s.walBypass = f
+	}
+}
+
+func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.TriggerMatcher,
+	walRotateInterval int, options ...Option,
+) (metadata *InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
+	// default
+	opts := &InstanceMetadataOptions{
+		initCatalog:    true,
+		initWALCache:   true,
+		backgroundSync: true,
+		walBypass:      false,
+	}
+	// apply options
+	for _, opt := range options {
+		opt(opts)
+	}
+
 	log.Info("WAL Setup: initCatalog %v, initWALCache %v, backgroundSync %v, WALBypass %v",
-		initCatalog, initWALCache, backgroundSync, WALBypass)
+		opts.initCatalog, opts.initWALCache, opts.backgroundSync, WALBypass)
 
 	if ThisInstance == nil {
 		ThisInstance = new(InstanceMetadata)
@@ -66,7 +90,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 	instanceID := time.Now().UTC().UnixNano()
 
 	// Initialize a global catalog
-	if initCatalog {
+	if opts.initCatalog {
 		ThisInstance.CatalogDir, err = catalog.NewDirectory(rootDir)
 		if err != nil {
 			var e catalog.ErrCategoryFileNotFound
@@ -84,13 +108,13 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 
 	shutdownPend := false
 	walWG = &sync.WaitGroup{}
-	if initWALCache {
+	if opts.initWALCache {
 		// initialize TransactionPipe
 		txnPipe := NewTransactionPipe()
 
 		// initialize WAL File
 		ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, rs,
-			WALBypass, &shutdownPend, walWG, tpd, txnPipe,
+			opts.walBypass, &shutdownPend, walWG, tpd, txnPipe,
 		)
 		if err != nil {
 			log.Error("Unable to create WAL. err=" + err.Error())
@@ -98,7 +122,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 		}
 
 		// Allocate a new WALFile and cache
-		if !WALBypass {
+		if !opts.walBypass {
 			// ignoreFile := filepath.Base(ThisInstance.WALFile.FilePtr.Name())
 			ignoreFile := ThisInstance.WALFile.FilePtr.Name()
 			myInstanceID := ThisInstance.WALFile.OwningInstanceID
@@ -118,7 +142,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 					fmt.Errorf("unable to startup Cache and WAL:%w", err)
 			}
 		}
-		if backgroundSync {
+		if opts.backgroundSync {
 			// Startup the WAL and Primary cache flushers
 			go ThisInstance.WALFile.SyncWAL(500*time.Millisecond, 5*time.Minute, walRotateInterval)
 			walWG.Add(1)

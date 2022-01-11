@@ -44,7 +44,7 @@ var ImportCmd = &cobra.Command{
 		}
 		dataDir := args[0]
 		reorgDir := args[1]
-		_, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil, 5, true, true, true, true)
+		_, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil, 5, executor.WALBypass(true))
 		if err != nil {
 			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
 		}

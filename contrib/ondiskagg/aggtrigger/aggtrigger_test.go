@@ -112,7 +112,7 @@ func TestFireBars(t *testing.T) {
 	os.MkdirAll(rootDir, 0o777)
 	_, _, _, err := executor.NewInstanceSetup(
 		rootDir, nil, nil,
-		5, true, true, false, false)
+		5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
 	ts := utils.TriggerSetting{

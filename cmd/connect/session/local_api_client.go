@@ -17,10 +17,9 @@ import (
 // NewLocalAPIClient builds a new client struct in local mode.
 func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	// Configure db settings.
-	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	walRotateInterval := 5
 	instanceConfig, _, _, err := executor.NewInstanceSetup(dir,
-		nil, nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
+		nil, nil, walRotateInterval, executor.BackgroundSync(false), executor.WALBypass(true),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create a new instance setup for local API client: %w", err)

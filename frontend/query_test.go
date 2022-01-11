@@ -25,7 +25,7 @@ func setup(t *testing.T, testName string,
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("frontend_test-%s", testName))
 	test.MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 	atomic.StoreUint32(&frontend.Queryable, uint32(1))
 

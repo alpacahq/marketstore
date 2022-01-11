@@ -23,7 +23,7 @@ func setup(t *testing.T, testName string,
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("candlecandler_test-%s", testName))
 	itemsWritten = test.MakeDummyStockDir(rootDir, true, false)
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
 	assert.Nil(t, err)
 
 	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata
