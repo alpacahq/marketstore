@@ -69,6 +69,7 @@ func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint3
 	const (
 		ticksPerIntervalDivSecsPerDay float64 = 49710.269629629629629629629629629
 		nanosecond                            = 1000000000
+		subnanosecond                         = 100000000
 	)
 
 	fractionalSeconds := float64(intervalTicks) / (float64(intervalsPerDay) * ticksPerIntervalDivSecsPerDay)
@@ -80,7 +81,7 @@ func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint3
 
 	// in order to keep compatibility with the old rewriteBuffer implemented in C with some round error,
 	// fractionalSeconds should be rounded here.
-	sec = intervalStart + uint64(math.Round(fractionalSeconds*nanosecond)/nanosecond)
+	sec = intervalStart + uint64(math.Round(fractionalSeconds*subnanosecond)/subnanosecond)
 	// round the subseconds after the decimal point to minimize the cancellation error of subseconds
 	// round( subseconds ) = (int32_t)(subseconds + 0.5)
 	const round = 0.5
