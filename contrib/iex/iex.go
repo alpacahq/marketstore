@@ -22,6 +22,7 @@ const (
 	fiveYear = "5y"
 	oneDay   = "1d"
 	monthly  = "1m"
+    retryNum = 5
 )
 
 type IEXFetcher struct {
@@ -49,7 +50,7 @@ type FetcherConfig struct {
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}
-	json.Unmarshal(data, &config)
+	_ = json.Unmarshal(data, &config)
 
 	if config.Token == "" {
 		return nil, fmt.Errorf("IEXCloud Token is not set")
@@ -117,9 +118,13 @@ func (f *IEXFetcher) Run() {
 		}
 	}()
 
-	runDaily := onceDaily(&f.lastDailyRunDate, 5, 10)
+	const (
+		runHour = 5
+		runMinute = 10
+	)
+	runDaily := onceDaily(&f.lastDailyRunDate, runHour, runMinute)
 	start := time.Now()
-	iWorkers := make(chan bool, (runtime.NumCPU()))
+	iWorkers := make(chan bool, runtime.NumCPU())
 	var iWg sync.WaitGroup
 	for batch := range f.queue {
 		if batch[0] == "__EOL__" {
@@ -128,7 +133,7 @@ func (f *IEXFetcher) Run() {
 			end := time.Now()
 			log.Info("Minute bar fetch for %d symbols completed (elapsed %s)", len(f.config.Symbols), end.Sub(start).String())
 
-			runDaily = onceDaily(&f.lastDailyRunDate, 5, 10)
+			runDaily = onceDaily(&f.lastDailyRunDate, runHour, runMinute)
 			if runDaily {
 				log.Info("time for daily task(s)")
 				go f.UpdateSymbolList()
@@ -164,7 +169,7 @@ func (f *IEXFetcher) pollIntraday(symbols []string) {
 	limit := 10
 
 	start := time.Now()
-	resp, err := api.GetBars(symbols, oneDay, &limit, 5)
+	resp, err := api.GetBars(symbols, oneDay, &limit, retryNum)
 	if err != nil {
 		log.Error("failed to query intraday bar batch (%v)", err)
 		return
@@ -185,7 +190,7 @@ func (f *IEXFetcher) pollDaily(symbols []string) {
 	}
 	limit := 1
 	log.Info("running daily bars poll from IEX")
-	resp, err := api.GetBars(symbols, monthly, &limit, 5)
+	resp, err := api.GetBars(symbols, monthly, &limit, retryNum)
 	if err != nil {
 		log.Error("failed to query daily bar batch (%v)", err)
 	}
@@ -217,7 +222,7 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 			open   []float32
 			high   []float32
 			low    []float32
-			close  []float32
+			clos  []float32
 			volume []int32
 		)
 
@@ -250,7 +255,7 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 			open = append(open, bar.Open)
 			high = append(high, bar.High)
 			low = append(low, bar.Low)
-			close = append(close, bar.Close)
+			clos = append(clos, bar.Close)
 			volume = append(volume, bar.Volume)
 		}
 
@@ -274,7 +279,7 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 		cs.AddColumn("Open", open)
 		cs.AddColumn("High", high)
 		cs.AddColumn("Low", low)
-		cs.AddColumn("Close", close)
+		cs.AddColumn("Close", clos)
 		cs.AddColumn("Volume", volume)
 		csm.AddColumnSeries(*tbk, cs)
 	}
@@ -303,16 +308,16 @@ func (f *IEXFetcher) updateLastWritten(csm *io.ColumnSeriesMap) {
 	}
 }
 
-func (f *IEXFetcher) backfill(symbol, timeframe string, ts *time.Time) (err error) {
+func (f *IEXFetcher) backfill(symbol, timeframe string) (err error) {
 	var (
 		resp     *api.GetBarsResponse
 		intraday = strings.EqualFold(timeframe, minute)
 	)
 
 	if intraday {
-		resp, err = api.GetBars([]string{symbol}, oneDay, nil, 5)
+		resp, err = api.GetBars([]string{symbol}, oneDay, nil, retryNum)
 	} else {
-		resp, err = api.GetBars([]string{symbol}, fiveYear, nil, 5)
+		resp, err = api.GetBars([]string{symbol}, fiveYear, nil, retryNum)
 	}
 
 	if err != nil {
@@ -363,7 +368,7 @@ func (f *IEXFetcher) workBackfill() {
 					defer wg.Done()
 
 					// backfill the symbol/timeframe pair in parallel
-					if f.backfill(symbol, timeframe, value.(*time.Time)) == nil {
+					if f.backfill(symbol, timeframe) == nil {
 						f.backfillM.Store(key, nil)
 					}
 				}()
@@ -399,7 +404,7 @@ func onceDaily(lastDailyRunDate *int, runHour, runMinute int) bool {
 
 func main() {
 	api.SetToken(os.Getenv("IEXTOKEN"))
-	resp, err := api.GetBars([]string{"AAPL", "AMD", "X", "NVDA", "AMPY", "IBM", "GOOG"}, oneDay, nil, 5)
+	resp, err := api.GetBars([]string{"AAPL", "AMD", "X", "NVDA", "AMPY", "IBM", "GOOG"}, oneDay, nil, retryNum)
 	if err != nil {
 		panic(err)
 	}
@@ -411,7 +416,7 @@ func main() {
 	}
 
 	fmt.Printf("-------------------\n\n")
-	resp, err = api.GetBars([]string{"AMPY", "MSFT", "DVCR"}, oneDay, nil, 5)
+	resp, err = api.GetBars([]string{"AMPY", "MSFT", "DVCR"}, oneDay, nil, retryNum)
 
 	if err != nil {
 		panic(err)

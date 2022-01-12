@@ -25,13 +25,18 @@ var ShowRecordsCmd = &cobra.Command{
 	`,
 	SilenceUsage: false,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 2 {
-			cmd.Help()
+		// usage: show <datadir> <cusip/symbol>
+		const argLen = 2
+		if len(args) != argLen {
+			_ = cmd.Help()
 			return nil
 		}
 		cusip := args[1]
 		dataDir := args[0]
-		metadata, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil, 5, executor.WALBypass(true))
+		// walfile is rotated every walRotateInterval * primaryDiskRefreshInterval(= default:5min)
+		const walRotateInterval = 5
+		metadata, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
+			walRotateInterval, executor.WALBypass(true))
 		if err != nil {
 			return fmt.Errorf("failed to create new instance setup for Show command: %w", err)
 		}
@@ -42,7 +47,7 @@ var ShowRecordsCmd = &cobra.Command{
 
 func showRecords(cusip string, catalogDir *catalog.Directory) {
 	ca := adjust.NewCorporateActions(cusip)
-	ca.Load(catalogDir)
+	_ = ca.Load(catalogDir)
 	fmt.Println("----- stored announcements ------")
 	for i := 0; i < len(ca.Rows.EntryDates); i++ {
 		ent := time.Unix(ca.Rows.EntryDates[i], 0)
