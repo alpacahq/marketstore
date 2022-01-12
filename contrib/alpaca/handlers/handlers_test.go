@@ -17,7 +17,7 @@ func setup(t *testing.T, testName string) (tearDown func()) {
 
 	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("handlers_test-%s", testName))
 	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
-		true, true, false, true) // WAL Bypass
+		executor.BackgroundSync(false), executor.WALBypass(true)) // WAL Bypass
 	assert.Nil(t, err)
 
 	return func() { test.CleanupDummyDataDir(rootDir) }

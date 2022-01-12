@@ -20,7 +20,8 @@ func setup(t *testing.T, testName string,
 	t.Helper()
 
 	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("handlers_test-%s", testName))
-	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
+	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
 
 	return func() { test.CleanupDummyDataDir(rootDir) }

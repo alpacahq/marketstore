@@ -288,7 +288,7 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 	}
 
 	instanceConfig, shutdownPending, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
-		true, true, true, true)
+		executor.WALBypass(true))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
 	}

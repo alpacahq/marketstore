@@ -255,7 +255,7 @@ func initWriter() error {
 
 	_, _, _, err = executor.NewInstanceSetup(
 		relRootDir, nil, triggerMatchers,
-		walRotateInterval, true, true, true, true)
+		walRotateInterval, executor.WALBypass(true))
 	if err != nil {
 		return fmt.Errorf("failed to create new instance setup for iex/backfill: %w", err)
 	}
