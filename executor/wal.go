@@ -610,15 +610,15 @@ func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
 
 var haveWALWriter = false
 
-func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRotateInterval int) {
+func (wf *WALFileType) SyncWAL(walRefresh, primaryRefresh time.Duration, walRotateInterval int) {
 	/*
 	   Example: syncWAL(500 * time.Millisecond, 15 * time.Minute)
 	*/
 	const numTickerCheckPerWALRefresh = 100
 	haveWALWriter = true
-	tickerWAL := time.NewTicker(WALRefresh)
-	tickerPrimary := time.NewTicker(PrimaryRefresh)
-	tickerCheck := time.NewTicker(WALRefresh / numTickerCheckPerWALRefresh)
+	tickerWAL := time.NewTicker(walRefresh)
+	tickerPrimary := time.NewTicker(primaryRefresh)
+	tickerCheck := time.NewTicker(walRefresh / numTickerCheckPerWALRefresh)
 	primaryFlushCounter := 0
 
 	chanCap := cap(wf.txnPipe.writeChannel)

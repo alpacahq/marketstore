@@ -2,11 +2,9 @@ package test
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/utils"
@@ -34,22 +32,22 @@ func makeCatFile(dir, catname string) {
 	file, err := os.OpenFile(path.Join(dir, "category_name"), os.O_CREATE|os.O_RDWR,
 		0o777)
 	checkfail(err, "makeCatFile: Unable to open category file for writing ")
-	file.Write([]byte(catname))
+	_,_ = file.Write([]byte(catname))
 }
 
 func makeRootDir(root string) {
-	err := os.Mkdir(root, 0o777)
-	if !os.IsExist(err) {
+	const allowAllPerm = 0o777
+	if err := os.Mkdir(root, allowAllPerm); !os.IsExist(err) {
 		checkfail(err, "makeRootDir: Unable to create directory: "+root)
 	}
 }
 
 func makeCatDir(root, catname string, items []string) {
+	const allowAllPerm = 0o777
 	base := root + "/"
 	makeCatFile(base, catname)
 	for _, name := range items {
-		err := os.Mkdir(base+name, 0o777)
-		if !os.IsExist(err) {
+		if err := os.Mkdir(base+name, allowAllPerm); !os.IsExist(err) {
 			checkfail(err, "makeCatDir: Unable to create directory: "+name)
 		}
 	}
@@ -76,11 +74,12 @@ func makeFakeFileInfoStock(year, filePath, timeFrame string) *TimeBucketInfo {
 }
 
 func makeYearFiles(root string, years []string, withdata, withGaps bool, tf string, itemsWritten *map[string]int, isStock bool) {
+	const allowAllPerm = 0o777
 	base := root + "/"
 	makeCatFile(base, "Year")
 	for _, year := range years {
 		filename := base + year + ".bin"
-		file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0o777)
+		file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, allowAllPerm)
 		checkfail(err, "Unable to create file: "+filename)
 		var f *TimeBucketInfo
 		if isStock {
@@ -101,82 +100,6 @@ func makeYearFiles(root string, years []string, withdata, withGaps bool, tf stri
 func ParseT(s string) time.Time {
 	t, _ := time.Parse("2006-01-02 15:04:05", s)
 	return t
-}
-
-type candle struct {
-	t          time.Time
-	o, h, l, c float32
-}
-
-func parseCandleText(text string) []*candle {
-	candles := []*candle{}
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		items := strings.Split(line, "\t")
-		open, _ := strconv.ParseFloat(items[1], 32)
-		high, _ := strconv.ParseFloat(items[2], 32)
-		low, _ := strconv.ParseFloat(items[3], 32)
-		close, _ := strconv.ParseFloat(items[4], 32)
-
-		timestamp := ParseT(items[0])
-		candle := &candle{
-			t: timestamp,
-			o: float32(open),
-			h: float32(high),
-			l: float32(low),
-			c: float32(close),
-		}
-		candles = append(candles, candle)
-	}
-
-	return candles
-}
-
-func DummyDataFromText(rootDir, symbol, timeframe, data string) {
-	attrName := "OHLC"
-	makeRootDir(rootDir)
-	makeCatDir(rootDir, "Symbol", []string{symbol})
-	symbase := path.Join(rootDir, symbol)
-	makeCatDir(symbase, "Timeframe", []string{timeframe})
-	tfbase := path.Join(symbase, timeframe)
-	makeCatDir(tfbase, "AttributeGroup", []string{attrName})
-	attbase := path.Join(tfbase, attrName)
-	makeCatFile(attbase, "Year")
-
-	candles := parseCandleText(data)
-	yearCandles := map[int][]*candle{}
-	for _, candle := range candles {
-		y := candle.t.Year()
-		yearCandles[y] = append(yearCandles[y], candle)
-	}
-
-	for y, candles := range yearCandles {
-		year := fmt.Sprintf("%d", y)
-		fileName := attbase + "/" + year + ".bin"
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0o644)
-		checkfail(err, "Unable to create file: "+fileName)
-		fileInfo := makeFakeFileInfoCurrency(year, fileName, timeframe)
-		err = WriteHeader(file, fileInfo)
-		checkfail(err, "Unable to write header to: "+fileName)
-
-		for _, candle := range candles {
-			offset := TimeToOffset(candle.t, fileInfo.GetTimeframe(), fileInfo.GetRecordLength())
-			ondisk := ohlc{
-				index: TimeToIndex(candle.t, fileInfo.GetTimeframe()),
-				o:     candle.o,
-				h:     candle.h,
-				l:     candle.l,
-				c:     candle.c,
-			}
-			data := SwapSliceData([]ohlc{ondisk}, byte(0)).([]byte)
-			file.Seek(offset, io.SeekStart)
-			_, err = file.Write(data)
-			checkfail(err, "Unable to write data to: "+fileName)
-		}
-	}
 }
 
 type ohlc struct {

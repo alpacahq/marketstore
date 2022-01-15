@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -134,7 +135,8 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	}
 
 	if limit != nil && *limit > 0 {
-		q.Set("chartLast", strconv.FormatInt(int64(*limit), 10))
+		const decimal = 10
+		q.Set("chartLast", strconv.FormatInt(int64(*limit), decimal))
 	}
 
 	u.RawQuery = q.Encode()
@@ -145,7 +147,11 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		if err := Body.Close(); err != nil {
+			log.Error(fmt.Sprintf("failed to close readCloser. err=%v", err))
+		}
+	}(res.Body)
 
 	if res.StatusCode == http.StatusTooManyRequests {
 		if retries > 0 {
@@ -172,7 +178,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		} else {
 			var resp0 *GetBarsResponse
 			var resp1 *GetBarsResponse
-			var split int = len(symbols) / 2
+			var split = len(symbols) / 2
 
 			// fmt.Printf("Symbol groups: %v - %v\n", symbols[:split], symbols[split:])
 
@@ -225,14 +231,19 @@ type ListSymbolsResponse []struct {
 }
 
 func ListSymbols() (*ListSymbolsResponse, error) {
-	url := fmt.Sprintf("%s/ref-data/iex/symbols?token=%s", base, token)
+	symbolsURL := fmt.Sprintf("%s/ref-data/iex/symbols?token=%s", base, token)
 
-	res, err := http.Get(url)
+	res, err := http.Get(symbolsURL)
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Error(fmt.Sprintf("failed to close readCloser. err=%v", err))
+		}
+	}(res.Body)
 
 	if res.StatusCode > http.StatusMultipleChoices {
 		return nil, fmt.Errorf("status code %v", res.StatusCode)
@@ -240,7 +251,7 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 
 	var resp ListSymbolsResponse
 
-	body, err := ioutil.ReadAll((res.Body))
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}

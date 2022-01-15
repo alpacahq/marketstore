@@ -38,13 +38,19 @@ var ImportCmd = &cobra.Command{
 	`,
 	SilenceUsage: false,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 2 {
-			cmd.Help()
+		// usage: import <datadir> <icefilesdir>
+		const argLen = 2
+		if len(args) != argLen {
+			_ = cmd.Help()
 			return nil
 		}
 		dataDir := args[0]
 		reorgDir := args[1]
-		_, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil, 5, executor.WALBypass(true))
+		// walfile is rotated every walRotateInterval * primaryDiskRefreshInterval(= default:5min)
+		const walRotateInterval = 5
+		_, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
+			walRotateInterval, executor.WALBypass(true),
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
 		}
