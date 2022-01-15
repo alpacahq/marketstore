@@ -37,8 +37,7 @@ func makeCatFile(dir, catname string) {
 
 func makeRootDir(root string) {
 	const allowAllPerm = 0o777
-	err := os.Mkdir(root, allowAllPerm)
-	if !os.IsExist(err) {
+	if err := os.Mkdir(root, allowAllPerm); !os.IsExist(err) {
 		checkfail(err, "makeRootDir: Unable to create directory: "+root)
 	}
 }
@@ -48,8 +47,7 @@ func makeCatDir(root, catname string, items []string) {
 	base := root + "/"
 	makeCatFile(base, catname)
 	for _, name := range items {
-		err := os.Mkdir(base+name, allowAllPerm)
-		if !os.IsExist(err) {
+		if err := os.Mkdir(base+name, allowAllPerm); !os.IsExist(err) {
 			checkfail(err, "makeCatDir: Unable to create directory: "+name)
 		}
 	}
