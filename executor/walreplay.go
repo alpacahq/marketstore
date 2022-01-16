@@ -235,6 +235,7 @@ func fullRead(err error) bool {
 // If it's at the end of wal file, readMessageID returns 0, io.EOF error.
 // If it's not at the end of wal file but couldn't read 1 byte, readMessageID returns 0, wal.ShortReadError.
 func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
+	const unknownMessageID = 99
 	var buffer [1]byte
 	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
 	if err != nil {
@@ -248,7 +249,7 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	case TGDATA, TXNINFO, STATUS:
 		return MID, nil
 	}
-	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d:%w", MID, err)
+	return unknownMessageID, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d:%w", MID, err)
 }
 
 const (

@@ -40,7 +40,7 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 				assert.Nil(t, writeBuffer(fp, 300))
 				return nil
 			},
-			expMetric: 4096, // actually, it depends on the block size of the disk that this test runs
+			expMetric: 4096, // it depends on the block size of the disk that this test runs
 		},
 	}
 	for name := range tests {

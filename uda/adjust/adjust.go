@@ -15,16 +15,17 @@ const (
 	calcSplit       = "split"
 	calcDividend    = "dividend"
 	roundToDecimals = 4
+	decimal         = 10
 )
 
 var (
-	requiredColumns = []io.DataShape{}
+	requiredColumns []io.DataShape
 
-	optionalColumns = []io.DataShape{}
+	optionalColumns []io.DataShape
 
-	initArgs = []io.DataShape{}
+	initArgs []io.DataShape
 
-	rounderNum = math.Pow(10, roundToDecimals)
+	rounderNum = math.Pow(decimal, roundToDecimals)
 )
 
 type Adjust struct {

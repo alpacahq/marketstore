@@ -146,7 +146,7 @@ func getAllSymbols(quoteAssets []string) []string {
 	} else {
 		for _, info := range m.Symbols {
 			quote = info.QuoteAsset
-			notRepeated := true
+			var notRepeated bool
 			// Check if data is the right base currency and then check if it's already recorded
 			for _, quoteAsset := range quoteAssets {
 				if quote == quoteAsset {

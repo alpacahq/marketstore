@@ -91,15 +91,19 @@ func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size
 	cond4 := enum.NoTradeCondition
 
 	switch len(conditions) {
+	// nolint:gomnd
 	case 4:
 		cond4 = conditions[3]
 		fallthrough
+	// nolint:gomnd
 	case 3:
 		cond3 = conditions[2]
 		fallthrough
+	// nolint:gomnd
 	case 2:
 		cond2 = conditions[1]
 		fallthrough
+	// nolint:gomnd
 	case 1:
 		cond1 = conditions[0]
 	case 0:

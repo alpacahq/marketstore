@@ -94,7 +94,6 @@ func (pi *parseInfo) ParseTag(tag string) {
 	pi.parseFormat(tag)
 	pi.parseDefault(tag)
 	pi.parseFunc(tag)
-	return
 }
 
 func getParseDef(item interface{}) []parseInfo {

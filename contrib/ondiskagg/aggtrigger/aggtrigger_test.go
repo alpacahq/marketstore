@@ -109,15 +109,15 @@ func TestFireBars(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	rootDir := filepath.Join(tempDir, "mktsdb")
-	os.MkdirAll(rootDir, 0o777)
+	_ = os.MkdirAll(rootDir, 0o777)
 	_, _, _, err := executor.NewInstanceSetup(
 		rootDir, nil, nil,
 		5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
 	ts := utils.TriggerSetting{
-		Module: "ondiskagg.so",
-		On:     "*/1Min/OHLC",
+		// Module: "ondiskagg.so",
+		// On:     "*/1Min/OHLC",
 		Config: map[string]interface{}{
 			"filter":       "nasdaq",
 			"destinations": []string{"5Min", "1D"},
@@ -145,14 +145,14 @@ func TestFireBars(t *testing.T) {
 	open := []float32{1., 2., 3., 4., 5., 1., 2., 3., 4., 5.}
 	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1, 1.1, 2.1, 3.1, 4.1, 5.1}
 	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9, 0.9, 1.9, 2.9, 3.9, 4.9}
-	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05, 1.05, 2.05, 3.05, 4.05, 5.05}
+	clos := []float32{1.05, 2.05, 3.05, 4.05, 5.05, 1.05, 2.05, 3.05, 4.05, 5.05}
 
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	cs.AddColumn("Open", open)
 	cs.AddColumn("High", high)
 	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
+	cs.AddColumn("Close", clos)
 	tbk := io.NewTimeBucketKey("TEST/1Min/OHLC")
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*tbk, cs)

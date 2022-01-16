@@ -45,13 +45,13 @@ func TestWorker_try_normal(t *testing.T) {
 		Interval:          1,
 	}
 	// --- when ---
-	err := SUT.try()
+	if err := SUT.try(); err != nil {
+		t.Errorf("error should be nil. err=%v", err)
+	}
 
 	// --- then ---
 	if w.WriteCount != 1 {
 		t.Errorf("write should be performed once")
 	}
-	if err != nil {
-		t.Errorf("error should be nil. err=%v", err)
-	}
+
 }

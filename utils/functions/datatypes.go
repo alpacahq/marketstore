@@ -155,8 +155,7 @@ func (am *ArgumentMap) PrepareArguments(inputs []string) (err error) {
 		Check for insufficient number of params to meet required
 	*/
 	idLen := len(inputs)
-	rnLen := len(am.requiredNames)
-	if rnLen > idLen {
+	if rnLen := len(am.requiredNames); rnLen > idLen {
 		return fmt.Errorf("have %s, need %s", inputs, am.requiredNames)
 	}
 

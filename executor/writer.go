@@ -260,7 +260,10 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			return err
 		}
 		if isVariableLength {
-			cs.Remove("Nanoseconds")
+			err = cs.Remove("Nanoseconds")
+			if err != nil {
+				return fmt.Errorf("remove 'Nanoseconds' column")
+			}
 			alignData = false
 		}
 
@@ -294,9 +297,9 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			/*
 				Verify there is an available TimeBucket for the destination
 			*/
-			if err := w.rootCatDir.AddTimeBucket(&tbk, tbi); err != nil {
+			if err2 := w.rootCatDir.AddTimeBucket(&tbk, tbi); err2 != nil {
 				// If File Exists error, ignore it, otherwise return the error
-				if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
+				if !strings.Contains(err2.Error(), "Can not overwrite file") && !strings.Contains(err2.Error(), "file exists") {
 					return err
 				}
 			}

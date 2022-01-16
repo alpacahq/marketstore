@@ -242,7 +242,7 @@ func (gd *GdaxFetcher) Run() {
 		if toSleep > 0 {
 			log.Debug("Sleep for %v\n", toSleep)
 			time.Sleep(toSleep)
-		} else if time.Now().Sub(lastTime) < time.Hour {
+		} else if time.Since(lastTime) < time.Hour {
 			// let's not go too fast if the catch up is less than an hour
 			time.Sleep(time.Second)
 		}

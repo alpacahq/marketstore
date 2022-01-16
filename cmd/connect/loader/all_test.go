@@ -19,6 +19,7 @@ func TestParseTime(t *testing.T) {
 	assert.Equal(t, err != nil, true)
 	formatAdj := len(dateTime) - len(timeFormat)
 	tTest, err := parseTime(timeFormat, dateTime, tzLoc, formatAdj)
+	assert.Nil(t, err)
 	assert.Equal(t, tt == tTest, true)
 }
 

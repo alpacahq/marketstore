@@ -8,8 +8,7 @@ import (
 )
 
 func Move(oldFP, newFP string) error {
-	err := os.Rename(oldFP, newFP)
-	if err != nil {
+	if err := os.Rename(oldFP, newFP); err != nil {
 		return fmt.Errorf("failed to move %s to %s:%w", oldFP, newFP, err)
 	}
 	log.Debug(fmt.Sprintf("moved %s to %s", oldFP, newFP))
