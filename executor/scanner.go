@@ -477,26 +477,24 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 		for i = 0; i < numToRead; i++ {
 			indexuint64 = binary.LittleEndian.Uint64(buf)
 
-			if indexuint64 == 0 {
-				// go to the next record
-				buf = buf[recordSize:]
-				continue
-			}
+			if indexuint64 != 0 {
+				// Convert the index to a UNIX timestamp (seconds from epoch)
+				index := IndexToTime(int64(indexuint64), fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
+				if !ex.checkTimeQuals(index) {
+					continue
+				}
+				idxpos := len(*packedBuffer)
+				*packedBuffer = append(*packedBuffer, buf[:int64(recordSize)]...)
+				b := *packedBuffer
+				binary.LittleEndian.PutUint64(b[idxpos:], uint64(index))
 
-			// Convert the index to a UNIX timestamp (seconds from epoch)
-			index := IndexToTime(int64(indexuint64), fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
-			if !ex.checkTimeQuals(index) {
-				continue
-			}
-			idxPos := len(*packedBuffer)
-			*packedBuffer = append(*packedBuffer, buf[:recordSize]...)
-			b := *packedBuffer
-			binary.LittleEndian.PutUint64(b[idxPos:], uint64(index))
-
-			// Update lastKnown only once the first time
-			if fp.seekingLast {
-				_, _ = f.Seek(0, io.SeekCurrent)
-				fp.seekingLast = false
+				// Update lastKnown only once the first time
+				if fp.seekingLast {
+					if offset, err := f.Seek(0, io.SeekCurrent); err == nil {
+						offset = offset - nn + int64(i)*recordSize64
+					}
+					fp.seekingLast = false
+				}
 			}
 
 			buf = buf[recordSize:]
