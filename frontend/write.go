@@ -10,6 +10,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
+const colonSeparatedPartsLen = 2 // expecting a key string like "TSLA/1Min/OHLCV:Symbol/Timeframe/AttributeGroup"
+
 type WriteRequest struct {
 	Data             *io.NumpyMultiDataset `msgpack:"dataset"`
 	IsVariableLength bool                  `msgpack:"is_variable_length"`
@@ -69,7 +71,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 	for _, req := range reqs.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
-		if len(parts) != 2 {
+		if len(parts) != colonSeparatedPartsLen {
 			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
 				req.Key)
 			response.appendResponse(err)
@@ -146,12 +148,12 @@ type MultiGetInfoResponse struct {
 }
 
 func (s *DataService) GetInfo(r *http.Request, reqs *MultiKeyRequest, response *MultiGetInfoResponse) (err error) {
-	errorString := "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
+	const errorString = "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
 
 	for _, req := range reqs.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
-		if len(parts) < 2 {
+		if len(parts) < colonSeparatedPartsLen {
 			// The schema string is optional for Delete, so we append a blank if none is provided
 			parts = append(parts, "")
 		}

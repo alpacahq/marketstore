@@ -68,8 +68,8 @@ func RewriteBuffer(buffer []byte, varRecLen, numVarRecords, intervalsPerDay uint
 func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint32) (sec uint64, nanosec uint32) {
 	const (
 		ticksPerIntervalDivSecsPerDay float64 = 49710.269629629629629629629629629
-		nanosecond                            = 1000000000
-		subnanosecond                         = 100000000
+		nanosecond                    float64 = 1000000000
+		subnanosecond                 float64 = 100000000
 	)
 
 	fractionalSeconds := float64(intervalTicks) / (float64(intervalsPerDay) * ticksPerIntervalDivSecsPerDay)

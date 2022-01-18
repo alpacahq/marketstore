@@ -350,7 +350,7 @@ func (s GRPCService) Destroy(ctx context.Context, req *proto.MultiKeyRequest) (*
 	for _, req := range req.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
-		if len(parts) < 2 {
+		if len(parts) < colonSeparatedPartsLen {
 			// The schema string is optional for Delete, so we append a blank if none is provided
 			parts = append(parts, "")
 		}

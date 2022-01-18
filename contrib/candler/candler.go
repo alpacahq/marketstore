@@ -244,6 +244,7 @@ func (ca *Candler) GetCandle(t time.Time, cndl ...*Candle) *Candle {
 - Has a starting time representing the candle, it begins the interval
 *********************************** Candle *******************************************.
 */
+
 type EOHLCStruct struct {
 	Epoch                  int64
 	Open, High, Low, Close float32
@@ -301,11 +302,11 @@ func (ca *Candle) AddCandle(ts time.Time, prices ...float32) bool {
 		- A tick will have a single price
 		- A candle will have open, high, low, close prices
 	*/
-	var open, high, low, close float32
+	var open, high, low, clos float32
 	if len(prices) == 1 {
-		open, high, low, close = prices[0], prices[0], prices[0], prices[0]
+		open, high, low, clos = prices[0], prices[0], prices[0], prices[0]
 	} else {
-		open, high, low, close = prices[0], prices[1], prices[2], prices[3]
+		open, high, low, clos = prices[0], prices[1], prices[2], prices[3]
 	}
 	/*
 		The input price is used to update the candle if the time is within
@@ -315,7 +316,7 @@ func (ca *Candle) AddCandle(ts time.Time, prices ...float32) bool {
 		return false
 	}
 	if ca.OpenTime.IsZero() {
-		ca.EOHLC.Open, ca.EOHLC.High, ca.EOHLC.Low, ca.EOHLC.Close = open, high, low, close
+		ca.EOHLC.Open, ca.EOHLC.High, ca.EOHLC.Low, ca.EOHLC.Close = open, high, low, clos
 		ca.OpenTime, ca.CloseTime = ts, ts
 	}
 	if ts.Before(ca.OpenTime) {
@@ -323,7 +324,7 @@ func (ca *Candle) AddCandle(ts time.Time, prices ...float32) bool {
 		ca.OpenTime = ts
 	}
 	if ts.After(ca.CloseTime) {
-		ca.EOHLC.Close = close
+		ca.EOHLC.Close = clos
 		ca.CloseTime = ts
 	}
 	if high > ca.EOHLC.High {
@@ -346,17 +347,15 @@ func (ca *Candle) SerializeToRowData(sumNames, avgNames []string) (rowBuf []byte
 	return rowBuf
 }
 
-/*
-Map of start times to active candles.
-*/
+// CandleMap is a Map of start times to active candles.
 type CandleMap map[time.Time]*Candle
 
 /*
 Utility Functions.
 */
+
 func GetAverageColumnFloat32(cols io.ColumnInterface, srcCols []io.DataShape) (avgCol []float32, err error) {
-	numberCols := len(srcCols)
-	if numberCols == 1 {
+	if numberCols := len(srcCols); numberCols == 1 {
 		name := srcCols[0].Name
 		col, err := uda.ColumnToFloat32(cols, name)
 		if err != nil {

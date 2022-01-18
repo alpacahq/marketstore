@@ -25,7 +25,7 @@ func MessageHandler(msg []byte) {
 		return
 	}
 
-	switch enums.Prefix(message.Data.EventType) {
+	switch message.Data.EventType {
 	case enums.TradeEvent:
 		t := api.AlpacaTrade{}
 		err := json.Unmarshal(msg, &t)

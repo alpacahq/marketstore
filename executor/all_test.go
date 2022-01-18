@@ -373,6 +373,7 @@ func TestDelete(t *testing.T) {
 
 	// Read the data before delete
 	r, err := executor.NewReader(parsed)
+	assert.Nil(t, err)
 	csm, err := r.Read()
 	assert.Nil(t, err)
 	for _, cs := range csm {
@@ -515,6 +516,7 @@ func TestSortedFiles(t *testing.T) {
 	scanner, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		// printoutCandles(cs, -1, -1)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	goio "io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 )
@@ -63,7 +63,11 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func(Body goio.ReadCloser) {
+		if err := Body.Close(); err != nil {
+			log.Error(fmt.Sprintf("failed to close http client for marketstore api. err=%v", err))
+		}
+	}(resp.Body)
 
 	// Handle any error in the RPC call
 	if resp.StatusCode != 200 {
@@ -108,36 +112,22 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	case "ListSymbols":
 		result := &frontend.ListSymbolsResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
+		if err != nil {
+			return nil, fmt.Errorf("decode ListSymbols API client response:%w", err)
+		}
 		return result.Results, nil
 	case "Write":
 		result := &frontend.MultiServerResponse{}
 		err = msgpack2.DecodeClientResponse(resp.Body, result)
+		if err != nil {
+			return nil, fmt.Errorf("decode Write API client response:%w", err)
+		}
 
 	default:
 		return nil, fmt.Errorf("unsupported RPC response")
 	}
 
 	return nil, nil
-}
-
-func ColumnSeriesFromResult(shapes []io.DataShape, columns map[string]interface{}) (cs *io.ColumnSeries, err error) {
-	cs = io.NewColumnSeries()
-	for _, shape := range shapes {
-		name := shape.Name
-		typ := shape.Type
-		base := columns[name].([]interface{})
-
-		if base == nil {
-			return nil, fmt.Errorf("unable to unpack %s", name)
-		}
-
-		iCol, err := io.CreateSliceFromSliceOfInterface(base, typ)
-		if err != nil {
-			return nil, err
-		}
-		cs.AddColumn(name, iCol)
-	}
-	return cs, nil
 }
 
 // Subscribe to the marketstore websocket interface with a
@@ -168,16 +158,16 @@ func (cl *Client) Subscribe(
 		// make sure subscription succeeded
 		subRespMsg := &stream.SubscribeMessage{}
 		if err = msgpack.Unmarshal(buf, subRespMsg); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, fmt.Errorf("marketstore stream subscribe failed (%s)", err)
 		}
 		if !streamsEqual(streams, subRespMsg.Streams) {
-			conn.Close()
+			_ = conn.Close()
 			return nil, fmt.Errorf("marketstore stream subscribe failed")
 		}
 	case <-time.After(streamSubscribeTimeout):
 		// timeout
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("marketstore stream subscribe timed out")
 	}
 
@@ -191,7 +181,11 @@ func streamConn(
 	done := make(chan struct{}, 1)
 
 	go func() {
-		defer c.Close()
+		defer func(c *websocket.Conn) {
+			if err := c.Close(); err != nil {
+				log.Error(fmt.Sprintf("failed to close websocket connection. err=%v", err))
+			}
+		}(c)
 		bufC := read(c, done, -1)
 
 		for {
@@ -245,9 +239,9 @@ func read(c *websocket.Conn, done chan struct{}, count int) chan []byte {
 
 			switch msgType {
 			case websocket.PingMessage:
-				err = c.WriteMessage(websocket.PongMessage, []byte{})
+				_ = c.WriteMessage(websocket.PongMessage, []byte{})
 			case websocket.PongMessage:
-				err = c.WriteMessage(websocket.PingMessage, []byte{})
+				_ = c.WriteMessage(websocket.PingMessage, []byte{})
 			case websocket.TextMessage:
 				fallthrough
 			case websocket.BinaryMessage:

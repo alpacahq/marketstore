@@ -24,11 +24,11 @@ type TimeBucketKey struct {
 
 const DefaultTimeBucketSchema = "Symbol/Timeframe/AttributeGroup"
 
-func NewTimeBucketKey(itemKey string, categoryKey_opt ...string) (mk *TimeBucketKey) {
+func NewTimeBucketKey(itemKey string, categoryKeyOpt ...string) (mk *TimeBucketKey) {
 	var categoryKey string
 
-	if len(categoryKey_opt) != 0 && categoryKey_opt[0] != "" {
-		categoryKey = categoryKey_opt[0]
+	if len(categoryKeyOpt) != 0 && categoryKeyOpt[0] != "" {
+		categoryKey = categoryKeyOpt[0]
 	} else {
 		categoryKey = DefaultTimeBucketSchema
 	}

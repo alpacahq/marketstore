@@ -224,8 +224,7 @@ func (cs *ColumnSeries) GetByName(name string) interface{} {
 }
 
 func (cs *ColumnSeries) GetEpoch() []int64 {
-	col := cs.GetByName("Epoch")
-	if col == nil {
+	if col := cs.GetByName("Epoch"); col == nil {
 		return nil
 	} else {
 		return col.([]int64)

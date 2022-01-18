@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	"gopkg.in/yaml.v2"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -52,7 +54,10 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 	}
 
 	if !isVariable {
-		csm[tbk].Remove("Nanoseconds")
+		err = csm[tbk].Remove("Nanoseconds")
+		if err != nil {
+			log.Info(fmt.Sprintf("delete Nanoseconds column:%v", err))
+		}
 	}
 
 	np, err := io.NewNumpyDataset(csm[tbk])
@@ -60,6 +65,9 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 		return nil, false, err
 	}
 	npm, err = io.NewNumpyMultiDataset(np, tbk)
+	if err != nil {
+		return nil, false, fmt.Errorf("create numpy multi dataset for %s:%w", tbk, err)
+	}
 
 	return npm, endReached, nil
 }

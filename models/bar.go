@@ -11,7 +11,10 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const barSuffix = "OHLCV"
+const (
+	barSuffix = "OHLCV"
+	oneDay    = 24 * time.Hour
+)
 
 // Bar is a data model to persist arrays of Ask-Bid quotes.
 type Bar struct {
@@ -200,7 +203,7 @@ func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 	case "1H":
 		bucketDuration = time.Hour
 	case "1D":
-		bucketDuration = 24 * time.Hour
+		bucketDuration = oneDay
 	default:
 		return nil, fmt.Errorf("unsupported timeframe: %v", timeframe)
 	}
