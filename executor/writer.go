@@ -260,9 +260,8 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			return err
 		}
 		if isVariableLength {
-			err = cs.Remove("Nanoseconds")
-			if err != nil {
-				return fmt.Errorf("remove 'Nanoseconds' column")
+			if err = cs.Remove("Nanoseconds"); err != nil {
+				log.Warn(fmt.Sprintf("failed to remove 'Nanoseconds' column. err=%v", err))
 			}
 			alignData = false
 		}
