@@ -43,6 +43,7 @@ func (es *ExplainStatement) GetLeft() IMSTree {
 }
 
 func (es *ExplainStatement) GetRight() IMSTree {
+	// nolint:gomnd // binary tree
 	if es.GetChildCount() < 2 {
 		return nil
 	} else {

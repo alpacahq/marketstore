@@ -232,8 +232,10 @@ func TestAggregation(t *testing.T) {
 	aggRunner := sqlparser.NewDefaultAggRunner(metadata.CatalogDir)
 
 	cs := makeTestCS()
-	epoch := cs.GetColumn("Epoch").([]int64)
-	one := cs.GetColumn("One").([]float32)
+	epoch, ok := cs.GetColumn("Epoch").([]int64)
+	assert.True(t, ok)
+	one, ok := cs.GetColumn("One").([]float32)
+	assert.True(t, ok)
 	fmt.Println("Epoch	One")
 	for i := range epoch {
 		t := time.Unix(epoch[i], 0).UTC()
@@ -304,7 +306,8 @@ func TestCount(t *testing.T) {
 	tickCandler, _ := agg.New(argMap)
 	assert.NotNil(t, tickCandler)
 	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs)
-	count := result.GetColumn("Count").([]int64)
+	count, ok := result.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(5))
 
 	// stmt := "SELECT count(*) from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
@@ -317,7 +320,8 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
-	count = cs.GetColumn("Count").([]int64)
+	count, ok = cs.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(29))
 
 	/*
@@ -331,7 +335,8 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
-	count = cs.GetColumn("Count").([]int64)
+	count, ok = cs.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(1578240))
 
 	stmt = "SELECT count(*) from (SELECT count(*) from (select * from `AAPL/1Min/OHLCV`));"
@@ -342,7 +347,8 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
-	count = cs.GetColumn("Count").([]int64)
+	count, ok = cs.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(1))
 
 	/*

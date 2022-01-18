@@ -64,8 +64,8 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 		return nil, err
 	}
 	defer func(Body goio.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			log.Error(fmt.Sprintf("failed to close http client for marketstore api. err=%v", err))
+		if err2 := Body.Close(); err2 != nil {
+			log.Error(fmt.Sprintf("failed to close http client for marketstore api. err=%v", err2))
 		}
 	}(resp.Body)
 
@@ -149,8 +149,8 @@ func (cl *Client) Subscribe(
 		return nil, err
 	}
 
-	if err := conn.WriteMessage(websocket.BinaryMessage, buf); err != nil {
-		return nil, err
+	if err2 := conn.WriteMessage(websocket.BinaryMessage, buf); err2 != nil {
+		return nil, err2
 	}
 
 	select {

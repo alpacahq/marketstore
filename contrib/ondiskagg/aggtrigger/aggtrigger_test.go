@@ -29,7 +29,8 @@ func TestNew(t *testing.T) {
         "filter": "something"
         }`)
 	ret, err := NewTrigger(config)
-	trig := ret.(*OnDiskAggTrigger)
+	trig, ok := ret.(*OnDiskAggTrigger)
+	assert.True(t, ok)
 	assert.Len(t, trig.destinations, 2)
 	assert.Equal(t, trig.filter, "")
 	assert.Nil(t, err)
