@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	"gopkg.in/yaml.v2"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -54,7 +56,7 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 	if !isVariable {
 		err = csm[tbk].Remove("Nanoseconds")
 		if err != nil {
-			return nil, false, fmt.Errorf("delete Nanoseconds column:%w", err)
+			log.Info(fmt.Sprintf("delete Nanoseconds column:%v", err))
 		}
 	}
 
