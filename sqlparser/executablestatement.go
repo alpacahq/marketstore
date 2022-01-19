@@ -101,6 +101,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 			return err
 		}
 	case EXPLAIN_STMT:
+		//nolint:forcetypeassert // hard to refactor for now
 		context := ctx.statement.(*StatementParse)
 		es.AddChild(NewExplainStatement(context, ctx.QueryText))
 	case INSERT_INTO_STMT:
@@ -113,6 +114,7 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 		if err, ok := retval.(error); ok {
 			return err
 		}
+		//nolint:forcetypeassert // hard to refactor for now
 		sr := es.nodeCursor.payload.(*SelectRelation)
 		es.nodeCursor = es
 
@@ -122,12 +124,15 @@ func (es *ExecutableStatement) VisitStatementParse(ctx *StatementParse) interfac
 		var columnAliases []string
 		if ctx.columnAliases != nil {
 			for _, child := range ctx.columnAliases.GetChildren() {
+				//nolint:forcetypeassert // hard to refactor for now
 				cctx := child.(*IDParse)
 				columnAliases = append(columnAliases, cctx.name)
 			}
 		}
-		is := NewInsertIntoStatement(i_tableName.(string), ctx.QueryText, sr)
-		is.TableName = i_tableName.(string)
+		//nolint:forcetypeassert // hard to refactor for now
+		tableName := i_tableName.(string)
+		is := NewInsertIntoStatement(tableName, ctx.QueryText, sr)
+		is.TableName = tableName
 		is.ColumnAliases = columnAliases
 
 		es.AddChild(is)
@@ -199,6 +204,7 @@ func (es *ExecutableStatement) VisitQueryPrimaryParse(ctx *QueryPrimaryParse) in
 		// TODO: Support TABLE, INLINE TABLE and SUBQUERY
 		return fmt.Errorf("unsupported statement type: %s", "TABLE, INLINE TABLE or SUBQUERY")
 	}
+	//nolint:forcetypeassert // hard to refactor for now
 	sr := es.nodeCursor.payload.(*SelectRelation)
 	sr.IsPrimary = true
 	if ctx.subquery != nil {
@@ -225,6 +231,7 @@ func (es *ExecutableStatement) VisitQuerySpecificationParse(ctx *QuerySpecificat
 		      (HAVING having=booleanExpression)?
 
 	*/
+	//nolint:forcetypeassert // hard to refactor for now
 	sr := es.nodeCursor.payload.(*SelectRelation)
 	sr.StaticPredicates = NewStaticPredicateGroup()
 	sr.SetQuantifier = ctx.setQuantifier
@@ -233,6 +240,7 @@ func (es *ExecutableStatement) VisitQuerySpecificationParse(ctx *QuerySpecificat
 		Gather Select list
 	*/
 	for _, item := range ctx.selectItems {
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := item.(*SelectItemParse)
 		if cctx.IsSelectAll {
 			sr.IsSelectAll = true
@@ -240,6 +248,7 @@ func (es *ExecutableStatement) VisitQuerySpecificationParse(ctx *QuerySpecificat
 		}
 		var aliasName string
 		if cctx.alias != nil {
+			//nolint:forcetypeassert // hard to refactor for now
 			aliasName = es.nodeCursor.Visit(cctx.alias).(string)
 		}
 		icr := es.nodeCursor.Visit(cctx.expression)
@@ -422,6 +431,7 @@ func (es *ExecutableStatement) VisitQualifiedNameParse(ctx *QualifiedNameParse) 
 	numberElements := ctx.GetChildCount()
 	for i, child := range ctx.GetChildren() {
 		id := es.nodeCursor.Visit(child)
+		//nolint:forcetypeassert // hard to refactor for now
 		name := id.(string)
 		buffer.WriteString(name)
 		if i < numberElements-1 {
@@ -660,11 +670,13 @@ func NewLiteral(value interface{}, pType PrimaryExpressionEnum) (li *Literal) {
 /*
 Utility Structs and Functions.
 */
+
 func CoerceToNumeric(literal *Literal) (err error) {
 	switch literal.Type {
 	case STRING_LITERAL:
 		// We need to coerce the string into a numeric and that means time/date
 		//	Mon Jan 2 15:04:05 -0700 MST 2006
+		//nolint:forcetypeassert // hard to refactor for now
 		value := literal.Value.(string)
 		// Strip off the single quotes
 		value = value[1 : len(value)-1]

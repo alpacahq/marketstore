@@ -257,7 +257,8 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	}
 
 	// Spawn a goroutine and listen for a signal.
-	signalChan := make(chan os.Signal, 10)
+	const defaultSignalChanLen = 10
+	signalChan := make(chan os.Signal, defaultSignalChanLen)
 	go func() {
 		for s := range signalChan {
 			switch s {

@@ -141,6 +141,7 @@ func (is *InsertIntoStatement) GetLeft() IMSTree {
 }
 
 func (is *InsertIntoStatement) GetRight() IMSTree {
+	// nolint: gomnd // binary tree
 	if is.GetChildCount() < 2 {
 		return nil
 	} else {

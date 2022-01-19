@@ -37,8 +37,9 @@ func isNanosec(epoch int64) bool {
 	return epoch > threshold
 }
 
+const nanosec = 1000000000
+
 func convertUnitToNanosec(epoch int64) int64 {
-	const nanosec = 1000000000
 	if isNanosec(epoch) {
 		return epoch
 	}
@@ -152,14 +153,14 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		*/
 		if sp, ok := sr.StaticPredicates["Epoch"]; ok {
 			if sp.ContentsEnum.IsSet(MINBOUND) {
-				val, err := io.GetValueAsInt64(sp.min)
-				if err != nil {
+				val, err2 := io.GetValueAsInt64(sp.min)
+				if err2 != nil {
 					return nil, fmt.Errorf("non date predicate found for Epoch")
 				}
 				if sp.ContentsEnum.IsSet(INCLUSIVEMIN) {
 					val += 1
 				}
-				q.SetStart(time.Unix(val/1000000000, val%1000000000))
+				q.SetStart(time.Unix(val/nanosec, val%nanosec))
 			}
 			if sp.ContentsEnum.IsSet(MAXBOUND) {
 				val, err2 := io.GetValueAsInt64(sp.max)
@@ -169,7 +170,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
 					val -= 1
 				}
-				q.SetEnd(time.Unix(val/1000000000, val%1000000000))
+				q.SetEnd(time.Unix(val/nanosec, val%nanosec))
 			}
 		}
 
@@ -199,13 +200,13 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		if err2 != nil {
 			return nil, err2
 		}
-		scanner, err := executor.NewReader(parsed)
-		if err != nil {
-			return nil, err
+		scanner, err2 := executor.NewReader(parsed)
+		if err2 != nil {
+			return nil, err2
 		}
-		csm, err := scanner.Read()
-		if err != nil {
-			return nil, err
+		csm, err2 := scanner.Read()
+		if err2 != nil {
+			return nil, err2
 		}
 		if len(csm) == 0 {
 			return nil, fmt.Errorf("no results returned from query")
@@ -455,7 +456,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				}
 			}
 		}
-		outputColumnSeries.RestrictViaBitmap(removalBitmap)
+		_ = outputColumnSeries.RestrictViaBitmap(removalBitmap)
 	}
 
 	/*
@@ -517,6 +518,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				// TODO: Handle different argument types from string
 				var initArgList []string
 				for _, lit := range initList {
+					//nolint:forcetypeassert // hard to refactor for now
 					value := lit.Value.(string)
 					value = value[1 : len(value)-1] // Strip the quotes
 					initArgList = append(
@@ -524,9 +526,9 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 						value,
 					)
 				}
-				aggfunc, err := agg.New(argMap, initArgList)
-				if err != nil {
-					return nil, fmt.Errorf("init aggfunc: %w", err)
+				aggfunc, err2 := agg.New(argMap, initArgList)
+				if err2 != nil {
+					return nil, fmt.Errorf("init aggfunc: %w", err2)
 				}
 
 				/*
@@ -538,9 +540,9 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				} else {
 					tbk = *key
 				}
-				functionResult, err := aggfunc.Accum(tbk, argMap, outputColumnSeries)
-				if err != nil {
-					return nil, err
+				functionResult, err2 := aggfunc.Accum(tbk, argMap, outputColumnSeries)
+				if err2 != nil {
+					return nil, err2
 				}
 				if functionResult == nil {
 					return nil, fmt.Errorf(
@@ -629,6 +631,7 @@ func (sr *SelectRelation) GetLeft() IMSTree {
 }
 
 func (sr *SelectRelation) GetRight() IMSTree {
+	// nolint: gomnd // binary tree
 	if sr.GetChildCount() < 2 {
 		return nil
 	} else {
@@ -921,6 +924,7 @@ func SourceValidator(sourceDSV []io.DataShape, selectList []*AliasedIdentifier) 
 	i_missingIDs := targetNamesSet.Subtract(sourceNames)
 	var missingIDs []string
 	if i_missingIDs != nil {
+		//nolint:forcetypeassert // hard to refactor for now
 		missingIDs = i_missingIDs.([]string)
 	}
 	if len(missingIDs) != 0 {
@@ -930,6 +934,7 @@ func SourceValidator(sourceDSV []io.DataShape, selectList []*AliasedIdentifier) 
 		Find the list of names in the source not needed by the target
 	*/
 	sourceNamesSet, _ := io.NewAnySet(sourceNames)
+	//nolint:forcetypeassert // hard to refactor for now
 	projectionList = sourceNamesSet.Subtract(keepList).([]string)
 
 	return true, nil, keepList, projectionList, nil

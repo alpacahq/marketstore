@@ -1,3 +1,5 @@
+package aggtrigger
+
 // OnDiskAgg implements a trigger to downsample base timeframe data
 // and write to disk.  Underlying data schema is expected at least
 // - Open:float32 or float64
@@ -21,7 +23,6 @@
 //
 // destinations are downsample target time windows.  Optionally, if filter
 // is set to "nasdaq", it filters the scan data by NASDAQ market hours.
-package aggtrigger
 
 import (
 	"encoding/json"
@@ -64,7 +65,7 @@ var _ trigger.Trigger = &OnDiskAggTrigger{}
 func recast(config map[string]interface{}) *AggTriggerConfig {
 	data, _ := json.Marshal(config)
 	ret := AggTriggerConfig{}
-	json.Unmarshal(data, &ret)
+	_ = json.Unmarshal(data, &ret)
 	return &ret
 }
 
@@ -274,15 +275,18 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 		// Ticks to bars
 		trades := models.NewTrade(symbol, cs.Len())
 		epochs := cs.GetEpoch()
-		nanos := cs.GetColumn("Nanoseconds").([]int32)
-		prices := cs.GetColumn("Price").([]float64)
-		sizes := cs.GetColumn("Size").([]uint64)
-		exchanges := cs.GetColumn("Exchange").([]byte)
-		tapeids := cs.GetColumn("TapeID").([]byte)
-		cond1 := cs.GetColumn("Cond1").([]byte)
-		cond2 := cs.GetColumn("Cond2").([]byte)
-		cond3 := cs.GetColumn("Cond3").([]byte)
-		cond4 := cs.GetColumn("Cond4").([]byte)
+		nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
+		prices, ok2 := cs.GetColumn("Price").([]float64)
+		sizes, ok3 := cs.GetColumn("Size").([]uint64)
+		exchanges, ok4 := cs.GetColumn("Exchange").([]byte)
+		tapeids, ok5 := cs.GetColumn("TapeID").([]byte)
+		cond1, ok6 := cs.GetColumn("Cond1").([]byte)
+		cond2, ok7 := cs.GetColumn("Cond2").([]byte)
+		cond3, ok8 := cs.GetColumn("Cond3").([]byte)
+		cond4, ok9 := cs.GetColumn("Cond4").([]byte)
+		if !(ok && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8 && ok9) {
+			return nil, fmt.Errorf("convert ticks to bars. tbk=%v, symbol=%s", baseTbk, symbol)
+		}
 		for i := range epochs {
 			condition := []modelsenum.TradeCondition{
 				modelsenum.TradeCondition(cond1[i]),
@@ -331,14 +335,18 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 			if !timeWindow.IsWithin(t, groupKey) {
 				// Emit new row and re-init aggState
 				outEpoch = append(outEpoch, groupKey.Unix())
-				accumGroup.apply(groupStart, i)
+				if err := accumGroup.apply(groupStart, i); err != nil {
+					return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, i, err)
+				}
 				groupKey = timeWindow.Truncate(t)
 				groupStart = i
 			}
 		}
 		// accumulate any remaining values if not yet
 		outEpoch = append(outEpoch, groupKey.Unix())
-		accumGroup.apply(groupStart, len(ts))
+		if err := accumGroup.apply(groupStart, len(ts)); err != nil {
+			return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, len(ts), err)
+		}
 
 		// finalize output
 		outCs := io.NewColumnSeries()

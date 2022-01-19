@@ -19,6 +19,7 @@ type StatementsParse struct {
 }
 
 func NewStatementsParse(node antlr.Tree, queryText string) (term *StatementsParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.StatementsContext)
 	term = new(StatementsParse)
 	term.QueryText = queryText
@@ -102,6 +103,7 @@ type QueryParse struct {
 }
 
 func NewQueryParse(node antlr.Tree) (term *QueryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QueryContext)
 	term = new(QueryParse)
 	term.queryNoWith = NewQueryNoWithParse(ctx.QueryNoWith())
@@ -121,6 +123,7 @@ type QueryNoWithParse struct {
 }
 
 func NewQueryNoWithParse(node antlr.Tree) (term *QueryNoWithParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QueryNoWithContext)
 	term = new(QueryNoWithParse)
 	term.queryTerm = NewQueryTermParse(ctx.QueryTerm())
@@ -164,6 +167,7 @@ func NewQueryTermParse(node antlr.Tree) (term *QueryTermParse) {
 			term.operator = EXCEPT
 		}
 		if ctx.SetQuantifier() != nil {
+			//nolint:forcetypeassert // hard to refactor for now
 			cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 			switch {
 			case cctx.DISTINCT() != nil:
@@ -225,6 +229,7 @@ type SortItemParse struct {
 }
 
 func NewSortItemParse(node antlr.Tree) (term *SortItemParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SortItemContext)
 	term = new(SortItemParse)
 	term.expression = NewExpressionParse(ctx.Expression())
@@ -260,9 +265,11 @@ type QuerySpecificationParse struct {
 }
 
 func NewQuerySpecificationParse(node antlr.Tree) (term *QuerySpecificationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QuerySpecificationContext)
 	term = new(QuerySpecificationParse)
 	if ctx.SetQuantifier() != nil {
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 		switch {
 		case cctx.DISTINCT() != nil:
@@ -307,9 +314,11 @@ type GroupByParse struct {
 }
 
 func NewGroupByParse(node antlr.Tree) (term *GroupByParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.GroupByContext)
 	term = new(GroupByParse)
 	if ctx.SetQuantifier() != nil {
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 		switch {
 		case cctx.DISTINCT() != nil:
@@ -375,6 +384,7 @@ type GroupingExpressionsParse struct {
 }
 
 func NewGroupingExpressionsParse(node antlr.Tree) (term *GroupingExpressionsParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.GroupingExpressionsContext)
 	term = new(GroupingExpressionsParse)
 	for _, cctx := range ctx.AllExpression() {
@@ -395,6 +405,7 @@ type GroupingSetParse struct {
 }
 
 func NewGroupingSetParse(node antlr.Tree) (term *GroupingSetParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.GroupingSetContext)
 	term = new(GroupingSetParse)
 	for _, cctx := range ctx.AllQualifiedName() {
@@ -456,6 +467,7 @@ func NewRelationParse(node antlr.Tree) (term *RelationParse) {
 			term.criteria = NewJoinCriteriaParse(ctx.JoinCriteria())
 		}
 		if ctx.JoinType() != nil {
+			//nolint:forcetypeassert // hard to refactor for now
 			cctx := ctx.JoinType().(*parser.JoinTypeContext)
 			switch {
 			case cctx.INNER() != nil:
@@ -489,6 +501,7 @@ type JoinCriteriaParse struct {
 }
 
 func NewJoinCriteriaParse(node antlr.Tree) (term *JoinCriteriaParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.JoinCriteriaContext)
 	term = new(JoinCriteriaParse)
 	term.onExpression = NewBooleanExpressionParse(ctx.BooleanExpression())
@@ -511,6 +524,7 @@ type SampledRelationParse struct {
 }
 
 func NewSampledRelationParse(node antlr.Tree) (term *SampledRelationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SampledRelationContext)
 	term = new(SampledRelationParse)
 	term.aliasedRelation = NewAliasedRelationParse(ctx.AliasedRelation())
@@ -541,6 +555,7 @@ type AliasedRelationParse struct {
 }
 
 func NewAliasedRelationParse(node antlr.Tree) (term *AliasedRelationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.AliasedRelationContext)
 	term = new(AliasedRelationParse)
 	term.relationPrimary = NewRelationPrimaryParse(ctx.RelationPrimary())
@@ -565,6 +580,7 @@ func (sp *AliasedRelationParse) String(level int) (out []string) {
 type ColumnAliasesParse struct{ MSTree }
 
 func NewColumnAliasesParse(node antlr.Tree) (term *ColumnAliasesParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ColumnAliasesContext)
 	term = new(ColumnAliasesParse)
 	for _, cctx := range ctx.AllIdentifier() {
@@ -630,6 +646,7 @@ type ExpressionParse struct {
 }
 
 func NewExpressionParse(node antlr.Tree) (term *ExpressionParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ExpressionContext)
 	term = new(ExpressionParse)
 	switch {
@@ -695,6 +712,7 @@ func NewBooleanExpressionParse(node antlr.Tree) (term *BooleanExpressionParse) {
 			done = true
 		case *parser.BoolLiteralTooContext:
 			term.IsLiteral = true
+			//nolint:forcetypeassert // hard to refactor for now
 			cctx := ctx.Booleanliteral().(*parser.BooleanliteralContext)
 			if cctx.TRUE() != nil {
 				term.value = true
@@ -724,6 +742,7 @@ func (sp *BooleanExpressionParse) String(level int) (out []string) {
 Predicate block
 ================================================.
 */
+
 type PredicateParse struct{ MSTree }
 
 func NewPredicateParse(node antlr.Tree) (term *PredicateParse) {
@@ -761,6 +780,7 @@ type ComparisonParse struct {
 }
 
 func NewComparisonParse(node antlr.Tree) (term *ComparisonParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ComparisonContext)
 	term = new(ComparisonParse)
 	term.comparisonOperator = io.StringToComparisonOperatorEnum(
@@ -782,6 +802,7 @@ type QuantifiedComparisonParse struct {
 }
 
 func NewQuantifiedComparisonParse(node antlr.Tree) (term *QuantifiedComparisonParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QuantifiedComparisonContext)
 	term = new(QuantifiedComparisonParse)
 	term.comparisonOperator = io.StringToComparisonOperatorEnum(
@@ -804,6 +825,7 @@ type BetweenParse struct {
 }
 
 func NewBetweenParse(node antlr.Tree) (term *BetweenParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.BetweenContext)
 	term = new(BetweenParse)
 	term.lower = NewValueExpressionParse(ctx.GetLower())
@@ -827,6 +849,7 @@ type InListParse struct {
 }
 
 func NewInListParse(node antlr.Tree) (term *InListParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.InListContext)
 	term = new(InListParse)
 	for _, cctx := range ctx.AllValueExpression() {
@@ -850,6 +873,7 @@ type InSubqueryParse struct {
 }
 
 func NewInSubqueryParse(node antlr.Tree) (term *InSubqueryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.InSubqueryContext)
 	term = new(InSubqueryParse)
 	term.query = NewQueryParse(ctx.Query())
@@ -871,6 +895,7 @@ type LikeParse struct {
 }
 
 func NewLikeParse(node antlr.Tree) (term *LikeParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.LikeContext)
 	term = new(LikeParse)
 	term.pattern = NewValueExpressionParse(ctx.GetPattern())
@@ -892,6 +917,7 @@ type NullPredicateParse struct {
 }
 
 func NewNullPredicateParse(node antlr.Tree) (term *NullPredicateParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.NullPredicateContext)
 	term = new(NullPredicateParse)
 	if ctx.NOT() != nil {
@@ -911,6 +937,7 @@ type DistinctFromParse struct {
 }
 
 func NewDistinctFromParse(node antlr.Tree) (term *DistinctFromParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.DistinctFromContext)
 	term = new(DistinctFromParse)
 	term.right = NewValueExpressionParse(ctx.GetRight())
@@ -966,6 +993,7 @@ type AtTimeZoneParse struct {
 }
 
 func NewAtTimeZoneParse(node antlr.Tree) (term *AtTimeZoneParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.AtTimeZoneContext)
 	term = new(AtTimeZoneParse)
 	term.value = NewValueExpressionParse(ctx.ValueExpression())
@@ -986,6 +1014,7 @@ type ArithmeticUnaryParse struct {
 }
 
 func NewArithmeticUnaryParse(node antlr.Tree) (term *ArithmeticUnaryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ArithmeticUnaryContext)
 	term = new(ArithmeticUnaryParse)
 	if ctx.MINUS() != nil {
@@ -1009,6 +1038,7 @@ type ArithmeticBinaryParse struct {
 }
 
 func NewArithmeticBinaryParse(node antlr.Tree) (term *ArithmeticBinaryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ArithmeticBinaryContext)
 	term = new(ArithmeticBinaryParse)
 	switch {
@@ -1040,6 +1070,7 @@ type ConcatenationParse struct {
 }
 
 func NewConcatParse(node antlr.Tree) (term *ConcatenationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ConcatenationContext)
 	term = new(ConcatenationParse)
 	term.left = NewValueExpressionParse(ctx.GetLeft())
@@ -1094,14 +1125,16 @@ func NewPrimaryExpressionParse(node antlr.Tree) (term *PrimaryExpressionParse) {
 		}
 		term.payload = int64(intTerm)
 	case *parser.DecimalLiteralContext:
+		const float64BitSize = 64
 		term.primaryType = DECIMAL_LITERAL
 		var err error
-		term.payload, err = strconv.ParseFloat(ctx.DECIMAL_VALUE().GetText(), 64)
+		term.payload, err = strconv.ParseFloat(ctx.DECIMAL_VALUE().GetText(), float64BitSize)
 		if err != nil {
 			return nil
 		}
 	case *parser.BoolLiteralContext:
 		term.primaryType = BOOLEAN_LITERAL
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.Booleanliteral().(*parser.BooleanliteralContext)
 		term.payload = (cctx.TRUE() != nil)
 	case *parser.TypeConstructorContext:
@@ -1191,6 +1224,7 @@ type FunctionCallParse struct {
 }
 
 func NewFunctionCallParse(node antlr.Tree) (term *FunctionCallParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.FunctionCallContext)
 	term = new(FunctionCallParse)
 	term.qualifiedName = NewQualifiedNameParse(ctx.QualifiedName())
@@ -1203,6 +1237,7 @@ func NewFunctionCallParse(node antlr.Tree) (term *FunctionCallParse) {
 	}
 	if ctx.SetQuantifier() != nil {
 		term.hasSetQuantifier = true
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 		switch {
 		case cctx.DISTINCT() != nil:
@@ -1236,6 +1271,7 @@ type LambdaParse struct {
 }
 
 func NewLambdaParse(node antlr.Tree) (term *LambdaParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.LambdaContext)
 	term = new(LambdaParse)
 	term.expression = NewExpressionParse(ctx.Expression())
@@ -1258,6 +1294,7 @@ type SimpleCaseParse struct {
 }
 
 func NewSimpleCaseParse(node antlr.Tree) (term *SimpleCaseParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SimpleCaseContext)
 	term = new(SimpleCaseParse)
 	term.valueExpression = NewValueExpressionParse(ctx.ValueExpression())
@@ -1285,6 +1322,7 @@ type SearchedCaseParse struct {
 }
 
 func NewSearchedCaseParse(node antlr.Tree) (term *SearchedCaseParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SearchedCaseContext)
 	term = new(SearchedCaseParse)
 	if ctx.GetElseExpression() != nil {
@@ -1309,6 +1347,7 @@ type CastParse struct {
 }
 
 func NewCastParse(node antlr.Tree) (term *CastParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.CastContext)
 	term = new(CastParse)
 	term.expression = NewExpressionParse(ctx.Expression())
@@ -1328,6 +1367,7 @@ type SubscriptParse struct {
 }
 
 func NewSubscriptParse(node antlr.Tree) (term *SubscriptParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SubscriptContext)
 	term = new(SubscriptParse)
 	term.value = NewPrimaryExpressionParse(ctx.GetValue())
@@ -1347,6 +1387,7 @@ type DereferenceParse struct {
 }
 
 func NewDereferenceParse(node antlr.Tree) (term *DereferenceParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.DereferenceContext)
 	term = new(DereferenceParse)
 	term.base = NewPrimaryExpressionParse(ctx.GetBase())
@@ -1367,6 +1408,7 @@ type SpecialDateTimeFunctionParse struct {
 }
 
 func NewSpecialDateTimeFunctionParse(node antlr.Tree) (term *SpecialDateTimeFunctionParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SpecialDateTimeFunctionContext)
 	term = new(SpecialDateTimeFunctionParse)
 	if ctx.INTEGER_VALUE() != nil {
@@ -1398,6 +1440,7 @@ type SubstringParse struct {
 }
 
 func NewSubstringParse(node antlr.Tree) (term *SubstringParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SubstringContext)
 	term = new(SubstringParse)
 	term.subTerm = NewValueExpressionParse(ctx.GetSubterm())
@@ -1422,6 +1465,7 @@ type NormalizeParse struct {
 }
 
 func NewNormalizeParse(node antlr.Tree) (term *NormalizeParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.NormalizeContext)
 	term = new(NormalizeParse)
 	if ctx.GetNormalform() != nil {
@@ -1451,6 +1495,7 @@ type ExtractParse struct {
 }
 
 func NewExtractParse(node antlr.Tree) (term *ExtractParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ExtractContext)
 	term = new(ExtractParse)
 	term.left = NewIDParse(ctx.Identifier())
@@ -1498,6 +1543,7 @@ type IntervalParse struct {
 }
 
 func NewIntervalParse(node antlr.Tree) (term *IntervalParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.IntervalContext)
 	term = new(IntervalParse)
 	switch ctx.GetSign().GetText() {
@@ -1526,6 +1572,7 @@ type IntervalFieldParse struct {
 }
 
 func NewIntervalFieldParse(node antlr.Tree) (term *IntervalFieldParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.IntervalFieldContext)
 	term = new(IntervalFieldParse)
 	switch {
@@ -1556,6 +1603,7 @@ type TypeTParse struct {
 }
 
 func NewTypeTParse(node antlr.Tree) (term *TypeTParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.Type_tContext)
 	term = new(TypeTParse)
 	switch {
@@ -1595,6 +1643,7 @@ func (sp *TypeTParse) String(level int) (out []string) {
 type TypeParameterParse struct{ MSTree }
 
 func NewTypeParameterParse(node antlr.Tree) (term *TypeParameterParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.TypeParameterContext)
 	term = new(TypeParameterParse)
 	switch {
@@ -1617,6 +1666,7 @@ type BaseTypeParse struct {
 }
 
 func NewBaseTypeParse(node antlr.Tree) (term *BaseTypeParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.BaseTypeContext)
 	term = new(BaseTypeParse)
 	switch {
@@ -1642,6 +1692,7 @@ type WhenParse struct {
 }
 
 func NewWhenParse(node antlr.Tree) (term *WhenParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.WhenClauseContext)
 	term = new(WhenParse)
 	term.condition = NewExpressionParse(ctx.GetCondition())
@@ -1660,6 +1711,7 @@ type FilterParse struct {
 }
 
 func NewFilterParse(node antlr.Tree) (term *FilterParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.FilterContext)
 	term = new(FilterParse)
 	term.AddChild(NewBooleanExpressionParse(ctx.BooleanExpression()))
@@ -1676,6 +1728,7 @@ type OverParse struct {
 }
 
 func NewOverParse(node antlr.Tree) (term *OverParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.OverContext)
 	term = new(OverParse)
 	for _, expr := range ctx.GetPartition() {
@@ -1702,6 +1755,7 @@ type WindowFrameParse struct {
 }
 
 func NewWindowFrameParse(node antlr.Tree) (term *WindowFrameParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.WindowFrameContext)
 	term = new(WindowFrameParse)
 	if strings.EqualFold(ctx.GetFrameType().GetText(), "RANGE") {
