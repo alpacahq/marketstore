@@ -248,12 +248,13 @@ func getUInt64ColumnFromCSVRows(csvRows [][]string, index int) (col []uint64, er
 	return col, nil
 }
 
-func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][16]rune) {
-	col = make([][16]rune, len(csvRows))
+const String16RuneSize = 16
+func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][String16RuneSize]rune) {
+	col = make([][String16RuneSize]rune, len(csvRows))
 	for i, row := range csvRows {
-		if len([]rune(row[index])) > 16 {
+		if len([]rune(row[index])) > String16RuneSize {
 			log.Warn(fmt.Sprintf("too long string column (>16chars):%v", row[index]))
-			copy(col[i][:], []rune(row[index][0:16]))
+			copy(col[i][:], []rune(row[index][0:String16RuneSize]))
 		} else {
 			copy(col[i][:], []rune(row[index][0:len(row[index])]))
 		}
