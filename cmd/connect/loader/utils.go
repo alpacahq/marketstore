@@ -24,8 +24,13 @@ type CSVConfig struct {
 
 type CSVMetadata struct {
 	Config      *CSVConfig     // Configuration of the CSV file, including the names of the columns
-	DSV         []io.DataShape // Datashapes inside this CSV file
-	ColumnIndex []int          // Maps the index of the columns in the CSV file to each time bucket in the DB
+	// DSV is data shapes inside this CSV file. The first 2 columns are "Epoch-date" and "Epoch-time".
+	// If the schema of existent bucket is "Epoch,Ask,Bid", DSV is ["Epoch-date", "Epoch-time", "Epoch", "Ask", "Bid"].
+	DSV         []io.DataShape
+	// ColumnIndex maps the index of the columns in the CSV file to each time bucket in the DB.
+	// ColumnIndex[i+2]=-1 when the column of DSV[i] doesn't exist in the provided CSV file.
+	// e.g. when the bucket is "Epoch,Ask,Bid" and Column[3] = -1, it means the provided CSV doesn't have "Ask" column.
+	ColumnIndex []int
 }
 
 func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetadata, chunkSize int,
@@ -35,8 +40,8 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 	csvChunk := make([][]string, 0)
 	var linesRead int
 	for i := 0; i < chunkSize; i++ {
-		row, err := csvReader.Read()
-		if err != nil {
+		row, err2 := csvReader.Read()
+		if err2 != nil {
 			endReached = true
 			break
 		}
