@@ -13,14 +13,14 @@ printf "package sqlparser\n\n"
 }
 
 generateAcceptMethods() {
-	line1[0]="func (this *"
+	line1[0]="func (v *"
 	line1[1]=") Accept(visitor IMSTreeVisitor) interface{} {"
 	line2[0]="	switch t := visitor.(type) {"
 	line3[0]="	case ISQLQueryTreeVisitor:"
 	line4[0]="		return t.Visit"
-	line4[1]="(this)"
+	line4[1]="(v)"
 	line5[0]="	default:"
-	line6[0]="		return t.VisitChildren(this)"
+	line6[0]="		return t.VisitChildren(v)"
 	line7[0]="	}"
 	line8[0]="}"
 
@@ -52,12 +52,12 @@ generateVisitBaseImplementation() {
 	printf "	*BaseMSTreeVisitor\n"
 	printf "}\n\n"
 	printf "var _ ISQLQueryTreeVisitor = &BaseSQLQueryTreeVisitor{}\n\n"
-	printf "func (this *BaseSQLQueryTreeVisitor) Visit(tree IMSTree) interface{} {\n"
-	printf "	return tree.Accept(this)\n"
+	printf "func (v *BaseSQLQueryTreeVisitor) Visit(tree IMSTree) interface{} {\n"
+	printf "	return tree.Accept(v)\n"
 	printf "}\n\n"
-	printf "func (this *BaseSQLQueryTreeVisitor) VisitChildren(tree IMSTree) interface{} {\n"
+	printf "func (v *BaseSQLQueryTreeVisitor) VisitChildren(tree IMSTree) interface{} {\n"
 	printf "	for _, child := range tree.GetChildren() {\n"
-	printf "		retval := child.Accept(this)\n"
+	printf "		retval := child.Accept(v)\n"
 	printf "		if retval != nil {\n"
 	printf "			return retval\n"
 	printf "		}\n"
@@ -67,7 +67,7 @@ generateVisitBaseImplementation() {
 
 	while read class
 	do
-  		printf "func (this *BaseSQLQueryTreeVisitor) Visit%s(ctx *%s) interface{} { return this.VisitChildren(ctx) }\n" $class $class
+  		printf "func (v *BaseSQLQueryTreeVisitor) Visit%s(ctx *%s) interface{} { return v.VisitChildren(ctx) }\n" $class $class
 	done < $TMPFILE
 }
 
