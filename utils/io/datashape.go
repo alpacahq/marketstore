@@ -44,7 +44,6 @@ func DataShapesFromInputString(inputStr string) (dsa []DataShape, err error) {
 		twoParts := strings.Split(group, "/")
 		if len(twoParts) != 2 {
 			err = fmt.Errorf("error: %s: Data shape is not described by a list of column names followed by type.", group)
-			fmt.Println(err.Error())
 			return nil, err
 		}
 		elementNames := strings.Split(twoParts[0], ",")
@@ -52,7 +51,6 @@ func DataShapesFromInputString(inputStr string) (dsa []DataShape, err error) {
 		eType := EnumElementTypeFromName(elementType)
 		if eType == NONE {
 			err = fmt.Errorf("error: %s: Data type is not a supported type", group)
-			fmt.Println(err.Error())
 			return nil, err
 		}
 		for _, name := range elementNames {

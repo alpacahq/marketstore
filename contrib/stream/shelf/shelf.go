@@ -112,6 +112,7 @@ func (p *Package) Start(tbk *io.TimeBucketKey, h ShelfHandler) {
 		case <-p.ctx.Done():
 			if !p.stopped.Load().(bool) {
 				if err := (*h)(*tbk, p.Data); err != nil {
+					// nolint:forbidigo // CLI output needs fmt.Println
 					fmt.Printf("failed to expire data package (%v)\n", err)
 				}
 			}

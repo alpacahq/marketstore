@@ -92,6 +92,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 		sizeBytes := math.Pow(10, float64((i+1)*3))
 
 		if totalBytes < (sizeBytes * 10000) {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf(
 				"Estimated space required for %d %s with %d %s of %s data: %.0f%s\n",
 				NumSymbols, symbolStr, NumYears, yearStr, Timeframe, totalBytes/sizeBytes, sizes[i],
@@ -101,6 +102,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	}
 
 	// fallback message for ridiculously huge amounts
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Println("Estimated space required is more than 10,000EB")
 	return nil
 }

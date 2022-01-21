@@ -56,7 +56,7 @@ func TestAddDir(t *testing.T) {
 	tbk := NewTimeBucketKey("TEST/1Min/TICKS")
 	tf, err := tbk.GetTimeFrame()
 	if err != nil {
-		fmt.Println(err.Error())
+		t.Log(err.Error())
 		return
 	}
 	rt := EnumRecordTypeByName("variable")
@@ -248,7 +248,7 @@ func TestWriteVariable(t *testing.T) {
 	csm, err = reader.Read()
 	assert.Nil(t, err)
 	for _, cs := range csm {
-		fmt.Println("Results: ", cs)
+		t.Log("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
 		nanos, _ := cs.GetByName("Nanoseconds").([]int32)
@@ -264,11 +264,11 @@ func TestWriteVariable(t *testing.T) {
 	csm, err = reader.Read()
 	assert.Nil(t, err)
 	for _, cs := range csm {
-		fmt.Println("Results: ", cs)
+		t.Log("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
 		nanos := cs.GetByName("Nanoseconds").([]int32)
-		fmt.Println("Nanos: ", nanos)
+		t.Log("Nanos: ", nanos)
 		assert.True(t, math.Abs(float64(nanos[9]-505000000)) < 50., true)
 		break
 	}
@@ -432,7 +432,7 @@ func TestSortedFiles(t *testing.T) {
 	}
 	scanner, err := executor.NewReader(parsed)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	// Sum up the total number of items in the query set for validation
@@ -796,7 +796,7 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 			for i, r_ts := range r_epoch {
 				tstamp1 := time.Unix(r_ts, 0).UTC().Format(time.UnixDate)
 				tstamp2 := time.Unix(epoch[i], 0).UTC().Format(time.UnixDate)
-				fmt.Println("Should be: ", tstamp1, " Is: ", tstamp2)
+				t.Log("Should be: ", tstamp1, " Is: ", tstamp2)
 			}
 		}
 	}

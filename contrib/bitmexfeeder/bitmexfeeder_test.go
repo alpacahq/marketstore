@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -59,10 +58,10 @@ func TestNew(t *testing.T) {
 	config["httpClient"] = hc // inject http client
 	ret, err = NewBgWorker(config)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	worker = ret.(*BitmexFetcher)
-	fmt.Printf("%v", worker)
+	t.Logf("%v", worker)
 	assert.Nil(t, err)
 	assert.Equal(t, worker.queryStart.IsZero(), false)
 }

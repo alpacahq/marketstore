@@ -73,10 +73,12 @@ func init() {
 
 	rootDirPath = filepath.Clean(rootDirPath)
 	if !exists(rootDirPath) {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("Root directory: %s does not exist\n", rootDirPath)
 		os.Exit(0)
 	}
 	if !isDir(rootDirPath) {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("Root directory: %s is not a directory\n", rootDirPath)
 		os.Exit(0)
 	}
@@ -169,6 +171,7 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 		size := fi.Size() - io.Headersize
 		// Size the chunk buffer to be a multiple of 8-bytes
 		chunkSize := io.AlignedSize(int(size/int64(numChunksPerFile) + size%int64(numChunksPerFile)))
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println("Chunksize: ", chunkSize)
 
 		fp, err := os.Open(filePath)
@@ -238,12 +241,14 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 		wg.Wait()
 		fp.Close()
 
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("%30s", filechunks[0])
 		for i, sum := range cksums {
 			//			if sum != 0 {
 			if sum < 0 {
 				sum = -sum
 			}
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf(",%3s %4d", chunkNames[i], sum%10000)
 			//			}
 		}
@@ -296,6 +301,7 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 		Check for OHLC with elementTypes = {1,1,1,1}
 	*/
 	if planner.ElementsEqual(tbinfo.GetElementTypes(), []io.EnumElementType{io.INT32, io.INT32, io.INT32, io.INT32}) {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println("found/fixing OHLC type error for ", filePath)
 		tbinfo.SetElementTypes([]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32})
 	}
@@ -306,6 +312,7 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 	const allowAll = 0o777
 	fp, err := os.OpenFile(filePath, os.O_WRONLY, allowAll)
 	if err != nil {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println("Unable to write new header to file, terminating...")
 		os.Exit(1)
 	}

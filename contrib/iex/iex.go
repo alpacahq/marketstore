@@ -411,10 +411,12 @@ func main() {
 
 	for symbol, chart := range *resp {
 		for _, bar := range chart.Chart {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("symbol: %v bar: %v\n", symbol, bar)
 		}
 	}
 
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("-------------------\n\n")
 	resp, err = api.GetBars([]string{"AMPY", "MSFT", "DVCR"}, oneDay, nil, retryNum)
 
@@ -424,6 +426,7 @@ func main() {
 
 	for symbol, chart := range *resp {
 		for _, bar := range chart.Chart {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("symbol: %v bar: %v\n", symbol, bar)
 		}
 	}

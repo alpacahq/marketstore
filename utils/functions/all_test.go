@@ -1,7 +1,6 @@
 package functions
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,7 @@ func TestParameters(t *testing.T) {
 	idList := []string{"A::i", "B::j", "C::k", "D::l"}
 	err := argMap.PrepareArguments(idList)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		t.Log("Error: ", err)
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, argMap.nameMap["A"][0].Name, "i")
@@ -44,7 +43,7 @@ func TestParameters(t *testing.T) {
 	idList = []string{"A::i", "B::j", "C::k", "D::l", "E::m", "F::n"}
 	err = argMap.PrepareArguments(idList)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		t.Log("Error: ", err)
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, argMap.nameMap["A"][0].Name, "i")
@@ -61,7 +60,7 @@ func TestParameters(t *testing.T) {
 	idList = []string{"A::i", "j", "k", "D::l"}
 	err = argMap.PrepareArguments(idList)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		t.Log("Error: ", err)
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, argMap.nameMap["A"][0].Name, "i")
@@ -76,7 +75,7 @@ func TestParameters(t *testing.T) {
 	idList = []string{"A::i1", "A::i2", "j", "k", "D::l1", "D::l2", "D::l3"}
 	err = argMap.PrepareArguments(idList)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		t.Log("Error: ", err)
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, argMap.nameMap["A"][0].Name, "i1")
@@ -94,7 +93,7 @@ func TestParameters(t *testing.T) {
 	idList = []string{"A::i1", "A::i2", "j", "k", "D::l1", "D::l2", "D::l3", "m", "n"}
 	err = argMap.PrepareArguments(idList)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		t.Log("Error: ", err)
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, argMap.nameMap["A"][0].Name, "i1")
@@ -114,7 +113,7 @@ func TestParameters(t *testing.T) {
 	idList = []string{"A::i", "j", "D::l"}
 	err = argMap.PrepareArguments(idList)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		t.Log("Error: ", err)
 	}
 	assert.NotNil(t, err)
 }

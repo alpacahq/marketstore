@@ -146,9 +146,11 @@ func convert(input, format, def string, v reflect.Value) {
 				log.Error("type conversion error: %+v, %s\n", err, input)
 			}
 		} else {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			println("converter not found for", input, v.Type().Name(), "kind:", iv.Kind())
 		}
 	} else {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		println("value is read only!!!! ", input, " to ", v.Type().Name())
 	}
 }

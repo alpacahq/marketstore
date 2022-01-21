@@ -17,6 +17,7 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 	mustComposeEpoch := columnIndex[2] == -1
 	if mustComposeEpoch {
 		if columnIndex[0] == -1 || columnIndex[1] == -1 {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Println("Unable to build Epoch time from mapping - need both a date and time")
 			return nil, nil
 		}
@@ -30,6 +31,7 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 	if len(conf.Timezone) != 0 {
 		tzLoc, err = time.LoadLocation(conf.Timezone)
 		if err != nil {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("Unable to parse timezone %s: %s\n", conf.Timezone, err.Error())
 			return nil, nil
 		}
@@ -57,7 +59,9 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 			firstParse = false
 		}
 		if err != nil {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("Error parsing Epoch column(s) from input data file: %s\n", err.Error())
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("rowTime %v, mustComposeEpoch %v, dateTime %v, format %v, loc %v, fromAdj %v", rowTime, mustComposeEpoch, dateTime, conf.TimeFormat, tzLoc, formatAdj)
 			return nil, nil
 		}

@@ -1,8 +1,9 @@
 package avg
 
 import (
-	"fmt"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
@@ -14,9 +15,9 @@ var (
 		{Name: "*", Type: io.FLOAT32},
 	}
 
-	optionalColumns = []io.DataShape{}
+	optionalColumns []io.DataShape
 
-	initArgs = []io.DataShape{}
+	initArgs []io.DataShape
 )
 
 type Avg struct {
@@ -48,7 +49,7 @@ func (a *Avg) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.C
 	inputColName := inputColDSV[0].Name
 	inputCol, err := uda.ColumnToFloat32(cols, inputColName)
 	if err != nil {
-		fmt.Println("COLS: ", cols)
+		log.Debug("COLS: ", cols)
 		return nil, err
 	}
 

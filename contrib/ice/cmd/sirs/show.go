@@ -48,6 +48,7 @@ var ShowSecurityMasterCmd = &cobra.Command{
 		}
 		sort.Strings(symbols)
 		for _, symbol := range symbols {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Println(symbol, cusips[symbol])
 		}
 		return nil

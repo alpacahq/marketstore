@@ -35,7 +35,7 @@ type CSVMetadata struct {
 
 func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetadata, chunkSize int,
 	isVariable bool) (npm *io.NumpyMultiDataset, endReached bool, err error) {
-	fmt.Println("Beginning parse...")
+あああ	fmt.Println("Beginning parse...")
 
 	csvChunk := make([][]string, 0)
 	var linesRead int
