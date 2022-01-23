@@ -1,7 +1,6 @@
 package frontend_test
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -52,7 +51,7 @@ func TestWrite(t *testing.T) {
 
 	csm2, _ := qresponse.Responses[0].Result.ToColumnSeriesMap()
 	for _, cs := range csm2 {
-		//		fmt.Println("LAL cs len:", cs.Len())
+		//	t.Log("LAL cs len:", cs.Len())
 		assert.Equal(t, cs.Len(), 201)
 	}
 
@@ -72,7 +71,7 @@ func TestWrite(t *testing.T) {
 
 	for _, resp := range response.Responses {
 		if len(resp.Error) != 0 {
-			fmt.Printf("Error: %s\n", resp.Error)
+			t.Logf("Error: %s\n", resp.Error)
 			t.FailNow()
 		}
 	}

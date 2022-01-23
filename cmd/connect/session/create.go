@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -38,28 +40,34 @@ func (c *Client) getinfo(line string) {
 
 	tbkP := io.NewTimeBucketKey(args[0])
 	if tbkP == nil {
-		fmt.Printf("Failed to convert argument to key: %s\n", args[0])
+		log.Error("Failed to convert argument to key: %s\n", args[0])
 		return
 	}
 	resp, err := c.GetBucketInfo(tbkP)
 	if err != nil {
-		fmt.Printf("Failed with error: %s\n", err.Error())
+		log.Error("Failed with error: %s\n", err.Error())
 		return
 	}
 	/*
 		Process the single response
 	*/
 	// Print out the bucket information we obtained
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("Bucket: %s\n", args[0])
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("Latest Year: %v, RecordType: %v, TF: %v\n",
 		resp.LatestYear, resp.RecordType.String(), resp.TimeFrame)
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("Data Types: {")
 	for i, shape := range resp.DSV {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("%s", shape.String())
 		if i < len(resp.DSV)-1 {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf(" ")
 		}
 	}
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("}\n")
 }
 
@@ -71,7 +79,9 @@ func (c *Client) create(line string) (ok bool) {
 	// args[0]:tbk, args[1]:dataTypeStr, args[2]:"fixed" or "variable"
 	const argLen = 3
 	if len(args) < argLen {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println(`Not enough arguments - need "\create [tbk] [dataTypeStr] [recordType('fixed' or 'variable')]"`)
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println(`example usage: "\create TEST/1Min/OHLCV:Symbol/Timeframe/AttributeGroup ` +
 			`Open,High,Low,Close/float32:Volume/int64 variable"`)
 		return
@@ -79,7 +89,7 @@ func (c *Client) create(line string) (ok bool) {
 
 	columnNames, columnTypes, err := toColumns(args[1])
 	if err != nil {
-		fmt.Printf("Failed with error: %s\n", err.Error())
+		log.Error("Failed with error: %s", err.Error())
 		return false
 	}
 
@@ -90,7 +100,7 @@ func (c *Client) create(line string) (ok bool) {
 	case "variable":
 		isVariableLength = true
 	default:
-		fmt.Printf("record type \"%s\" is not one of fixed or variable\n", args[2])
+		log.Error("record type \"%s\" is not one of fixed or variable\n", args[2])
 		return false
 	}
 
@@ -107,17 +117,17 @@ func (c *Client) create(line string) (ok bool) {
 
 	err = c.apiClient.Create(reqs, responses)
 	if err != nil {
-		fmt.Printf("Failed with error: %s\n", err.Error())
+		log.Error("Failed with error: %s", err.Error())
 		return false
 	}
 
 	for _, resp := range responses.Responses {
 		if resp.Error != "" {
-			fmt.Printf("Failed with error: %v\n", resp.Error)
+			log.Error("Failed with error: %v", resp.Error)
 			return false
 		}
 	}
-	fmt.Printf("Successfully created a new catalog entry for bucket %s\n", args[0])
+	log.Info("Successfully created a new catalog entry for bucket %s\n", args[0])
 	return true
 }
 
@@ -150,11 +160,11 @@ func (c *Client) destroy(line string) {
 	args = args[1:]  // chop off the first word which should be "destroy"
 	const argLen = 1 // arg[0] should be a bucket name
 	if len(args) == 0 {
-		fmt.Printf("Please specify a bucket to destroy. (e.g. \\destroy TEST/1D/TICK)\n")
+		log.Error("Please specify a bucket to destroy. (e.g. \\destroy TEST/1D/TICK)\n")
 		return
 	}
 	if len(args) > argLen {
-		fmt.Printf("Only one bucket can be deleted at a time.\n")
+		log.Error("Only one bucket can be deleted at a time.\n")
 		return
 	}
 
@@ -166,17 +176,17 @@ func (c *Client) destroy(line string) {
 
 	err := c.apiClient.Destroy(reqs, responses)
 	if err != nil {
-		fmt.Printf("Failed with error: %s\n", err.Error())
+		log.Error("Failed with error: %s\n", err.Error())
 		return
 	}
 
 	for _, resp := range responses.Responses {
 		if resp.Error != "" {
-			fmt.Printf("Failed with error: %s\n", resp.Error)
+			log.Error("Failed with error: %s\n", resp.Error)
 			return
 		}
 	}
-	fmt.Printf("Successfully removed catalog entry for key: %s\n", args[0])
+	log.Info("Successfully removed catalog entry for key: %s\n", args[0])
 }
 
 func (c *Client) GetBucketInfo(key *io.TimeBucketKey) (resp *frontend.GetInfoResponse, err error) {

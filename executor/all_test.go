@@ -183,7 +183,7 @@ func TestWriteVariable(t *testing.T) {
 			checkSecs := inputTime[i].Unix()
 			checkNanos := inputTime[i].Nanosecond()
 			secs := nearestSecond(ep, nanos[i])
-			// fmt.Println("ep, nanos, checkSecs, checkNanos =", ep, nanos[i], checkSecs, checkNanos)
+			// t.Log("ep, nanos, checkSecs, checkNanos =", ep, nanos[i], checkSecs, checkNanos)
 			assert.Equal(t, checkSecs, secs)
 			assert.True(t, math.Abs(float64(int32(checkNanos)-nanos[i])) < 100)
 		}
@@ -215,7 +215,7 @@ func TestWriteVariable(t *testing.T) {
 			checkSecs := inputTime[2+i].Unix()
 			checkNanos := inputTime[2+i].Nanosecond()
 			secs := nearestSecond(ep, nanos[i])
-			//			fmt.Println("check, secs, nanos[i]: ", check, secs, nanos[i])
+			//	t.Log("check, secs, nanos[i]: ", check, secs, nanos[i])
 			assert.Equal(t, checkSecs, secs)
 			assert.True(t, math.Abs(float64(int32(checkNanos)-nanos[i])) < 100)
 		}
@@ -305,7 +305,7 @@ func TestFileRead(t *testing.T) {
 				minYear = year
 			}
 			if year == 2001 {
-				// fmt.Printf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
+				// t.Logf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
 				nitems += itemsWritten[fp.FullPath]
 				recordlen = int(iop.RecordLen)
 			}
@@ -315,7 +315,7 @@ func TestFileRead(t *testing.T) {
 		/*
 			for _, cs := range csm {
 				epoch := cs.GetEpoch()
-				fmt.Println("ResultSet Count, nitems, recordLen:", len(epoch), nitems, recordlen)
+				t.Log("ResultSet Count, nitems, recordLen:", len(epoch), nitems, recordlen)
 				printoutCandles(cs, 0, 0)
 			}
 		*/
@@ -408,7 +408,7 @@ func asserter(t *testing.T, err error, shouldBeNil bool) {
 	t.Helper()
 
 	if err != nil {
-		fmt.Println("error: ", err.Error())
+		t.Log("error: ", err.Error())
 	}
 	assert.Equal(t, err == nil, shouldBeNil)
 }
@@ -478,7 +478,7 @@ func TestSortedFiles(t *testing.T) {
 		// length := len(epoch)
 		// printoutCandles(cs, length-1, length-1)
 
-		// fmt.Printf("Length: %d\n", length)
+		// t.Logf("Length: %d\n", length)
 		assert.Len(t, epoch, 200)
 	}
 

@@ -83,12 +83,12 @@ func TestVariableBoundaryCases(t *testing.T) {
 
 	*/
 	t1 := time.Date(2008, time.January, 3, 16, 24, 3, 1000*255970, time.UTC)
-	// fmt.Println("Test Time:  ", t1, " Minutes: ", t1.Minute(), " Seconds: ", t1.Second())
+	// t.Log("Test Time:  ", t1, " Minutes: ", t1.Minute(), " Seconds: ", t1.Second())
 
 	// Check the 1Min interval
 	index := TimeToIndex(t1, time.Minute)
 	o_t1 := IndexToTime(index, time.Minute, 2008)
-	// fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
+	// t.Log("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
 	assert.Equal(t, o_t1.Minute(), 24)
 	assert.Equal(t, o_t1.Second(), 0)
 	ticks := GetIntervalTicks32Bit(t1, index, 1440)
@@ -97,14 +97,14 @@ func TestVariableBoundaryCases(t *testing.T) {
 	fractionalSeconds := float64(seconds) + float64(nanos)/1000000000.
 	fractionalInterval := fractionalSeconds / 60.
 	intervalTicks := uint32(fractionalInterval * math.MaxUint32)
-	// fmt.Println("Interval Ticks: ", intervalTicks)
+	// t.Log("Interval Ticks: ", intervalTicks)
 	assert.Equal(t, intervalTicks, ticks)
 
 	t1 = time.Date(2008, time.January, 3, 16, 24, 59, 1000*839106, time.UTC)
 
 	index = TimeToIndex(t1, time.Minute)
 	o_t1 = IndexToTime(index, time.Minute, 2008)
-	// fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
+	// t.Log("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
 	assert.Equal(t, o_t1.Minute(), 24)
 	assert.Equal(t, o_t1.Second(), 0)
 	ticks = GetIntervalTicks32Bit(t1, index, 1440)
@@ -113,7 +113,7 @@ func TestVariableBoundaryCases(t *testing.T) {
 	fractionalSeconds = float64(seconds) + float64(nanos)/1000000000.
 	fractionalInterval = fractionalSeconds / 60.
 	intervalTicks = uint32(fractionalInterval * math.MaxUint32)
-	// fmt.Println("Interval Ticks: ", intervalTicks, " Ticks: ", ticks)
+	// t.Log("Interval Ticks: ", intervalTicks, " Ticks: ", ticks)
 	diff := int64(intervalTicks) - int64(ticks)
 	if diff < 0 {
 		diff = -diff

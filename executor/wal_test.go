@@ -205,12 +205,12 @@ func TestWALReplay(t *testing.T) {
 
 	// Verify that the file contents have changed for year 2002
 	for key, buf := range fileContentsOriginal2002 {
-		// fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(modifiedFileContents[key]))
+		// t.Log("Key:", key, "Len1: ", len(buf), " Len2: ", len(modifiedFileContents[key]))
 		assert.False(t, bytes.Equal(buf, modifiedFileContents[key]))
 	}
 
 	// Re-write the original files
-	// fmt.Println("Rewrite")
+	// t.Log("Rewrite")
 	rewriteFilesFromBuffer(t, fileContentsOriginal2002)
 	// At this point, we should have our original files
 	assert.True(t, compareFileToBuf(t, fileContentsOriginal2002, queryFiles2002))
@@ -249,7 +249,7 @@ func TestWALReplay(t *testing.T) {
 	for key, buf := range modifiedFileContents {
 		if filepath.Base(key) == "2002.bin" {
 			buf2 := postReplayFileContents[key]
-			// fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
+			// t.Log("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
 			if !bytes.Equal(buf, postReplayFileContents[key]) {
 				for i, val := range buf {
 					if val != buf2[i] {
@@ -287,7 +287,7 @@ func createBufferFromFiles(t *testing.T, queryFiles []string) (originalFileConte
 		originalFileContents[filePath] = make([]byte, size)
 		_, err = fp.Read(originalFileContents[filePath])
 		assert.Nil(t, err)
-		//		fmt.Println("Read file ", filePath, " Size: ", n)
+		//	t.Log("Read file ", filePath, " Size: ", n)
 		_ = fp.Close()
 	}
 	return originalFileContents
@@ -303,7 +303,7 @@ func rewriteFilesFromBuffer(t *testing.T, originalFileContents map[string][]byte
 		n, err := fp.WriteAt(originalFileContents[filePath], 0)
 		assert.Nil(t, err)
 		assert.Len(t, originalFileContents[filePath], n)
-		//		fmt.Println("Read file ", filePath, " Size: ", n)
+		//	t.Log("Read file ", filePath, " Size: ", n)
 		_ = fp.Close()
 	}
 }
@@ -320,7 +320,7 @@ func compareFileToBuf(t *testing.T, originalFileContents map[string][]byte, quer
 		content := make([]byte, size)
 		_, err = fp.Read(content)
 		assert.Nil(t, err)
-		//		fmt.Println("Read original file ", filePath, " Size: ", n)
+		//	t.Log("Read original file ", filePath, " Size: ", n)
 		_ = fp.Close()
 		if !bytes.Equal(content, originalFileContents[filePath]) {
 			return false

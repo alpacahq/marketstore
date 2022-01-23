@@ -3,6 +3,8 @@ package session
 import (
 	"fmt"
 	"strings"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // functionHelp prints helpful information about specific commands.
@@ -17,20 +19,24 @@ func (c *Client) functionHelp(line string) {
 	}
 	switch helpKey {
 	case "help":
+		// nolint:forbidigo // CLI output
 		fmt.Println(`
 		Usage: \help command_name
 
 		Available commands: o, timing, show, trim, gaps, load, create, destroy, feed`)
 
 	case "o":
+		// nolint:forbidigo // CLI output
 		fmt.Println(`
 		Sends output to the provided file name`)
 
 	case "timing":
+		// nolint:forbidigo // CLI output
 		fmt.Println(`
 		Toggles timing for commands`)
 
 	case "show", "trim", "gaps":
+		// nolint:forbidigo // CLI output
 		fmt.Println(`
 		Syntax: (same for show/trim/gaps):
 
@@ -49,6 +55,7 @@ func (c *Client) functionHelp(line string) {
 	gaps: finds gaps in data in the date range`)
 
 	case "load":
+		// nolint:forbidigo // CLI output
 		fmt.Println(`
 		The load command loads data into the DB from csv files.
 
@@ -75,6 +82,7 @@ func (c *Client) functionHelp(line string) {
 	`)
 
 	case "create", "destroy":
+		// nolint:forbidigo // CLI output
 		fmt.Println(`
 		The create command generates new subdirectories and buckets for a database, 
         and requires specially formatted schema keys as arguments.
@@ -108,6 +116,6 @@ func (c *Client) functionHelp(line string) {
 			<row-type> = variable`)
 
 	default:
-		fmt.Printf("No help available for %s\n", helpKey)
+		log.Error("No help available for %s\n", helpKey)
 	}
 }

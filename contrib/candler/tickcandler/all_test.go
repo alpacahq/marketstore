@@ -85,10 +85,10 @@ func TestTickCandler(t *testing.T) {
 	assert.Equal(t, tsa[0], tbase)
 	assert.Equal(t, rows.GetColumn("Ask_AVG"), []float64{200, 200, 200, 200})
 	/*
-		fmt.Println("Ask_SUM", rows.GetColumn("Ask_SUM"))
-		fmt.Println("Bid_SUM", rows.GetColumn("Bid_SUM"))
-		fmt.Println("Ask_AVG", rows.GetColumn("Ask_AVG"))
-		fmt.Println("Bid_AVG", rows.GetColumn("Bid_AVG"))
+		t.Log("Ask_SUM", rows.GetColumn("Ask_SUM"))
+		t.Log("Bid_SUM", rows.GetColumn("Bid_SUM"))
+		t.Log("Ask_AVG", rows.GetColumn("Ask_AVG"))
+		t.Log("Bid_AVG", rows.GetColumn("Bid_AVG"))
 	*/
 
 	/*

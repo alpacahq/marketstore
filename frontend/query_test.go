@@ -76,21 +76,21 @@ func _TestQueryCustomTimeframes(t *testing.T) {
 	assert.Len(t, response.Responses[2].Result.StartIndex, 1)
 	csm, err := response.Responses[0].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	assert.Len(t, csm, 2)
 
 	csm, err = response.Responses[1].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	assert.Len(t, csm, 2)
 
 	csm, err = response.Responses[2].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	assert.Len(t, csm, 1)
@@ -240,7 +240,7 @@ func TestQueryNpyMulti(t *testing.T) {
 	assert.Len(t, response.Responses[0].Result.StartIndex, 2)
 	csm, err := response.Responses[0].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	for _, cs := range csm {
@@ -341,7 +341,7 @@ func TestFunctions(t *testing.T) {
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
 	_, _, _, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.FailNow()
 	}
 	//	printFuncParams(fname, l_list, p_list)
@@ -349,7 +349,7 @@ func TestFunctions(t *testing.T) {
 	call = "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
 	fname, l_list, p_list, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.FailNow()
 	}
 	//	printFuncParams(fname, l_list, p_list)

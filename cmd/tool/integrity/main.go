@@ -73,13 +73,11 @@ func init() {
 
 	rootDirPath = filepath.Clean(rootDirPath)
 	if !exists(rootDirPath) {
-		// nolint:forbidigo // CLI output needs fmt.Println
-		fmt.Printf("Root directory: %s does not exist\n", rootDirPath)
+		log.Error(fmt.Sprintf("Root directory: %s does not exist\n", rootDirPath))
 		os.Exit(0)
 	}
 	if !isDir(rootDirPath) {
-		// nolint:forbidigo // CLI output needs fmt.Println
-		fmt.Printf("Root directory: %s is not a directory\n", rootDirPath)
+		log.Error("Root directory: %s is not a directory\n", rootDirPath)
 		os.Exit(0)
 	}
 
@@ -171,8 +169,7 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 		size := fi.Size() - io.Headersize
 		// Size the chunk buffer to be a multiple of 8-bytes
 		chunkSize := io.AlignedSize(int(size/int64(numChunksPerFile) + size%int64(numChunksPerFile)))
-		// nolint:forbidigo // CLI output needs fmt.Println
-		fmt.Println("Chunksize: ", chunkSize)
+		log.Info("Chunksize: ", chunkSize)
 
 		fp, err := os.Open(filePath)
 		if err != nil {
@@ -252,6 +249,7 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 			fmt.Printf(",%3s %4d", chunkNames[i], sum%10000)
 			//			}
 		}
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("\n")
 	}
 	return nil

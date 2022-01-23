@@ -105,7 +105,7 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 
 func columnError(err error, name string) bool {
 	if err != nil {
-		fmt.Printf("Error obtaining column \"%s\" from csv data\n", name)
+		log.Error("Error obtaining column \"%s\" from csv data\n", name)
 		return true
 	}
 	return false

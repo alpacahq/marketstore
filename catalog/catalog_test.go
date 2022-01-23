@@ -253,7 +253,7 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	// Now let's remove the symbol and then re-add it - should work
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	err = catalogDir.AddTimeBucket(tbk, tbinfo)
