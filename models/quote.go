@@ -85,7 +85,9 @@ func (model *Quote) make(length int) {
 }
 
 // Add adds a new data point to the internal buffers, and increment the internal index by one.
-func (model *Quote) Add(epoch int64, nanos int, bidPrice, askPrice float64, bidSize, askSize int, bidExchange, askExchange enum.Exchange, cond enum.QuoteCondition) {
+func (model *Quote) Add(epoch int64, nanos int, bidPrice, askPrice float64,
+	bidSize, askSize int, bidExchange, askExchange enum.Exchange, cond enum.QuoteCondition,
+) {
 	idx := model.idx
 	model.Epoch[idx] = epoch
 	model.Nanos[idx] = int32(nanos)
@@ -100,7 +102,8 @@ func (model *Quote) Add(epoch int64, nanos int, bidPrice, askPrice float64, bidS
 }
 
 // BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
-// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk.
+// it is included in the .Write() method
+// so use only when you need to work with the ColumnSeriesMap before writing it to disk.
 func (model *Quote) BuildCsm() *io.ColumnSeriesMap {
 	if model.idx > 0 {
 		model.limit = model.idx

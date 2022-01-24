@@ -38,7 +38,8 @@ func (q *QuotesRangeWriterImpl) Write(symbol string, quotes []api.EndOfDayQuote,
 	return nil
 }
 
-func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool) (io.ColumnSeriesMap, error) {
+func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool,
+) (io.ColumnSeriesMap, error) {
 	csm := io.NewColumnSeriesMap()
 	var epochs []int64
 	var opens []float32

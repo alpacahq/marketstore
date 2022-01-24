@@ -92,7 +92,8 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []alpaca.Bar) (io.Colum
 	return csm, nil
 }
 
-func (b BarWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows []float32, volumes []int32) *io.ColumnSeries {
+func (b BarWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows []float32, volumes []int32,
+) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epochs)
 	cs.AddColumn("Open", opens)

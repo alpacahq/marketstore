@@ -33,7 +33,7 @@ type MultiServerResponse struct {
 	Responses []ServerResponse `msgpack:"responses"`
 }
 
-func (s *DataService) Write(r *http.Request, reqs *MultiWriteRequest, response *MultiServerResponse) (err error) {
+func (s *DataService) Write(_ *http.Request, reqs *MultiWriteRequest, response *MultiServerResponse) (err error) {
 	for _, req := range reqs.Requests {
 		csm, err := req.Data.ToColumnSeriesMap()
 		if err != nil {
@@ -67,12 +67,13 @@ type MultiCreateRequest struct {
 	Requests []CreateRequest `msgpack:"requests"`
 }
 
-func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response *MultiServerResponse) (err error) {
+func (s *DataService) Create(_ *http.Request, reqs *MultiCreateRequest, response *MultiServerResponse) (err error) {
 	for _, req := range reqs.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
 		if len(parts) != colonSeparatedPartsLen {
-			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
+			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: " +
+				"TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
 				req.Key)
 			response.appendResponse(err)
 			continue
@@ -80,7 +81,8 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 
 		tbk := io.NewTimeBucketKey(parts[0], parts[1])
 		if tbk == nil {
-			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
+			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: " +
+				"TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
 				req.Key)
 			response.appendResponse(err)
 			continue
@@ -147,7 +149,7 @@ type MultiGetInfoResponse struct {
 	Responses []GetInfoResponse `msgpack:"responses"`
 }
 
-func (s *DataService) GetInfo(r *http.Request, reqs *MultiKeyRequest, response *MultiGetInfoResponse) (err error) {
+func (s *DataService) GetInfo(_ *http.Request, reqs *MultiKeyRequest, response *MultiGetInfoResponse) (err error) {
 	const errorString = "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
 
 	for _, req := range reqs.Requests {
@@ -177,7 +179,7 @@ func (s *DataService) GetInfo(r *http.Request, reqs *MultiKeyRequest, response *
 	return nil
 }
 
-func (s *DataService) Destroy(r *http.Request, reqs *MultiKeyRequest, response *MultiServerResponse) (err error) {
+func (s *DataService) Destroy(_ *http.Request, reqs *MultiKeyRequest, response *MultiServerResponse) (err error) {
 	errorString := "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
 
 	for _, req := range reqs.Requests {

@@ -64,7 +64,8 @@ func LoadSirsFile(fileName string) ([]*SecurityMaster, error) {
 }
 
 // BuildSecurityMasterMap loads the listed security files and returns a map of cusipid -> symbol pairs.
-// The first element of the input slice should be a complete snapshot (sirs.refresh.YYYYMMDD), and the following entries updates for this file (sirs.YYYYMMDD).
+// The first element of the input slice should be a complete snapshot (sirs.refresh.YYYYMMDD),
+// and the following entries updates for this file (sirs.YYYYMMDD).
 func BuildSecurityMasterMap(sirsFiles []string) (map[string]string, error) {
 	master := map[string]string{}
 	for _, filename := range sirsFiles {

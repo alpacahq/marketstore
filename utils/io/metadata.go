@@ -66,7 +66,9 @@ func AlignedSize(unalignedSize int) (alignedSize int) {
 	return unalignedSize + machineWordSize - remainder
 }
 
-func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16, dsv []DataShape, recordType EnumRecordType) (f *TimeBucketInfo) {
+func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16,
+	dsv []DataShape, recordType EnumRecordType,
+) (f *TimeBucketInfo) {
 	elementTypes, elementNames := CreateShapesForTimeBucketInfo(dsv)
 	f = &TimeBucketInfo{
 		version:      FileinfoVersion,

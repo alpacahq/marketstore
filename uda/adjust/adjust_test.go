@@ -81,8 +81,12 @@ func evalCase(t *testing.T, testCase AdjustTestCase) {
 	assert.Equal(t, inputCs.Len(), outputCs.Len())
 
 	for i := range outPrice {
-		assert.Equal(t, outEpochs[i], testCase.expected[i].epoch, testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02"))
-		assert.Equal(t, outPrice[i], testCase.expected[i].price, testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02"))
+		assert.Equal(t, outEpochs[i], testCase.expected[i].epoch, testCase.description,
+			time.Unix(outEpochs[i], 0).
+				Format("2006-01-02"))
+		assert.Equal(t, outPrice[i], testCase.expected[i].price, testCase.description,
+			time.Unix(outEpochs[i], 0).
+				Format("2006-01-02"))
 	}
 }
 
@@ -166,7 +170,8 @@ func TestCase1(t *testing.T) {
 
 var testDifferentDates = []AdjustTestCase{
 	{
-		description: `When an event occurs after the requested price range, every price should be adjusted. Assertion error at %s`,
+		description: `When an event occurs after the requested price range, every price should be adjusted. ` +
+			`Assertion error at %s`,
 		rateChanges: []RateChange{
 			{1, unixDate(2020, time.January, 20), enum.StockSplit, 2},
 		},
@@ -284,7 +289,8 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 	},
 
 	{
-		description: `Multiple events, one happens after, one before and one in the duration of the price range. Assertion error at %s`,
+		description: `Multiple events, one happens after, one before and one in the duration of the price range. ` +
+			`Assertion error at %s`,
 		rateChanges: []RateChange{
 			{1, unixDate(2019, time.December, 30), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 6), enum.StockSplit, 2},

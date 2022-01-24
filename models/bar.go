@@ -88,7 +88,8 @@ func (model *Bar) GetCs() *io.ColumnSeries {
 }
 
 // BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
-// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk.
+// it is included in the .Write() method
+// so use only when you need to work with the ColumnSeriesMap before writing it to disk.
 func (model *Bar) BuildCsm() *io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 	cs := model.GetCs()

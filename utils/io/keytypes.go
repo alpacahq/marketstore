@@ -44,7 +44,8 @@ func NewTimeBucketKeyFromString(itemCategoryString string) (mk *TimeBucketKey) {
 	return NewTimeBucketKey(splitKey[0], splitKey[1])
 }
 
-// e.g. "/project/marketstore/data/AMZN/1Min/TICK/2017.bin" -> (AMZN/1Min/TICK/2017.bin), (AMZN), (1Min), (TICK), (2017).
+// e.g. "/project/marketstore/data/AMZN/1Min/TICK/2017.bin"
+//   -> (AMZN/1Min/TICK/2017.bin), (AMZN), (1Min), (TICK), (2017).
 var wkpRegex = regexp.MustCompile(`([^/]+)/([^/]+)/([^/]+)/([^/]+)\.bin$`)
 
 // NewTimeBucketKeyFromWalKeyPath converts a string in walKeyPath format

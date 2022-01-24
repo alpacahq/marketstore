@@ -48,7 +48,9 @@ var (
 
 func init() {
 	flag.StringVar(&dir, "dir", "", "mktsdb directory to backfill to. If empty, the dir is taken from mkts.yml")
-	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD) [included]")
+	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format),
+		"backfill from date (YYYY-MM-DD) [included]",
+	)
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill to date (YYYY-MM-DD) [not included]")
 	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
@@ -316,7 +318,9 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	symbolListMux.Unlock()
 }
 
-func getBars(start, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool, writerWP *worker.WorkerPool) {
+func getBars(start, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool,
+	writerWP *worker.WorkerPool,
+) {
 	if len(exchangeIDs) != 0 && period != 24*time.Hour {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
 		period = 24 * time.Hour

@@ -47,7 +47,9 @@ func writeQuote(q *api.Quote) {
 	condition := polygon.ConvertQuoteCondition(q.Conditions[0])
 
 	// add record
-	model.Add(timestamp.Unix(), timestamp.Nanosecond(), q.BidPrice, q.AskPrice, q.BidSize, q.AskSize, bidExchange, askExchange, condition)
+	model.Add(timestamp.Unix(), timestamp.Nanosecond(),
+		q.BidPrice, q.AskPrice, q.BidSize, q.AskSize, bidExchange, askExchange, condition,
+	)
 
 	// save
 	if err := model.Write(); err != nil {

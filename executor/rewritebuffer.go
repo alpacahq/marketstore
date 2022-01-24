@@ -13,7 +13,9 @@ import (
 // RewriteBuffer converts variable_length records to the result buffer.
 //
 // variable records in a file: [Actual Data (VarRecLen-4 byte) , Interval Ticks(4 byte) ]
-// rewriteBuffer converts the binary data to [EpochSecond(8 byte), Actual Data(VarRecLen-4 byte), Nanoseconds(4 byte) ] format.
+// rewriteBuffer converts the binary data to
+// [EpochSecond(8 byte), Actual Data(VarRecLen-4 byte), Nanoseconds(4 byte) ]
+// format.
 //
 // buffer
 // +-----------------------VarRecLen [byte]---+-----------------------+

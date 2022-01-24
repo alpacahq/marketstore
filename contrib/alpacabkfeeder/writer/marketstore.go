@@ -6,7 +6,8 @@ import (
 )
 
 // MarketStoreWriter is an interface to write data to marketstore.
-// this interface is necessary for writing unit tests of Alpaca Broker API Feeder without actually saving data to the marketstore.
+// this interface is necessary for writing unit tests of Alpaca Broker API Feeder
+// without actually saving data to the marketstore.
 type MarketStoreWriter interface {
 	Write(csm io.ColumnSeriesMap) error
 }

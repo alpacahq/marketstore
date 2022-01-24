@@ -49,7 +49,9 @@ func TestTimeToIntervals(t *testing.T) {
 	fractionalSeconds := float64(seconds) + float64(nanos)/1000000000.
 	fractionalInterval := fractionalSeconds / 60.
 	intervalTicks := uint32(fractionalInterval * math.MaxUint32)
-	t.Logf("Manual calculation of interval ticks = \t\t %d\t%f\t%f\n", int(intervalTicks), fractionalSeconds, fractionalInterval)
+	t.Logf("Manual calculation of interval ticks = \t\t %d\t%f\t%f\n",
+		int(intervalTicks), fractionalSeconds, fractionalInterval,
+	)
 	// Now let's build up a timestamp from the interval ticks
 	fSec1 := 60. * (float64(intervalTicks) / float64(math.MaxUint32))
 	fSec := 60. * (float64(ticks) / float64(math.MaxUint32))

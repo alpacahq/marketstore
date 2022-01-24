@@ -23,7 +23,8 @@ type PolygonWebSocket struct {
 	outputChan     chan interface{}
 }
 
-func NewPolygonWebSocket(servers, apiKey string, pref Prefix, symbols []string, oChan chan interface{}) *PolygonWebSocket {
+func NewPolygonWebSocket(servers, apiKey string, pref Prefix, symbols []string, oChan chan interface{},
+) *PolygonWebSocket {
 	if oChan == nil {
 		oChan = make(chan interface{}, 100)
 	}

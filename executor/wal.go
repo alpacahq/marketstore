@@ -345,7 +345,9 @@ func serializeTG(tgID int64, commands []*wal.WriteCommand,
 	return TG_Serialized, writesPerFile
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType, varRecLen int) (err error) {
+func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType,
+	varRecLen int,
+) (err error) {
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer

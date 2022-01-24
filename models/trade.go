@@ -77,7 +77,9 @@ func (model *Trade) make(capacity int) {
 }
 
 // Add adds a new data point to the internal buffers, and increment the internal index by one.
-func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size, exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition) {
+func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size,
+	exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition,
+) {
 	model.Epoch = append(model.Epoch, epoch)
 	model.Nanos = append(model.Nanos, int32(nanos))
 	model.Price = append(model.Price, price)
@@ -135,7 +137,8 @@ func (model *Trade) GetCs() *io.ColumnSeries {
 }
 
 // BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
-// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk.
+// it is included in the .Write() method
+// so use only when you need to work with the ColumnSeriesMap before writing it to disk.
 func (model *Trade) buildCsm() *io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*model.Tbk, model.GetCs())

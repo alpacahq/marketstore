@@ -19,7 +19,8 @@ var (
 // ImportCmd provides a command line interface for importing corporate action entries from ICE's data files
 // without --reimport option it only imports unprocessed data files (those without .processed suffix)
 // with --reimport specified, it reprocess every file found in <icefilesdir>. Be aware that due to the nature of how
-// marketstore stores records, it will duplicate corporate action announcements if run on an already populated data directory.
+// marketstore stores records,
+// it will duplicate corporate action announcements if run on an already populated data directory.
 var ImportCmd = &cobra.Command{
 	Use:   "import <datadir> <icefilesdir>",
 	Short: "Import corporate actions announcements ",
@@ -33,8 +34,8 @@ var ImportCmd = &cobra.Command{
 	due to the nature of how marketstore stores records, it will duplicate corporate action announcements 
 	if run on already existing import
 
-	--fallback-to-cusip allows Marketstore to store corporate action records by their TargetCusipID if a matching symbol is 
-	not found. Default is false, so only records with matching symbols are stored 
+	--fallback-to-cusip allows Marketstore to store corporate action records by their TargetCusipID 
+    if a matching symbol is not found. Default is false, so only records with matching symbols are stored 
 	`,
 	SilenceUsage: false,
 	RunE: func(cmd *cobra.Command, args []string) error {

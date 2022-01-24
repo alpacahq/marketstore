@@ -197,7 +197,8 @@ var filteringFixtures = []struct {
 	},
 
 	{
-		description: `returns both Split and Dividend type RateChanges when both includeSplits and includeDividends args are true`,
+		description: `returns both Split and Dividend type RateChanges ` +
+			`when both includeSplits and includeDividends args are true`,
 		in: []reorg.Announcement{
 			{
 				TextNumber:       1111,
