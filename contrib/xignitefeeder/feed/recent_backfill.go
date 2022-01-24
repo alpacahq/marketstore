@@ -30,7 +30,8 @@ func (b *RecentBackfill) Update() {
 	b.UpdateIndexSymbols()
 }
 
-// UpdateSymbols aggregates recent chart data for the past X business days and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
+// UpdateSymbols aggregates recent chart data for the past X business days
+// and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
 func (b *RecentBackfill) UpdateSymbols() {
 	endDate := time.Now().UTC()
 	// get the date of {b.days} business days ago
@@ -57,7 +58,9 @@ func (b *RecentBackfill) UpdateSymbols() {
 		// write the data to marketstore
 		err = b.writer.Write(resp.Security.Symbol, resp.ArrayOfBar, false)
 		if err != nil {
-			log.Error(fmt.Sprintf("failed to backfill the recent chart data to marketstore. identifier=%v. Err=%v", identifier, err))
+			log.Error(fmt.Sprintf("failed to backfill the recent chart data "+
+				"to marketstore. identifier=%v. Err=%v", identifier, err),
+			)
 		}
 
 		log.Info("backfilling the recent chart data... identifier=%s", identifier)
@@ -66,13 +69,15 @@ func (b *RecentBackfill) UpdateSymbols() {
 	log.Info("Recent Data backfill has successfully been done.")
 }
 
-// UpdateIndexSymbols aggregates recent chart data of index symbols for the past X business days and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
+// UpdateIndexSymbols aggregates recent chart data of index symbols for the past X business days
+// and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
 func (b *RecentBackfill) UpdateIndexSymbols() {
 	endDate := time.Now().UTC()
 	// get the date of {b.days} business days ago
 	startDate, err := b.marketTimeChecker.Sub(endDate, b.days)
 	if err != nil {
-		log.Error("(index symbols) startDate of the recent backfill should be a past date. RecentBackfill.days=" + fmt.Sprint(b.days))
+		log.Error("(index symbols) startDate of the recent backfill should be a past date. " +
+			"RecentBackfill.days=" + fmt.Sprint(b.days))
 		return
 	}
 
@@ -83,7 +88,8 @@ func (b *RecentBackfill) UpdateIndexSymbols() {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
 			if resp.Outcome == "RequestError" {
-				log.Info(fmt.Sprintf("(index symbols) failed to get the recent chart data for identifier=%s. Err=%v", identifier, err))
+				log.Info(fmt.Sprintf("(index symbols) failed to get the recent chart data for identifier=%s."+
+					" Err=%v", identifier, err))
 				continue
 			}
 			log.Error("(index symbols) Xignite API call error. Err=%v, API response=%v", err, resp)
@@ -93,7 +99,9 @@ func (b *RecentBackfill) UpdateIndexSymbols() {
 		// write the data to marketstore
 		err = b.writer.Write(resp.IndexAndGroup.Symbol, resp.ArrayOfBar, true)
 		if err != nil {
-			log.Error(fmt.Sprintf("(index symbols) failed to backfill the recent chart data to marketstore. identifier=%v. Err=%v", identifier, err))
+			log.Error(fmt.Sprintf("(index symbols) failed to backfill the recent chart data to marketstore."+
+				" identifier=%v. Err=%v", identifier, err),
+			)
 		}
 
 		log.Info("(index symbols) backfilling the recent chart data... identifier=%s", identifier)

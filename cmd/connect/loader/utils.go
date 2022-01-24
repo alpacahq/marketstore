@@ -219,7 +219,8 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 	return csvReader, cvm, nil
 }
 
-func convertCSVtoCSM(tbk io.TimeBucketKey, cvm *CSVMetadata, csvDataChunk [][]string) (csm io.ColumnSeriesMap, err error) {
+func convertCSVtoCSM(tbk io.TimeBucketKey, cvm *CSVMetadata, csvDataChunk [][]string,
+) (csm io.ColumnSeriesMap, err error) {
 	epochCol, nanosCol := readTimeColumns(csvDataChunk, cvm.ColumnIndex, cvm.Config)
 	if epochCol == nil {
 		log.Error("Error building time columns from csv data")

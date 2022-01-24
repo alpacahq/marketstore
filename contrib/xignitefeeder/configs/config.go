@@ -87,7 +87,8 @@ const ctLayout = "15:04:05"
 // UnmarshalJSON parses the config data to the DefaultConfig object.
 // Because some parameters (OpenTime, ClosedDaysOfTheWeek, etc) have their original types and unmarshal methods
 // but it's troublesome for other business logic to use those not-general types,
-// so this method parses the data to an auxiliary struct and cast the types first, then parse to the DefaultConfig object.
+// so this method parses the data to an auxiliary struct and cast the types first,
+// then parse to the DefaultConfig object.
 func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	type Alias DefaultConfig
 

@@ -60,7 +60,8 @@ func (m ManagerImpl) Update() {
 	m.UpdateIndexSymbols()
 }
 
-// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers and store them to the Identifiers map.
+// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers
+// and store them to the Identifiers map.
 func (m ManagerImpl) UpdateSymbols() {
 	for _, exchange := range m.TargetExchanges {
 		resp, err := m.APIClient.ListSymbols(exchange)

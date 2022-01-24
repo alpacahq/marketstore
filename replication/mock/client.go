@@ -13,6 +13,7 @@ type ReplicationClient struct {
 	Error        error
 }
 
-func (rc ReplicationClient) GetWALStream(_ context.Context, in *pb.GetWALStreamRequest, opts ...grpc.CallOption) (pb.Replication_GetWALStreamClient, error) {
+func (rc ReplicationClient) GetWALStream(_ context.Context, in *pb.GetWALStreamRequest, _ ...grpc.CallOption,
+) (pb.Replication_GetWALStreamClient, error) {
 	return rc.StreamClient, rc.Error
 }

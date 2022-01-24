@@ -130,11 +130,13 @@ func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap, cols io
 	ri := len(rateChanges) - 1
 	rate := rateChanges[ri].Rate
 
-	// start from the end of the buffer and iterate backwards toward the beginning, applying rate changes as they occur in time
+	// start from the end of the buffer and iterate backwards toward the beginning,
+	// applying rate changes as they occur in time
 	for i := len(epochs) - 1; i >= 0; i-- {
 		// check if the current epoch is before the next rate change action, and if it is, then accumulate their rate changes
 		// 	- mainly for taking care of events occurred after the last epoch in the current dataseet
-		// 	- also handles a highly unlikely case when multiple rate change events occurs at the same time (eg. split and dividend)
+		// 	- also handles a highly unlikely case when multiple rate change events occurs
+		//	    at the same time (e.g. split and dividend)
 		for ; ri > 0 && (epochs[i] < rateChanges[ri-1].Epoch); ri-- {
 			rate *= rateChanges[ri-1].Rate
 		}

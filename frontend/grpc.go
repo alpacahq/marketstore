@@ -279,7 +279,8 @@ func appendResponse(mr *proto.MultiServerResponse, err error) {
 	)
 }
 
-func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequest) (*proto.ListSymbolsResponse, error) {
+func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequest,
+) (*proto.ListSymbolsResponse, error) {
 	response := proto.ListSymbolsResponse{}
 	if atomic.LoadUint32(&Queryable) == 0 {
 		return nil, queryableError
@@ -374,7 +375,8 @@ func (s GRPCService) Destroy(ctx context.Context, req *proto.MultiKeyRequest) (*
 	return &response, nil
 }
 
-func (s GRPCService) ServerVersion(ctx context.Context, req *proto.ServerVersionRequest) (*proto.ServerVersionResponse, error) {
+func (s GRPCService) ServerVersion(ctx context.Context, req *proto.ServerVersionRequest,
+) (*proto.ServerVersionResponse, error) {
 	return &proto.ServerVersionResponse{
 		Version: utils.GitHash,
 	}, nil

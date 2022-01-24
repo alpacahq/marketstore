@@ -351,7 +351,10 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 			bidExchange := api.ConvertExchangeCode(tick.BidExchange)
 			askExchange := api.ConvertExchangeCode(tick.AskExchange)
 			condition := api.ConvertQuoteCondition(tick.Condition)
-			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.BidPrice, tick.AskPrice, tick.BidSize, tick.AskSize, bidExchange, askExchange, condition)
+			model.Add(timestamp.Unix(), timestamp.Nanosecond(),
+				tick.BidPrice, tick.AskPrice, tick.BidSize, tick.AskSize,
+				bidExchange, askExchange, condition,
+			)
 		}
 
 		writerWP.Do(func() {

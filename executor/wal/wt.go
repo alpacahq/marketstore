@@ -20,8 +20,8 @@ type WTSet struct {
 	DataShapes []io.DataShape
 }
 
-func NewWTSet(
-	recordType io.EnumRecordType, filePath string, dataLen, varRecLen int, data OffsetIndexBuffer, dataShapes []io.DataShape,
+func NewWTSet(recordType io.EnumRecordType, filePath string, dataLen, varRecLen int,
+	data OffsetIndexBuffer, dataShapes []io.DataShape,
 ) WTSet {
 	return WTSet{
 		RecordType: recordType,

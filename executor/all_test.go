@@ -22,8 +22,9 @@ import (
 	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata, shutdownPending *bool) {
+func setup(t *testing.T, testName string) (tearDown func(), rootDir string, itemsWritten map[string]int,
+	metadata *executor.InstanceMetadata, shutdownPending *bool,
+) {
 	t.Helper()
 
 	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))

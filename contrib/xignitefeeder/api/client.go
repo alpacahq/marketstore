@@ -188,7 +188,8 @@ func (c *DefaultClient) GetRealTimeBars(identifier string, start, end time.Time)
 // GetIndexBars calls QUICKIndex/GetBars endpoint of Xignite API with a specified identifier, time period
 // and Precision=FiveMinutes, and returns the parsed API response
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexRealTime/Overview/GetBars
-func (c *DefaultClient) GetIndexBars(identifier string, start, end time.Time) (response GetIndexBarsResponse, err error) {
+func (c *DefaultClient) GetIndexBars(identifier string, start, end time.Time,
+) (response GetIndexBarsResponse, err error) {
 	form := url.Values{
 		"IdentifierType":   {"Symbol"},
 		"_token":           {c.token},
@@ -219,7 +220,8 @@ func (c *DefaultClient) GetIndexBars(identifier string, start, end time.Time) (r
 // GetQuotesRange calls QUICKEquityHistorical/GetQuotesRange endpoint of Xignite API with a specified identifier
 //// and returns the parsed API response
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes
-func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate time.Time) (response GetQuotesRangeResponse, err error) {
+func (c *DefaultClient) GetQuotesRange(identifier string, startDate, endDate time.Time,
+) (response GetQuotesRangeResponse, err error) {
 	form := url.Values{
 		"IdentifierType":   {"Symbol"},
 		"_token":           {c.token},

@@ -20,7 +20,12 @@ var (
 	index = []byte{1, 0, 0, 0, 0, 0, 0, 0}
 	// tbk=AMMZN:1Min:OHLC, year=2020, epoch=2020-01-01 00:00:00
 	// Open: 1, High: 2, Low: 3, Close: 4.
-	buffer32           = []byte{1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0}
+	buffer32 = []byte{
+		1, 0, 0, 0, 0, 0, 0, 0,
+		2, 0, 0, 0, 0, 0, 0, 0,
+		3, 0, 0, 0, 0, 0, 0, 0,
+		4, 0, 0, 0, 0, 0, 0, 0,
+	}
 	recordSize         = int32(32)
 	variableRecordDate = time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
 )

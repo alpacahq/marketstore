@@ -199,7 +199,10 @@ func GetHistoricAggregates(
 	unadjusted bool) (*HistoricAggregates, error) {
 	// FIXME: This function does not handle pagination
 
-	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan, from.Format(completeDate), to.Format(completeDate)))
+	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan,
+		from.Format(completeDate),
+		to.Format(completeDate)),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +218,11 @@ func GetHistoricAggregates(
 	}
 
 	u.RawQuery = q.Encode()
-	filename := fmt.Sprintf(aggFileName, ticker, from.Format(jsonDumpFormat), to.Format(jsonDumpFormat), multiplier, timespan, limit_n)
+	filename := fmt.Sprintf(aggFileName, ticker,
+		from.Format(jsonDumpFormat),
+		to.Format(jsonDumpFormat),
+		multiplier, timespan, limit_n,
+	)
 	var body []byte
 
 	if FromCache {

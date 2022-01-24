@@ -37,7 +37,8 @@ func (b *Backfill) Update() {
 	b.UpdateClosingPrice()
 }
 
-// UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
+// UpdateSymbols aggregates daily chart data since the specified date
+// and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
 func (b *Backfill) UpdateSymbols() {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIdentifiers() {
@@ -57,7 +58,8 @@ func (b *Backfill) UpdateSymbols() {
 		// write the data to marketstore
 		err = b.rangeWriter.Write(resp.Security.Symbol, resp.ArrayOfEndOfDayQuote, false)
 		if err != nil {
-			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore in UpdateSymbols. identifier=%v, err=%v", identifier, err))
+			log.Error(fmt.Sprintf("failed to backfill the daily chart data" +
+				" to marketstore in UpdateSymbols. identifier=%v, err=%v", identifier, err))
 		}
 
 		log.Info("backfilling the historical daily chart data... identifier=%s", identifier)
@@ -87,7 +89,8 @@ func (b *Backfill) UpdateIndexSymbols() {
 		// write the data to marketstore
 		err = b.rangeWriter.Write(resp.IndexAndGroup.Symbol, resp.ArrayOfEndOfDayQuote, true)
 		if err != nil {
-			log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore in UpdateIndexSymbols. identifier=%v, err=%v", identifier, err))
+			log.Error(fmt.Sprintf("failed to backfill the daily chart data" +
+				" to marketstore in UpdateIndexSymbols. identifier=%v, err=%v", identifier, err))
 		}
 
 		log.Info("backfilling the historical daily chart data... identifier=%s", identifier)

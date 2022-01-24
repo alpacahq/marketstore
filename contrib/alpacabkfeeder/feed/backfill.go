@@ -1,7 +1,6 @@
 package feed
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
@@ -39,7 +38,8 @@ func NewBackfill(symbolManager symbols.Manager, apiClient ListBarsAPIClient, bar
 	}
 }
 
-// UpdateSymbols aggregates daily chart data since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
+// UpdateSymbols aggregates daily chart data since the specified date
+// and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
 func (b *Backfill) UpdateSymbols() {
 	allSymbols := b.symbolManager.GetAllSymbols()
 	y, m, d := time.Now().Date()
@@ -62,13 +62,16 @@ func (b *Backfill) UpdateSymbols() {
 				log.Error("Alpaca Broker ListBars API call error. Err=%v", err)
 				return
 			}
-			log.Info("Alpaca ListBars API call: From=%v, To=%v, Symbols=%v", dateRange.From, dateRange.To, allSymbols[idx.From:idx.To])
+			log.Info("Alpaca ListBars API call: From=%v, To=%v, Symbols=%v",
+				dateRange.From, dateRange.To, allSymbols[idx.From:idx.To],
+			)
 
 			// write data
 			for symbl, bars := range symbolBarsMap {
 				err := b.barWriter.Write(symbl, bars)
 				if err != nil {
-					log.Error(fmt.Sprintf("failed to backfill the daily chart data to marketstore in UpdateSymbols. symbol=%v, err=%v", symbl, err))
+					log.Error("failed to backfill the daily chart data "+
+						"to marketstore in UpdateSymbols. symbol=%v, err=%v", symbl, err)
 				}
 			}
 		}

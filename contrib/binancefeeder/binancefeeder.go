@@ -364,7 +364,11 @@ func (bn *BinanceFetcher) Run() {
 			// (ex: if we see :00 is formed that means the :59 candle is fully formed)
 			gotCandle := false
 			for !gotCandle {
-				rates, err := client.NewKlinesService().Symbol(symbols[0] + baseCurrencies[0]).Interval(timeInterval).StartTime(timeStartM).Do(context.Background())
+				rates, err := client.NewKlinesService().
+					Symbol(symbols[0] + baseCurrencies[0]).
+					Interval(timeInterval).
+					StartTime(timeStartM).
+					Do(context.Background())
 				if err != nil {
 					log.Info("Response error: %v", err)
 					time.Sleep(time.Minute)
@@ -387,7 +391,11 @@ func (bn *BinanceFetcher) Run() {
 		for _, symbol := range symbols {
 			for _, baseCurrency := range baseCurrencies {
 				log.Info("Requesting %s %v - %v", symbol, timeStart, timeEnd)
-				rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).Interval(timeInterval).StartTime(timeStartM).EndTime(timeEndM).Do(context.Background())
+				rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
+					Interval(timeInterval).
+					StartTime(timeStartM).
+					EndTime(timeEndM).
+					Do(context.Background())
 				if err != nil {
 					log.Info("Response error: %v", err)
 					log.Info("Problematic symbol %s", symbol)

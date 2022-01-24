@@ -45,7 +45,8 @@ func (w *Worker) tryPrintErr() {
 	}()
 }
 
-// try calls GetQuotes endpoint of Xignite API, convert the API response to a ColumnSeriesMap and write it to the marketstore.
+// try calls GetQuotes endpoint of Xignite API,
+// convert the API response to a ColumnSeriesMap and write it to the marketstore.
 func (w *Worker) try() error {
 	// check if it needs to work now
 	if !w.MarketTimeChecker.IsOpen(time.Now().UTC()) {
