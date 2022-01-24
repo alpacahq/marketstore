@@ -48,7 +48,7 @@ func main() {}
 		testFilePath)
 
 	if err := cmd.Run(); err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Skip("Unable to build test plugin ** is go version > 1.9 in your path?")
 	}
 

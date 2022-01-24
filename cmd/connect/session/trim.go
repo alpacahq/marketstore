@@ -1,7 +1,6 @@
 package session
 
 import (
-	"fmt"
 	io2 "io"
 	"os"
 	"strings"
@@ -15,7 +14,7 @@ import (
 func (c *Client) trim(line string) {
 	cli, ok := c.apiClient.(*LocalAPIClient)
 	if !ok {
-		fmt.Printf("Trim command can be used only when '--dir' is specified to connect marketstore.")
+		log.Error("Trim command can be used only when '--dir' is specified to connect marketstore.")
 		return
 	}
 
@@ -24,7 +23,7 @@ func (c *Client) trim(line string) {
 	// need \trim {key} {date}
 	const argLen = 3
 	if len(args) < argLen {
-		fmt.Println("Not enough arguments - need \"trim key date\"")
+		log.Error("Not enough arguments - need \"trim key date\"")
 		return
 	}
 	trimDate, err := parseTime(args[len(args)-1])

@@ -86,6 +86,7 @@ func main() {
 	conf["api_key"] = os.Getenv("POLYIEX_API_KEY")
 	if len(os.Args) < 2 {
 		progname := path.Base(os.Args[0])
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("Usage: %s <base_url>\n", progname)
 		return
 	}

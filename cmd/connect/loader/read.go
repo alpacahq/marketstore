@@ -3,6 +3,8 @@ package loader
 import (
 	"fmt"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // readTimeColumns returns the epoch and nano columns of a csv file.
@@ -17,7 +19,7 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 	mustComposeEpoch := columnIndex[2] == -1
 	if mustComposeEpoch {
 		if columnIndex[0] == -1 || columnIndex[1] == -1 {
-			fmt.Println("Unable to build Epoch time from mapping - need both a date and time")
+			log.Info("Unable to build Epoch time from mapping - need both a date and time")
 			return nil, nil
 		}
 	}
@@ -30,7 +32,7 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 	if len(conf.Timezone) != 0 {
 		tzLoc, err = time.LoadLocation(conf.Timezone)
 		if err != nil {
-			fmt.Printf("Unable to parse timezone %s: %s\n", conf.Timezone, err.Error())
+			log.Error(fmt.Sprintf("Unable to parse timezone %s: %s\n", conf.Timezone, err.Error()))
 			return nil, nil
 		}
 	}
@@ -57,8 +59,10 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 			firstParse = false
 		}
 		if err != nil {
-			fmt.Printf("Error parsing Epoch column(s) from input data file: %s\n", err.Error())
-			fmt.Printf("rowTime %v, mustComposeEpoch %v, dateTime %v, format %v, loc %v, fromAdj %v", rowTime, mustComposeEpoch, dateTime, conf.TimeFormat, tzLoc, formatAdj)
+			log.Error(fmt.Sprintf("Error parsing Epoch column(s) from input data file: %s\n", err.Error()))
+			log.Error(fmt.Sprintf("rowTime %v, mustComposeEpoch %v, dateTime %v, format %v, loc %v, fromAdj %v",
+				rowTime, mustComposeEpoch, dateTime, conf.TimeFormat, tzLoc, formatAdj),
+			)
 			return nil, nil
 		}
 		epochCol[i] = rowTime.UTC().Unix()

@@ -2,6 +2,7 @@ package aggtrigger
 
 import (
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ondiskagg/aggtrigger/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -93,7 +94,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = functions.FirstUint64
 			iout = make([]uint64, 0)
 		default:
-			fmt.Printf("no compatible function\n")
+			log.Error("no compatible function")
 			return nil
 		}
 	case "max":
@@ -136,7 +137,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = functions.MaxUint64
 			iout = make([]uint64, 0)
 		default:
-			fmt.Printf("no compatible function\n")
+			log.Error("no compatible function")
 			return nil
 		}
 	case "min":
@@ -179,7 +180,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = functions.MinUint64
 			iout = make([]uint64, 0)
 		default:
-			fmt.Printf("no compatible function\n")
+			log.Error("no compatible function")
 			return nil
 		}
 	case "last":
@@ -222,7 +223,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = functions.LastUint64
 			iout = make([]uint64, 0)
 		default:
-			fmt.Printf("no compatible function\n")
+			log.Error("no compatible function")
 			return nil
 		}
 	case "sum":
@@ -265,7 +266,7 @@ func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
 			ifunc = functions.SumUint64
 			iout = make([]uint64, 0)
 		default:
-			fmt.Printf("no compatible function\n")
+			log.Error("no compatible function")
 			return nil
 		}
 	}

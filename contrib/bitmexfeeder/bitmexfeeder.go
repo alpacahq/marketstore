@@ -234,5 +234,6 @@ func main() {
 	client := bitmex.NewBitmexClient(&http.Client{})
 	start := time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC)
 	res, err := client.GetBuckets("XBTUSD", start, "5m")
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Println(res, err)
 }

@@ -103,7 +103,7 @@ func TestPathToFileInfo(t *testing.T) {
 	mypath := rootDir + "/EURUSD/1Min/OHLC/2001.bin"
 	fileInfo, err = catalogDir.PathToTimeBucketInfo(mypath)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, fileInfo.Path, mypath)
@@ -119,7 +119,7 @@ func TestAddFile(t *testing.T) {
 	// fmt.Println(filePath)
 	subDir, err := catalogDir.GetOwningSubDirectory(filePath)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	// fmt.Println(subDir.GetPath())
@@ -129,7 +129,7 @@ func TestAddFile(t *testing.T) {
 	// latestFile, err := subDir.GetLatestYearFile()
 	// fmt.Println(latestFile.Path)
 	if _, err = subDir.AddFile(int16(2016)); err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	_, err = subDir.GetLatestYearFile()
@@ -170,7 +170,7 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	catList = catalogDir.GatherCategoriesAndItems()
@@ -253,7 +253,7 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	// Now let's remove the symbol and then re-add it - should work
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	err = catalogDir.AddTimeBucket(tbk, tbinfo)
@@ -262,7 +262,7 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	// Sometimes people may call AddTimeBucket with an empty directory, let's test that
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	err = catalogDir.AddTimeBucket(tbk, tbinfo)
@@ -271,12 +271,12 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	// Let's try two subsequent RemoveTimeBucket calls, the first should work, the second should err
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.NotNil(t, err)
 }

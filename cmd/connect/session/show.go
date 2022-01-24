@@ -17,12 +17,12 @@ func (c *Client) show(line string) {
 	// need bucket name and date
 	const argLen = 1
 	if !(len(args) > argLen) {
-		fmt.Println("Not enough arguments, see \"\\help show\" ")
+		log.Error("Not enough arguments, see \"\\help show\" ")
 		return
 	}
 	tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
-		fmt.Println(`Could not parse arguments, see "\help show" `)
+		log.Error(`Could not parse arguments, see "\help show" `)
 		return
 	}
 
@@ -30,7 +30,7 @@ func (c *Client) show(line string) {
 
 	csm, err := c.apiClient.Show(tbk, start, end)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err.Error())
 		return
 	}
 	elapsedTime := time.Since(timeStart)
@@ -38,27 +38,27 @@ func (c *Client) show(line string) {
 		Should only be one symbol / file in the result, so take the first
 	*/
 	if len(csm.GetMetadataKeys()) == 0 {
-		fmt.Println("No results")
+		log.Info("No results")
 		return
 	}
 	key := csm.GetMetadataKeys()[0]
 	if csm[key].Len() == 0 {
-		fmt.Println("No results")
+		log.Info("No results")
 		return
 	}
 
 	// print at the beginning if outputting to a file
 	if c.timing && c.target != "" {
-		fmt.Printf("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
+		log.Info("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
 
 	if err = printResult(line, csm[key], c.target); err != nil {
-		fmt.Println(err.Error())
+		log.Error(err.Error())
 	}
 
 	// print at the end if outputting to terminal
 	if c.timing && c.target == "" {
-		fmt.Printf("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
+		log.Info("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
 }
 
@@ -66,7 +66,7 @@ func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, en
 	// args[0] must be "Symbol/Timeframe/AttributeGroup" format (e.g. "AAPL/1Min/OHLC" )
 	const itemKeyLen = 3
 	if itemKeys := strings.Split(args[0], "/"); len(itemKeys) != itemKeyLen {
-		fmt.Println(`Key is not in {Symbol/Timeframe/AttributeGroup} format (e.g. "AAPL/1Min/OHLCV)", see "\help show" `)
+		log.Error(`Key is not in {Symbol/Timeframe/AttributeGroup} format (e.g. "AAPL/1Min/OHLCV)", see "\help show" `)
 		return
 	}
 	tbk = io.NewTimeBucketKey(args[0])
@@ -82,7 +82,7 @@ func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, en
 			t, err := parseTime(arg)
 			if err != nil {
 				log.Error("Invalid Symbol/Timeframe/recordFormat string %v", arg)
-				fmt.Printf("Invalid time string %v\n", arg)
+				log.Error("Invalid time string %v\n", arg)
 				return nil, nil, nil
 			}
 			if parsedTime {

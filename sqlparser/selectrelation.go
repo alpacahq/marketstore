@@ -224,8 +224,8 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		removalBitmap := make([]bool, totalLength) // true means we ditch the value, default is keep
 		for _, name := range outputColumnSeries.GetColumnNames() {
 			if sp, ok := sr.StaticPredicates[name]; ok {
-				i_col := outputColumnSeries.GetColumn(name)
-				switch col := i_col.(type) {
+				iCol := outputColumnSeries.GetColumn(name)
+				switch col := iCol.(type) {
 				case []float32:
 					if sp.ContentsEnum.IsSet(EQUALITY) {
 						eqval, _ := io.GetValueAsFloat64(sp.equal)

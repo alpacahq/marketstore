@@ -357,7 +357,7 @@ func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsE
 	go func() {
 		err = replication.NewRetryer(replicationReceiver.Run, retryInterval, retryBackoffCoeff).Run(ctx)
 		if err != nil {
-			fmt.Printf("failed to connect Master instance from Replica. err=%v\n", err)
+			log.Error("failed to connect Master instance from Replica. err=%v\n", err)
 		}
 	}()
 

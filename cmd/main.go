@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/spf13/cobra"
 
@@ -24,9 +24,9 @@ func Execute() error {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Print version if specified.
 			if flagPrintVersion {
-				fmt.Printf("version: %+v\n", utils.Tag)
-				fmt.Printf("commit hash: %+v\n", utils.GitHash)
-				fmt.Printf("utc build time: %+v\n", utils.BuildStamp)
+				log.Info("version: %+v\n", utils.Tag)
+				log.Info("commit hash: %+v\n", utils.GitHash)
+				log.Info("utc build time: %+v\n", utils.BuildStamp)
 				return nil
 			}
 			// Print information regarding usage.

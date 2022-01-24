@@ -23,6 +23,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
 	dbio "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func NewClient(ac APIClient) *Client {
@@ -181,7 +182,9 @@ func newReader() (*readline.Instance, error) {
 }
 
 func printHeaderLine(cs *dbio.ColumnSeries) {
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Print(formatHeader(cs, "="))
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Print("\n")
 }
 
@@ -191,6 +194,7 @@ func printColumnNames(cs *dbio.ColumnSeries) {
 		l := columnFormatLength(name, col)
 
 		if strings.EqualFold(name, "Epoch") {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("%29s  ", name)
 		} else {
 			// if the column name is "Ask",
@@ -201,9 +205,11 @@ func printColumnNames(cs *dbio.ColumnSeries) {
 			}
 			sb.WriteString(name)
 			sb.WriteString("  ")
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Print(sb.String())
 		}
 	}
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("\n")
 }
 
@@ -226,7 +232,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	}
 
 	if cs == nil {
-		fmt.Println("no results returned from query")
+		log.Info("no results returned from query")
 		return nil
 	}
 	/*
@@ -324,10 +330,12 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 			if writer != nil {
 				row = append(row, strings.TrimSpace(element))
 			} else {
+				// nolint:forbidigo // CLI output needs fmt.Println
 				fmt.Printf("%s  ", element)
 			}
 		}
 		if writer == nil {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("\n")
 		} else {
 			writer.Write(row)
@@ -335,6 +343,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	}
 	if writer == nil {
 		printHeaderLine(cs)
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("(%d rows * %d columns)\n", len(epoch), len(cs.GetColumnNames()))
 	} else {
 		writer.Flush()

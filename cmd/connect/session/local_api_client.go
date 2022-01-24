@@ -60,7 +60,7 @@ func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *fro
 	// and it can't be updated by the CSV import using the local mode,
 	// the imported data is not returned to query responses until restart marketstore,
 	// the data is correctly written to the data file though.
-	fmt.Println("Note: The imported data won't be returned to query responses until restart marketstore" +
+	log.Info("Note: The imported data won't be returned to query responses until restart marketstore" +
 		" due to the cache of the marketstore process.")
 	return nil
 }
@@ -68,7 +68,7 @@ func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *fro
 func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 ) (csm io.ColumnSeriesMap, err error) {
 	if start == nil && end == nil {
-		fmt.Println("No suitable date range supplied...")
+		log.Error("No suitable date range supplied...")
 		return
 	}
 	if start == nil {
@@ -77,7 +77,7 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 	if end == nil {
 		end = &planner.MaxTime
 	}
-	fmt.Printf("Query range: %v to %v\n", start, end)
+	log.Info("Query range: %v to %v\n", start, end)
 
 	qs := frontend.NewQueryService(lc.catalogDir)
 	csm, err = qs.ExecuteQuery(tbk, *start, *end, 0, false, nil)

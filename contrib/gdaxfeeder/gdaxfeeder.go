@@ -257,5 +257,6 @@ func main() {
 		Granularity: 60,
 	}
 	res, err := client.GetHistoricRates("BTC-USD", params)
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Println(res, err)
 }

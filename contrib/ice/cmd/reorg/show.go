@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
@@ -48,6 +50,7 @@ var ShowRecordsCmd = &cobra.Command{
 func showRecords(cusip string, catalogDir *catalog.Directory) {
 	ca := adjust.NewCorporateActions(cusip)
 	_ = ca.Load(catalogDir)
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Println("----- stored announcements ------")
 	for i := 0; i < len(ca.Rows.EntryDates); i++ {
 		ent := time.Unix(ca.Rows.EntryDates[i], 0)
@@ -62,8 +65,7 @@ func showRecords(cusip string, catalogDir *catalog.Directory) {
 		} else if status == enum.DeletedAnnouncement {
 			ref = ca.Rows.DeleteTextNumbers[i]
 		}
-
-		fmt.Printf("%c %c %c\tTEXTNUM: %d\tENT: %s, EFF: %s, REC: %s, EXP: %s\tRATE: %.4f, REF: %d\n",
+		log.Info("%c %c %c\tTEXTNUM: %d\tENT: %s, EFF: %s, REC: %s, EXP: %s\tRATE: %.4f, REF: %d\n",
 			ca.Rows.Statuses[i],
 			ca.Rows.SecurityTypes[i],
 			ca.Rows.NotificationTypes[i],
@@ -76,8 +78,9 @@ func showRecords(cusip string, catalogDir *catalog.Directory) {
 			ref)
 	}
 	rateChanges := ca.RateChangeEvents(true, true)
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Println("----- effective rate changes ---")
 	for _, r := range rateChanges {
-		fmt.Printf("DATE: %s, TEXTNUM: %d, RATE: %.4f\n", time.Unix(r.Epoch, 0).Format("2006-01-02"), r.Textnumber, r.Rate)
+		log.Info("DATE: %s, TEXTNUM: %d, RATE: %.4f\n", time.Unix(r.Epoch, 0).Format("2006-01-02"), r.Textnumber, r.Rate)
 	}
 }
