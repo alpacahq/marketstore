@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
@@ -680,16 +682,17 @@ func TestAddSymbolThenWrite(t *testing.T) {
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
-	q.Parse()
+	_, err = q.Parse()
+	require.Nil(t, err)
 	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	w, err := executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
 	buffer, _ := Serialize([]byte{}, row)
-	w.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
-	assert.Nil(t, err)
+	err = w.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
+	require.Nil(t, err)
 	err = metadata.WALFile.FlushToWAL()
 	assert.Nil(t, err)
 
@@ -705,12 +708,12 @@ func TestAddSymbolThenWrite(t *testing.T) {
 		open, _ := cs.GetByName("Open").([]float32)
 		high, _ := cs.GetByName("High").([]float32)
 		low, _ := cs.GetByName("Low").([]float32)
-		close, _ := cs.GetByName("Close").([]float32)
+		clos, _ := cs.GetByName("Close").([]float32)
 		volume, _ := cs.GetByName("Volume").([]int32)
 		assert.Equal(t, open[0], row.Open)
 		assert.Equal(t, high[0], row.High)
 		assert.Equal(t, low[0], row.Low)
-		assert.Equal(t, close[0], row.Close)
+		assert.Equal(t, clos[0], row.Close)
 		assert.Equal(t, volume[0], row.Volume)
 	}
 }
@@ -720,6 +723,7 @@ func TestWriter(t *testing.T) {
 	defer tearDown()
 
 	dataItemKey := "TEST/1Min/OHLCV"
+	tbk := NewTimeBucketKey(dataItemKey)
 	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
@@ -731,15 +735,21 @@ func TestWriter(t *testing.T) {
 		2016,
 		dsv, FIXED)
 
+	// needs to create a directory before writing data by WriteRecords function
+	err := metadata.CatalogDir.AddTimeBucket(tbk, tbi)
+	require.Nil(t, err)
+
 	writer, err := executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
-	writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes(), tbi)
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	err = writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes(), tbi)
+	require.Nil(t, err)
+	err = metadata.WALFile.FlushToWAL()
+	require.Nil(t, err)
+	err = metadata.WALFile.CreateCheckpoint()
+	require.Nil(t, err)
 }
 
 /*

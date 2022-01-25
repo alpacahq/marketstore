@@ -68,11 +68,11 @@ func init() {
 func executeStart(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
 	globalCtx, globalCancel := context.WithCancel(ctx)
+	defer globalCancel()
 
 	// Attempt to read config file.
 	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		globalCancel()
 		return fmt.Errorf("failed to read configuration file error: %s", err.Error())
 	}
 
@@ -85,7 +85,6 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	// Attempt to set configuration.
 	config, err := utils.InstanceConfig.Parse(data)
 	if err != nil {
-		globalCancel()
 		return fmt.Errorf("failed to parse configuration file error: %w", err)
 	}
 
@@ -110,7 +109,6 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 				config.Replication.KeyFile,
 			)
 			if err2 != nil {
-				globalCancel()
 				return fmt.Errorf("failed to load server certificates for replication:"+
 					" certFile:%v, keyFile:%v, err:%v",
 					config.Replication.CertFile,
@@ -125,7 +123,6 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		grpcReplicationServer = grpc.NewServer(opts...)
 		rs, err = initReplicationMaster(globalCtx, grpcReplicationServer, config.Replication.ListenPort)
 		if err != nil {
-			globalCancel()
 			return fmt.Errorf("failed to initialize replication master: %w", err)
 		}
 		log.Info("initialized replication master")
@@ -145,7 +142,6 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		executor.WALBypass(config.WALBypass),
 	)
 	if err != nil {
-		globalCancel()
 		return fmt.Errorf("craete new instance setup: %w", err)
 	}
 
@@ -171,7 +167,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	var server *frontend.RpcServer
 	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
 	if err != nil {
-		panic("init writer: " + err.Error())
+		return fmt.Errorf("init writer: %w", err)
 	}
 
 	if config.Replication.MasterHost != "" {
@@ -188,7 +184,6 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		)
 		if err != nil {
 			log.Error("Unable to startup Replication", err)
-			globalCancel()
 			return err
 		}
 		log.Info("initialized replication client")
@@ -234,7 +229,12 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		// Start utility endpoints.
 		log.Info("launching utility service...")
 		uah := frontend.NewUtilityAPIHandlers(config.StartTime)
-		go uah.Handle(config.UtilitiesURL)
+		go func() {
+			err = uah.Handle(config.UtilitiesURL)
+			if err != nil {
+				log.Error("utility API handle error: %v", err.Error())
+			}
+		}()
 	}
 
 	log.Info("enabling query access...")
@@ -245,7 +245,6 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	if config.GRPCListenURL != "" {
 		grpcLn, err := net.Listen("tcp", config.GRPCListenURL)
 		if err != nil {
-			globalCancel()
 			return fmt.Errorf("failed to start GRPC server - error: %w", err)
 		}
 		go func() {
@@ -264,7 +263,11 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 			switch s {
 			case syscall.SIGUSR1:
 				log.Info("dumping stack traces due to SIGUSR1 request")
-				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+				err2 := pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+				if err2 != nil {
+					log.Error("failed to write goroutine pprof: %w", err)
+					return
+				}
 			case syscall.SIGINT:
 				fallthrough
 			case syscall.SIGTERM:
@@ -327,9 +330,8 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenP
 
 func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string,
 	retryInterval time.Duration, retryBackoffCoeff int, w *executor.Writer) error {
-	opts := []grpc.DialOption{
-		// grpc.WithBlock(),
-	}
+	var opts []grpc.DialOption
+	// grpc.WithBlock(),
 
 	if tlsEnabled {
 		creds, err := credentials.NewClientTLSFromFile(certFile, "")

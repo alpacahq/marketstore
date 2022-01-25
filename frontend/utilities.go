@@ -32,7 +32,7 @@ type utilityAPIHandlers struct {
 	startTime time.Time
 }
 
-func (uah *utilityAPIHandlers) Handle(url string) {
+func (uah *utilityAPIHandlers) Handle(url string) error {
 	// heartbeat
 	http.HandleFunc("/heartbeat", uah.heartbeat)
 
@@ -47,7 +47,7 @@ func (uah *utilityAPIHandlers) Handle(url string) {
 	http.Handle("/pprof/threadcreate", pprof.Handler("threadcreate"))
 	http.Handle("/pprof/block", pprof.Handler("block"))
 
-	http.ListenAndServe(url, nil)
+	return http.ListenAndServe(url, nil)
 }
 
 func (uah *utilityAPIHandlers) heartbeat(rw http.ResponseWriter, r *http.Request) {
