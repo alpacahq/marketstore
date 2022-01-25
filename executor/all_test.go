@@ -682,16 +682,17 @@ func TestAddSymbolThenWrite(t *testing.T) {
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
-	q.Parse()
+	_, err = q.Parse()
+	require.Nil(t, err)
 	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	w, err := executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
 	buffer, _ := Serialize([]byte{}, row)
-	w.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
-	assert.Nil(t, err)
+	err = w.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
+	require.Nil(t, err)
 	err = metadata.WALFile.FlushToWAL()
 	assert.Nil(t, err)
 
@@ -707,12 +708,12 @@ func TestAddSymbolThenWrite(t *testing.T) {
 		open, _ := cs.GetByName("Open").([]float32)
 		high, _ := cs.GetByName("High").([]float32)
 		low, _ := cs.GetByName("Low").([]float32)
-		close, _ := cs.GetByName("Close").([]float32)
+		clos, _ := cs.GetByName("Close").([]float32)
 		volume, _ := cs.GetByName("Volume").([]int32)
 		assert.Equal(t, open[0], row.Open)
 		assert.Equal(t, high[0], row.High)
 		assert.Equal(t, low[0], row.Low)
-		assert.Equal(t, close[0], row.Close)
+		assert.Equal(t, clos[0], row.Close)
 		assert.Equal(t, volume[0], row.Volume)
 	}
 }

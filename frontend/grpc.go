@@ -56,7 +56,7 @@ func NewGRPCService(rootDir string, catDir *catalog.Directory, aggRunner *sqlpar
 	}
 }
 
-func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (*proto.MultiQueryResponse, error) {
+func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*proto.MultiQueryResponse, error) {
 	response := proto.MultiQueryResponse{}
 	response.Version = utils.GitHash
 	response.Timezone = utils.InstanceConfig.Timezone.String()
@@ -175,7 +175,10 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 						return nil, err
 					}
 				} else {
-					nmds.Append(cs, tbk)
+					err := nmds.Append(cs, tbk)
+					if err != nil {
+						return nil, fmt.Errorf("add tbk=%s to NumpyMultiDataSet: %w", tbk, err)
+					}
 				}
 			}
 

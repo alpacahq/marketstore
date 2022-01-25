@@ -229,7 +229,12 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		// Start utility endpoints.
 		log.Info("launching utility service...")
 		uah := frontend.NewUtilityAPIHandlers(config.StartTime)
-		go uah.Handle(config.UtilitiesURL)
+		go func() {
+			err = uah.Handle(config.UtilitiesURL)
+			if err != nil {
+				log.Error("utility API handle error: %v", err.Error())
+			}
+		}()
 	}
 
 	log.Info("enabling query access...")

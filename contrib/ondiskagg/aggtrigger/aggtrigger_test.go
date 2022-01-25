@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -17,14 +19,17 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-func getConfig(data string) (ret map[string]interface{}) {
-	json.Unmarshal([]byte(data), &ret)
+func getConfig(t *testing.T, data string) (ret map[string]interface{}) {
+	t.Helper()
+
+	err := json.Unmarshal([]byte(data), &ret)
+	require.Nil(t, err)
 	return
 }
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	config := getConfig(`{
+	config := getConfig(t, `{
         "destinations": ["5Min", "1D"],
         "filter": "something"
         }`)
@@ -36,7 +41,7 @@ func TestNew(t *testing.T) {
 	assert.Nil(t, err)
 
 	// missing destinations
-	config = getConfig(`{}`)
+	config = getConfig(t, `{}`)
 	ret, err = NewTrigger(config)
 	assert.Nil(t, ret)
 	assert.NotNil(t, err)
@@ -54,7 +59,7 @@ func TestAgg(t *testing.T) {
 	open := []float32{1., 2., 3., 4., 5.}
 	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1}
 	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9}
-	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05}
+	clos := []float32{1.05, 2.05, 3.05, 4.05, 5.05}
 
 	baseTbk := io.NewTimeBucketKey("TEST/1Min/OHLCV")
 	aggTbk := io.NewTimeBucketKey("TEST/5Min/OHLC")
@@ -63,7 +68,7 @@ func TestAgg(t *testing.T) {
 	cs.AddColumn("Open", open)
 	cs.AddColumn("High", high)
 	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
+	cs.AddColumn("Close", clos)
 
 	outCs, err := aggregate(cs, aggTbk, baseTbk, "TEST")
 	assert.Nil(t, err)
@@ -89,7 +94,7 @@ func TestAgg(t *testing.T) {
 	cs.AddColumn("Open", open)
 	cs.AddColumn("High", high)
 	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
+	cs.AddColumn("Close", clos)
 
 	outCs, err = aggregate(cs, aggTbk, baseTbk, "TEST")
 	assert.Nil(t, err)
