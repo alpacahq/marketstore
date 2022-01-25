@@ -93,7 +93,10 @@ func GetRateChanges(symbol string, includeSplits, includeDividends bool,
 	}
 	if !present {
 		ca := NewCorporateActions(symbol)
-		ca.Load(catalogDir)
+		err := ca.Load(catalogDir)
+		if err != nil {
+			log.Error("load corporate actions from catalog: %v", err)
+		}
 		rateCache = RateChangeCache{
 			Changes:   ca.RateChangeEvents(includeSplits, includeDividends),
 			Access:    0,

@@ -32,7 +32,7 @@ func makeCatFile(dir, catname string) {
 	file, err := os.OpenFile(path.Join(dir, "category_name"), os.O_CREATE|os.O_RDWR,
 		0o777)
 	checkfail(err, "makeCatFile: Unable to open category file for writing ")
-	_,_ = file.Write([]byte(catname))
+	_, _ = file.Write([]byte(catname))
 }
 
 func makeRootDir(root string) {
@@ -83,8 +83,10 @@ func makeYearFiles(root string, years []string, withdata, withGaps bool, tf stri
 		checkfail(err, "Unable to create file: "+filename)
 		var f *TimeBucketInfo
 		if isStock {
+			// OHLCV
 			f = makeFakeFileInfoStock(year, filename, tf)
 		} else {
+			// OHLC
 			f = makeFakeFileInfoCurrency(year, filename, tf)
 		}
 		err = WriteHeader(file, f)
@@ -119,6 +121,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 	if n != 1 || err != nil {
 		return 0, fmt.Errorf("failed to convert string year=%s to int: %w", year, err)
 	}
+
 	var candlesCurrency []ohlc
 	var candlesStock []ohlcv
 	endTime := time.Date(yr, time.December, 31, 23, 59, 59, 0, time.UTC)
@@ -170,6 +173,12 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 }
 
 // MakeDummyCurrencyDir makes dummy data directories for 3 symbols * 6 timeframes * 3 years (= 54 directories)
+// and insert data.
+// symbols: ["EURUSD", "USDJPY", "NZDUSD"]
+// timeframes: ["1Min", "5Min", "15Min", "1H", "4H", "1D"]
+// attribute group: OHLC
+// years: [2000, 2001, 2002]
+// returns: map[string]int key: absolute path to a data file for the bucket, value: how many dummy records are written
 func MakeDummyCurrencyDir(root string, withdata, withGaps bool) map[string]int {
 	itemsWritten := make(map[string]int)
 	makeRootDir(root)

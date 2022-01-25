@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
@@ -720,6 +722,7 @@ func TestWriter(t *testing.T) {
 	defer tearDown()
 
 	dataItemKey := "TEST/1Min/OHLCV"
+	tbk := NewTimeBucketKey(dataItemKey)
 	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
@@ -731,15 +734,21 @@ func TestWriter(t *testing.T) {
 		2016,
 		dsv, FIXED)
 
+	// needs to create a directory before writing data by WriteRecords function
+	err := metadata.CatalogDir.AddTimeBucket(tbk, tbi)
+	require.Nil(t, err)
+
 	writer, err := executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
-	writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes(), tbi)
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	err = writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes(), tbi)
+	require.Nil(t, err)
+	err = metadata.WALFile.FlushToWAL()
+	require.Nil(t, err)
+	err = metadata.WALFile.CreateCheckpoint()
+	require.Nil(t, err)
 }
 
 /*

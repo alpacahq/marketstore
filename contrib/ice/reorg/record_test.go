@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
@@ -118,7 +120,8 @@ TEL: 800 680-0661
 99999999999999999999999999999999999999999999999999999999999999999999999999999999
 `
 	announcements := []Announcement{}
-	readRecords(input, &announcements)
+	err := readRecords(input, &announcements)
+	require.Nil(t, err)
 
 	assert.Equal(t, len(announcements), 2)
 	first := announcements[0]
