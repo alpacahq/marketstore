@@ -10,12 +10,12 @@ type AnySet struct {
 	mappedElems  interface{}
 }
 
-func NewAnySet(i_elems interface{}) (as *AnySet, err error) {
+func NewAnySet(iElems interface{}) (as *AnySet, err error) {
 	/*
 		Generic Set
 		Input should be a slice of any hashable type
 	*/
-	refValue := reflect.ValueOf(i_elems)
+	refValue := reflect.ValueOf(iElems)
 
 	if !(refValue.Kind() == reflect.Slice ||
 		refValue.Kind() == reflect.Array) {
@@ -43,42 +43,41 @@ func NewAnySet(i_elems interface{}) (as *AnySet, err error) {
 	return as, nil
 }
 
-func (as *AnySet) Add(i_elem interface{}) {
+func (as *AnySet) Add(iElem interface{}) {
 	/*
 		Single element as input - must be of same type as existing
 	*/
-	refValue := reflect.ValueOf(i_elem)
-	v_map := reflect.ValueOf(as.mappedElems)
-	v_slice := reflect.ValueOf(as.orderedElems)
-	emptyValue := reflect.ValueOf(nil)
-	if v_map.MapIndex(refValue) == emptyValue {
-		v_map.SetMapIndex(refValue, reflect.ValueOf(true))
-		v_slice = reflect.Append(v_slice, refValue)
+	refValue := reflect.ValueOf(iElem)
+	vMap := reflect.ValueOf(as.mappedElems)
+	vSlice := reflect.ValueOf(as.orderedElems)
+	if !vMap.MapIndex(refValue).IsValid() {
+		vMap.SetMapIndex(refValue, reflect.ValueOf(true))
+		vSlice = reflect.Append(vSlice, refValue)
 	}
-	as.orderedElems = v_slice.Interface()
+	as.orderedElems = vSlice.Interface()
 }
 
-func (as *AnySet) Del(i_elem interface{}) {
+func (as *AnySet) Del(iElem interface{}) {
 	/*
 		Single element as input - must be of same type as existing
 	*/
-	refValue := reflect.ValueOf(i_elem)
+	refValue := reflect.ValueOf(iElem)
 	refType := refValue.Type()
-	v_map := reflect.ValueOf(as.mappedElems)
-	v_slice := reflect.ValueOf(as.orderedElems)
+	vMap := reflect.ValueOf(as.mappedElems)
+	vSlice := reflect.ValueOf(as.orderedElems)
 
 	/*
 		Make a new slice to hold the ordered remaining values
 	*/
 	emptyValue := reflect.ValueOf(nil)
-	if v_map.MapIndex(refValue) != emptyValue {
-		v_map.SetMapIndex(refValue, emptyValue) // Delete the key value
+	if vMap.MapIndex(refValue).IsValid() {
+		vMap.SetMapIndex(refValue, emptyValue) // Delete the key value
 		newSlice := reflect.MakeSlice(reflect.SliceOf(refType), 0, 0)
-		for i := 0; i < v_slice.Len(); i++ {
-			elem := v_slice.Index(i)
+		for i := 0; i < vSlice.Len(); i++ {
+			elem := vSlice.Index(i)
 			// Note that DeepEqual does not work between reflection
 			// values elem and refValue - this is a workaround
-			if v_map.MapIndex(elem) != emptyValue {
+			if vMap.MapIndex(elem).IsValid() {
 				newSlice = reflect.Append(newSlice, elem)
 			}
 		}
@@ -96,7 +95,7 @@ func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 	}
 	refValue := reflect.ValueOf(input)
 	refType := refValue.Type()
-	v_map := reflect.ValueOf(as.mappedElems)
+	vMap := reflect.ValueOf(as.mappedElems)
 	newSlice := reflect.MakeSlice(refType, 0, 0)
 
 	if !(refValue.Kind() == reflect.Slice ||
@@ -108,10 +107,9 @@ func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 		return fmt.Errorf("empty input to intersect")
 	}
 
-	emptyValue := reflect.ValueOf(nil)
 	for i := 0; i < refValue.Len(); i++ {
 		name := refValue.Index(i)
-		if v_map.MapIndex(name) != emptyValue { // Name is found in A
+		if vMap.MapIndex(name).IsValid() { // Name is found in A
 			newSlice = reflect.Append(newSlice, name)
 		}
 	}
@@ -119,7 +117,7 @@ func (as *AnySet) Intersect(input interface{}) (out interface{}) {
 }
 
 // Subtract provides a list of all elements in this object and not in input.
-func (as *AnySet) Subtract(input interface{}) (out interface{}) {
+func (as *AnySet) Subtract(inputSlice interface{}) (out interface{}) {
 	/*
 		Slice as input - must be of same type as existing
 	*/
@@ -129,7 +127,7 @@ func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 			"The Relative Complement of B in A"
 		where B is input and A is the set
 	*/
-	refValue := reflect.ValueOf(input)
+	refValue := reflect.ValueOf(inputSlice)
 
 	if !(refValue.Kind() == reflect.Slice ||
 		refValue.Kind() == reflect.Array) {
@@ -143,8 +141,8 @@ func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 	firstElement := refValue.Index(0)
 	newMapType := reflect.MapOf(firstElement.Type(), reflect.TypeOf(true))
 
-	i_intersection := as.Intersect(input)
-	intersection := reflect.ValueOf(i_intersection)
+	iIntersection := as.Intersect(inputSlice)
+	intersection := reflect.ValueOf(iIntersection)
 
 	intMap := reflect.MakeMap(newMapType)
 	for i := 0; i < intersection.Len(); i++ {
@@ -152,14 +150,14 @@ func (as *AnySet) Subtract(input interface{}) (out interface{}) {
 		intMap.SetMapIndex(elem, reflect.ValueOf(true))
 	}
 
-	emptyValue := reflect.ValueOf(nil)
 	newSlice := reflect.MakeSlice(
 		reflect.SliceOf(firstElement.Type()),
 		0, 0)
 	orderedElems := reflect.ValueOf(as.orderedElems)
 	for i := 0; i < orderedElems.Len(); i++ { // All of A
 		elem := orderedElems.Index(i)
-		if intMap.MapIndex(elem) == emptyValue { // Name is not found in A ∩ B
+		intMap.MapIndex(elem)
+		if !intMap.MapIndex(elem).IsValid() { // Name is not found in A ∩ B
 			newSlice = reflect.Append(newSlice, elem)
 		}
 	}
@@ -185,14 +183,14 @@ func (as *AnySet) Contains(input interface{}) bool {
 	/*
 		True if set fully contains the input
 	*/
-	i_intersection := as.Intersect(input)
-	intersection := reflect.ValueOf(i_intersection)
+	iIntersection := as.Intersect(input)
+	intersection := reflect.ValueOf(iIntersection)
 	return intersection.Len() == refValue.Len()
 }
 
-func DownSizeSlice(i_slice interface{}, newLen int, direction DirectionEnum) (i_out interface{}, err error) {
-	refValue := reflect.ValueOf(i_slice)
-	refType := reflect.TypeOf(i_slice)
+func DownSizeSlice(iSlice interface{}, newLen int, direction DirectionEnum) (iOut interface{}, err error) {
+	refValue := reflect.ValueOf(iSlice)
+	refType := reflect.TypeOf(iSlice)
 
 	if !(refValue.Kind() == reflect.Slice ||
 		refValue.Kind() == reflect.Array) {
@@ -201,7 +199,7 @@ func DownSizeSlice(i_slice interface{}, newLen int, direction DirectionEnum) (i_
 
 	oldLen := refValue.Len()
 	if oldLen <= newLen {
-		return i_slice, nil
+		return iSlice, nil
 	}
 
 	out := reflect.MakeSlice(refType, 0, 0)
@@ -238,49 +236,49 @@ func GenericComparison(left, right interface{},
 		return !reflect.DeepEqual(left, right), nil
 	}
 
-	var l_float, r_float float64
-	var l_int, r_int int64
-	l_float, err = GetValueAsFloat64(left)
+	var lFloat, rFloat float64
+	var lInt, rInt int64
+	lFloat, err = GetValueAsFloat64(left)
 	if err == nil {
-		r_float, err = GetValueAsFloat64(right)
+		rFloat, err = GetValueAsFloat64(right)
 		if err != nil {
 			return false, fmt.Errorf("left and right values do not match")
 		}
 		switch op {
 		case LT:
-			return l_float < r_float, nil
+			return lFloat < rFloat, nil
 		case LTE:
-			return l_float <= r_float, nil
+			return lFloat <= rFloat, nil
 		case GT:
-			return l_float > r_float, nil
+			return lFloat > rFloat, nil
 		case GTE:
-			return l_float >= r_float, nil
+			return lFloat >= rFloat, nil
 		}
 	}
 
-	l_int, err = GetValueAsInt64(left)
+	lInt, err = GetValueAsInt64(left)
 	if err == nil {
-		r_int, err = GetValueAsInt64(right)
+		rInt, err = GetValueAsInt64(right)
 		if err != nil {
 			return false, fmt.Errorf("left and right values do not match")
 		}
 		switch op {
 		case LT:
-			return l_int < r_int, nil
+			return lInt < rInt, nil
 		case LTE:
-			return l_int <= r_int, nil
+			return lInt <= rInt, nil
 		case GT:
-			return l_int > r_int, nil
+			return lInt > rInt, nil
 		case GTE:
-			return l_int >= r_int, nil
+			return lInt >= rInt, nil
 		}
 	}
 
 	return false, nil
 }
 
-func GetValueAsFloat64(i_value interface{}) (val float64, err error) {
-	switch value := i_value.(type) {
+func GetValueAsFloat64(iValue interface{}) (val float64, err error) {
+	switch value := iValue.(type) {
 	case int:
 		val = float64(value)
 	case int32:
@@ -297,8 +295,8 @@ func GetValueAsFloat64(i_value interface{}) (val float64, err error) {
 	return val, nil
 }
 
-func GetValueAsInt64(i_value interface{}) (val int64, err error) {
-	switch value := i_value.(type) {
+func GetValueAsInt64(iValue interface{}) (val int64, err error) {
+	switch value := iValue.(type) {
 	case int:
 		val = int64(value)
 	case int32:
@@ -318,6 +316,7 @@ func GetValueAsInt64(i_value interface{}) (val int64, err error) {
 /*
 Utility datatypes.
 */
+
 type ComparisonOperatorEnum uint8
 
 const (

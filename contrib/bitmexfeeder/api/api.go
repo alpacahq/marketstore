@@ -106,9 +106,9 @@ func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string)
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= http.StatusMultipleChoices {
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return nil, err
+		body, err2 := ioutil.ReadAll(res.Body)
+		if err2 != nil {
+			return nil, err2
 		}
 
 		return nil, fmt.Errorf("status code %v, response=%v", res.StatusCode, string(body))

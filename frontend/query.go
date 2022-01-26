@@ -259,7 +259,7 @@ type ListSymbolsRequest struct {
 
 func (s *DataService) ListSymbols(r *http.Request, req *ListSymbolsRequest, response *ListSymbolsResponse) (err error) {
 	if atomic.LoadUint32(&Queryable) == 0 {
-		return queryableError
+		return errNotQueryable
 	}
 
 	// TBK format (e.g. ["AMZN/1Min/TICK", "AAPL/1Sec/OHLCV", ...])

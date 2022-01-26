@@ -243,9 +243,7 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	}
 	if deleteMap[0] {
 		removeDirFiles(tree[0])
-		if dRoot != nil {
-			dRoot.removeSubDir(tree[0].itemName, dRoot.directMap)
-		}
+		dRoot.removeSubDir(tree[0].itemName, dRoot.directMap)
 	}
 	return nil
 }
@@ -674,7 +672,7 @@ func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err er
 	}
 
 	// If file already exists in this directory, return an error
-	if _, err := os.Stat(newTimeBucketInfo.Path); err == nil {
+	if _, err2 := os.Stat(newTimeBucketInfo.Path); err2 == nil {
 		return FileAlreadyExists("Can not overwrite file")
 	}
 	// Create the file
