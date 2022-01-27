@@ -16,8 +16,18 @@ import (
 )
 
 const (
-	Headersize      = 37024
-	FileinfoVersion = int64(2.0)
+	// see docs/design/file_format_design.txt for the details
+	versionHeaderBytes     = 8
+	descriptionHeaderBytes = 256
+	yearHeaderBytes        = 8
+	intervalsHeaderBytes   = 8
+	recordTypeHeaderBytes  = 8 // 0: fixed length records, 1: variable length records
+	nFieldsHeaderBytes     = 8 // number of fields per record
+	recLenHeaderBytes      = 8 // recordLength
+	reservedHeaderBytes    = 8
+	elementNameHeaderBytes = 32 // 32bytes per element
+	Headersize             = 37024
+	FileinfoVersion        = int64(2.0)
 )
 
 func nanosecondsInYear(year int) int64 {
@@ -183,7 +193,7 @@ func (f *TimeBucketInfo) GetTimeframe() time.Duration {
 // GetIntervals returns the number of records that can fit in a 24 hour day.
 func (f *TimeBucketInfo) GetIntervals() int64 {
 	f.once.Do(f.initFromFile)
-	return int64(utils.Day.Nanoseconds()) / int64(f.timeframe.Nanoseconds())
+	return utils.Day.Nanoseconds() / f.timeframe.Nanoseconds()
 }
 
 // GetNelements returns the number of elements (data fields) for a given
@@ -246,33 +256,41 @@ func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 }
 
 func (f *TimeBucketInfo) readHeader(path string) (err error) {
+	const headerPart1Bytes = versionHeaderBytes + descriptionHeaderBytes + yearHeaderBytes + intervalsHeaderBytes +
+		recordTypeHeaderBytes + nFieldsHeaderBytes + recLenHeaderBytes + reservedHeaderBytes
 	file, err := os.Open(path)
 	if err != nil {
-		log.Error("Failed to open file: %v - Error: %v", path, err)
+		log.Error("Failed to open file: %v - Error: %v", path, err.Error())
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		if err2 := file.Close(); err2 != nil {
+			log.Error("failed to close file: %v - Error: %v", path, err2.Error())
+		}
+	}(file)
+
 	var buffer [Headersize]byte
 	header := (*Header)(unsafe.Pointer(&buffer))
 	// Read the top part of the header, which is not dependent on the number of elements
-	n, err := file.Read(buffer[:312])
-	if err != nil || n != 312 {
+	n, err := file.Read(buffer[:headerPart1Bytes])
+	if err != nil || n != headerPart1Bytes {
 		log.Error("Failed to read header part1 from file: %v - Error: %v", path, err)
 		return err
 	}
 
 	// Second part of read element names
-	secondReadSize := header.NElements * 32
-	n, err = file.Read(buffer[312 : 312+secondReadSize])
+	secondReadSize := header.NElements * elementNameHeaderBytes
+	n, err = file.Read(buffer[headerPart1Bytes : headerPart1Bytes+secondReadSize])
 	if err != nil || n != int(secondReadSize) {
 		log.Error("Failed to read header part2 from file: %v - Error: %v", path, err)
 		return err
 	}
+
 	// Read past empty element name space
 	file.Seek(1024*32-secondReadSize, io.SeekCurrent)
 
 	// Read element types
-	start := 312 + 1024*32
+	start := headerPart1Bytes + 1024*32
 	n, err = file.Read(buffer[start : start+int(header.NElements)])
 	if err != nil || n != int(header.NElements) {
 		log.Error("Failed to read header part3 from file: %v - Error: %v", path, err)

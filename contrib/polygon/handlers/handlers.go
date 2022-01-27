@@ -108,6 +108,8 @@ func QuoteHandler(msg []byte) {
 }
 
 func BarsHandler(msg []byte) {
+	const millisecToSec = 1000
+	const nanosecToMillisec = 1000 * 1000
 	if msg == nil {
 		return
 	}
@@ -120,10 +122,10 @@ func BarsHandler(msg []byte) {
 		return
 	}
 	for _, bar := range am {
-		timestamp := time.Unix(0, int64(1000*1000*float64(bar.EpochMillis)))
+		timestamp := time.Unix(0, int64(nanosecToMillisec*float64(bar.EpochMillis)))
 		lagOnReceipt := time.Since(timestamp).Seconds()
 
-		epoch := bar.EpochMillis / 1000
+		epoch := bar.EpochMillis / millisecToSec
 
 		backfill.BackfillM.LoadOrStore(bar.Symbol, &epoch)
 

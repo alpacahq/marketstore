@@ -101,6 +101,7 @@ var (
 )
 
 func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, writerWP *worker.WorkerPool) (err error) {
+	const millisecToSec = 1000
 	if from.IsZero() {
 		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
 	}
@@ -125,7 +126,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 
 	model := models.NewBar(symbol, "1Min", len(resp.Results))
 	for _, bar := range resp.Results {
-		timestamp := bar.EpochMilliseconds / 1000
+		timestamp := bar.EpochMilliseconds / millisecToSec
 		if time.Unix(timestamp, 0).After(to) || time.Unix(timestamp, 0).Before(from) {
 			// polygon sometime returns inconsistent data
 			continue
@@ -155,12 +156,13 @@ func intInSlice(s int, l []int) bool {
 }
 
 func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
+	const minInDay = 24 * 60
 	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
 		return err
 	}
 
-	model := models.NewBar(symbol, "1Min", 1440)
+	model := models.NewBar(symbol, "1Min", minInDay)
 
 	tradesToBars(resp.Results, model, exchangeIDs)
 
@@ -276,9 +278,10 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 }
 
 func Trades(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+	const hoursInDay = 24
 	trades := make([]api.TradeTick, 0)
 	t := time.Now()
-	for date := from; to.After(date); date = date.Add(24 * time.Hour) {
+	for date := from; to.After(date); date = date.Add(hoursInDay * time.Hour) {
 		if calendar.Nasdaq.IsMarketDay(date) {
 			resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
 			if err != nil {
@@ -319,6 +322,7 @@ func Trades(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 }
 
 func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+	const hoursInDay = 24
 	// FIXME: This function is broken with the following problems:
 	//  - Callee (backfiller.go) wrongly checks the market day (checks for the day after)
 	//  - Callee always specifies one day worth of data, pointless to do a for loop
@@ -327,7 +331,7 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 	quotes := make([]api.QuoteTick, 0)
 
 	t := time.Now()
-	for date := from; to.After(date); date = date.Add(24 * time.Hour) {
+	for date := from; to.After(date); date = date.Add(hoursInDay * time.Hour) {
 		if calendar.Nasdaq.IsMarketDay(date) {
 			resp, err := api.GetHistoricQuotes(symbol, date.Format(defaultFormat), batchSize)
 			if err != nil {
