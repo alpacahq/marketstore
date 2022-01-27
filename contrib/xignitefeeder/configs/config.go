@@ -65,8 +65,8 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	}
 
 	ret := &DefaultConfig{}
-	if err := json.Unmarshal(data, &ret); err != nil {
-		return nil, err
+	if err2 := json.Unmarshal(data, &ret); err2 != nil {
+		return nil, err2
 	}
 
 	if len(ret.Exchanges) < 1 && len(ret.IndexGroups) < 1 {

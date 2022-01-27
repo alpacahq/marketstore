@@ -215,9 +215,9 @@ func (r *Reader) Read() (csm ColumnSeriesMap, err error) {
 	for key, iop := range r.IOPMap {
 		rt := rtMap[key]
 		rlen := rlMap[key]
-		buffer, err := r.read(iop)
-		if err != nil {
-			return nil, err
+		buffer, err2 := r.read(iop)
+		if err2 != nil {
+			return nil, err2
 		}
 		if rt == VARIABLE {
 			buffer = trimResultsToRange(r.pr.Range, rlen, buffer)

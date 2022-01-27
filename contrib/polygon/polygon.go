@@ -109,15 +109,15 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 			return
 		}
 
-		scanner, err := executor.NewReader(parsed)
-		if err != nil {
-			log.Error("[polygon] new scanner failure (%v)", err)
+		scanner, err2 := executor.NewReader(parsed)
+		if err2 != nil {
+			log.Error("[polygon] new scanner failure (%v)", err2)
 			return
 		}
 
-		csm, err := scanner.Read()
-		if err != nil {
-			log.Error("[polygon] scanner read failure (%v)", err)
+		csm, err2 := scanner.Read()
+		if err2 != nil {
+			log.Error("[polygon] scanner read failure (%v)", err2)
 			return
 		}
 

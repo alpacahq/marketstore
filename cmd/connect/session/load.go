@@ -39,8 +39,8 @@ func (c *Client) load(line string) {
 	}
 	if dataFD != nil {
 		defer func(dataFD *os.File) {
-			if err := dataFD.Close(); err != nil {
-				log.Error("failed to close a file to load: %v", err)
+			if err2 := dataFD.Close(); err2 != nil {
+				log.Error("failed to close a file to load: %v", err2)
 			}
 		}(dataFD)
 	}

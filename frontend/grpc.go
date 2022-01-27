@@ -286,7 +286,7 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 ) (*proto.ListSymbolsResponse, error) {
 	response := proto.ListSymbolsResponse{}
 	if atomic.LoadUint32(&Queryable) == 0 {
-		return nil, queryableError
+		return nil, errNotQueryable
 	}
 
 	switch req.Format {

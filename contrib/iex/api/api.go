@@ -148,8 +148,8 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	}
 
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			log.Error(fmt.Sprintf("failed to close readCloser. err=%v", err))
+		if err2 := Body.Close(); err2 != nil {
+			log.Error(fmt.Sprintf("failed to close readCloser. err=%v", err2))
 		}
 	}(res.Body)
 
@@ -239,9 +239,9 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 	}
 
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Error(fmt.Sprintf("failed to close readCloser. err=%v", err))
+		err2 := Body.Close()
+		if err2 != nil {
+			log.Error(fmt.Sprintf("failed to close readCloser. err=%v", err2))
 		}
 	}(res.Body)
 

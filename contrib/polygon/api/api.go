@@ -350,11 +350,11 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 			body, err = readFromCache(filename)
 		}
 		if !FromCache || err != nil {
-			body, err := download(u.String(), retryCount)
-			if err != nil {
-				return nil, err
+			body2, err2 := download(u.String(), retryCount)
+			if err2 != nil {
+				return nil, err2
 			}
-			jsonDump(body, filename)
+			jsonDump(body2, filename)
 		}
 
 		err = json.Unmarshal(body, quotes)

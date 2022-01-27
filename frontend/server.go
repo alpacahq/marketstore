@@ -18,7 +18,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 )
 
-var queryableError = errors.New("server is not queryable")
+var errNotQueryable = errors.New("server is not queryable")
 
 type Writer interface {
 	WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error
@@ -52,11 +52,11 @@ type DataService struct {
 
 func (s *DataService) Init() {}
 
-type RpcServer struct {
+type RPCServer struct {
 	*rpc.Server
 }
 
-func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *RPCServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	w.Header().Set("marketstore-version", utils.GitHash)
 	s.Server.ServeHTTP(w, r)
@@ -65,8 +65,8 @@ func (s *RpcServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func NewServer(rootDir string, catDir *catalog.Directory, aggRunner *sqlparser.AggRunner,
 	w Writer, q QueryInterface,
-) (*RpcServer, *DataService) {
-	s := &RpcServer{
+) (*RPCServer, *DataService) {
+	s := &RPCServer{
 		Server: rpc.NewServer(),
 	}
 	s.RegisterCodec(json2.NewCodec(), "application/json")

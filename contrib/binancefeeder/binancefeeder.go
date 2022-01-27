@@ -355,9 +355,8 @@ func (bn *BinanceFetcher) Run() {
 				log.Warn("Incorrect format: %v", originalInterval)
 			}
 			waitTill = timeEnd.Add(bn.baseTimeframe.Duration)
-
-			timeStartM := timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
-			timeEndM := timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
+			timeStartM2 := timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
+			timeEndM2 := timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 
 			// Make sure you get the last candle within the timeframe.
 			// If the next candle is in the API call, that means the previous candle has been fully formed
@@ -367,14 +366,14 @@ func (bn *BinanceFetcher) Run() {
 				rates, err := client.NewKlinesService().
 					Symbol(symbols[0] + baseCurrencies[0]).
 					Interval(timeInterval).
-					StartTime(timeStartM).
+					StartTime(timeStartM2).
 					Do(context.Background())
 				if err != nil {
 					log.Info("Response error: %v", err)
 					time.Sleep(time.Minute)
 				}
 
-				if len(rates) > 0 && rates[len(rates)-1].OpenTime-timeEndM >= 0 {
+				if len(rates) > 0 && rates[len(rates)-1].OpenTime-timeEndM2 >= 0 {
 					gotCandle = true
 				}
 			}

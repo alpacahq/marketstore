@@ -164,7 +164,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	)
 
 	// init writer
-	var server *frontend.RpcServer
+	var server *frontend.RPCServer
 	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
 	if err != nil {
 		return fmt.Errorf("init writer: %w", err)
@@ -243,13 +243,14 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	// Serve.
 	log.Info("launching tcp listener for all services...")
 	if config.GRPCListenURL != "" {
-		grpcLn, err := net.Listen("tcp", config.GRPCListenURL)
-		if err != nil {
-			return fmt.Errorf("failed to start GRPC server - error: %w", err)
+		grpcLn, err2 := net.Listen("tcp", config.GRPCListenURL)
+		if err2 != nil {
+			return fmt.Errorf("failed to start GRPC server - error: %w", err2)
 		}
 		go func() {
-			err := grpcServer.Serve(grpcLn)
-			if err != nil {
+			err3 := grpcServer.Serve(grpcLn)
+			if err3 != nil {
+				log.Error("gRPC server error: %v", err.Error())
 				grpcServer.GracefulStop()
 			}
 		}()
