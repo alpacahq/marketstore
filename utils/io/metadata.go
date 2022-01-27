@@ -24,8 +24,10 @@ const (
 	recordTypeHeaderBytes  = 8 // 0: fixed length records, 1: variable length records
 	nFieldsHeaderBytes     = 8 // number of fields per record
 	recLenHeaderBytes      = 8 // recordLength
-	reservedHeaderBytes    = 8
-	elementNameHeaderBytes = 32 // 32bytes per element
+	reservedHeader1Bytes   = 8
+	elementNameHeaderBytes = 32   // 32bytes per element
+	maxNumElements         = 1024 // max number of elements in a bucket
+	reservedHeader2Bytes   = 365
 	Headersize             = 37024
 	FileinfoVersion        = int64(2.0)
 )
@@ -257,7 +259,7 @@ func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 
 func (f *TimeBucketInfo) readHeader(path string) (err error) {
 	const headerPart1Bytes = versionHeaderBytes + descriptionHeaderBytes + yearHeaderBytes + intervalsHeaderBytes +
-		recordTypeHeaderBytes + nFieldsHeaderBytes + recLenHeaderBytes + reservedHeaderBytes
+		recordTypeHeaderBytes + nFieldsHeaderBytes + recLenHeaderBytes + reservedHeader1Bytes
 	file, err := os.Open(path)
 	if err != nil {
 		log.Error("Failed to open file: %v - Error: %v", path, err.Error())
@@ -287,10 +289,14 @@ func (f *TimeBucketInfo) readHeader(path string) (err error) {
 	}
 
 	// Read past empty element name space
-	file.Seek(1024*32-secondReadSize, io.SeekCurrent)
+	_, err = file.Seek(maxNumElements*elementNameHeaderBytes-secondReadSize, io.SeekCurrent)
+	if err != nil {
+		log.Error("Failed to read empty space for element names from file: %v - Error: %v", path, err)
+		return err
+	}
 
 	// Read element types
-	start := headerPart1Bytes + 1024*32
+	start := headerPart1Bytes + maxNumElements*elementNameHeaderBytes
 	n, err = file.Read(buffer[start : start+int(header.NElements)])
 	if err != nil || n != int(header.NElements) {
 		log.Error("Failed to read header part3 from file: %v - Error: %v", path, err)
@@ -338,7 +344,7 @@ func NewTimeBucketInfoFromHeader(hp *Header, path string) *TimeBucketInfo {
 // Header is the on-disk byte representation of the file header.
 type Header struct {
 	Version      int64
-	Description  [256]byte
+	Description  [descriptionHeaderBytes]byte
 	Year         int64
 	Timeframe    int64 // Duration in nanoseconds
 	RecordType   int64
@@ -346,9 +352,9 @@ type Header struct {
 	RecordLength int64
 	reserved1    int64
 	// Above is the fixed header portion - size is 312 Bytes = (7*8 + 256)
-	ElementNames [1024][32]byte
-	ElementTypes [1024]byte
-	reserved2    [365]int64
+	ElementNames [maxNumElements][elementNameHeaderBytes]byte
+	ElementTypes [maxNumElements]byte
+	reserved2    [reservedHeader2Bytes]int64
 }
 
 // WriteHeader writes the header described by a given TimeBucketInfo to the
@@ -371,7 +377,7 @@ func (hp *Header) Load(f *TimeBucketInfo) {
 	hp.Version = f.GetVersion()
 	copy(hp.Description[:], f.GetDescription())
 	hp.Year = int64(f.Year)
-	hp.Timeframe = int64(f.GetTimeframe().Nanoseconds())
+	hp.Timeframe = f.GetTimeframe().Nanoseconds()
 	hp.NElements = int64(f.GetNelements())
 	hp.RecordLength = int64(f.GetRecordLength())
 	hp.RecordType = int64(f.GetRecordType())
