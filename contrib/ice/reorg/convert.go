@@ -11,6 +11,7 @@ import (
 
 var TIME = reflect.TypeOf(time.Time{}).Name()
 
+const 	exampleFloat = 1.2
 var (
 	UINT   = reflect.TypeOf(uint(1)).Name()
 	UINT8  = reflect.TypeOf(uint8(1)).Name()
@@ -22,7 +23,7 @@ var (
 	INT16  = reflect.TypeOf(int16(1)).Name()
 	INT32  = reflect.TypeOf(int32(1)).Name()
 	INT64  = reflect.TypeOf(int64(1)).Name()
-	FLOAT  = reflect.TypeOf(1.2).Name()
+	FLOAT  = reflect.TypeOf(exampleFloat).Name()
 	STRING = reflect.TypeOf("").Name()
 )
 

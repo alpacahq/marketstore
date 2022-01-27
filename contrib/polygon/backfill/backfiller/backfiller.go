@@ -47,6 +47,8 @@ var (
 )
 
 func init() {
+	const defaultBatchSize = 50000
+
 	flag.StringVar(&dir, "dir", "", "mktsdb directory to backfill to. If empty, the dir is taken from mkts.yml")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format),
 		"backfill from date (YYYY-MM-DD) [included]",
@@ -62,7 +64,7 @@ func init() {
 	flag.StringVar(&symbols, "symbols", "*",
 		"glob pattern of symbols to backfill, the default * means backfill all symbols")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
-	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades, quotes, & bars")
+	flag.IntVar(&batchSize, "batchSize", defaultBatchSize, "batch/pagination size for downloading trades, quotes, & bars")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
 	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
 	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
@@ -74,6 +76,8 @@ func init() {
 }
 
 func main() {
+	const allPerm = 0o777
+	const oneDay = 24 * time.Hour
 	rootDir, triggers, walRotateInterval := initConfig()
 	instanceMeta, shutdownPending, walWG, err := initWriter(rootDir, triggers, walRotateInterval)
 	if err != nil {
@@ -126,26 +130,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	tradePeriodDuration, err := parseAndValidateDuration(tradePeriod, 60*24*time.Hour, 24*time.Hour)
+	tradePeriodDuration, err := parseAndValidateDuration(tradePeriod, 60*oneDay, oneDay)
 	if err != nil {
 		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
 		os.Exit(1)
 	}
 
-	quotePeriodDuration, err := parseAndValidateDuration(quotePeriod, 60*24*time.Hour, 24*time.Hour)
+	quotePeriodDuration, err := parseAndValidateDuration(quotePeriod, 60*oneDay, oneDay)
 	if err != nil {
 		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
 		os.Exit(1)
 	}
 
-	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*24*time.Hour, 24*time.Hour)
+	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*oneDay, oneDay)
 	if err != nil {
 		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
 		os.Exit(1)
 	}
 
 	if cacheDir != "" {
-		err = os.MkdirAll(cacheDir, 0o777)
+		err = os.MkdirAll(cacheDir, allPerm)
 		if err != nil {
 			log.Error("[polygon] cannot create json dump directory (%v)", err)
 			os.Exit(1)
@@ -321,9 +325,10 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 func getBars(start, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool,
 	writerWP *worker.WorkerPool,
 ) {
-	if len(exchangeIDs) != 0 && period != 24*time.Hour {
+	const oneDay = 24 * time.Hour
+	if len(exchangeIDs) != 0 && period != oneDay {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
-		period = 24 * time.Hour
+		period = oneDay
 	}
 	log.Info("[polygon] backfilling bars for %v", symbol)
 	for end.After(start) {

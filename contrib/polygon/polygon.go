@@ -18,6 +18,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+const defaultBatchSize = 50000
+
 type PolygonFetcher struct {
 	config polygon_config.FetcherConfig
 	types  map[string]struct{} // Bars, Quotes, Trades
@@ -145,7 +147,7 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 	}
 
 	// request & write the missing bars
-	if err = backfill.Bars(symbol, from, time.Time{}, 50000, false, writerWP); err != nil {
+	if err = backfill.Bars(symbol, from, time.Time{}, defaultBatchSize, false, writerWP); err != nil {
 		log.Error("[polygon] bars backfill failure for key: [%v] (%v)", tbk.String(), err)
 	}
 }

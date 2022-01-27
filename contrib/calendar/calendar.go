@@ -47,14 +47,13 @@ type calendarJson struct {
 // Nasdaq implements market calendar for the NASDAQ.
 var Nasdaq = New(NasdaqJson)
 
-func jd(t time.Time) int {
+func julianDate(t time.Time) int {
 	// Note: Date() is faster than calling Hour(), Month(), and Day() separately
-	i, m, k := t.Date()
-	j := int(m)
-	return k - 32075 +
-		1461*(i+4800+(j-14)/12)/4 +
-		367*(j-2-(j-14)/12*12)/12 -
-		3*((i+4900+(j-14)/12)/100)/4
+	year, m, day := t.Date()
+	month := int(m)
+	// nolint:gomnd // well-known algorithm to calculate julian date number
+	return day - 32075 + 1461*(year+4800+(month-14)/12)/4 + 367*(month-2-(month-14)/12*12)/12 -
+		3*((year+4900+(month-14)/12)/100)/4
 }
 
 func ParseTime(tstr string) Time {
@@ -75,11 +74,11 @@ func New(calendarJSON string) *Calendar {
 	}
 	for _, dateString := range cmap.NonTradingDays {
 		t, _ := time.Parse("2006-01-02", dateString)
-		cal.days[jd(t)] = Closed
+		cal.days[julianDate(t)] = Closed
 	}
 	for _, dateString := range cmap.EarlyCloses {
 		t, _ := time.Parse("2006-01-02", dateString)
-		cal.days[jd(t)] = EarlyClose
+		cal.days[julianDate(t)] = EarlyClose
 	}
 	cal.tz, _ = time.LoadLocation(cmap.Timezone)
 	cal.openTime = ParseTime(cmap.OpenTime)
@@ -93,7 +92,7 @@ func (calendar *Calendar) IsMarketDay(t time.Time) bool {
 	if t.Weekday() == time.Saturday || t.Weekday() == time.Sunday {
 		return false
 	}
-	if state, ok := calendar.days[jd(t)]; ok {
+	if state, ok := calendar.days[julianDate(t)]; ok {
 		return state != Closed
 	}
 	return true
@@ -115,12 +114,12 @@ func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 	year, month, day := t.Date()
 	ot := calendar.openTime
 	open := time.Date(year, month, day, ot.hour, ot.minute, ot.second, 0, calendar.tz)
-	if state, ok := calendar.days[jd(t)]; ok {
+	if state, ok := calendar.days[julianDate(t)]; ok {
 		switch state {
 		case EarlyClose:
 			et := calendar.earlyCloseTime
-			close := time.Date(year, month, day, et.hour, et.minute, et.second, 0, calendar.tz)
-			if t.Before(open) || t.Equal(close) || t.After(close) {
+			clos := time.Date(year, month, day, et.hour, et.minute, et.second, 0, calendar.tz)
+			if t.Before(open) || t.Equal(clos) || t.After(clos) {
 				return false
 			}
 			return true
@@ -131,8 +130,8 @@ func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 		}
 	} else {
 		ct := calendar.closeTime
-		close := time.Date(year, month, day, ct.hour, ct.minute, ct.second, 0, calendar.tz)
-		if t.Before(open) || t.Equal(close) || t.After(close) {
+		clos := time.Date(year, month, day, ct.hour, ct.minute, ct.second, 0, calendar.tz)
+		if t.Before(open) || t.Equal(clos) || t.After(clos) {
 			return false
 		}
 		return true
@@ -151,7 +150,7 @@ func (calendar *Calendar) EpochMarketClose(epoch int64) *time.Time {
 // supplied timestamp occurs on. Returns nil if it is not a market day.
 func (calendar *Calendar) MarketClose(t time.Time) *time.Time {
 	var mktClose *time.Time
-	if state, ok := calendar.days[jd(t)]; ok {
+	if state, ok := calendar.days[julianDate(t)]; ok {
 		switch state {
 		case EarlyClose:
 			earlyClose := time.Date(
