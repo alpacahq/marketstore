@@ -36,16 +36,19 @@ func InitCatalog(f bool) Option {
 		s.initCatalog = f
 	}
 }
+
 func InitWALCache(f bool) Option {
 	return func(s *InstanceMetadataOptions) {
 		s.initWALCache = f
 	}
 }
+
 func BackgroundSync(f bool) Option {
 	return func(s *InstanceMetadataOptions) {
 		s.backgroundSync = f
 	}
 }
+
 func WALBypass(f bool) Option {
 	return func(s *InstanceMetadataOptions) {
 		s.walBypass = f

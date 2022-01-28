@@ -22,7 +22,7 @@ const (
 	fiveYear = "5y"
 	oneDay   = "1d"
 	monthly  = "1m"
-    retryNum = 5
+	retryNum = 5
 )
 
 type IEXFetcher struct {
@@ -119,7 +119,7 @@ func (f *IEXFetcher) Run() {
 	}()
 
 	const (
-		runHour = 5
+		runHour   = 5
 		runMinute = 10
 	)
 	runDaily := onceDaily(&f.lastDailyRunDate, runHour, runMinute)
@@ -222,7 +222,7 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 			open   []float32
 			high   []float32
 			low    []float32
-			clos  []float32
+			clos   []float32
 			volume []int32
 		)
 

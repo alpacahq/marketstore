@@ -11,10 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"

@@ -529,7 +529,6 @@ func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wa
 }
 
 func (wf *WALFileType) IsOpen() bool {
-
 	if _, err := wf.FilePtr.Stat(); err != nil {
 		log.Info(io.GetCallerFileContext(0) + ": File stat failed, file probably deleted: " + err.Error())
 		return false

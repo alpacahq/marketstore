@@ -22,7 +22,6 @@ import (
 // See configs.Config for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config, err := configs.NewConfig(conf)
-
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to load config file. %v", conf))
 	}
@@ -50,7 +49,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timeChecker = feed.NewScheduledMarketTimeChecker(
 			timeChecker,
 			scheduleMin,
-			)
+		)
 	} else if config.OffHoursInterval != 0 {
 		log.Info(fmt.Sprintf("[Xignite Feeder] off_hours_interval=%dmin is set. "+
 			"The data will be retrieved every %d minutes even when the market is closed.",

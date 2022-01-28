@@ -1,8 +1,9 @@
 package io_test
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils/io"
 	"testing"
+
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 const columnName = "columnName"
@@ -152,6 +153,8 @@ func assertType(t *testing.T, cs *io.ColumnSeries, typ io.EnumElementType) {
 		_, ok = cs.GetByName(columnName).([]uint32)
 	case io.UINT64:
 		_, ok = cs.GetByName(columnName).([]uint64)
+	case io.BOOL, io.EPOCH, io.NONE, io.STRING, io.STRING16:
+		t.Fatal("not tested yet")
 	}
 	if !ok {
 		t.Fatal("column type not coerced expectedly")

@@ -14,7 +14,7 @@ import (
 // resulting in a variable declaration as the following:.
 var (
 	activeStatus = "active"
-	//inactiveStatus = "inactive".
+	// inactiveStatus = "inactive".
 )
 
 // Manager manages symbols in the target stock exchanges.

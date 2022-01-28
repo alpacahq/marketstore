@@ -42,7 +42,7 @@ func (c *Count) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-// Accum sends new data to the aggregate
+// Accum sends new data to the aggregate.
 func (c *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	c.Sum += int64(cols.Len())

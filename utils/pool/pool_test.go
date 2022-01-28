@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/pool"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/utils/pool"
 )
 
 func TestPool(t *testing.T) {

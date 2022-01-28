@@ -10,29 +10,32 @@ import (
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 )
 
+const defaultWSWorkerCount = 10
+
 type AlpacaStreamer struct {
 	config config.Config
 }
 
 // NewBgWorker returns a new instance of AlpacaStreamer. See config
 // for more details about configuring AlpacaStreamer.
+// nolint:deadcode // used as a marketstore plugin
 func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	data, _ := json.Marshal(conf)
-	config := config.Config{
+	cfg := config.Config{
 		WSServer:      "wss://data.alpaca.markets/stream",
-		WSWorkerCount: 10,
+		WSWorkerCount: defaultWSWorkerCount,
 	}
-	err = json.Unmarshal(data, &config)
+	err = json.Unmarshal(data, &cfg)
 	if err != nil {
 		return
 	}
 
-	if config.APIKey == "" || config.APISecret == "" {
+	if cfg.APIKey == "" || cfg.APISecret == "" {
 		return nil, errors.New("api_key and api_secret needs to be set")
 	}
 
 	return &AlpacaStreamer{
-		config: config,
+		config: cfg,
 	}, nil
 }
 

@@ -6,11 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"gopkg.in/yaml.v2"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // CSVConfig is constructed from the control file

@@ -253,7 +253,7 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 }
 
 const (
-	// see /docs/durable_writes_design.txt for definition
+	// see /docs/durable_writes_design.txt for definition.
 	tgLenBytes    = 8
 	tgIDBytes     = 8
 	checkSumBytes = 16

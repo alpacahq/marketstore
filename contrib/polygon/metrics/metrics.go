@@ -5,7 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// PolygonStreamLastUpdate stores the Unix time when the given (bar, quote, trade) stream is updated
+// PolygonStreamLastUpdate stores the Unix time when the given (bar, quote, trade) stream is updated.
 var PolygonStreamLastUpdate = promauto.NewGaugeVec(
 	prometheus.GaugeOpts{
 		Namespace: "alpaca",

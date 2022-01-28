@@ -131,6 +131,6 @@ const (
 	MarketMakerQuotesClosed  QuoteCondition = 'L'
 	SlowQuoteLRPBidAndOffer  QuoteCondition = 'U'
 	// NonFirmQuote            QuoteCondition = 'N' // Same as Nasdaq
-	// OnDemandIntraDayAuction QuoteCondition = '4' // Same as Nasdaq
+	// OnDemandIntraDayAuction QuoteCondition = '4' // Same as Nasdaq.
 
 )

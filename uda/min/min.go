@@ -38,7 +38,7 @@ func (m *Min) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-// Accum sends new data to the aggregate
+// Accum sends new data to the aggregate.
 func (m *Min) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
