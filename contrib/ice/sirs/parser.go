@@ -2,10 +2,11 @@ package sirs
 
 import (
 	"bufio"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 
 	"github.com/pkg/errors"
 
