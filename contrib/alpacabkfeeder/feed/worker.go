@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-
 	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
 	"github.com/pkg/errors"
 

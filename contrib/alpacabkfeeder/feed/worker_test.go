@@ -53,5 +53,4 @@ func TestWorker_try_normal(t *testing.T) {
 	if w.WriteCount != 1 {
 		t.Errorf("write should be performed once")
 	}
-
 }

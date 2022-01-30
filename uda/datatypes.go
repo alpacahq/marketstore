@@ -38,7 +38,7 @@ type AggInterface interface {
 	Accum(io.TimeBucketKey, *functions.ArgumentMap, io.ColumnInterface) (*io.ColumnSeries, error)
 }
 
-//TODO: This is where we break out a UDF API.
+// TODO: This is where we break out a UDF API.
 type FunctionInterface interface {
 	GetRequiredArgs() []io.DataShape
 	GetOptionalArgs() []io.DataShape

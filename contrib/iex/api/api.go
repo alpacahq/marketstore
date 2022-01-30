@@ -178,7 +178,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		} else {
 			var resp0 *GetBarsResponse
 			var resp1 *GetBarsResponse
-			var split = len(symbols) / 2
+			split := len(symbols) / 2
 
 			// fmt.Printf("Symbol groups: %v - %v\n", symbols[:split], symbols[split:])
 

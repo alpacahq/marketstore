@@ -15,10 +15,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
-
 	rpc "github.com/alpacahq/rpc/rpc2"
 	msgpack "github.com/vmihailenco/msgpack"
+
+	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 )
 
 // ResponseRecorder is an implementation of http.ResponseWriter that

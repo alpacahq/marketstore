@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )

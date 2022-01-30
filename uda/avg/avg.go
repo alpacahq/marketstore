@@ -3,11 +3,10 @@ package avg
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var (
@@ -39,7 +38,7 @@ func (a *Avg) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-// Accum sends new data to the aggregate
+// Accum sends new data to the aggregate.
 func (a *Avg) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {

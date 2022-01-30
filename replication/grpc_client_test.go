@@ -46,7 +46,7 @@ func TestGRPCReplicationClient_Recv_streamNotInitialized(t *testing.T) {
 	// _ = client.Connect(context.Background()) // Not Connected yet
 
 	// --- when & then ---
-	if 	_, err := client.Recv(); err == nil {
+	if _, err := client.Recv(); err == nil {
 		t.Errorf("Recv() call should fail before connect")
 	}
 }

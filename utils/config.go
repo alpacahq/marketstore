@@ -67,50 +67,48 @@ type MktsConfig struct {
 }
 
 func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
-	var (
-		aux struct {
-			// RootDirectory can be either a relative or absolute path
-			RootDirectory              string `yaml:"root_directory"`
-			ListenHost                 string `yaml:"listen_host"`
-			ListenPort                 string `yaml:"listen_port"`
-			GRPCListenPort             string `yaml:"grpc_listen_port"`
-			GRPCMaxSendMsgSize         int    `yaml:"grpc_max_send_msg_size"` // in MB
-			GRPCMaxRecvMsgSize         int    `yaml:"grpc_max_recv_msg_size"` // in MB
-			UtilitiesURL               string `yaml:"utilities_url"`
-			Timezone                   string `yaml:"timezone"`
-			LogLevel                   string `yaml:"log_level"`
-			Queryable                  string `yaml:"queryable"`
-			StopGracePeriod            int    `yaml:"stop_grace_period"`
-			WALRotateInterval          int    `yaml:"wal_rotate_interval"`
-			DisableVariableCompression string `yaml:"disable_variable_compression"`
-			InitCatalog                string `yaml:"init_catalog"`
-			InitWALCache               string `yaml:"init_wal_cache"`
-			BackgroundSync             string `yaml:"background_sync"`
-			WALBypass                  string `yaml:"wal_bypass"`
-			ClusterMode                string `yaml:"cluster_mode"`
-			Replication                struct {
-				Enabled    bool   `yaml:"enabled"`
-				TLSEnabled bool   `yaml:"tls_enabled"`
-				CertFile   string `yaml:"cert_file"`
-				KeyFile    string `yaml:"key_file"`
-				// ListenPort is used for the replication protocol by the master instance
-				ListenPort        int           `yaml:"listen_port"`
-				MasterHost        string        `yaml:"master_host"`
-				RetryInterval     time.Duration `yaml:"retry_interval"`
-				RetryBackoffCoeff int           `yaml:"retry_backoff_coeff"`
-			} `yaml:"replication"`
-			Triggers []struct {
-				Module string                 `yaml:"module"`
-				On     string                 `yaml:"on"`
-				Config map[string]interface{} `yaml:"config"`
-			} `yaml:"triggers"`
-			BgWorkers []struct {
-				Module string                 `yaml:"module"`
-				Name   string                 `yaml:"name"`
-				Config map[string]interface{} `yaml:"config"`
-			} `yaml:"bgworkers"`
-		}
-	)
+	var aux struct {
+		// RootDirectory can be either a relative or absolute path
+		RootDirectory              string `yaml:"root_directory"`
+		ListenHost                 string `yaml:"listen_host"`
+		ListenPort                 string `yaml:"listen_port"`
+		GRPCListenPort             string `yaml:"grpc_listen_port"`
+		GRPCMaxSendMsgSize         int    `yaml:"grpc_max_send_msg_size"` // in MB
+		GRPCMaxRecvMsgSize         int    `yaml:"grpc_max_recv_msg_size"` // in MB
+		UtilitiesURL               string `yaml:"utilities_url"`
+		Timezone                   string `yaml:"timezone"`
+		LogLevel                   string `yaml:"log_level"`
+		Queryable                  string `yaml:"queryable"`
+		StopGracePeriod            int    `yaml:"stop_grace_period"`
+		WALRotateInterval          int    `yaml:"wal_rotate_interval"`
+		DisableVariableCompression string `yaml:"disable_variable_compression"`
+		InitCatalog                string `yaml:"init_catalog"`
+		InitWALCache               string `yaml:"init_wal_cache"`
+		BackgroundSync             string `yaml:"background_sync"`
+		WALBypass                  string `yaml:"wal_bypass"`
+		ClusterMode                string `yaml:"cluster_mode"`
+		Replication                struct {
+			Enabled    bool   `yaml:"enabled"`
+			TLSEnabled bool   `yaml:"tls_enabled"`
+			CertFile   string `yaml:"cert_file"`
+			KeyFile    string `yaml:"key_file"`
+			// ListenPort is used for the replication protocol by the master instance
+			ListenPort        int           `yaml:"listen_port"`
+			MasterHost        string        `yaml:"master_host"`
+			RetryInterval     time.Duration `yaml:"retry_interval"`
+			RetryBackoffCoeff int           `yaml:"retry_backoff_coeff"`
+		} `yaml:"replication"`
+		Triggers []struct {
+			Module string                 `yaml:"module"`
+			On     string                 `yaml:"on"`
+			Config map[string]interface{} `yaml:"config"`
+		} `yaml:"triggers"`
+		BgWorkers []struct {
+			Module string                 `yaml:"module"`
+			Name   string                 `yaml:"name"`
+			Config map[string]interface{} `yaml:"config"`
+		} `yaml:"bgworkers"`
+	}
 
 	if err := yaml.Unmarshal(data, &aux); err != nil {
 		return nil, err

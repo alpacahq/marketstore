@@ -23,7 +23,6 @@ import (
 // See configs.Config for the details of available configurations.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config, err := configs.NewConfig(conf)
-
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to load config file. %v", conf))
 	}
@@ -34,7 +33,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		ID:           config.APIKeyID,
 		PolygonKeyID: config.APIKeyID,
 		Secret:       config.APISecretKey,
-		//OAuth:        os.Getenv(EnvApiOAuth),
+		// OAuth:        os.Getenv(EnvApiOAuth),
 	}
 	if config.APIKeyID == "" || config.APISecretKey == "" {
 		// if empty, get from env vars

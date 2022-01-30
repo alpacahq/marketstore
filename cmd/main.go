@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/cmd/connect"
@@ -11,6 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/cmd/start"
 	"github.com/alpacahq/marketstore/v4/cmd/tool"
 	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // flagPrintVersion set flag to show current marketstore version.

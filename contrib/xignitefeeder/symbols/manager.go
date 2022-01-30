@@ -36,7 +36,7 @@ func NewManager(apiClient api.Client, targetExchanges, targetIndexGroups []strin
 
 // GetAllIdentifiers returns Identifiers for the target symbols for all the target exchanges
 // identifier = {exchange}.{symbol} (ex. "XTKS.1301").
-func (m ManagerImpl) GetAllIdentifiers() []string {
+func (m *ManagerImpl) GetAllIdentifiers() []string {
 	var identifiers []string
 	for _, exchange := range m.TargetExchanges {
 		identifiers = append(identifiers, m.Identifiers[exchange]...)
@@ -46,7 +46,7 @@ func (m ManagerImpl) GetAllIdentifiers() []string {
 
 // GetAllIndexIdentifiers returns Identifiers for the target index symbols for all the index groups
 // identifier = {exchange}.{symbol} (ex. "XTKS.1301").
-func (m ManagerImpl) GetAllIndexIdentifiers() []string {
+func (m *ManagerImpl) GetAllIndexIdentifiers() []string {
 	var identifiers []string
 	for _, exchange := range m.TargetIndexGroups {
 		identifiers = append(identifiers, m.IndexIdentifiers[exchange]...)
@@ -55,14 +55,14 @@ func (m ManagerImpl) GetAllIndexIdentifiers() []string {
 }
 
 // Update calls UpdateSymbols and UpdateIndexSymbols sequentially.
-func (m ManagerImpl) Update() {
+func (m *ManagerImpl) Update() {
 	m.UpdateSymbols()
 	m.UpdateIndexSymbols()
 }
 
 // UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers
 // and store them to the Identifiers map.
-func (m ManagerImpl) UpdateSymbols() {
+func (m *ManagerImpl) UpdateSymbols() {
 	for _, exchange := range m.TargetExchanges {
 		resp, err := m.APIClient.ListSymbols(exchange)
 
@@ -89,7 +89,7 @@ func (m ManagerImpl) UpdateSymbols() {
 
 // UpdateIndexSymbols calls the ListIndexSymbols endpoint, convert the index symbols to the Identifiers
 // and store them to the Identifiers map.
-func (m ManagerImpl) UpdateIndexSymbols() {
+func (m *ManagerImpl) UpdateIndexSymbols() {
 	for _, indexGroup := range m.TargetIndexGroups {
 		resp, err := m.APIClient.ListIndexSymbols(indexGroup)
 

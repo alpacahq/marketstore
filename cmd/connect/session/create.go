@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // getinfo gets information about a bucket in the database.

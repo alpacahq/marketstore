@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
@@ -75,7 +74,7 @@ func (ca *Candler) GetInitArgs() []io.DataShape {
 OVERRIDES - these methods should be overridden in a concrete implementation of this class
 */
 
-// Accum sends new data to the aggregate
+// Accum sends new data to the aggregate.
 func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.ColumnInterface, _ *catalog.Directory,
 ) (*io.ColumnSeries, error) {
 	return nil, fmt.Errorf("accum called from base class, must override implementation")

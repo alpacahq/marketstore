@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//TradeBucketedResponse json from bitMEX bucketed trade API.
+// TradeBucketedResponse json from bitMEX bucketed trade API.
 type TradeBucketedResponse struct {
 	Timestamp       string  `json:"timestamp"`
 	Symbol          string  `json:"symbol"`

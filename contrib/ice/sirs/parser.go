@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
@@ -38,7 +40,7 @@ func ParseFile(r io.Reader) ([]*SecurityMaster, error) {
 
 func (l *loader) lineReader(currentLine string) error {
 	var err error
-	line := string(currentLine)
+	line := currentLine
 	recType := line[13:15]
 
 	// file header
@@ -57,7 +59,10 @@ func (l *loader) lineReader(currentLine string) error {
 	if l.stg.Cusip != cusip {
 		// save current record
 		if l.stg.Cusip != "" {
-			l.saveRecord()
+
+			if err = l.saveRecord(); err != nil {
+				log.Error("failed to save record. currentLine=%s", currentLine)
+			}
 		}
 
 		// create new record
@@ -100,7 +105,7 @@ func (l *loader) saveRecord() error {
 	// set symbol
 	l.stg.Symbol = l.stg.ListingExchangeTicker
 	if l.stg.TickerSymbolExt == "W" {
-		l.stg.Symbol = l.stg.Symbol + ".W"
+		l.stg.Symbol += ".W"
 	}
 
 	// Replace space with "."

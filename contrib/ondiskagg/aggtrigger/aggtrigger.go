@@ -158,7 +158,6 @@ Query:
 	if cs := (*csm)[*tbk]; cs != nil {
 		s.write(tbk, cs, tail, head, elements)
 	}
-
 }
 
 func (s *OnDiskAggTrigger) write(

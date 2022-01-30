@@ -249,6 +249,7 @@ func getUInt64ColumnFromCSVRows(csvRows [][]string, index int) (col []uint64, er
 }
 
 const String16RuneSize = 16
+
 func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][String16RuneSize]rune) {
 	col = make([][String16RuneSize]rune, len(csvRows))
 	for i, row := range csvRows {

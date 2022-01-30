@@ -87,7 +87,7 @@ var TradeConditionMapping = map[int]enum.TradeCondition{
 	53: enum.QualifiedContingentTrade,
 }
 
-// ConvertTradeCondition converts between Polygon trade condition format and Marketstore's internal represention.
+// ConvertTradeCondition converts between Polygon trade condition format and Marketstore's internal representing.
 func ConvertTradeCondition(condition int) enum.TradeCondition {
 	val, ok := TradeConditionMapping[condition]
 	if !ok {
@@ -144,7 +144,7 @@ var QuoteConditionMapping = map[int]enum.QuoteCondition{
 	// 71: enum.SlowDueLRPBidAsk,
 }
 
-// ConvertQuoteCondition converts between Polygon trade condition format and Marketstore's internal represention.
+// ConvertQuoteCondition converts between Polygon trade condition format and Marketstore's internal representing.
 func ConvertQuoteCondition(condition int) enum.QuoteCondition {
 	val, ok := QuoteConditionMapping[condition]
 	if !ok {
