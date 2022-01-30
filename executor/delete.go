@@ -32,7 +32,7 @@ func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
-		if de.IOPMap[key], err = NewIOPlan(sfl, pr); err != nil {
+		if de.IOPMap[key], err = NewIOPlan(sfl, pr.Limit, pr.Range, pr.TimeQuals); err != nil {
 			return nil, err
 		}
 		recordLen := de.IOPMap[key].RecordLen

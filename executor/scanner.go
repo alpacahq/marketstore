@@ -47,11 +47,12 @@ type ioplan struct {
 	TimeQuals         []planner.TimeQualFunc
 }
 
-func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err error) {
+func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateRange, timeQuals []planner.TimeQualFunc,
+) (iop *ioplan, err error) {
 	iop = &ioplan{
 		FilePlan: make([]*ioFilePlan, 0),
-		Limit:    pr.Limit,
-		Range:    pr.Range,
+		Limit:    limit,
+		Range:    range2,
 	}
 	/*
 		At this point we have a date unconstrained group of sorted files
@@ -59,7 +60,6 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 		1) create the list of date qualified files to read for the primary data
 		2) create a list of files with times prior to the date range in reverse order
 	*/
-	prevPaths := make([]*ioFilePlan, 0)
 	for _, file := range fl {
 		fileStartTime := time.Date(
 			int(file.File.Year),
@@ -83,38 +83,25 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 				return nil, RecordLengthNotConsistent("NewIOPlan")
 			}
 		}
-		if file.File.Year < int16(pr.Range.Start.Year()) {
-			// Add the whole file to the previous files list for use in back scanning before the start
-			prevPaths = append(
-				prevPaths,
-				&ioFilePlan{
-					tbi:         file.File,
-					Offset:      startOffset,
-					Length:      length,
-					FullPath:    file.File.Path,
-					BaseTime:    fileStartTime.Unix(),
-					seekingLast: false,
-				},
-			)
-		} else if file.File.Year <= int16(pr.Range.End.Year()) {
+		if file.File.Year >= int16(range2.Start.Year()) && file.File.Year <= int16(range2.End.Year()) {
 			/*
 			 Calculate the number of bytes to be read for each file and the offset
 			*/
 			// Set the starting and ending indices based on the range
-			if file.File.Year == int16(pr.Range.Start.Year()) {
+			if file.File.Year == int16(range2.Start.Year()) {
 				// log.Info("range start: %v", pr.Range.Start)
 				startOffset = TimeToOffset(
-					pr.Range.Start,
+					range2.Start,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength(),
 				)
 				// log.Info("start offset: %v", startOffset)
 			}
-			if file.File.Year == int16(pr.Range.End.Year()) {
+			if file.File.Year == int16(range2.End.Year()) {
 				// log.Info("range end: %v", pr.Range.End)
 
 				endOffset = TimeToOffset(
-					pr.Range.End,
+					range2.End,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
 			}
@@ -135,26 +122,10 @@ func NewIOPlan(fl SortedFileList, pr *planner.ParseResult) (iop *ioplan, err err
 				fp.seekingLast = true
 			}
 			iop.FilePlan = append(iop.FilePlan, fp)
-			// in backward scan, tell the last known index for the later reader
-			// Add a previous file if we are at the beginning of the range
-			if file.File.Year == int16(pr.Range.Start.Year()) {
-				length := startOffset - int64(Headersize)
-				prevPaths = append(
-					prevPaths,
-					&ioFilePlan{
-						file.File,
-						int64(Headersize),
-						length,
-						file.File.Path,
-						fileStartTime.Unix(),
-						false,
-					},
-				)
-			}
 		}
 	}
 
-	iop.TimeQuals = pr.TimeQuals
+	iop.TimeQuals = timeQuals
 
 	return iop, nil
 }
@@ -183,7 +154,7 @@ func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
-		if r.IOPMap[key], err = NewIOPlan(sfl, pr); err != nil {
+		if r.IOPMap[key], err = NewIOPlan(sfl, pr.Limit, pr.Range, pr.TimeQuals); err != nil {
 			return nil, err
 		}
 		recordLen := r.IOPMap[key].RecordLen
