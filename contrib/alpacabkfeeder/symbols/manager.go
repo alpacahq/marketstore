@@ -38,7 +38,7 @@ type ManagerImpl struct {
 
 // NewManager initializes the SymbolManager object with the specified parameters.
 func NewManager(apiClient APIClient, targetExchanges []configs.Exchange) *ManagerImpl {
-	exchanges := make(map[configs.Exchange]struct{}, 0)
+	exchanges := make(map[configs.Exchange]struct{})
 	for _, exchange := range targetExchanges {
 		exchanges[exchange] = struct{}{}
 	}

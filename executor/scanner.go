@@ -15,7 +15,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const RecordsPerRead = 8192
+const (
+	recordsPerRead        = 8192
+	epochLenBytes         = 8
+	nanosecLenBytes       = 4
+	intervalTicksLenBytes = 4
+)
 
 type SortedFileList []planner.QualifiedFile
 
@@ -165,7 +170,7 @@ func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
 	// Number of bytes to buffer, some multiple of record length
 	// This should be at least bigger than 4096 and be better multiple of 4KB,
 	// which is the common io size on most of the storage/filesystem.
-	readSize := RecordsPerRead * maxRecordLen
+	readSize := recordsPerRead * maxRecordLen
 	r.readBuffer = make([]byte, readSize)
 	r.fileBuffer = make([]byte, readSize)
 
@@ -203,7 +208,7 @@ func (r *Reader) Read() (csm ColumnSeriesMap, err error) {
 
 func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []byte) {
 	// find the beginning of the range (sorted order)
-	rowLength := rowlen + 8
+	rowLength := rowlen + epochLenBytes + nanosecLenBytes - intervalTicksLenBytes
 	nrecords := len(src) / rowLength
 	if nrecords == 0 {
 		return nil
@@ -235,13 +240,13 @@ func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []b
 }
 
 func TimeOfVariableRecord(buf []byte, cursor, rowLength int) time.Time {
-	epoch := ToInt64(buf[cursor : cursor+8])
-	nanos := ToInt32(buf[cursor+rowLength-4 : cursor+rowLength])
+	epoch := ToInt64(buf[cursor : cursor+epochLenBytes])
+	nanos := ToInt32(buf[cursor+rowLength-nanosecLenBytes : cursor+rowLength])
 	return ToSystemTimezone(time.Unix(epoch, int64(nanos)))
 }
 
-func trimResultsToLimit(l *planner.RowLimit, rowlen int, src []byte) []byte {
-	rowLength := rowlen + 8
+func trimResultsToLimit(l *planner.RowLimit, rowLen int, src []byte) []byte {
+	rowLength := rowLen + epochLenBytes + nanosecLenBytes - intervalTicksLenBytes
 
 	nrecords := len(src) / rowLength
 	limit := int(l.Number)
@@ -268,11 +273,15 @@ type bufferMeta struct {
 
 // Reads the data from files, removing holes. The resulting buffer will be packed
 // Uses the index that prepends each row to identify filled rows versus holes.
-func (r *Reader) read(iop *ioplan) (resultBuffer []byte, err error) {
+func (r *Reader) read(iop *ioplan) ([]byte, error) {
+	var (
+		resultBuffer []byte
+		err          error
+	)
 	// Number of bytes to buffer, some multiple of record length
 	// This should be at least bigger than 4096 and be better multiple of 4KB,
 	// which is the common io size on most of the storage/filesystem.
-	maxToBuffer := RecordsPerRead * iop.RecordLen
+	maxToBuffer := recordsPerRead * iop.RecordLen
 	readBuffer := r.readBuffer[:maxToBuffer]
 	// Scan direction
 	direction := iop.Limit.Direction
@@ -461,9 +470,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 
 				// Update lastKnown only once the first time
 				if fp.seekingLast {
-					if offset, err := f.Seek(0, io.SeekCurrent); err == nil {
-						offset = offset - nn + int64(i)*recordSize64
-					}
+					_, _ = f.Seek(0, io.SeekCurrent)
 					fp.seekingLast = false
 				}
 			}

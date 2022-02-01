@@ -30,6 +30,7 @@ const (
 	reservedHeader2Bytes   = 365
 	Headersize             = 37024
 	FileinfoVersion        = int64(2.0)
+	epochLenBytes          = 8
 )
 
 func nanosecondsInYear(year int) int64 {
@@ -56,15 +57,23 @@ type TimeBucketInfo struct {
 	timeframe   time.Duration
 	nElements   int32
 	recordType  EnumRecordType
-	/*
-	   recordLength:
-	   - For fixed recordType, the sum of field lengths in elementTypes
-	   - For variable recordType, this is the length of the indirect data pointer {index, offset, len}
-	*/
-	recordLength         int32
-	variableRecordLength int32 // In case of variable recordType, the sum of field lengths in elementTypes
-	elementNames         []string
-	elementTypes         []EnumElementType
+	// recordLength:
+	// - For fixed recordType, the sum of field lengths in elementTypes.
+	//   - e.g. if the columns are "Epoch(INT64), Ask(FLOAT32), Bid(FLOAT32)", recordLength=8+4+4=16.
+	// - For variable recordType, this is the length of the indirect data pointer {index, offset, len}
+	//   - as of 2022-02-01, always 24(=8+8+8)[byte].
+	recordLength int32
+	// variableRecordLength:
+	// - For fixed recordType, always 0.
+	// - In case of variable recordType, the sum of field lengths in elementTypes.
+	//   - it doesn't include "Epoch" or "Nanoseconds" column, but include "IntervalTicks" bytes(=4 bytes).
+	//   - e.g. if the columns are "Epoch(INT64), Ask(FLOAT32), Bid(FLOAT32), Nanoseconds(INT32)",
+	//     variableRecordLength=12(Ask(4byte)+Bid(4byte)+IntervalTicks(4byte))
+	variableRecordLength int32
+	// e.g. []string{"Bid", "Ask"}.  elementNames doesn't include "Epoch" column or "Nanoseconds" column.
+	elementNames []string
+	// e.g. []io.EnumElementType{FLOAT32, FLOAT32}. elementTypes doesn't include "Epoch" column or "Nanoseconds" column.
+	elementTypes []EnumElementType
 
 	once sync.Once
 }
@@ -95,7 +104,7 @@ func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16,
 		recordType:   recordType,
 	}
 	if f.recordType == FIXED {
-		f.recordLength = int32(AlignedSize(f.getFieldRecordLength())) + 8 // add an 8-byte epoch field
+		f.recordLength = int32(AlignedSize(f.getFieldRecordLength())) + epochLenBytes // add an 8-byte epoch field
 	} else if f.recordType == VARIABLE {
 		f.recordLength = 24 // Length of the indirect data pointer {index, offset, len}
 		f.variableRecordLength = 0
@@ -215,11 +224,12 @@ func (f *TimeBucketInfo) GetRecordLength() int32 {
 // GetVariableRecordLength returns the length of a single record for a variable
 // length TimeBucketInfo file.
 func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
+	const intervalTicksLenBytes = 4
 	f.once.Do(f.initFromFile)
 
 	if f.recordType == VARIABLE && f.variableRecordLength == 0 {
 		// Variable records use the raw element sizes plus a 4-byte trailer for interval ticks
-		f.variableRecordLength = int32(f.getFieldRecordLength()) + 4 // Variable records have a 4-byte trailer
+		f.variableRecordLength = int32(f.getFieldRecordLength()) + intervalTicksLenBytes
 	}
 	return f.variableRecordLength
 }

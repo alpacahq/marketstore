@@ -456,10 +456,11 @@ func GetDSVFromInterface(i_dsv interface{}) (out []DataShape) {
 }
 
 func GetStringSliceFromInterface(i_ss interface{}) (out []string) {
-	if i_ss != nil {
-		if _, ok := i_ss.([]string); ok {
-			return i_ss.([]string)
-		}
+	if i_ss == nil {
+		return nil
+	}
+	if _, ok := i_ss.([]string); ok {
+		return i_ss.([]string)
 	}
 	return nil
 }

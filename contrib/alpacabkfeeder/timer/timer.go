@@ -29,8 +29,6 @@ func RunEveryDayAt(ctx context.Context, t time.Time, f func()) {
 			}
 		}
 	})
-
-	return
 }
 
 // timeToNext returns the time duration from now to next {hour}:{minute}:{second}
