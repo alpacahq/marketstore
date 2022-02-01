@@ -223,7 +223,6 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 }
 
 // NewBgWorker registers a new background worker.
-// nolint:unparam // need to satisfy the interface of NewBgWorker
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 	config, err := recast(conf)

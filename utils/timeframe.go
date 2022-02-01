@@ -132,10 +132,7 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 				return int(ts.Month())-int(start.Month()) < cd.multiplier
 			}
 		} else if ts.Year() > start.Year() {
-			if int(ts.Month())-(monthsInYear-int(start.Month())) < cd.multiplier {
-				return true
-			}
-			return false
+			return int(ts.Month())-(monthsInYear-int(start.Month())) < cd.multiplier
 		} else {
 			return false
 		}

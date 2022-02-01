@@ -82,9 +82,7 @@ func (am *ArgumentMap) MapRequiredColumn(requiredName string, userColumns ...io.
 	if _, found := am.nameMap[requiredName]; found {
 		// Entry Exists: Need to merge this into existing mapping
 		existingCol := am.nameMap[requiredName]
-		for _, col := range userColumns {
-			existingCol = append(existingCol, col)
-		}
+		existingCol = append(existingCol, userColumns...)
 		am.nameMap[requiredName] = existingCol
 	} else {
 		am.nameMap[requiredName] = userColumns
@@ -154,8 +152,7 @@ func (am *ArgumentMap) PrepareArguments(inputs []string) (err error) {
 	/*
 		Check for insufficient number of params to meet required
 	*/
-	idLen := len(inputs)
-	if rnLen := len(am.requiredNames); rnLen > idLen {
+	if len(am.requiredNames) > len(inputs) {
 		return fmt.Errorf("have %s, need %s", inputs, am.requiredNames)
 	}
 

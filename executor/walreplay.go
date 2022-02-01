@@ -265,16 +265,16 @@ func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error)
 	if err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0))
 	}
-	TGLen := io.ToInt64(tgLenSerialized)
+	tgLen := io.ToInt64(tgLenSerialized)
 
-	if !sanityCheckValue(wf.FilePtr, TGLen) {
-		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", TGLen))
+	if !sanityCheckValue(wf.FilePtr, tgLen) {
+		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", tgLen))
 	}
 
 	// Read the data
-	tgSerialized = make([]byte, TGLen)
+	tgSerialized = make([]byte, tgLen)
 	n, err := wf.FilePtr.Read(tgSerialized)
-	if int64(n) != TGLen || err != nil {
+	if int64(n) != tgLen || err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
 	}
 	TGID = io.ToInt64(tgSerialized[:tgIDBytes-1])

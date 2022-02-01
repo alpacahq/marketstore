@@ -41,12 +41,12 @@ func Read(fp *os.File, buffer []byte) (result []byte, newOffset int64, err error
 		return nil, 0, fmt.Errorf("unable to seek in WALFile from curpos:%w", err)
 	}
 
-	numToRead := len(buffer)
+
 	n, err := fp.Read(buffer)
 	if err == io2.EOF {
 		return result, newOffset, io2.EOF
 	}
-	if n != numToRead {
+	if numToRead := len(buffer); n != numToRead {
 		msg := fmt.Sprintf("Read: Expected: %d Got: %d", numToRead, n)
 		err = ShortReadError(msg)
 	} else if err != nil {

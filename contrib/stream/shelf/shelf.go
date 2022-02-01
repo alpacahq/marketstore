@@ -105,17 +105,17 @@ func (p *Package) Start(tbk *io.TimeBucketKey, h ShelfHandler) {
 		// Recommended to call this regardless of the context
 		// timing out naturally to free up resources ASAP
 		defer p.Cancel()
-		select {
-		// This channel is closed when Cancel() is called, thus the routine
+
+		// closed when Cancel() is called, thus the routine
 		// will either timeout, or be explicitly canceled, and won't be
 		// accidentally leaked
-		case <-p.ctx.Done():
-			if !p.stopped.Load().(bool) {
-				if err := (*h)(*tbk, p.Data); err != nil {
-					// nolint:forbidigo // CLI output needs fmt.Println
-					fmt.Printf("failed to expire data package (%v)\n", err)
-				}
+		<-p.ctx.Done() // block until done
+		if !p.stopped.Load().(bool) {
+			if err := (*h)(*tbk, p.Data); err != nil {
+				// nolint:forbidigo // CLI output needs fmt.Println
+				fmt.Printf("failed to expire data package (%v)\n", err)
 			}
 		}
+
 	}()
 }

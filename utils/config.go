@@ -262,9 +262,8 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	if aux.Replication.ListenPort != 0 {
 		m.Replication.ListenPort = aux.Replication.ListenPort
 	}
-	if aux.Replication.Enabled != false {
-		m.Replication.Enabled = true
-	}
+
+	m.Replication.Enabled = aux.Replication.Enabled
 	m.Replication.TLSEnabled = aux.Replication.TLSEnabled
 	m.Replication.CertFile = aux.Replication.CertFile
 	m.Replication.KeyFile = aux.Replication.KeyFile

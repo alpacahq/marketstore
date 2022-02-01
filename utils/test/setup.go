@@ -206,7 +206,7 @@ func MakeDummyCurrencyDir(root string, withdata, withGaps bool) map[string]int {
 }
 
 func MakeDummyStockDir(root string, withdata, withGaps bool) map[string]int {
-	itemsWritten := make(map[string]int, 0)
+	itemsWritten := make(map[string]int)
 	makeRootDir(root)
 	symbols := []string{"AAPL", "BBPL", "CCPL"}
 	timeframes := []string{"1Min", "5Min", "15Min", "1H", "4H", "1D"}

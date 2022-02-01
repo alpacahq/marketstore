@@ -199,7 +199,7 @@ func (wf *WALFileType) QueueWriteCommand(wc *wal.WriteCommand) {
 	wf.txnPipe.writeChannel <- wc
 }
 
-// A.k.a. Commit transaction.
+// FlushToWAL A.k.a. Commit transaction.
 func (wf *WALFileType) FlushToWAL() (err error) {
 	// walBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
@@ -491,28 +491,40 @@ func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	return nil
 }
 
-func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
-	TGID = io.ToInt64(TG_Serialized[0:8])
-	WTCount := io.ToInt64(TG_Serialized[8:16])
+func ParseTGData(tgSerialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
+	// see /docs/design/durable_writes_design.txt for the details of the transaction group format
+	const (
+		tgIDLenBytes      = 8
+		wtCountLenBytes   = 8
+		recordLenLenBytes = 1
+		fpLenLenBytes     = 2
+		dataLenLenBytes   = 4
+		varRecLenLenBytes = 4
+		// (offset (8bytes), index(8bytes), buffer(dataLen-bytes))
+		offsetLenBytes = 8
+		indexLenBytes  = 8
+	)
+	TGID = io.ToInt64(tgSerialized[0:tgIDLenBytes])
+	WTCount := io.ToInt64(tgSerialized[tgIDLenBytes : tgIDLenBytes+wtCountLenBytes])
 
-	cursor := 16
+	cursor := tgIDLenBytes + wtCountLenBytes
 	wtSets = make([]wal.WTSet, WTCount)
 
 	for i := 0; i < int(WTCount); i++ {
-		RecordType := io.ToInt8(TG_Serialized[cursor : cursor+1])
-		cursor += 1
-		FPLen := int(io.ToInt16(TG_Serialized[cursor : cursor+2]))
-		cursor += 2
-		WALKeyPath := bytes.NewBuffer(TG_Serialized[cursor : cursor+FPLen]).String()
+		RecordType := io.ToInt8(tgSerialized[cursor : cursor+recordLenLenBytes])
+		cursor += recordLenLenBytes
+		FPLen := int(io.ToInt16(tgSerialized[cursor : cursor+fpLenLenBytes]))
+		cursor += fpLenLenBytes
+		WALKeyPath := bytes.NewBuffer(tgSerialized[cursor : cursor+FPLen]).String()
 		cursor += FPLen
-		dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
-		cursor += 4
-		varRecLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
-		cursor += 4
+		dataLen := int(io.ToInt32(tgSerialized[cursor : cursor+dataLenLenBytes]))
+		cursor += dataLenLenBytes
+		varRecLen := int(io.ToInt32(tgSerialized[cursor : cursor+varRecLenLenBytes]))
+		cursor += varRecLenLenBytes
 		fullPath := walKeyToFullPath(rootPath, WALKeyPath)
-		data := TG_Serialized[cursor : cursor+8+8+dataLen]
-		cursor += 8 + 8 + dataLen
-		dataShapes, l := io.DSVFromBytes(TG_Serialized[cursor:])
+		data := tgSerialized[cursor : cursor+offsetLenBytes+indexLenBytes+dataLen]
+		cursor += offsetLenBytes + indexLenBytes + dataLen
+		dataShapes, l := io.DSVFromBytes(tgSerialized[cursor:])
 		cursor += l
 
 		wtSets[i] = wal.NewWTSet(
@@ -603,9 +615,10 @@ func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) (bool, erro
 }
 
 func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
+	const safetyFactor = 1000
 	// As a sanity check, get the file size to ensure that TGLen is reasonable prior to buffer allocations
 	fstat, _ := fp.Stat()
-	sanityLen := 1000 * fstat.Size()
+	sanityLen := safetyFactor * fstat.Size()
 	return value < sanityLen
 }
 
