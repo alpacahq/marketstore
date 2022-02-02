@@ -9,6 +9,14 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+const (
+	// For the details of wal file format, see docs/design/durable_writes_design.txt
+	fileStatusLenBytes  = 1
+	replayStateLenBytes = 1
+	owningPIDLenBytes   = 8
+	walStatusLenBytes = fileStatusLenBytes + replayStateLenBytes + owningPIDLenBytes
+)
+
 type WALCleaner struct {
 	ignoreFile   string
 	myInstanceID int64
@@ -33,7 +41,7 @@ func (c *WALCleaner) CleanupOldWALFiles(walfileAbsPaths []string) error {
 			log.Error("failed to get fileStat of " + fp)
 			continue
 		}
-		if fi.Size() < 11 {
+		if fi.Size() <= walStatusLenBytes { // The first message in a WAL file is always the WAL Status Message
 			log.Info("WALFILE: %s is empty, removing it...", fp)
 			err = os.Remove(fp)
 			if err != nil {

@@ -27,7 +27,8 @@ func (e ReplayError) Error() string {
 }
 
 func errReport(base, msg string) string {
-	base = io.GetCallerFileContext(2) + ":" + base
+	const defaultReportStackLevel = 2
+	base = io.GetCallerFileContext(defaultReportStackLevel) + ":" + base
 	log.Warn(base, msg)
 	return fmt.Sprintf(base, msg)
 }

@@ -30,13 +30,13 @@ import (
 // +--------------------+----------------------------+------------------+.
 func RewriteBuffer(buffer []byte, varRecLen, numVarRecords, intervalsPerDay uint32, intervalStartEpoch uint64) []byte {
 	// temporary result buffer
-	rbTemp := make([]byte, numVarRecords*(varRecLen+8)) // Add the extra space for epoch
+	rbTemp := make([]byte, numVarRecords*(varRecLen+epochLenBytes)) // Add the extra space for epoch
 
 	var j, ii, cursor uint32
-	b := make([]byte, 8)
-	n := make([]byte, 4)
+	b := make([]byte, epochLenBytes)
+	n := make([]byte, nanosecLenBytes)
 	for j = 0; j < numVarRecords; j++ {
-		intervalTicks := buffer[(j+1)*varRecLen-4 : (j+1)*varRecLen]
+		intervalTicks := buffer[(j+1)*varRecLen-intervalTicksLenBytes : (j+1)*varRecLen]
 		it := io.ToUInt32(intervalTicks)
 
 		// Expand ticks (32-bit) into epoch and nanos
@@ -44,20 +44,20 @@ func RewriteBuffer(buffer []byte, varRecLen, numVarRecords, intervalsPerDay uint
 		binary.LittleEndian.PutUint64(b, second)
 
 		// copy Epoch second to the result buffer
-		cursor = j * (varRecLen + 8)
-		for ii = 0; ii < 8; ii++ {
+		cursor = j * (varRecLen + epochLenBytes)
+		for ii = 0; ii < epochLenBytes; ii++ {
 			rbTemp[cursor+ii] = b[ii]
 		}
 
 		// copy actual data (e.g. Ask, Bid) to the result buffer after the Epoch Second
-		for ii = 0; ii < varRecLen-4; ii++ {
-			rbTemp[cursor+8+ii] = buffer[(j*varRecLen)+ii]
+		for ii = 0; ii < varRecLen-intervalTicksLenBytes; ii++ {
+			rbTemp[cursor+epochLenBytes+ii] = buffer[(j*varRecLen)+ii]
 		}
 
 		// copy nanosecond to the result buffer after the Epoch Second
 		binary.LittleEndian.PutUint32(n, nanosecond)
-		for ii = 0; ii < 4; ii++ {
-			rbTemp[cursor+varRecLen+4+ii] = n[ii]
+		for ii = 0; ii < nanosecLenBytes; ii++ {
+			rbTemp[cursor+epochLenBytes+varRecLen-intervalTicksLenBytes+ii] = n[ii]
 		}
 	}
 

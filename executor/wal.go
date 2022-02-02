@@ -628,7 +628,10 @@ func (wf *WALFileType) SyncWAL(walRefresh, primaryRefresh time.Duration, walRota
 	/*
 	   Example: syncWAL(500 * time.Millisecond, 15 * time.Minute)
 	*/
-	const numTickerCheckPerWALRefresh = 100
+	const (
+		numTickerCheckPerWALRefresh = 100
+		writeChannelCapThreshold = 0.8
+	)
 	haveWALWriter = true
 	tickerWAL := time.NewTicker(walRefresh)
 	tickerPrimary := time.NewTicker(primaryRefresh)
@@ -650,7 +653,7 @@ func (wf *WALFileType) SyncWAL(walRefresh, primaryRefresh time.Duration, walRota
 				f <- struct{}{}
 			case <-tickerCheck.C:
 				queued := len(wf.txnPipe.writeChannel)
-				if float64(queued)/float64(chanCap) >= 0.8 {
+				if float64(queued)/float64(chanCap) >= writeChannelCapThreshold {
 					if err := wf.FlushToWAL(); err != nil {
 						log.Error("[tickerCheck] failed to FlushToWAL: " + err.Error())
 					}
