@@ -1,3 +1,5 @@
+package gap
+
 /*
  * File: /Users/robi/Documents/git.hub/marketstore/uda/gap/gap.go
  * Created Date: Thursday, February 28th 2019, 4:42:41 pm
@@ -11,7 +13,6 @@
  * Description:
  *
  */
-package gap
 
 import (
 	"fmt"
@@ -28,11 +29,11 @@ import (
 )
 
 var (
-	requiredColumns = []io.DataShape{}
+	requiredColumns []io.DataShape
 
-	optionalColumns = []io.DataShape{}
+	optionalColumns []io.DataShape
 
-	initArgs = []io.DataShape{}
+	initArgs []io.DataShape
 )
 
 type Gap struct {
@@ -55,7 +56,7 @@ func (g *Gap) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-// Accum() sends new data to the aggregate
+// Accum sends new data to the aggregate
 // Use Zscore to find out the big hole in data.
 func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface) (*io.ColumnSeries, error) {
 	g.BigGapIdxs = []int{}
@@ -87,7 +88,8 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.Column
 		}
 
 		for i, x := range gaps {
-			if math.Abs(stat.StdScore(x, m, s)) > 3 {
+			const gapThresholdScore = 3
+			if math.Abs(stat.StdScore(x, m, s)) > gapThresholdScore {
 				g.BigGapIdxs = append(g.BigGapIdxs, i)
 			}
 		}

@@ -142,14 +142,16 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	} else if aux.GRPCMaxSendMsgSize < recommendedMinGRPCSendMsgSize {
 		log.Warn("WARNING: Low grpc_max_send_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxSendMsgSize)
 	}
-	m.GRPCMaxSendMsgSize = aux.GRPCMaxSendMsgSize * (1 << 20)
+	// 2^20 = 1048576
+	const megabyteToByte = 1 << 20
+	m.GRPCMaxSendMsgSize = aux.GRPCMaxSendMsgSize * megabyteToByte
 
 	if aux.GRPCMaxRecvMsgSize == 0 {
 		aux.GRPCMaxRecvMsgSize = defaultGRPCMaxRecvMsgSize
 	} else if aux.GRPCMaxRecvMsgSize < recommendedMinGRPCRecvMsgSize {
 		log.Warn("WARNING: Low grpc_max_recv_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxRecvMsgSize)
 	}
-	m.GRPCMaxRecvMsgSize = aux.GRPCMaxRecvMsgSize * (1 << 20)
+	m.GRPCMaxRecvMsgSize = aux.GRPCMaxRecvMsgSize * megabyteToByte
 
 	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
 	m.Timezone, err = time.LoadLocation(aux.Timezone)

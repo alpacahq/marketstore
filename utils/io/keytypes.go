@@ -51,9 +51,10 @@ var wkpRegex = regexp.MustCompile(`([^/]+)/([^/]+)/([^/]+)/([^/]+)\.bin$`)
 // NewTimeBucketKeyFromWalKeyPath converts a string in walKeyPath format
 // (e.g. "/project/marketstore/data/AMZN/1Min/TICK/2017.bin") to a TimeBucketKey and year.
 func NewTimeBucketKeyFromWalKeyPath(walKeyPath string) (tbk *TimeBucketKey, year int, err error) {
+	const foundMatchLen = 5
 	group := wkpRegex.FindStringSubmatch(walKeyPath)
-	// group should be like {"AAPL/1Min/Tick/2020.bin","AAPL","1Min","Tick","2017"} (len:5, cap:5)
-	if len(group) != 5 {
+	// group should be like {"AAPL/1Min/Tick/2020.bin","AAPL","1Min","Tick","2020"} (len:5, cap:5)
+	if len(group) != foundMatchLen {
 		return nil, 0, errors.New(fmt.Sprintf("failed to extract TBK info from WalKeyPath:%v", walKeyPath))
 	}
 

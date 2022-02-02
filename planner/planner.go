@@ -39,9 +39,14 @@ type DateRange struct {
 	Start, End time.Time
 }
 
+const (
+	maxSec     = 1<<63 - 62135596801
+	maxNanosec = 999999999
+)
+
 var (
 	MinTime = time.Unix(0, 0)
-	MaxTime = time.Unix(1<<63-62135596801, 999999999)
+	MaxTime = time.Unix(maxSec, maxNanosec)
 )
 
 func NewDateRange() *DateRange {

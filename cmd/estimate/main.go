@@ -44,6 +44,7 @@ var (
 func init() {
 	Cmd.Flags().Int64VarP(&Num4ByteCols, "4byteCols", "", 0,
 		"Number of 4byte columns")
+	//nolint:gomnd // default config value
 	Cmd.Flags().Int64VarP(&Num8ByteCols, "8byteCols", "", 5,
 		"Number of 8byte columns")
 	Cmd.Flags().StringVarP(&Timeframe, "timeframe", "t", "1Min",
@@ -52,8 +53,10 @@ func init() {
 		"Number of symbols stored")
 	Cmd.Flags().Int64VarP(&NumYears, "years", "y", 10,
 		"Number of years worth of data to store")
+	//nolint:gomnd // default config value
 	Cmd.Flags().Int64VarP(&DaysPerYear, "days", "d", 261,
 		"Number of trading days in a year")
+	//nolint:gomnd // default config value
 	Cmd.Flags().Float64VarP(&HoursPerDay, "hours", "", 6.5,
 		"Number of hours per day the market is open")
 }
@@ -89,6 +92,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 	}
 	sizes := []string{"KB", "MB", "GB", "TB", "PB", "EB"}
 	for i := range sizes {
+		// nolint:gomnd // kb -> mb = 10^3, mb -> gb = 10^3, ...
 		sizeBytes := math.Pow(10, float64((i+1)*3))
 
 		if totalBytes < (sizeBytes * 10000) {

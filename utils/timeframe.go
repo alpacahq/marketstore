@@ -196,11 +196,12 @@ func (cd *CandleDuration) QueryableTimeframe() string {
 }
 
 func (cd *CandleDuration) QueryableNrecords(tf string, nrecords int) int {
+	const maxNumDaysInMonth = 31
 	if cd.String == tf {
 		return nrecords
 	}
 	if cd.suffix == "M" {
-		return 31 * nrecords
+		return maxNumDaysInMonth * nrecords
 	}
 	return nrecords * int(cd.duration/TimeframeFromString(tf).Duration)
 }

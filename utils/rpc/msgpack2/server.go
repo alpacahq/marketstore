@@ -198,7 +198,8 @@ func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverRes
 		err := encoder.Encode(res)
 		// Not sure in which case will this happen. But seems harmless.
 		if err != nil {
-			rpc.WriteError(w, 400, err.Error())
+			const badRequestStatusCode = 400
+			rpc.WriteError(w, badRequestStatusCode, err.Error())
 		}
 	}
 }
