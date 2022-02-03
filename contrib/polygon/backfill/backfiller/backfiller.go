@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -46,9 +47,14 @@ var (
 	format = "2006-01-02"
 )
 
-func init() {
-	const defaultBatchSize = 50000
+const (
+	defaultBatchSize           = 50000
+	defaultMaxConnsPerHost     = 100
+	defaultMaxIdleConnsPerHost = 100
+)
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
+func init() {
 	flag.StringVar(&dir, "dir", "", "mktsdb directory to backfill to. If empty, the dir is taken from mkts.yml")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format),
 		"backfill from date (YYYY-MM-DD) [included]",
@@ -168,11 +174,19 @@ func main() {
 	tickerListRunning := true
 	tickerListWP := worker.NewWorkerPool(parallelism)
 
+	client := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: defaultMaxIdleConnsPerHost,
+			MaxConnsPerHost:     defaultMaxConnsPerHost,
+		},
+		Timeout: 10 * time.Second,
+	}
+
 	for page := 0; tickerListRunning; page++ {
 		currentPage := page
 
 		tickerListWP.Do(func() {
-			getTicker(currentPage, pattern, &symbolList, symbolListMux, &tickerListRunning)
+			getTicker(client, currentPage, pattern, &symbolList, symbolListMux, &tickerListRunning)
 		})
 	}
 
@@ -206,7 +220,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getBars(start, end, barPeriodDuration, currentSymbol, exchangeIDs, unadjusted, writerWP)
+				getBars(client, start, end, barPeriodDuration, currentSymbol, exchangeIDs, unadjusted, writerWP)
 			})
 		}
 
@@ -224,7 +238,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getQuotes(start, end, quotePeriodDuration, currentSymbol, writerWP)
+				getQuotes(client, start, end, quotePeriodDuration, currentSymbol, writerWP)
 			})
 		}
 
@@ -242,7 +256,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getTrades(start, end, tradePeriodDuration, currentSymbol, writerWP)
+				getTrades(client, start, end, tradePeriodDuration, currentSymbol, writerWP)
 			})
 		}
 
@@ -302,8 +316,8 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 	return instanceConfig, shutdownPending, walWG, nil
 }
 
-func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
-	currentTickers, err := api.ListTickersPerPage(page)
+func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
+	currentTickers, err := api.ListTickersPerPage(client, page)
 	if err != nil {
 		log.Error("[polygon] failed to list symbols (%v)", err)
 	}
@@ -322,8 +336,8 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	symbolListMux.Unlock()
 }
 
-func getBars(start, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool,
-	writerWP *worker.WorkerPool,
+func getBars(client *http.Client, start, end time.Time, period time.Duration, symbol string, exchangeIDs []int,
+	unadjusted bool, writerWP *worker.WorkerPool,
 ) {
 	const oneDay = 24 * time.Hour
 	if len(exchangeIDs) != 0 && period != oneDay {
@@ -339,12 +353,13 @@ func getBars(start, end time.Time, period time.Duration, symbol string, exchange
 		log.Info("[polygon] backfilling bars for %v between %s and %s", symbol, start, start.Add(period))
 
 		if len(exchangeIDs) == 0 {
-			if err := backfill.Bars(symbol, start, start.Add(period), batchSize, unadjusted, writerWP); err != nil {
+			err := backfill.Bars(client, symbol, start, start.Add(period), batchSize, unadjusted, writerWP)
+			if err != nil {
 				log.Warn("[polygon] failed to backfill bars for %v (%v)", symbol, err)
 			}
 		} else {
 			if calendar.Nasdaq.IsMarketDay(start) {
-				if err := backfill.BuildBarsFromTrades(symbol, start, exchangeIDs, batchSize); err != nil {
+				if err := backfill.BuildBarsFromTrades(client, symbol, start, exchangeIDs, batchSize); err != nil {
 					log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", symbol, start, err)
 				}
 			}
@@ -353,7 +368,9 @@ func getBars(start, end time.Time, period time.Duration, symbol string, exchange
 	}
 }
 
-func getQuotes(start, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+func getQuotes(client *http.Client, start, end time.Time, period time.Duration, symbol string,
+	writerWP *worker.WorkerPool,
+) {
 	log.Info("[polygon] backfilling quotes for %v", symbol)
 	for end.After(start) {
 		if start.Add(period).After(end) {
@@ -361,7 +378,7 @@ func getQuotes(start, end time.Time, period time.Duration, symbol string, writer
 		}
 
 		log.Info("[polygon] backfilling quotes for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Quotes(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+		if err := backfill.Quotes(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill quote for %v @ %v (%v)", symbol, start, err)
 		}
 
@@ -369,7 +386,9 @@ func getQuotes(start, end time.Time, period time.Duration, symbol string, writer
 	}
 }
 
-func getTrades(start, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+func getTrades(client *http.Client, start, end time.Time, period time.Duration, symbol string,
+	writerWP *worker.WorkerPool,
+) {
 	log.Info("[polygon] backfilling trades for %v", symbol)
 	for end.After(start) {
 		if start.Add(period).After(end) {
@@ -377,7 +396,7 @@ func getTrades(start, end time.Time, period time.Duration, symbol string, writer
 		}
 
 		log.Info("[polygon] backfilling trades for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Trades(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+		if err := backfill.Trades(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", symbol, start, err)
 		}
 

@@ -65,6 +65,7 @@ var ImportCmd = &cobra.Command{
 	},
 }
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	ImportCmd.Flags().BoolVarP(&reimport, "reimport", "r", false, "reimport")
 	ImportCmd.Flags().BoolVarP(&storeWithoutSymbols, "fallback-to-cusip", "c", false, "fallback-to-cusip")

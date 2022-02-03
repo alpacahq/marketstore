@@ -20,10 +20,6 @@ type HeartbeatMessage struct {
 	Uptime  string `json:"uptime"`
 }
 
-func init() {
-	Queryable = uint32(0)
-}
-
 func NewUtilityAPIHandlers(startTime time.Time) *utilityAPIHandlers {
 	return &utilityAPIHandlers{startTime: startTime}
 }
@@ -50,7 +46,7 @@ func (uah *utilityAPIHandlers) Handle(url string) error {
 	return http.ListenAndServe(url, nil)
 }
 
-func (uah *utilityAPIHandlers) heartbeat(rw http.ResponseWriter, r *http.Request) {
+func (uah *utilityAPIHandlers) heartbeat(rw http.ResponseWriter, _ *http.Request) {
 	uptime := time.Since(uah.startTime).String()
 	queryable := atomic.LoadUint32(&Queryable)
 	if queryable > 0 {

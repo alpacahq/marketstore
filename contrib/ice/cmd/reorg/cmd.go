@@ -14,6 +14,7 @@ var Cmd = &cobra.Command{
 	},
 }
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.AddCommand(ShowRecordsCmd)
 	Cmd.AddCommand(ImportCmd)

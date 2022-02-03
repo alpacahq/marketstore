@@ -62,7 +62,7 @@ func writeAggregateToMinute(agg *api.AggregateToMinute) {
 	model := models.NewBar(agg.Symbol, "1Min", 1)
 
 	// add record
-	model.Add(agg.EpochMillis/1e3,
+	model.Add(agg.EpochMillis/1000,
 		enum.Price(agg.Open), enum.Price(agg.High), enum.Price(agg.Low), enum.Price(agg.Close), enum.Size(agg.Volume))
 
 	// save

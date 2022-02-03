@@ -1,8 +1,8 @@
 package backfill
 
 import (
-	"fmt"
 	"math"
+	"net/http"
 	"sync"
 	"time"
 
@@ -96,11 +96,11 @@ var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 var (
 	// NY timezone.
 	NY, _     = time.LoadLocation("America/New_York")
-	ErrRetry  = fmt.Errorf("retry error")
 	BackfillM *sync.Map
 )
 
-func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, writerWP *worker.WorkerPool) (err error) {
+func Bars(client *http.Client, symbol string, from, to time.Time, batchSize int, unadjusted bool, writerWP *worker.WorkerPool,
+) (err error) {
 	const millisecToSec = 1000
 	if from.IsZero() {
 		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
@@ -110,7 +110,9 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 		to = time.Now()
 	}
 	t := time.Now()
-	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, &batchSize, unadjusted)
+	resp, err := api.GetHistoricAggregates(client, symbol, "minute", 1, from, to,
+		&batchSize, unadjusted,
+	)
 	if err != nil {
 		return err
 	}
@@ -140,7 +142,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 	}
 
 	writerWP.Do(func() {
-		model.Write()
+		_ = model.Write()
 	})
 
 	return nil
@@ -155,9 +157,9 @@ func intInSlice(s int, l []int) bool {
 	return false
 }
 
-func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
+func BuildBarsFromTrades(client *http.Client, symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
 	const minInDay = 24 * 60
-	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
+	resp, err := api.GetHistoricTrades(client, symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
 		return err
 	}
@@ -277,13 +279,13 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 }
 
-func Trades(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+func Trades(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
 	const hoursInDay = 24
 	trades := make([]api.TradeTick, 0)
 	t := time.Now()
 	for date := from; to.After(date); date = date.Add(hoursInDay * time.Hour) {
 		if calendar.Nasdaq.IsMarketDay(date) {
-			resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
+			resp, err := api.GetHistoricTrades(client, symbol, date.Format(defaultFormat), batchSize)
 			if err != nil {
 				return err
 			}
@@ -315,13 +317,13 @@ func Trades(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 		}
 		// finally write to database
 		writerWP.Do(func() {
-			model.Write()
+			_ = model.Write()
 		})
 	}
 	return nil
 }
 
-func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+func Quotes(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
 	const hoursInDay = 24
 	// FIXME: This function is broken with the following problems:
 	//  - Callee (backfiller.go) wrongly checks the market day (checks for the day after)
@@ -333,7 +335,7 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 	t := time.Now()
 	for date := from; to.After(date); date = date.Add(hoursInDay * time.Hour) {
 		if calendar.Nasdaq.IsMarketDay(date) {
-			resp, err := api.GetHistoricQuotes(symbol, date.Format(defaultFormat), batchSize)
+			resp, err := api.GetHistoricQuotes(client, symbol, date.Format(defaultFormat), batchSize)
 			if err != nil {
 				return err
 			}
@@ -362,7 +364,7 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 		}
 
 		writerWP.Do(func() {
-			model.Write()
+			_ = model.Write()
 		})
 	}
 

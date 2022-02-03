@@ -44,9 +44,9 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// AggTriggerConfig is the configuration for OnDiskAggTrigger you can define in
+// Config is the configuration for OnDiskAggTrigger you can define in
 // marketstore's config file under triggers extension.
-type AggTriggerConfig struct {
+type Config struct {
 	Destinations []string `json:"destinations"`
 	Filter       string   `json:"filter"`
 }
@@ -62,9 +62,9 @@ type OnDiskAggTrigger struct {
 
 var _ trigger.Trigger = &OnDiskAggTrigger{}
 
-func recast(config map[string]interface{}) *AggTriggerConfig {
+func recast(config map[string]interface{}) *Config {
 	data, _ := json.Marshal(config)
-	ret := AggTriggerConfig{}
+	ret := Config{}
 	_ = json.Unmarshal(data, &ret)
 	return &ret
 }
@@ -129,7 +129,11 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 
 	// check if we have a valid cache, if not, re-query
 	if v, ok := s.aggCache.Load(tbk.String()); ok {
-		c := v.(*cachedAgg)
+		c,ok := v.(*cachedAgg)
+		if !ok {
+			log.Error("failed to cast cached value", tbk.String())
+			return
+		}
 
 		if !c.Valid(tail, head) {
 			s.aggCache.Delete(tbk.String())

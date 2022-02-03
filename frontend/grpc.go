@@ -337,7 +337,7 @@ func (s GRPCService) Create(ctx context.Context, req *proto.MultiCreateRequest) 
 
 		err = s.catalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {
-			err = fmt.Errorf("creation of new catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("creation of new catalog entry failed: %w", err)
 			appendResponse(&response, err)
 			continue
 		}
@@ -368,7 +368,7 @@ func (s GRPCService) Destroy(ctx context.Context, req *proto.MultiKeyRequest) (*
 
 		err := s.catalogDir.RemoveTimeBucket(tbk)
 		if err != nil {
-			err = fmt.Errorf("removal of catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("removal of catalog entry failed: %w", err)
 			appendResponse(&response, err)
 			continue
 		}

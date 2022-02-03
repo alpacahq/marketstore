@@ -35,6 +35,7 @@ var (
 	format = "2006-01-02"
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	flag.StringVar(&dir, "dir", "/project/data", "mktsdb directory to backfill to")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD)")
@@ -189,7 +190,7 @@ func writeBars(bars []*consolidator.Bar) error {
 			open := make([]float32, len(batch))
 			high := make([]float32, len(batch))
 			low := make([]float32, len(batch))
-			close := make([]float32, len(batch))
+			clos := make([]float32, len(batch))
 			volume := make([]int32, len(batch))
 
 			for j, bar := range batch {
@@ -197,7 +198,7 @@ func writeBars(bars []*consolidator.Bar) error {
 				open[j] = float32(bar.Open)
 				high[j] = float32(bar.High)
 				low[j] = float32(bar.Low)
-				close[j] = float32(bar.Close)
+				clos[j] = float32(bar.Close)
 				volume[j] = int32(bar.Volume)
 			}
 
@@ -206,7 +207,7 @@ func writeBars(bars []*consolidator.Bar) error {
 			cs.AddColumn("Open", open)
 			cs.AddColumn("High", high)
 			cs.AddColumn("Low", low)
-			cs.AddColumn("Close", close)
+			cs.AddColumn("Close", clos)
 			cs.AddColumn("Volume", volume)
 			csm.AddColumnSeries(*tbk, cs)
 		}

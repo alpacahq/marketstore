@@ -56,6 +56,8 @@ func MessageHandler(msg []byte) {
 			return
 		}
 		aggregateToMinuteHandler(&agg.Data)
+	case enums.AggToMinute, enums.Quote, enums.Trade:
+		fallthrough
 	default:
 		log.Warn("[alpaca] unexpected non-event message {%s:%s,%s:%s}",
 			"event_type", message.Data.EventType,

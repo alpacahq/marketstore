@@ -19,6 +19,7 @@ type Subscription struct {
 }
 
 // servers := utils.Settings["WS_SERVERS"].
+
 func NewSubscription(t Prefix, symbols []string) (s *Subscription) {
 	incoming := make(chan interface{}, 10000)
 	return &Subscription{
