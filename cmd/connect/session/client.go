@@ -84,12 +84,12 @@ EVAL:
 		line, err := r.Readline()
 
 		// Terminate evaluation.
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break EVAL
 		}
 
 		// Printed interrupt prompt.
-		if err == readline.ErrInterrupt {
+		if errors.Is(err, readline.ErrInterrupt) {
 			continue
 		}
 

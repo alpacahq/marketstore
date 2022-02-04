@@ -25,11 +25,18 @@ type PolygonWebSocket struct {
 
 func NewPolygonWebSocket(servers, apiKey string, pref Prefix, symbols []string, oChan chan interface{},
 ) *PolygonWebSocket {
+
+	const (
+		// maximum size in bytes for a message read from the peer.
+		defaultMaxMessageRecvBytes = 2048000
+		defaultOutputChanLength    = 100
+	)
+
 	if oChan == nil {
-		oChan = make(chan interface{}, 100)
+		oChan = make(chan interface{}, defaultOutputChanLength)
 	}
 	return &PolygonWebSocket{
-		maxMessageSize: 2048000,
+		maxMessageSize: defaultMaxMessageRecvBytes,
 		pingPeriod:     10 * time.Second,
 		doneChan:       make(chan struct{}),
 		Servers:        setURLs(servers, apiKey),
@@ -44,7 +51,7 @@ func (p *PolygonWebSocket) ping() {
 	_ = p.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
 }
 
-func (p *PolygonWebSocket) pongHandler(s string) (err error) {
+func (p *PolygonWebSocket) pongHandler(_ string) (err error) {
 	_ = p.conn.SetReadDeadline(time.Now().Add(6 * p.pingPeriod / 5))
 	pong := func() {
 		time.Sleep(p.pingPeriod)
@@ -143,6 +150,9 @@ ErrorOut:
 }
 
 func (p *PolygonWebSocket) connect() (err error) {
+	// 101 means "changing protocol", meaning we're upgrading to a websocket
+	const statusCodeChangingProtocol = 101
+
 	p.disconnect()
 	var hresp *http.Response
 	dialer := websocket.DefaultDialer
@@ -151,7 +161,7 @@ func (p *PolygonWebSocket) connect() (err error) {
 	if err != nil {
 		return
 	}
-	if hresp.StatusCode != 101 { // 101 means "changing protocol", meaning we're upgrading to a websocket
+	if hresp.StatusCode != statusCodeChangingProtocol {
 		return fmt.Errorf("upstream connection failure, status_code: %d", hresp.StatusCode)
 	}
 	// Check to see we have a response from the connection
@@ -171,8 +181,7 @@ func (p *PolygonWebSocket) disconnect() {
 		log.Warn("connection was already nil")
 		return
 	}
-	err := p.conn.Close()
-	if err != nil {
+	if err := p.conn.Close(); err != nil {
 		log.Warn("error closing connection")
 	}
 

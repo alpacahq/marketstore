@@ -32,6 +32,7 @@ var (
 	walfilePath string
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	// Parse flags.
 	Cmd.Flags().StringVarP(&walfilePath, "file", "f", "", walFilePathDesc)

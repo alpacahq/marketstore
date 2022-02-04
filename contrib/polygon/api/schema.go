@@ -34,9 +34,11 @@ Streaming Schema from Polygon
     "e": 1536036818784,     // Tick End Timestamp ( Unix MS )
 }
 */
+
 /*
 Streaming data.
 */
+
 type PolyTrade struct {
 	eventType  string  `json:"-"` // ev
 	Symbol     string  `json:"sym"`

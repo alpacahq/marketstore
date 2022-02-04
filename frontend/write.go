@@ -120,7 +120,7 @@ func (s *DataService) Create(_ *http.Request, reqs *MultiCreateRequest, response
 
 		err = s.catalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {
-			err = fmt.Errorf("creation of new catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("creation of new catalog entry failed: %w", err)
 			response.appendResponse(err)
 			continue
 		}
@@ -169,7 +169,7 @@ func (s *DataService) GetInfo(_ *http.Request, reqs *MultiKeyRequest, response *
 
 		tbi, err := s.catalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 		if err != nil {
-			err = fmt.Errorf("unable to get info about key %s: %s", req.Key, err.Error())
+			err = fmt.Errorf("unable to get info about key %s: %w", req.Key, err)
 			response.appendResponse(nil, err)
 			continue
 		}
@@ -199,7 +199,7 @@ func (s *DataService) Destroy(_ *http.Request, reqs *MultiKeyRequest, response *
 
 		err = s.catalogDir.RemoveTimeBucket(tbk)
 		if err != nil {
-			err = fmt.Errorf("removal of catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("removal of catalog entry failed: %w", err)
 			response.appendResponse(err)
 			continue
 		}

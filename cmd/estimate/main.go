@@ -41,6 +41,7 @@ var (
 	DaysPerYear  int64
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.Flags().Int64VarP(&Num4ByteCols, "4byteCols", "", 0,
 		"Number of 4byte columns")
@@ -61,7 +62,7 @@ func init() {
 		"Number of hours per day the market is open")
 }
 
-func executeStart(cmd *cobra.Command, args []string) error {
+func executeStart(_ *cobra.Command, _ []string) error {
 	var (
 		recordBytes  int64
 		padding      int64
@@ -72,7 +73,7 @@ func executeStart(cmd *cobra.Command, args []string) error {
 
 	recordBytes = 8 + (Num4ByteCols * 4) + (Num8ByteCols * 8) // +8 for the index
 	padding = int64(math.Mod(float64(recordBytes), 8))
-	recordBytes = recordBytes + padding
+	recordBytes += padding
 
 	yearFraction = float64(DaysPerYear) * (HoursPerDay / 24.0)
 	fileBytes = float64(headerBytes) + (float64(recordBytes) * float64(intervalsPerDay[Timeframe]) * yearFraction)

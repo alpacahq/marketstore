@@ -23,6 +23,7 @@ var Cmd = &cobra.Command{
 	Example:    example,
 }
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.AddCommand(integrity.Cmd)
 	Cmd.AddCommand(wal.Cmd)

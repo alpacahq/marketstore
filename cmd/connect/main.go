@@ -55,6 +55,7 @@ var (
 	varCompOff bool
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.Flags().StringVarP(&url, urlFlag, "u", defaultURL, urlDesc)
 	Cmd.Flags().StringVarP(&dir, dirFlag, "d", defaultDir, dirDesc)

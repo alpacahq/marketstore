@@ -27,10 +27,6 @@ func (m MockFtpClient) Retrieve(path string, dest io.Writer) error {
 }
 
 func (m MockFtpClient) ReadDir(path string) ([]os.FileInfo, error) {
-	fileinfos := make([]os.FileInfo, 0, len(m.dirs[path]))
-	for _, filename := range m.dirs[path] {
-		fileinfos = append(fileinfos, MockFile{name: filename})
-	}
 	return ioutil.ReadDir("." + path)
 }
 

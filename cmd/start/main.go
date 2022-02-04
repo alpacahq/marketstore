@@ -59,6 +59,7 @@ var (
 	configFilePath string
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	utils.InstanceConfig.StartTime = time.Now()
 	Cmd.Flags().StringVarP(&configFilePath, "config", "c", defaultConfigFilePath, configDesc)
@@ -73,7 +74,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	// Attempt to read config file.
 	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to read configuration file error: %s", err.Error())
+		return fmt.Errorf("failed to read configuration file error: %w", err)
 	}
 
 	// Don't output command usage if args(=only the filepath to mkts.yml at the moment) are correct

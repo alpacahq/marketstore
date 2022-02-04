@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -89,7 +90,7 @@ func (pf *PolygonFetcher) Run() {
 	select {}
 }
 
-func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *worker.WorkerPool) {
+func (pf *PolygonFetcher) backfillBars(client *http.Client, symbol string, end time.Time, writerWP *worker.WorkerPool) {
 	var (
 		from time.Time
 		err  error
@@ -147,7 +148,8 @@ func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *w
 	}
 
 	// request & write the missing bars
-	if err = backfill.Bars(symbol, from, time.Time{}, defaultBatchSize, false, writerWP); err != nil {
+	err = backfill.Bars(client, symbol, from, time.Time{}, defaultBatchSize, false, writerWP)
+	if err != nil {
 		log.Error("[polygon] bars backfill failure for key: [%v] (%v)", tbk.String(), err)
 	}
 }
