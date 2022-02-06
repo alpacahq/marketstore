@@ -2,7 +2,7 @@ package sqlparser_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -21,7 +21,7 @@ func setup(t *testing.T, testName string,
 ) (tearDown func(), metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("sqlparser_test-%s", testName))
+	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("sqlparser_test-%s", testName))
 	test.MakeDummyStockDir(rootDir, true, false)
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)

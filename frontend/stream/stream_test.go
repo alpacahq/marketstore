@@ -2,10 +2,10 @@ package stream_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -25,7 +25,7 @@ func setup(t *testing.T, testName string,
 ) (tearDown func()) {
 	t.Helper()
 
-	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("stream_test-%s", testName))
+	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("stream_test-%s", testName))
 	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 	stream.Initialize()

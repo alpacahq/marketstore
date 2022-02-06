@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -301,7 +301,7 @@ func (c *DefaultClient) execute(req *http.Request, responsePtr interface{}) erro
 	}()
 
 	// read the response body and parse to a json
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to read the response body. resp=%v", resp))
 	}

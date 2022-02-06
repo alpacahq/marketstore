@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -106,7 +106,7 @@ func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string)
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= http.StatusMultipleChoices {
-		body, err2 := ioutil.ReadAll(res.Body)
+		body, err2 := io.ReadAll(res.Body)
 		if err2 != nil {
 			return nil, err2
 		}

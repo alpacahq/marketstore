@@ -2,7 +2,6 @@ package executor_test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -233,8 +232,8 @@ func TestWALReplay(t *testing.T) {
 	// Take over the new WALFile and replay it into a new TG cache
 	WALFile, err := executor.TakeOverWALFile(filepath.Join(rootDir, newWALFileName))
 	assert.Nil(t, err)
-	data, _ := ioutil.ReadFile(newWALFilePath)
-	_ = ioutil.WriteFile("/tmp/wal", data, 0o644)
+	data, _ := os.ReadFile(newWALFilePath)
+	_ = os.WriteFile("/tmp/wal", data, 0o644)
 	newTGC := executor.NewTransactionPipe()
 	assert.NotNil(t, newTGC)
 	// Verify that our files are in original state prior to replay

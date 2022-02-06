@@ -55,7 +55,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 	d.pathToItemName = filepath.Clean(subPath)
 	// Read the category name for the child directory items
 	catFilePath := subPath + "/" + "category_name"
-	catname, err := ioutil.ReadFile(catFilePath)
+	catname, err := os.ReadFile(catFilePath)
 	if err != nil {
 		return ErrCategoryFileNotFound{filePath: catFilePath, msg: io.GetCallerFileContext(0) + err.Error()}
 	}
@@ -127,7 +127,7 @@ func writeCategoryNameFile(catName, dirName string) error {
 	catNameFile := filepath.Join(dirName, "category_name")
 
 	if fileExists(catNameFile) {
-		buffer, err := ioutil.ReadFile(catNameFile)
+		buffer, err := os.ReadFile(catNameFile)
 		if err != nil {
 			return err
 		}
