@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/alpacahq/marketstore/v4/utils"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -21,10 +23,10 @@ func checkfail(err error, msg string) {
 
 var tfIntervals = map[string]int{
 	"1Min":  24 * 60,
-	"5Min":  24 * 12,
-	"15Min": 24 * 4,
+	"5Min":  24 * 12, // nolint:gomnd // 24H / 5 min = 24 * 60min / 5 min = 24 * 12
+	"15Min": 24 * 4,  // nolint:gomnd // 24H / 15 min = 24 * 60min / 15 min = 24 * 4
 	"1H":    24,
-	"4H":    6,
+	"4H":    6, //nolint:gomnd // 24H / 4H = 6
 	"1D":    1,
 }
 
@@ -134,10 +136,10 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 	index = 1 // First interval is 1
 	for i := 0; i < numDays*tfIntervals[tf]; i++ {
 		fi := float32(1 + i%15)
-		o = 0.1 * fi
-		h = 0.2 * fi
-		l = 0.3 * fi
-		c = 0.4 * fi
+		o = 0.1 * fi //nolint:gomnd // dummy data
+		h = 0.2 * fi //nolint:gomnd // dummy data
+		l = 0.3 * fi //nolint:gomnd // dummy data
+		c = 0.4 * fi //nolint:gomnd // dummy data
 		v = int32(i + 1)
 		if (gap == 0) && (i%100 == 0) && makeGap {
 			//			fmt.Printf("\n")
@@ -161,11 +163,20 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 		index += 1
 	}
 
-	var buffer []byte
+	var (
+		buffer []byte
+		ok     bool
+	)
 	if isStock {
-		buffer = SwapSliceData(candlesStock, byte(0)).([]byte)
+		buffer, ok = SwapSliceData(candlesStock, byte(0)).([]byte)
+		if !ok {
+			return 0, errors.New("failed to swap slice data")
+		}
 	} else {
-		buffer = SwapSliceData(candlesCurrency, byte(0)).([]byte)
+		buffer, ok = SwapSliceData(candlesCurrency, byte(0)).([]byte)
+		if !ok {
+			return 0, errors.New("failed to swap slice data")
+		}
 	}
 	_, err = f.Write(buffer)
 	// fmt.Printf("num: %d\n",numberNotEmpty)

@@ -13,7 +13,6 @@ import (
 var (
 	barTimestamp1 = time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC)
 	barTimestamp2 = time.Date(2019, 5, 1, 0, 5, 0, 0, time.UTC)
-	barTimestamp3 = time.Date(2019, 5, 1, 0, 10, 0, 0, time.UTC)
 )
 
 func TestBarWriterImpl_Write(t *testing.T) {

@@ -37,13 +37,15 @@ func TestConvertByteSlice(t *testing.T) {
 	}
 
 	i_myarray = SwapSliceByte(buffer, ohlc{})
-	myarray = i_myarray.([]ohlc)
+	myarray, ok := i_myarray.([]ohlc)
+	assert.True(t, ok)
 	for i, ohlc := range myarray {
 		assert.Equal(t, ohlc, baseArray[i])
 	}
 
 	i_mybyte := SwapSliceData(myarray, byte(0))
-	bytearray := i_mybyte.([]byte)
+	bytearray, ok := i_mybyte.([]byte)
+	assert.True(t, ok)
 	assert.Len(t, bytearray, 48)
 	for i, val := range bytearray {
 		assert.Equal(t, val, buffer[i])
@@ -56,7 +58,8 @@ func TestConvertByteSlice(t *testing.T) {
 	}
 
 	i_myarray = SwapSliceData(buffer, ohlc{})
-	myarray = i_myarray.([]ohlc)
+	myarray, ok = i_myarray.([]ohlc)
+	assert.True(t, ok)
 	assert.Len(t, myarray, 2)
 	for i, val := range myarray {
 		assert.Equal(t, val, baseArray[i])
@@ -199,7 +202,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 		Projection case
 	*/
 	csB := makeTestCS()
-	csB.Remove("Three")
+	err = csB.Remove("Three")
+	assert.Nil(t, err)
 	dsvProjected := csB.GetDataShapes()
 
 	// Expected record length
@@ -236,7 +240,7 @@ func TestSerializeColumnsToRows(t *testing.T) {
 func TestTimeBucketInfo(t *testing.T) {
 	t.Parallel()
 	tempDir, _ := ioutil.TempDir("", "io.TestTimeBucketInfo")
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	timeframe := utils.NewTimeframe("1Min")
 	filePath := filepath.Join(tempDir, "2018.bin")
@@ -252,7 +256,8 @@ func TestTimeBucketInfo(t *testing.T) {
 
 	testFilePath, err := os.Create(filePath)
 	assert.Nil(t, err)
-	WriteHeader(testFilePath, tbi)
+	err = WriteHeader(testFilePath, tbi)
+	assert.Nil(t, err)
 
 	tbi2 := TimeBucketInfo{
 		Year: year,

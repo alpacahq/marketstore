@@ -15,16 +15,16 @@ func parseTime(format, dateTime string, tzLoc *time.Location, formatFixupState i
 	dateString := dateTime[:len(dateTime)-formatFixupState]
 	if format == "timestamp" {
 		parts := strings.Split(dateTime, ".")
-		sec, err := strconv.ParseInt(parts[0], 10, 64)
-		if err != nil {
-			return time.Time{}, err
+		sec, err2 := strconv.ParseInt(parts[0], 10, 64)
+		if err2 != nil {
+			return time.Time{}, err2
 		}
 
-		nsec := (int64)(0)
+		nsec := int64(0)
 		if len(parts) > 1 {
 			nsec, err = strconv.ParseInt(parts[1], 10, 64)
 			if err == nil {
-				nsec = (int64)(math.Pow10(9-len(parts[1]))) * nsec
+				nsec = int64(math.Pow10(9-len(parts[1]))) * nsec
 			} else {
 				return time.Time{}, err
 			}

@@ -314,7 +314,7 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 		fmt.Println("Unable to write new header to file, terminating...")
 		os.Exit(1)
 	}
-	io.WriteHeader(fp, tbinfo)
+	_ = io.WriteHeader(fp, tbinfo)
 }
 
 func bufferSum(buffer []byte) (sum int64) {

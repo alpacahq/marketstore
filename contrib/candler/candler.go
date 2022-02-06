@@ -148,7 +148,6 @@ func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) erro
 		/*
 			This currently includes Sum and Avg
 		*/
-		//		fmt.Println("Optionals: ", ds.Name, ca.argMap.GetMappedColumns(ds.Name))
 		switch ds.Name {
 		case "Sum":
 			for _, dds := range argMap.GetMappedColumns("Sum") {
@@ -354,31 +353,33 @@ Utility Functions.
 */
 
 func GetAverageColumnFloat32(cols io.ColumnInterface, srcCols []io.DataShape) (avgCol []float32, err error) {
-	if numberCols := len(srcCols); numberCols == 1 {
+	numberCols := len(srcCols)
+	if numberCols == 1 {
 		name := srcCols[0].Name
 		col, err := uda.ColumnToFloat32(cols, name)
 		if err != nil {
 			return nil, err
 		}
 		return col, nil
-	} else {
-		/*
-			Average the input columns to produce the price column
-		*/
-		colLen := cols.Len()
-		avgCol = make([]float32, colLen)
-		for _, ds := range srcCols {
-			col, err := uda.ColumnToFloat32(cols, ds.Name)
-			if err != nil {
-				return nil, err
-			}
-			for i := 0; i < colLen; i++ {
-				avgCol[i] += col[i]
-			}
+	}
+
+	/*
+		Average the input columns to produce the price column
+	*/
+	colLen := cols.Len()
+	avgCol = make([]float32, colLen)
+	for _, ds := range srcCols {
+		col, err := uda.ColumnToFloat32(cols, ds.Name)
+		if err != nil {
+			return nil, err
 		}
 		for i := 0; i < colLen; i++ {
-			avgCol[i] /= float32(numberCols)
+			avgCol[i] += col[i]
 		}
 	}
+	for i := 0; i < colLen; i++ {
+		avgCol[i] /= float32(numberCols)
+	}
+
 	return avgCol, nil
 }

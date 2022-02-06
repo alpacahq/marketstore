@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	// see docs/design/file_format_design.txt for the details
+	// see docs/design/file_format_design.txt for the details.
 	versionHeaderBytes     = 8
 	descriptionHeaderBytes = 256
 	yearHeaderBytes        = 8

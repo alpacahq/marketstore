@@ -11,8 +11,8 @@ import (
 )
 
 type Downloader struct {
-	client        FtpClient
-	ftpPath       string
+	client  Client
+	ftpPath string
 	storagePath   string
 	filePrefix    string
 	processedFlag string
@@ -20,7 +20,7 @@ type Downloader struct {
 
 type FileInfoMap map[string]os.FileInfo
 
-func NewDownloader(client FtpClient, ftpPath, storagePath, filePrefix string) *Downloader {
+func NewDownloader(client Client, ftpPath, storagePath, filePrefix string) *Downloader {
 	return &Downloader{
 		client:        client,
 		ftpPath:       ftpPath,
@@ -28,10 +28,6 @@ func NewDownloader(client FtpClient, ftpPath, storagePath, filePrefix string) *D
 		filePrefix:    filePrefix,
 		processedFlag: enum.ProcessedFlag,
 	}
-}
-
-func (f *Downloader) filenameFor(dateStr string) string {
-	return f.filePrefix + "." + dateStr
 }
 
 func (f *Downloader) withFtpPath(filename string) string {

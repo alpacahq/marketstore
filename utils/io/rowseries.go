@@ -1,6 +1,7 @@
 package io
 
 import (
+	"errors"
 	"time"
 )
 
@@ -53,9 +54,7 @@ func (rows *Rows) GetColumn(colname string) (col interface{}) {
 				return getUInt64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case STRING16:
 				return getString16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
-			case BOOL:
-				fallthrough
-			case BYTE:
+			case BOOL, BYTE:
 				return getByteColumn(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			}
 		} else {
@@ -82,7 +81,10 @@ func (rows *Rows) GetTime() ([]time.Time, error) {
 			ts[i] = ToSystemTimezone(time.Unix(secs, 0))
 		}
 	} else {
-		ns := nsi.([]int32)
+		ns, ok := nsi.([]int32)
+		if !ok {
+			return nil, errors.New("parse Nanoseconds column to int32")
+		}
 		for i, secs := range ep {
 			ts[i] = ToSystemTimezone(time.Unix(secs, int64(ns[i])))
 		}
