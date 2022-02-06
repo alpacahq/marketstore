@@ -78,12 +78,12 @@ func fileList(path, prefix string, reimport bool) (out []string, err error) {
 }
 
 func readAnnouncements(path string) (*[]Announcement, error) {
-	buff, err := ioutil.ReadFile(path)
+	buff, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	content := string(buff)
-	announcements := []Announcement{}
+	var announcements []Announcement
 	err = readRecords(content, &announcements)
 	if err != nil {
 		return nil, fmt.Errorf("failed to readRecords: %w", err)

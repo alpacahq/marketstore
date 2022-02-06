@@ -1,7 +1,6 @@
 package metrics_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -48,7 +47,7 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			// --- given ---
-			rootDir, _ := ioutil.TempDir("", "diskUsage-monitor-test")
+			rootDir, _ := os.MkdirTemp("", "diskUsage-monitor-test")
 			err := tt.setFilesFunc(tt, rootDir)
 			assert.Nil(t, err)
 			m := mockMetricsSetter{}

@@ -2,7 +2,7 @@ package candlecandler_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -21,7 +21,7 @@ func setup(t *testing.T, testName string,
 ) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("candlecandler_test-%s", testName))
+	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("candlecandler_test-%s", testName))
 	itemsWritten = test.MakeDummyStockDir(rootDir, true, false)
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
 	assert.Nil(t, err)

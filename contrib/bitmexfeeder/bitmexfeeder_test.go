@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 	hc := NewTestClient(func(req *http.Request) *http.Response {
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       ioutil.NopCloser(bytes.NewBuffer([]byte(getInstrumentsResponseMock))),
+			Body:       io.NopCloser(bytes.NewBuffer([]byte(getInstrumentsResponseMock))),
 			Header:     make(http.Header),
 		}
 	})

@@ -2,7 +2,6 @@ package buffile_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestBufferedFile(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", fmt.Sprintf("plugins_test-%s", "TestBufferedFile"))
+	tempDir, _ := os.MkdirTemp("", fmt.Sprintf("plugins_test-%s", "TestBufferedFile"))
 	defer test.CleanupDummyDataDir(tempDir)
 
 	filePath := filepath.Join(tempDir, "test.bin")

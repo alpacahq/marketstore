@@ -2,8 +2,8 @@ package frontend_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,7 +23,7 @@ func setup(t *testing.T, testName string,
 ) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("frontend_test-%s", testName))
+	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("frontend_test-%s", testName))
 	test.MakeDummyCurrencyDir(rootDir, true, false)
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)

@@ -2,7 +2,7 @@ package planner_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -17,7 +17,7 @@ func setup(t *testing.T, testName string,
 ) (tearDown func(), rootDir string, catalogDir *catalog.Directory) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("planner_test-%s", testName))
+	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("planner_test-%s", testName))
 	test.MakeDummyCurrencyDir(rootDir, false, false)
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	if err != nil {

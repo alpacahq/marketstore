@@ -3,7 +3,7 @@ package handlers_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -19,7 +19,7 @@ func setup(t *testing.T, testName string,
 ) (tearDown func()) {
 	t.Helper()
 
-	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("handlers_test-%s", testName))
+	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("handlers_test-%s", testName))
 	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)

@@ -2,7 +2,6 @@ package executor_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -28,7 +27,7 @@ func setup(t *testing.T, testName string) (tearDown func(), rootDir string, item
 ) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))
+	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("executor_test-%s", testName))
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
 	metadata, shutdownPending, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false))
@@ -40,7 +39,7 @@ func setup(t *testing.T, testName string) (tearDown func(), rootDir string, item
 func TestAddDir(t *testing.T) {
 	// --- given ---
 	// make temporary catalog directory
-	tempRootDir, _ := ioutil.TempDir("", "executor_test-TestAddDir")
+	tempRootDir, _ := os.MkdirTemp("", "executor_test-TestAddDir")
 	defer os.RemoveAll(tempRootDir)
 
 	// make catelog directory

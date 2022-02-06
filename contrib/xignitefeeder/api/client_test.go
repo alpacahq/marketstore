@@ -3,7 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
@@ -38,7 +38,7 @@ func NewMockClient(t *testing.T, expectedResponse interface{}) *http.Client {
 	returnNormal := func(req *http.Request) *http.Response {
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       ioutil.NopCloser(bytes.NewBuffer(NewTestResponseBody(t, expectedResponse))),
+			Body:       io.NopCloser(bytes.NewBuffer(NewTestResponseBody(t, expectedResponse))),
 			Header:     make(http.Header),
 		}
 	}

@@ -3,7 +3,6 @@
 package create
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -40,7 +39,7 @@ func executeInit(*cobra.Command, []string) error {
 		return err
 	}
 	// write mkts.yml to current directory.
-	err = ioutil.WriteFile("mkts.yml", data, 0o644)
+	err = os.WriteFile("mkts.yml", data, 0o644)
 	if err != nil {
 		return err
 	}

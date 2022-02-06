@@ -3,7 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -52,7 +52,11 @@ func (p *AlpacaWebSocket) listen() error {
 			"error", err)
 		return err
 	}
-	defer p.conn.Close()
+	defer func(conn *websocket.Conn) {
+		if err := conn.Close(); err != nil {
+			log.Error("failed to close websocket connection", err.Error())
+		}
+	}(p.conn)
 
 	p.conn.SetReadLimit(p.maxMessageSize)
 	p.conn.SetPongHandler(func(string) error {
@@ -119,7 +123,7 @@ func (p *AlpacaWebSocket) connect() (err error) {
 	p.conn, hresp, err = dialer.Dial(p.server, nil)
 	if err != nil {
 		if hresp != nil {
-			body, _ := ioutil.ReadAll(hresp.Body)
+			body, _ := io.ReadAll(hresp.Body)
 			return fmt.Errorf(
 				"[alpaca] connection failure, err: %w, status_code: %d, body: %s",
 				err,

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -392,7 +391,7 @@ func request(client *http.Client, url string) ([]byte, error) {
 		reader = resp.Body
 	}
 
-	body, err := ioutil.ReadAll(reader)
+	body, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +439,7 @@ func readFromCache(filename string) (bytes []byte, err error) {
 	}
 	defer reader.Close()
 
-	bytes, err = ioutil.ReadAll(reader)
+	bytes, err = io.ReadAll(reader)
 	if err != nil {
 		log.Warn("[polygon] failed to read file: %s (%v)", filename, err)
 		return nil, err
