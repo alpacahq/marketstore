@@ -3,7 +3,6 @@ package catalog
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -63,7 +62,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 
 	// Load up the child directories
 	d.subDirs = make(map[string]*Directory)
-	dirlist, err := ioutil.ReadDir(subPath)
+	dirlist, err := os.ReadDir(subPath)
 	if err != nil {
 		return fmt.Errorf("read dir %s: %w", subPath, err)
 	}

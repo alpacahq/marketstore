@@ -2,7 +2,6 @@ package reorg
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,14 +62,14 @@ func datePartOfFilename(filename string) string {
 }
 
 func fileList(path, prefix string, reimport bool) (out []string, err error) {
-	localfiles, err := ioutil.ReadDir(path)
+	localDirEntries, err := os.ReadDir(path)
 	if err == nil {
-		for _, file := range localfiles {
-			if !strings.HasPrefix(file.Name(), prefix) {
+		for _, dirEntry := range localDirEntries {
+			if !strings.HasPrefix(dirEntry.Name(), prefix) {
 				continue
 			}
-			if reimport || !strings.HasSuffix(file.Name(), enum.ProcessedFlag) {
-				out = append(out, file.Name())
+			if reimport || !strings.HasSuffix(dirEntry.Name(), enum.ProcessedFlag) {
+				out = append(out, dirEntry.Name())
 			}
 		}
 	}
