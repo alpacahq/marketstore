@@ -29,8 +29,8 @@ var FTPSyncCmd = &cobra.Command{
 			return err
 		}
 
-		if err := os.MkdirAll(dataDir, 0o777); err != nil {
-			log.Error("Cannot create local storage directory: %+v", err)
+		if err2 := os.MkdirAll(dataDir, 0o777); err2 != nil {
+			log.Error("Cannot create local storage directory: %+v", err2)
 			return err
 		}
 

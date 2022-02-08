@@ -22,7 +22,7 @@ func (m MockFtpClient) Retrieve(path string, dest io.Writer) error {
 	if !ok {
 		return errors.New("Retrieve: file not found")
 	}
-	dest.Write(buff)
+	_, _ = dest.Write(buff)
 	return nil
 }
 
@@ -66,26 +66,26 @@ type MockFile struct {
 	sys     interface{}
 }
 
-func (m MockFile) Name() string {
+func (m *MockFile) Name() string {
 	return m.name
 }
 
-func (m MockFile) Size() int64 {
+func (m *MockFile) Size() int64 {
 	return m.size
 }
 
-func (m MockFile) Mode() os.FileMode {
+func (m *MockFile) Mode() os.FileMode {
 	return m.mode
 }
 
-func (m MockFile) ModTime() time.Time {
+func (m *MockFile) ModTime() time.Time {
 	return m.modTime
 }
 
-func (m MockFile) IsDir() bool {
+func (m *MockFile) IsDir() bool {
 	return m.isDir
 }
 
-func (m MockFile) Sys() interface{} {
+func (m *MockFile) Sys() interface{} {
 	return m.sys
 }

@@ -9,20 +9,20 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-type FtpClient interface {
+type Client interface {
 	Retrieve(path string, dest io.Writer) error
 	ReadDir(path string) ([]os.FileInfo, error)
 	Close() error
 }
 
-var _ FtpClient = (*goftp.Client)(nil)
+var _ Client = (*goftp.Client)(nil)
 
 // NewClient is a thin wrapper around goftp.DialConfig. Connects instantly to the specified server.
-func NewClient(username, password, ftp_host string) (FtpClient, error) {
+func NewClient(username, password, ftpHost string) (Client, error) {
 	config := goftp.Config{
 		User:     username,
 		Password: password,
 	}
 	log.Info("Connecting to ICE...")
-	return goftp.DialConfig(config, ftp_host)
+	return goftp.DialConfig(config, ftpHost)
 }

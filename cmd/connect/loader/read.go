@@ -29,7 +29,7 @@ func readTimeColumns(csvData [][]string, columnIndex []int, conf *CSVConfig) (ep
 	*/
 	// var tzLoc *time.Location
 	var tzLoc *time.Location
-	if len(conf.Timezone) != 0 {
+	if conf.Timezone != "" {
 		tzLoc, err = time.LoadLocation(conf.Timezone)
 		if err != nil {
 			log.Error(fmt.Sprintf("Unable to parse timezone %s: %s\n", conf.Timezone, err.Error()))

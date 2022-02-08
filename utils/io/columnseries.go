@@ -48,10 +48,10 @@ func (cs *ColumnSeries) GetColumn(name string) interface{} {
 }
 
 func (cs *ColumnSeries) GetDataShapes() (ds []DataShape) {
-	var et []EnumElementType
-	for _, name := range cs.orderedNames {
+	et := make([]EnumElementType, len(cs.orderedNames))
+	for i := range cs.orderedNames {
 		// fmt.Printf("name %v, type %v\n", name, GetElementType(cs.columns[name]))
-		et = append(et, GetElementType(cs.columns[name]))
+		et[i] = GetElementType(cs.columns[cs.orderedNames[i]])
 	}
 	return NewDataShapeVector(cs.orderedNames, et)
 }
@@ -181,14 +181,15 @@ func (cs *ColumnSeries) Remove(targetName string) error {
 
 func (cs *ColumnSeries) Project(keepList []string) error {
 	newCols := make(map[string]interface{})
-	var newNames []string
-	for _, name := range keepList {
+
+	newNames := make([]string, len(keepList))
+	for i, name := range keepList {
 		col := cs.GetByName(name)
 		if col == nil {
 			return fmt.Errorf("column named: %s not found", name)
 		}
 		newCols[name] = col
-		newNames = append(newNames, name)
+		newNames[i] = name
 	}
 	cs.columns = newCols
 	cs.orderedNames = newNames

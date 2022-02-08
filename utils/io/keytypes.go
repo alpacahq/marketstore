@@ -154,15 +154,16 @@ func (mk *TimeBucketKey) SetItemInCategory(catName, itemName string) {
 
 func (mk *TimeBucketKey) GetTimeFrame() (tf *utils.Timeframe, err error) {
 	tfs := mk.GetItemInCategory("Timeframe")
-	if len(tfs) == 0 {
+	if tfs == "" {
 		return &utils.Timeframe{}, fmt.Errorf("error: Unable to get timeframe from key")
 	}
 
-	if tf = utils.TimeframeFromString(tfs); tf == nil {
-		err = fmt.Errorf("error: Unable to get timeframe from key")
+	tf = utils.TimeframeFromString(tfs)
+	if tf == nil {
+		return nil, fmt.Errorf("error: Unable to get timeframe from key")
 	}
 
-	return
+	return tf, nil
 }
 
 func (mk *TimeBucketKey) GetPathToYearFiles(rootDir string) string {
