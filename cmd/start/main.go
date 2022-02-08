@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -72,7 +71,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	defer globalCancel()
 
 	// Attempt to read config file.
-	data, err := ioutil.ReadFile(configFilePath)
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read configuration file error: %w", err)
 	}

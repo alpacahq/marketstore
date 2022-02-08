@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -164,7 +163,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 
 	var resp GetBarsResponse
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +250,7 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 
 	var resp ListSymbolsResponse
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}

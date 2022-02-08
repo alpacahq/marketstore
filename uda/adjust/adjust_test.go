@@ -2,8 +2,8 @@ package adjust
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"testing"
 	"time"
 
@@ -22,7 +22,7 @@ func setup(t *testing.T, testName string,
 
 	rounderNum = math.Pow(10, 3)
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("adjust_test-%s", testName))
+	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("adjust_test-%s", testName))
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)

@@ -3,7 +3,6 @@ package catalog
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -55,7 +54,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 	d.pathToItemName = filepath.Clean(subPath)
 	// Read the category name for the child directory items
 	catFilePath := subPath + "/" + "category_name"
-	catname, err := ioutil.ReadFile(catFilePath)
+	catname, err := os.ReadFile(catFilePath)
 	if err != nil {
 		return ErrCategoryFileNotFound{filePath: catFilePath, msg: io.GetCallerFileContext(0) + err.Error()}
 	}
@@ -63,7 +62,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 
 	// Load up the child directories
 	d.subDirs = make(map[string]*Directory)
-	dirlist, err := ioutil.ReadDir(subPath)
+	dirlist, err := os.ReadDir(subPath)
 	if err != nil {
 		return fmt.Errorf("read dir %s: %w", subPath, err)
 	}
@@ -127,7 +126,7 @@ func writeCategoryNameFile(catName, dirName string) error {
 	catNameFile := filepath.Join(dirName, "category_name")
 
 	if fileExists(catNameFile) {
-		buffer, err := ioutil.ReadFile(catNameFile)
+		buffer, err := os.ReadFile(catNameFile)
 		if err != nil {
 			return err
 		}

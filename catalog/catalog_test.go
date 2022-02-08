@@ -3,7 +3,6 @@ package catalog_test
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,7 +20,7 @@ func setup(t *testing.T, testName string,
 ) (tearDown func(), rootDir string, catalogDir *catalog.Directory) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("catalog_test-%s", testName))
+	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("catalog_test-%s", testName))
 	test.MakeDummyCurrencyDir(rootDir, false, false)
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	if err != nil {
@@ -189,7 +188,7 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 }
 
 func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
-	rootDir, _ := ioutil.TempDir("", "catalog_test-TestAddAndRemoveDataItemFromEmptyDirectory")
+	rootDir, _ := os.MkdirTemp("", "catalog_test-TestAddAndRemoveDataItemFromEmptyDirectory")
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	var e catalog.ErrCategoryFileNotFound
 	if err != nil && !errors.As(err, &e) {

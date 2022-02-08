@@ -2,7 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -131,7 +130,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Tri
 			ignoreFile := ThisInstance.WALFile.FilePtr.Name()
 			myInstanceID := ThisInstance.WALFile.OwningInstanceID
 
-			finder := wal.NewFinder(ioutil.ReadDir)
+			finder := wal.NewFinder(os.ReadDir)
 			walFileAbsPaths, err := finder.Find(filepath.Clean(rootDir))
 			if err != nil {
 				walFileAbsPaths = []string{}

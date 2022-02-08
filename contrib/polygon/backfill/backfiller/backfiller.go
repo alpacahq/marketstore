@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"runtime"
@@ -280,7 +279,7 @@ func main() {
 }
 
 func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int) {
-	data, err := ioutil.ReadFile(configFilePath)
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
 		log.Error("failed to read configuration file error: %s", err.Error())
 		os.Exit(1)

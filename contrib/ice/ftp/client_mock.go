@@ -2,8 +2,8 @@ package ftp
 
 import (
 	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"time"
 )
@@ -27,7 +27,22 @@ func (m MockFtpClient) Retrieve(path string, dest io.Writer) error {
 }
 
 func (m MockFtpClient) ReadDir(path string) ([]os.FileInfo, error) {
-	return ioutil.ReadDir("." + path)
+	dirEntries, err := os.ReadDir("." + path)
+	if err != nil {
+		return nil, err
+	}
+
+	// convert []fs.DirEntry to []os.FileInfo
+	fileInfos := make([]os.FileInfo, len(dirEntries))
+	for i, dirEntry := range dirEntries {
+		lf, err := dirEntry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("get file info for a dir entry: %w", err)
+		}
+		fileInfos[i] = lf
+	}
+
+	return fileInfos, nil
 }
 
 func (m MockFtpClient) Close() error {

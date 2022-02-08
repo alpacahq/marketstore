@@ -1,7 +1,7 @@
 package ftp
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,11 +47,22 @@ func (f *Downloader) getRemoteFiles() (FileInfoMap, error) {
 }
 
 func (f *Downloader) getLocalFiles() (FileInfoMap, error) {
-	localfiles, err := ioutil.ReadDir(f.storagePath)
+	localDirEntries, err := os.ReadDir(f.storagePath)
 	if err != nil {
 		return nil, err
 	}
-	return f.filter(localfiles), nil
+
+	// convert []fs.DirEntry to []os.FileInfo
+	localFiles := make([]os.FileInfo, len(localDirEntries))
+	for i, localDirEntry := range localDirEntries {
+		lf, err := localDirEntry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("get file info for a dir entry: %w", err)
+		}
+		localFiles[i] = lf
+	}
+
+	return f.filter(localFiles), nil
 }
 
 func (f *Downloader) filter(files []os.FileInfo) FileInfoMap {

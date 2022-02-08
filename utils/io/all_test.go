@@ -1,7 +1,6 @@
 package io
 
 import (
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -239,8 +238,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 
 func TestTimeBucketInfo(t *testing.T) {
 	t.Parallel()
-	tempDir, _ := ioutil.TempDir("", "io.TestTimeBucketInfo")
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	tempDir, _ := os.MkdirTemp("", "io.TestTimeBucketInfo")
+	defer os.RemoveAll(tempDir)
 
 	timeframe := utils.NewTimeframe("1Min")
 	filePath := filepath.Join(tempDir, "2018.bin")
