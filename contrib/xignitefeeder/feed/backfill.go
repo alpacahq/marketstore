@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -30,20 +31,20 @@ func NewBackfill(symbolManager symbols.Manager, apiClient api.Client, writer wri
 }
 
 // Update calls UpdateSymbols and UpdateIndexSymbols functions sequentially.
-func (b *Backfill) Update() {
-	b.UpdateSymbols()
-	b.UpdateIndexSymbols()
+func (b *Backfill) Update(ctx context.Context) {
+	b.UpdateSymbols(ctx)
+	b.UpdateIndexSymbols(ctx)
 	// In order to get and store adjusted closing prices
-	b.UpdateClosingPrice()
+	b.UpdateClosingPrice(ctx)
 }
 
 // UpdateSymbols aggregates daily chart data since the specified date
 // and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
-func (b *Backfill) UpdateSymbols() {
+func (b *Backfill) UpdateSymbols(ctx context.Context) {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIdentifiers() {
 		// call a Xignite API to get the historical data
-		resp, err := b.apiClient.GetQuotesRange(identifier, b.since, endDate)
+		resp, err := b.apiClient.GetQuotesRange(ctx, identifier, b.since, endDate)
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
@@ -70,11 +71,11 @@ func (b *Backfill) UpdateSymbols() {
 
 // UpdateIndexSymbols aggregates daily chart data of index symbols
 // since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
-func (b *Backfill) UpdateIndexSymbols() {
+func (b *Backfill) UpdateIndexSymbols(ctx context.Context) {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIndexIdentifiers() {
 		// call a Xignite API to get the historical data
-		resp, err := b.apiClient.GetIndexQuotesRange(identifier, b.since, endDate)
+		resp, err := b.apiClient.GetIndexQuotesRange(ctx, identifier, b.since, endDate)
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
@@ -100,10 +101,10 @@ func (b *Backfill) UpdateIndexSymbols() {
 }
 
 // UpdateClosingPrice get real-time quotes data for the target symbols and store them into the local marketstore server.
-func (b *Backfill) UpdateClosingPrice() {
+func (b *Backfill) UpdateClosingPrice(ctx context.Context) {
 	// call Xignite API to get Quotes data
 	identifiers := b.symbolManager.GetAllIdentifiers()
-	response, err := b.apiClient.GetRealTimeQuotes(identifiers)
+	response, err := b.apiClient.GetRealTimeQuotes(ctx, identifiers)
 	if err != nil {
 		log.Error(fmt.Sprintf("failed to get data from Xignite API. %v, err=", identifiers) + err.Error())
 		return

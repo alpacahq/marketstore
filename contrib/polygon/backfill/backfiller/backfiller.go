@@ -315,7 +315,9 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 	return instanceConfig, shutdownPending, walWG, nil
 }
 
-func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
+func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex,
+	tickerListRunning *bool,
+) {
 	currentTickers, err := api.ListTickersPerPage(client, page)
 	if err != nil {
 		log.Error("[polygon] failed to list symbols (%v)", err)

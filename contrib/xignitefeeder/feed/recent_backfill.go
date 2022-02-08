@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -25,14 +26,14 @@ func NewRecentBackfill(sm symbols.Manager, mtc MarketTimeChecker, ac api.Client,
 	return &RecentBackfill{symbolManager: sm, marketTimeChecker: mtc, apiClient: ac, writer: writer, days: days}
 }
 
-func (b *RecentBackfill) Update() {
-	b.UpdateSymbols()
-	b.UpdateIndexSymbols()
+func (b *RecentBackfill) Update(ctx context.Context) {
+	b.UpdateSymbols(ctx)
+	b.UpdateIndexSymbols(ctx)
 }
 
 // UpdateSymbols aggregates recent chart data for the past X business days
 // and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
-func (b *RecentBackfill) UpdateSymbols() {
+func (b *RecentBackfill) UpdateSymbols(ctx context.Context) {
 	endDate := time.Now().UTC()
 	// get the date of {b.days} business days ago
 	startDate, err := b.marketTimeChecker.Sub(endDate, b.days)
@@ -43,7 +44,7 @@ func (b *RecentBackfill) UpdateSymbols() {
 
 	for _, identifier := range b.symbolManager.GetAllIdentifiers() {
 		// call a Xignite API to get the historical data
-		resp, err := b.apiClient.GetRealTimeBars(identifier, startDate, endDate)
+		resp, err := b.apiClient.GetRealTimeBars(ctx, identifier, startDate, endDate)
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
@@ -71,7 +72,7 @@ func (b *RecentBackfill) UpdateSymbols() {
 
 // UpdateIndexSymbols aggregates recent chart data of index symbols for the past X business days
 // and store it to "{symbol}/5Min/OHLCV" bucket in marketstore.
-func (b *RecentBackfill) UpdateIndexSymbols() {
+func (b *RecentBackfill) UpdateIndexSymbols(ctx context.Context) {
 	endDate := time.Now().UTC()
 	// get the date of {b.days} business days ago
 	startDate, err := b.marketTimeChecker.Sub(endDate, b.days)
@@ -83,7 +84,7 @@ func (b *RecentBackfill) UpdateIndexSymbols() {
 
 	for _, identifier := range b.symbolManager.GetAllIndexIdentifiers() {
 		// call a Xignite API to get the historical data
-		resp, err := b.apiClient.GetIndexBars(identifier, startDate, endDate)
+		resp, err := b.apiClient.GetIndexBars(ctx, identifier, startDate, endDate)
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)

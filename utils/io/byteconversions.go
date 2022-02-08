@@ -120,7 +120,8 @@ func SwapSliceData(srcSlice, targetType interface{}) interface{} {
 	// targetSize := binary.Size(target_type)
 	targetSliceType := reflect.SliceOf(targetValueType)
 
-	//	fmt.Printf("LeftType: %s LeftLen: %d LeftSize: %d RightSize: %d\n",srcElementType, leftLen, srcElementTypeSize, targetSize)
+	//	fmt.Printf("LeftType: %s LeftLen: %d LeftSize: %d RightSize: %d\n",
+	//  	srcElementType, leftLen, srcElementTypeSize, targetSize)
 	targetCap := targetLen
 	targetSlice := reflect.MakeSlice(targetSliceType, targetLen, targetCap)
 

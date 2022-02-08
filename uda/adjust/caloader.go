@@ -203,7 +203,8 @@ func (act *Actions) getEffectiveActionsIndex() []int {
 			textnumber = act.Rows.DeleteTextNumbers[i]
 			delete(caMap, textnumber)
 		}
-		// log.Info("ID: %d, date: %+v, status: %d, rate: %+v\n", act.Rows.TextNumbers[i], act.Rows.entrydates[i], act.Rows.Statuses[i], ca.Rows.Rates[i])
+		// log.Info("ID: %d, date: %+v, status: %d, rate: %+v\n",
+		//   act.Rows.TextNumbers[i], act.Rows.entrydates[i], act.Rows.Statuses[i], ca.Rows.Rates[i])
 	}
 	actionIndex := make([]int, 0, len(caMap))
 	for _, index := range caMap {

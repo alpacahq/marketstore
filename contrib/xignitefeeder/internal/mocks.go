@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
@@ -27,22 +28,23 @@ func (msm MockSymbolsManager) GetAllIndexIdentifiers() []string {
 type MockAPIClient struct{}
 
 // GetRealTimeQuotes returns an empty api response.
-func (mac *MockAPIClient) GetRealTimeQuotes(_ []string) (api.GetQuotesResponse, error) {
+func (mac *MockAPIClient) GetRealTimeQuotes(_ context.Context, _ []string) (api.GetQuotesResponse, error) {
 	return api.GetQuotesResponse{}, nil
 }
 
 // ListSymbols returns an empty api response.
-func (mac *MockAPIClient) ListSymbols(_ string) (api.ListSymbolsResponse, error) {
+func (mac *MockAPIClient) ListSymbols(_ context.Context, _ string) (api.ListSymbolsResponse, error) {
 	return api.ListSymbolsResponse{}, nil
 }
 
 // ListIndexSymbols returns an empty api response.
-func (mac *MockAPIClient) ListIndexSymbols(_ string) (api.ListIndexSymbolsResponse, error) {
+func (mac *MockAPIClient) ListIndexSymbols(_ context.Context, _ string) (api.ListIndexSymbolsResponse, error) {
 	return api.ListIndexSymbolsResponse{}, nil
 }
 
 // GetRealTimeBars returns an empty api response.
-func (mac *MockAPIClient) GetRealTimeBars(_ string, _, _ time.Time) (response api.GetBarsResponse, err error) {
+func (mac *MockAPIClient) GetRealTimeBars(_ context.Context, _ string, _, _ time.Time,
+) (response api.GetBarsResponse, err error) {
 	return api.GetBarsResponse{
 		Security:   &api.Security{Symbol: "123"},
 		ArrayOfBar: []api.Bar{},
@@ -50,12 +52,14 @@ func (mac *MockAPIClient) GetRealTimeBars(_ string, _, _ time.Time) (response ap
 }
 
 // GetIndexBars returns an empty api response.
-func (mac *MockAPIClient) GetIndexBars(_ string, _, _ time.Time) (response api.GetIndexBarsResponse, err error) {
+func (mac *MockAPIClient) GetIndexBars(_ context.Context, _ string, _, _ time.Time,
+) (response api.GetIndexBarsResponse, err error) {
 	return api.GetIndexBarsResponse{}, nil
 }
 
 // GetQuotesRange returns an empty api response.
-func (mac *MockAPIClient) GetQuotesRange(_ string, _, _ time.Time) (resp api.GetQuotesRangeResponse, err error) {
+func (mac *MockAPIClient) GetQuotesRange(_ context.Context, _ string, _, _ time.Time,
+) (resp api.GetQuotesRangeResponse, err error) {
 	return api.GetQuotesRangeResponse{
 		Security:             &api.Security{Symbol: "123"},
 		ArrayOfEndOfDayQuote: []api.EndOfDayQuote{},
@@ -63,7 +67,7 @@ func (mac *MockAPIClient) GetQuotesRange(_ string, _, _ time.Time) (resp api.Get
 }
 
 // GetIndexQuotesRange returns an empty api response.
-func (mac *MockAPIClient) GetIndexQuotesRange(_ string, _, _ time.Time,
+func (mac *MockAPIClient) GetIndexQuotesRange(_ context.Context, _ string, _, _ time.Time,
 ) (resp api.GetIndexQuotesRangeResponse, err error) {
 	return api.GetIndexQuotesRangeResponse{}, nil
 }

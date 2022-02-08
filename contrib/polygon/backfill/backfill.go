@@ -99,7 +99,8 @@ var (
 	BackfillM *sync.Map
 )
 
-func Bars(client *http.Client, symbol string, from, to time.Time, batchSize int, unadjusted bool, writerWP *worker.WorkerPool,
+func Bars(client *http.Client, symbol string, from, to time.Time,
+	batchSize int, unadjusted bool, writerWP *worker.WorkerPool,
 ) (err error) {
 	const millisecToSec = 1000
 	if from.IsZero() {

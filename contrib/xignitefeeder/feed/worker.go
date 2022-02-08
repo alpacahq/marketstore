@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -24,16 +25,17 @@ type Worker struct {
 // Run runs forever to get quotes data for each symbol in the target exchanges using Xignite API periodically,
 // and writes the data to the local marketstore server.
 func (w *Worker) Run() {
+	ctx := context.Background()
 	for {
 		// try to get the data and write them every second
-		go w.tryPrintErr()
+		go w.tryPrintErr(ctx)
 		time.Sleep(time.Duration(w.Interval) * time.Second)
 	}
 }
 
 // tryPrintErr tries and write the error log.
-func (w *Worker) tryPrintErr() {
-	if err := w.try(); err != nil {
+func (w *Worker) tryPrintErr(ctx context.Context) {
+	if err := w.try(ctx); err != nil {
 		log.Error(err.Error())
 	}
 
@@ -47,14 +49,14 @@ func (w *Worker) tryPrintErr() {
 
 // try calls GetQuotes endpoint of Xignite API,
 // convert the API response to a ColumnSeriesMap and write it to the marketstore.
-func (w *Worker) try() error {
+func (w *Worker) try(ctx context.Context) error {
 	// check if it needs to work now
 	if !w.MarketTimeChecker.IsOpen(time.Now().UTC()) {
 		return nil
 	}
 	// call Xignite API to get Quotes data
 	identifiers := w.SymbolManager.GetAllIdentifiers()
-	response, err := w.APIClient.GetRealTimeQuotes(identifiers)
+	response, err := w.APIClient.GetRealTimeQuotes(ctx, identifiers)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to get data from Xignite API. %v", identifiers))
 	}
