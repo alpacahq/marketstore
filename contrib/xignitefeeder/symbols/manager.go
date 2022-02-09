@@ -1,6 +1,7 @@
 package symbols
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
@@ -55,16 +56,16 @@ func (m *ManagerImpl) GetAllIndexIdentifiers() []string {
 }
 
 // Update calls UpdateSymbols and UpdateIndexSymbols sequentially.
-func (m *ManagerImpl) Update() {
-	m.UpdateSymbols()
-	m.UpdateIndexSymbols()
+func (m *ManagerImpl) Update(ctx context.Context) {
+	m.UpdateSymbols(ctx)
+	m.UpdateIndexSymbols(ctx)
 }
 
 // UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers
 // and store them to the Identifiers map.
-func (m *ManagerImpl) UpdateSymbols() {
+func (m *ManagerImpl) UpdateSymbols(ctx context.Context) {
 	for _, exchange := range m.TargetExchanges {
-		resp, err := m.APIClient.ListSymbols(exchange)
+		resp, err := m.APIClient.ListSymbols(ctx, exchange)
 
 		// if ListSymbols API returns an error, don't update the target symbols
 		if err != nil || resp.Outcome != "Success" {
@@ -89,9 +90,9 @@ func (m *ManagerImpl) UpdateSymbols() {
 
 // UpdateIndexSymbols calls the ListIndexSymbols endpoint, convert the index symbols to the Identifiers
 // and store them to the Identifiers map.
-func (m *ManagerImpl) UpdateIndexSymbols() {
+func (m *ManagerImpl) UpdateIndexSymbols(ctx context.Context) {
 	for _, indexGroup := range m.TargetIndexGroups {
-		resp, err := m.APIClient.ListIndexSymbols(indexGroup)
+		resp, err := m.APIClient.ListIndexSymbols(ctx, indexGroup)
 
 		// if ListSymbols API returns an error, don't update the target symbols
 		if err != nil || resp.Outcome != "Success" {

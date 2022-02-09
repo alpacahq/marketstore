@@ -8,11 +8,11 @@ import (
 )
 
 // RunEveryDayAt runs a specified function every day at a specified hour.
-func RunEveryDayAt(ctx context.Context, t time.Time, f func()) {
+func RunEveryDayAt(ctx context.Context, t time.Time, f func(context.Context)) {
 	timeToNextRun := timeToNext(time.Now(), t)
 
 	// run at a specified time on the next day
-	time.AfterFunc(timeToNextRun, f)
+	time.AfterFunc(timeToNextRun, func() { f(ctx) })
 
 	// at the same time, run  every 24 hour
 	time.AfterFunc(timeToNextRun, func() {
@@ -21,7 +21,7 @@ func RunEveryDayAt(ctx context.Context, t time.Time, f func()) {
 		for {
 			select {
 			case <-ticker.C:
-				f()
+				f(ctx)
 			case <-ctx.Done():
 				log.Debug("job stopped due to ctx.Done()")
 				ticker.Stop()

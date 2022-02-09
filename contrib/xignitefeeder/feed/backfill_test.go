@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -18,7 +19,8 @@ type MockErrorAPIClient struct {
 }
 
 // GetQuotesRange returns "Request Error" to certain identifier, but returns "Success" to other identifiers.
-func (mac *MockErrorAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
+func (mac *MockErrorAPIClient) GetQuotesRange(_ context.Context, i string, _, _ time.Time,
+) (resp api.GetQuotesRangeResponse, err error) {
 	if i == "XTKS.1301" {
 		return api.GetQuotesRangeResponse{
 			Outcome:              "RequestError",
@@ -39,13 +41,13 @@ type MockQuotesRangeWriter struct {
 	WriteIndexCount int
 }
 
-func (mqrw *MockQuotesRangeWriter) Write(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool) error {
+func (mqrw *MockQuotesRangeWriter) Write(_ string, _ []api.EndOfDayQuote, _ bool) error {
 	// in order to assert the number of writes in the test
 	mqrw.WriteCount++
 	return nil
 }
 
-func (mqrw *MockQuotesRangeWriter) WriteIndex(quotesRange api.GetIndexQuotesRangeResponse) error {
+func (mqrw *MockQuotesRangeWriter) WriteIndex(_ api.GetIndexQuotesRangeResponse) error {
 	// in order to assert the number of writes in the test
 	mqrw.WriteIndexCount++
 	return nil
@@ -67,7 +69,7 @@ func TestBackfill_Update(t *testing.T) {
 	}
 
 	// --- when ---
-	SUT.Update()
+	SUT.Update(context.Background())
 
 	// --- then ---
 	if mrw, ok := rw.(*MockQuotesRangeWriter); ok {
@@ -103,7 +105,7 @@ func TestBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 	}
 
 	// --- when ---
-	SUT.Update()
+	SUT.Update(context.Background())
 
 	// --- then ---
 	// write fails for 1 out of 3 identifiers

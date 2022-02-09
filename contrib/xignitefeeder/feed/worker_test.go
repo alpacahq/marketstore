@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -44,7 +45,7 @@ func TestWorker_try_normal(t *testing.T) {
 		Interval:          1,
 	}
 	// --- when & then ---
-	if err := SUT.try(); err != nil {
+	if err := SUT.try(context.Background()); err != nil {
 		t.Errorf("error should be nil. err=%v", err)
 	}
 
