@@ -23,7 +23,8 @@ func TestNew(t *testing.T) {
 	var ret bgworker.BgWorker
 	var err error
 	ret, err = NewBgWorker(config)
-	worker = ret.(*GdaxFetcher)
+	worker, ok := ret.(*GdaxFetcher)
+	assert.True(t, ok)
 	assert.Len(t, worker.symbols, 1)
 	assert.Equal(t, worker.symbols[0], "BTC-USD")
 	assert.Nil(t, err)
@@ -33,14 +34,16 @@ func TestNew(t *testing.T) {
         }`)
 	ret, err = NewBgWorker(config)
 	assert.Nil(t, err)
-	worker = ret.(*GdaxFetcher)
+	worker, ok = ret.(*GdaxFetcher)
+	assert.True(t, ok)
 	assert.Len(t, worker.symbols, 3)
 
 	config = getConfig(`{
         "query_start": "2017-01-02 00:00"
         }`)
 	ret, err = NewBgWorker(config)
-	worker = ret.(*GdaxFetcher)
+	worker, ok = ret.(*GdaxFetcher)
+	assert.True(t, ok)
 	assert.Nil(t, err)
 	assert.False(t, worker.queryStart.IsZero())
 }

@@ -30,13 +30,14 @@ func TestConvertByteSlice(t *testing.T) {
 	copy(buffer[24:], (*(*[24]byte)(unsafe.Pointer(&s2)))[:])
 
 	i_myarray := CopySliceByte(buffer, ohlc{})
-	myarray := i_myarray.([]ohlc)
+	myarray, ok := i_myarray.([]ohlc)
+	assert.True(t, ok)
 	for i, ohlc := range myarray {
 		assert.Equal(t, ohlc, baseArray[i])
 	}
 
 	i_myarray = SwapSliceByte(buffer, ohlc{})
-	myarray, ok := i_myarray.([]ohlc)
+	myarray, ok = i_myarray.([]ohlc)
 	assert.True(t, ok)
 	for i, ohlc := range myarray {
 		assert.Equal(t, ohlc, baseArray[i])

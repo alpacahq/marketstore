@@ -36,7 +36,8 @@ func TestNew(t *testing.T) {
 	var ret bgworker.BgWorker
 	var err error
 	ret, err = NewBgWorker(config)
-	worker = ret.(*BitmexFetcher)
+	worker, ok := ret.(*BitmexFetcher)
+	assert.True(t, ok)
 	assert.Equal(t, 1, len(worker.symbols))
 	assert.Equal(t, "XBTUSD", worker.symbols[0])
 	assert.Nil(t, err)
@@ -44,7 +45,8 @@ func TestNew(t *testing.T) {
 	getConfig(``)
 	config = map[string]interface{}{"httpClient": hc} // inject http client
 	ret, err = NewBgWorker(config)
-	worker = ret.(*BitmexFetcher)
+	worker, ok = ret.(*BitmexFetcher)
+	assert.True(t, ok)
 	assert.Nil(t, err)
 
 	client := bitmex.NewBitmexClient(hc)
@@ -60,7 +62,8 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 	}
-	worker = ret.(*BitmexFetcher)
+	worker, ok = ret.(*BitmexFetcher)
+	assert.True(t, ok)
 	t.Logf("%v", worker)
 	assert.Nil(t, err)
 	assert.Equal(t, worker.queryStart.IsZero(), false)

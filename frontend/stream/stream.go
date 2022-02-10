@@ -195,7 +195,7 @@ func (s *Subscriber) produce() {
 		select {
 		case <-ticker.C:
 			s.Lock()
-			s.c.WriteMessage(websocket.PingMessage, []byte{})
+			_ = s.c.WriteMessage(websocket.PingMessage, []byte{})
 			s.Unlock()
 		case <-s.done:
 			return
@@ -208,7 +208,11 @@ func stream() {
 		if v == nil {
 			continue
 		}
-		payload := v.(Payload)
+		payload, ok := v.(Payload)
+		if !ok {
+			log.Error("failed to cast payload (%v)", v)
+			continue
+		}
 
 		buf, err := msgpack.Marshal(payload)
 		if err != nil {

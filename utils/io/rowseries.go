@@ -2,6 +2,7 @@ package io
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -73,7 +74,10 @@ func (rows *Rows) Len() int {
 }
 
 func (rows *Rows) GetTime() ([]time.Time, error) {
-	ep := rows.GetColumn("Epoch").([]int64)
+	ep, ok := rows.GetColumn("Epoch").([]int64)
+	if !ok {
+		return nil, fmt.Errorf("cast epoch column to []int64: %v", rows.GetColumn("Epoch"))
+	}
 	ts := make([]time.Time, len(ep))
 	nsi := rows.GetColumn("Nanoseconds")
 	if nsi == nil {
