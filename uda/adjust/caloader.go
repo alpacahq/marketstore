@@ -1,6 +1,7 @@
 package adjust
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -152,26 +153,35 @@ func (act *Actions) Load(catalogDir *catalog.Directory) error {
 		log.Error("Error returned from query scanner: %s", err)
 		return err
 	}
-	act.fromColumnSeries(csm[*tbk])
+
+	if err2 := act.fromColumnSeries(csm[*tbk]); err2 != nil {
+		return err2
+	}
+
 	return nil
 }
 
-func (act *Actions) fromColumnSeries(cs *io.ColumnSeries) {
-	act.Rows.EntryDates = cs.GetColumn("Epoch").([]int64)
-	act.Rows.TextNumbers = cs.GetColumn("TextNumber").([]int64)
-	act.Rows.UpdateTextNumbers = cs.GetColumn("UpdateTextNumber").([]int64)
-	act.Rows.DeleteTextNumbers = cs.GetColumn("DeleteTextNumber").([]int64)
-	act.Rows.NotificationTypes = cs.GetColumn("NotificationType").([]byte)
-	act.Rows.Statuses = cs.GetColumn("Status").([]byte)
-	act.Rows.UpdatedNotificationTypes = cs.GetColumn("UpdatedNotificationType").([]byte)
-	act.Rows.SecurityTypes = cs.GetColumn("SecurityType").([]byte)
-	act.Rows.VoluntaryMandatoryCodes = cs.GetColumn("VoluntaryMandatoryCode").([]byte)
-	act.Rows.RecordDates = cs.GetColumn("RecordDate").([]int64)
-	act.Rows.EffectiveDates = cs.GetColumn("EffectiveDate").([]int64)
-	act.Rows.ExpirationDates = cs.GetColumn("ExpirationDate").([]int64)
-	act.Rows.NewRates = cs.GetColumn("NewRate").([]float64)
-	act.Rows.OldRates = cs.GetColumn("OldRate").([]float64)
-	act.Rows.Rates = cs.GetColumn("Rate").([]float64)
+func (act *Actions) fromColumnSeries(cs *io.ColumnSeries) error {
+	var ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11, ok12, ok13, ok14, ok15 bool
+	act.Rows.EntryDates, ok1 = cs.GetColumn("Epoch").([]int64)
+	act.Rows.TextNumbers, ok2 = cs.GetColumn("TextNumber").([]int64)
+	act.Rows.UpdateTextNumbers, ok3 = cs.GetColumn("UpdateTextNumber").([]int64)
+	act.Rows.DeleteTextNumbers, ok4 = cs.GetColumn("DeleteTextNumber").([]int64)
+	act.Rows.NotificationTypes, ok5 = cs.GetColumn("NotificationType").([]byte)
+	act.Rows.Statuses, ok6 = cs.GetColumn("Status").([]byte)
+	act.Rows.UpdatedNotificationTypes, ok7 = cs.GetColumn("UpdatedNotificationType").([]byte)
+	act.Rows.SecurityTypes, ok8 = cs.GetColumn("SecurityType").([]byte)
+	act.Rows.VoluntaryMandatoryCodes, ok9 = cs.GetColumn("VoluntaryMandatoryCode").([]byte)
+	act.Rows.RecordDates, ok10 = cs.GetColumn("RecordDate").([]int64)
+	act.Rows.EffectiveDates, ok11 = cs.GetColumn("EffectiveDate").([]int64)
+	act.Rows.ExpirationDates, ok12 = cs.GetColumn("ExpirationDate").([]int64)
+	act.Rows.NewRates, ok13 = cs.GetColumn("NewRate").([]float64)
+	act.Rows.OldRates, ok14 = cs.GetColumn("OldRate").([]float64)
+	act.Rows.Rates, ok15 = cs.GetColumn("Rate").([]float64)
+	if !(ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8 && ok9 && ok10 && ok11 && ok12 && ok13 && ok14 && ok15) {
+		return fmt.Errorf("cast a column series to a corporate action object: %v", cs)
+	}
+	return nil
 }
 
 func (act *Actions) Len() int {

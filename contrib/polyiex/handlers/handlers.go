@@ -214,7 +214,10 @@ func (w *writer) write() {
 		select {
 		case m := <-w.c.Out():
 			w.Lock()
-			packet := m.(*writePacket)
+			packet,ok := m.(*writePacket)
+			if !ok {
+				log.Error("failed to parse ")
+			}
 
 			if bucket, ok := w.dataBuckets[*packet.tbk]; ok {
 				switch packet.data.(type) {

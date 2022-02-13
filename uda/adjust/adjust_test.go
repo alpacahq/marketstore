@@ -75,8 +75,10 @@ func evalCase(t *testing.T, testCase AdjustTestCase) {
 	aggfunc, _ := adj.New(am)
 	outputCs, _ := aggfunc.Accum(*tbk, am, inputCs)
 
-	outEpochs := outputCs.GetColumn("Epoch").([]int64)
-	outPrice := outputCs.GetColumn("Price").([]float64)
+	outEpochs,ok := outputCs.GetColumn("Epoch").([]int64)
+	assert.True(t, ok)
+	outPrice,ok := outputCs.GetColumn("Price").([]float64)
+	assert.True(t, ok)
 
 	assert.Equal(t, inputCs.Len(), outputCs.Len())
 

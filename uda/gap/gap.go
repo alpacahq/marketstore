@@ -63,13 +63,13 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.Column
 	g.Input = &cols
 
 	if cols.Len() == 0 {
-		return g.Output(), nil
+		return g.Output()
 	}
 
 	epochs, err := uda.ColumnToFloat64(cols, "Epoch")
 
 	if err != nil || epochs == nil || len(epochs) < 2 {
-		return g.Output(), nil
+		return g.Output()
 	}
 
 	size := len(epochs)
@@ -104,7 +104,7 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.Column
 		}
 	}
 
-	return g.Output(), nil
+	return g.Output()
 }
 
 /*
@@ -149,7 +149,7 @@ func (g Gap) New(_ *functions.ArgumentMap, args ...interface{}) (out uda.AggInte
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (g *Gap) Output() *io.ColumnSeries {
+func (g *Gap) Output() (*io.ColumnSeries, error) {
 	cs := io.NewColumnSeries()
 
 	resultRows := len(g.BigGapIdxs)
@@ -159,7 +159,10 @@ func (g *Gap) Output() *io.ColumnSeries {
 
 	if len(g.BigGapIdxs) > 0 && g.Input != nil {
 		cols := *g.Input
-		epochs := cols.GetColumn("Epoch").([]int64)
+		epochs, ok := cols.GetColumn("Epoch").([]int64)
+		if !ok {
+			return nil, fmt.Errorf("cast Epoch column to []int64. epoch:%v", cols.GetColumn("Epoch"))
+		}
 
 		for i, idx := range g.BigGapIdxs {
 			gapStartEpoch[i] = epochs[idx]
@@ -172,5 +175,5 @@ func (g *Gap) Output() *io.ColumnSeries {
 	cs.AddColumn("End", gapEndEpoch)
 	cs.AddColumn("Length", gapLength)
 
-	return cs
+	return cs, nil
 }

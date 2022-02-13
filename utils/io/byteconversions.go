@@ -28,19 +28,22 @@ func CopySliceByte(ib, is interface{}) interface{} {
 	return structSlice.Interface()
 }
 
-// This is a *copy* of the "Value" struct inside the reflect package.
+// MValue is a *copy* of the "Value" struct inside the reflect package.
 type MValue struct {
 	typ uintptr
 	Ptr unsafe.Pointer
 }
 
-func SwapSliceByte(src_byte_slice, target_type interface{}) interface{} {
-	buffer := src_byte_slice.([]byte)
+// SwapSliceByte converts a byte slice of the type into a slice of the target type
+// without copying each value in the slice.
+func SwapSliceByte(srcByteSlice, targetType interface{}) interface{} {
+	// TODO: check type assertion and return an error
+	buffer := srcByteSlice.([]byte)
 
-	structValue := reflect.ValueOf(target_type)
+	structValue := reflect.ValueOf(targetType)
 	structType := structValue.Type()
 	structSize := structType.Size()
-	// structSize := binary.Size(target_type)
+	// structSize := binary.Size(targetType)
 	structSliceType := reflect.SliceOf(structType)
 
 	Len := len(buffer) / int(structSize)
@@ -132,7 +135,7 @@ func SwapSliceData(srcSlice, targetType interface{}) interface{} {
 	return targetSlice.Interface()
 }
 
-// Cast sliceData's memory chunk to a byte slice without copy.
+// CastToByteSlice casts sliceData's memory chunk to a byte slice without copy.
 func CastToByteSlice(sliceData interface{}) []byte {
 	sliceValue := reflect.ValueOf(sliceData)
 	sliceLen := sliceValue.Len()
@@ -149,7 +152,7 @@ func CastToByteSlice(sliceData interface{}) []byte {
 	return buffer
 }
 
-// Takes a primary (non slice, non pointer) type and returns a []byte of the base type data.
+// DataToByteSlice takes a primary (non slice, non pointer) type and returns a []byte of the base type data.
 func DataToByteSlice(srcData interface{}) []byte {
 	value := reflect.ValueOf(srcData)
 	size := int(value.Type().Size())

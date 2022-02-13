@@ -78,7 +78,8 @@ func TestTriggerPluginDispatcher(t *testing.T) {
 			// --- given ---
 			matchers := []*trigger.TriggerMatcher{trigger.NewMatcher(tt.trigger, tt.on)}
 			tpd := executor.NewTriggerPluginDispatcher(matchers)
-			fakeBuffer := io.SwapSliceData([]int64{0, 5}, byte(0)).([]byte)
+			fakeBuffer, ok := io.SwapSliceData([]int64{0, 5}, byte(0)).([]byte)
+			assert.True(t, ok)
 
 			// --- when
 			for _, r := range tt.records {
