@@ -21,6 +21,9 @@ type Directory struct {
 	itemName string
 	// pathToItemName is the directory path to this item. e.g. pathToItemName: "/project/data", itemName: "AAPL"
 	pathToItemName string
+	// category is a string that represents what is listed up under this directory.
+	// stored in "category_name" file under each directory.
+	// e.g. "Symbol", "Timeframe", "AttributeGroup", "Year".
 	category       string
 
 	// directMap[Key]: Key is the directory path, including the rootPath and excluding filename
@@ -478,25 +481,31 @@ func (d *Directory) GatherCategoriesFromCache() (catList map[string]int8) {
 func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
 	// Must be thread-safe for READ access
 	// Provides a map of categories and items within and below this directory
-	catListFunc := func(d *Directory, i_list interface{}) {
-		list := i_list.(map[string]map[string]int)
-		if list[d.category] == nil {
-			list[d.category] = make(map[string]int)
-		}
-		if d.subDirs != nil {
-			for _, subdir := range d.subDirs {
-				list[d.category][subdir.itemName] = 0
-			}
-		}
-		if d.datafile != nil {
-			for _, file := range d.datafile {
-				list[d.category][strconv.Itoa(int(file.Year))] = 0
-			}
+	catList := make(map[string]map[string]int)
+	d.recurse(catList, catalogListFunc)
+	return catList
+}
+
+func catalogListFunc(d *Directory, itemList interface{}) {
+	// key: category_name(e.g. "Symbol", "Timeframe", "AttribtueGroup", "Year")
+	// value: {
+	//    key: category value (e.g. "AAPL" if category is "Symbol"}
+	//    value: 0
+	// }
+	list := itemList.(map[string]map[string]int)
+	if list[d.category] == nil {
+		list[d.category] = make(map[string]int)
+	}
+	if d.subDirs != nil {
+		for _, subdir := range d.subDirs {
+			list[d.category][subdir.itemName] = 0
 		}
 	}
-	catList := make(map[string]map[string]int)
-	d.recurse(catList, catListFunc)
-	return catList
+	if d.datafile != nil {
+		for _, file := range d.datafile {
+			list[d.category][strconv.Itoa(int(file.Year))] = 0
+		}
+	}
 }
 
 // ListTimeBucketKeyNames returns the list of TimeBucket keys

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	goio "io"
 	"math"
 	"net/http"
 	"sort"
@@ -46,11 +47,11 @@ type GdaxFetcher struct {
 	baseTimeframe *utils.Timeframe
 }
 
-func recast(config map[string]interface{}) *FetcherConfig {
+func recast(config map[string]interface{}) (*FetcherConfig, error) {
 	data, _ := json.Marshal(config)
 	ret := FetcherConfig{}
-	json.Unmarshal(data, &ret)
-	return &ret
+	err := json.Unmarshal(data, &ret)
+	return &ret, err
 }
 
 type gdaxProduct struct {
@@ -67,8 +68,12 @@ func getSymbols() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	products := []gdaxProduct{}
+	defer func(Body goio.ReadCloser) {
+		if err2 := Body.Close(); err2 != nil {
+			log.Error("failed to close body reader for gdax", err2.Error())
+		}
+	}(resp.Body)
+	var products []gdaxProduct
 	err = json.NewDecoder(resp.Body).Decode(&products)
 	if err != nil {
 		return nil, err
@@ -88,7 +93,10 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		return nil, err
 	}
 
-	config := recast(conf)
+	config, err := recast(conf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to cast config: %w", err)
+	}
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	}
@@ -179,7 +187,8 @@ func (gd *GdaxFetcher) Run() {
 		}
 	}
 	for {
-		timeEnd := timeStart.Add(gd.baseTimeframe.Duration * 300)
+		const getHistoricRatesChunksize = 300
+		timeEnd := timeStart.Add(gd.baseTimeframe.Duration * getHistoricRatesChunksize)
 		lastTime := timeStart
 		for _, symbol := range symbols {
 			params := gdax.GetHistoricRatesParams{
@@ -203,7 +212,7 @@ func (gd *GdaxFetcher) Run() {
 			open := make([]float64, 0)
 			high := make([]float64, 0)
 			low := make([]float64, 0)
-			close := make([]float64, 0)
+			clos := make([]float64, 0)
 			volume := make([]float64, 0)
 			sort.Sort(byTime(rates))
 			for _, rate := range rates {
@@ -214,7 +223,7 @@ func (gd *GdaxFetcher) Run() {
 				open = append(open, float64(rate.Open))
 				high = append(high, float64(rate.High))
 				low = append(low, float64(rate.Low))
-				close = append(close, float64(rate.Close))
+				clos = append(clos, float64(rate.Close))
 				volume = append(volume, rate.Volume)
 			}
 			cs := io.NewColumnSeries()
@@ -222,7 +231,7 @@ func (gd *GdaxFetcher) Run() {
 			cs.AddColumn("Open", open)
 			cs.AddColumn("High", high)
 			cs.AddColumn("Low", low)
-			cs.AddColumn("Close", close)
+			cs.AddColumn("Close", clos)
 			cs.AddColumn("Volume", volume)
 			log.Info("%s: %d rates between %v - %v", symbol, len(rates),
 				rates[0].Time, rates[(len(rates))-1].Time)
@@ -230,7 +239,10 @@ func (gd *GdaxFetcher) Run() {
 			csm := io.NewColumnSeriesMap()
 			tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
 			csm.AddColumnSeries(*tbk, cs)
-			executor.WriteCSM(csm, false)
+			err = executor.WriteCSM(csm, false)
+			if err != nil {
+				log.Error("[gdaxfeeder] failed to write csm", err.Error())
+			}
 		}
 		// next fetch start point
 		timeStart = lastTime.Add(gd.baseTimeframe.Duration)

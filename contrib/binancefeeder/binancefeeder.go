@@ -322,14 +322,15 @@ func (bn *BinanceFetcher) Run() {
 
 		// Check if it's finished backfilling. If not, just do 300 * Timeframe.duration
 		// only do beyond 1st loop
+		const getRatesChunkSize = 300
 		if !slowDown {
 			if !firstLoop {
-				timeStart = timeStart.Add(bn.baseTimeframe.Duration * 300)
-				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * 300)
+				timeStart = timeStart.Add(bn.baseTimeframe.Duration * getRatesChunkSize)
+				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * getRatesChunkSize)
 			} else {
 				firstLoop = false
 				// Keep timeStart as original value
-				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * 300)
+				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * getRatesChunkSize)
 			}
 			if timeEnd.After(time.Now().UTC()) {
 				slowDown = true

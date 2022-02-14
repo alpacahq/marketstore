@@ -575,7 +575,10 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 			shapesContainsEpoch = true
 		}
 		columnData := cs.columns[colName]
-		colInBytes := SwapSliceData(columnData, byte(0)).([]byte)
+		colInBytes,ok := SwapSliceData(columnData, byte(0)).([]byte)
+		if !ok {
+			return nil, 0, fmt.Errorf("")
+		}
 		colInBytesList = append(colInBytesList, colInBytes)
 	}
 	if !shapesContainsEpoch {
@@ -596,7 +599,12 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		padbuf = make([]byte, padding)
 	}
 
-	epochCol := cs.columns["Epoch"].([]int64)
+	epochCol, ok := cs.columns["Epoch"].([]int64)
+	if !ok {
+		return nil, 0, fmt.Errorf("failed to cast Epoch column to int64 array. Epoch column:%v",
+			cs.columns["Epoch"],
+		)
+	}
 	data = make([]byte, 0, recordLen*len(epochCol))
 	for i, epoch := range epochCol {
 		data, _ = Serialize(data, epoch)
