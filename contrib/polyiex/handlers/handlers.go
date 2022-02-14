@@ -108,11 +108,12 @@ func handleStatus(raw []byte) {
 }
 
 func handleUnknown(raw []byte) {
+	const showErrorMessageMax = 100
 	var msg string
-	if len(raw) < 100 {
+	if len(raw) < showErrorMessageMax {
 		msg = string(raw)
 	} else {
-		msg = string(raw[:100]) + "..."
+		msg = string(raw[:showErrorMessageMax]) + "..."
 	}
 	log.Error("[polyiex] unknown message: %s", msg)
 }
@@ -214,7 +215,7 @@ func (w *writer) write() {
 		select {
 		case m := <-w.c.Out():
 			w.Lock()
-			packet,ok := m.(*writePacket)
+			packet, ok := m.(*writePacket)
 			if !ok {
 				log.Error("failed to parse ")
 			}

@@ -62,7 +62,9 @@ var (
 func init() {
 	// Parse flags.
 	Cmd.Flags().StringVarP(&rootDirPath, "dir", "d", "", rootDirPathDesc)
-	Cmd.MarkFlagRequired("dir")
+	if err := Cmd.MarkFlagRequired("dir"); err != nil {
+		log.Error("failed to mark 'dir' flag required", err.Error())
+	}
 	Cmd.Flags().IntVar(&numChunksPerFile, "chunks", defaultNumChunksPerFile, numChunksPerFileDesc)
 	Cmd.Flags().IntVar(&yearStart, "yearStart", 0, yearStartDesc)
 	Cmd.Flags().IntVar(&yearEnd, "yearEnd", 0, yearEndDesc)
@@ -144,7 +146,7 @@ func init() {
 }
 
 // executeIntegrity implements the integrity tool.
-func executeIntegrity(cmd *cobra.Command, args []string) error {
+func executeIntegrity(_ *cobra.Command, _ []string) error {
 	log.SetLevel(log.INFO)
 
 	log.Info("Root directory: %v", rootDirPath)
@@ -153,7 +155,7 @@ func executeIntegrity(cmd *cobra.Command, args []string) error {
 	return filepath.Walk(rootDirPath, cksumDataFiles)
 }
 
-func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) {
+func cksumDataFiles(filePath string, fi os.FileInfo, _ error) (err error) {
 	if !isFile(filePath) {
 		return fmt.Errorf("%s is not a file", filePath)
 	}
@@ -236,7 +238,9 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 			chunkNum++
 		}
 		wg.Wait()
-		fp.Close()
+		if err2 := fp.Close(); err2 != nil {
+			log.Error("failed to close checksum data file", err2.Error())
+		}
 
 		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("%30s", filechunks[0])
@@ -301,7 +305,10 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 	if planner.ElementsEqual(tbinfo.GetElementTypes(), []io.EnumElementType{io.INT32, io.INT32, io.INT32, io.INT32}) {
 		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println("found/fixing OHLC type error for ", filePath)
-		tbinfo.SetElementTypes([]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32})
+		err := tbinfo.SetElementTypes([]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32})
+		if err != nil {
+			log.Error("failed to set element types", err.Error())
+		}
 	}
 
 	/*

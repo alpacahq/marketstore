@@ -24,7 +24,8 @@ func parseTime(format, dateTime string, tzLoc *time.Location, formatFixupState i
 		if len(parts) > 1 {
 			nsec, err = strconv.ParseInt(parts[1], 10, 64)
 			if err == nil {
-				nsec = int64(math.Pow10(9-len(parts[1]))) * nsec
+				const nano = 9 // 1 sec = 10**9 nanosecs
+				nsec = int64(math.Pow10(nano-len(parts[1]))) * nsec
 			} else {
 				return time.Time{}, err
 			}

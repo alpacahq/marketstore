@@ -172,7 +172,9 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 		Now we write or update the index record
 		First we read the file at the index location to see if this is an incremental write
 	*/
-	fp.Seek(primaryOffset, stdio.SeekStart)
+	if _, err = fp.Seek(primaryOffset, stdio.SeekStart); err != nil {
+		return fmt.Errorf("failed to seek primaryOffset:%w", err)
+	}
 	idBuf := make([]byte, indexOffsetLengthBytes) // {Index, Offset, Len}
 	if _, err = fp.Read(idBuf); err != nil {
 		return err
@@ -204,7 +206,9 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
 	if endOfCurrentBucketData == endOfFileOffset {
 		endOfFileOffset = currentRecInfo.Offset
-		fp.Seek(endOfFileOffset, stdio.SeekStart)
+		if _, err = fp.Seek(endOfFileOffset, stdio.SeekStart); err != nil {
+			return fmt.Errorf("failed to seek endOfFileOffset:%w", err)
+		}
 	}
 
 	/*
@@ -234,9 +238,14 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	*/
 	targetRecInfo := IndirectRecordInfo{Index: index, Offset: endOfFileOffset, Len: dataLen}
 	odata := []int64{targetRecInfo.Index, targetRecInfo.Offset, targetRecInfo.Len}
-	obuf := io.SwapSliceData(odata, byte(0)).([]byte)
+	obuf, ok := io.SwapSliceData(odata, byte(0)).([]byte)
+	if !ok {
+		return fmt.Errorf("failed to cast OffsetIndexBuffer of the target record to bytes:%v", targetRecInfo)
+	}
 
-	fp.Seek(primaryOffset, stdio.SeekStart)
+	if _, err = fp.Seek(primaryOffset, stdio.SeekStart); err != nil {
+		log.Error("failed to seek offset to write primary record", err.Error())
+	}
 	_, err = fp.Write(obuf)
 	return err
 }
