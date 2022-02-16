@@ -1,11 +1,9 @@
 package stream_test
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -18,24 +16,19 @@ import (
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func()) {
+func setup(t *testing.T) {
 	t.Helper()
 
-	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("stream_test-%s", testName))
+	rootDir := t.TempDir()
 	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 	stream.Initialize()
-
-	return func() { test.CleanupDummyDataDir(rootDir) }
 }
 
 func TestStream(t *testing.T) {
-	tearDown := setup(t, "TestStream")
-	defer tearDown()
+	setup(t)
 
 	srv := httptest.NewServer(http.HandlerFunc(stream.Handler))
 

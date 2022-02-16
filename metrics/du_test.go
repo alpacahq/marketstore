@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/metrics"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 type mockMetricsSetter struct {
@@ -47,7 +46,7 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			// --- given ---
-			rootDir, _ := os.MkdirTemp("", "diskUsage-monitor-test")
+			rootDir := t.TempDir()
 			err := tt.setFilesFunc(tt, rootDir)
 			assert.Nil(t, err)
 			m := mockMetricsSetter{}
@@ -58,9 +57,6 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 
 			// --- then ---
 			assert.Equal(t, tt.expMetric, m.value)
-
-			// --- tearDown ---
-			test.CleanupDummyDataDir(rootDir)
 		})
 	}
 }

@@ -180,8 +180,7 @@ func TestSerializeColumnsToRows(t *testing.T) {
 
 func TestTimeBucketInfo(t *testing.T) {
 	t.Parallel()
-	tempDir, _ := os.MkdirTemp("", "io.TestTimeBucketInfo")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	timeframe := utils.NewTimeframe("1Min")
 	filePath := filepath.Join(tempDir, "2018.bin")

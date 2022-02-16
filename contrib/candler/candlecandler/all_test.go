@@ -1,8 +1,6 @@
 package candlecandler_test
 
 import (
-	"fmt"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -17,21 +15,19 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
+func setup(t *testing.T) (rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("candlecandler_test-%s", testName))
+	rootDir = t.TempDir()
 	itemsWritten = test.MakeDummyStockDir(rootDir, true, false)
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
 	assert.Nil(t, err)
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata
+	return rootDir, itemsWritten, metadata
 }
 
 func TestCandleCandler(t *testing.T) {
-	tearDown, _, _, metadata := setup(t, "TestCandleCandler")
-	defer tearDown()
+	_, _, metadata := setup(t)
 
 	c := candlecandler.CandleCandler{}
 	am := functions.NewArgumentMap(c.GetRequiredArgs(), c.GetOptionalArgs()...)

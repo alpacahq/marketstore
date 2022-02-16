@@ -2,7 +2,6 @@ package catalog_test
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,31 +15,28 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, catalogDir *catalog.Directory) {
+func setup(t *testing.T) (rootDir string, catalogDir *catalog.Directory) {
 	t.Helper()
 
-	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("catalog_test-%s", testName))
+	rootDir = t.TempDir()
 	test.MakeDummyCurrencyDir(rootDir, false, false)
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	if err != nil {
 		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 	}
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, catalogDir
+	return rootDir, catalogDir
 }
 
 func TestGetCatList(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGetCatList")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	CatList := catalogDir.GatherCategoriesFromCache()
 	assert.Len(t, CatList, 4)
 }
 
 func TestGetCatItemMap(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGetCatItemMap")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	catList := catalogDir.GatherCategoriesAndItems()
 	/*
@@ -61,16 +57,14 @@ func TestGetCatItemMap(t *testing.T) {
 }
 
 func TestGetDirList(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGetDirList")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	dirList := catalogDir.GatherDirectories()
 	assert.Len(t, dirList, 40)
 }
 
 func TestGatherFilePaths(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGatherFilePaths")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	filePathList := catalogDir.GatherFilePaths()
 	//	for _, filePath := range filePathList {
@@ -80,8 +74,7 @@ func TestGatherFilePaths(t *testing.T) {
 }
 
 func TestGatherFileInfo(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGatherFileInfo")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	fileInfoList := catalogDir.GatherTimeBucketInfo()
 	// for _, fileInfo := range fileInfoList {
@@ -91,8 +84,7 @@ func TestGatherFileInfo(t *testing.T) {
 }
 
 func TestPathToFileInfo(t *testing.T) {
-	tearDown, rootDir, catalogDir := setup(t, "TestPathToFileInfo")
-	defer tearDown()
+	rootDir, catalogDir := setup(t)
 
 	fileInfo, err := catalogDir.PathToTimeBucketInfo("nil")
 	var targetErr catalog.NotFoundError
@@ -110,8 +102,7 @@ func TestPathToFileInfo(t *testing.T) {
 }
 
 func TestAddFile(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestAddFile")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	// Get the owning subdirectory for a test file path
 	filePathList := catalogDir.GatherFilePaths()
@@ -138,8 +129,7 @@ func TestAddFile(t *testing.T) {
 }
 
 func TestAddAndRemoveDataItem(t *testing.T) {
-	tearDown, rootDir, catalogDir := setup(t, "TestPathToFileInfo")
-	defer tearDown()
+	rootDir, catalogDir := setup(t)
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -189,15 +179,13 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 }
 
 func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
-	rootDir, _ := os.MkdirTemp("", "catalog_test-TestAddAndRemoveDataItemFromEmptyDirectory")
+	rootDir := t.TempDir()
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	var e catalog.ErrCategoryFileNotFound
 	if err != nil && !errors.As(err, &e) {
 		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 		return
 	}
-
-	defer test.CleanupDummyDataDir(rootDir)
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -282,8 +270,7 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 }
 
 func TestCreateNewDirectory(t *testing.T) {
-	tearDown, rootDir, catalogDir := setup(t, "TestPathToFileInfo")
-	defer tearDown()
+	rootDir, catalogDir := setup(t)
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"

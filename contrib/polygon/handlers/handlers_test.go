@@ -2,8 +2,6 @@ package handlers_test
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -12,19 +10,15 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
 	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func()) {
+func setup(t *testing.T) {
 	t.Helper()
 
-	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("handlers_test-%s", testName))
+	rootDir := t.TempDir()
 	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
-
-	return func() { test.CleanupDummyDataDir(rootDir) }
 }
 
 func getTestTradeArray() []api.PolyTrade {
@@ -53,8 +47,7 @@ func getTestQuoteArray() []api.PolyQuote {
 }
 
 func TestHandlers(t *testing.T) {
-	tearDown := setup(t, "TestHandlers")
-	defer tearDown()
+	setup(t)
 
 	// trade
 	{

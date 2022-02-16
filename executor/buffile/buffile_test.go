@@ -1,7 +1,6 @@
 package buffile_test
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,14 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func TestBufferedFile(t *testing.T) {
-	tempDir, _ := os.MkdirTemp("", fmt.Sprintf("plugins_test-%s", "TestBufferedFile"))
-	defer test.CleanupDummyDataDir(tempDir)
-
-	filePath := filepath.Join(tempDir, "test.bin")
+	filePath := filepath.Join(t.TempDir(), "test.bin")
 	fp, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o700)
 	assert.Nil(t, err)
 	err = fp.Truncate(1024 * 1024)

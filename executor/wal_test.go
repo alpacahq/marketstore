@@ -18,8 +18,7 @@ import (
 )
 
 func TestWALWrite(t *testing.T) {
-	tearDown, rootDir, _, metadata, shutdownPending := setup(t, "TestWALWrite")
-	defer tearDown()
+	rootDir, _, metadata, shutdownPending := setup(t)
 
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
@@ -82,8 +81,7 @@ func TestWALWrite(t *testing.T) {
 }
 
 func TestBrokenWAL(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestBrokenWAL")
-	defer tearDown()
+	rootDir, _, metadata, _ := setup(t)
 
 	var err error
 
@@ -153,8 +151,7 @@ func TestBrokenWAL(t *testing.T) {
 }
 
 func TestWALReplay(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestWALReplay")
-	defer tearDown()
+	rootDir, _, metadata, _ := setup(t)
 
 	var err error
 

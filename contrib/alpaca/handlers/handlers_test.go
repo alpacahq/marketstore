@@ -1,26 +1,21 @@
 package handlers_test
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/handlers"
 	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string) (tearDown func()) {
+func setup(t *testing.T) {
 	t.Helper()
 
-	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("handlers_test-%s", testName))
+	rootDir := t.TempDir()
 	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true)) // WAL Bypass
 	assert.Nil(t, err)
-
-	return func() { test.CleanupDummyDataDir(rootDir) }
 }
 
 func getTestTrade() []byte {
@@ -42,8 +37,7 @@ func getTestAggregate() []byte {
 }
 
 func TestHandlers(t *testing.T) {
-	tearDown := setup(t, "TestHandlers")
-	defer tearDown()
+	setup(t)
 
 	// trade
 	handlers.MessageHandler(getTestTrade())
