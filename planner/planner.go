@@ -119,6 +119,8 @@ func (pr *ParseResult) GetRowLen() (rlenMap map[TimeBucketKey]int) {
 			rlenMap[qf.Key] = int(qf.File.GetRecordLength())
 		case VARIABLE:
 			rlenMap[qf.Key] = int(qf.File.GetVariableRecordLength())
+		default:
+			log.Error("unknown record type:", qf.File.GetRecordType())
 		}
 	}
 	return rlenMap

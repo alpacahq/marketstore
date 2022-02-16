@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	// For the details of wal file format, see docs/design/durable_writes_design.txt
+	// For the details of wal file format, see docs/design/durable_writes_design.txt.
 	fileStatusLenBytes  = 1
 	replayStateLenBytes = 1
 	owningPIDLenBytes   = 8
-	walStatusLenBytes = fileStatusLenBytes + replayStateLenBytes + owningPIDLenBytes
+	walStatusLenBytes   = fileStatusLenBytes + replayStateLenBytes + owningPIDLenBytes
 )
 
 type WALCleaner struct {

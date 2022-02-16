@@ -11,7 +11,8 @@ import (
 
 var TIME = reflect.TypeOf(time.Time{}).Name()
 
-const 	exampleFloat = 1.2
+const exampleFloat = 1.2
+
 var (
 	UINT   = reflect.TypeOf(uint(1)).Name()
 	UINT8  = reflect.TypeOf(uint8(1)).Name()

@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	stdio "io"
 	"os"
@@ -179,15 +180,22 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	if _, err = fp.Read(idBuf); err != nil {
 		return err
 	}
-	currentRecInfo := io.SwapSliceByte(idBuf, IndirectRecordInfo{}).([]IndirectRecordInfo)[0]
+	currentRecInfoI, err := io.SwapSliceByte(idBuf, IndirectRecordInfo{})
+	if err != nil {
+		return err
+	}
+	currentRecInfo, ok := currentRecInfoI.([]IndirectRecordInfo)
+	if !ok {
+		return errors.New("failed to cast record to IndirectRecordInfo slice")
+	}
 	/*
 		Read the data from the previously written location, if it exists
 	*/
-	if currentRecInfo.Index != 0 {
-		if _, err = fp.Seek(currentRecInfo.Offset, stdio.SeekStart); err != nil {
+	if currentRecInfo[0].Index != 0 {
+		if _, err = fp.Seek(currentRecInfo[0].Offset, stdio.SeekStart); err != nil {
 			return err
 		}
-		oldData := make([]byte, currentRecInfo.Len)
+		oldData := make([]byte, currentRecInfo[0].Len)
 		if _, err2 := fp.Read(oldData); err2 != nil {
 			return err2
 		}
@@ -202,10 +210,10 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	}
 
 	// Determine if this is a continuation write
-	endOfCurrentBucketData := currentRecInfo.Offset + currentRecInfo.Len
+	endOfCurrentBucketData := currentRecInfo[0].Offset + currentRecInfo[0].Len
 	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
 	if endOfCurrentBucketData == endOfFileOffset {
-		endOfFileOffset = currentRecInfo.Offset
+		endOfFileOffset = currentRecInfo[0].Offset
 		if _, err = fp.Seek(endOfFileOffset, stdio.SeekStart); err != nil {
 			return fmt.Errorf("failed to seek endOfFileOffset:%w", err)
 		}

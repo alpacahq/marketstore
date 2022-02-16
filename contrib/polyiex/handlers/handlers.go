@@ -170,10 +170,12 @@ type quote struct {
 	askSz int32   // 4
 }
 
+const defaultWriteInterval = 100 * time.Millisecond
+
 var (
 	w = &writer{
 		dataBuckets: map[io.TimeBucketKey]interface{}{},
-		interval:    100 * time.Millisecond,
+		interval:    defaultWriteInterval,
 		c:           channels.NewInfiniteChannel(),
 	}
 	once sync.Once

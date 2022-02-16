@@ -24,7 +24,7 @@ type Directory struct {
 	// category is a string that represents what is listed up under this directory.
 	// stored in "category_name" file under each directory.
 	// e.g. "Symbol", "Timeframe", "AttributeGroup", "Year".
-	category       string
+	category string
 
 	// directMap[Key]: Key is the directory path, including the rootPath and excluding filename
 	directMap *sync.Map

@@ -157,7 +157,8 @@ func (f *IEXFetcher) Run() {
 				}
 			}()
 
-			<-time.After(limiter())
+			const limiter = time.Second / 50
+			<-time.After(limiter)
 		}
 	}
 }
@@ -344,7 +345,8 @@ func (f *IEXFetcher) backfill(symbol, timeframe string) (err error) {
 }
 
 func (f *IEXFetcher) workBackfill() {
-	ticker := time.NewTicker(30 * time.Second)
+	const tickInterval = 30 * time.Second
+	ticker := time.NewTicker(tickInterval)
 
 	for range ticker.C {
 		wg := sync.WaitGroup{}
@@ -385,10 +387,6 @@ func (f *IEXFetcher) workBackfill() {
 		})
 		wg.Wait()
 	}
-}
-
-func limiter() time.Duration {
-	return time.Second / 50
 }
 
 func onceDaily(lastDailyRunDate *int, runHour, runMinute int) bool {

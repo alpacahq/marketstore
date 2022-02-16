@@ -120,7 +120,10 @@ func (nds *NumpyDataset) ToColumnSeries(options ...int) (cs *ColumnSeries, err e
 		size := shape.Type.Size()
 		start := startIndex * size
 		end := start + length*size
-		newColData := shape.Type.ConvertByteSliceInto(nds.ColumnData[i][start:end])
+		newColData, err2 := shape.Type.ConvertByteSliceInto(nds.ColumnData[i][start:end])
+		if err2 != nil {
+			return nil, fmt.Errorf("failed to convert column data slice: %w", err)
+		}
 		cs.AddColumn(shape.Name, newColData)
 	}
 	return cs, nil

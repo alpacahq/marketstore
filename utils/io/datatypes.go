@@ -1,6 +1,7 @@
 package io
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -109,46 +110,89 @@ func (e EnumElementType) SliceInBytesAt(bs []byte, index int) []byte {
 	return bs[offset : offset+e.Size()]
 }
 
-// ByteSliceAt returns a byte representation of the element in the original type
-// slice at index position.
-func (e EnumElementType) ByteSliceAt(sliceOf interface{}, index int) (bs []byte) {
-	bs = SwapSliceData(sliceOf, byte(0)).([]byte)
-	return e.SliceInBytesAt(bs, index)
-}
-
 func (e EnumElementType) SliceOf(length int) (sliceOf interface{}) {
 	typeOf := attributeMap[e].typeOf
 	return reflect.MakeSlice(typeOf, length, length)
 }
 
-func (e EnumElementType) ConvertByteSliceInto(data []byte) interface{} {
+func (e EnumElementType) ConvertByteSliceInto(data []byte) (interface{}, error) {
 	switch e {
 	case FLOAT32:
-		return SwapSliceByte(data, float32(0)).([]float32)
+		if val, err := SwapSliceByte(data, float32(0)); err == nil {
+			if slc, ok := val.([]float32); ok {
+				return slc, nil
+			}
+		}
 	case INT32:
-		return SwapSliceByte(data, int32(0)).([]int32)
+		if val, err := SwapSliceByte(data, int32(0)); err == nil {
+			if slc, ok := val.([]int32); ok {
+				return slc, nil
+			}
+		}
 	case FLOAT64:
-		return SwapSliceByte(data, float64(0)).([]float64)
+		if val, err := SwapSliceByte(data, float64(0)); err == nil {
+			if slc, ok := val.([]float64); ok {
+				return slc, nil
+			}
+		}
 	case INT64, EPOCH:
-		return SwapSliceByte(data, int64(0)).([]int64)
+		if val, err := SwapSliceByte(data, int64(0)); err == nil {
+			if slc, ok := val.([]int64); ok {
+				return slc, nil
+			}
+		}
 	case BYTE, BOOL:
-		return SwapSliceByte(data, int8(0)).([]int8)
+		if val, err := SwapSliceByte(data, int8(0)); err == nil {
+			if slc, ok := val.([]int8); ok {
+				return slc, nil
+			}
+		}
 	case INT16:
-		return SwapSliceByte(data, int16(0)).([]int16)
+		if val, err := SwapSliceByte(data, int16(0)); err == nil {
+			if slc, ok := val.([]int16); ok {
+				return slc, nil
+			}
+		}
 	case STRING:
-		return SwapSliceByte(data, fmt.Sprint(0)).([]string)
+		if val, err := SwapSliceByte(data, fmt.Sprint(0)); err == nil {
+			if slc, ok := val.([]string); ok {
+				return slc, nil
+			}
+		}
 	case UINT8:
-		return SwapSliceByte(data, uint8(0)).([]uint8)
+		if val, err := SwapSliceByte(data, uint8(0)); err == nil {
+			if slc, ok := val.([]uint8); ok {
+				return slc, nil
+			}
+		}
 	case UINT16:
-		return SwapSliceByte(data, uint16(0)).([]uint16)
+		if val, err := SwapSliceByte(data, uint16(0)); err == nil {
+			if slc, ok := val.([]uint16); ok {
+				return slc, nil
+			}
+		}
 	case UINT32:
-		return SwapSliceByte(data, uint32(0)).([]uint32)
+		if val, err := SwapSliceByte(data, uint32(0)); err == nil {
+			if slc, ok := val.([]uint32); ok {
+				return slc, nil
+			}
+		}
 	case UINT64:
-		return SwapSliceByte(data, uint64(0)).([]uint64)
+		if val, err := SwapSliceByte(data, uint64(0)); err == nil {
+			if slc, ok := val.([]uint64); ok {
+				return slc, nil
+			}
+		}
 	case STRING16:
-		return SwapSliceByte(data, [16]rune{}).([][16]rune)
+		if val, err := SwapSliceByte(data, [16]rune{}); err == nil {
+			if slc, ok := val.([][16]rune); ok {
+				return slc, nil
+			}
+		}
+	default:
+		return nil, errors.New("unknown column type specified for ConvertByteSliceInfo")
 	}
-	return nil
+	return nil, errors.New("unexpected buffer specified for ConvertByteSliceInto")
 }
 
 func GetElementType(datum interface{}) EnumElementType {
@@ -158,6 +202,8 @@ func GetElementType(datum interface{}) EnumElementType {
 	switch kind {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
 		kind = reflect.TypeOf(datum).Elem().Kind()
+	default:
+		// pass
 	}
 	switch kind {
 	case reflect.Struct, reflect.Func, reflect.Interface, reflect.UnsafePointer:
@@ -354,111 +400,4 @@ func getByteColumn(offset, reclen, nrecs int, data []byte) (col []byte) {
 		cursor += reclen
 	}
 	return col
-}
-
-func CreateSliceFromSliceOfInterface(input []interface{}, typ EnumElementType) (i_output interface{}, err error) {
-	switch typ {
-	case FLOAT32:
-		output := []float32{}
-		for _, i_elem := range input {
-			switch val := i_elem.(type) {
-			case float32:
-				output = append(output, float32(val))
-			case float64:
-				output = append(output, float32(val))
-			default:
-				return nil, fmt.Errorf("non coercible type")
-			}
-		}
-		i_output = output
-	case INT32:
-		output := []int32{}
-		for _, i_elem := range input {
-			switch val := i_elem.(type) {
-			case byte:
-				output = append(output, int32(val))
-			case int8:
-				output = append(output, int32(val))
-			case int16:
-				output = append(output, int32(val))
-			case uint16:
-				output = append(output, int32(val))
-			case int32:
-				output = append(output, int32(val))
-			case uint32:
-				output = append(output, int32(val))
-			case int64:
-				output = append(output, int32(val))
-			case uint64:
-				output = append(output, int32(val))
-			default:
-				return nil, fmt.Errorf("non coercible type")
-			}
-		}
-		i_output = output
-	case FLOAT64:
-		output := []float64{}
-		for _, i_elem := range input {
-			switch val := i_elem.(type) {
-			case float32:
-				output = append(output, float64(val))
-			case float64:
-				output = append(output, float64(val))
-			default:
-				return nil, fmt.Errorf("non coercible type")
-			}
-		}
-		i_output = output
-	case INT64, EPOCH:
-		output := []int64{}
-		for _, i_elem := range input {
-			switch val := i_elem.(type) {
-			case byte:
-				output = append(output, int64(val))
-			case int8:
-				output = append(output, int64(val))
-			case int16:
-				output = append(output, int64(val))
-			case uint16:
-				output = append(output, int64(val))
-			case int32:
-				output = append(output, int64(val))
-			case uint32:
-				output = append(output, int64(val))
-			case int64:
-				output = append(output, int64(val))
-			case uint64:
-				output = append(output, int64(val))
-			default:
-				return nil, fmt.Errorf("non coercible type")
-			}
-		}
-		i_output = output
-	case BYTE:
-		output := []byte{}
-		for _, i_elem := range input {
-			switch val := i_elem.(type) {
-			case byte:
-				output = append(output, byte(val))
-			case int8:
-				output = append(output, byte(val))
-			case int16:
-				output = append(output, byte(val))
-			case uint16:
-				output = append(output, byte(val))
-			case int32:
-				output = append(output, byte(val))
-			case uint32:
-				output = append(output, byte(val))
-			case int64:
-				output = append(output, byte(val))
-			case uint64:
-				output = append(output, byte(val))
-			default:
-				return nil, fmt.Errorf("non coercible type")
-			}
-		}
-		i_output = output
-	}
-	return i_output, nil
 }

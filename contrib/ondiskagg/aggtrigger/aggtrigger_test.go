@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,6 +16,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func getConfig(t *testing.T, data string) (ret map[string]interface{}) {

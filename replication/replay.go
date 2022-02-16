@@ -113,6 +113,8 @@ func wtSetToCS(wtSet *wal.WTSet) (*io.ColumnSeries, *io.TimeBucketKey, error) {
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to serialize Payload to buffer:"+epoch.String())
 		}
+	case io.NOTYPE:
+		return nil, nil, fmt.Errorf("unknown record type for tbk=%s", tbk)
 	}
 
 	// when rowLen = 0 is specified, the rowLength is calculated automatically from DataShapes

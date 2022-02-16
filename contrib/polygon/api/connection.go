@@ -25,7 +25,6 @@ type PolygonWebSocket struct {
 
 func NewPolygonWebSocket(servers, apiKey string, pref Prefix, symbols []string, oChan chan interface{},
 ) *PolygonWebSocket {
-
 	const (
 		// maximum size in bytes for a message read from the peer.
 		defaultMaxMessageRecvBytes = 2048000

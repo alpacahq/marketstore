@@ -34,7 +34,7 @@ import (
 
 const (
 	pongWait   = 60 * time.Second
-	pingPeriod = (pongWait * 9) / 10
+	pingPeriod = 60 * time.Second * 9 / 10
 )
 
 var (

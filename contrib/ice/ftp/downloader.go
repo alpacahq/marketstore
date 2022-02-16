@@ -11,8 +11,8 @@ import (
 )
 
 type Downloader struct {
-	client  Client
-	ftpPath string
+	client        Client
+	ftpPath       string
 	storagePath   string
 	filePrefix    string
 	processedFlag string

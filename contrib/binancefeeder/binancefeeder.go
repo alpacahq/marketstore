@@ -224,7 +224,6 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 
 // NewBgWorker registers a new background worker.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-
 	config, err := recast(conf)
 	if err != nil {
 		return nil, err

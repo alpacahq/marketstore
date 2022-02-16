@@ -90,7 +90,7 @@ func RecordsToColumnSeries(
 	ds []io.DataShape,
 	tf time.Duration,
 	year int16,
-	records []Record) *io.ColumnSeries {
+	records []Record) (*io.ColumnSeries, error) {
 	cs := io.NewColumnSeries()
 
 	index := 0
@@ -109,11 +109,15 @@ func RecordsToColumnSeries(
 			}
 		}
 
-		cs.AddColumn(s.Name, s.Type.ConvertByteSliceInto(data))
+		column, err := s.Type.ConvertByteSliceInto(data)
+		if err != nil {
+			return nil, fmt.Errorf("convert buffer to column records: %w", err)
+		}
+		cs.AddColumn(s.Name, column)
 		index += s.Len()
 	}
 
-	return cs
+	return cs, nil
 }
 
 // Load loads a function named NewTrigger with a parameter type map[string]interface{}

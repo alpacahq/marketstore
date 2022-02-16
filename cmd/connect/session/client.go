@@ -316,6 +316,8 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 				case reflect.Array: // string type (e.g. [16]rune)
 					runes := reflect.ValueOf(col).Index(i)
 					element = strings.Trim(runesToString(runes), "\x00") // trim space
+				default:
+					return fmt.Errorf("unknown column type found: %s", colType)
 				}
 				// print column value in the format length
 				l := columnFormatLength(name, col)

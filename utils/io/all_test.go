@@ -7,71 +7,12 @@ import (
 	"reflect"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 
 	"github.com/alpacahq/marketstore/v4/utils"
 )
-
-type ohlc struct {
-	index      int64
-	o, h, l, c float32
-}
-
-func TestConvertByteSlice(t *testing.T) {
-	t.Parallel()
-	s1 := ohlc{100000000, 200, 300, 400, 500}
-	s2 := ohlc{10, 20, 30, 40, 50}
-	baseArray := [2]ohlc{s1, s2}
-	buffer := make([]byte, 48)
-	copy(buffer, (*(*[24]byte)(unsafe.Pointer(&s1)))[:])
-	copy(buffer[24:], (*(*[24]byte)(unsafe.Pointer(&s2)))[:])
-
-	i_myarray := CopySliceByte(buffer, ohlc{})
-	myarray, ok := i_myarray.([]ohlc)
-	assert.True(t, ok)
-	for i, ohlc := range myarray {
-		assert.Equal(t, ohlc, baseArray[i])
-	}
-
-	i_myarray = SwapSliceByte(buffer, ohlc{})
-	myarray, ok = i_myarray.([]ohlc)
-	assert.True(t, ok)
-	for i, ohlc := range myarray {
-		assert.Equal(t, ohlc, baseArray[i])
-	}
-
-	i_mybyte := SwapSliceData(myarray, byte(0))
-	bytearray, ok := i_mybyte.([]byte)
-	assert.True(t, ok)
-	assert.Len(t, bytearray, 48)
-	for i, val := range bytearray {
-		assert.Equal(t, val, buffer[i])
-	}
-
-	bytearray = CastToByteSlice(myarray)
-	assert.Len(t, bytearray, 48)
-	for i, val := range bytearray {
-		assert.Equal(t, val, buffer[i])
-	}
-
-	i_myarray = SwapSliceData(buffer, ohlc{})
-	myarray, ok = i_myarray.([]ohlc)
-	assert.True(t, ok)
-	assert.Len(t, myarray, 2)
-	for i, val := range myarray {
-		assert.Equal(t, val, baseArray[i])
-	}
-
-	myInt64 := int64(65793)
-	bs := DataToByteSlice(myInt64)
-	assert.Len(t, bs, 8)
-	for i, val := range []byte{1, 1, 1, 0, 0, 0, 0, 0} {
-		assert.Equal(t, bs[i], val)
-	}
-}
 
 func TestVariableBoundaryCases(t *testing.T) {
 	t.Parallel()

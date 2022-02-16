@@ -228,10 +228,13 @@ func convertCSVtoCSM(tbk io.TimeBucketKey, cvm *CSVMetadata, csvDataChunk [][]st
 
 	csmInit := io.NewColumnSeriesMap()
 	csmInit.AddColumn(tbk, "Epoch", epochCol)
-	csm = columnSeriesMapFromCSVData(csmInit, tbk, csvDataChunk, cvm.ColumnIndex[2:], cvm.DSV)
+	csm, err = columnSeriesMapFromCSVData(csmInit, tbk, csvDataChunk, cvm.ColumnIndex[2:], cvm.DSV)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columnSeriesMap from CSV Data:%w", err)
+	}
 	csm.AddColumn(tbk, "Nanoseconds", nanosCol)
 
-	return csm, err
+	return csm, nil
 }
 
 func readControlFile(controlFD *os.File) (cf *CSVConfig, err error) {

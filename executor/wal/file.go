@@ -41,7 +41,6 @@ func Read(fp *os.File, buffer []byte) (result []byte, newOffset int64, err error
 		return nil, 0, fmt.Errorf("unable to seek in WALFile from curpos:%w", err)
 	}
 
-
 	n, err := fp.Read(buffer)
 	if err == io2.EOF {
 		return result, newOffset, io2.EOF
