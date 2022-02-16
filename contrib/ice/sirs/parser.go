@@ -6,11 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // const charactersPerLine = 80
@@ -59,7 +58,6 @@ func (l *loader) lineReader(currentLine string) error {
 	if l.stg.Cusip != cusip {
 		// save current record
 		if l.stg.Cusip != "" {
-
 			if err = l.saveRecord(); err != nil {
 				log.Error("failed to save record. currentLine=%s", currentLine)
 			}

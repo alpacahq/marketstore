@@ -1,32 +1,10 @@
 package io
 
 import (
+	"errors"
 	"reflect"
 	"unsafe"
 )
-
-func CopySliceByte(ib, is interface{}) interface{} {
-	buffer := ib.([]byte)
-
-	structValue := reflect.ValueOf(is)
-	structType := structValue.Type()
-	structSize := structType.Size()
-	structSliceType := reflect.SliceOf(structType)
-
-	Len := len(buffer) / int(structSize)
-	Cap := Len
-	structSlice := reflect.MakeSlice(structSliceType, Len, Cap)
-
-	p_bufferData := unsafe.Pointer(&buffer[0])
-	p_structData := unsafe.Pointer(structSlice.Pointer())
-	for i := 0; i < len(buffer); i++ {
-		sd := (*byte)(unsafe.Pointer(uintptr(p_structData) + uintptr(i)))
-		bd := (*byte)(unsafe.Pointer(uintptr(p_bufferData) + uintptr(i)))
-		*sd = *bd
-	}
-
-	return structSlice.Interface()
-}
 
 // MValue is a *copy* of the "Value" struct inside the reflect package.
 type MValue struct {
@@ -36,9 +14,11 @@ type MValue struct {
 
 // SwapSliceByte converts a byte slice of the type into a slice of the target type
 // without copying each value in the slice.
-func SwapSliceByte(srcByteSlice, targetType interface{}) interface{} {
-	// TODO: check type assertion and return an error
-	buffer := srcByteSlice.([]byte)
+func SwapSliceByte(srcByteSlice, targetType interface{}) (interface{}, error) {
+	buffer, ok := srcByteSlice.([]byte)
+	if !ok {
+		return nil, errors.New("failed to cast source data to a byte slice")
+	}
 
 	structValue := reflect.ValueOf(targetType)
 	structType := structValue.Type()
@@ -54,7 +34,7 @@ func SwapSliceByte(srcByteSlice, targetType interface{}) interface{} {
 	(*reflect.SliceHeader)(unsafe.Pointer((*(*MValue)(unsafe.Pointer(&structSlice))).Ptr)).Data =
 		(*reflect.SliceHeader)(unsafe.Pointer(&buffer)).Data
 
-	return structSlice.Interface()
+	return structSlice.Interface(), nil
 }
 
 func ToUint8(b []byte) uint8 {

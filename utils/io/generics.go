@@ -253,6 +253,7 @@ func GenericComparison(left, right interface{},
 			return lFloat > rFloat, nil
 		case GTE:
 			return lFloat >= rFloat, nil
+		default:
 		}
 	}
 
@@ -271,6 +272,7 @@ func GenericComparison(left, right interface{},
 			return lInt > rInt, nil
 		case GTE:
 			return lInt >= rInt, nil
+		default:
 		}
 	}
 

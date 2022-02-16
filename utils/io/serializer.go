@@ -59,6 +59,7 @@ func Serialize(buffer []byte, datum interface{}) ([]byte, error) {
 			}
 		}
 		return buffer, nil
+	default:
+		return append(buffer, DataToByteSlice(datum)...), nil
 	}
-	return append(buffer, DataToByteSlice(datum)...), nil
 }

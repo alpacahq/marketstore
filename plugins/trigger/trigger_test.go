@@ -74,10 +74,11 @@ func TestRecordsToColumnSeries(t *testing.T) {
 		records[i] = trigger.Record(buf)
 	}
 
-	testCS := trigger.RecordsToColumnSeries(
+	testCS, err := trigger.RecordsToColumnSeries(
 		*tbk, cs.GetDataShapes(),
 		time.Minute, int16(2017),
 		records)
+	assert.Nil(t, err)
 
 	for name, col := range cs.GetColumns() {
 		testCol := testCS.GetByName(name)

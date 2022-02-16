@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type RowsInterface interface {
@@ -57,6 +59,8 @@ func (rows *Rows) GetColumn(colname string) (col interface{}) {
 				return getString16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
 			case BOOL, BYTE:
 				return getByteColumn(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+			default:
+				log.Error("unexpected column type specified:", ds.Type)
 			}
 		} else {
 			offset += ds.Type.Size()

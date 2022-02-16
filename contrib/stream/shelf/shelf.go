@@ -116,6 +116,5 @@ func (p *Package) Start(tbk *io.TimeBucketKey, h ShelfHandler) {
 				fmt.Printf("failed to expire data package (%v)\n", err)
 			}
 		}
-
 	}()
 }

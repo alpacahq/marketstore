@@ -381,6 +381,8 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 				buffer,
 				varRecLen,
 			)
+		case io.NOTYPE:
+			err = errors.New("unknown record type(io.NOTYPE) found")
 		}
 		if err != nil {
 			log.Error("failed to write committed data: %v", err)
@@ -630,7 +632,7 @@ func (wf *WALFileType) SyncWAL(walRefresh, primaryRefresh time.Duration, walRota
 	*/
 	const (
 		numTickerCheckPerWALRefresh = 100
-		writeChannelCapThreshold = 0.8
+		writeChannelCapThreshold    = 0.8
 	)
 	haveWALWriter = true
 	tickerWAL := time.NewTicker(walRefresh)

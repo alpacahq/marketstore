@@ -5,6 +5,8 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func isIterable(i interface{}) bool {
@@ -87,6 +89,8 @@ func (cs *ColumnSeries) CoerceColumnType(columnName string, elementType EnumElem
 			newCol[i] = toFloat(columnValues.Index(i))
 		}
 		cs.columns[columnName] = newCol
+	default:
+		log.Error("unknown column type specified for column coerce:", elementType.Kind())
 	}
 	return nil
 }

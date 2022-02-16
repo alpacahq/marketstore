@@ -52,6 +52,5 @@ func Test_jd(t *testing.T) {
 	now := time.Now()
 	fmt.Println(julianDate(now))
 	fmt.Println(julianDate(now.Add(24 * time.Hour)))
-	fmt.Println(julianDate(now.AddDate(0,1,0)))
-
+	fmt.Println(julianDate(now.AddDate(0, 1, 0)))
 }

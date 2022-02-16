@@ -129,7 +129,7 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 
 	// check if we have a valid cache, if not, re-query
 	if v, ok := s.aggCache.Load(tbk.String()); ok {
-		c,ok := v.(*cachedAgg)
+		c, ok := v.(*cachedAgg)
 		if !ok {
 			log.Error("failed to cast cached value", tbk.String())
 			return
@@ -141,9 +141,13 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 			goto Query
 		}
 
-		cs := trigger.RecordsToColumnSeries(
+		cs, err := trigger.RecordsToColumnSeries(
 			*tbk, c.cs.GetDataShapes(),
 			tf.Duration, int16(year), records)
+		if err != nil {
+			log.Error("[ondiskagg]failed to convert record to column series", err.Error())
+			return
+		}
 
 		cs = io.ColumnSeriesUnion(cs, &c.cs)
 

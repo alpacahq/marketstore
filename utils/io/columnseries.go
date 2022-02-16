@@ -575,7 +575,7 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 			shapesContainsEpoch = true
 		}
 		columnData := cs.columns[colName]
-		colInBytes,ok := SwapSliceData(columnData, byte(0)).([]byte)
+		colInBytes, ok := SwapSliceData(columnData, byte(0)).([]byte)
 		if !ok {
 			return nil, 0, fmt.Errorf("")
 		}

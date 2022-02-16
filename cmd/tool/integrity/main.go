@@ -1,6 +1,7 @@
 package integrity
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -284,7 +285,10 @@ func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filenam
 	}
 	//				fmt.Println("Sumrange: ", sumRange)
 	filechunks[myChunk] = filename
-	cksums[myChunk] = bufferSum(buffer[:sumRange])
+	cksums[myChunk], err = bufferSum(buffer[:sumRange])
+	if err != nil {
+		return fmt.Errorf("calculate a checksum of the buffer: %w", err)
+	}
 	/*
 		Optionally fix errors in the metadata headers
 		This is done only if the chunknum is 0 (header) and if the fixHeader flag has been set
@@ -324,13 +328,20 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 	_ = io.WriteHeader(fp, tbinfo)
 }
 
-func bufferSum(buffer []byte) (sum int64) {
+func bufferSum(buffer []byte) (sum int64, err error) {
 	// Swap the byte buffer for an int64 slice for higher performance
-	data := io.SwapSliceByte(buffer, int64(0)).([]int64)
+	idata, err := io.SwapSliceByte(buffer, int64(0))
+	if err != nil {
+		return 0, err
+	}
+	data, ok := idata.([]int64)
+	if !ok {
+		return 0, errors.New("failed to cast buffer to int64 slice")
+	}
 	for i := 0; i < len(buffer)/8; i++ {
 		sum += data[i]
 	}
-	return sum
+	return sum, nil
 }
 
 func exists(path string) bool {
