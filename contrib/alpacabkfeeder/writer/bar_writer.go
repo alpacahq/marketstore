@@ -56,19 +56,19 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []alpaca.Bar) (io.Colum
 	for _, bar := range bars {
 		//// skip the symbol which timestamp is empty string and cannot be parsed,
 		//// which means the symbols have never been executed
-		//if time.Time(bar.Timestamp) == (time.Time{}) {
+		// if time.Time(bar.Timestamp) == (time.Time{}) {
 		//	continue
-		//}
+		// }
 
 		//// When Volume is 0, alpaca getBarsAPI may return data with open:0, close:0, high:0, low:0.
 		//// we don't write the zero data to marketstore.
 		//// For Index Symbol data, Volume is always 0.
-		//if !isIndexSymbol && bar.Volume == 0 {
+		// if !isIndexSymbol && bar.Volume == 0 {
 		//	continue
-		//}
+		// }
 
 		//// UTCOffset is used to adjust the time to UTC based on the config.
-		//UTCOffset := time.Duration(-1*bar.UTCOffSet) * time.Hour
+		// UTCOffset := time.Duration(-1*bar.UTCOffSet) * time.Hour
 
 		// Start time of each bar is used for "epoch"
 		// to align with the 1-day chart backfill. ("00:00:00"(starting time of a day) is used for epoch)

@@ -1,6 +1,7 @@
 package wal
 
 import (
+	"errors"
 	"fmt"
 	io2 "io"
 	"os"
@@ -42,7 +43,7 @@ func Read(fp *os.File, buffer []byte) (result []byte, newOffset int64, err error
 	}
 
 	n, err := fp.Read(buffer)
-	if err == io2.EOF {
+	if errors.Is(err, io2.EOF) {
 		return result, newOffset, io2.EOF
 	}
 	if numToRead := len(buffer); n != numToRead {

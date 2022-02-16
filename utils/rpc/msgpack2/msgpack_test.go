@@ -204,7 +204,7 @@ func TestDecodeNullResult(t *testing.T) {
 
 	err := msgpack2.DecodeClientResponse(reader, &result)
 
-	if err != msgpack2.ErrNullResult {
+	if !errors.Is(err, msgpack2.ErrNullResult) {
 		t.Error("Expected err no be ErrNullResult, but got:", err)
 	}
 

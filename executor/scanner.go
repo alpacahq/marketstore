@@ -612,7 +612,7 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 	}
 	curpos, err = f.Seek(-seekAmt, io.SeekCurrent)
 	if err != nil {
-		err = fmt.Errorf("Error: seeking to rel offset: %d lowerBound: %d | %s",
+		err = fmt.Errorf("error: seeking to rel offset: %d lowerBound: %d :%w",
 			relative_offset, lowerBound, err)
 		return 0, curpos, err
 	}

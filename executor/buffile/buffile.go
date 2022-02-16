@@ -4,6 +4,7 @@
 package buffile
 
 import (
+	"errors"
 	"io"
 	"os"
 )
@@ -60,7 +61,7 @@ func (f *BufferedFile) readBuffer(offset int64, size int) error {
 		f.buffer = make([]byte, readSize)
 	}
 	if n, err := f.fp.ReadAt(f.buffer, readOffset); err != nil {
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			// read short is fine at the end of file
 			f.buffer = f.buffer[:n]
 		} else {

@@ -115,9 +115,9 @@ func deleteInner(fp *ioFilePlan, recordLen int32) (err error) {
 			isContiguous = true
 			fallthrough
 		case index != 0 && isContiguous:
-			n, err := f.Write(zeroRecord)
-			if err != nil || n != int(recordLen) {
-				return fmt.Errorf("delete(): Short write %d bytes, error: %s", n, err.Error())
+			n, err2 := f.Write(zeroRecord)
+			if err2 != nil || n != int(recordLen) {
+				return fmt.Errorf("delete(): Short write %d bytes, error: %w", n, err2)
 			}
 		case index == 0:
 			isContiguous = false
