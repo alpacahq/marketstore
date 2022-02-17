@@ -366,7 +366,8 @@ func (subDir *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err
 	newFileInfo.Path = path.Join(subDir.pathToItemName, strconv.Itoa(int(newYear))+".bin")
 	subDir.RUnlock()
 	if err = newTimeBucketInfoFromTemplate(newFileInfo); err != nil {
-		if _, ok := err.(FileAlreadyExists); ok {
+		var targetErr FileAlreadyExists
+		if ok := errors.As(err, &targetErr); ok {
 			return newFileInfo, nil
 		}
 		return nil, err

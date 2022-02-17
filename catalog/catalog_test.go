@@ -95,7 +95,8 @@ func TestPathToFileInfo(t *testing.T) {
 	defer tearDown()
 
 	fileInfo, err := catalogDir.PathToTimeBucketInfo("nil")
-	if _, ok := err.(catalog.NotFoundError); ok {
+	var targetErr catalog.NotFoundError
+	if ok := errors.As(err, &targetErr); ok {
 		assert.Equal(t, fileInfo, (*io.TimeBucketInfo)(nil))
 	}
 

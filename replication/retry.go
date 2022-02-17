@@ -12,15 +12,11 @@ import (
 )
 
 // RetryableError is a custom error to retry the logic when returned.
-type RetryableError string
+var RetryableError = errors.New("retryable replication error")
 
-func (re RetryableError) Error() string {
-	return string(re)
-}
-
-func (re RetryableError) Is(err error) bool {
-	return err == RetryableError("")
-}
+//func (re RetryableError) Is(err error) bool {
+//	return errors.Is(err, RetryableError("")
+//}
 
 type Retryer struct {
 	retryFunc    func(ctx context.Context) error
@@ -52,7 +48,7 @@ func (r *Retryer) Run(ctx context.Context) error {
 				return nil
 			}
 
-			if errors.Is(err, RetryableError("")) {
+			if errors.Is(err, RetryableError) {
 				// retryable error. continue
 				interval := retryInterval(r.interval, r.backoffCoeff, cnt)
 				log.Warn("caught a retryable error. It will be retried after an interval:" +

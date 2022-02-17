@@ -2,6 +2,7 @@ package replication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -33,7 +34,7 @@ func NewReceiver(grpcClient GRPCClient, replayer Replayer) *Receiver {
 func (r *Receiver) Run(ctx context.Context) error {
 	err := r.gRPCClient.Connect(ctx)
 	if err != nil {
-		return RetryableError("failed to connect to master instance:" + err.Error())
+		return fmt.Errorf("err: %s: %w", err.Error(), RetryableError)
 	}
 	log.Info("connected to the master instance.")
 
@@ -41,14 +42,14 @@ func (r *Receiver) Run(ctx context.Context) error {
 		log.Debug("waiting for replication messages from master...")
 		// block until receive a new replication message
 		transactionGroup, err := r.gRPCClient.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return fmt.Errorf("received EOF from master server")
 		}
 		if err != nil {
 			log.Error(fmt.Sprintf("an error occurred while receiving a replication message"+
 				" from master instance. Will be retried soon...:%s", err.Error()))
 			// This might be a temporary network issue. We retry it.
-			return RetryableError(err.Error())
+			return fmt.Errorf("err: %s: %w", err.Error(), RetryableError)
 		}
 
 		err = r.replayer.Replay(transactionGroup)

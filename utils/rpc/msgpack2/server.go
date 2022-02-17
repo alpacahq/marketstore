@@ -8,6 +8,7 @@
 package msgpack2
 
 import (
+	"errors"
 	"net/http"
 
 	rpc "github.com/alpacahq/rpc/rpc2"
@@ -175,8 +176,8 @@ func (c *CodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 }
 
 func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) {
-	jsonErr, ok := err.(*Error)
-	if !ok {
+	var jsonErr *Error
+	if ok := errors.As(err, &jsonErr); !ok {
 		jsonErr = &Error{
 			Code:    E_SERVER,
 			Message: err.Error(),

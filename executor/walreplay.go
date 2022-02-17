@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	goio "io"
 	"path/filepath"
@@ -216,12 +217,13 @@ func fullRead(err error) bool {
 		return true
 	}
 
-	if err == goio.EOF {
+	if errors.Is(err, goio.EOF) {
 		log.Debug("fullRead: read until the end of WAL file")
 		return false
 	}
 
-	if _, ok := err.(wal.ShortReadError); ok {
+	var targetErr wal.ShortReadError
+	if ok := errors.As(err, &targetErr); ok {
 		log.Info(fmt.Sprintf("Partial Read. err=%v", err))
 		return false
 	} else {
@@ -239,7 +241,7 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	var buffer [1]byte
 	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
 	if err != nil {
-		if err == goio.EOF {
+		if errors.Is(err, goio.EOF) {
 			return 0, goio.EOF
 		}
 		return 0, wal.ShortReadError("WALFileType.ReadMessageID. err:" + err.Error())

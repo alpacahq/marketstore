@@ -39,7 +39,7 @@ func (rc *GRPCReplicationClient) Recv() ([]byte, error) {
 
 	// streamClient.Recv() blocks the thread until receive a new message
 	resp, err := rc.streamClient.Recv()
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return nil, err
 	}
 	if err != nil {
