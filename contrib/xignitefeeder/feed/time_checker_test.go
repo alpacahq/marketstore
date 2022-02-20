@@ -44,7 +44,7 @@ func TestDefaultMarketTimeChecker_isOpen(t *testing.T) {
 		},
 		{
 			"open", // 12:00, Tuesday in JST
-			time.Date(2019, 7, 16, 3, 0o0, 0, 0, time.UTC), true,
+			time.Date(2019, 7, 16, 3, 0, 0, 0, time.UTC), true,
 		},
 		{
 			"close", // 19:00 in JST

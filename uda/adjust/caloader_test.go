@@ -14,22 +14,22 @@ import (
 func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnSeries {
 	length := len(announcements)
 	rows := NewCARows(length)
-	for i, announcement := range announcements {
-		rows.EntryDates[i] = announcement.EntryDate.Unix()
-		rows.TextNumbers[i] = int64(announcement.TextNumber)
-		rows.UpdateTextNumbers[i] = int64(announcement.UpdateTextNumber)
-		rows.DeleteTextNumbers[i] = int64(announcement.DeleteTextNumber)
-		rows.NotificationTypes[i] = byte(announcement.NotificationType)
-		rows.Statuses[i] = byte(announcement.Status)
-		rows.UpdatedNotificationTypes[i] = byte(announcement.UpdatedNotificationType)
-		rows.SecurityTypes[i] = byte(announcement.SecurityType)
-		rows.VoluntaryMandatoryCodes[i] = byte(announcement.VoluntaryMandatoryCode)
-		rows.RecordDates[i] = announcement.RecordDate.Unix()
-		rows.EffectiveDates[i] = announcement.EffectiveDate.Unix()
-		rows.ExpirationDates[i] = announcement.ExpirationDate.Unix()
-		rows.NewRates[i] = announcement.NewRate
-		rows.OldRates[i] = announcement.OldRate
-		rows.Rates[i] = announcement.Rate
+	for i := range announcements {
+		rows.EntryDates[i] = announcements[i].EntryDate.Unix()
+		rows.TextNumbers[i] = int64(announcements[i].TextNumber)
+		rows.UpdateTextNumbers[i] = int64(announcements[i].UpdateTextNumber)
+		rows.DeleteTextNumbers[i] = int64(announcements[i].DeleteTextNumber)
+		rows.NotificationTypes[i] = byte(announcements[i].NotificationType)
+		rows.Statuses[i] = byte(announcements[i].Status)
+		rows.UpdatedNotificationTypes[i] = byte(announcements[i].UpdatedNotificationType)
+		rows.SecurityTypes[i] = byte(announcements[i].SecurityType)
+		rows.VoluntaryMandatoryCodes[i] = byte(announcements[i].VoluntaryMandatoryCode)
+		rows.RecordDates[i] = announcements[i].RecordDate.Unix()
+		rows.EffectiveDates[i] = announcements[i].EffectiveDate.Unix()
+		rows.ExpirationDates[i] = announcements[i].ExpirationDate.Unix()
+		rows.NewRates[i] = announcements[i].NewRate
+		rows.OldRates[i] = announcements[i].OldRate
+		rows.Rates[i] = announcements[i].Rate
 	}
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", rows.EntryDates)
@@ -442,26 +442,22 @@ func TestCache(t *testing.T) {
 	tearDown, _, metadata := setup(t, "TestCache")
 	t.Cleanup(tearDown)
 
-	{
-		// GetRateChange should create a separate cache entry for each parameter combination
-		rateChangeCache = map[CacheKey]RateChangeCache{}
+	// GetRateChange should create a separate cache entry for each parameter combination
+	rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
-		GetRateChanges("AAPL", false, true, metadata.CatalogDir)
-		GetRateChanges("AAPL", true, false, metadata.CatalogDir)
-		GetRateChanges("AAPL", false, false, metadata.CatalogDir)
+	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	GetRateChanges("AAPL", false, true, metadata.CatalogDir)
+	GetRateChanges("AAPL", true, false, metadata.CatalogDir)
+	GetRateChanges("AAPL", false, false, metadata.CatalogDir)
 
-		assert.Len(t, rateChangeCache, 4)
-	}
+	assert.Len(t, rateChangeCache, 4)
 
-	{
-		// repeated calls with the same signature should not increase the number of cache entries
-		rateChangeCache = map[CacheKey]RateChangeCache{}
+	// repeated calls with the same signature should not increase the number of cache entries
+	rateChangeCache = map[CacheKey]RateChangeCache{}
 
-		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
-		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
-		GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
 
-		assert.Len(t, rateChangeCache, 1)
-	}
+	assert.Len(t, rateChangeCache, 1)
 }

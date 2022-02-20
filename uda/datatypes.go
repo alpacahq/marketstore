@@ -33,7 +33,7 @@ type AggInterface interface {
 		Accum() sends new data to the aggregate
 		and returns the currently valid output of this aggregate
 	*/
-	//Accum(ts []time.Time, rows io.Rows)
+	// Accum(ts []time.Time, rows io.Rows)
 	// The io.ColumnInterface parameter is one of; ColumnSeries or Rows
 	Accum(io.TimeBucketKey, *functions.ArgumentMap, io.ColumnInterface) (*io.ColumnSeries, error)
 }

@@ -230,11 +230,11 @@ func (w *writer) write() {
 					w.dataBuckets[*packet.tbk] = append(bucket.([]*trade), packet.data.(*trade))
 				}
 			} else {
-				switch packet.data.(type) {
+				switch d := packet.data.(type) {
 				case *quote:
-					w.dataBuckets[*packet.tbk] = []*quote{packet.data.(*quote)}
+					w.dataBuckets[*packet.tbk] = []*quote{d}
 				case *trade:
-					w.dataBuckets[*packet.tbk] = []*trade{packet.data.(*trade)}
+					w.dataBuckets[*packet.tbk] = []*trade{d}
 				}
 			}
 

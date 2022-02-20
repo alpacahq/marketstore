@@ -254,8 +254,8 @@ func ListSymbols() (*ListSymbolsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = json.Unmarshal(body, &resp); err != nil {
-		return nil, err
+	if err2 := json.Unmarshal(body, &resp); err2 != nil {
+		return nil, err2
 	}
 
 	return &resp, nil

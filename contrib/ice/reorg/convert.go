@@ -39,7 +39,7 @@ var converters = map[string]typeConverter{
 	INT:    stringToInt,
 	INT8:   stringToInt,
 	INT16:  stringToInt,
-	INT64:  stringToInt,
+	INT32:  stringToInt,
 	INT64:  stringToInt,
 	FLOAT:  stringToFloat,
 	STRING: stringToString,
@@ -57,7 +57,6 @@ var formatDefaults = map[string]string{
 	UINT16: "%d",
 	UINT32: "%d",
 	UINT64: "%d",
-	INT64:  "%d",
 	FLOAT:  "%f",
 	TIME:   "01/02/06",
 }

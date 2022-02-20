@@ -187,8 +187,8 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 		}
 		switch wtSet.RecordType {
 		case io.FIXED:
-			if err = WriteBufferToFile(fp, wtSet.Buffer); err != nil {
-				return err
+			if err3 := WriteBufferToFile(fp, wtSet.Buffer); err3 != nil {
+				return err3
 			}
 		case io.VARIABLE:
 			// Find the record length - we need it to use the time column as a sort key later
@@ -261,7 +261,7 @@ const (
 	checkSumBytes = 16
 )
 
-func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error) {
+func (wf *WALFileType) readTGData() (tgID int64, tgSerialized []byte, err error) {
 	tgLenSerialized := make([]byte, tgLenBytes)
 	tgLenSerialized, _, err = wal.Read(wf.FilePtr, tgLenSerialized)
 	if err != nil {
@@ -279,7 +279,7 @@ func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error)
 	if int64(n) != tgLen || err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
 	}
-	TGID = io.ToInt64(tgSerialized[:tgIDBytes-1])
+	tgID = io.ToInt64(tgSerialized[:tgIDBytes-1])
 
 	// Read the checksum
 	checkBuf := make([]byte, checkSumBytes)
@@ -292,5 +292,5 @@ func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error)
 		return 0, nil, err
 	}
 
-	return TGID, tgSerialized, nil
+	return tgID, tgSerialized, nil
 }

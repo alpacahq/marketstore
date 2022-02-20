@@ -294,9 +294,7 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 		for symbol := range s.catalogDir.GatherCategoriesAndItems()["Symbol"] {
 			response.Results = append(response.Results, symbol)
 		}
-	case proto.ListSymbolsRequest_TIME_BUCKET_KEY:
-		fallthrough
-	default:
+	default: // proto.ListSymbolsRequest_TIME_BUCKET_KEY:
 		response.Results = catalog.ListTimeBucketKeyNames(s.catalogDir)
 	}
 

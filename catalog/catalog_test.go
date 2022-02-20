@@ -308,8 +308,8 @@ func TestCreateNewDirectory(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func exists(path string) bool {
-	_, err := os.Stat(path)
+func exists(fp string) bool {
+	_, err := os.Stat(fp)
 	if err == nil {
 		return true
 	}

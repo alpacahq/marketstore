@@ -114,8 +114,8 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 	return nil
 }
 
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
+func fileExists(path2 string) bool {
+	_, err := os.Stat(path2)
 	if err == nil {
 		return true
 	}
@@ -189,7 +189,7 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 		Check to see if this is an empty top level directory, if so - we need to set
 		the top level category in the catalog entry
 	*/
-	if len(dRoot.category) == 0 {
+	if dRoot.category == "" {
 		dRoot.category = catkeySplit[0]
 	}
 
@@ -233,10 +233,8 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 		if i == end {
 			removeDirFiles(tree[i])
 			deleteMap[i] = true // This dir was deleted, we'll remove it from the parent's subdir list later
-		} else {
-			if deleteMap[i+1] {
-				tree[i].removeSubDir(tree[i+1].itemName, dRoot.directMap)
-			}
+		} else if deleteMap[i+1] {
+			tree[i].removeSubDir(tree[i+1].itemName, dRoot.directMap)
 		}
 		if !tree[i].DirHasSubDirs() {
 			removeDirFiles(tree[i])
@@ -267,11 +265,11 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
 	// Locates a path in the directory and returns the TimeBucketInfo for that path or error if it isn't there
 	// Must be thread-safe for READ access
-	fileInfoFunc := func(d *Directory, i_list interface{}) {
-		p_list := i_list.(*([]*io.TimeBucketInfo))
+	fileInfoFunc := func(d *Directory, iList interface{}) {
+		pList := iList.(*[]*io.TimeBucketInfo)
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
-				*p_list = append(*p_list, dfile)
+				*pList = append(*pList, dfile)
 			}
 		}
 	}
@@ -281,8 +279,8 @@ func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
 }
 
 func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *io.TimeBucketInfo, err error) {
-	path := key.GetPathToYearFiles(d.pathToItemName)
-	fullFilePath := path + "/1970.bin" // Put a dummy file at the end of the path
+	path2 := key.GetPathToYearFiles(d.pathToItemName)
+	fullFilePath := path2 + "/1970.bin" // Put a dummy file at the end of the path
 	subDir, err := d.GetOwningSubDirectory(fullFilePath)
 	if err != nil {
 		return nil, err
@@ -298,7 +296,7 @@ func (d *Directory) GetLatestTimeBucketInfoFromFullFilePath(fullFilePath string)
 	return subDir.GetLatestYearFile()
 }
 
-func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error) {
+func (d *Directory) PathToTimeBucketInfo(path2 string) (*io.TimeBucketInfo, error) {
 	/*
 		Finds the TimeBucketInfo file in this directory based on a full file path argument
 	*/
@@ -311,7 +309,7 @@ func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error
 		}
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
-				if dfile.Path == path {
+				if dfile.Path == path2 {
 					tbinfo = dfile.GetDeepCopy()
 					return
 				}

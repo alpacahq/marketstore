@@ -86,8 +86,8 @@ func (ds *DataShape) toBytes() ([]byte, error) {
 }
 
 // dsFromBytes deserializes bytes into a DataShape and return it with its byte length.
-func dsFromBytes(buf []byte) (DataShape, int) {
-	cursor := 0
+func dsFromBytes(buf []byte) (ds DataShape, cursor int) {
+	cursor = 0
 	dsNameLen := int(ToUint8(buf[cursor : cursor+1]))
 	cursor += 1
 	dsName := ToString(buf[cursor : cursor+dsNameLen])

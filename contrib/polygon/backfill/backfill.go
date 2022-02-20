@@ -173,7 +173,7 @@ func BuildBarsFromTrades(client *http.Client, symbol string, date time.Time, exc
 	return err
 }
 
-func conditionToUpdateInfo(tick api.TradeTick) ConsolidatedUpdateInfo {
+func conditionToUpdateInfo(tick *api.TradeTick) ConsolidatedUpdateInfo {
 	r := ConsolidatedUpdateInfo{true, true, true}
 
 	for _, condition := range tick.Conditions {
@@ -208,13 +208,13 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	// In order to solve this, the daily close price should explicitly be stored and used
 	// in the daily roll-up calculation. This would require substantial refactor.
 	// The current solution therefore is just a reasonable approximation of the daily close price.
-	for _, tick := range ticks {
-		if !intInSlice(tick.Exchange, exchangeIDs) {
+	for i := range ticks {
+		if !intInSlice(ticks[i].Exchange, exchangeIDs) {
 			continue
 		}
 
-		price := tick.Price
-		timestamp := time.Unix(0, tick.SIPTimestamp)
+		price := ticks[i].Price
+		timestamp := time.Unix(0, ticks[i].SIPTimestamp)
 		bucketTimestamp := timestamp.Truncate(time.Minute)
 
 		if bucketTimestamp.Before(lastBucketTimestamp) {
@@ -242,7 +242,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			volume = 0
 		}
 
-		updateInfo := conditionToUpdateInfo(tick)
+		updateInfo := conditionToUpdateInfo(&ticks[i])
 
 		if !updateInfo.UpdateLast && !updateInfo.UpdateHighLow && !updateInfo.UpdateVolume {
 			continue
@@ -265,7 +265,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 		}
 
 		if updateInfo.UpdateVolume {
-			volume += tick.Size
+			volume += ticks[i].Size
 		}
 	}
 

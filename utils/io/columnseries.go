@@ -104,7 +104,7 @@ func (cs *ColumnSeries) AddColumn(name string, columnData interface{}) (outname 
 		} else {
 			cs.nameIncrement[name]++
 		}
-		name = name + strconv.Itoa(cs.nameIncrement[name])
+		name += strconv.Itoa(cs.nameIncrement[name])
 	}
 	cs.orderedNames = append(cs.orderedNames, name)
 	cs.columns[name] = columnData

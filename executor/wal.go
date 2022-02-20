@@ -128,8 +128,8 @@ func (wf *WALFileType) open(filePath string) error {
 	return nil
 }
 
-func (wf *WALFileType) close(ReplayStatus wal.ReplayStateEnum) {
-	wf.WriteStatus(wal.CLOSED, ReplayStatus)
+func (wf *WALFileType) close(replayStatus wal.ReplayStateEnum) {
+	wf.WriteStatus(wal.CLOSED, replayStatus)
 	wf.FilePtr.Close()
 }
 
@@ -421,8 +421,8 @@ func (tgl TGIDlist) Len() int           { return len(tgl) }
 func (tgl TGIDlist) Less(i, j int) bool { return tgl[i] < tgl[j] }
 func (tgl TGIDlist) Swap(i, j int)      { tgl[i], tgl[j] = tgl[j], tgl[i] }
 
-func (wf *WALFileType) WriteStatus(FileStatus wal.FileStatusEnum, ReplayState wal.ReplayStateEnum) {
-	wf.FileStatus = FileStatus
+func (wf *WALFileType) WriteStatus(fileStatus wal.FileStatusEnum, ReplayState wal.ReplayStateEnum) {
+	wf.FileStatus = fileStatus
 	wf.ReplayState = ReplayState
 	// This process now owns this file
 	buffer := wf.initMessage(STATUS)
@@ -493,7 +493,7 @@ func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	return nil
 }
 
-func ParseTGData(tgSerialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
+func ParseTGData(tgSerialized []byte, rootPath string) (tgID int64, wtSets []wal.WTSet) {
 	// see /docs/design/durable_writes_design.txt for the details of the transaction group format
 	const (
 		tgIDLenBytes      = 8
@@ -506,7 +506,7 @@ func ParseTGData(tgSerialized []byte, rootPath string) (TGID int64, wtSets []wal
 		offsetLenBytes = 8
 		indexLenBytes  = 8
 	)
-	TGID = io.ToInt64(tgSerialized[0:tgIDLenBytes])
+	tgID = io.ToInt64(tgSerialized[0:tgIDLenBytes])
 	WTCount := io.ToInt64(tgSerialized[tgIDLenBytes : tgIDLenBytes+wtCountLenBytes])
 
 	cursor := tgIDLenBytes + wtCountLenBytes
@@ -539,7 +539,7 @@ func ParseTGData(tgSerialized []byte, rootPath string) (TGID int64, wtSets []wal
 		)
 	}
 
-	return TGID, wtSets
+	return tgID, wtSets
 }
 
 func (wf *WALFileType) IsOpen() bool {

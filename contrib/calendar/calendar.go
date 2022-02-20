@@ -123,9 +123,7 @@ func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 				return false
 			}
 			return true
-		case Closed:
-			fallthrough
-		default:
+		default: // case Closed:
 			return false
 		}
 	} else {

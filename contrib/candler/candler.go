@@ -85,7 +85,7 @@ func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.Colu
 	Creates a new candler using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (ca Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (c *Candler, err error) {
+func (ca *Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (c *Candler, err error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("init requires a *utils.CandleDuration as the argument")
 	}

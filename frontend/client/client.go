@@ -69,15 +69,14 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	}(resp.Body)
 
 	// Handle any error in the RPC call
-	if resp.StatusCode != 200 {
+	const statusOK = 200
+	if resp.StatusCode != statusOK {
 		bodyBytes, err2 := goio.ReadAll(resp.Body)
 		var errText string
 		if err2 != nil {
 			errText = err2.Error()
-		} else {
-			if bodyBytes != nil {
-				errText = string(bodyBytes)
-			}
+		} else if bodyBytes != nil {
+			errText = string(bodyBytes)
 		}
 		return nil, fmt.Errorf("response error (%d): %s", resp.StatusCode, errText)
 	}
@@ -241,9 +240,7 @@ func read(c *websocket.Conn, done chan struct{}, count int) chan []byte {
 				_ = c.WriteMessage(websocket.PongMessage, []byte{})
 			case websocket.PongMessage:
 				_ = c.WriteMessage(websocket.PingMessage, []byte{})
-			case websocket.TextMessage:
-				fallthrough
-			case websocket.BinaryMessage:
+			case websocket.TextMessage, websocket.BinaryMessage:
 				bufC <- buf
 			case websocket.CloseMessage:
 				return

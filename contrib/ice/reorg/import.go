@@ -116,21 +116,21 @@ func storeAnnouncement(symbol string, note *Announcement) error {
 }
 
 func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string, storeWithoutSymbol bool) error {
-	for _, note := range notes {
-		if note.TargetCusip == "" {
+	for i := range notes {
+		if notes[i].TargetCusip == "" {
 			continue
 		}
-		if note.Is(enum.StockSplit) || note.Is(enum.ReverseStockSplit) || note.Is(enum.StockDividend) {
-			symbol := cusipSymbolMap[note.TargetCusip]
+		if notes[i].Is(enum.StockSplit) || notes[i].Is(enum.ReverseStockSplit) || notes[i].Is(enum.StockDividend) {
+			symbol := cusipSymbolMap[notes[i].TargetCusip]
 			if symbol == "" && storeWithoutSymbol {
-				symbol = note.TargetCusip
+				symbol = notes[i].TargetCusip
 			}
 			if symbol != "" {
-				if err := storeAnnouncement(symbol, &note); err != nil {
-					return fmt.Errorf("unable to store Announcement: %w %+v", err, note)
+				if err := storeAnnouncement(symbol, &notes[i]); err != nil {
+					return fmt.Errorf("unable to store Announcement: %w %+v", err, notes[i])
 				}
 			} else {
-				log.Warn("Cannot map CUSIP %s to Symbol", note.TargetCusip)
+				log.Warn("Cannot map CUSIP %s to Symbol", notes[i].TargetCusip)
 			}
 		}
 	}

@@ -91,20 +91,20 @@ func (resp *MultiQueryResponse) ToColumnSeriesMap() (*io.ColumnSeriesMap, error)
 func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *MultiQueryResponse) (err error) {
 	response.Version = utils.GitHash
 	response.Timezone = utils.InstanceConfig.Timezone.String()
-	for _, req := range reqs.Requests {
+	for i := range reqs.Requests {
 		var (
 			resp *QueryResponse
 			err  error
 		)
 		// SQL
-		if req.IsSQLStatement {
-			resp, err = s.executeSQL(req.SQLStatement)
+		if reqs.Requests[i].IsSQLStatement {
+			resp, err = s.executeSQL(reqs.Requests[i].SQLStatement)
 			if err != nil {
 				return err
 			}
 		} else {
 			// Query
-			resp, err = s.executeQuery(&req)
+			resp, err = s.executeQuery(&reqs.Requests[i])
 			if err != nil {
 				return err
 			}

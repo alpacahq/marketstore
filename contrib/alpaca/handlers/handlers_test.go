@@ -46,15 +46,12 @@ func TestHandlers(t *testing.T) {
 	defer tearDown()
 
 	// trade
-	{
-		handlers.MessageHandler(getTestTrade())
-	}
+	handlers.MessageHandler(getTestTrade())
+
 	// quote
-	{
-		handlers.MessageHandler(getTestQuote())
-	}
+	handlers.MessageHandler(getTestQuote())
+
 	// aggregate
-	{
-		handlers.MessageHandler(getTestAggregate())
-	}
+
+	handlers.MessageHandler(getTestAggregate())
 }

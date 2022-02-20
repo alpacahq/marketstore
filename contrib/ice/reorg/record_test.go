@@ -118,17 +118,17 @@ TEL: 800 680-0661
 **********************************************************************          
 99999999999999999999999999999999999999999999999999999999999999999999999999999999
 `
-	announcements := []Announcement{}
+	var announcements []Announcement
 	err := readRecords(input, &announcements)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(announcements), 2)
 	first := announcements[0]
 	second := announcements[1]
-	assert.Equal(t, first.TextNumber, 2052815)
-	assert.Equal(t, first.TargetCusip, "26153M200")
-	assert.Equal(t, first.UpdateTextNumber, 2035174)
-	assert.Equal(t, second.TextNumber, 2052817)
-	assert.Equal(t, second.TargetCusip, "11144V105")
-	assert.Equal(t, second.UpdateTextNumber, 1984589)
+	assert.Equal(t, 2052815, first.TextNumber)
+	assert.Equal(t, "26153M200", first.TargetCusip)
+	assert.Equal(t, 2035174, first.UpdateTextNumber)
+	assert.Equal(t, 2052817, second.TextNumber)
+	assert.Equal(t, "11144V105", second.TargetCusip)
+	assert.Equal(t, 1984589, second.UpdateTextNumber)
 }
