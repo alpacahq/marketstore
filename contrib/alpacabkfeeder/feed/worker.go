@@ -42,6 +42,7 @@ func (w *Worker) tryPrintErr() {
 		log.Error(err.Error())
 	}
 
+	// nolint:gocritic // (unnecessaryDefer) this defer is for recovering from panic
 	defer func() {
 		err := recover()
 		if err != nil {

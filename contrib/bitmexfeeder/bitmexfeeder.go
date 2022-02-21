@@ -180,7 +180,7 @@ func (gd *BitmexFetcher) Run() {
 			open := make([]float64, 0)
 			high := make([]float64, 0)
 			low := make([]float64, 0)
-			close := make([]float64, 0)
+			clos := make([]float64, 0)
 			volume := make([]float64, 0)
 			for _, rate := range rates {
 				parsedTime, err := time.Parse(time.RFC3339, rate.Timestamp)
@@ -194,7 +194,7 @@ func (gd *BitmexFetcher) Run() {
 				open = append(open, rate.Open)
 				high = append(high, rate.High)
 				low = append(low, rate.Low)
-				close = append(close, rate.Close)
+				clos = append(clos, rate.Close)
 				volume = append(volume, rate.Volume)
 			}
 			cs := io.NewColumnSeries()
@@ -202,7 +202,7 @@ func (gd *BitmexFetcher) Run() {
 			cs.AddColumn("Open", open)
 			cs.AddColumn("High", high)
 			cs.AddColumn("Low", low)
-			cs.AddColumn("Close", close)
+			cs.AddColumn("Close", clos)
 			cs.AddColumn("Volume", volume)
 			log.Debug("%s: %d rates between %s - %s", symbol, len(rates),
 				rates[0].Timestamp, rates[(len(rates))-1].Timestamp)

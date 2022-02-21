@@ -39,6 +39,7 @@ func (w *Worker) tryPrintErr(ctx context.Context) {
 		log.Error(err.Error())
 	}
 
+	// nolint: gocritic // this defer func is to recover from panic
 	defer func() {
 		err := recover()
 		if err != nil {

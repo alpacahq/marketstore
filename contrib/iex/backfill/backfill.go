@@ -221,8 +221,8 @@ func writeBars(bars []*consolidator.Bar) error {
 	return executor.WriteCSM(csm, false)
 }
 
-func nextBatch(bars []*consolidator.Bar, index int) ([]*consolidator.Bar, int) {
-	batch := []*consolidator.Bar{}
+func nextBatch(bars []*consolidator.Bar, index int) (batchBars []*consolidator.Bar, idx int) {
+	var batch []*consolidator.Bar
 
 	for i, bar := range bars[index:] {
 		if i > 0 && !strings.EqualFold(bar.Symbol, bars[i-1].Symbol) {

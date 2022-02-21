@@ -65,8 +65,8 @@ func SetAPIKey(key string) {
 	apiKey = key
 }
 
-func SetBaseURL(url string) {
-	baseURL = url
+func SetBaseURL(bURL string) {
+	baseURL = bURL
 }
 
 func SetWSServers(serverList string) {
@@ -140,9 +140,9 @@ func ListTickersPerPage(client *http.Client, page int) ([]Ticker, error) {
 		return nil, err
 	}
 
-	for _, ticker := range resp.Tickers {
-		if includeExchange(ticker.PrimaryExch) {
-			tickers = append(tickers, ticker)
+	for i := range resp.Tickers {
+		if includeExchange(resp.Tickers[i].PrimaryExch) {
+			tickers = append(tickers, resp.Tickers[i])
 		}
 	}
 
@@ -342,15 +342,15 @@ func GetHistoricQuotes(client *http.Client, symbol, date string, batchSize int,
 	return totalQuotes, nil
 }
 
-func download(client *http.Client, url string, retryCount int) (body []byte, err error) {
+func download(client *http.Client, endpointURL string, retryCount int) (body []byte, err error) {
 	// It is required to retry both the download() and unmarshal() calls
 	// as network errors (e.g. Unexpected EOF) can come also from unmarshal()
 	err = try.Do(func(attempt int) (bool, error) {
-		body, err = request(client, url)
+		body, err = request(client, endpointURL)
 		if err != nil && strings.Contains(err.Error(), "GOAWAY") {
 			const sleepTime = 5 * time.Second
 			// Polygon's way to tell that we are too fast
-			log.Warn("parallel connection number may reach polygon limit, url: %s", url)
+			log.Warn("parallel connection number may reach polygon limit, url: %s", endpointURL)
 			time.Sleep(sleepTime)
 		}
 		return attempt < retryCount, err
@@ -358,10 +358,10 @@ func download(client *http.Client, url string, retryCount int) (body []byte, err
 	return body, err
 }
 
-func request(client *http.Client, url string) ([]byte, error) {
+func request(client *http.Client, endpointURL string) ([]byte, error) {
 	var resp *http.Response
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpointURL, nil)
 	if err != nil {
 		return nil, err
 	}

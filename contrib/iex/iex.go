@@ -238,12 +238,12 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 			err error
 		)
 
-		for _, bar := range bars.Chart {
-			if bar.Volume == 0 {
+		for i := range bars.Chart {
+			if bars.Chart[i].Volume == 0 {
 				continue
 			}
 
-			ts, err = bar.GetTimestamp()
+			ts, err = bars.Chart[i].GetTimestamp()
 			if err != nil {
 				return err
 			}
@@ -253,11 +253,11 @@ func (f *IEXFetcher) writeBars(resp *api.GetBarsResponse, intraday, backfill boo
 			}
 
 			epoch = append(epoch, ts.Unix())
-			open = append(open, bar.Open)
-			high = append(high, bar.High)
-			low = append(low, bar.Low)
-			clos = append(clos, bar.Close)
-			volume = append(volume, bar.Volume)
+			open = append(open, bars.Chart[i].Open)
+			high = append(high, bars.Chart[i].High)
+			low = append(low, bars.Chart[i].Low)
+			clos = append(clos, bars.Chart[i].Close)
+			volume = append(volume, bars.Chart[i].Volume)
 		}
 
 		if len(epoch) == 0 {
@@ -408,9 +408,9 @@ func main() {
 	}
 
 	for symbol, chart := range *resp {
-		for _, bar := range chart.Chart {
+		for i := range chart.Chart {
 			// nolint:forbidigo // CLI output needs fmt.Println
-			fmt.Printf("symbol: %v bar: %v\n", symbol, bar)
+			fmt.Printf("symbol: %v bar: %v\n", symbol, chart.Chart[i])
 		}
 	}
 
@@ -423,9 +423,9 @@ func main() {
 	}
 
 	for symbol, chart := range *resp {
-		for _, bar := range chart.Chart {
+		for i := range chart.Chart {
 			// nolint:forbidigo // CLI output needs fmt.Println
-			fmt.Printf("symbol: %v bar: %v\n", symbol, bar)
+			fmt.Printf("symbol: %v bar: %v\n", symbol, chart.Chart[i])
 		}
 	}
 }

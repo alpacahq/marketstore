@@ -22,11 +22,11 @@ type Backfill struct {
 
 // NewBackfill initializes the module to backfill the historical daily chart data to marketstore.
 func NewBackfill(symbolManager symbols.Manager, apiClient api.Client, writer writer.QuotesWriter,
-	rangeWriter writer.QuotesRangeWriter, Since time.Time,
+	rangeWriter writer.QuotesRangeWriter, since time.Time,
 ) *Backfill {
 	return &Backfill{
 		symbolManager: symbolManager, apiClient: apiClient,
-		writer: writer, rangeWriter: rangeWriter, since: Since,
+		writer: writer, rangeWriter: rangeWriter, since: since,
 	}
 }
 

@@ -269,9 +269,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 					log.Error("failed to write goroutine pprof: %w", err)
 					return
 				}
-			case syscall.SIGINT:
-				fallthrough
-			case syscall.SIGTERM:
+			case syscall.SIGINT, syscall.SIGTERM:
 				log.Info("initiating graceful shutdown due to '%v' request", s)
 				grpcServer.GracefulStop()
 				log.Info("shutdown grpc API server...")

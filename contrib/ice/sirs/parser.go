@@ -69,8 +69,8 @@ func (l *loader) lineReader(currentLine string) error {
 		}
 	}
 
-	if err = l.parseEntry(recType, line); err != nil {
-		return err
+	if err2 := l.parseEntry(recType, line); err2 != nil {
+		return err2
 	}
 
 	return nil
@@ -78,22 +78,23 @@ func (l *loader) lineReader(currentLine string) error {
 
 func (l *loader) saveRecord() error {
 	// set listing exchange values
-	if l.stg.ExchangeCode1 != "" && l.stg.ExchangeCode1 == l.stg.ExchangeCode {
+	switch {
+	case l.stg.ExchangeCode1 != "" && l.stg.ExchangeCode1 == l.stg.ExchangeCode:
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode1
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate1
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode1
 		l.stg.ListingExchangeTicker = l.stg.Ticker1
-	} else if l.stg.ExchangeCode2 != "" && (l.stg.ExchangeCode2 == l.stg.ExchangeCode || l.stg.ExchangeCode2 == "29") {
+	case l.stg.ExchangeCode2 != "" && (l.stg.ExchangeCode2 == l.stg.ExchangeCode || l.stg.ExchangeCode2 == "29"):
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode2
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate2
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode2
 		l.stg.ListingExchangeTicker = l.stg.Ticker2
-	} else if l.stg.ExchangeCode1 != "" {
+	case l.stg.ExchangeCode1 != "":
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode1
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate1
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode1
 		l.stg.ListingExchangeTicker = l.stg.Ticker1
-	} else {
+	default:
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode2
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate2
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode2

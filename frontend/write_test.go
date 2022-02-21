@@ -70,7 +70,7 @@ func TestWrite(t *testing.T) {
 	}
 
 	for _, resp := range response.Responses {
-		if len(resp.Error) != 0 {
+		if resp.Error != "" {
 			t.Logf("Error: %s\n", resp.Error)
 			t.FailNow()
 		}

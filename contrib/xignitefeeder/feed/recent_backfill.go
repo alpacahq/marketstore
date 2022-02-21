@@ -21,9 +21,9 @@ type RecentBackfill struct {
 }
 
 // NewRecentBackfill initializes the module to backfill the historical 5-minute chart data to marketstore.
-func NewRecentBackfill(sm symbols.Manager, mtc MarketTimeChecker, ac api.Client, writer writer.BarWriter, days int,
+func NewRecentBackfill(sm symbols.Manager, mtc MarketTimeChecker, ac api.Client, w writer.BarWriter, days int,
 ) *RecentBackfill {
-	return &RecentBackfill{symbolManager: sm, marketTimeChecker: mtc, apiClient: ac, writer: writer, days: days}
+	return &RecentBackfill{symbolManager: sm, marketTimeChecker: mtc, apiClient: ac, writer: w, days: days}
 }
 
 func (b *RecentBackfill) Update(ctx context.Context) {

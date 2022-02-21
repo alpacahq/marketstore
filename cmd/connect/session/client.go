@@ -378,17 +378,11 @@ func columnFormatLength(colName string, col interface{}) int {
 	colType := reflect.TypeOf(col).Elem().Kind()
 	switch colType {
 	case reflect.Float32, reflect.Float64, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint8,
-		reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.String:
-		fallthrough
-	case reflect.Bool:
+		reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.String, reflect.Bool:
 		return defaultColumnLength
 	case reflect.Array:
 		// e.g. STRING16 column has colType=[16]rune
 		return reflect.TypeOf(col).Elem().Len()
-	case reflect.Chan, reflect.Complex128, reflect.Complex64, reflect.Func, reflect.Int, reflect.Interface,
-		reflect.Invalid, reflect.Map, reflect.Ptr, reflect.Slice, reflect.Struct, reflect.Uint,
-		reflect.Uintptr, reflect.UnsafePointer:
-		fallthrough
 	default:
 		return defaultColumnLength
 	}

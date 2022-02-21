@@ -329,9 +329,9 @@ func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]s
 	}
 
 	symbolListMux.Lock()
-	for _, s := range currentTickers {
-		if pattern.Match(s.Ticker) && s.Ticker != "" {
-			*symbolList = append(*symbolList, s.Ticker)
+	for i := range currentTickers {
+		if pattern.Match(currentTickers[i].Ticker) && currentTickers[i].Ticker != "" {
+			*symbolList = append(*symbolList, currentTickers[i].Ticker)
 		}
 	}
 	symbolListMux.Unlock()
@@ -358,11 +358,9 @@ func getBars(client *http.Client, start, end time.Time, period time.Duration, sy
 			if err != nil {
 				log.Warn("[polygon] failed to backfill bars for %v (%v)", symbol, err)
 			}
-		} else {
-			if calendar.Nasdaq.IsMarketDay(start) {
-				if err := backfill.BuildBarsFromTrades(client, symbol, start, exchangeIDs, batchSize); err != nil {
-					log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", symbol, start, err)
-				}
+		} else if calendar.Nasdaq.IsMarketDay(start) {
+			if err := backfill.BuildBarsFromTrades(client, symbol, start, exchangeIDs, batchSize); err != nil {
+				log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", symbol, start, err)
 			}
 		}
 		start = start.Add(period)

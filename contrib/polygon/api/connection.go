@@ -231,7 +231,7 @@ func (p *PolygonWebSocket) subscribe() (connected bool) {
 	return true
 }
 
-func setURLs(servers, apiKey string) (Servers []*url.URL) {
+func setURLs(servers, apiKey string) (svrs []*url.URL) {
 	urls := strings.Split(servers, ",")
 	if len(urls) < 1 {
 		return
@@ -248,6 +248,6 @@ func setURLs(servers, apiKey string) (Servers []*url.URL) {
 		}
 		u[i].RawQuery = parameters.Encode()
 	}
-	Servers = u
+	svrs = u
 	return
 }

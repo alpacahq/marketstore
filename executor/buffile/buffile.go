@@ -53,7 +53,7 @@ func (f *BufferedFile) readBuffer(offset int64, size int) error {
 	// read size is block lower + offset residual + actual size
 	readSize := int(offset)%f.blockSize + size
 	// align to block size
-	readSize = readSize + f.blockSize
+	readSize += f.blockSize
 	readSize -= readSize % f.blockSize
 
 	// len(nil slice) is 0

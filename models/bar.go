@@ -42,7 +42,7 @@ func NewBar(symbol, timeframe string, capacity int) *Bar {
 }
 
 // Key returns the key of the model's time bucket.
-func (model Bar) Key() string {
+func (model *Bar) Key() string {
 	return model.Tbk.GetItemKey()
 }
 

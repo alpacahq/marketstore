@@ -82,12 +82,11 @@ func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateR
 			iop.RecordLen = file.File.GetRecordLength()
 			iop.RecordType = file.File.GetRecordType()
 			iop.VariableRecordLen = int(file.File.GetVariableRecordLength())
-		} else {
+		} else if file.File.GetRecordLength() != iop.RecordLen {
 			// check that we're reading the same recordlength across all files, return err if not
-			if file.File.GetRecordLength() != iop.RecordLen {
-				return nil, RecordLengthNotConsistent("NewIOPlan")
-			}
+			return nil, RecordLengthNotConsistent("NewIOPlan")
 		}
+
 		if file.File.Year >= int16(range2.Start.Year()) && file.File.Year <= int16(range2.End.Year()) {
 			/*
 			 Calculate the number of bytes to be read for each file and the offset

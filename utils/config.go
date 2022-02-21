@@ -185,9 +185,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 			log.SetLevel(log.WARNING)
 		case "debug":
 			log.SetLevel(log.DEBUG)
-		case "info":
-			fallthrough
-		default:
+		default: // case "info":
 			log.SetLevel(log.INFO)
 		}
 	}

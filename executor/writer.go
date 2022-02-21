@@ -54,7 +54,8 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 		[VariableLength record] append IntervalTicks since bucket time instead of Epoch
 	*/
 	var outBuf []byte
-	outBuf = append(buf, row...)
+	buf = append(buf, row...)
+	outBuf = buf
 	outBuf = appendIntervalTicks(outBuf, t, index, intervalsPerDay)
 	return outBuf
 }
@@ -141,7 +142,8 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []io.Data
 func appendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
 	iticks := io.GetIntervalTicks32Bit(t, index, intervalsPerDay)
 	postdata, _ := io.Serialize([]byte{}, iticks)
-	outBuf = append(buf, postdata...)
+	buf = append(buf, postdata...)
+	outBuf = buf
 	return outBuf
 }
 
@@ -233,10 +235,8 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 			return err
 		}
 		dataLen = int64(len(comp))
-	} else {
-		if _, err = fp.Write(dataToBeWritten); err != nil {
-			return err
-		}
+	} else if _, err = fp.Write(dataToBeWritten); err != nil {
+		return err
 	}
 
 	// log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)

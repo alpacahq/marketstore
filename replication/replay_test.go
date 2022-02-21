@@ -63,13 +63,13 @@ func makeMockOffsetIndexBufferVariable(t time.Time, tf *utils.Timeframe, buffer 
 	return oib
 }
 
-func makeMockOHLCColumnSeries(epoch time.Time, open, high, low, close int64) *io.ColumnSeries {
+func makeMockOHLCColumnSeries(epoch time.Time, open, high, low, clos int64) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{epoch.Unix()})
 	cs.AddColumn("Open", []int64{open})
 	cs.AddColumn("High", []int64{high})
 	cs.AddColumn("Low", []int64{low})
-	cs.AddColumn("Close", []int64{close})
+	cs.AddColumn("Close", []int64{clos})
 
 	if epoch.Nanosecond() != 0 {
 		cs.AddColumn("Nanoseconds", []int32{int32(epoch.Nanosecond())})

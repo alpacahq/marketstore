@@ -285,84 +285,96 @@ func (ac *accumulator) apply(start, end int) error {
 		if !ok {
 			return fmt.Errorf("convert to float32 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]float32)[start:end]))
+		out = append(out, fn(ivalues.([]float32)[start:end]))
+		ac.iout = out
 	case func([]float64) float64:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]float64)
 		if !ok {
 			return fmt.Errorf("convert to float64 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]float64)[start:end]))
+		out = append(out, fn(ivalues.([]float64)[start:end]))
+		ac.iout = out
 	case func([]int8) int8:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]int8)
 		if !ok {
 			return fmt.Errorf("convert to int8 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]int8)[start:end]))
+		out = append(out, fn(ivalues.([]int8)[start:end]))
+		ac.iout = out
 	case func([]int16) int16:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]int16)
 		if !ok {
 			return fmt.Errorf("convert to int16 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]int16)[start:end]))
+		out = append(out, fn(ivalues.([]int16)[start:end]))
+		ac.iout = out
 	case func([]int) int:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]int)
 		if !ok {
 			return fmt.Errorf("convert to int slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]int)[start:end]))
+		out = append(out, fn(ivalues.([]int)[start:end]))
+		ac.iout = out
 	case func([]int32) int32:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]int32)
 		if !ok {
 			return fmt.Errorf("convert to int32 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]int32)[start:end]))
+		out = append(out, fn(ivalues.([]int32)[start:end]))
+		ac.iout = out
 	case func([]int64) int64:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]int64)
 		if !ok {
 			return fmt.Errorf("convert to int64 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]int64)[start:end]))
+		out = append(out, fn(ivalues.([]int64)[start:end]))
+		ac.iout = out
 	case func([]uint8) uint8:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]uint8)
 		if !ok {
 			return fmt.Errorf("convert to uint8 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]uint8)[start:end]))
+		out = append(out, fn(ivalues.([]uint8)[start:end]))
+		ac.iout = out
 	case func([]uint16) uint16:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]uint16)
 		if !ok {
 			return fmt.Errorf("convert to uint16 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]uint16)[start:end]))
+		out = append(out, fn(ivalues.([]uint16)[start:end]))
+		ac.iout = out
 	case func([]uint) uint:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]uint)
 		if !ok {
 			return fmt.Errorf("convert to uint slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]uint)[start:end]))
+		out = append(out, fn(ivalues.([]uint)[start:end]))
+		ac.iout = out
 	case func([]uint32) uint32:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]uint32)
 		if !ok {
 			return fmt.Errorf("convert to uint32 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]uint32)[start:end]))
+		out = append(out, fn(ivalues.([]uint32)[start:end]))
+		ac.iout = out
 	case func([]uint64) uint64:
 		ivalues := ac.ivalues
 		out, ok := ac.iout.([]uint64)
 		if !ok {
 			return fmt.Errorf("convert to uint64 slice. ivalues=%v", ivalues)
 		}
-		ac.iout = append(out, fn(ivalues.([]uint64)[start:end]))
+		out = append(out, fn(ivalues.([]uint64)[start:end]))
+		ac.iout = out
 	default:
 		return fmt.Errorf("unexpected ifunc type in an accumulator. ifunc=%v, ivalues=%v", ac.ifunc, ac.ivalues)
 	}

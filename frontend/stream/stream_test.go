@@ -43,6 +43,7 @@ func TestStream(t *testing.T) {
 	u.Scheme = "ws"
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	defer conn.Close()
 	assert.Nil(t, err)
 
 	// AAPL 5Min bars & all daily bars

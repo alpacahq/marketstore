@@ -81,7 +81,7 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 	if err != nil {
 		return nil, err
 	}
-	close, err := candler.GetAverageColumnFloat32(cols, closeCols)
+	clos, err := candler.GetAverageColumnFloat32(cols, closeCols)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 	var candle *candler.Candle
 	for i, t := range ts {
 		candle = ca.GetCandle(t, candle)
-		candle.AddCandle(t, open[i], high[i], low[i], close[i])
+		candle.AddCandle(t, open[i], high[i], low[i], clos[i])
 		/*
 			Iterate over the candle's named columns that need sums
 		*/

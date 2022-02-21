@@ -168,9 +168,7 @@ func (s *Subscriber) consume() {
 		}
 
 		switch msgType {
-		case websocket.TextMessage:
-			fallthrough
-		case websocket.BinaryMessage:
+		case websocket.TextMessage, websocket.BinaryMessage:
 			m := SubscribeMessage{}
 
 			if err = msgpack.Unmarshal(buf, &m); err != nil {

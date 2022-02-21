@@ -32,7 +32,7 @@ func (wc *WriteCommand) String() string {
 	)
 }
 
-//func WriteCommandsToProto(commands []*WriteCommand) []*proto.WriteCommand {
+// func WriteCommandsToProto(commands []*WriteCommand) []*proto.WriteCommand {
 //	ret := make([]*proto.WriteCommand, len(commands))
 //	for i, wc := range commands {
 //		ret[i] = &proto.WriteCommand{
@@ -45,9 +45,9 @@ func (wc *WriteCommand) String() string {
 //		}
 //	}
 //	return ret
-//}
+// }
 //
-//func WriteCommandsFromProto(commands []*proto.WriteCommand) []*WriteCommand {
+// func WriteCommandsFromProto(commands []*proto.WriteCommand) []*WriteCommand {
 //	ret := make([]*WriteCommand, len(commands))
 //	for i, c := range commands {
 //		ret[i] = &WriteCommand{
@@ -60,4 +60,4 @@ func (wc *WriteCommand) String() string {
 //		}
 //	}
 //	return ret
-//}
+// }

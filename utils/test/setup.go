@@ -75,7 +75,7 @@ func makeFakeFileInfoStock(year, filePath, timeFrame string) *TimeBucketInfo {
 	return NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, FIXED)
 }
 
-func makeYearFiles(root string, years []string, withdata, withGaps bool, tf string, itemsWritten *map[string]int, isStock bool) {
+func makeYearFiles(root string, years []string, withdata, withGaps bool, tf string, itemsWritten map[string]int, isStock bool) {
 	const allowAllPerm = 0o777
 	base := root + "/"
 	makeCatFile(base, "Year")
@@ -94,7 +94,7 @@ func makeYearFiles(root string, years []string, withdata, withGaps bool, tf stri
 		err = WriteHeader(file, f)
 		checkfail(err, "Unable to write header to: "+filename)
 		if withdata {
-			(*itemsWritten)[filename], err = WriteDummyData(file, year, tf, withGaps, isStock)
+			itemsWritten[filename], err = WriteDummyData(file, year, tf, withGaps, isStock)
 			checkfail(err, "Unable to write dummy data")
 			//			fmt.Printf("File: %s Number: %d\n", filename, (*itemsWritten)[filename])
 		}
@@ -209,7 +209,7 @@ func MakeDummyCurrencyDir(root string, withdata, withGaps bool) map[string]int {
 			makeCatDir(tfbase, "AttributeGroup", attgroups)
 			for _, attname := range attgroups {
 				attbase = tfbase + "/" + attname
-				makeYearFiles(attbase, years, withdata, withGaps, tf, &itemsWritten, false)
+				makeYearFiles(attbase, years, withdata, withGaps, tf, itemsWritten, false)
 			}
 		}
 	}
@@ -235,7 +235,7 @@ func MakeDummyStockDir(root string, withdata, withGaps bool) map[string]int {
 			makeCatDir(tfbase, "AttributeGroup", attgroups)
 			for _, attname := range attgroups {
 				attbase = tfbase + "/" + attname
-				makeYearFiles(attbase, years, withdata, withGaps, tf, &itemsWritten, true)
+				makeYearFiles(attbase, years, withdata, withGaps, tf, itemsWritten, true)
 			}
 		}
 	}

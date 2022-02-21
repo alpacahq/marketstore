@@ -29,11 +29,11 @@ type ListBarsAPIClient interface {
 // NewBackfill initializes the module to backfill the historical daily chart data to marketstore.
 // Alpaca API spec: maxBarsPerRequest: 1000 bars per symbol per request at maximum
 // Alpaca API spec: maxSymbolsPerRequest: 100 symbols per request at maximum.
-func NewBackfill(symbolManager symbols.Manager, apiClient ListBarsAPIClient, barWriter writer.BarWriter, Since time.Time,
+func NewBackfill(symbolManager symbols.Manager, apiClient ListBarsAPIClient, barWriter writer.BarWriter, since time.Time,
 	maxBarsPerReq, maxSymbolsPerReq int,
 ) *Backfill {
 	return &Backfill{
-		symbolManager: symbolManager, apiClient: apiClient, barWriter: barWriter, since: Since,
+		symbolManager: symbolManager, apiClient: apiClient, barWriter: barWriter, since: since,
 		maxBarsPerReq: maxBarsPerReq, maxSymbolsPerReq: maxSymbolsPerReq,
 	}
 }

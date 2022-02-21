@@ -95,11 +95,9 @@ func init() {
 	}
 	if monthEnd == 0 {
 		monthEnd = 10000
-	} else {
-		if monthEnd < 1 || monthEnd > 12 {
-			log.Error("Ending month must be in the range 1-12")
-			os.Exit(1)
-		}
+	} else if monthEnd < 1 || monthEnd > 12 {
+		log.Error("Ending month must be in the range 1-12")
+		os.Exit(1)
 	}
 	if monthStart != 0 {
 		if monthStart < 1 || monthStart > 12 {

@@ -83,12 +83,11 @@ func (c *DefaultClient) GetRealTimeQuotes(ctx context.Context, identifiers []str
 		"_token":         {c.token},
 		"Identifiers":    {strings.Join(identifiers, ",")},
 	}
-	req, err := http.NewRequestWithContext(context.Background(),
+	req, err := http.NewRequestWithContext(ctx,
 		"POST", GetQuotesURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
-	req.WithContext(ctx)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	log.Info("GetRealTimeQuotes API request: IdentifierType=Symbol, num_identifiers=%d", len(identifiers))
@@ -145,11 +144,10 @@ func (c *DefaultClient) ListSymbols(ctx context.Context, exchange string) (respo
 func (c *DefaultClient) ListIndexSymbols(ctx context.Context, indexGroup string,
 ) (response ListIndexSymbolsResponse, err error) {
 	apiURL := ListIndexSymbolsURL + fmt.Sprintf("?_token=%s&GroupName=%s", c.token, indexGroup)
-	req, err := http.NewRequestWithContext(context.Background(), "GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
-	req.WithContext(ctx)
 
 	err = c.execute(req, &response)
 	if err != nil {
@@ -209,12 +207,11 @@ func (c *DefaultClient) GetIndexBars(ctx context.Context, identifier string, sta
 		"AdjustmentMethod": {"All"},
 		"Language":         {"Japanese"},
 	}
-	req, err := http.NewRequestWithContext(context.Background(),
+	req, err := http.NewRequestWithContext(ctx,
 		"POST", GetIndexBarsURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
-	req.WithContext(ctx)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	err = c.execute(req, &response)
@@ -228,7 +225,7 @@ func (c *DefaultClient) GetIndexBars(ctx context.Context, identifier string, sta
 }
 
 // GetQuotesRange calls QUICKEquityHistorical/GetQuotesRange endpoint of Xignite API with a specified identifier
-//// and returns the parsed API response
+// // and returns the parsed API response
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes
 func (c *DefaultClient) GetQuotesRange(ctx context.Context, identifier string, startDate, endDate time.Time,
 ) (response GetQuotesRangeResponse, err error) {
@@ -275,12 +272,11 @@ func (c *DefaultClient) GetIndexQuotesRange(ctx context.Context, identifier stri
 		"StartOfDate": {fmt.Sprintf("%d/%02d/%02d", startDate.Year(), startDate.Month(), startDate.Day())},
 		"EndOfDate":   {fmt.Sprintf("%d/%02d/%02d", endDate.Year(), endDate.Month(), endDate.Day())},
 	}
-	req, err := http.NewRequestWithContext(context.Background(),
+	req, err := http.NewRequestWithContext(ctx,
 		"POST", GetIndexQuotesRangeURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
-	req.WithContext(ctx)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	err = c.execute(req, &response)

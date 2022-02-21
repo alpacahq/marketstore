@@ -224,11 +224,7 @@ func GenericComparison(left, right interface{},
 	*/
 	// Shortcut returns
 	switch {
-	case left == nil && right == nil:
-		fallthrough
-	case left == nil: // Left should hold a value
-		fallthrough
-	case right == nil: // Left will always compare true to nil
+	case left == nil, right == nil: // should hold a value / will always compare true to nil
 		return false, fmt.Errorf("nil comparison value")
 	case op == EQ:
 		return reflect.DeepEqual(left, right), nil
