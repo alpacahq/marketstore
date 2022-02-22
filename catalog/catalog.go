@@ -181,8 +181,8 @@ func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInf
 	}
 
 	// Create a new data file using the TimeBucketInfo
-	if err = newTimeBucketInfoFromTemplate(f); err != nil {
-		return err
+	if err2 := newTimeBucketInfoFromTemplate(f); err2 != nil {
+		return err2
 	}
 
 	/*

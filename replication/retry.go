@@ -14,9 +14,9 @@ import (
 // RetryableError is a custom error to retry the logic when returned.
 var RetryableError = errors.New("retryable replication error")
 
-//func (re RetryableError) Is(err error) bool {
-//	return errors.Is(err, RetryableError("")
-//}
+// func (re RetryableError) Is(err error) bool {
+// 	return errors.Is(err, RetryableError("")
+// }
 
 type Retryer struct {
 	retryFunc    func(ctx context.Context) error

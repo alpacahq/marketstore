@@ -301,19 +301,19 @@ func Trades(client *http.Client, symbol string, from, to time.Time, batchSize in
 
 	if len(trades) > 0 {
 		model := models.NewTrade(symbol, len(trades))
-		for _, tick := range trades {
+		for i := range trades {
 			// type conversions
-			timestamp := time.Unix(0, tick.SIPTimestamp)
-			conditions := make([]modelsenum.TradeCondition, len(tick.Conditions))
-			for i, cond := range tick.Conditions {
+			timestamp := time.Unix(0, trades[i].SIPTimestamp)
+			conditions := make([]modelsenum.TradeCondition, len(trades[i].Conditions))
+			for i, cond := range trades[i].Conditions {
 				conditions[i] = api.ConvertTradeCondition(cond)
 			}
-			exchange := api.ConvertExchangeCode(tick.Exchange)
-			tape := api.ConvertTapeCode(tick.Tape)
+			exchange := api.ConvertExchangeCode(trades[i].Exchange)
+			tape := api.ConvertTapeCode(trades[i].Tape)
 			model.Add(
 				timestamp.Unix(), timestamp.Nanosecond(),
-				modelsenum.Price(tick.Price),
-				modelsenum.Size(tick.Size),
+				modelsenum.Price(trades[i].Price),
+				modelsenum.Size(trades[i].Size),
 				exchange, tape, conditions...)
 		}
 		// finally write to database

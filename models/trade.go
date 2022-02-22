@@ -48,7 +48,7 @@ func NewTrade(symbol string, capacity int) *Trade {
 }
 
 // Key returns the key of the model's time bucket.
-func (model Trade) Key() string {
+func (model *Trade) Key() string {
 	return model.Tbk.GetItemKey()
 }
 

@@ -55,7 +55,7 @@ func toColumnSeries(inputData []price) *io.ColumnSeries {
 	return cs
 }
 
-func evalCase(t *testing.T, testCase AdjustTestCase) {
+func evalCase(t *testing.T, testCase *AdjustTestCase) {
 	t.Helper()
 
 	symbol := "AAPL"
@@ -166,7 +166,7 @@ func TestCase1(t *testing.T) {
 	defer tearDown()
 
 	for _, testCase := range testDifferentEvents {
-		evalCase(t, testCase)
+		evalCase(t, &testCase)
 	}
 }
 
@@ -224,7 +224,7 @@ func TestCase2(t *testing.T) {
 	defer tearDown()
 
 	for _, testCase := range testDifferentDates {
-		evalCase(t, testCase)
+		evalCase(t, &testCase)
 	}
 }
 
@@ -355,6 +355,6 @@ func TestMultipleEventsOnDifferentDates(t *testing.T) {
 	defer tearDown()
 
 	for _, testCase := range testMultipleEventsOnDifferentDates {
-		evalCase(t, testCase)
+		evalCase(t, &testCase)
 	}
 }

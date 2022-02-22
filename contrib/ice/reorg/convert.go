@@ -123,7 +123,7 @@ func getFormatter(t reflect.Type) string {
 
 func convert(input, format, def string, v reflect.Value) {
 	cleanInput := strings.TrimSpace(input)
-	if len(cleanInput) == 0 && len(def) > 0 {
+	if cleanInput == "" && len(def) > 0 {
 		cleanInput = strings.TrimSpace(def)
 	}
 	if cleanInput == "" {

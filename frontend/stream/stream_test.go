@@ -106,9 +106,7 @@ func TestStream(t *testing.T) {
 			}
 
 			switch msgType {
-			case websocket.TextMessage:
-				fallthrough
-			case websocket.BinaryMessage:
+			case websocket.TextMessage, websocket.BinaryMessage:
 				bufC <- buf
 			case websocket.CloseMessage:
 				return

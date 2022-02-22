@@ -304,19 +304,19 @@ func TestUnion(t *testing.T) {
 	cs := ColumnSeriesUnion(csA, csB)
 
 	for name, col := range cs.GetColumns() {
-		switch reflect.TypeOf(col).Kind() {
-		case reflect.Slice:
-			av := reflect.ValueOf(csA.columns[name])
-			bv := reflect.ValueOf(csB.columns[name])
-			cv := reflect.ValueOf(col)
+		if reflect.TypeOf(col).Kind() != reflect.Slice {
+			continue
+		}
+		av := reflect.ValueOf(csA.columns[name])
+		bv := reflect.ValueOf(csB.columns[name])
+		cv := reflect.ValueOf(col)
 
-			assert.Equal(t, av.Len(), cv.Len())
-			assert.Equal(t, bv.Len(), cv.Len())
+		assert.Equal(t, av.Len(), cv.Len())
+		assert.Equal(t, bv.Len(), cv.Len())
 
-			for i := 0; i < cv.Len(); i++ {
-				assert.Equal(t, av.Index(i).Interface(), cv.Index(i).Interface())
-				assert.Equal(t, bv.Index(i).Interface(), cv.Index(i).Interface())
-			}
+		for i := 0; i < cv.Len(); i++ {
+			assert.Equal(t, av.Index(i).Interface(), cv.Index(i).Interface())
+			assert.Equal(t, bv.Index(i).Interface(), cv.Index(i).Interface())
 		}
 	}
 

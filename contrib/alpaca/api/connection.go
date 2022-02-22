@@ -27,14 +27,14 @@ type AlpacaWebSocket struct {
 	outputChan     chan<- interface{}
 }
 
-func NewAlpacaWebSocket(config config.Config, oChan chan<- interface{}) *AlpacaWebSocket {
+func NewAlpacaWebSocket(cfg *config.Config, oChan chan<- interface{}) *AlpacaWebSocket {
 	return &AlpacaWebSocket{
 		maxMessageSize: 2048000,
 		pingPeriod:     10 * time.Second,
-		server:         config.WSServer,
-		apiKey:         config.APIKey,
-		apiSecret:      config.APISecret,
-		subscriptions:  config.Subscription.AsCanonical(),
+		server:         cfg.WSServer,
+		apiKey:         cfg.APIKey,
+		apiSecret:      cfg.APISecret,
+		subscriptions:  cfg.Subscription.AsCanonical(),
 		conn:           nil,
 		outputChan:     oChan,
 	}

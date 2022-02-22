@@ -421,9 +421,9 @@ func (tgl TGIDlist) Len() int           { return len(tgl) }
 func (tgl TGIDlist) Less(i, j int) bool { return tgl[i] < tgl[j] }
 func (tgl TGIDlist) Swap(i, j int)      { tgl[i], tgl[j] = tgl[j], tgl[i] }
 
-func (wf *WALFileType) WriteStatus(fileStatus wal.FileStatusEnum, ReplayState wal.ReplayStateEnum) {
+func (wf *WALFileType) WriteStatus(fileStatus wal.FileStatusEnum, replayState wal.ReplayStateEnum) {
 	wf.FileStatus = fileStatus
-	wf.ReplayState = ReplayState
+	wf.ReplayState = replayState
 	// This process now owns this file
 	buffer := wf.initMessage(STATUS)
 	buffer, _ = io.Serialize(buffer, int8(wf.FileStatus))

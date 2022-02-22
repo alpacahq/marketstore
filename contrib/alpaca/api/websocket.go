@@ -31,13 +31,13 @@ type Subscription struct {
 
 // NewSubscription creates and initializes a Subscription
 // that is ready to use.
-func NewSubscription(config config.Config) (s *Subscription) {
+func NewSubscription(cfg *config.Config) (s *Subscription) {
 	c := channels.NewInfiniteChannel()
 	return &Subscription{
 		channel:     c,
 		incoming:    c.Out(),
-		ws:          NewAlpacaWebSocket(config, c.In()),
-		workerCount: config.WSWorkerCount,
+		ws:          NewAlpacaWebSocket(cfg, c.In()),
+		workerCount: cfg.WSWorkerCount,
 	}
 }
 
