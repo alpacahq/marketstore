@@ -138,7 +138,7 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 // ColumnSeriesForPayload extracts the single row from the column
 // series that is queried by the trigger, to prepare it for a
 // streaming payload.
-// nolint // TODO: refactor (change *map -> map and related code using lots of reflection0
+// nolint:gocritic // TODO: refactor (change *map -> map and related code using lots of reflection0
 func ColumnSeriesForPayload(cs *io.ColumnSeries) *map[string]interface{} {
 	m := map[string]interface{}{}
 

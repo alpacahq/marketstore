@@ -23,10 +23,7 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 			*/
 			switch shape.Type {
 			case io.STRING:
-				col, err := getStringColumnFromCSVRows(csvRows, index)
-				if err != nil {
-					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
-				}
+				col := getStringColumnFromCSVRows(csvRows, index)
 				csm.AddColumn(key, shape.Name, col)
 			case io.FLOAT32:
 				col, err := getFloat32ColumnFromCSVRows(csvRows, index)
@@ -114,17 +111,17 @@ func getBoolColumnFromCSVRows(csvRows [][]string, index int) (col []bool, err er
 		if err != nil {
 			return nil, err
 		}
-		col[i] = bool(val)
+		col[i] = val
 	}
 	return col, nil
 }
 
-func getStringColumnFromCSVRows(csvRows [][]string, index int) (col []string, err error) {
+func getStringColumnFromCSVRows(csvRows [][]string, index int) (col []string) {
 	col = make([]string, len(csvRows))
 	for i, row := range csvRows {
 		col[i] = row[index]
 	}
-	return col, nil
+	return col
 }
 
 func getFloat32ColumnFromCSVRows(csvRows [][]string, index int) (col []float32, err error) {
@@ -251,10 +248,10 @@ func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][String1
 	for i, row := range csvRows {
 		if len([]rune(row[index])) > String16RuneSize {
 			log.Warn(fmt.Sprintf("too long string column (>16chars):%v", row[index]))
-			// nolint // string to rune conversion
+			// nolint:gocritic // string to rune conversion
 			copy(col[i][:], []rune(row[index][0:String16RuneSize]))
 		} else {
-			// nolint // string to rune conversion
+			// nolint:gocritic // string to rune conversion
 			copy(col[i][:], []rune(row[index][0:len(row[index])]))
 		}
 	}

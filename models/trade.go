@@ -101,11 +101,11 @@ func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size
 	case 3:
 		cond3 = conditions[2]
 		fallthrough
-	
+
 	case 2:
 		cond2 = conditions[1]
 		fallthrough
-	
+
 	case 1:
 		cond1 = conditions[0]
 	case 0:
