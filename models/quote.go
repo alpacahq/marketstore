@@ -50,7 +50,7 @@ func NewQuote(symbol string, length int) *Quote {
 }
 
 // Key returns the key of the model's time bucket.
-func (model Quote) Key() string {
+func (model *Quote) Key() string {
 	return model.Tbk.GetItemKey()
 }
 

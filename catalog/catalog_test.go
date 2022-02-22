@@ -84,9 +84,9 @@ func TestGatherFileInfo(t *testing.T) {
 	defer tearDown()
 
 	fileInfoList := catalogDir.GatherTimeBucketInfo()
-	//for _, fileInfo := range fileInfoList {
+	// for _, fileInfo := range fileInfoList {
 	//	fmt.Printf("File Path: %s Year: %d\n",fileInfo.Path,fileInfo.Year)
-	//}
+	// }
 	assert.Len(t, fileInfoList, 54)
 }
 

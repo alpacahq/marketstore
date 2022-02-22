@@ -96,15 +96,15 @@ func (q QuotesWriterImpl) newColumnSeries(epoch int64, eq api.EquityQuote) *io.C
 // getLatestTime return the latest time among 3 datetimes.
 func getLatestTime(dt1, dt2, dt3 time.Time) time.Time {
 	u1, u2, u3 := dt1.Unix(), dt2.Unix(), dt3.Unix()
-	if u1 > u2 {
+	switch {
+	case u1 > u2:
 		if u1 > u3 {
 			return dt1
-		} else {
-			return dt3
 		}
-	} else if u2 > u3 {
+		return dt3
+	case u2 > u3:
 		return dt2
-	} else {
+	default:
 		return dt3
 	}
 }

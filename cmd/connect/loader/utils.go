@@ -88,8 +88,10 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 		The fake columns are cut off after the mapping process, leaving only the single EPOCH column
 	*/
 	cvm.DSV = make([]io.DataShape, 0)
-	cvm.DSV = append(cvm.DSV, io.DataShape{Name: "Epoch-date", Type: io.INT64})
-	cvm.DSV = append(cvm.DSV, io.DataShape{Name: "Epoch-time", Type: io.INT64})
+	cvm.DSV = append(cvm.DSV,
+		io.DataShape{Name: "Epoch-date", Type: io.INT64},
+		io.DataShape{Name: "Epoch-time", Type: io.INT64},
+	)
 	cvm.DSV = append(cvm.DSV, dbDataShapes...)
 
 	var inputColNames []string

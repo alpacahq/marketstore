@@ -129,17 +129,16 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 		if deadline != nil && deadline.After(time.Now()) {
 			s.shelf.Store(tbk, ColumnSeriesForPayload(cs), deadline)
 		}
-	} else {
+	} else if err2 := stream.Push(*tbk, ColumnSeriesForPayload(cs)); err2 != nil {
 		// push minute bars immediately
-		if err := stream.Push(*tbk, ColumnSeriesForPayload(cs)); err != nil {
-			log.Error("[streamtrigger] failed to stream %s (%v)", tbk.String(), err)
-		}
+		log.Error("[streamtrigger] failed to stream %s (%v)", tbk.String(), err2)
 	}
 }
 
 // ColumnSeriesForPayload extracts the single row from the column
 // series that is queried by the trigger, to prepare it for a
 // streaming payload.
+// nolint:gocritic // TODO: refactor (change *map -> map and related code using lots of reflection0
 func ColumnSeriesForPayload(cs *io.ColumnSeries) *map[string]interface{} {
 	m := map[string]interface{}{}
 

@@ -223,11 +223,11 @@ func (w *writer) write() {
 			}
 
 			if bucket, ok := w.dataBuckets[*packet.tbk]; ok {
-				switch packet.data.(type) {
+				switch d := packet.data.(type) {
 				case *quote:
-					w.dataBuckets[*packet.tbk] = append(bucket.([]*quote), packet.data.(*quote))
+					w.dataBuckets[*packet.tbk] = append(bucket.([]*quote), d)
 				case *trade:
-					w.dataBuckets[*packet.tbk] = append(bucket.([]*trade), packet.data.(*trade))
+					w.dataBuckets[*packet.tbk] = append(bucket.([]*trade), d)
 				}
 			} else {
 				switch d := packet.data.(type) {

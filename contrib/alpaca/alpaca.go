@@ -13,7 +13,7 @@ import (
 const defaultWSWorkerCount = 10
 
 type AlpacaStreamer struct {
-	config config.Config
+	config *config.Config
 }
 
 // NewBgWorker returns a new instance of AlpacaStreamer. See config
@@ -21,7 +21,7 @@ type AlpacaStreamer struct {
 // nolint:deadcode // used as a marketstore plugin
 func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	data, _ := json.Marshal(conf)
-	cfg := config.Config{
+	cfg := &config.Config{
 		WSServer:      "wss://data.alpaca.markets/stream",
 		WSWorkerCount: defaultWSWorkerCount,
 	}

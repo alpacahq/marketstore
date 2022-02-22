@@ -277,7 +277,7 @@ func (bn *BinanceFetcher) Run() {
 	timeIntervalLettersOnly := re.ReplaceAllString(originalInterval, "")
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
 	correctIntervalSymbol := suffixBinanceDefs[timeIntervalLettersOnly]
-	if len(correctIntervalSymbol) <= 0 {
+	if correctIntervalSymbol == "" {
 		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '%s'", oneMinTimeframeStr)
 		correctIntervalSymbol = oneMinTimeframeStr
 	}

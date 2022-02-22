@@ -27,7 +27,7 @@ const (
 	REPLAYINPROCESS
 )
 
-func ReadStatus(filePtr *os.File) (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, OwningInstanceID int64, err error) {
+func ReadStatus(filePtr *os.File) (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, owningInstanceID int64, err error) {
 	var buffer [10]byte
 	buf, _, err := Read(filePtr, buffer[:])
 	return FileStatusEnum(buf[0]), ReplayStateEnum(buf[1]), io.ToInt64(buf[2:]), err

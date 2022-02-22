@@ -67,12 +67,12 @@ func (model *Bar) make(capacity int) {
 }
 
 // Add adds a new data point to the internal buffers, and increment the internal index by one.
-func (model *Bar) Add(epoch int64, open, high, low, close enum.Price, volume enum.Size) {
+func (model *Bar) Add(epoch int64, open, high, low, clos enum.Price, volume enum.Size) {
 	model.Epoch = append(model.Epoch, epoch)
 	model.Open = append(model.Open, open)
 	model.High = append(model.High, high)
 	model.Low = append(model.Low, low)
-	model.Close = append(model.Close, close)
+	model.Close = append(model.Close, clos)
 	model.Volume = append(model.Volume, volume)
 }
 

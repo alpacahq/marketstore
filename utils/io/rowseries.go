@@ -110,7 +110,7 @@ func (rows *Rows) SetRowLen(rowLen int) {
 	rows.rowLen = rowLen
 }
 
-func (rows *Rows) GetRowLen() (len int) {
+func (rows *Rows) GetRowLen() (rowLength int) {
 	/*
 		rowLen can be set directly to allow for alignment, etc, or this will set it based on sum of DataShape
 	*/

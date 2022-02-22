@@ -198,9 +198,9 @@ func (am *ArgumentMap) PrepareArguments(inputs []string) (err error) {
 	/*
 		Second stage - positional filling for required params
 	*/
-	//fmt.Println("inputs:", inputsRemaining, "requiredNames:", am.requiredNames)
-	//fmt.Println("nameMap:", am.nameMap)
-	//fmt.Println("unmapped reqs:", unmappedReqs, "optional:", unmappedOpts)
+	// fmt.Println("inputs:", inputsRemaining, "requiredNames:", am.requiredNames)
+	// fmt.Println("nameMap:", am.nameMap)
+	// fmt.Println("unmapped reqs:", unmappedReqs, "optional:", unmappedOpts)
 	var i int
 	for _, requiredName := range unmappedReqs {
 		am.MapRequiredColumn(requiredName, io.DataShape{

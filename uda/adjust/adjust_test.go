@@ -17,17 +17,17 @@ import (
 )
 
 func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata) {
+) (tearDown func(), metadata *executor.InstanceMetadata) {
 	t.Helper()
 
 	rounderNum = math.Pow(10, 3)
 
-	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("adjust_test-%s", testName))
+	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("adjust_test-%s", testName))
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata
+	return func() { test.CleanupDummyDataDir(rootDir) }, metadata
 }
 
 type price struct {
@@ -55,7 +55,7 @@ func toColumnSeries(inputData []price) *io.ColumnSeries {
 	return cs
 }
 
-func evalCase(t *testing.T, testCase AdjustTestCase) {
+func evalCase(t *testing.T, testCase *AdjustTestCase) {
 	t.Helper()
 
 	symbol := "AAPL"
@@ -162,11 +162,12 @@ var testDifferentEvents = []AdjustTestCase{
 }
 
 func TestCase1(t *testing.T) {
-	tearDown, _, _ := setup(t, "TestCase1")
+	tearDown, _ := setup(t, "TestCase1")
 	defer tearDown()
 
 	for _, testCase := range testDifferentEvents {
-		evalCase(t, testCase)
+		testCase := testCase
+		evalCase(t, &testCase)
 	}
 }
 
@@ -220,11 +221,12 @@ var testDifferentDates = []AdjustTestCase{
 }
 
 func TestCase2(t *testing.T) {
-	tearDown, _, _ := setup(t, "TestCase1")
+	tearDown, _ := setup(t, "TestCase1")
 	defer tearDown()
 
 	for _, testCase := range testDifferentDates {
-		evalCase(t, testCase)
+		testCase := testCase
+		evalCase(t, &testCase)
 	}
 }
 
@@ -351,10 +353,11 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 }
 
 func TestMultipleEventsOnDifferentDates(t *testing.T) {
-	tearDown, _, _ := setup(t, "TestMultipleEventsOnDifferentDates")
+	tearDown, _ := setup(t, "TestMultipleEventsOnDifferentDates")
 	defer tearDown()
 
 	for _, testCase := range testMultipleEventsOnDifferentDates {
-		evalCase(t, testCase)
+		testCase := testCase
+		evalCase(t, &testCase)
 	}
 }
