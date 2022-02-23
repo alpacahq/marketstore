@@ -272,7 +272,7 @@ func main() {
 	walWG.Wait()
 	instanceMeta.WALFile.FinishAndWait()
 
-	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
+	log.Info("[polygon] api call time %s", backfill.APICallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
 	log.Info("[polygon] write time %s", backfill.WriteTime)
 	log.Info("[polygon] backfilling complete %s", time.Since(startTime))

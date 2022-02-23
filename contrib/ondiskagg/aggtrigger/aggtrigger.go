@@ -317,50 +317,49 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 		cs2 := bar.GetCs()
 
 		return cs2, nil
-	} else {
-		// bars to bars
-		params = []accumParam{
-			{"Open", "first", "Open"},
-			{"High", "max", "High"},
-			{"Low", "min", "Low"},
-			{"Close", "last", "Close"},
-		}
-		if cs.Exists("Volume") {
-			params = append(params, accumParam{"Volume", "sum", "Volume"})
-		}
-
-		accumGroup := newAccumGroup(cs, params)
-
-		ts, _ := cs.GetTime()
-		outEpoch := make([]int64, 0)
-
-		groupKey := timeWindow.Truncate(ts[0])
-		groupStart := 0
-		// accumulate inputs.  Since the input is ordered by
-		// time, it is just to slice by correct boundaries
-		for i, t := range ts {
-			if !timeWindow.IsWithin(t, groupKey) {
-				// Emit new row and re-init aggState
-				outEpoch = append(outEpoch, groupKey.Unix())
-				if err := accumGroup.apply(groupStart, i); err != nil {
-					return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, i, err)
-				}
-				groupKey = timeWindow.Truncate(t)
-				groupStart = i
-			}
-		}
-		// accumulate any remaining values if not yet
-		outEpoch = append(outEpoch, groupKey.Unix())
-		if err := accumGroup.apply(groupStart, len(ts)); err != nil {
-			return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, len(ts), err)
-		}
-
-		// finalize output
-		outCs := io.NewColumnSeries()
-		outCs.AddColumn("Epoch", outEpoch)
-		accumGroup.addColumns(outCs)
-		return outCs, nil
 	}
+	// bars to bars
+	params = []accumParam{
+		{"Open", "first", "Open"},
+		{"High", "max", "High"},
+		{"Low", "min", "Low"},
+		{"Close", "last", "Close"},
+	}
+	if cs.Exists("Volume") {
+		params = append(params, accumParam{"Volume", "sum", "Volume"})
+	}
+
+	accumGroup := newAccumGroup(cs, params)
+
+	ts, _ := cs.GetTime()
+	outEpoch := make([]int64, 0)
+
+	groupKey := timeWindow.Truncate(ts[0])
+	groupStart := 0
+	// accumulate inputs.  Since the input is ordered by
+	// time, it is just to slice by correct boundaries
+	for i, t := range ts {
+		if !timeWindow.IsWithin(t, groupKey) {
+			// Emit new row and re-init aggState
+			outEpoch = append(outEpoch, groupKey.Unix())
+			if err := accumGroup.apply(groupStart, i); err != nil {
+				return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, i, err)
+			}
+			groupKey = timeWindow.Truncate(t)
+			groupStart = i
+		}
+	}
+	// accumulate any remaining values if not yet
+	outEpoch = append(outEpoch, groupKey.Unix())
+	if err := accumGroup.apply(groupStart, len(ts)); err != nil {
+		return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, len(ts), err)
+	}
+
+	// finalize output
+	outCs := io.NewColumnSeries()
+	outCs.AddColumn("Epoch", outEpoch)
+	accumGroup.addColumns(outCs)
+	return outCs, nil
 }
 
 func (s *OnDiskAggTrigger) query(

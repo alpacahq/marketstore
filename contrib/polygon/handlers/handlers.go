@@ -31,7 +31,7 @@ func conditionsPresent(conditions []int) (skip bool) {
 			return true
 		}
 	}
-	return
+	return skip
 }
 
 // TradeHandler handles a Polygon WS trade
@@ -61,7 +61,7 @@ func TradeHandler(msg []byte) {
 			epoch: timestamp.Unix(),
 			nanos: int32(timestamp.Nanosecond()),
 			sz:    uint64(rt.Size),
-			px:    float64(rt.Price),
+			px:    rt.Price,
 		}
 		key := fmt.Sprintf("%s/1Sec/TRADE", strings.Replace(rt.Symbol, "/", ".", 1))
 		appendItem(writeMap, io.NewTimeBucketKey(key), &t)

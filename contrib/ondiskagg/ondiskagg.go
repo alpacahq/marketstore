@@ -8,6 +8,7 @@ import (
 )
 
 // NewTrigger returns a new on-disk aggregate trigger based on the configuration.
+// nolint:deadcode // plugin interface
 func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
 	return aggtrigger.NewTrigger(conf)
 }

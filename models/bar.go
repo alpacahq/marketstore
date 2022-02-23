@@ -210,7 +210,7 @@ func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 	}
 
 	var epoch int64
-	var open, high, low, close_ enum.Price
+	var open, high, low, clos enum.Price
 	var volume enum.Size
 	lastBucketTimestamp := time.Time{}
 
@@ -227,7 +227,7 @@ func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 
 		if !lastBucketTimestamp.Equal(bucketTimestamp) {
 			if open != 0 && volume != 0 {
-				bar.Add(epoch, open, high, low, close_, volume)
+				bar.Add(epoch, open, high, low, clos, volume)
 			}
 
 			lastBucketTimestamp = bucketTimestamp
@@ -235,7 +235,7 @@ func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 			open = 0
 			high = 0
 			low = math.MaxFloat64
-			close_ = 0
+			clos = 0
 			volume = 0
 			marketCenterOfficialCloseProcessed = false
 		}
@@ -260,7 +260,7 @@ func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 					open = price
 				}
 				if condition == enum.MarketCenterOfficialClose {
-					close_ = price
+					clos = price
 					volume = trades.Size[i]
 					marketCenterOfficialCloseProcessed = true
 				}
@@ -288,9 +288,9 @@ func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 			}
 
 			if timeframe != "1D" {
-				close_ = price
+				clos = price
 			} else if timeframe == "1D" && !marketCenterOfficialCloseProcessed {
-				close_ = price
+				clos = price
 			}
 		}
 
@@ -302,7 +302,7 @@ func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 	}
 
 	if open != 0 && volume != 0 {
-		bar.Add(epoch, open, high, low, close_, volume)
+		bar.Add(epoch, open, high, low, clos, volume)
 	}
 
 	return bar, nil

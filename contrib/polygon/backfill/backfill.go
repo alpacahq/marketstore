@@ -26,7 +26,7 @@ type ConsolidatedUpdateInfo struct {
 
 var (
 	WriteTime   time.Duration
-	ApiCallTime time.Duration
+	APICallTime time.Duration
 	WaitTime    time.Duration
 	NoIngest    bool
 )
@@ -117,7 +117,7 @@ func Bars(client *http.Client, symbol string, from, to time.Time,
 	if err != nil {
 		return err
 	}
-	ApiCallTime += time.Since(t)
+	APICallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
@@ -192,9 +192,11 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 		return
 	}
 
-	var epoch int64
-	var open, high, low, close_ float64
-	var volume int
+	var (
+		epoch int64
+		open, high, low, clos float64
+		volume int
+	)
 
 	lastBucketTimestamp := time.Time{}
 
@@ -229,7 +231,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 					modelsenum.Price(open),
 					modelsenum.Price(high),
 					modelsenum.Price(low),
-					modelsenum.Price(close_),
+					modelsenum.Price(clos),
 					modelsenum.Size(volume))
 			}
 
@@ -238,7 +240,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			open = 0
 			high = 0
 			low = math.MaxFloat64
-			close_ = 0
+			clos = 0
 			volume = 0
 		}
 
@@ -261,7 +263,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			if open == 0 {
 				open = price
 			}
-			close_ = price
+			clos = price
 		}
 
 		if updateInfo.UpdateVolume {
@@ -275,7 +277,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			modelsenum.Price(open),
 			modelsenum.Price(high),
 			modelsenum.Price(low),
-			modelsenum.Price(close_),
+			modelsenum.Price(clos),
 			modelsenum.Size(volume))
 	}
 }
@@ -293,7 +295,7 @@ func Trades(client *http.Client, symbol string, from, to time.Time, batchSize in
 			trades = append(trades, resp.Results...)
 		}
 	}
-	ApiCallTime += time.Since(t)
+	APICallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
@@ -343,7 +345,7 @@ func Quotes(client *http.Client, symbol string, from, to time.Time, batchSize in
 			quotes = append(quotes, resp.Ticks...)
 		}
 	}
-	ApiCallTime += time.Since(t)
+	APICallTime += time.Since(t)
 
 	if NoIngest {
 		return nil

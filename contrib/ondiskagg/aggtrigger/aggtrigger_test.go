@@ -24,7 +24,7 @@ func getConfig(t *testing.T, data string) (ret map[string]interface{}) {
 
 	err := json.Unmarshal([]byte(data), &ret)
 	require.Nil(t, err)
-	return
+	return ret
 }
 
 func TestNew(t *testing.T) {
