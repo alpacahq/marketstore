@@ -20,6 +20,11 @@ jobs:
       - checkout
       - run: make build
 
+  lint:
+    executor: golang
+    steps:
+      - run: make lint
+
   plugins:
     executor: golang
     steps:
