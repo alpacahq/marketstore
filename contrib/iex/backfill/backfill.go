@@ -46,8 +46,7 @@ func init() {
 }
 
 func main() {
-	err := initWriter()
-	if err != nil {
+	if err := initWriter(); err != nil {
 		log.Error(err.Error())
 		os.Exit(1)
 	}
