@@ -22,7 +22,7 @@ func (tfs *timeframes) UpperBound() (tf *utils.Timeframe) {
 		}
 	}
 
-	return
+	return tf
 }
 
 func (tfs *timeframes) LowerBound() (tf *utils.Timeframe) {
@@ -41,5 +41,5 @@ func (tfs *timeframes) LowerBound() (tf *utils.Timeframe) {
 		}
 	}
 
-	return
+	return tf
 }

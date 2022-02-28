@@ -22,7 +22,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
+	utilsio "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -46,7 +46,10 @@ func init() {
 }
 
 func main() {
-	initWriter()
+	if err := initWriter(); err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
 
 	start, err := time.Parse(format, from)
 	if err != nil {
@@ -179,13 +182,13 @@ func makeBars(trades []*tops.TradeReportMessage, openTime, closeTime time.Time) 
 }
 
 func writeBars(bars []*consolidator.Bar) error {
-	csm := NewColumnSeriesMap()
+	csm := utilsio.NewColumnSeriesMap()
 
 	for i := range bars {
 		batch, index := nextBatch(bars, i)
 
 		if len(batch) > 0 {
-			tbk := NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", batch[0].Symbol))
+			tbk := utilsio.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", batch[0].Symbol))
 
 			epoch := make([]int64, len(batch))
 			open := make([]float32, len(batch))
@@ -203,7 +206,7 @@ func writeBars(bars []*consolidator.Bar) error {
 				volume[j] = int32(bar.Volume)
 			}
 
-			cs := NewColumnSeries()
+			cs := utilsio.NewColumnSeries()
 			cs.AddColumn("Epoch", epoch)
 			cs.AddColumn("Open", open)
 			cs.AddColumn("High", high)

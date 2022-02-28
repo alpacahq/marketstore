@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/contrib/candler/tickcandler"
@@ -55,7 +56,7 @@ func TestTickCandler(t *testing.T) {
 	/*
 		Create some tick data with symbol "TEST"
 	*/
-	createTickBucket("TEST", rootDir, metadata.CatalogDir, metadata.WALFile)
+	createTickBucket(t, "TEST", rootDir, metadata.CatalogDir, metadata.WALFile)
 
 	/*
 		Read some tick data
@@ -112,7 +113,8 @@ func TestTickCandler(t *testing.T) {
 /*
 Utility functions.
 */
-func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, wf *executor.WALFileType) {
+func createTickBucket(t *testing.T, symbol, rootDir string, catalogDir *catalog.Directory, wf *executor.WALFileType) {
+	t.Helper()
 	// Create a new variable data bucket
 	tbk := io.NewTimeBucketKey(symbol + "/1Min/TICK")
 	tf := utils.NewTimeframe("1Min")
@@ -120,7 +122,8 @@ func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, wf 
 	eNames := []string{"Bid", "Ask"}
 	dsv := io.NewDataShapeVector(eNames, eTypes)
 	tbinfo := io.NewTimeBucketInfo(*tf, tbk.GetPathToYearFiles(rootDir), "Test", int16(2016), dsv, io.VARIABLE)
-	catalogDir.AddTimeBucket(tbk, tbinfo)
+	err := catalogDir.AddTimeBucket(tbk, tbinfo)
+	require.Nil(t, err)
 
 	/*
 		Write some data
@@ -138,7 +141,8 @@ func createTickBucket(symbol, rootDir string, catalogDir *catalog.Directory, wf 
 		ts = ts.Add(time.Second)
 		row.Epoch = ts.Unix()
 		buffer, _ := io.Serialize([]byte{}, row)
-		w.WriteRecords([]time.Time{ts}, buffer, dsv, tbinfo)
+		err = w.WriteRecords([]time.Time{ts}, buffer, dsv, tbinfo)
+		require.Nil(t, err)
 	}
 	wf.RequestFlush()
 }

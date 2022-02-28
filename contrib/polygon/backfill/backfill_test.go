@@ -1,6 +1,7 @@
 package backfill
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
+
+const symbolAAPL = "AAPL"
 
 func TestTicksToBars(t *testing.T) {
 	t.Parallel()
@@ -39,9 +42,9 @@ func TestTicksToBars(t *testing.T) {
 				Exchange:     17,
 			},
 		}
-		symbol := "AAPL"
+		symbol := symbolAAPL
 		exchangeIDs := []int{9, 17}
-		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
+		key := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", symbol))
 		model := models.NewBar(symbol, "1Min", 1440)
 
 		// When we call tradesToBars
@@ -94,9 +97,9 @@ func TestTicksToBars(t *testing.T) {
 			},
 		}
 
-		symbol := "AAPL"
+		symbol := symbolAAPL
 		exchangeIDs := []int{9}
-		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
+		key := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", symbol))
 		model := models.NewBar(symbol, "1Min", 1440)
 
 		// When we call tradesToBars
@@ -131,9 +134,9 @@ func TestTicksToBars(t *testing.T) {
 			},
 		}
 
-		symbol := "AAPL"
+		symbol := symbolAAPL
 		exchangeIDs := []int{9, 8}
-		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
+		key := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", symbol))
 		model := models.NewBar(symbol, "1Min", 1440)
 
 		// When we call tradesToBars
@@ -189,9 +192,9 @@ func TestTicksToBars(t *testing.T) {
 			},
 		}
 
-		symbol := "AAPL"
+		symbol := symbolAAPL
 		exchangeIDs := []int{9, 8}
-		key := io.NewTimeBucketKeyFromString("AAPL/1Min/OHLCV")
+		key := io.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", symbol))
 		model := models.NewBar(symbol, "1Min", 1440)
 		// When we call tradesToBars
 		tradesToBars(ticks, model, exchangeIDs)

@@ -27,10 +27,7 @@ type BarWriterImpl struct {
 // Write converts the Response of the ListBars API to a ColumnSeriesMap and write it to the local marketstore server.
 func (b BarWriterImpl) Write(symbol string, bars []alpaca.Bar) error {
 	// convert Bar Data to CSM (ColumnSeriesMap)
-	csm, err := b.convertToCSM(symbol, bars)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from Bar Data. %v", bars))
-	}
+	csm := b.convertToCSM(symbol, bars)
 
 	// write CSM to marketstore
 	if err := b.MarketStoreWriter.Write(csm); err != nil {
@@ -42,18 +39,16 @@ func (b BarWriterImpl) Write(symbol string, bars []alpaca.Bar) error {
 	return nil
 }
 
-func (b *BarWriterImpl) convertToCSM(symbol string, bars []alpaca.Bar) (io.ColumnSeriesMap, error) {
-	var (
-		epochs  []int64
-		opens   []float32
-		closes  []float32
-		highs   []float32
-		lows    []float32
-		volumes []int32
-	)
+func (b *BarWriterImpl) convertToCSM(symbol string, bars []alpaca.Bar) io.ColumnSeriesMap {
+	epochs := make([]int64, len(bars))
+	opens := make([]float32, len(bars))
+	closes := make([]float32, len(bars))
+	highs := make([]float32, len(bars))
+	lows := make([]float32, len(bars))
+	volumes := make([]int32, len(bars))
 	csm := io.NewColumnSeriesMap()
 
-	for _, bar := range bars {
+	for i := range bars {
 		// // skip the symbol which timestamp is empty string and cannot be parsed,
 		// // which means the symbols have never been executed
 		// if time.Time(bar.Timestamp) == (time.Time{}) {
@@ -72,24 +67,24 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []alpaca.Bar) (io.Colum
 
 		// Start time of each bar is used for "epoch"
 		// to align with the 1-day chart backfill. ("00:00:00"(starting time of a day) is used for epoch)
-		epochs = append(epochs, bar.Time)
-		opens = append(opens, bar.Open)
-		closes = append(closes, bar.Close)
-		highs = append(highs, bar.High)
-		lows = append(lows, bar.Low)
-		volumes = append(volumes, bar.Volume)
+		epochs = append(epochs, bars[i].Time)
+		opens = append(opens, bars[i].Open)
+		closes = append(closes, bars[i].Close)
+		highs = append(highs, bars[i].High)
+		lows = append(lows, bars[i].Low)
+		volumes = append(volumes, bars[i].Volume)
 	}
 
 	// to avoid that empty array is added to csm when all data are Volume=0 and there is no data to write
 	if len(epochs) == 0 {
 		// no data to write.
-		return csm, nil
+		return csm
 	}
 
 	cs := b.newColumnSeries(epochs, opens, closes, highs, lows, volumes)
 	tbk := io.NewTimeBucketKey(symbol + "/" + b.Timeframe + "/OHLCV")
 	csm.AddColumnSeries(*tbk, cs)
-	return csm, nil
+	return csm
 }
 
 func (b BarWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows []float32, volumes []int32,
