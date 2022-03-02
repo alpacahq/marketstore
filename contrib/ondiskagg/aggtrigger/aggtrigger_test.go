@@ -2,7 +2,6 @@ package aggtrigger
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,7 +15,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func getConfig(t *testing.T, data string) (ret map[string]interface{}) {
@@ -111,14 +109,7 @@ func TestFireBars(t *testing.T) {
 	// background writer
 	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")
 
-	tempDir, _ := os.MkdirTemp("", "aggtrigger.TestFireBars")
-	defer func(path string) {
-		if err := os.RemoveAll(path); err != nil {
-			log.Error(fmt.Sprintf("failed to remove all files under:%s", path), err.Error())
-		}
-	}(tempDir)
-
-	rootDir := filepath.Join(tempDir, "mktsdb")
+	rootDir := filepath.Join(t.TempDir(), "mktsdb")
 	_ = os.MkdirAll(rootDir, 0o777)
 	_, _, _, err := executor.NewInstanceSetup(
 		rootDir, nil, nil,

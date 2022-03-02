@@ -13,8 +13,7 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestWrite")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()

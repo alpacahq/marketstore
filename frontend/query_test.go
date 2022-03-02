@@ -1,9 +1,7 @@
 package frontend_test
 
 import (
-	"fmt"
 	"math"
-	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,13 +15,13 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata, writer *executor.Writer,
+func setup(t *testing.T,
+) (rootDir string, metadata *executor.InstanceMetadata, writer *executor.Writer,
 	q frontend.QueryInterface,
 ) {
 	t.Helper()
 
-	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("frontend_test-%s", testName))
+	rootDir = t.TempDir()
 	test.MakeDummyCurrencyDir(rootDir, true, false)
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
@@ -31,12 +29,11 @@ func setup(t *testing.T, testName string,
 
 	qs := frontend.NewQueryService(metadata.CatalogDir)
 	writer, _ = executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata, writer, qs
+	return rootDir, metadata, writer, qs
 }
 
 func _TestQueryCustomTimeframes(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "_TestQueryCustomTimeframes")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	// TODO: Support custom timeframes
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
@@ -97,8 +94,7 @@ func _TestQueryCustomTimeframes(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQuery")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -133,8 +129,7 @@ func TestQuery(t *testing.T) {
 }
 
 func TestQueryFirstN(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryFirstN")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -167,8 +162,7 @@ func TestQueryFirstN(t *testing.T) {
 }
 
 func TestQueryRange(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryRange")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -217,8 +211,7 @@ func TestQueryRange(t *testing.T) {
 }
 
 func TestQueryNpyMulti(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryNpyMulti")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -250,8 +243,7 @@ func TestQueryNpyMulti(t *testing.T) {
 }
 
 func TestQueryMulti(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryMulti")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -294,8 +286,7 @@ func TestQueryMulti(t *testing.T) {
 }
 
 func TestListSymbols(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestListSymbols")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -330,8 +321,7 @@ func TestListSymbols(t *testing.T) {
 }
 
 func TestFunctions(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestFunctions")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir,
 		sqlparser.NewDefaultAggRunner(metadata.CatalogDir), writer, q,

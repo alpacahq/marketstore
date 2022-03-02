@@ -1,8 +1,6 @@
 package tickcandler_test
 
 import (
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -19,21 +17,19 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
+func setup(t *testing.T) (rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("tickcandler_test-%s", testName))
+	rootDir = t.TempDir()
 	itemsWritten = test.MakeDummyCurrencyDir(rootDir, true, false)
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
 	assert.Nil(t, err)
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata
+	return rootDir, itemsWritten, metadata
 }
 
 func TestTickCandler(t *testing.T) {
-	tearDown, rootDir, _, metadata := setup(t, "TestTickCandler")
-	defer tearDown()
+	rootDir, _, metadata := setup(t)
 
 	tc := tickcandler.TickCandler{}
 	am := functions.NewArgumentMap(tc.GetRequiredArgs(), tc.GetOptionalArgs()...)

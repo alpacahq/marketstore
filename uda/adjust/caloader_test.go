@@ -238,8 +238,7 @@ var filteringFixtures = []struct {
 }
 
 func TestRateChangeEventsFiltering(t *testing.T) {
-	tearDown, _ := setup(t, "TestRateChangeEventsFiltering")
-	defer tearDown()
+	setup(t)
 
 	for _, tt := range filteringFixtures {
 		ca := defineCorporateActions(tt.in...)
@@ -371,8 +370,7 @@ var statusHandlingFixtures = []struct {
 }
 
 func TestRateChangeEventsAnnouncementStatusHandling(t *testing.T) {
-	tearDown, _ := setup(t, "TestRateChangeEventsFiltering")
-	defer tearDown()
+	setup(t)
 
 	for _, tt := range statusHandlingFixtures {
 		ca := defineCorporateActions(tt.in...)
@@ -428,8 +426,7 @@ var sortingFixtures = []struct {
 }
 
 func TestRateChangeEventsProperSorting(t *testing.T) {
-	tearDown, _ := setup(t, "TestRateChangeEventsProperSorting")
-	t.Cleanup(tearDown)
+	setup(t)
 
 	for _, tt := range sortingFixtures {
 		ca := defineCorporateActions(tt.in...)
@@ -439,8 +436,7 @@ func TestRateChangeEventsProperSorting(t *testing.T) {
 }
 
 func TestCache(t *testing.T) {
-	tearDown, metadata := setup(t, "TestCache")
-	t.Cleanup(tearDown)
+	metadata := setup(t)
 
 	// GetRateChange should create a separate cache entry for each parameter combination
 	rateChangeCache = map[CacheKey]RateChangeCache{}

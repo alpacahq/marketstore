@@ -2,7 +2,6 @@ package sqlparser_test
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,21 +16,19 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), metadata *executor.InstanceMetadata) {
+func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("sqlparser_test-%s", testName))
+	rootDir := t.TempDir()
 	test.MakeDummyStockDir(rootDir, true, false)
 	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, metadata
+	return metadata
 }
 
 func TestSQLSelectParse(t *testing.T) {
-	tearDown, _ := setup(t, "TestSQLSelectParse")
-	defer tearDown()
+	setup(t)
 
 	fmt.Printf("Running Presto Test Statements...")
 	for _, tStmt := range testStatements {
@@ -49,8 +46,7 @@ func TestSQLSelectParse(t *testing.T) {
 }
 
 func TestSQLSelect(t *testing.T) {
-	tearDown, _ := setup(t, "TestSQLSelect")
-	defer tearDown()
+	setup(t)
 
 	stmt := "SELECT dibble JOIN;" // Should err out
 	_, err := sqlparser.BuildQueryTree(stmt)
@@ -101,8 +97,7 @@ func (this *Visitor) VisitStatementParse(ctx *sqlparser.StatementParse) interfac
 }
 
 func TestVisitor(t *testing.T) {
-	tearDown, _ := setup(t, "TestVisitor")
-	defer tearDown()
+	setup(t)
 
 	stmt := "INSERT INTO `AAPL/1Min/OHLC` SELECT tickcandler(a,b,c) FROM `UVXY/1Min/TICKS`;"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
@@ -114,8 +109,7 @@ func TestVisitor(t *testing.T) {
 }
 
 func TestExecutableStatement(t *testing.T) {
-	tearDown, metadata := setup(t, "TestExecutableStatement")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
@@ -196,8 +190,7 @@ func TestExecutableStatement(t *testing.T) {
 }
 
 func TestStatementErrors(t *testing.T) {
-	tearDown, metadata := setup(t, "TestStatementErrors")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "select * from `fooble`;"
@@ -211,8 +204,7 @@ func TestStatementErrors(t *testing.T) {
 }
 
 func TestInsertInto(t *testing.T) {
-	tearDown, metadata := setup(t, "TestInsertInto")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "INSERT INTO `AAPL/5Min/OHLCV` SELECT * from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
@@ -227,8 +219,7 @@ func TestInsertInto(t *testing.T) {
 }
 
 func TestAggregation(t *testing.T) {
-	tearDown, metadata := setup(t, "TestAggregation")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewDefaultAggRunner(metadata.CatalogDir)
 
 	cs := makeTestCS()
@@ -295,8 +286,7 @@ func TestAggregation(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	tearDown, metadata := setup(t, "TestCount")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewDefaultAggRunner(metadata.CatalogDir)
 
 	cs := makeTestCS()

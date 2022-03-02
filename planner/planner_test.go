@@ -1,8 +1,6 @@
 package planner_test
 
 import (
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -13,23 +11,21 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, catalogDir *catalog.Directory) {
+func setup(t *testing.T) (rootDir string, catalogDir *catalog.Directory) {
 	t.Helper()
 
-	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("planner_test-%s", testName))
+	rootDir = t.TempDir()
 	test.MakeDummyCurrencyDir(rootDir, false, false)
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	if err != nil {
 		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 	}
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, catalogDir
+	return rootDir, catalogDir
 }
 
 func TestQuery(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestQuery")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	q := planner.NewQuery(catalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")

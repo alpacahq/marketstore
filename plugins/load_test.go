@@ -1,7 +1,6 @@
 package plugins_test
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,13 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/plugins"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string) (tearDown func(), testPluginLib, oldGoPath, absTestPluginLib string) {
+func setup(t *testing.T) (tearDown func(), testPluginLib, oldGoPath, absTestPluginLib string) {
 	t.Helper()
 
-	dirName, _ := os.MkdirTemp("", fmt.Sprintf("plugins_test-%s", testName))
+	dirName := t.TempDir()
 
 	if osType := runtime.GOOS; osType != "linux" {
 		t.Skip("Only linux runs plugins")
@@ -58,8 +56,6 @@ func main() {}
 	os.Setenv("GOPATH", newGoPath)
 
 	return func() {
-		test.CleanupDummyDataDir(dirName)
-
 		if oldGoPath != "" {
 			os.Setenv("GOPATH", oldGoPath)
 		}
@@ -67,7 +63,7 @@ func main() {}
 }
 
 func TestLoadFromGOPATH(t *testing.T) {
-	tearDown, testPluginLib, _, absTestPluginLib := setup(t, "TestLoadFromGOPATH")
+	tearDown, testPluginLib, _, absTestPluginLib := setup(t)
 	defer tearDown()
 
 	var pi *plugin.Plugin

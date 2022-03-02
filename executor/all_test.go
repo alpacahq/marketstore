@@ -3,7 +3,6 @@ package executor_test
 import (
 	"fmt"
 	"math"
-	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -22,25 +21,24 @@ import (
 	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string) (tearDown func(), rootDir string, itemsWritten map[string]int,
+func setup(t *testing.T) (rootDir string, itemsWritten map[string]int,
 	metadata *executor.InstanceMetadata, shutdownPending *bool,
 ) {
 	t.Helper()
 
-	rootDir, _ = os.MkdirTemp("", fmt.Sprintf("executor_test-%s", testName))
+	rootDir = t.TempDir()
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
 	metadata, shutdownPending, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
-	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata, shutdownPending
+	return rootDir, itemsWritten, metadata, shutdownPending
 }
 
 func TestAddDir(t *testing.T) {
 	// --- given ---
 	// make temporary catalog directory
-	tempRootDir, _ := os.MkdirTemp("", "executor_test-TestAddDir")
-	defer os.RemoveAll(tempRootDir)
+	tempRootDir := t.TempDir()
 
 	// make catelog directory
 	catDir, err := NewDirectory(tempRootDir)
@@ -77,8 +75,7 @@ func TestAddDir(t *testing.T) {
 }
 
 func TestQueryMulti(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestQueryMulti")
-	defer tearDown()
+	rootDir, _, metadata, _ := setup(t)
 
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("AAPL/1Min/OHLCV")
@@ -125,8 +122,7 @@ func TestQueryMulti(t *testing.T) {
 }
 
 func TestWriteVariable(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestWriteVariable")
-	defer tearDown()
+	rootDir, _, metadata, _ := setup(t)
 
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("TEST-WV/1Min/TICK-BIDASK")
@@ -278,8 +274,7 @@ func TestWriteVariable(t *testing.T) {
 }
 
 func TestFileRead(t *testing.T) {
-	tearDown, _, itemsWritten, metadata, _ := setup(t, "TestFileRead")
-	defer tearDown()
+	_, itemsWritten, metadata, _ := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -327,8 +322,7 @@ func TestFileRead(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestDelete")
-	defer tearDown()
+	_, _, metadata, _ := setup(t)
 
 	NY, _ := time.LoadLocation("America/New_York")
 	// First write some data we can delete
@@ -417,8 +411,7 @@ func asserter(t *testing.T, err error, shouldBeNil bool) {
 }
 
 func TestSortedFiles(t *testing.T) {
-	tearDown, _, itemsWritten, metadata, _ := setup(t, "TestSortedFiles")
-	defer tearDown()
+	_, itemsWritten, metadata, _ := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -528,8 +521,7 @@ func TestSortedFiles(t *testing.T) {
 }
 
 func TestCrossYear(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestCrossYear")
-	defer tearDown()
+	_, _, metadata, _ := setup(t)
 
 	// Test data range query - across year
 	q := NewQuery(metadata.CatalogDir)
@@ -555,8 +547,7 @@ func TestCrossYear(t *testing.T) {
 }
 
 func TestLastN(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestLastN")
-	defer tearDown()
+	_, _, metadata, _ := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -662,8 +653,7 @@ func TestLastN(t *testing.T) {
 }
 
 func TestAddSymbolThenWrite(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestAddSymbolThenWrite")
-	defer tearDown()
+	_, _, metadata, _ := setup(t)
 
 	dataItemKey := "TEST/1Min/OHLCV"
 	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
@@ -719,8 +709,7 @@ func TestAddSymbolThenWrite(t *testing.T) {
 }
 
 func TestWriter(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestWriter")
-	defer tearDown()
+	_, _, metadata, _ := setup(t)
 
 	dataItemKey := "TEST/1Min/OHLCV"
 	tbk := NewTimeBucketKey(dataItemKey)

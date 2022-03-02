@@ -1,9 +1,7 @@
 package adjust
 
 import (
-	"fmt"
 	"math"
-	"os"
 	"testing"
 	"time"
 
@@ -13,21 +11,18 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), metadata *executor.InstanceMetadata) {
+func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 	t.Helper()
 
 	rounderNum = math.Pow(10, 3)
 
-	rootDir, _ := os.MkdirTemp("", fmt.Sprintf("adjust_test-%s", testName))
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+	metadata, _, _, err := executor.NewInstanceSetup(t.TempDir(), nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, metadata
+	return metadata
 }
 
 type price struct {
@@ -162,8 +157,7 @@ var testDifferentEvents = []AdjustTestCase{
 }
 
 func TestCase1(t *testing.T) {
-	tearDown, _ := setup(t, "TestCase1")
-	defer tearDown()
+	setup(t)
 
 	for _, testCase := range testDifferentEvents {
 		testCase := testCase
@@ -221,8 +215,7 @@ var testDifferentDates = []AdjustTestCase{
 }
 
 func TestCase2(t *testing.T) {
-	tearDown, _ := setup(t, "TestCase1")
-	defer tearDown()
+	setup(t)
 
 	for _, testCase := range testDifferentDates {
 		testCase := testCase
@@ -353,8 +346,7 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 }
 
 func TestMultipleEventsOnDifferentDates(t *testing.T) {
-	tearDown, _ := setup(t, "TestMultipleEventsOnDifferentDates")
-	defer tearDown()
+	setup(t)
 
 	for _, testCase := range testMultipleEventsOnDifferentDates {
 		testCase := testCase
