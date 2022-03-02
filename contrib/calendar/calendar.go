@@ -35,7 +35,7 @@ type Calendar struct {
 	earlyCloseTime Time
 }
 
-type calendarJson struct {
+type calendarJSON struct {
 	NonTradingDays []string `json:"non_trading_days"`
 	EarlyCloses    []string `json:"early_closes"`
 	Timezone       string   `json:"timezone"`
@@ -45,7 +45,7 @@ type calendarJson struct {
 }
 
 // Nasdaq implements market calendar for the NASDAQ.
-var Nasdaq = New(NasdaqJson)
+var Nasdaq = New(NasdaqJSON)
 
 func julianDate(t time.Time) int {
 	// Note: Date() is faster than calling Hour(), Month(), and Day() separately
@@ -64,12 +64,12 @@ func ParseTime(tstr string) Time {
 	return Time{h, m, s}
 }
 
-func New(calendarJSON string) *Calendar {
+func New(calendarJSONStr string) *Calendar {
 	cal := Calendar{days: map[int]MarketState{}}
-	cmap := calendarJson{}
-	err := json.Unmarshal([]byte(calendarJSON), &cmap)
+	cmap := calendarJSON{}
+	err := json.Unmarshal([]byte(calendarJSONStr), &cmap)
 	if err != nil {
-		log.Error(fmt.Sprintf("failed to unmarshal calendarJson:%s", calendarJSON))
+		log.Error(fmt.Sprintf("failed to unmarshal calendarJson:%s", calendarJSONStr))
 		return nil
 	}
 	for _, dateString := range cmap.NonTradingDays {

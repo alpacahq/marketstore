@@ -763,7 +763,7 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 	endDate := time.Date(2002, time.December, 31, 1, 0, 0, 0, time.UTC)
 	startDate := endDate.AddDate(0, 0, -numRecs+1)
 
-	RefColumnSet := NewColumnSeriesMap()
+	refColumnSet := NewColumnSeriesMap()
 
 	q := NewQuery(d)
 	q.AddRestriction("AttributeGroup", "OHLC")
@@ -777,7 +777,7 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 	csm, err := scanner.Read()
 	for key, cs := range csm {
 		assert.Nil(t, err)
-		RefColumnSet[key] = cs
+		refColumnSet[key] = cs
 		epoch := cs.GetEpoch()
 		// fmt.Println("Total number of rows: ", len(epoch))
 		assert.Len(t, epoch, numRecs)
@@ -802,10 +802,10 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 		epoch := cs.GetEpoch()
 		// fmt.Println("Total number of rows: ", len(epoch))
 		assert.Len(t, epoch, numRecs)
-		if !isEqual(RefColumnSet[key], cs) {
-			epoch, r_epoch := cs.GetEpoch(), RefColumnSet[key].GetEpoch()
-			for i, r_ts := range r_epoch {
-				tstamp1 := time.Unix(r_ts, 0).UTC().Format(time.UnixDate)
+		if !isEqual(refColumnSet[key], cs) {
+			epoch, refEpoch := cs.GetEpoch(), refColumnSet[key].GetEpoch()
+			for i, refTimestamp := range refEpoch {
+				tstamp1 := time.Unix(refTimestamp, 0).UTC().Format(time.UnixDate)
 				tstamp2 := time.Unix(epoch[i], 0).UTC().Format(time.UnixDate)
 				t.Log("Should be: ", tstamp1, " Is: ", tstamp2)
 			}
@@ -818,9 +818,9 @@ func isEqual(left, right *ColumnSeries) bool {
 		return false
 	}
 
-	for key, l_column := range left.GetColumns() {
-		r_column := right.GetColumns()[key]
-		if !reflect.DeepEqual(l_column, r_column) {
+	for key, leftColumn := range left.GetColumns() {
+		rightColumn := right.GetColumns()[key]
+		if !reflect.DeepEqual(leftColumn, rightColumn) {
 			return false
 		}
 	}

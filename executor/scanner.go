@@ -11,7 +11,7 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
+	utilsio "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -29,7 +29,7 @@ func (fl SortedFileList) Swap(i, j int)      { fl[i], fl[j] = fl[j], fl[i] }
 func (fl SortedFileList) Less(i, j int) bool { return fl[i].File.Year < fl[j].File.Year }
 
 type ioFilePlan struct {
-	tbi      *TimeBucketInfo
+	tbi      *utilsio.TimeBucketInfo
 	Offset   int64
 	Length   int64
 	FullPath string // Full file path, including leaf (Year) file
@@ -42,10 +42,10 @@ func (iofp *ioFilePlan) GetFileYear() int16 {
 	return iofp.tbi.Year
 }
 
-type ioplan struct {
+type IOPlan struct {
 	FilePlan          []*ioFilePlan
 	RecordLen         int32
-	RecordType        EnumRecordType
+	RecordType        utilsio.EnumRecordType
 	VariableRecordLen int
 	Limit             *planner.RowLimit
 	Range             *planner.DateRange
@@ -53,8 +53,8 @@ type ioplan struct {
 }
 
 func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateRange, timeQuals []planner.TimeQualFunc,
-) (iop *ioplan, err error) {
-	iop = &ioplan{
+) (iop *IOPlan, err error) {
+	iop = &IOPlan{
 		FilePlan: make([]*ioFilePlan, 0),
 		Limit:    limit,
 		Range:    range2,
@@ -71,8 +71,8 @@ func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateR
 			time.January,
 			1, 0, 0, 0, 0,
 			utils.InstanceConfig.Timezone)
-		startOffset := int64(Headersize)
-		endOffset := FileSize(
+		startOffset := int64(utilsio.Headersize)
+		endOffset := utilsio.FileSize(
 			file.File.GetTimeframe(),
 			int(file.File.Year),
 			int(file.File.GetRecordLength()))
@@ -94,7 +94,7 @@ func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateR
 			// Set the starting and ending indices based on the range
 			if file.File.Year == int16(range2.Start.Year()) {
 				// log.Info("range start: %v", pr.Range.Start)
-				startOffset = TimeToOffset(
+				startOffset = utilsio.TimeToOffset(
 					range2.Start,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength(),
@@ -104,7 +104,7 @@ func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateR
 			if file.File.Year == int16(range2.End.Year()) {
 				// log.Info("range end: %v", pr.Range.End)
 
-				endOffset = TimeToOffset(
+				endOffset = utilsio.TimeToOffset(
 					range2.End,
 					file.File.GetTimeframe(),
 					file.File.GetRecordLength()) + int64(file.File.GetRecordLength())
@@ -122,7 +122,7 @@ func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateR
 				fileStartTime.Unix(),
 				false,
 			}
-			if iop.Limit.Direction == LAST {
+			if iop.Limit.Direction == utilsio.LAST {
 				fp.seekingLast = true
 			}
 			iop.FilePlan = append(iop.FilePlan, fp)
@@ -136,7 +136,7 @@ func NewIOPlan(fl SortedFileList, limit *planner.RowLimit, range2 *planner.DateR
 
 type Reader struct {
 	pr     planner.ParseResult
-	IOPMap map[TimeBucketKey]*ioplan
+	IOPMap map[utilsio.TimeBucketKey]*IOPlan
 	// for packingReader to avoid redundant allocation.
 	// really ought to be somewhere close to the function...
 	readBuffer []byte
@@ -150,11 +150,11 @@ func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
 		pr.Range = planner.NewDateRange()
 	}
 
-	sortedFileMap := make(map[TimeBucketKey]SortedFileList)
+	sortedFileMap := make(map[utilsio.TimeBucketKey]SortedFileList)
 	for _, qf := range pr.QualifiedFiles {
 		sortedFileMap[qf.Key] = append(sortedFileMap[qf.Key], qf)
 	}
-	r.IOPMap = make(map[TimeBucketKey]*ioplan)
+	r.IOPMap = make(map[utilsio.TimeBucketKey]*IOPlan)
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
@@ -176,14 +176,14 @@ func NewReader(pr *planner.ParseResult) (r *Reader, err error) {
 	return r, nil
 }
 
-func (r *Reader) Read() (csm ColumnSeriesMap, err error) {
+func (r *Reader) Read() (csm utilsio.ColumnSeriesMap, err error) {
 	// TODO: Need to consider the huge buffer which use loooong time gap to query.
 	// Which probably cause out of memory issue and need new mechanism to handle
 	// those data and not just simply return one ColumnSeriesMap.
 	// Solution: Hack ColumnSeries add subsection fields to break the one big query
 	// down to several parts of small query and each one's Range.Start follow the last's
 	// Range.End with same other conditions.
-	csm = NewColumnSeriesMap()
+	csm = utilsio.NewColumnSeriesMap()
 	rtMap := r.pr.GetRecordType()
 	dsMap := r.pr.GetDataShapes()
 	rlMap := r.pr.GetRowLen()
@@ -194,11 +194,11 @@ func (r *Reader) Read() (csm ColumnSeriesMap, err error) {
 		if err2 != nil {
 			return nil, err2
 		}
-		if rt == VARIABLE {
+		if rt == utilsio.VARIABLE {
 			buffer = trimResultsToRange(r.pr.Range, rlen, buffer)
 			buffer = trimResultsToLimit(r.pr.Limit, rlen, buffer)
 		}
-		rs := NewRowSeries(key, buffer, dsMap[key], rlen, rt)
+		rs := utilsio.NewRowSeries(key, buffer, dsMap[key], rlen, rt)
 		key, cs := rs.ToColumnSeries()
 		csm[key] = cs
 	}
@@ -239,9 +239,9 @@ func trimResultsToRange(dr *planner.DateRange, rowlen int, src []byte) (dest []b
 }
 
 func TimeOfVariableRecord(buf []byte, cursor, rowLength int) time.Time {
-	epoch := ToInt64(buf[cursor : cursor+epochLenBytes])
-	nanos := ToInt32(buf[cursor+rowLength-nanosecLenBytes : cursor+rowLength])
-	return ToSystemTimezone(time.Unix(epoch, int64(nanos)))
+	epoch := utilsio.ToInt64(buf[cursor : cursor+epochLenBytes])
+	nanos := utilsio.ToInt32(buf[cursor+rowLength-nanosecLenBytes : cursor+rowLength])
+	return utilsio.ToSystemTimezone(time.Unix(epoch, int64(nanos)))
 }
 
 func trimResultsToLimit(l *planner.RowLimit, rowLen int, src []byte) []byte {
@@ -251,11 +251,10 @@ func trimResultsToLimit(l *planner.RowLimit, rowLen int, src []byte) []byte {
 	limit := int(l.Number)
 
 	if nrecords > limit {
-		if l.Direction == FIRST {
+		if l.Direction == utilsio.FIRST {
 			return src[:limit*rowLength]
-		} else {
-			return src[len(src)-limit*rowLength:]
 		}
+		return src[len(src)-limit*rowLength:]
 	}
 	return src
 }
@@ -272,7 +271,7 @@ type bufferMeta struct {
 
 // Reads the data from files, removing holes. The resulting buffer will be packed
 // Uses the index that prepends each row to identify filled rows versus holes.
-func (r *Reader) read(iop *ioplan) ([]byte, error) {
+func (r *Reader) read(iop *IOPlan) ([]byte, error) {
 	var (
 		resultBuffer []byte
 		err          error
@@ -291,7 +290,7 @@ func (r *Reader) read(iop *ioplan) ([]byte, error) {
 		limitBytes = iop.RecordLen * iop.Limit.Number
 	} else {
 		limitBytes = math.MaxInt32
-		if direction == LAST {
+		if direction == utilsio.LAST {
 			return nil, fmt.Errorf("reverse scan only supported with a limited result set")
 		}
 	}
@@ -314,18 +313,18 @@ func (r *Reader) read(iop *ioplan) ([]byte, error) {
 	*/
 	var bufMeta []bufferMeta
 	// avoid allocation if not needed
-	if iop.RecordType == VARIABLE {
+	if iop.RecordType == utilsio.VARIABLE {
 		bufMeta = make([]bufferMeta, 0)
 	}
 	var finished bool
-	if direction == FIRST {
+	if direction == utilsio.FIRST {
 		for _, fp := range iop.FilePlan {
 			dataLen := len(resultBuffer)
 			resultBuffer, finished, err = ex.readForward(resultBuffer,
 				fp,
 				limitBytes,
 				readBuffer)
-			if iop.RecordType == VARIABLE {
+			if iop.RecordType == utilsio.VARIABLE {
 				// If we've added data to the buffer from this file, record it for possible later use
 				if len(resultBuffer) > dataLen {
 					bufMeta = append(bufMeta, bufferMeta{
@@ -340,7 +339,7 @@ func (r *Reader) read(iop *ioplan) ([]byte, error) {
 				break
 			}
 		}
-	} else if direction == LAST {
+	} else if direction == utilsio.LAST {
 		// This is safe because we know limitBytes is a sane value for reverse scans
 		bytesLeftToFill := limitBytes
 		fp := iop.FilePlan
@@ -356,7 +355,7 @@ func (r *Reader) read(iop *ioplan) ([]byte, error) {
 				r.fileBuffer)
 
 			bytesLeftToFill -= bytesRead
-			if iop.RecordType == VARIABLE {
+			if iop.RecordType == utilsio.VARIABLE {
 				// If we've added data to the buffer from this file, record it for possible later use
 				if bytesRead > 0 {
 					bufMetaLen := bytesRead
@@ -390,7 +389,7 @@ func (r *Reader) read(iop *ioplan) ([]byte, error) {
 		/*
 			Reverse the order of the files because the data was filled in reverse order
 		*/
-		if iop.RecordType == VARIABLE {
+		if iop.RecordType == utilsio.VARIABLE {
 			lenOF := len(bufMeta)
 			for i := 0; i < lenOF/2; i++ {
 				bufMeta[(lenOF-1)-i], bufMeta[i] = bufMeta[i], bufMeta[(lenOF-1)-i]
@@ -401,7 +400,7 @@ func (r *Reader) read(iop *ioplan) ([]byte, error) {
 	/*
 		If this is a variable record type, we need a second stage of reading to get the data from the files
 	*/
-	if iop.RecordType == VARIABLE {
+	if iop.RecordType == utilsio.VARIABLE {
 		resultBuffer, err = r.readSecondStage(bufMeta)
 		if err != nil {
 			return nil, err
@@ -411,7 +410,7 @@ func (r *Reader) read(iop *ioplan) ([]byte, error) {
 }
 
 type ioExec struct {
-	plan *ioplan
+	plan *IOPlan
 }
 
 func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []byte,
@@ -458,7 +457,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 
 			if indexuint64 != 0 {
 				// Convert the index to a UNIX timestamp (seconds from epoch)
-				index := IndexToTime(int64(indexuint64), fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
+				index := utilsio.IndexToTime(int64(indexuint64), fp.tbi.GetTimeframe(), fp.GetFileYear()).Unix()
 				if !ex.checkTimeQuals(index) {
 					continue
 				}
@@ -629,7 +628,7 @@ func (ex *ioExec) checkTimeQuals(epoch int64) bool {
 	return true
 }
 
-func newIoExec(iop *ioplan) *ioExec {
+func newIoExec(iop *IOPlan) *ioExec {
 	return &ioExec{
 		plan: iop,
 	}

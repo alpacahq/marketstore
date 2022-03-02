@@ -273,21 +273,21 @@ func TestQueryMulti(t *testing.T) {
 
 	tbk := io.NewTimeBucketKey("USDJPY/1Min/OHLC")
 	usdjpy := csm[*tbk]
-	usdjpy_index := usdjpy.GetEpoch()
+	usdjpyIndex := usdjpy.GetEpoch()
 	tbk = io.NewTimeBucketKey("EURUSD/1Min/OHLC")
 	eurusd := csm[*tbk]
-	eurusd_index := eurusd.GetEpoch()
+	eurusdIndex := eurusd.GetEpoch()
 
 	assert.Len(t, usdjpy.GetColumnNames(), 5) // key + OHLC
-	assert.Len(t, usdjpy_index, 200)
-	lastTime := usdjpy_index[len(usdjpy_index)-1]
+	assert.Len(t, usdjpyIndex, 200)
+	lastTime := usdjpyIndex[len(usdjpyIndex)-1]
 	ti := time.Unix(lastTime, 0).UTC()
 	tref := time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
 	assert.Equal(t, ti, tref)
 
 	assert.Len(t, eurusd.GetColumnNames(), 5) // key + OHLC + prev
-	assert.Len(t, eurusd_index, 200)
-	lastTime = eurusd_index[len(eurusd_index)-1]
+	assert.Len(t, eurusdIndex, 200)
+	lastTime = eurusdIndex[len(eurusdIndex)-1]
 	ti = time.Unix(lastTime, 0).UTC()
 	tref = time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
 	assert.Equal(t, ti, tref)
@@ -344,24 +344,24 @@ func TestFunctions(t *testing.T) {
 		t.Log(err)
 		t.FailNow()
 	}
-	//	printFuncParams(fname, l_list, p_list)
+	//	printFuncParams(fname, lList, pList)
 
 	call = "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
-	fname, l_list, p_list, err := sqlparser.ParseFunctionCall(call)
+	fname, lList, pList, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
-	//	printFuncParams(fname, l_list, p_list)
+	//	printFuncParams(fname, lList, pList)
 	assert.Equal(t, fname, "FuncName")
-	assert.Equal(t, l_list[0], "Lit1")
-	assert.Equal(t, l_list[1], "Lit2")
-	assert.Equal(t, p_list[0], "P1")
-	assert.Equal(t, p_list[1], "P2")
-	assert.Equal(t, p_list[2], "P3")
-	assert.Equal(t, p_list[3], "P4")
-	assert.Equal(t, p_list[4], "Sum::P5")
-	assert.Equal(t, p_list[5], "Avg::P6")
+	assert.Equal(t, lList[0], "Lit1")
+	assert.Equal(t, lList[1], "Lit2")
+	assert.Equal(t, pList[0], "P1")
+	assert.Equal(t, pList[1], "P2")
+	assert.Equal(t, pList[2], "P3")
+	assert.Equal(t, pList[3], "P4")
+	assert.Equal(t, pList[4], "Sum::P5")
+	assert.Equal(t, pList[5], "Avg::P6")
 
 	args := &frontend.MultiQueryRequest{
 		Requests: []frontend.QueryRequest{

@@ -4,13 +4,13 @@ import (
 	"sync"
 )
 
-type WorkerPool struct {
+type Pool struct {
 	input     chan func()
 	waitGroup sync.WaitGroup
 }
 
-func NewWorkerPool(poolSize int) *WorkerPool {
-	wp := WorkerPool{
+func NewWorkerPool(poolSize int) *Pool {
+	wp := Pool{
 		input: make(chan func()),
 	}
 
@@ -22,11 +22,11 @@ func NewWorkerPool(poolSize int) *WorkerPool {
 	return &wp
 }
 
-func (p *WorkerPool) Do(fn func()) {
+func (p *Pool) Do(fn func()) {
 	p.input <- fn
 }
 
-func (p *WorkerPool) CloseAndWait() {
+func (p *Pool) CloseAndWait() {
 	close(p.input)
 	p.waitGroup.Wait()
 }

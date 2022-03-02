@@ -20,7 +20,7 @@ func (r *retryer) try(_ context.Context) error {
 	if r.Count == r.SucceedAt {
 		return nil
 	}
-	return replication.RetryableError
+	return replication.ErrRetryable
 }
 
 func TestRetryer_Run(t *testing.T) {
@@ -47,7 +47,7 @@ func TestRetryer_Run(t *testing.T) {
 		},
 		{
 			name:      "retryable error",
-			retryFunc: func(ctx context.Context) error { return replication.RetryableError },
+			retryFunc: func(ctx context.Context) error { return replication.ErrRetryable },
 			context:   context.Background(),
 			wantErr:   true,
 		},
@@ -63,7 +63,7 @@ func TestRetryer_Run(t *testing.T) {
 		{
 			name: "don't retry if context is canceled",
 			retryFunc: func(ctx context.Context) error {
-				return replication.RetryableError
+				return replication.ErrRetryable
 			},
 			context: func() context.Context {
 				ctx, cancel := context.WithCancel(context.Background())

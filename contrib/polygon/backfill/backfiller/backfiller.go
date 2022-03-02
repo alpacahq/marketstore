@@ -338,7 +338,7 @@ func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]s
 }
 
 func getBars(client *http.Client, start, end time.Time, period time.Duration, symbol string, exchangeIDs []int,
-	unadjusted bool, writerWP *worker.WorkerPool,
+	unadjusted bool, writerWP *worker.Pool,
 ) {
 	const oneDay = 24 * time.Hour
 	if len(exchangeIDs) != 0 && period != oneDay {
@@ -368,7 +368,7 @@ func getBars(client *http.Client, start, end time.Time, period time.Duration, sy
 }
 
 func getQuotes(client *http.Client, start, end time.Time, period time.Duration, symbol string,
-	writerWP *worker.WorkerPool,
+	writerWP *worker.Pool,
 ) {
 	log.Info("[polygon] backfilling quotes for %v", symbol)
 	for end.After(start) {
@@ -386,7 +386,7 @@ func getQuotes(client *http.Client, start, end time.Time, period time.Duration, 
 }
 
 func getTrades(client *http.Client, start, end time.Time, period time.Duration, symbol string,
-	writerWP *worker.WorkerPool,
+	writerWP *worker.Pool,
 ) {
 	log.Info("[polygon] backfilling trades for %v", symbol)
 	for end.After(start) {

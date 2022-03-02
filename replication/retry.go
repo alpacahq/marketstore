@@ -11,11 +11,11 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// RetryableError is a custom error to retry the logic when returned.
-var RetryableError = errors.New("retryable replication error")
+// ErrRetryable is a custom error to retry the logic when returned.
+var ErrRetryable = errors.New("retryable replication error")
 
-// func (re RetryableError) Is(err error) bool {
-// 	return errors.Is(err, RetryableError("")
+// func (re ErrRetryable) Is(err error) bool {
+// 	return errors.Is(err, ErrRetryable("")
 // }
 
 type Retryer struct {
@@ -48,7 +48,7 @@ func (r *Retryer) Run(ctx context.Context) error {
 				return nil
 			}
 
-			if errors.Is(err, RetryableError) {
+			if errors.Is(err, ErrRetryable) {
 				// retryable error. continue
 				interval := retryInterval(r.interval, r.backoffCoeff, cnt)
 				log.Warn("caught a retryable error. It will be retried after an interval:" +

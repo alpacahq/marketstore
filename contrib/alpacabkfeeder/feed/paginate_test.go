@@ -7,7 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func date(year, month, day int) time.Time {
+func date(month, day int) time.Time {
+	const year = 2021
 	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
 }
 
@@ -23,33 +24,33 @@ func Test_datePageIndex(t *testing.T) {
 	}{
 		{
 			name:     "ok/5 days paginated by pageSize=2",
-			start:    date(2021, 12, 1),
-			end:      date(2021, 12, 5),
+			start:    date(12, 1),
+			end:      date(12, 5),
 			pageDays: 2,
 			want: []dateRange{
-				{From: date(2021, 12, 1), To: date(2021, 12, 2)},
-				{From: date(2021, 12, 3), To: date(2021, 12, 4)},
-				{From: date(2021, 12, 5), To: date(2021, 12, 5)},
+				{From: date(12, 1), To: date(12, 2)},
+				{From: date(12, 3), To: date(12, 4)},
+				{From: date(12, 5), To: date(12, 5)},
 			},
 		},
 		{
 			name:     "ok/3 days paginated by pageSize=5",
-			start:    date(2021, 12, 1),
-			end:      date(2021, 12, 3),
+			start:    date(12, 1),
+			end:      date(12, 3),
 			pageDays: 5,
 			want: []dateRange{
-				{From: date(2021, 12, 1), To: date(2021, 12, 3)},
+				{From: date(12, 1), To: date(12, 3)},
 			},
 		},
 		{
 			name:     "ok/3 days paginated by pageSize=1",
-			start:    date(2021, 12, 1),
-			end:      date(2021, 12, 3),
+			start:    date(12, 1),
+			end:      date(12, 3),
 			pageDays: 1,
 			want: []dateRange{
-				{From: date(2021, 12, 1), To: date(2021, 12, 1)},
-				{From: date(2021, 12, 2), To: date(2021, 12, 2)},
-				{From: date(2021, 12, 3), To: date(2021, 12, 3)},
+				{From: date(12, 1), To: date(12, 1)},
+				{From: date(12, 2), To: date(12, 2)},
+				{From: date(12, 3), To: date(12, 3)},
 			},
 		},
 	}

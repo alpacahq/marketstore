@@ -125,12 +125,12 @@ type TradeTick struct {
 	Size                 int     `json:"s"`
 	Exchange             int     `json:"x"`
 	Conditions           []int   `json:"c"`
-	Id                   string  `json:"i"`
+	ID                   string  `json:"i"`
 	Correction           int     `json:"e"`
 	SequenceNumber       int     `json:"q"`
-	TrfId                int     `json:"r"`
+	TrfID                int     `json:"r"`
 	Tape                 int     `json:"z"`
-	OrigId               string  `string:"I"`
+	OrigID               string  `string:"I"`
 }
 
 // HistoricQuotes is the structure that defines quote
