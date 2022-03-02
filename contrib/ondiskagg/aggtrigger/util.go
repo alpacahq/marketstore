@@ -31,6 +31,7 @@ func (tfs *timeframes) LowerBound() (tf *utils.Timeframe) {
 	}
 
 	for _, t := range *tfs {
+		t := t
 		if tf == nil {
 			tf = &t
 			continue

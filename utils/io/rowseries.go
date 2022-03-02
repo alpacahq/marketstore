@@ -38,27 +38,27 @@ func (rows *Rows) GetColumn(colname string) (col interface{}) {
 		if ds.Name == colname {
 			switch ds.Type {
 			case FLOAT32:
-				return getFloat32Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getFloat32Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case FLOAT64:
-				return getFloat64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getFloat64Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case INT16:
-				return getInt16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getInt16Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case INT32:
-				return getInt32Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getInt32Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case EPOCH, INT64:
-				return getInt64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getInt64Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case UINT8:
-				return getUInt8Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getUInt8Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case UINT16:
-				return getUInt16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getUInt16Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case UINT32:
-				return getUInt32Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getUInt32Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case UINT64:
-				return getUInt64Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getUInt64Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case STRING16:
-				return getString16Column(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getString16Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case BOOL, BYTE:
-				return getByteColumn(offset, int(rows.GetRowLen()), rows.GetNumRows(), rows.GetData())
+				return getByteColumn(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			default:
 				log.Error("unexpected column type specified:", ds.Type)
 			}

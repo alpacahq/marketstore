@@ -100,7 +100,7 @@ var (
 )
 
 func Bars(client *http.Client, symbol string, from, to time.Time,
-	batchSize int, unadjusted bool, writerWP *worker.WorkerPool,
+	batchSize int, unadjusted bool, writerWP *worker.Pool,
 ) (err error) {
 	const millisecToSec = 1000
 	if from.IsZero() {
@@ -193,9 +193,9 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 
 	var (
-		epoch int64
+		epoch                 int64
 		open, high, low, clos float64
-		volume int
+		volume                int
 	)
 
 	lastBucketTimestamp := time.Time{}
@@ -282,7 +282,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 }
 
-func Trades(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+func Trades(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.Pool) error {
 	const hoursInDay = 24
 	trades := make([]api.TradeTick, 0)
 	t := time.Now()
@@ -326,7 +326,7 @@ func Trades(client *http.Client, symbol string, from, to time.Time, batchSize in
 	return nil
 }
 
-func Quotes(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+func Quotes(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.Pool) error {
 	const hoursInDay = 24
 	// FIXME: This function is broken with the following problems:
 	//  - Callee (backfiller.go) wrongly checks the market day (checks for the day after)

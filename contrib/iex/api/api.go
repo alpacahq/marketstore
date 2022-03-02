@@ -106,15 +106,15 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 
 	if len(symbols) == 0 {
 		return &GetBarsResponse{}, nil
-	} else {
-		var newsymbols []string
-		for _, sym := range symbols {
-			if !symbolsExcluded[sym] {
-				newsymbols = append(newsymbols, sym)
-			}
-		}
-		symbols = newsymbols
 	}
+
+	var newsymbols []string
+	for _, sym := range symbols {
+		if !symbolsExcluded[sym] {
+			newsymbols = append(newsymbols, sym)
+		}
+	}
+	symbols = newsymbols
 
 	q := u.Query()
 
@@ -174,31 +174,32 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 		if len(symbols) == 1 { // Idenified an OTC symbol
 			symbolsExcluded[symbols[0]] = true
 			return nil, fmt.Errorf("OTC Error: %s: %s [Symbol: %s]", res.Status, string(body), symbols[0])
+		}
+
+		var resp0 *GetBarsResponse
+		var resp1 *GetBarsResponse
+		split := len(symbols) / 2
+
+		// fmt.Printf("Symbol groups: %v - %v\n", symbols[:split], symbols[split:])
+
+		resp = GetBarsResponse{}
+		resp0, err1 := GetBars(symbols[:split], barRange, limit, retries)
+		resp1, err2 := GetBars(symbols[split:], barRange, limit, retries)
+		if err1 != nil {
+			log.Error(err1.Error())
 		} else {
-			var resp0 *GetBarsResponse
-			var resp1 *GetBarsResponse
-			split := len(symbols) / 2
-
-			// fmt.Printf("Symbol groups: %v - %v\n", symbols[:split], symbols[split:])
-
-			resp = GetBarsResponse{}
-			resp0, err1 := GetBars(symbols[:split], barRange, limit, retries)
-			resp1, err2 := GetBars(symbols[split:], barRange, limit, retries)
-			if err1 != nil {
-				log.Error(err1.Error())
-			} else {
-				for k, v := range *resp0 {
-					resp[k] = v
-				}
-			}
-			if err2 != nil {
-				log.Error(err2.Error())
-			} else {
-				for k, v := range *resp1 {
-					resp[k] = v
-				}
+			for k, v := range *resp0 {
+				resp[k] = v
 			}
 		}
+		if err2 != nil {
+			log.Error(err2.Error())
+		} else {
+			for k, v := range *resp1 {
+				resp[k] = v
+			}
+		}
+
 	} else {
 		if err = json.Unmarshal(body, &resp); err != nil {
 			return nil, errors.New(res.Status + ": " + string(body))

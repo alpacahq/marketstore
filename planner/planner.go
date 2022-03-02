@@ -3,10 +3,9 @@ package planner
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
-	. "github.com/alpacahq/marketstore/v4/catalog"
+	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils"
 	. "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -24,11 +23,10 @@ func (r RestrictionList) AddRestriction(category, item string) {
 }
 
 func (r RestrictionList) getItemList(category string) []string {
-	if p_list, ok := r[category]; ok {
-		return p_list
-	} else {
-		return nil
+	if pList, ok := r[category]; ok {
+		return pList
 	}
+	return nil
 }
 
 func NewRestrictionList() RestrictionList {
@@ -138,35 +136,20 @@ func ElementsEqual(left, right []EnumElementType) (isEqual bool) {
 	return true
 }
 
-func NamesMatch(src, candidates []string) (match bool) {
-	srcMap := make(map[string]int)
-	for _, el := range src {
-		key := strings.ToLower(el)
-		srcMap[key] = 0
-	}
-	for _, el := range candidates {
-		key := strings.ToLower(el)
-		if _, ok := srcMap[key]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-type query struct {
+type Query struct {
 	Range       *DateRange
 	Restriction RestrictionList
 	Limit       *RowLimit
-	DataDir     *Directory
+	DataDir     *catalog.Directory
 	TimeQuals   []TimeQualFunc
 }
 
-func NewQuery(d *Directory) *query {
+func NewQuery(d *catalog.Directory) *Query {
 	if d == nil {
 		log.Error("Failed to query - catalog not initialized.")
 		return nil
 	}
-	q := new(query)
+	q := new(Query)
 	q.DataDir = d
 	q.Restriction = NewRestrictionList()
 	q.Range = NewDateRange()
@@ -174,37 +157,37 @@ func NewQuery(d *Directory) *query {
 	return q
 }
 
-func (q *query) SetRowLimit(direction DirectionEnum, rowLimit int) {
+func (q *Query) SetRowLimit(direction DirectionEnum, rowLimit int) {
 	q.Limit = NewRowLimit()
 	q.Limit.Number = int32(rowLimit)
 	q.Limit.Direction = direction
 }
 
-func (q *query) SetRange(start, end time.Time) {
+func (q *Query) SetRange(start, end time.Time) {
 	q.Range = new(DateRange)
 	q.SetStart(start)
 	q.SetEnd(end)
 }
 
-func (q *query) SetStart(start time.Time) {
+func (q *Query) SetStart(start time.Time) {
 	if q.Range == nil {
 		q.Range = NewDateRange()
 	}
 	q.Range.Start = start
 }
 
-func (q *query) SetEnd(end time.Time) {
+func (q *Query) SetEnd(end time.Time) {
 	if q.Range == nil {
 		q.Range = NewDateRange()
 	}
 	q.Range.End = end
 }
 
-func (q *query) AddRestriction(category, item string) {
+func (q *Query) AddRestriction(category, item string) {
 	q.Restriction.AddRestriction(category, item)
 }
 
-func (q *query) AddTargetKey(key *TimeBucketKey) {
+func (q *Query) AddTargetKey(key *TimeBucketKey) {
 	for _, cat := range key.GetCategories() {
 		items := key.GetMultiItemInCategory(cat)
 		for _, item := range items {
@@ -213,11 +196,11 @@ func (q *query) AddTargetKey(key *TimeBucketKey) {
 	}
 }
 
-func (q *query) AddTimeQual(timeQual TimeQualFunc) {
+func (q *Query) AddTimeQual(timeQual TimeQualFunc) {
 	q.TimeQuals = append(q.TimeQuals, timeQual)
 }
 
-func (q *query) Parse() (pr *ParseResult, err error) {
+func (q *Query) Parse() (pr *ParseResult, err error) {
 	const notFoundErrMsg = "no files returned from query parse"
 	// Check to see that the categories in the query are present in the DB directory
 	CatList := q.DataDir.GatherCategoriesFromCache()
@@ -234,8 +217,8 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 
 	// This method conditionally recurses the directory looking for restricted matches
 	// We can not use the simple Directory.Recurse() because of the conditional descent...
-	var getFileList func(*Directory, *[]QualifiedFile, string, string)
-	getFileList = func(d *Directory, f *[]QualifiedFile, itemKey, categoryKey string) {
+	var getFileList func(*catalog.Directory, *[]QualifiedFile, string, string)
+	getFileList = func(d *catalog.Directory, f *[]QualifiedFile, itemKey, categoryKey string) {
 		var latestKey *TimeBucketKey
 		if d.DirHasSubDirs() {
 			//			if p_list, ok := (*q.Restriction)[d.Category]; ok {
@@ -330,7 +313,7 @@ func (q *query) Parse() (pr *ParseResult, err error) {
 			1, 0, 0, 0, 0,
 			utils.InstanceConfig.Timezone)
 		pr.Range.End = time.Date(
-			int(pr.Range.End.Year()),
+			pr.Range.End.Year(),
 			time.December,
 			31, 23, 59, 59, 999999999,
 			utils.InstanceConfig.Timezone)

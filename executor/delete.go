@@ -14,7 +14,7 @@ import (
 
 type deleter struct {
 	pr     planner.ParseResult
-	IOPMap map[TimeBucketKey]*ioplan
+	IOPMap map[TimeBucketKey]*IOPlan
 }
 
 func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
@@ -28,7 +28,7 @@ func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
 	for _, qf := range pr.QualifiedFiles {
 		sortedFileMap[qf.Key] = append(sortedFileMap[qf.Key], qf)
 	}
-	de.IOPMap = make(map[TimeBucketKey]*ioplan)
+	de.IOPMap = make(map[TimeBucketKey]*IOPlan)
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
@@ -54,7 +54,7 @@ func (de *deleter) Delete() (err error) {
 }
 
 // Deletes the selected time range, preserving the file holes.
-func (de *deleter) delete(iop *ioplan) error {
+func (de *deleter) delete(iop *IOPlan) error {
 	for _, fp := range iop.FilePlan {
 		if err := deleteInner(fp, iop.RecordLen); err != nil {
 			return err

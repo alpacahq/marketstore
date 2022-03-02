@@ -5,7 +5,6 @@ import (
 	"time"
 
 	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
-	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -27,10 +26,7 @@ type SnapshotWriterImpl struct {
 // Write converts the map(key:symbol, value:snapshot) to a ColumnSeriesMap and write it to the local marketstore server.
 func (q SnapshotWriterImpl) Write(snapshots map[string]*v2.Snapshot) error {
 	// convert Snapshot Data to CSM (ColumnSeriesMap)
-	csm, err := q.convertToCSM(snapshots)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from Snapshot Data. %v", snapshots))
-	}
+	csm := q.convertToCSM(snapshots)
 
 	// write CSM to marketstore
 	if err := q.MarketStoreWriter.Write(csm); err != nil {
@@ -41,7 +37,7 @@ func (q SnapshotWriterImpl) Write(snapshots map[string]*v2.Snapshot) error {
 	return nil
 }
 
-func (q *SnapshotWriterImpl) convertToCSM(snapshots map[string]*v2.Snapshot) (io.ColumnSeriesMap, error) {
+func (q *SnapshotWriterImpl) convertToCSM(snapshots map[string]*v2.Snapshot) io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 
 	for symbol, snapshot := range snapshots {
@@ -57,7 +53,7 @@ func (q *SnapshotWriterImpl) convertToCSM(snapshots map[string]*v2.Snapshot) (io
 		csm.AddColumnSeries(*tbk, cs)
 	}
 
-	return csm, nil
+	return csm
 }
 
 func (q SnapshotWriterImpl) newColumnSeries(epoch int64, ss *v2.Snapshot) *io.ColumnSeries {

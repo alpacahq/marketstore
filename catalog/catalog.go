@@ -256,8 +256,8 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 		return nil
 	}
 	tbinfolist = make([]*io.TimeBucketInfo, 0)
-	for _, finfo_p := range d.datafile {
-		tbinfolist = append(tbinfolist, finfo_p)
+	for _, finfoPtr := range d.datafile {
+		tbinfolist = append(tbinfolist, finfoPtr)
 	}
 	return tbinfolist
 }
@@ -319,9 +319,8 @@ func (d *Directory) PathToTimeBucketInfo(path2 string) (*io.TimeBucketInfo, erro
 	d.recurse(tbinfo, findTimeBucketInfo)
 	if tbinfo == nil {
 		return nil, NotFoundError("")
-	} else {
-		return tbinfo, nil
 	}
+	return tbinfo, nil
 }
 
 func (d *Directory) GetDataShapes(key *io.TimeBucketKey) (dsv []io.DataShape, err error) {
@@ -558,9 +557,9 @@ func (d *Directory) String() string {
 
 func (d *Directory) GatherDirectories() []string {
 	// Must be thread-safe for READ access
-	dirListFunc := func(d *Directory, i_list interface{}) {
-		p_list := i_list.(*[]string)
-		*p_list = append(*p_list, d.itemName)
+	dirListFunc := func(d *Directory, iList interface{}) {
+		pList := iList.(*[]string)
+		*pList = append(*pList, d.itemName)
 	}
 	dirList := make([]string, 0)
 	d.recurse(&dirList, dirListFunc)

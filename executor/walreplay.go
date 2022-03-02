@@ -226,10 +226,9 @@ func fullRead(err error) bool {
 	if ok := errors.As(err, &targetErr); ok {
 		log.Info(fmt.Sprintf("Partial Read. err=%v", err))
 		return false
-	} else {
-		log.Error(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
 	}
 
+	log.Error(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
 	return true
 }
 

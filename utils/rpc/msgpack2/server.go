@@ -192,7 +192,7 @@ func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) 
 }
 
 func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverResponse) {
-	// Id is null for notifications and they don't have a response.
+	// ID is null for notifications and they don't have a response.
 	if c.request.Id != nil {
 		w.Header().Set("Content-Type", "application/x-msgpack")
 		encoder := msgpack.NewEncoder(c.encoder.Encode(w))

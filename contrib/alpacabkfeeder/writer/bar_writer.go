@@ -67,12 +67,12 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []alpaca.Bar) io.Column
 
 		// Start time of each bar is used for "epoch"
 		// to align with the 1-day chart backfill. ("00:00:00"(starting time of a day) is used for epoch)
-		epochs = append(epochs, bars[i].Time)
-		opens = append(opens, bars[i].Open)
-		closes = append(closes, bars[i].Close)
-		highs = append(highs, bars[i].High)
-		lows = append(lows, bars[i].Low)
-		volumes = append(volumes, bars[i].Volume)
+		epochs[i] = bars[i].Time
+		opens[i] = bars[i].Open
+		closes[i] = bars[i].Close
+		highs[i] = bars[i].High
+		lows[i] = bars[i].Low
+		volumes[i] = bars[i].Volume
 	}
 
 	// to avoid that empty array is added to csm when all data are Volume=0 and there is no data to write

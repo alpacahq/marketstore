@@ -44,8 +44,7 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 		Does a remote procedure call using the msgpack2 protocol for RPC that return a QueryReply
 	*/
 	if args == nil {
-		return nil, fmt.Errorf("args must be non-nil - have: args: %v\n",
-			args)
+		return nil, fmt.Errorf("args must be non-nil - have: args: %v", args)
 	}
 	message, err := msgpack2.EncodeClientRequest("DataService."+functionName, args)
 	if err != nil {
