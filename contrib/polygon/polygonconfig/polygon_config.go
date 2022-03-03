@@ -1,4 +1,4 @@
-package polygon_config
+package polygonconfig
 
 type FetcherConfig struct {
 	// AddTickCountToBars controls if TickCnt is added to the schema for Bars or not

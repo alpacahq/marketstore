@@ -12,7 +12,7 @@ type TriggerPluginDispatcher struct {
 	c               chan writtenRecords
 	done            chan struct{}
 	m               map[string][]trigger.Record
-	triggerMatchers []*trigger.TriggerMatcher
+	triggerMatchers []*trigger.Matcher
 	triggerWg       *sync.WaitGroup
 }
 
@@ -21,7 +21,7 @@ type writtenRecords struct {
 	records []trigger.Record
 }
 
-func NewTriggerPluginDispatcher(triggerMatchers []*trigger.TriggerMatcher) *TriggerPluginDispatcher {
+func NewTriggerPluginDispatcher(triggerMatchers []*trigger.Matcher) *TriggerPluginDispatcher {
 	tpd := TriggerPluginDispatcher{
 		c:               make(chan writtenRecords, WriteChannelCommandDepth),
 		done:            make(chan struct{}),

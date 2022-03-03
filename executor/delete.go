@@ -8,27 +8,27 @@ import (
 	"sort"
 
 	"github.com/alpacahq/marketstore/v4/planner"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
+	utilsio "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-type deleter struct {
+type Deleter struct {
 	pr     planner.ParseResult
-	IOPMap map[TimeBucketKey]*IOPlan
+	IOPMap map[utilsio.TimeBucketKey]*IOPlan
 }
 
-func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
-	de = new(deleter)
+func NewDeleter(pr *planner.ParseResult) (de *Deleter, err error) {
+	de = new(Deleter)
 	de.pr = *pr
 	if pr.Range == nil {
 		pr.Range = planner.NewDateRange()
 	}
 
-	sortedFileMap := make(map[TimeBucketKey]SortedFileList)
+	sortedFileMap := make(map[utilsio.TimeBucketKey]SortedFileList)
 	for _, qf := range pr.QualifiedFiles {
 		sortedFileMap[qf.Key] = append(sortedFileMap[qf.Key], qf)
 	}
-	de.IOPMap = make(map[TimeBucketKey]*IOPlan)
+	de.IOPMap = make(map[utilsio.TimeBucketKey]*IOPlan)
 	maxRecordLen := int32(0)
 	for key, sfl := range sortedFileMap {
 		sort.Sort(sfl)
@@ -43,7 +43,7 @@ func NewDeleter(pr *planner.ParseResult) (de *deleter, err error) {
 	return de, nil
 }
 
-func (de *deleter) Delete() (err error) {
+func (de *Deleter) Delete() (err error) {
 	for _, iop := range de.IOPMap {
 		err2 := de.delete(iop)
 		if err2 != nil {
@@ -54,7 +54,7 @@ func (de *deleter) Delete() (err error) {
 }
 
 // Deletes the selected time range, preserving the file holes.
-func (de *deleter) delete(iop *IOPlan) error {
+func (de *Deleter) delete(iop *IOPlan) error {
 	for _, fp := range iop.FilePlan {
 		if err := deleteInner(fp, iop.RecordLen); err != nil {
 			return err

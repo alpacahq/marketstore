@@ -48,7 +48,7 @@ func Load(pluginName string) (pi *plugin.Plugin, err error) {
 	envGOPATH := os.Getenv("GOPATH")
 	gopaths := strings.Split(envGOPATH, ":")
 	if len(gopaths) == 0 {
-		return nil, fmt.Errorf("GOPATH is not set\n")
+		return nil, fmt.Errorf("GOPATH is not set")
 	}
 	for _, path := range gopaths {
 		pluginPath := filepath.Join(filepath.Join(path, "bin"), pluginName)

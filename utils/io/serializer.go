@@ -2,7 +2,7 @@ package io
 
 import (
 	"fmt"
-	. "reflect"
+	"reflect"
 )
 
 // Serialize serializes various primitive types into a byte representation,
@@ -18,14 +18,14 @@ func Serialize(buffer []byte, datum interface{}) ([]byte, error) {
 	}
 
 	// use reflection
-	value := ValueOf(datum)
+	value := reflect.ValueOf(datum)
 	var err error
 	switch value.Kind() {
-	case Chan, Func, Interface, Ptr, UnsafePointer:
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
 		return buffer, fmt.Errorf("Serialize: Type %s is not serializable", value.Kind().String())
-	case String:
+	case reflect.String:
 		return append(buffer, datum.(string)...), nil
-	case Struct:
+	case reflect.Struct:
 		for i := 0; i < value.NumField(); i++ {
 			subDatum := value.Field(i).Interface()
 			buffer, err = Serialize(buffer, subDatum)
@@ -34,7 +34,7 @@ func Serialize(buffer []byte, datum interface{}) ([]byte, error) {
 			}
 		}
 		return buffer, nil
-	case Slice, Array:
+	case reflect.Slice, reflect.Array:
 		for i := 0; i < value.Len(); i++ {
 			buffer, err = Serialize(buffer, value.Index(i).Interface())
 			if err != nil {
@@ -42,7 +42,7 @@ func Serialize(buffer []byte, datum interface{}) ([]byte, error) {
 			}
 		}
 		return buffer, nil
-	case Map:
+	case reflect.Map:
 		for _, key := range value.MapKeys() {
 			// We serialize the key length, then the key string, then the value
 			buffer, err = Serialize(buffer, int16(key.Len()))

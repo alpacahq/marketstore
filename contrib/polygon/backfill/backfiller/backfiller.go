@@ -297,7 +297,7 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int,
 ) (instanceConfig *executor.InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
 	// if configured, also load the ondiskagg triggers
-	var tm []*trigger.TriggerMatcher
+	var tm []*trigger.Matcher
 	for _, triggerSetting := range triggers {
 		if triggerSetting.Module == "ondiskagg.so" {
 			tmatcher := trigger.NewTriggerMatcher(triggerSetting)

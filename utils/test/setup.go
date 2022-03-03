@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -55,24 +55,24 @@ func makeCatDir(root, catname string, items []string) {
 	}
 }
 
-func makeFakeFileInfoCurrency(year, filePath, timeFrame string) *TimeBucketInfo {
+func makeFakeFileInfoCurrency(year, filePath, timeFrame string) *io.TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
 	yr, _ := strconv.Atoi(year)
-	dsv := NewDataShapeVector(
+	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close"},
-		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32},
+		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32},
 	)
-	return NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, FIXED)
+	return io.NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, io.FIXED)
 }
 
-func makeFakeFileInfoStock(year, filePath, timeFrame string) *TimeBucketInfo {
+func makeFakeFileInfoStock(year, filePath, timeFrame string) *io.TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
 	yr, _ := strconv.Atoi(year)
-	dsv := NewDataShapeVector(
+	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
-		[]EnumElementType{FLOAT32, FLOAT32, FLOAT32, FLOAT32, INT32},
+		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},
 	)
-	return NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, FIXED)
+	return io.NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, io.FIXED)
 }
 
 func makeYearFiles(root string, years []string, withdata, withGaps bool, tf string, itemsWritten map[string]int, isStock bool) {
@@ -83,7 +83,7 @@ func makeYearFiles(root string, years []string, withdata, withGaps bool, tf stri
 		filename := base + year + ".bin"
 		file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, allowAllPerm)
 		checkfail(err, "Unable to create file: "+filename)
-		var f *TimeBucketInfo
+		var f *io.TimeBucketInfo
 		if isStock {
 			// OHLCV
 			f = makeFakeFileInfoStock(year, filename, tf)
@@ -91,7 +91,7 @@ func makeYearFiles(root string, years []string, withdata, withGaps bool, tf stri
 			// OHLC
 			f = makeFakeFileInfoCurrency(year, filename, tf)
 		}
-		err = WriteHeader(file, f)
+		err = io.WriteHeader(file, f)
 		checkfail(err, "Unable to write header to: "+filename)
 		if withdata {
 			itemsWritten[filename], err = WriteDummyData(file, year, tf, withGaps, isStock)
@@ -160,7 +160,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 			candlesCurrency = append(candlesCurrency, ohlc{ind, o, h, l, c})
 		}
 		//		fmt.Printf(":%d:",ind)
-		index += 1
+		index ++
 	}
 
 	var (
@@ -168,12 +168,12 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 		ok     bool
 	)
 	if isStock {
-		buffer, ok = SwapSliceData(candlesStock, byte(0)).([]byte)
+		buffer, ok = io.SwapSliceData(candlesStock, byte(0)).([]byte)
 		if !ok {
 			return 0, errors.New("failed to swap slice data")
 		}
 	} else {
-		buffer, ok = SwapSliceData(candlesCurrency, byte(0)).([]byte)
+		buffer, ok = io.SwapSliceData(candlesCurrency, byte(0)).([]byte)
 		if !ok {
 			return 0, errors.New("failed to swap slice data")
 		}
@@ -240,10 +240,4 @@ func MakeDummyStockDir(root string, withdata, withGaps bool) map[string]int {
 		}
 	}
 	return itemsWritten
-}
-
-func CleanupDummyDataDir(root string) {
-	if err := os.RemoveAll(root); err != nil {
-		log.Error("Failed to clean up dummy data directory - Error: %v", err)
-	}
 }

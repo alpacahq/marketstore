@@ -42,8 +42,8 @@ type Trigger interface {
 	Fire(keyPath string, records []Record)
 }
 
-// TriggerMatcher checks if the trigger should be fired or not.
-type TriggerMatcher struct {
+// Matcher checks if the trigger should be fired or not.
+type Matcher struct {
 	Trigger Trigger
 	// On is a string representing the condition of the trigger
 	// fire event.  It is the prefix of file path such as
@@ -136,9 +136,9 @@ func Load(loader SymbolLoader, config map[string]interface{}) (Trigger, error) {
 	return newFunc(config)
 }
 
-func NewTriggerMatchers(triggers []*utils.TriggerSetting) []*TriggerMatcher {
+func NewTriggerMatchers(triggers []*utils.TriggerSetting) []*Matcher {
 	log.Info("InitializeTriggers")
-	var triggerMatchers []*TriggerMatcher
+	var triggerMatchers []*Matcher
 
 	for _, triggerSetting := range triggers {
 		log.Info("triggerSetting = %v", triggerSetting)
@@ -152,7 +152,7 @@ func NewTriggerMatchers(triggers []*utils.TriggerSetting) []*TriggerMatcher {
 	return triggerMatchers
 }
 
-func NewTriggerMatcher(ts *utils.TriggerSetting) *TriggerMatcher {
+func NewTriggerMatcher(ts *utils.TriggerSetting) *Matcher {
 	loader, err := plugins.NewSymbolLoader(ts.Module)
 	if err != nil {
 		log.Error("Unable to open plugin for trigger in %s: %v", ts.Module, err)
@@ -166,15 +166,15 @@ func NewTriggerMatcher(ts *utils.TriggerSetting) *TriggerMatcher {
 	return NewMatcher(trig, ts.On)
 }
 
-// NewMatcher creates a new TriggerMatcher.
-func NewMatcher(trigger Trigger, on string) *TriggerMatcher {
-	return &TriggerMatcher{
+// NewMatcher creates a new Matcher.
+func NewMatcher(trigger Trigger, on string) *Matcher {
+	return &Matcher{
 		Trigger: trigger, On: on,
 	}
 }
 
 // Match returns true if keyPath matches the On condition.
-func (tm *TriggerMatcher) Match(keyPath string) bool {
+func (tm *Matcher) Match(keyPath string) bool {
 	pattern := strings.Replace(tm.On, "*", "[^/]+", -1)
 	matched, _ := regexp.MatchString(pattern, keyPath)
 	return matched

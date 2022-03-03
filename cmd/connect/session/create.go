@@ -38,10 +38,6 @@ func (c *Client) getinfo(line string) {
 	*/
 
 	tbkP := io.NewTimeBucketKey(args[0])
-	if tbkP == nil {
-		log.Error("Failed to convert argument to key: %s\n", args[0])
-		return
-	}
 	resp, err := c.GetBucketInfo(tbkP)
 	if err != nil {
 		log.Error("Failed with error: %s\n", err.Error())

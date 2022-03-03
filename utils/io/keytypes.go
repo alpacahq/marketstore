@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/alpacahq/marketstore/v4/utils"
 )
 
@@ -55,12 +53,12 @@ func NewTimeBucketKeyFromWalKeyPath(walKeyPath string) (tbk *TimeBucketKey, year
 	group := wkpRegex.FindStringSubmatch(walKeyPath)
 	// group should be like {"AAPL/1Min/Tick/2020.bin","AAPL","1Min","Tick","2020"} (len:5, cap:5)
 	if len(group) != foundMatchLen {
-		return nil, 0, errors.New(fmt.Sprintf("failed to extract TBK info from WalKeyPath:%v", walKeyPath))
+		return nil, 0, fmt.Errorf("failed to extract TBK info from WalKeyPath:%v", walKeyPath)
 	}
 
 	year, err = strconv.Atoi(group[4])
 	if err != nil {
-		return nil, 0, errors.New(fmt.Sprintf("failed to extract year from WalKeyPath:%s", group[3]))
+		return nil, 0, fmt.Errorf("failed to extract year from WalKeyPath:%s", group[3])
 	}
 
 	return NewTimeBucketKey(fmt.Sprintf("%s/%s/%s", group[1], group[2], group[3])), year, nil

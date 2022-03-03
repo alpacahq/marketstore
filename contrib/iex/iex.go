@@ -395,9 +395,8 @@ func onceDaily(lastDailyRunDate *int, runHour, runMinute int) bool {
 	if *lastDailyRunDate == 0 || (*lastDailyRunDate != now.Day() && runHour == now.Hour() && runMinute <= now.Minute()) {
 		*lastDailyRunDate = now.Day()
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 func main() {

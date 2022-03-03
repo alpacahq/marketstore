@@ -36,10 +36,10 @@ type CandleCandler struct {
 	*candler.Candler
 }
 
-func (c CandleCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (ica uda.AggInterface, err error) {
+func (ca CandleCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (ica uda.AggInterface, err error) {
 	cl := candler.Candler{}
-	ca, err := cl.New(argMap, args...)
-	return &CandleCandler{ca}, err
+	ca2, err := cl.New(argMap, args...)
+	return &CandleCandler{ca2}, err
 }
 
 func (ca *CandleCandler) GetRequiredArgs() []io.DataShape {

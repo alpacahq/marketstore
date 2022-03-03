@@ -43,7 +43,7 @@ func DataShapesFromInputString(inputStr string) (dsa []DataShape, err error) {
 	for _, group := range splitString {
 		twoParts := strings.Split(group, "/")
 		if len(twoParts) != 2 {
-			err = fmt.Errorf("error: %s: Data shape is not described by a list of column names followed by type.", group)
+			err = fmt.Errorf("error: %s: Data shape is not described by a list of column names followed by type", group)
 			return nil, err
 		}
 		elementNames := strings.Split(twoParts[0], ",")
@@ -89,7 +89,7 @@ func (ds *DataShape) toBytes() ([]byte, error) {
 func dsFromBytes(buf []byte) (ds DataShape, cursor int) {
 	cursor = 0
 	dsNameLen := int(ToUint8(buf[cursor : cursor+1]))
-	cursor += 1
+	cursor ++
 	dsName := ToString(buf[cursor : cursor+dsNameLen])
 	cursor += dsNameLen
 	dsType := EnumElementType(buf[cursor])
@@ -110,7 +110,7 @@ func DSVFromBytes(buf []byte) (dataShape []DataShape, byteLength int) {
 	ret := make([]DataShape, dsLen)
 
 	// deserializes each data shape
-	cursor += 1
+	cursor ++
 	for i := 0; i < dsLen; i++ {
 		ds, l := dsFromBytes(buf[cursor:])
 		ret[i] = ds

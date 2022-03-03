@@ -29,17 +29,17 @@ func TestTimeToIntervals(t *testing.T) {
 	utils.InstanceConfig.Timezone = time.UTC
 	index = io.TimeToIndex(t1, time.Minute)
 
-	o_t1 := io.IndexToTime(index, time.Minute, 2016)
-	// fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
-	assert.Equal(t, o_t1.Hour(), 21)
-	assert.Equal(t, o_t1.Minute(), 59)
-	assert.Equal(t, o_t1.Second(), 0)
+	oT1 := io.IndexToTime(index, time.Minute, 2016)
+	// fmt.Println("Index Time: ", oT1, " Minutes: ", oT1.Minute(), " Seconds: ", oT1.Second())
+	assert.Equal(t, oT1.Hour(), 21)
+	assert.Equal(t, oT1.Minute(), 59)
+	assert.Equal(t, oT1.Second(), 0)
 
-	o_t1 = io.IndexToTimeDepr(index, 1440, 2016)
-	t.Log("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
-	assert.Equal(t, o_t1.Hour(), 21)
-	assert.Equal(t, o_t1.Minute(), 59)
-	assert.Equal(t, o_t1.Second(), 0)
+	oT1 = io.IndexToTimeDepr(index, 1440, 2016)
+	t.Log("Index Time: ", oT1, " Minutes: ", oT1.Minute(), " Seconds: ", oT1.Second())
+	assert.Equal(t, oT1.Hour(), 21)
+	assert.Equal(t, oT1.Minute(), 59)
+	assert.Equal(t, oT1.Second(), 0)
 
 	ticks := io.GetIntervalTicks32Bit(t1, index, 1440)
 	t.Logf("Interval ticks = \t\t\t\t %d\n", int(ticks))

@@ -10,12 +10,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-// ShelfHandler gets executed by a shelf on its packages.
-type ShelfHandler *func(tbk io.TimeBucketKey, data interface{}) error
+// Handler gets executed by a shelf on its packages.
+type Handler *func(tbk io.TimeBucketKey, data interface{}) error
 
-// NewShelfHandler creates a new ShelfHandler from a supplied function.
-func NewShelfHandler(f func(tbk io.TimeBucketKey, data interface{}) error) ShelfHandler {
-	return ShelfHandler(&f)
+// NewShelfHandler creates a new Handler from a supplied function.
+func NewShelfHandler(f func(tbk io.TimeBucketKey, data interface{}) error) Handler {
+	return &f
 }
 
 // Shelf stores packages, which have shelf lives (^^) and are
@@ -23,11 +23,11 @@ func NewShelfHandler(f func(tbk io.TimeBucketKey, data interface{}) error) Shelf
 type Shelf struct {
 	sync.Mutex
 	m       map[string]*Package
-	handler ShelfHandler
+	handler Handler
 }
 
 // NewShelf initializes a new shelf with the provided handler function.
-func NewShelf(h ShelfHandler) *Shelf {
+func NewShelf(h Handler) *Shelf {
 	return &Shelf{
 		m:       map[string]*Package{},
 		handler: h,
@@ -98,7 +98,7 @@ func (p *Package) Stop() {
 // Start causes the package to begin listening to it's context's
 // done channel which is set by the deadline passed to the context.
 // This is done in a separate goroutine.
-func (p *Package) Start(tbk *io.TimeBucketKey, h ShelfHandler) {
+func (p *Package) Start(tbk *io.TimeBucketKey, h Handler) {
 	p.stopped.Store(false)
 
 	go func() {
