@@ -25,6 +25,27 @@ var (
 		AskSize:   7,
 		Timestamp: time.Unix(8, 0),
 	}
+	exampleDailyBar = &v2.Bar{
+		Open:      9,
+		High:      10,
+		Low:       11,
+		Close:     12,
+		Volume:    13,
+	}
+	examplePreviousDailyBar = &v2.Bar{
+		Open:      14,
+		High:      15,
+		Low:       16,
+		Close:     17,
+		Volume:    18,
+	}
+	exampleMinuteBar = &v2.Bar{
+		Open:      19,
+		High:      20,
+		Low:       21,
+		Close:     22,
+		Volume:    23,
+	}
 )
 
 func TestSnapshotWriterImpl_Write(t *testing.T) {
@@ -53,6 +74,9 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 				"AAPL": {
 					LatestTrade: exampleTrade,
 					LatestQuote: exampleQuote,
+					DailyBar: exampleDailyBar,
+					MinuteBar: exampleMinuteBar,
+					PrevDailyBar: examplePreviousDailyBar,
 				},
 				"AMZN": nil, // nil snapshot must be ignored
 				"FB": {
@@ -68,10 +92,32 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 			wantTBKs: []io.TimeBucketKey{*io.NewTimeBucketKey("AAPL/1Sec/TICK")},
 			wantCSMDataShapes: []io.DataShape{
 				{Name: "Epoch", Type: io.INT64},
+				{Name: "QuoteTimestamp", Type: io.INT64},
 				{Name: "Ask", Type: io.FLOAT64},
 				{Name: "AskSize", Type: io.UINT32},
 				{Name: "Bid", Type: io.FLOAT64},
 				{Name: "BidSize", Type: io.UINT32},
+				{Name: "TradeTimestamp", Type: io.INT64},
+				{Name: "Price", Type: io.FLOAT64},
+				{Name: "Size", Type: io.UINT32},
+				{Name: "DailyTimestamp", Type: io.INT64},
+				{Name: "Open", Type: io.FLOAT64},
+				{Name: "High", Type: io.FLOAT64},
+				{Name: "Low", Type: io.FLOAT64},
+				{Name: "Close", Type: io.FLOAT64},
+				{Name: "Volume", Type: io.UINT64},
+				{Name: "MinuteTimestamp", Type: io.INT64},
+				{Name: "MinuteOpen", Type: io.FLOAT64},
+				{Name: "MinuteHigh", Type: io.FLOAT64},
+				{Name: "MinuteLow", Type: io.FLOAT64},
+				{Name: "MinuteClose", Type: io.FLOAT64},
+				{Name: "MinuteVolume", Type: io.UINT64},
+				{Name: "PreviousTimestamp", Type: io.INT64},
+				{Name: "PreviousOpen", Type: io.FLOAT64},
+				{Name: "PreviousHigh", Type: io.FLOAT64},
+				{Name: "PreviousLow", Type: io.FLOAT64},
+				{Name: "PreviousClose", Type: io.FLOAT64},
+				{Name: "PreviousVolume", Type: io.UINT64},
 			},
 			wantCSMLen: 1,
 		},
