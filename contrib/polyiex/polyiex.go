@@ -29,7 +29,7 @@ type FetcherConfig struct {
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}
-	json.Unmarshal(data, &config)
+	_ = json.Unmarshal(data, &config)
 
 	if config.APIKey == "" {
 		err := errors.New("[polyiex]: api_key is required")
@@ -54,8 +54,14 @@ func (pf *PolyIEXFetcher) Run() {
 	api.SetAPIKey(pf.config.APIKey)
 	api.SetBaseURL(pf.config.BaseURL)
 
-	api.Stream(handlers.Tick, api.TradePrefix, nil)
-	api.Stream(handlers.Tick, api.BookPrefix, nil)
+	err := api.Stream(handlers.Tick, api.TradePrefix, nil)
+	if err != nil {
+		log.Error("PolyIEXFetcher error(Trade):" + err.Error())
+	}
+	err = api.Stream(handlers.Tick, api.BookPrefix, nil)
+	if err != nil {
+		log.Error("PolyIEXFetcher error(Book):" + err.Error())
+	}
 
 	select {}
 }

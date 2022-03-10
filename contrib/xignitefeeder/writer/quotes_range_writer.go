@@ -25,10 +25,7 @@ type QuotesRangeWriterImpl struct {
 // to a ColumnSeriesMap and write it to the local marketstore server.
 func (q *QuotesRangeWriterImpl) Write(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool) error {
 	// convert Quotes Data to CSM (ColumnSeriesMap)
-	csm, err := q.convertToCSM(symbol, quotes, isIndexSymbol)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from Quotes Data. symbol=%s, quotes=%v", symbol, quotes))
-	}
+	csm := q.convertToCSM(symbol, quotes, isIndexSymbol)
 
 	// write CSM to marketstore
 	if err := q.MarketStoreWriter.Write(csm); err != nil {
@@ -39,7 +36,7 @@ func (q *QuotesRangeWriterImpl) Write(symbol string, quotes []api.EndOfDayQuote,
 }
 
 func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool,
-) (io.ColumnSeriesMap, error) {
+) io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 	var epochs []int64
 	var opens []float32
@@ -81,14 +78,14 @@ func (q *QuotesRangeWriterImpl) convertToCSM(symbol string, quotes []api.EndOfDa
 	// to avoid that empty array is added to csm when all data are Volume=0 and there is no data to write
 	if len(epochs) == 0 {
 		// no data to write.
-		return csm, nil
+		return csm
 	}
 
 	tbk := io.NewTimeBucketKey(symbol + "/" + q.Timeframe + "/OHLCV")
 	cs := q.newColumnSeries(epochs, opens, closes, highs, lows, previousCloses, exchangeOfficialCloses,
 		previousExchangeOfficialClose, changeFromPreviousClose, percentChangeFromPreviousClose, volumes)
 	csm.AddColumnSeries(*tbk, cs)
-	return csm, nil
+	return csm
 }
 
 func (q QuotesRangeWriterImpl) newColumnSeries(

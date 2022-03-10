@@ -58,15 +58,15 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	req.Header.Set("Content-Type", "application/x-msgpack")
 	client := new(http.Client)
 	resp, err := client.Do(req)
+	defer func(resp *http.Response) {
+		if err2 := resp.Body.Close(); err2 != nil {
+			log.Error(fmt.Sprintf("failed to close http client for marketstore api. err=%v", err2))
+		}
+	}(resp)
 	if err != nil {
 		return nil, err
 	}
-	defer func(Body goio.ReadCloser) {
-		if err2 := Body.Close(); err2 != nil {
-			log.Error(fmt.Sprintf("failed to close http client for marketstore api. err=%v", err2))
-		}
-	}(resp.Body)
-
+	
 	// Handle any error in the RPC call
 	const statusOK = 200
 	if resp.StatusCode != statusOK {
@@ -136,7 +136,12 @@ func (cl *Client) Subscribe(
 	u, _ := url.Parse(cl.BaseURL + "/ws")
 	u.Scheme = "ws"
 
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	conn, resp, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	defer func(Body goio.ReadCloser) {
+		if err2 := Body.Close(); err2 != nil {
+			log.Error("failed to close websocket response body:" + err2.Error())
+		}
+	}(resp.Body)
 	if err != nil {
 		return nil, err
 	}

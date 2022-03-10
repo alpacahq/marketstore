@@ -161,14 +161,10 @@ func (c *DefaultClient) ListIndexSymbols(ctx context.Context, indexGroup string,
 	return response, nil
 }
 
-// GetRealTimeBars calls GetBars endpoint of Xignite API with a specified identifier, time period
-// and Precision=FiveMinutes, and returns the parsed API response
-// https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetBars
-func (c *DefaultClient) GetRealTimeBars(ctx context.Context, identifier string, start, end time.Time,
-) (response GetBarsResponse, err error) {
-	form := url.Values{
+func getBarsURLValues(token, identifier string, start, end time.Time) url.Values{
+	return url.Values{
 		"IdentifierType":   {"Symbol"},
-		"_token":           {c.token},
+		"_token":           {token},
 		"Identifier":       {identifier},
 		"StartDateTime":    {start.Format(XigniteDateTimeLayout)},
 		"EndDateTime":      {end.Format(XigniteDateTimeLayout)},
@@ -176,6 +172,14 @@ func (c *DefaultClient) GetRealTimeBars(ctx context.Context, identifier string, 
 		"AdjustmentMethod": {"All"},
 		"Language":         {"Japanese"},
 	}
+}
+
+// GetRealTimeBars calls GetBars endpoint of Xignite API with a specified identifier, time period
+// and Precision=FiveMinutes, and returns the parsed API response
+// https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetBars
+func (c *DefaultClient) GetRealTimeBars(ctx context.Context, identifier string, start, end time.Time,
+) (response GetBarsResponse, err error) {
+	form := getBarsURLValues(c.token, identifier, start, end)
 	req, err := http.NewRequestWithContext(ctx, "POST", GetBarsURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
@@ -197,16 +201,7 @@ func (c *DefaultClient) GetRealTimeBars(ctx context.Context, identifier string, 
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexRealTime/Overview/GetBars
 func (c *DefaultClient) GetIndexBars(ctx context.Context, identifier string, start, end time.Time,
 ) (response GetIndexBarsResponse, err error) {
-	form := url.Values{
-		"IdentifierType":   {"Symbol"},
-		"_token":           {c.token},
-		"Identifier":       {identifier},
-		"StartDateTime":    {start.Format(XigniteDateTimeLayout)},
-		"EndDateTime":      {end.Format(XigniteDateTimeLayout)},
-		"Precision":        {"FiveMinutes"},
-		"AdjustmentMethod": {"All"},
-		"Language":         {"Japanese"},
-	}
+	form := getBarsURLValues(c.token, identifier, start, end)
 	req, err := http.NewRequestWithContext(ctx,
 		"POST", GetIndexBarsURL, strings.NewReader(form.Encode()))
 	if err != nil {

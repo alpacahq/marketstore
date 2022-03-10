@@ -28,8 +28,9 @@ type AlpacaWebSocket struct {
 }
 
 func NewAlpacaWebSocket(cfg *config.Config, oChan chan<- interface{}) *AlpacaWebSocket {
+	const defaultMaxMessageSizeInBytes = 2048000
 	return &AlpacaWebSocket{
-		maxMessageSize: 2048000,
+		maxMessageSize: defaultMaxMessageSizeInBytes,
 		pingPeriod:     10 * time.Second,
 		server:         cfg.WSServer,
 		apiKey:         cfg.APIKey,
@@ -94,6 +95,7 @@ func (p *AlpacaWebSocket) listen() error {
 }
 
 func (p *AlpacaWebSocket) setReadDeadline() error {
+	// nolint:gomnd // specifying a value slightly larger than the ping period
 	return p.conn.SetReadDeadline(time.Now().Add((p.pingPeriod * 6) / 5))
 }
 
@@ -121,6 +123,11 @@ func (p *AlpacaWebSocket) connect() (err error) {
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 2 * time.Second
 	p.conn, hresp, err = dialer.Dial(p.server, nil)
+	defer func(Body io.ReadCloser) {
+		if err2 := Body.Close(); err2 != nil {
+			log.Error("failed to close websocket response body:" + err2.Error())
+		}
+	}(hresp.Body)
 	if err != nil {
 		if hresp != nil {
 			body, _ := io.ReadAll(hresp.Body)

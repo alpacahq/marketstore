@@ -35,8 +35,13 @@ func TestStream(t *testing.T) {
 	u, _ := url.Parse(srv.URL + "/ws")
 	u.Scheme = "ws"
 
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	defer conn.Close()
+	conn, resp, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	defer func(conn *websocket.Conn) {
+		err1 := resp.Body.Close()
+		if err2 := conn.Close(); err1 != nil || err2 != nil {
+			log.Error("failed to close websocket connection")
+		}
+	}(conn)
 	assert.Nil(t, err)
 
 	// AAPL 5Min bars & all daily bars
@@ -45,29 +50,6 @@ func TestStream(t *testing.T) {
 	streamCount := map[string]int{}
 	for _, key := range streamKeys {
 		streamCount[key] = 0
-	}
-
-	handler := func(buf []byte) error {
-		var payload *stream.Payload
-		err2 := msgpack.Unmarshal(buf, &payload)
-		assert.Nil(t, err2)
-
-		payload.Key = strings.Replace(payload.Key, "NVDA", "*", 1)
-		if count, ok := streamCount[payload.Key]; !ok {
-			t.Fatalf("invalid stream key in payload: %v", *payload)
-		} else {
-			streamCount[payload.Key] = count + 1
-		}
-
-		if count1, ok := streamCount[streamKeys[0]]; ok {
-			if count2, ok := streamCount[streamKeys[1]]; ok {
-				if count1 == 2 && count2 == 1 {
-					conn.Close()
-				}
-			}
-		}
-
-		return nil
 	}
 
 	buf, err := msgpack.Marshal(stream.SubscribeMessage{Streams: streamKeys})
@@ -85,45 +67,35 @@ func TestStream(t *testing.T) {
 	assert.Equal(t, len(subRespMsg.Streams), len(streamKeys))
 
 	bufC := make(chan []byte, 1)
-
-	// read routine (handled in client code normally)
-	go func() {
-		for {
-			msgType, buf, err := conn.ReadMessage()
-			if err != nil {
-				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-					log.Error("unexpected websocket closure (%v)", err)
-				}
-				close(bufC)
-				return
-			}
-
-			switch msgType {
-			case websocket.TextMessage, websocket.BinaryMessage:
-				bufC <- buf
-			case websocket.CloseMessage:
-				return
-			}
-		}
-	}()
+	go readRoutine(conn, bufC)
 
 	// write data
 	for i := 0; i < 2; i++ {
 		tbk := io.NewTimeBucketKey("AAPL/5Min/OHLCV")
-		stream.Push(*tbk, genColumns())
+		err = stream.Push(*tbk, genColumns())
+		assert.Nil(t, err)
 	}
 
 	tbk := io.NewTimeBucketKey("NVDA/1D/OHLCV")
-	stream.Push(*tbk, genColumns())
+	err = stream.Push(*tbk, genColumns())
+	assert.Nil(t, err)
+
+	total := 3 // "AAPL/5Min/OHLCV"=2, "NVDA/1D/OHLCV"=1
+	count := 0
 
 	timer := time.NewTimer(5 * time.Second)
 
+	var receivedBufs [][]byte
 	for {
 		finished := false
 		select {
 		case buf, ok := <-bufC:
 			if ok {
-				assert.Nil(t, handler(buf))
+				receivedBufs = append(receivedBufs, buf)
+				count++
+				if count == total {
+					conn.Close()
+				}
 			} else {
 				finished = true
 			}
@@ -132,6 +104,28 @@ func TestStream(t *testing.T) {
 		}
 		if finished {
 			break
+		}
+	}
+	handlePayload(t, receivedBufs, map[string]int{"AAPL/5Min/OHLCV": 2, "*/1D/OHLCV": 1})
+}
+
+func readRoutine(conn *websocket.Conn, bufC chan []byte) {
+	// read routine (handled in client code normally)
+	for {
+		msgType, buf, err := conn.ReadMessage()
+		if err != nil {
+			if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+				log.Error("unexpected websocket closure (%v)", err)
+			}
+			close(bufC)
+			return
+		}
+
+		switch msgType {
+		case websocket.TextMessage, websocket.BinaryMessage:
+			bufC <- buf
+		case websocket.CloseMessage:
+			return
 		}
 	}
 }
@@ -144,5 +138,33 @@ func genColumns() map[string]interface{} {
 		"Close":  float32(1.5),
 		"Volume": int32(10),
 		"Epoch":  int64(123456789),
+	}
+}
+
+func handlePayload(t *testing.T, bufs [][]byte, expectedStreamKeyCount map[string]int) {
+	t.Helper()
+
+	streamCount := make(map[string]int)
+	for streamKey := range expectedStreamKeyCount {
+		streamCount[streamKey] = 0
+	}
+
+	for _, buf := range bufs {
+		var payload *stream.Payload
+		err2 := msgpack.Unmarshal(buf, &payload)
+		assert.Nil(t, err2)
+
+		payload.Key = strings.Replace(payload.Key, "NVDA", "*", 1)
+		if count, ok := streamCount[payload.Key]; !ok {
+			t.Fatalf("invalid stream key in payload: %v", *payload)
+		} else {
+			streamCount[payload.Key] = count + 1
+		}
+	}
+
+	for streamKey := range expectedStreamKeyCount {
+		count, ok := streamCount[streamKey]
+		assert.True(t, ok)
+		assert.Equal(t, expectedStreamKeyCount[streamKey], count)
 	}
 }
