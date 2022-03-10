@@ -13,11 +13,11 @@ type AlpacaMessage struct {
 // Trade is a trade.
 type Trade struct {
 	// event name, always “T”
-	eventType string `json:"-"` // ev
+	// eventType string `json:"-"` // ev
 	// symbol
 	Symbol string `json:"T"`
 	// trade ID
-	tradeID int `json:"-"` // i
+	// tradeID int `json:"-"` // i
 	// exchange code where the trade occurred
 	Exchange int `json:"x"`
 	// trade price
@@ -41,7 +41,7 @@ type AlpacaTrade struct {
 // Quote is a quote.
 type Quote struct {
 	// event name, always “Q”
-	eventType string `json:"-"` // ev
+	// eventType string `json:"-"` // ev
 	// symbol
 	Symbol string `json:"T"`
 	// exchange code for bid quote
@@ -72,15 +72,15 @@ type AlpacaQuote struct {
 // AggregateToMinute is a minute aggregate.
 type AggregateToMinute struct {
 	// event name, always “AM”
-	eventType string `json:"-"` // ev
+	// eventType string `json:"-"` // ev
 	// symbol
 	Symbol string `json:"T"`
 	// volume (shares)
 	Volume uint64 `json:"v"`
 	// accumulated volume (shares)
-	accumVolume uint64 `json:"-"` // av
+	// accumVolume uint64 `json:"-"` // av
 	// official open price of the bar
-	officialOpen float64 `json:"-"` // op
+	// officialOpen float64 `json:"-"` // op
 	// VWAP (Volume Weighted Average Price)
 	VWAP float64 `json:"vw"`
 	// open price of the bar

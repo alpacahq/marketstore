@@ -38,7 +38,7 @@ func executeInit(*cobra.Command, []string) error {
 	}
 
 	// write mkts.yml to current directory.
-	err = os.WriteFile("mkts.yml", defaultYmlBinary, 0o644)
+	err = os.WriteFile("mkts.yml", defaultYmlBinary, 0o600)
 	if err != nil {
 		return err
 	}

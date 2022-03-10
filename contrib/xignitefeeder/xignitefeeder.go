@@ -20,6 +20,7 @@ import (
 
 // NewBgWorker returns the new instance of XigniteFeeder.
 // See configs.Config for the details of available configurations.
+// nolint:deadcode // used by plugin
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config, err := configs.NewConfig(conf)
 	if err != nil {

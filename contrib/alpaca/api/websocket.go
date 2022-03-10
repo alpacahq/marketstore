@@ -110,7 +110,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 					backoff = sleepLimit
 				}
 			}
-			jitter := time.Duration(random.Intn(1e3)) * time.Millisecond
+			jitter := time.Duration(random.Intn(1000)) * time.Millisecond
 			log.Info("[alpaca] backing off for %s", backoff)
 			time.Sleep(backoff + jitter)
 		}

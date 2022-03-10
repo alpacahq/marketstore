@@ -27,10 +27,7 @@ type QuotesWriterImpl struct {
 // Write converts the Response of the GetQuotes API to a ColumnSeriesMap and write it to the local marketstore server.
 func (q QuotesWriterImpl) Write(quotes api.GetQuotesResponse) error {
 	// convert Quotes Data to CSM (ColumnSeriesMap)
-	csm, err := q.convertToCSM(quotes)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from Quotes Data. %v", quotes))
-	}
+	csm := q.convertToCSM(quotes)
 
 	// write CSM to marketstore
 	if err := q.MarketStoreWriter.Write(csm); err != nil {
@@ -41,7 +38,7 @@ func (q QuotesWriterImpl) Write(quotes api.GetQuotesResponse) error {
 	return nil
 }
 
-func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.ColumnSeriesMap, error) {
+func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 
 	for _, eq := range response.ArrayOfEquityQuote {
@@ -67,7 +64,7 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 		csm.AddColumnSeries(*tbk, cs)
 	}
 
-	return csm, nil
+	return csm
 }
 
 func (q QuotesWriterImpl) newColumnSeries(epoch int64, eq api.EquityQuote) *io.ColumnSeries {
