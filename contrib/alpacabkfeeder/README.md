@@ -34,6 +34,13 @@ bgworkers:
       # environment variables.
       api_key_id: "foobar"
       api_secret_key: "fizzbuzz"
+      # Timeout: Due to the restriction of the Alpaca API Client library used in this plugin,
+      # Alpaca API Client timeout can be updated only by "APCA_API_CLIENT_TIMEOUT" environmental variable.
+      # Please set the env var to a duration string is a possibly signed sequence of
+      # decimal numbers, each with optional fraction and a unit suffix,
+      # such as "300ms", "5.5s" if you want to change it from the default 10sec timeout.
+      # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+      # 
       # Interval [sec] to call Alpaca Broker API
       interval: 10
       # If a non-zero value is set for off_hours_interval,
