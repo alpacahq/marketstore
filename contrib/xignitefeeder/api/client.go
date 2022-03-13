@@ -161,7 +161,7 @@ func (c *DefaultClient) ListIndexSymbols(ctx context.Context, indexGroup string,
 	return response, nil
 }
 
-func getBarsURLValues(token, identifier string, start, end time.Time) url.Values{
+func getBarsURLValues(token, identifier string, start, end time.Time) url.Values {
 	return url.Values{
 		"IdentifierType":   {"Symbol"},
 		"_token":           {token},

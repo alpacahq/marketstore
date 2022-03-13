@@ -135,7 +135,6 @@ func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string, 
 		} else {
 			log.Warn("Cannot map CUSIP %s to Symbol", notes[i].TargetCusip)
 		}
-
 	}
 	return nil
 }

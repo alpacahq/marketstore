@@ -138,29 +138,29 @@ func writeQuotes(writeMap map[io.TimeBucketKey][]*quote) {
 	)
 	csm = io.NewColumnSeriesMap()
 	for tbk, bucket := range writeMap {
-			for _, q := range bucket {
-				epoch = append(epoch, q.epoch)
-				nanos = append(nanos, q.nanos)
-				bidPx = append(bidPx, q.bidPx)
-				askPx = append(askPx, q.askPx)
-				bidSz = append(bidSz, q.bidSz)
-				askSz = append(askSz, q.askSz)
-			}
-			if len(epoch) > 0 {
-				csm.AddColumn(tbk, "Epoch", epoch)
-				csm.AddColumn(tbk, "Nanoseconds", nanos)
-				csm.AddColumn(tbk, "BidPrice", bidPx)
-				csm.AddColumn(tbk, "AskPrice", askPx)
-				csm.AddColumn(tbk, "BidSize", bidSz)
-				csm.AddColumn(tbk, "AskSize", askSz)
-				// trim the slices
-				epoch = epoch[:0]
-				nanos = nanos[:0]
-				bidPx = bidPx[:0]
-				bidSz = bidSz[:0]
-				askPx = bidPx[:0]
-				askSz = askSz[:0]
-			}
+		for _, q := range bucket {
+			epoch = append(epoch, q.epoch)
+			nanos = append(nanos, q.nanos)
+			bidPx = append(bidPx, q.bidPx)
+			askPx = append(askPx, q.askPx)
+			bidSz = append(bidSz, q.bidSz)
+			askSz = append(askSz, q.askSz)
+		}
+		if len(epoch) > 0 {
+			csm.AddColumn(tbk, "Epoch", epoch)
+			csm.AddColumn(tbk, "Nanoseconds", nanos)
+			csm.AddColumn(tbk, "BidPrice", bidPx)
+			csm.AddColumn(tbk, "AskPrice", askPx)
+			csm.AddColumn(tbk, "BidSize", bidSz)
+			csm.AddColumn(tbk, "AskSize", askSz)
+			// trim the slices
+			epoch = epoch[:0]
+			nanos = nanos[:0]
+			bidPx = bidPx[:0]
+			bidSz = bidSz[:0]
+			askPx = bidPx[:0]
+			askSz = askSz[:0]
+		}
 	}
 
 	if err := executor.WriteCSM(csm, true); err != nil {

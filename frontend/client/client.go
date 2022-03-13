@@ -66,7 +66,7 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Handle any error in the RPC call
 	const statusOK = 200
 	if resp.StatusCode != statusOK {

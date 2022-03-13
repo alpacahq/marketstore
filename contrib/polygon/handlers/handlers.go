@@ -156,7 +156,6 @@ func appendTrade(writeMap map[io.TimeBucketKey][]*trade, tbkp *io.TimeBucketKey,
 	if bucket, ok := writeMap[tbk]; ok {
 		bucket = append(bucket, tr)
 		writeMap[tbk] = bucket
-
 	} else {
 		writeMap[tbk] = []*trade{tr}
 	}
