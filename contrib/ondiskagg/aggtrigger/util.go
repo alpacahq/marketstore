@@ -12,6 +12,7 @@ func (tfs *timeframes) UpperBound() (tf *utils.Timeframe) {
 	}
 
 	for _, t := range *tfs {
+		t := t
 		if tf == nil {
 			tf = &t
 			continue

@@ -48,7 +48,7 @@ func TradeHandler(msg []byte) {
 			"error", err.Error())
 		return
 	}
-	writeMap := make(map[io.TimeBucketKey]interface{})
+	writeMap := make(map[io.TimeBucketKey][]*trade)
 	for _, rt := range tt {
 		switch {
 		case conditionsPresent(rt.Conditions), rt.Size <= 0, rt.Price <= 0:
@@ -64,10 +64,10 @@ func TradeHandler(msg []byte) {
 			px:    rt.Price,
 		}
 		key := fmt.Sprintf("%s/1Sec/TRADE", strings.Replace(rt.Symbol, "/", ".", 1))
-		appendItem(writeMap, io.NewTimeBucketKey(key), &t)
+		appendTrade(writeMap, io.NewTimeBucketKey(key), &t)
 		_ = lagOnReceipt
 	}
-	Write(writeMap)
+	writeTrades(writeMap)
 
 	metrics.PolygonStreamLastUpdate.WithLabelValues("trade").SetToCurrentTime()
 }
@@ -86,7 +86,7 @@ func QuoteHandler(msg []byte) {
 			"error", err.Error())
 		return
 	}
-	writeMap := make(map[io.TimeBucketKey]interface{})
+	writeMap := make(map[io.TimeBucketKey][]*quote)
 	for _, rq := range qq {
 		timestamp := time.Unix(0, int64(1000*1000*float64(rq.Timestamp)))
 		lagOnReceipt := time.Since(timestamp).Seconds()
@@ -99,10 +99,10 @@ func QuoteHandler(msg []byte) {
 			askSz: uint64(rq.AskSize),
 		}
 		key := fmt.Sprintf("%s/1Min/QUOTE", strings.Replace(rq.Symbol, "/", ".", 1))
-		appendItem(writeMap, io.NewTimeBucketKey(key), &q)
+		appendQuote(writeMap, io.NewTimeBucketKey(key), &q)
 		_ = lagOnReceipt
 	}
-	Write(writeMap)
+	writeQuotes(writeMap)
 
 	metrics.PolygonStreamLastUpdate.WithLabelValues("quote").SetToCurrentTime()
 }
@@ -151,23 +151,23 @@ func BarsHandler(msg []byte) {
 	metrics.PolygonStreamLastUpdate.WithLabelValues("bar").SetToCurrentTime()
 }
 
-func appendItem(writeMap map[io.TimeBucketKey]interface{}, tbkp *io.TimeBucketKey, item interface{}) {
+func appendTrade(writeMap map[io.TimeBucketKey][]*trade, tbkp *io.TimeBucketKey, tr *trade) {
 	tbk := *tbkp
-	if bucketI, ok := writeMap[tbk]; ok {
-		switch bucket := bucketI.(type) {
-		case []*trade:
-			bucket = append(bucket, item.(*trade))
-			writeMap[tbk] = bucket
-		case []*quote:
-			bucket = append(bucket, item.(*quote))
-			writeMap[tbk] = bucket
-		}
+	if bucket, ok := writeMap[tbk]; ok {
+		bucket = append(bucket, tr)
+		writeMap[tbk] = bucket
+
 	} else {
-		switch val := item.(type) {
-		case *trade:
-			writeMap[tbk] = []*trade{val}
-		case *quote:
-			writeMap[tbk] = []*quote{val}
-		}
+		writeMap[tbk] = []*trade{tr}
+	}
+}
+
+func appendQuote(writeMap map[io.TimeBucketKey][]*quote, tbkp *io.TimeBucketKey, q *quote) {
+	tbk := *tbkp
+	if bucket, ok := writeMap[tbk]; ok {
+		bucket = append(bucket, q)
+		writeMap[tbk] = bucket
+	} else {
+		writeMap[tbk] = []*quote{q}
 	}
 }

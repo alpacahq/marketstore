@@ -23,8 +23,7 @@ var ShowSecurityMasterCmd = &cobra.Command{
 	accumulated from the last snapshot and including the current file`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			cmd.Help()
-			return nil
+			return cmd.Help()
 		}
 		fileName := args[0]
 		basePath := filepath.Dir(fileName)
