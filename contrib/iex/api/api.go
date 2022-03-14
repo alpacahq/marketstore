@@ -199,7 +199,6 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 				resp[k] = v
 			}
 		}
-
 	} else {
 		if err = json.Unmarshal(body, &resp); err != nil {
 			return nil, errors.New(res.Status + ": " + string(body))

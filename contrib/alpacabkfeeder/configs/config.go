@@ -66,9 +66,7 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 		return nil, errors.New("must have 1 or more stock exchanges in the config file")
 	}
 
-	ret, err = envOverride(ret)
-
-	return ret, nil
+	return envOverride(ret)
 }
 
 // CustomTime is a date time object in the ctLayout format.
@@ -108,17 +106,17 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 
 // convertSliceType converts a slice of weekday to a slice of time.weekday.
 func convertTime(w []weekday) []time.Weekday {
-	d := make([]time.Weekday, 1)
-	for _, v := range w {
-		d = append(d, time.Weekday(v))
+	d := make([]time.Weekday, len(w))
+	for i := range w {
+		d = append(d, time.Weekday(w[i]))
 	}
 	return d
 }
 
 func convertDate(cd []CustomDay) []time.Time {
-	d := make([]time.Time, 1)
-	for _, v := range cd {
-		d = append(d, time.Time(v))
+	d := make([]time.Time, len(cd))
+	for i := range cd {
+		d = append(d, time.Time(cd[i]))
 	}
 	return d
 }

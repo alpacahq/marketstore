@@ -42,22 +42,22 @@ func (c CandleCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (
 	return &CandleCandler{ca}, err
 }
 
-func (ca *CandleCandler) GetRequiredArgs() []io.DataShape {
+func (c *CandleCandler) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
 
-func (ca *CandleCandler) GetOptionalArgs() []io.DataShape {
+func (c *CandleCandler) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
 
-func (ca *CandleCandler) GetInitArgs() []io.DataShape {
+func (c *CandleCandler) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
+func (c *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
 		return nil, fmt.Errorf("empty input to Accum")
@@ -98,9 +98,9 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 		Prepare a consolidated map of columns for use in updating sums
 	*/
 	var sumCols map[string][]float32
-	if len(ca.AccumSumNames) != 0 {
+	if len(c.AccumSumNames) != 0 {
 		sumCols = make(map[string][]float32)
-		for _, name := range ca.AccumSumNames {
+		for _, name := range c.AccumSumNames {
 			sumCols[name], err = uda.ColumnToFloat32(cols, name)
 			if err != nil {
 				return nil, err
@@ -109,15 +109,15 @@ func (ca *CandleCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap
 	}
 	var candle *candler.Candle
 	for i, t := range ts {
-		candle = ca.GetCandle(t, candle)
+		candle = c.GetCandle(t, candle)
 		candle.AddCandle(t, open[i], high[i], low[i], clos[i])
 		/*
 			Iterate over the candle's named columns that need sums
 		*/
-		for _, name := range ca.AccumSumNames {
+		for _, name := range c.AccumSumNames {
 			candle.SumMap[name] += float64(sumCols[name][i])
 		}
 		candle.Count++
 	}
-	return ca.Output(), nil
+	return c.Output(), nil
 }

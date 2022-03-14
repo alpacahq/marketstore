@@ -12,8 +12,6 @@ type parsePosition struct {
 	end   int
 }
 
-type fieldParserFunc func([]string) string
-
 type parseInfo struct {
 	fieldNo      int
 	line         int

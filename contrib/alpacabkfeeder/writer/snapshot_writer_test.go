@@ -26,25 +26,25 @@ var (
 		Timestamp: time.Unix(8, 0),
 	}
 	exampleDailyBar = &v2.Bar{
-		Open:      9,
-		High:      10,
-		Low:       11,
-		Close:     12,
-		Volume:    13,
+		Open:   9,
+		High:   10,
+		Low:    11,
+		Close:  12,
+		Volume: 13,
 	}
 	examplePreviousDailyBar = &v2.Bar{
-		Open:      14,
-		High:      15,
-		Low:       16,
-		Close:     17,
-		Volume:    18,
+		Open:   14,
+		High:   15,
+		Low:    16,
+		Close:  17,
+		Volume: 18,
 	}
 	exampleMinuteBar = &v2.Bar{
-		Open:      19,
-		High:      20,
-		Low:       21,
-		Close:     22,
-		Volume:    23,
+		Open:   19,
+		High:   20,
+		Low:    21,
+		Close:  22,
+		Volume: 23,
 	}
 )
 
@@ -72,10 +72,10 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 			},
 			snapshots: map[string]*v2.Snapshot{
 				"AAPL": {
-					LatestTrade: exampleTrade,
-					LatestQuote: exampleQuote,
-					DailyBar: exampleDailyBar,
-					MinuteBar: exampleMinuteBar,
+					LatestTrade:  exampleTrade,
+					LatestQuote:  exampleQuote,
+					DailyBar:     exampleDailyBar,
+					MinuteBar:    exampleMinuteBar,
 					PrevDailyBar: examplePreviousDailyBar,
 				},
 				"AMZN": nil, // nil snapshot must be ignored

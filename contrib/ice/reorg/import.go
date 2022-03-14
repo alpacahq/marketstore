@@ -73,7 +73,7 @@ func fileList(path, prefix string, reimport bool) (out []string, err error) {
 			}
 		}
 	}
-	return
+	return out, err
 }
 
 func readAnnouncements(path string) (*[]Announcement, error) {
@@ -120,18 +120,20 @@ func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string, 
 		if notes[i].TargetCusip == "" {
 			continue
 		}
-		if notes[i].Is(enum.StockSplit) || notes[i].Is(enum.ReverseStockSplit) || notes[i].Is(enum.StockDividend) {
-			symbol := cusipSymbolMap[notes[i].TargetCusip]
-			if symbol == "" && storeWithoutSymbol {
-				symbol = notes[i].TargetCusip
+		if !(notes[i].Is(enum.StockSplit) || notes[i].Is(enum.ReverseStockSplit) || notes[i].Is(enum.StockDividend)) {
+			continue
+		}
+
+		symbol := cusipSymbolMap[notes[i].TargetCusip]
+		if symbol == "" && storeWithoutSymbol {
+			symbol = notes[i].TargetCusip
+		}
+		if symbol != "" {
+			if err := storeAnnouncement(symbol, &notes[i]); err != nil {
+				return fmt.Errorf("unable to store Announcement: %w %+v", err, notes[i])
 			}
-			if symbol != "" {
-				if err := storeAnnouncement(symbol, &notes[i]); err != nil {
-					return fmt.Errorf("unable to store Announcement: %w %+v", err, notes[i])
-				}
-			} else {
-				log.Warn("Cannot map CUSIP %s to Symbol", notes[i].TargetCusip)
-			}
+		} else {
+			log.Warn("Cannot map CUSIP %s to Symbol", notes[i].TargetCusip)
 		}
 	}
 	return nil
