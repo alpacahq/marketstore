@@ -4,10 +4,7 @@ import (
 	"encoding/binary"
 	"math"
 
-	_ "go.uber.org/zap"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	_ "github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // RewriteBuffer converts variable_length records to the result buffer.
@@ -78,7 +75,7 @@ func GetTimeFromTicks(intervalStart uint64, intervalsPerDay, intervalTicks uint3
 	subseconds := nanosecond * (fractionalSeconds - math.Floor(fractionalSeconds))
 	if subseconds >= nanosecond {
 		subseconds -= nanosecond
-		fractionalSeconds += 1
+		fractionalSeconds++
 	}
 
 	// in order to keep compatibility with the old rewriteBuffer implemented in C with some round error,

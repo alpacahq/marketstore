@@ -66,12 +66,13 @@ func NewNumpyDataset(cs *ColumnSeries) (nds *NumpyDataset, err error) {
 		nds.ColumnNames = append(nds.ColumnNames, name)
 		colBytes := CastToByteSlice(cs.GetColumn(name))
 		nds.ColumnData = append(nds.ColumnData, colBytes)
-		if typeStr, ok := typeMap[nds.dataShapes[i].Type]; !ok {
+
+		typeStr, ok := typeMap[nds.dataShapes[i].Type]
+		if !ok {
 			log.Error("unsupported type %v", nds.dataShapes[i].String())
 			return nil, fmt.Errorf("unsupported type")
-		} else {
-			nds.ColumnTypes = append(nds.ColumnTypes, typeStr)
 		}
+		nds.ColumnTypes = append(nds.ColumnTypes, typeStr)
 	}
 	return nds, nil
 }
@@ -83,11 +84,12 @@ func (nds *NumpyDataset) Len() int {
 func (nds *NumpyDataset) buildDataShapes() ([]DataShape, error) {
 	etypes := []EnumElementType{}
 	for _, typeStr := range nds.ColumnTypes {
-		if typ, ok := typeStrMap[typeStr]; !ok {
+		typ, ok := typeStrMap[typeStr]
+		if !ok {
 			return nil, fmt.Errorf("unsupported type string %s", typeStr)
-		} else {
-			etypes = append(etypes, typ)
 		}
+		etypes = append(etypes, typ)
+
 	}
 	return NewDataShapeVector(nds.ColumnNames, etypes), nil
 }

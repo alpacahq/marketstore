@@ -117,7 +117,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	absoluteRootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
 	if aux.RootDirectory == "" || err != nil {
 		log.Error("Invalid root directory. rootDir=" + aux.RootDirectory)
-		return nil, errors.New(fmt.Sprintf("invalid root directory. rootDir=%s, err=%v", aux.RootDirectory, err))
+		return nil, fmt.Errorf("invalid root directory. rootDir=%s, err=%v", aux.RootDirectory, err)
 	}
 	m.RootDirectory = absoluteRootDir
 

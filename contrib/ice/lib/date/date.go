@@ -8,7 +8,7 @@ import (
 
 type Date civil.Date
 
-func DateOf(t time.Time) Date {
+func Of(t time.Time) Date {
 	return Date(civil.DateOf(t))
 }
 
@@ -22,7 +22,7 @@ func Parse(layout, value string) (Date, error) {
 	if err != nil {
 		return Date{}, err
 	}
-	return DateOf(t), nil
+	return Of(t), nil
 }
 
 func (d Date) c() civil.Date {

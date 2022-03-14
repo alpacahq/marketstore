@@ -7,7 +7,7 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -57,17 +57,17 @@ func NewDateRange() *DateRange {
 type RowLimit struct {
 	Number int32
 	// -1 backward, 1 forward
-	Direction DirectionEnum
+	Direction io.DirectionEnum
 }
 
 func NewRowLimit() *RowLimit {
-	r := RowLimit{math.MaxInt32, FIRST}
+	r := RowLimit{math.MaxInt32, io.FIRST}
 	return &r
 }
 
 type QualifiedFile struct {
-	Key  TimeBucketKey
-	File *TimeBucketInfo
+	Key  io.TimeBucketKey
+	File *io.TimeBucketInfo
 }
 
 type ParseResult struct {
@@ -83,16 +83,16 @@ func NewParseResult() *ParseResult {
 	return new(ParseResult)
 }
 
-func (pr *ParseResult) GetRecordType() (rt map[TimeBucketKey]EnumRecordType) {
-	rt = make(map[TimeBucketKey]EnumRecordType)
+func (pr *ParseResult) GetRecordType() (rt map[io.TimeBucketKey]io.EnumRecordType) {
+	rt = make(map[io.TimeBucketKey]io.EnumRecordType)
 	for _, qf := range pr.QualifiedFiles {
 		rt[qf.Key] = qf.File.GetRecordType()
 	}
 	return rt
 }
 
-func (pr *ParseResult) GetDataShapes() (dsv map[TimeBucketKey][]DataShape) {
-	dsv = make(map[TimeBucketKey][]DataShape)
+func (pr *ParseResult) GetDataShapes() (dsv map[io.TimeBucketKey][]io.DataShape) {
+	dsv = make(map[io.TimeBucketKey][]io.DataShape)
 	for _, qf := range pr.QualifiedFiles {
 		/*
 			Obtain the dataShapes for the DB columns
@@ -101,21 +101,21 @@ func (pr *ParseResult) GetDataShapes() (dsv map[TimeBucketKey][]DataShape) {
 			Prepend the Epoch column info, as it is not present in the file info but it is in the query data
 		*/
 		names := []string{"Epoch"}
-		types := []EnumElementType{INT64}
+		types := []io.EnumElementType{io.INT64}
 		names = append(names, qf.File.GetElementNames()...)
 		types = append(types, qf.File.GetElementTypes()...)
-		dsv[qf.Key] = NewDataShapeVector(names, types)
+		dsv[qf.Key] = io.NewDataShapeVector(names, types)
 	}
 	return dsv
 }
 
-func (pr *ParseResult) GetRowLen() (rlenMap map[TimeBucketKey]int) {
-	rlenMap = make(map[TimeBucketKey]int)
+func (pr *ParseResult) GetRowLen() (rlenMap map[io.TimeBucketKey]int) {
+	rlenMap = make(map[io.TimeBucketKey]int)
 	for _, qf := range pr.QualifiedFiles {
 		switch qf.File.GetRecordType() {
-		case FIXED:
+		case io.FIXED:
 			rlenMap[qf.Key] = int(qf.File.GetRecordLength())
-		case VARIABLE:
+		case io.VARIABLE:
 			rlenMap[qf.Key] = int(qf.File.GetVariableRecordLength())
 		default:
 			log.Error("unknown record type:", qf.File.GetRecordType())
@@ -124,7 +124,7 @@ func (pr *ParseResult) GetRowLen() (rlenMap map[TimeBucketKey]int) {
 	return rlenMap
 }
 
-func ElementsEqual(left, right []EnumElementType) (isEqual bool) {
+func ElementsEqual(left, right []io.EnumElementType) (isEqual bool) {
 	if len(left) != len(right) {
 		return false
 	}
@@ -157,7 +157,7 @@ func NewQuery(d *catalog.Directory) *Query {
 	return q
 }
 
-func (q *Query) SetRowLimit(direction DirectionEnum, rowLimit int) {
+func (q *Query) SetRowLimit(direction io.DirectionEnum, rowLimit int) {
 	q.Limit = NewRowLimit()
 	q.Limit.Number = int32(rowLimit)
 	q.Limit.Direction = direction
@@ -187,7 +187,7 @@ func (q *Query) AddRestriction(category, item string) {
 	q.Restriction.AddRestriction(category, item)
 }
 
-func (q *Query) AddTargetKey(key *TimeBucketKey) {
+func (q *Query) AddTargetKey(key *io.TimeBucketKey) {
 	for _, cat := range key.GetCategories() {
 		items := key.GetMultiItemInCategory(cat)
 		for _, item := range items {
@@ -219,7 +219,7 @@ func (q *Query) Parse() (pr *ParseResult, err error) {
 	// We can not use the simple Directory.Recurse() because of the conditional descent...
 	var getFileList func(*catalog.Directory, *[]QualifiedFile, string, string)
 	getFileList = func(d *catalog.Directory, f *[]QualifiedFile, itemKey, categoryKey string) {
-		var latestKey *TimeBucketKey
+		var latestKey *io.TimeBucketKey
 		if d.DirHasSubDirs() {
 			//			if p_list, ok := (*q.Restriction)[d.Category]; ok {
 			categoryKey += d.GetCategory() + "/"
@@ -246,7 +246,7 @@ func (q *Query) Parse() (pr *ParseResult, err error) {
 			*/
 			itemKey = itemKey[:len(itemKey)-1]
 			categoryKey = categoryKey[:len(categoryKey)-1]
-			latestKey = NewTimeBucketKey(itemKey, categoryKey)
+			latestKey = io.NewTimeBucketKey(itemKey, categoryKey)
 			// fmt.Println("+++++latestKey:", latestKey)
 		}
 		// Add all data files - do not limit based on date range here

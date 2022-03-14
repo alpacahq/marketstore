@@ -256,21 +256,21 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 		}
 	}
 
-	TG_Serialized, writesPerFile := serializeTG(wf.txnPipe.tgID, writeCommands)
+	tgSerialized, writesPerFile := serializeTG(wf.txnPipe.tgID, writeCommands)
 
 	if !wf.walBypass {
 		// Serialize the size of the buffer into another buffer
-		TGLen_Serialized, _ := io.Serialize(nil, int64(len(TG_Serialized)))
+		tgLenSerialized, _ := io.Serialize(nil, int64(len(tgSerialized)))
 
 		// Calculate the MD5 checksum, including the value of TGLen
 		hash := md5.New()
-		hash.Write(TGLen_Serialized)
-		hash.Write(TG_Serialized)
+		hash.Write(tgLenSerialized)
+		hash.Write(tgSerialized)
 
 		wf.FilePtr.Write(wf.initMessage(TGDATA)) // Write the Message ID to identify TG Data
 		// Write the TG Data and the checksum and Sync()
-		wf.FilePtr.Write(TGLen_Serialized)
-		wf.FilePtr.Write(TG_Serialized)
+		wf.FilePtr.Write(tgLenSerialized)
+		wf.FilePtr.Write(tgSerialized)
 		cksum := hash.Sum(nil)
 		wf.FilePtr.Write(cksum) // Checksum
 
@@ -284,7 +284,7 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 
 		// send transaction to replicas
 		if wf.ReplicationSender != nil {
-			wf.ReplicationSender.Send(TG_Serialized)
+			wf.ReplicationSender.Send(tgSerialized)
 		}
 	}
 
@@ -308,41 +308,41 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 }
 
 func serializeTG(tgID int64, commands []*wal.WriteCommand,
-) (tgSerialized []byte, writesPerFile map[string][]wal.OffsetIndexBuffer) {
+) (tgSerialized2 []byte, writesPerFile map[string][]wal.OffsetIndexBuffer) {
 	WTCount := len(commands)
 
 	// Serialize all data to be written except for the size of this buffer
-	var TG_Serialized []byte
-	TG_Serialized, _ = io.Serialize(TG_Serialized, tgID)
-	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
+	var tgSerialized []byte
+	tgSerialized, _ = io.Serialize(tgSerialized, tgID)
+	tgSerialized, _ = io.Serialize(tgSerialized, int64(WTCount))
 	writesPerFile = map[string][]wal.OffsetIndexBuffer{}
 	/*
 		This loop serializes write transactions from the channel for writing to disk
 	*/
 	for i := 0; i < WTCount; i++ {
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int8(commands[i].RecordType))
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int16(len(commands[i].WALKeyPath)))
-		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].WALKeyPath)
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int32(len(commands[i].Data)))
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int32(commands[i].VarRecLen))
-		oStart := len(TG_Serialized)
+		tgSerialized, _ = io.Serialize(tgSerialized, int8(commands[i].RecordType))
+		tgSerialized, _ = io.Serialize(tgSerialized, int16(len(commands[i].WALKeyPath)))
+		tgSerialized, _ = io.Serialize(tgSerialized, commands[i].WALKeyPath)
+		tgSerialized, _ = io.Serialize(tgSerialized, int32(len(commands[i].Data)))
+		tgSerialized, _ = io.Serialize(tgSerialized, int32(commands[i].VarRecLen))
+		oStart := len(tgSerialized)
 		bufferSize := 8 + 8 + len(commands[i].Data)
-		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].Offset)
-		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].Index)
-		TG_Serialized = append(TG_Serialized, commands[i].Data...)
+		tgSerialized, _ = io.Serialize(tgSerialized, commands[i].Offset)
+		tgSerialized, _ = io.Serialize(tgSerialized, commands[i].Index)
+		tgSerialized = append(tgSerialized, commands[i].Data...)
 		// include DataShape information in TG because it's necessary for creating a new bucket from WAL
 		dsvBytes, err := io.DSVToBytes(commands[i].DataShapes)
 		if err == nil {
-			TG_Serialized = append(TG_Serialized, dsvBytes...)
+			tgSerialized = append(tgSerialized, dsvBytes...)
 		}
 
 		keyPath := commands[i].WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
 		writesPerFile[keyPath] = append(writesPerFile[keyPath],
-			TG_Serialized[oStart:oStart+bufferSize])
+			tgSerialized[oStart:oStart+bufferSize])
 	}
 
-	return TG_Serialized, writesPerFile
+	return tgSerialized, writesPerFile
 }
 
 func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType,

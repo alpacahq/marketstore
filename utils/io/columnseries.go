@@ -60,14 +60,14 @@ func (cs *ColumnSeries) Len() int {
 	if len(cs.orderedNames) == 0 {
 		return 0
 	}
-	i_col := cs.GetByName(cs.orderedNames[0])
-	return reflect.ValueOf(i_col).Len()
+	iCol := cs.GetByName(cs.orderedNames[0])
+	return reflect.ValueOf(iCol).Len()
 }
 
 func (cs *ColumnSeries) GetTime() ([]time.Time, error) {
 	ep, ok := cs.GetColumn("Epoch").([]int64)
 	if !ok {
-		return nil, errors.New("unexpected data type for Epoch column.")
+		return nil, errors.New("unexpected data type for Epoch column")
 	}
 
 	ts := make([]time.Time, len(ep))
@@ -79,7 +79,7 @@ func (cs *ColumnSeries) GetTime() ([]time.Time, error) {
 	} else {
 		ns, ok := nsi.([]int32)
 		if !ok {
-			return nil, errors.New("unexpected data type for Nanoseconds column.")
+			return nil, errors.New("unexpected data type for Nanoseconds column")
 		}
 		for i, secs := range ep {
 			ts[i] = ToSystemTimezone(time.Unix(secs, int64(ns[i])))
@@ -128,7 +128,7 @@ func (cs *ColumnSeries) Rename(newName, oldName string) error {
 	*/
 	oldColumn := cs.GetByName(oldName)
 	if oldColumn == nil {
-		return fmt.Errorf("Error: Source column named %s does not exist\n", oldName)
+		return fmt.Errorf("error: Source column named %s does not exist", oldName)
 	}
 
 	/*
@@ -166,7 +166,7 @@ func (cs *ColumnSeries) Replace(targetName string, col interface{}) error {
 
 func (cs *ColumnSeries) Remove(targetName string) error {
 	if !cs.Exists(targetName) {
-		return fmt.Errorf("Error: Source column named %s does not exist\n", targetName)
+		return fmt.Errorf("error: Source column named %s does not exist", targetName)
 	}
 	var newNames []string
 	for _, name := range cs.orderedNames {
@@ -219,17 +219,17 @@ func (cs *ColumnSeries) Exists(targetName string) bool {
 func (cs *ColumnSeries) GetByName(name string) interface{} {
 	if !cs.Exists(name) {
 		return nil
-	} else {
-		return cs.columns[name]
 	}
+	return cs.columns[name]
 }
 
 func (cs *ColumnSeries) GetEpoch() []int64 {
-	if col := cs.GetByName("Epoch"); col == nil {
+	col := cs.GetByName("Epoch")
+	if col == nil {
 		return nil
-	} else {
-		return col.([]int64)
 	}
+	return col.([]int64)
+
 }
 
 func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries, err error) {
@@ -449,19 +449,19 @@ func GetNamesFromDSV(dataShapes []DataShape) (out []string) {
 	return out
 }
 
-func GetDSVFromInterface(i_dsv interface{}) (out []DataShape) {
-	if _, ok := i_dsv.([]DataShape); ok {
-		return i_dsv.([]DataShape)
+func GetDSVFromInterface(iDSV interface{}) (out []DataShape) {
+	if _, ok := iDSV.([]DataShape); ok {
+		return iDSV.([]DataShape)
 	}
 	return nil
 }
 
-func GetStringSliceFromInterface(i_ss interface{}) (out []string) {
-	if i_ss == nil {
+func GetStringSliceFromInterface(iSS interface{}) (out []string) {
+	if iSS == nil {
 		return nil
 	}
-	if _, ok := i_ss.([]string); ok {
-		return i_ss.([]string)
+	if _, ok := iSS.([]string); ok {
+		return iSS.([]string)
 	}
 	return nil
 }
@@ -527,8 +527,8 @@ func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (mi
 	case len(missingDSV) != len(allMissingNames):
 		// We have to coerce types
 		missingDSVNamesSet, _ := NewAnySet(GetNamesFromDSV(missingDSV))
-		i_needCoercionCols := missingDSVNamesSet.Subtract(allMissingNames)
-		needCoercionCols := GetStringSliceFromInterface(i_needCoercionCols)
+		iNeedCoercionCols := missingDSVNamesSet.Subtract(allMissingNames)
+		needCoercionCols := GetStringSliceFromInterface(iNeedCoercionCols)
 		return ExtractDatashapesByNames(requiredDSV, allMissingNames),
 			ExtractDatashapesByNames(requiredDSV, needCoercionCols), nil
 	}

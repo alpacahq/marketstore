@@ -18,15 +18,15 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-type StreamTriggerConfig struct {
+type Config struct {
 	Filter string `json:"filter"`
 }
 
 var _ trigger.Trigger = &StreamTrigger{}
 
-func recast(config map[string]interface{}) *StreamTriggerConfig {
+func recast(config map[string]interface{}) *Config {
 	data, _ := json.Marshal(config)
-	ret := StreamTriggerConfig{}
+	ret := Config{}
 	json.Unmarshal(data, &ret)
 	return &ret
 }

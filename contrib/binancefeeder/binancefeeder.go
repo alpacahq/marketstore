@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	defaultHttpTimeout = 10 * time.Second
+	defaultHTTPTimeout = 10 * time.Second
 	oneMinTimeframeStr = "1Min"
 )
 
@@ -44,7 +44,7 @@ type ExchangeInfo struct {
 
 // getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json.
 func getJSON(url string, target interface{}) error {
-	myClient := &http.Client{Timeout: defaultHttpTimeout}
+	myClient := &http.Client{Timeout: defaultHTTPTimeout}
 	req, err := http.NewRequestWithContext(context.Background(), "GET", url, nil)
 	if err != nil {
 		return fmt.Errorf("create http req for %s: %w", url, err)

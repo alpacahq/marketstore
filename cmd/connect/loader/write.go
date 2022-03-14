@@ -95,7 +95,7 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 				}
 				csm.AddColumn(key, shape.Name, col)
 			default:
-				return nil, fmt.Errorf("unknown column type.rror obtaining column \"%s\" from csv data\n",
+				return nil, fmt.Errorf("unknown column type.rror obtaining column \"%s\" from csv data",
 					shape.Name,
 				)
 			}

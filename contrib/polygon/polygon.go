@@ -8,14 +8,14 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygon_config"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygonconfig"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 )
 
 const defaultBatchSize = 50000
 
 type PolygonFetcher struct {
-	config polygon_config.FetcherConfig
+	config polygonconfig.FetcherConfig
 	types  map[string]struct{} // Bars, Quotes, Trades
 }
 
@@ -24,7 +24,7 @@ type PolygonFetcher struct {
 // nolint:deadcode // plugin interface
 func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	data, _ := json.Marshal(conf)
-	config := polygon_config.FetcherConfig{}
+	config := polygonconfig.FetcherConfig{}
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		return

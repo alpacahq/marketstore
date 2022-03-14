@@ -54,7 +54,7 @@ func WALBypass(f bool) Option {
 	}
 }
 
-func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.TriggerMatcher,
+func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Matcher,
 	walRotateInterval int, options ...Option,
 ) (metadata *InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
 	// default

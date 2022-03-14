@@ -254,7 +254,7 @@ func initWriter() error {
 		return fmt.Errorf("failed to create a new aggtrigger: %w", err)
 	}
 
-	triggerMatchers := []*trigger.TriggerMatcher{
+	triggerMatchers := []*trigger.Matcher{
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
 

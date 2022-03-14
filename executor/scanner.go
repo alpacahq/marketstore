@@ -595,7 +595,7 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	return finalBuffer, false, bytesRead, nil
 }
 
-func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt, curpos int64, err error) {
+func seekBackward(f io.Seeker, relativeOffset int32, lowerBound int64) (seekAmt, curpos int64, err error) {
 	// Find the current file position
 	curpos, err = f.Seek(0, io.SeekCurrent)
 	if err != nil {
@@ -603,15 +603,15 @@ func seekBackward(f io.Seeker, relative_offset int32, lowerBound int64) (seekAmt
 		return 0, curpos, err
 	}
 	// If seeking backward would go lower than the lower bound, seek to lower bound
-	if (curpos - int64(relative_offset)) <= int64(lowerBound) {
+	if (curpos - int64(relativeOffset)) <= lowerBound {
 		seekAmt = curpos - lowerBound
 	} else {
-		seekAmt = int64(relative_offset)
+		seekAmt = int64(relativeOffset)
 	}
 	curpos, err = f.Seek(-seekAmt, io.SeekCurrent)
 	if err != nil {
 		err = fmt.Errorf("error: seeking to rel offset: %d lowerBound: %d :%w",
-			relative_offset, lowerBound, err)
+			relativeOffset, lowerBound, err)
 		return 0, curpos, err
 	}
 	return seekAmt, curpos, nil
