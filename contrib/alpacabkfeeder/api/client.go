@@ -35,10 +35,13 @@ func defaultDo(c *Client, req *http.Request) (*http.Response, error) {
 	if c.credentials.OAuth != "" {
 		req.Header.Set("Authorization", "Bearer "+c.credentials.OAuth)
 	} else {
-		req.Header.Set("APCA-API-KEY-ID", c.credentials.ID)
-		req.Header.Set("APCA-API-SECRET-KEY", c.credentials.Secret)
-		// Add Basic Auth
-		req.SetBasicAuth(c.credentials.ID, c.credentials.Secret)
+		if strings.Contains(req.URL.String(), "sandbox"){
+			// Add Basic Auth
+			req.SetBasicAuth(c.credentials.ID, c.credentials.Secret)
+		}else {
+			req.Header.Set("APCA-API-KEY-ID", c.credentials.ID)
+			req.Header.Set("APCA-API-SECRET-KEY", c.credentials.Secret)
+		}
 	}
 
 	client := &http.Client{
