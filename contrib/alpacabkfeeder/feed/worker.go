@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
 	"github.com/pkg/errors"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/symbols"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -23,7 +23,7 @@ type Worker struct {
 }
 
 type GetSnapShotsAPIClient interface {
-	GetSnapshots(symbols []string) (map[string]*v2.Snapshot, error)
+	GetSnapshots(symbols []string) (map[string]*api.Snapshot, error)
 }
 
 // Run runs forever to get quotes data for each symbol in the target exchanges using Alpaca API periodically,

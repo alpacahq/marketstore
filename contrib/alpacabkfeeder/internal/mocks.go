@@ -3,8 +3,8 @@ package internal
 import (
 	"time"
 
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
-	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -23,18 +23,18 @@ func (msm MockSymbolsManager) GetAllSymbols() []string {
 type MockAPIClient struct{}
 
 // GetSnapshots returns an empty response.
-func (mac *MockAPIClient) GetSnapshots(symbols []string) (map[string]*v2.Snapshot, error) {
-	return map[string]*v2.Snapshot{}, nil
+func (mac *MockAPIClient) GetSnapshots(symbols []string) (map[string]*api.Snapshot, error) {
+	return map[string]*api.Snapshot{}, nil
 }
 
 // ListAssets returns an empty api response.
-func (mac *MockAPIClient) ListAssets(status *string) ([]alpaca.Asset, error) {
-	return []alpaca.Asset{}, nil
+func (mac *MockAPIClient) ListAssets(status *string) ([]v1.Asset, error) {
+	return []v1.Asset{}, nil
 }
 
 // ListBars returns an empty api response.
-func (mac *MockAPIClient) ListBars(symbols []string, opts alpaca.ListBarParams) (map[string][]alpaca.Bar, error) {
-	return map[string][]alpaca.Bar{}, nil
+func (mac *MockAPIClient) ListBars(symbols []string, opts v1.ListBarParams) (map[string][]v1.Bar, error) {
+	return map[string][]v1.Bar{}, nil
 }
 
 // MockTimeChecker always returns Open.

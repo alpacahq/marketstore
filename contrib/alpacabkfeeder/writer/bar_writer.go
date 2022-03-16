@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
+
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 )
 
 // BarWriter is an interface to write chart data to the marketstore.
 type BarWriter interface {
-	Write(symbol string, bars []alpaca.Bar) error
+	Write(symbol string, bars []v1.Bar) error
 }
 
 // BarWriterImpl is an implementation of the BarWriter interface.
@@ -25,7 +26,7 @@ type BarWriterImpl struct {
 }
 
 // Write converts the Response of the ListBars API to a ColumnSeriesMap and write it to the local marketstore server.
-func (b BarWriterImpl) Write(symbol string, bars []alpaca.Bar) error {
+func (b BarWriterImpl) Write(symbol string, bars []v1.Bar) error {
 	// convert Bar Data to CSM (ColumnSeriesMap)
 	csm := b.convertToCSM(symbol, bars)
 
@@ -39,7 +40,7 @@ func (b BarWriterImpl) Write(symbol string, bars []alpaca.Bar) error {
 	return nil
 }
 
-func (b *BarWriterImpl) convertToCSM(symbol string, bars []alpaca.Bar) io.ColumnSeriesMap {
+func (b *BarWriterImpl) convertToCSM(symbol string, bars []v1.Bar) io.ColumnSeriesMap {
 	epochs := make([]int64, len(bars))
 	opens := make([]float32, len(bars))
 	closes := make([]float32, len(bars))

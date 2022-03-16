@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -27,7 +27,7 @@ func TestBarWriterImpl_Write(t *testing.T) {
 
 	// 2 bar data
 	symbol := "1234"
-	bars := []alpaca.Bar{
+	bars := []v1.Bar{
 		{
 			Time:   barTimestamp1.Unix(),
 			Open:   12.3,

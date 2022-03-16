@@ -4,18 +4,18 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
-
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
+
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 )
 
 type MockListAssetsAPIClient struct {
 	internal.MockAPIClient
 }
 
-func (mac *MockListAssetsAPIClient) ListAssets(_ *string) ([]alpaca.Asset, error) {
-	return []alpaca.Asset{
+func (mac *MockListAssetsAPIClient) ListAssets(_ *string) ([]v1.Asset, error) {
+	return []v1.Asset{
 		{
 			Name:     "Hello",
 			Exchange: "BATS",

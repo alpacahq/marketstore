@@ -4,8 +4,7 @@ import (
 	"testing"
 	"time"
 
-	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
-
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 )
 
@@ -28,7 +27,7 @@ type MockSnapshotWriter struct {
 }
 
 // Write increments the counter so that a unit test could assert how many times this function is called.
-func (m *MockSnapshotWriter) Write(snapshots map[string]*v2.Snapshot) error {
+func (m *MockSnapshotWriter) Write(snapshots map[string]*api.Snapshot) error {
 	m.WriteCount++
 	return nil
 }

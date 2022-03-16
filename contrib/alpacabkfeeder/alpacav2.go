@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
-	"github.com/alpacahq/alpaca-trade-api-go/common"
 	"github.com/pkg/errors"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/symbols"
@@ -30,7 +29,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	log.Info("loaded Alpaca Broker Feeder config...")
 
 	// init Alpaca API client
-	cred := &common.APIKey{
+	cred := &api.APIKey{
 		ID:           config.APIKeyID,
 		PolygonKeyID: config.APIKeyID,
 		Secret:       config.APISecretKey,
@@ -38,9 +37,9 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 	if config.APIKeyID == "" || config.APISecretKey == "" {
 		// if empty, get from env vars
-		cred = common.Credentials()
+		cred = api.Credentials()
 	}
-	apiClient := alpaca.NewClient(cred)
+	apiClient := api.NewClient(cred)
 
 	// init Market Time Checker
 	var timeChecker feed.MarketTimeChecker
