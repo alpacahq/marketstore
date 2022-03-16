@@ -1,0 +1,268 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
+)
+
+const (
+	rateLimitRetryCount = 3
+	rateLimitRetryDelay = time.Second
+)
+
+var (
+	// DefaultClient is the default Alpaca client using the
+	// environment variable set credentials
+	DefaultClient = NewClient(Credentials())
+	base          = "https://api.alpaca.markets"
+	dataURL       = "https://data.alpaca.markets"
+	apiVersion    = "v2"
+	clientTimeout = 10 * time.Second
+	do            = defaultDo
+)
+
+func defaultDo(c *Client, req *http.Request) (*http.Response, error) {
+	if c.credentials.OAuth != "" {
+		req.Header.Set("Authorization", "Bearer "+c.credentials.OAuth)
+	} else {
+		req.Header.Set("APCA-API-KEY-ID", c.credentials.ID)
+		req.Header.Set("APCA-API-SECRET-KEY", c.credentials.Secret)
+		// Add Basic Auth
+		req.SetBasicAuth(c.credentials.ID, c.credentials.Secret)
+	}
+
+	client := &http.Client{
+		Timeout: clientTimeout,
+	}
+	var resp *http.Response
+	var err error
+	for i := 0; ; i++ {
+		resp, err = client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != http.StatusTooManyRequests {
+			break
+		}
+		if i >= rateLimitRetryCount {
+			break
+		}
+		time.Sleep(rateLimitRetryDelay)
+	}
+
+	if err = verify(resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+const (
+	// v2MaxLimit is the maximum allowed limit parameter for all v2 endpoints
+	v2MaxLimit = 10000
+)
+
+func init() {
+	if s := os.Getenv("APCA_API_BASE_URL"); s != "" {
+		base = s
+	} else if s := os.Getenv("ALPACA_BASE_URL"); s != "" {
+		// legacy compatibility...
+		base = s
+	}
+	if s := os.Getenv("APCA_DATA_URL"); s != "" {
+		dataURL = s
+	}
+	// also allow APCA_API_DATA_URL to be consistent with the python SDK
+	if s := os.Getenv("APCA_API_DATA_URL"); s != "" {
+		dataURL = s
+	}
+	if s := os.Getenv("APCA_API_VERSION"); s != "" {
+		apiVersion = s
+	}
+	if s := os.Getenv("APCA_API_CLIENT_TIMEOUT"); s != "" {
+		d, err := time.ParseDuration(s)
+		if err != nil {
+			log.Fatal("invalid APCA_API_CLIENT_TIMEOUT: " + err.Error())
+		}
+		clientTimeout = d
+	}
+}
+
+// APIError wraps the detailed code and message supplied
+// by Alpaca's API for debugging purposes
+type APIError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e *APIError) Error() string {
+	return e.Message
+}
+
+// Client is an Alpaca REST API client
+type Client struct {
+	credentials *APIKey
+}
+
+func SetBaseUrl(baseUrl string) {
+	base = baseUrl
+}
+
+// NewClient creates a new Alpaca client with specified
+// credentials
+func NewClient(credentials *APIKey) *Client {
+	return &Client{credentials: credentials}
+}
+
+// GetSnapshots returns the snapshots for multiple symbol
+func (c *Client) GetSnapshots(symbols []string) (map[string]*Snapshot, error) {
+	u, err := url.Parse(fmt.Sprintf("%s/v2/stocks/snapshots?symbols=%s",
+		dataURL, strings.Join(symbols, ",")))
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	var snapshots map[string]*Snapshot
+
+	if err = unmarshal(resp, &snapshots); err != nil {
+		return nil, err
+	}
+
+	return snapshots, nil
+}
+
+// ListBars returns a list of bar lists corresponding to the provided
+// symbol list, and filtered by the provided parameters.
+func (c *Client) ListBars(symbols []string, opts v1.ListBarParams) (map[string][]v1.Bar, error) {
+	vals := url.Values{}
+	vals.Add("symbols", strings.Join(symbols, ","))
+
+	if opts.Timeframe == "" {
+		return nil, fmt.Errorf("timeframe is required for the bars endpoint")
+	}
+
+	if opts.StartDt != nil {
+		vals.Set("start", opts.StartDt.Format(time.RFC3339))
+	}
+
+	if opts.EndDt != nil {
+		vals.Set("end", opts.EndDt.Format(time.RFC3339))
+	}
+
+	if opts.Limit != nil {
+		vals.Set("limit", strconv.FormatInt(int64(*opts.Limit), 10))
+	}
+
+	u, err := url.Parse(fmt.Sprintf("%s/v1/bars/%s?%v", dataURL, opts.Timeframe, vals.Encode()))
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.get(u)
+	if err != nil {
+		return nil, err
+	}
+	var bars map[string][]v1.Bar
+
+	if err = unmarshal(resp, &bars); err != nil {
+		return nil, err
+	}
+
+	return bars, nil
+}
+
+// ListAssets returns the list of assets, filtered by
+// the input parameters.
+func (c *Client) ListAssets(status *string) ([]v1.Asset, error) {
+	// TODO: add tests
+	apiVer := apiVersion
+	if strings.Contains(base, "broker"){
+		apiVer = "v1"
+	}
+
+	// TODO: support different asset classes
+	u, err := url.Parse(fmt.Sprintf("%s/%s/assets", base, apiVer))
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+
+	if status != nil {
+		q.Set("status", *status)
+	}
+
+	u.RawQuery = q.Encode()
+
+	resp, err := c.get(u)
+	if err != nil {
+		return nil, err
+	}
+
+	assets := []v1.Asset{}
+
+	if err = unmarshal(resp, &assets); err != nil {
+		return nil, err
+	}
+
+	return assets, nil
+}
+
+func (c *Client) get(u *url.URL) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return do(c, req)
+}
+
+func verify(resp *http.Response) (err error) {
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		var body []byte
+		defer resp.Body.Close()
+
+		body, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		apiErr := APIError{}
+
+		err = json.Unmarshal(body, &apiErr)
+		if err != nil {
+			return fmt.Errorf("json unmarshal error: %s", err.Error())
+		}
+		if err == nil {
+			err = &apiErr
+		}
+	}
+
+	return
+}
+
+func unmarshal(resp *http.Response, data interface{}) error {
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(body, data)
+}

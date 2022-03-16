@@ -2,8 +2,7 @@ package symbols
 
 import (
 	"fmt"
-
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -25,7 +24,7 @@ type Manager interface {
 }
 
 type APIClient interface {
-	ListAssets(status *string) ([]alpaca.Asset, error)
+	ListAssets(status *string) ([]v1.Asset, error)
 }
 
 // ManagerImpl is an implementation of the Manager.

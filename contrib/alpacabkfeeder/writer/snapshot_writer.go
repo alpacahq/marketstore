@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
+
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 )
 
 // SnapshotWriter is an interface to write the realtime stock data to the marketstore.
 type SnapshotWriter interface {
-	Write(snapshots map[string]*v2.Snapshot) error
+	Write(snapshots map[string]*api.Snapshot) error
 }
 
 // SnapshotWriterImpl is an implementation of the SnapshotWriter interface.
@@ -24,7 +24,7 @@ type SnapshotWriterImpl struct {
 }
 
 // Write converts the map(key:symbol, value:snapshot) to a ColumnSeriesMap and write it to the local marketstore server.
-func (q SnapshotWriterImpl) Write(snapshots map[string]*v2.Snapshot) error {
+func (q SnapshotWriterImpl) Write(snapshots map[string]*api.Snapshot) error {
 	// convert Snapshot Data to CSM (ColumnSeriesMap)
 	csm := q.convertToCSM(snapshots)
 
@@ -37,7 +37,7 @@ func (q SnapshotWriterImpl) Write(snapshots map[string]*v2.Snapshot) error {
 	return nil
 }
 
-func (q *SnapshotWriterImpl) convertToCSM(snapshots map[string]*v2.Snapshot) io.ColumnSeriesMap {
+func (q *SnapshotWriterImpl) convertToCSM(snapshots map[string]*api.Snapshot) io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 
 	for symbol, snapshot := range snapshots {
@@ -54,13 +54,13 @@ func (q *SnapshotWriterImpl) convertToCSM(snapshots map[string]*v2.Snapshot) io.
 		// These additional fields are not always provided.
 		// fill empty data to keep the number of columns in the CSM
 		if snapshot.DailyBar == nil {
-			snapshot.DailyBar = &v2.Bar{}
+			snapshot.DailyBar = &api.Bar{}
 		}
 		if snapshot.PrevDailyBar == nil {
-			snapshot.PrevDailyBar = &v2.Bar{}
+			snapshot.PrevDailyBar = &api.Bar{}
 		}
 		if snapshot.MinuteBar == nil {
-			snapshot.MinuteBar = &v2.Bar{}
+			snapshot.MinuteBar = &api.Bar{}
 		}
 		cs := q.newColumnSeries(latestTime.Unix(), snapshot)
 		tbk := io.NewTimeBucketKey(symbol + "/" + q.Timeframe + "/TICK")
@@ -77,7 +77,7 @@ func latestTime(time1, time2 time.Time) time.Time {
 	return time2
 }
 
-func (q SnapshotWriterImpl) newColumnSeries(epoch int64, ss *v2.Snapshot) *io.ColumnSeries {
+func (q SnapshotWriterImpl) newColumnSeries(epoch int64, ss *api.Snapshot) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{epoch})
 	cs.AddColumn("QuoteTimestamp", []int64{ss.LatestQuote.Timestamp.In(q.Timezone).Unix()})

@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
+
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 )
 
 var (
@@ -22,7 +23,7 @@ var (
 	d3                     = time.Date(d3Year, d3Month, d3Day, 0, 0, 0, 0, time.UTC)
 )
 
-var testBars = map[string][]alpaca.Bar{
+var testBars = map[string][]v1.Bar{
 	"AAPL": {
 		{Time: d3.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 1},
 		{Time: d2.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 2},
@@ -43,19 +44,19 @@ var testBars = map[string][]alpaca.Bar{
 const errorSymbol = "ERROR"
 
 type MockErrorAPIClient struct {
-	testBars map[string][]alpaca.Bar
+	testBars map[string][]v1.Bar
 	internal.MockAPIClient
 }
 
 // ListBars returns an error if symbol:"ERROR" is included, but returns data to other symbols.
-func (mac *MockErrorAPIClient) ListBars(symbols []string, opts alpaca.ListBarParams) (map[string][]alpaca.Bar, error) {
-	ret := make(map[string][]alpaca.Bar)
+func (mac *MockErrorAPIClient) ListBars(symbols []string, opts v1.ListBarParams) (map[string][]v1.Bar, error) {
+	ret := make(map[string][]v1.Bar)
 	for _, symbl := range symbols {
 		if symbl == errorSymbol {
 			return nil, errors.New("error")
 		}
 		if bars, found := mac.testBars[symbl]; found {
-			barPage := make([]alpaca.Bar, 0)
+			barPage := make([]v1.Bar, 0)
 
 			// filter by time
 			for _, bar := range bars {
@@ -79,7 +80,7 @@ type MockBarWriter struct {
 	WriteCount int
 }
 
-func (mbw *MockBarWriter) Write(symbol string, bars []alpaca.Bar) error {
+func (mbw *MockBarWriter) Write(symbol string, bars []v1.Bar) error {
 	// in order to assert the number of written bars in the test
 	mbw.WriteCount += len(bars)
 	return nil
@@ -91,7 +92,7 @@ func TestBackfill_UpdateSymbols(t *testing.T) {
 	tests := []struct {
 		name                string
 		smbls               []string
-		testBars            map[string][]alpaca.Bar
+		testBars            map[string][]v1.Bar
 		barWriter           writer.BarWriter
 		maxSymbolsPerReq    int
 		maxBarsPerReq       int

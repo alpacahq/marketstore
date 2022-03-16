@@ -1,9 +1,8 @@
 package feed
 
 import (
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 	"time"
-
-	"github.com/alpacahq/alpaca-trade-api-go/alpaca"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/symbols"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
@@ -23,7 +22,7 @@ type Backfill struct {
 }
 
 type ListBarsAPIClient interface {
-	ListBars(symbols []string, opts alpaca.ListBarParams) (map[string][]alpaca.Bar, error)
+	ListBars(symbols []string, opts v1.ListBarParams) (map[string][]v1.Bar, error)
 }
 
 // NewBackfill initializes the module to backfill the historical daily chart data to marketstore.
@@ -49,7 +48,7 @@ func (b *Backfill) UpdateSymbols() {
 	for idx := range pageIndex(len(allSymbols), b.maxSymbolsPerReq) {
 		for dateRange := range datePageIndex(b.since, until, b.maxBarsPerReq) {
 			// fmt.Printf("start=%v, end=%v, symbols=%v\n", dateRange.From, dateRange.To, allSymbols[idx.From:idx.To])
-			params := alpaca.ListBarParams{
+			params := v1.ListBarParams{
 				Timeframe: backfillTimeframe,
 				StartDt:   time230000utc(dateRange.From),
 				EndDt:     time230000utc(dateRange.To),

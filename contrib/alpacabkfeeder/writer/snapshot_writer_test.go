@@ -4,42 +4,42 @@ import (
 	"testing"
 	"time"
 
-	v2 "github.com/alpacahq/alpaca-trade-api-go/v2"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var (
-	exampleTrade = &v2.Trade{
+	exampleTrade = &api.Trade{
 		Price:     1,
 		Size:      2,
 		Timestamp: time.Unix(3, 0),
 	}
-	exampleQuote = &v2.Quote{
+	exampleQuote = &api.Quote{
 		BidPrice:  4,
 		BidSize:   5,
 		AskPrice:  6,
 		AskSize:   7,
 		Timestamp: time.Unix(8, 0),
 	}
-	exampleDailyBar = &v2.Bar{
+	exampleDailyBar = &api.Bar{
 		Open:   9,
 		High:   10,
 		Low:    11,
 		Close:  12,
 		Volume: 13,
 	}
-	examplePreviousDailyBar = &v2.Bar{
+	examplePreviousDailyBar = &api.Bar{
 		Open:   14,
 		High:   15,
 		Low:    16,
 		Close:  17,
 		Volume: 18,
 	}
-	exampleMinuteBar = &v2.Bar{
+	exampleMinuteBar = &api.Bar{
 		Open:   19,
 		High:   20,
 		Low:    21,
@@ -57,7 +57,7 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 	tests := []struct {
 		name              string
 		fields            fields
-		snapshots         map[string]*v2.Snapshot
+		snapshots         map[string]*api.Snapshot
 		writeErr          error
 		wantErr           bool
 		wantTBKs          []io.TimeBucketKey
@@ -70,7 +70,7 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 				Timeframe: "1Sec",
 				Timezone:  time.UTC,
 			},
-			snapshots: map[string]*v2.Snapshot{
+			snapshots: map[string]*api.Snapshot{
 				"AAPL": {
 					LatestTrade:  exampleTrade,
 					LatestQuote:  exampleQuote,
@@ -127,7 +127,7 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 				Timeframe: "1Sec",
 				Timezone:  time.UTC,
 			},
-			snapshots: map[string]*v2.Snapshot{
+			snapshots: map[string]*api.Snapshot{
 				"AAPL": {
 					LatestTrade: exampleTrade,
 					LatestQuote: exampleQuote,
