@@ -10,7 +10,7 @@ type Asset struct {
 	Symbol       string `json:"symbol"`
 	Status       string `json:"status"`
 	Tradable     bool   `json:"tradable"`
-	Marginable   bool   `json:"marginable"`
+	Marginal   bool   `json:"marginal"`
 	Shortable    bool   `json:"shortable"`
 	EasyToBorrow bool   `json:"easy_to_borrow"`
 }

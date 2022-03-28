@@ -10,11 +10,13 @@ import (
 )
 
 var testConfig = map[string]interface{}{
-	"api_key_id":     "hello",
-	"api_secret_key": "world",
-	"update_time":    "12:34:56",
-	"exchanges":      []string{"AMEX", "ARCA", "BATS", "NYSE", "NASDAQ", "NYSEARCA", "OTC"},
-	"index_groups":   []string{"bar"},
+	"api_key_id":             "hello",
+	"api_secret_key":         "world",
+	"symbols_update_time":    "01:23:45",
+	"update_time":            "12:34:56",
+	"stocks_json_basic_auth": "foo:bar",
+	"exchanges":              []string{"AMEX", "ARCA", "BATS", "NYSE", "NASDAQ", "NYSEARCA", "OTC"},
+	"index_groups":           []string{"bar"},
 }
 
 var configWithInvalidExchange = map[string]interface{}{
@@ -30,12 +32,14 @@ func TestNewConfig(t *testing.T) {
 		want    *configs.DefaultConfig
 		wantErr bool
 	}{
-		"ok/ API key ID, API secret key and UpdateTime can be overridden by env vars": {
+		"ok/ API key ID, API secret key, UpdateTime, basicAuth can be overridden by env vars": {
 			config: testConfig,
 			envVars: map[string]string{
-				"ALPACA_BROKER_FEEDER_API_KEY_ID":     "yo",
-				"ALPACA_BROKER_FEEDER_API_SECRET_KEY": "yoyo",
-				"ALPACA_BROKER_FEEDER_UPDATE_TIME":    "20:00:00",
+				"ALPACA_BROKER_FEEDER_API_KEY_ID":             "yo",
+				"ALPACA_BROKER_FEEDER_API_SECRET_KEY":         "yoyo",
+				"ALPACA_BROKER_FEEDER_SYMBOLS_UPDATE_TIME":    "10:00:00",
+				"ALPACA_BROKER_FEEDER_UPDATE_TIME":            "20:00:00",
+				"ALPACA_BROKER_FEEDER_STOCKS_JSON_BASIC_AUTH": "akkie:mypassword",
 			},
 			want: &configs.DefaultConfig{
 				Exchanges: []configs.Exchange{
@@ -44,9 +48,11 @@ func TestNewConfig(t *testing.T) {
 				},
 				ClosedDaysOfTheWeek: []time.Weekday{},
 				ClosedDays:          []time.Time{},
+				SymbolsUpdateTime:   time.Date(0, 1, 1, 10, 0, 0, 0, time.UTC),
 				UpdateTime:          time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC),
 				APIKeyID:            "yo",
 				APISecretKey:        "yoyo",
+				StocksJSONBasicAuth: "akkie:mypassword",
 			},
 			wantErr: false,
 		},
@@ -60,9 +66,11 @@ func TestNewConfig(t *testing.T) {
 				},
 				ClosedDaysOfTheWeek: []time.Weekday{},
 				ClosedDays:          []time.Time{},
+				SymbolsUpdateTime:   time.Date(0, 1, 1, 1, 23, 45, 0, time.UTC),
 				UpdateTime:          time.Date(0, 1, 1, 12, 34, 56, 0, time.UTC),
 				APIKeyID:            "hello",
 				APISecretKey:        "world",
+				StocksJSONBasicAuth: "foo:bar",
 			},
 			wantErr: false,
 		},

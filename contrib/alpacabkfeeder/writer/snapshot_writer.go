@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-
-	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 )
 
 // SnapshotWriter is an interface to write the realtime stock data to the marketstore.

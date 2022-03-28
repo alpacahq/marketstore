@@ -23,7 +23,10 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // marketstore's config file through bgworker extension.
 type DefaultConfig struct {
 	Exchanges           []Exchange `json:"exchanges"`
+	SymbolsUpdateTime   time.Time  `json:"symbols_update_time"`
 	UpdateTime          time.Time  `json:"update_time"`
+	StocksJSONURL       string     `json:"stocks_json_url"`
+	StocksJSONBasicAuth string     `json:"stocks_json_basic_auth"`
 	Timeframe           string     `json:"timeframe"`
 	APIKeyID            string     `json:"api_key_id"`
 	APISecretKey        string     `json:"api_secret_key"`
@@ -84,6 +87,7 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	type Alias DefaultConfig
 
 	aux := &struct {
+		SymbolsUpdateTime   CustomTime  `json:"symbols_update_time"`
 		UpdateTime          CustomTime  `json:"update_time"`
 		OpenTime            CustomTime  `json:"openTime"`
 		CloseTime           CustomTime  `json:"closeTime"`
@@ -95,6 +99,7 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	if err := json.Unmarshal(input, &aux); err != nil {
 		return err
 	}
+	c.SymbolsUpdateTime = time.Time(aux.SymbolsUpdateTime)
 	c.UpdateTime = time.Time(aux.UpdateTime)
 	c.OpenTime = time.Time(aux.OpenTime)
 	c.CloseTime = time.Time(aux.CloseTime)
@@ -108,7 +113,7 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 func convertTime(w []weekday) []time.Weekday {
 	d := make([]time.Weekday, len(w))
 	for i := range w {
-		d = append(d, time.Weekday(w[i]))
+		d[i] = time.Weekday(w[i])
 	}
 	return d
 }
@@ -116,7 +121,7 @@ func convertTime(w []weekday) []time.Weekday {
 func convertDate(cd []CustomDay) []time.Time {
 	d := make([]time.Time, len(cd))
 	for i := range cd {
-		d = append(d, time.Time(cd[i]))
+		d[i] = time.Time(cd[i])
 	}
 	return d
 }

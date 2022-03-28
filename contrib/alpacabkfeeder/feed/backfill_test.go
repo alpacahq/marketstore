@@ -7,11 +7,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
-
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 )
 
 var (

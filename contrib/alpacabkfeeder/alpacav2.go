@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,6 +19,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+const getJSONFileTimeout = 10 * time.Second
+
 // NewBgWorker returns the new instance of Alpaca Broker API Feeder.
 // See configs.Config for the details of available configurations.
 // nolint:deadcode // used as a plugin
@@ -28,18 +31,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 	log.Info("loaded Alpaca Broker Feeder config...")
 
-	// init Alpaca API client
-	cred := &api.APIKey{
-		ID:           config.APIKeyID,
-		PolygonKeyID: config.APIKeyID,
-		Secret:       config.APISecretKey,
-		// OAuth:        os.Getenv(EnvApiOAuth),
-	}
-	if config.APIKeyID == "" || config.APISecretKey == "" {
-		// if empty, get from env vars
-		cred = api.Credentials()
-	}
-	apiClient := api.NewClient(cred)
+	apiCli := apiClient(config)
 
 	// init Market Time Checker
 	var timeChecker feed.MarketTimeChecker
@@ -73,12 +65,13 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 
 	ctx := context.Background()
-	// init Symbols Manager to update symbols in the target exchanges
-
-	sm := symbols.NewManager(apiClient, config.Exchanges)
+	// init symbols Manager to update symbols in the target exchanges
+	sm := symbols.NewJSONFileManager(&http.Client{Timeout: getJSONFileTimeout},
+		config.StocksJSONURL, config.StocksJSONBasicAuth,
+	)
 	sm.UpdateSymbols()
-	timer.RunEveryDayAt(ctx, config.UpdateTime, sm.UpdateSymbols)
-	log.Info("updated symbols in the target exchanges")
+	timer.RunEveryDayAt(ctx, config.SymbolsUpdateTime, sm.UpdateSymbols)
+	log.Info("updated symbols using a remote json file.")
 
 	// init SnapshotWriter
 	var ssw writer.SnapshotWriter = writer.SnapshotWriterImpl{
@@ -97,7 +90,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	if config.Backfill.Enabled {
 		const maxBarsPerRequest = 1000
 		const maxSymbolsPerRequest = 100
-		bf := feed.NewBackfill(sm, apiClient, bw, time.Time(config.Backfill.Since),
+		bf := feed.NewBackfill(sm, apiCli, bw, time.Time(config.Backfill.Since),
 			maxBarsPerRequest, maxSymbolsPerRequest,
 		)
 		timer.RunEveryDayAt(ctx, config.UpdateTime, bf.UpdateSymbols)
@@ -105,12 +98,27 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 	return &feed.Worker{
 		MarketTimeChecker: timeChecker,
-		APIClient:         apiClient,
+		APIClient:         apiCli,
 		SymbolManager:     sm,
 		SnapshotWriter:    ssw,
 		BarWriter:         bw,
 		Interval:          config.Interval,
 	}, nil
+}
+
+func apiClient(config *configs.DefaultConfig) *api.Client {
+	// init Alpaca API client
+	cred := &api.APIKey{
+		ID:           config.APIKeyID,
+		PolygonKeyID: config.APIKeyID,
+		Secret:       config.APISecretKey,
+		// OAuth:        os.Getenv(EnvApiOAuth),
+	}
+	if config.APIKeyID == "" || config.APISecretKey == "" {
+		// if empty, get from env vars
+		cred = api.Credentials()
+	}
+	return api.NewClient(cred)
 }
 
 func main() {}

@@ -62,7 +62,9 @@ func (w *Worker) try() error {
 	symbls := w.SymbolManager.GetAllSymbols()
 	snapshots, err := w.APIClient.GetSnapshots(symbls)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get snapshot from Alpaca API. %v", symbls))
+		return fmt.Errorf("failed to get snapshot from Alpaca API. len(symbols)=%v: %w",
+			len(symbls), err,
+		)
 	}
 
 	// write SnapShot data

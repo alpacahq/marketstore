@@ -22,10 +22,10 @@ const (
 	// GetQuotesURL is the URL of Get Quotes endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes)
 	GetQuotesURL = XigniteBaseURL + "/QUICKEquityRealTime.json/GetQuotes"
-	// ListSymbolsURL is the URL of List Symbols endpoint
+	// ListSymbolsURL is the URL of List symbols endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols)
 	ListSymbolsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/ListSymbols"
-	// ListIndexSymbolsURL is the URL of List Symbols endpoint
+	// ListIndexSymbolsURL is the URL of List symbols endpoint
 	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols)
 	// /QUICKEquityRealTime.json/ListSymbols : list symbols for a exchange
 	// /QUICKIndexHistorical.json/ListSymbols : list index symbols for an index group (ex. TOPIX).

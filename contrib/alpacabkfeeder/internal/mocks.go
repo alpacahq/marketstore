@@ -5,7 +5,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 

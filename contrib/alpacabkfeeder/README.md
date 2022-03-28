@@ -23,8 +23,10 @@ bgworkers:
         - NASDAQ
         # - NYSEARCA
         # - OTC
-      # time when target symbols in the exchanges are updated every day.
-      # this time is also used for the historical data back-fill.
+      # time when the list of target symbols (tradable stocks) are updated every day.
+      # This config can be manually overridden by "ALPACA_BROKER_FEEDER_SYMBOLS_UPDATE_TIME" environmental variable.
+      symbols_update_time: "13:00:00" # (UTC). = every day at 08:00:00 (EST)
+      # time when the historical data back-fill is run.
       # This config can be manually overridden by "ALPACA_BROKER_FEEDER_UPDATE_TIME" environmental variable.
       update_time: "13:30:00" # (UTC). = every day at 08:30:00 (EST)
       # Alpava Broker API Feeder writes data to "{symbol}/{timeframe}/TICK" TimeBucketKey

@@ -4,10 +4,9 @@ import (
 	"reflect"
 	"testing"
 
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/configs"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
-
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 )
 
 type MockListAssetsAPIClient struct {
@@ -54,6 +53,6 @@ func TestManagerImpl_UpdateSymbols(t *testing.T) {
 		SUT.Symbols,
 		expectedSymbols,
 	) {
-		t.Errorf("Symbols: want=%v, got=%v", expectedSymbols, SUT.Symbols)
+		t.Errorf("symbols: want=%v, got=%v", expectedSymbols, SUT.Symbols)
 	}
 }

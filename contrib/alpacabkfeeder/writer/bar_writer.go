@@ -6,10 +6,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 )
 
 // BarWriter is an interface to write chart data to the marketstore.

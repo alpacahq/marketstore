@@ -22,7 +22,7 @@ const (
 
 var (
 	// DefaultClient is the default Alpaca client using the
-	// environment variable set credentials
+	// environment variable set credentials.
 	DefaultClient = NewClient(Credentials())
 	base          = "https://api.alpaca.markets"
 	dataURL       = "https://data.alpaca.markets"
@@ -35,10 +35,10 @@ func defaultDo(c *Client, req *http.Request) (*http.Response, error) {
 	if c.credentials.OAuth != "" {
 		req.Header.Set("Authorization", "Bearer "+c.credentials.OAuth)
 	} else {
-		if strings.Contains(req.URL.String(), "sandbox"){
+		if strings.Contains(req.URL.String(), "sandbox") {
 			// Add Basic Auth
 			req.SetBasicAuth(c.credentials.ID, c.credentials.Secret)
-		}else {
+		} else {
 			req.Header.Set("APCA-API-KEY-ID", c.credentials.ID)
 			req.Header.Set("APCA-API-SECRET-KEY", c.credentials.Secret)
 		}
@@ -71,7 +71,7 @@ func defaultDo(c *Client, req *http.Request) (*http.Response, error) {
 }
 
 const (
-	// v2MaxLimit is the maximum allowed limit parameter for all v2 endpoints
+	// v2MaxLimit is the maximum allowed limit parameter for all v2 endpoints.
 	v2MaxLimit = 10000
 )
 
@@ -102,7 +102,7 @@ func init() {
 }
 
 // APIError wraps the detailed code and message supplied
-// by Alpaca's API for debugging purposes
+// by Alpaca's API for debugging purposes.
 type APIError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -112,7 +112,7 @@ func (e *APIError) Error() string {
 	return e.Message
 }
 
-// Client is an Alpaca REST API client
+// Client is an Alpaca REST API client.
 type Client struct {
 	credentials *APIKey
 }
@@ -122,12 +122,12 @@ func SetBaseUrl(baseUrl string) {
 }
 
 // NewClient creates a new Alpaca client with specified
-// credentials
+// credentials.
 func NewClient(credentials *APIKey) *Client {
 	return &Client{credentials: credentials}
 }
 
-// GetSnapshots returns the snapshots for multiple symbol
+// GetSnapshots returns the snapshots for multiple symbol.
 func (c *Client) GetSnapshots(symbols []string) (map[string]*Snapshot, error) {
 	u, err := url.Parse(fmt.Sprintf("%s/v2/stocks/snapshots?symbols=%s",
 		dataURL, strings.Join(symbols, ",")))
@@ -194,7 +194,7 @@ func (c *Client) ListBars(symbols []string, opts v1.ListBarParams) (map[string][
 func (c *Client) ListAssets(status *string) ([]v1.Asset, error) {
 	// TODO: add tests
 	apiVer := apiVersion
-	if strings.Contains(base, "broker"){
+	if strings.Contains(base, "broker") {
 		apiVer = "v1"
 	}
 
