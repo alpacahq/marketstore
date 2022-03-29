@@ -2,7 +2,7 @@ package api
 
 import "time"
 
-// Trade is a stock trade that happened on the market
+// Trade is a stock trade that happened on the market.
 type Trade struct {
 	ID         int64     `json:"i"`
 	Exchange   string    `json:"x"`
@@ -13,7 +13,7 @@ type Trade struct {
 	Tape       string    `json:"z"`
 }
 
-// Quote is a stock quote from the market
+// Quote is a stock quote from the market.
 type Quote struct {
 	BidExchange string    `json:"bx"`
 	BidPrice    float64   `json:"bp"`
@@ -26,7 +26,7 @@ type Quote struct {
 	Tape        string    `json:"z"`
 }
 
-// Bar is an aggregate of trades
+// Bar is an aggregate of trades.
 type Bar struct {
 	Open      float64   `json:"o"`
 	High      float64   `json:"h"`
@@ -36,7 +36,7 @@ type Bar struct {
 	Timestamp time.Time `json:"t"`
 }
 
-// Snapshot is a snapshot of a symbol
+// Snapshot is a snapshot of a symbol.
 type Snapshot struct {
 	LatestTrade  *Trade `json:"latestTrade"`
 	LatestQuote  *Quote `json:"latestQuote"`

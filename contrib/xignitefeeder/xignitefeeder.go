@@ -63,7 +63,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}
 
 	ctx := context.Background()
-	// init Symbols Manager to...
+	// init symbols Manager to...
 	// 1. update symbols in the target exchanges
 	// 2. update index symbols in the target index groups
 	// every day

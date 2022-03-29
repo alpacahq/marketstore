@@ -1,9 +1,9 @@
 package feed
 
 import (
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 	"time"
 
+	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/symbols"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
 	"github.com/alpacahq/marketstore/v4/utils/log"
@@ -61,7 +61,7 @@ func (b *Backfill) UpdateSymbols() {
 				log.Error("Alpaca Broker ListBars API call error. Err=%v", err)
 				return
 			}
-			log.Info("Alpaca ListBars API call: From=%v, To=%v, Symbols=%v",
+			log.Info("Alpaca ListBars API call: From=%v, To=%v, symbols=%v",
 				dateRange.From, dateRange.To, allSymbols[idx.From:idx.To],
 			)
 
