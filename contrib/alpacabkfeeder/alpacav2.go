@@ -66,10 +66,18 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 
 	ctx := context.Background()
 	// init symbols Manager to update symbols in the target exchanges
-	sm := symbols.NewJSONFileManager(&http.Client{Timeout: getJSONFileTimeout},
-		config.StocksJSONURL, config.StocksJSONBasicAuth,
-	)
+	var sm symbols.Manager
+	sm = symbols.NewManager(apiCli, config.Exchanges)
+	if config.StocksJSONURL != "" {
+		// use a remote JSON file instead of the config.Exchanges to list up the symbols
+		sm = symbols.NewJSONFileManager(&http.Client{Timeout: getJSONFileTimeout},
+			config.StocksJSONURL, config.StocksJSONBasicAuth,
+		)
+	}
 	sm.UpdateSymbols()
+	if config.SymbolsUpdateTime.IsZero() {
+		config.SymbolsUpdateTime = config.UpdateTime
+	}
 	timer.RunEveryDayAt(ctx, config.SymbolsUpdateTime, sm.UpdateSymbols)
 	log.Info("updated symbols using a remote json file.")
 

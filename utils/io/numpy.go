@@ -89,7 +89,6 @@ func (nds *NumpyDataset) buildDataShapes() ([]DataShape, error) {
 			return nil, fmt.Errorf("unsupported type string %s", typeStr)
 		}
 		etypes = append(etypes, typ)
-
 	}
 	return NewDataShapeVector(nds.ColumnNames, etypes), nil
 }

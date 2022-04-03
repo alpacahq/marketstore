@@ -224,7 +224,7 @@ func (rs *RowSeries) GetTime() ([]time.Time, error) {
 }
 
 func (rs *RowSeries) GetEpoch() (col []int64) {
-	return getInt64Column(0, int(rs.GetRowLen()), rs.GetNumRows(), rs.GetData())
+	return getInt64Column(0, rs.GetRowLen(), rs.GetNumRows(), rs.GetData())
 }
 
 func (rs *RowSeries) ToColumnSeries() (key TimeBucketKey, cs *ColumnSeries) {

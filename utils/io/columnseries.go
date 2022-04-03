@@ -229,7 +229,6 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 		return nil
 	}
 	return col.([]int64)
-
 }
 
 func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries, err error) {

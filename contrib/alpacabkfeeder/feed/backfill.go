@@ -3,32 +3,33 @@ package feed
 import (
 	"time"
 
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
+
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/symbols"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const backfillTimeframe = "1D"
+var backfillTimeframe = api.OneDay
 
 // Backfill aggregates daily chart data using Alpava v2 API and store it to marketstore.
 type Backfill struct {
 	symbolManager    symbols.Manager
-	apiClient        ListBarsAPIClient
+	apiClient        GetMultiBarsAPIClient
 	barWriter        writer.BarWriter
 	since            time.Time
 	maxBarsPerReq    int
 	maxSymbolsPerReq int
 }
 
-type ListBarsAPIClient interface {
-	ListBars(symbols []string, opts v1.ListBarParams) (map[string][]v1.Bar, error)
+type GetMultiBarsAPIClient interface {
+	GetMultiBars(symbols []string, params api.GetBarsParams) (map[string][]api.Bar, error)
 }
 
 // NewBackfill initializes the module to backfill the historical daily chart data to marketstore.
 // Alpaca API spec: maxBarsPerRequest: 1000 bars per symbol per request at maximum
 // Alpaca API spec: maxSymbolsPerRequest: 100 symbols per request at maximum.
-func NewBackfill(symbolManager symbols.Manager, apiClient ListBarsAPIClient, barWriter writer.BarWriter,
+func NewBackfill(symbolManager symbols.Manager, apiClient GetMultiBarsAPIClient, barWriter writer.BarWriter,
 	since time.Time, maxBarsPerReq, maxSymbolsPerReq int,
 ) *Backfill {
 	return &Backfill{
@@ -48,20 +49,20 @@ func (b *Backfill) UpdateSymbols() {
 	for idx := range pageIndex(len(allSymbols), b.maxSymbolsPerReq) {
 		for dateRange := range datePageIndex(b.since, until, b.maxBarsPerReq) {
 			// fmt.Printf("start=%v, end=%v, symbols=%v\n", dateRange.From, dateRange.To, allSymbols[idx.From:idx.To])
-			params := v1.ListBarParams{
-				Timeframe: backfillTimeframe,
-				StartDt:   time230000utc(dateRange.From),
-				EndDt:     time230000utc(dateRange.To),
-				Limit:     &b.maxBarsPerReq,
+			params := api.GetBarsParams{
+				TimeFrame: backfillTimeframe,
+				Start:     time230000utc(dateRange.From),
+				End:       maxPast16min(time230000utc(dateRange.To)),
+				PageLimit: b.maxBarsPerReq,
 			}
 
 			// get data
-			symbolBarsMap, err := b.apiClient.ListBars(allSymbols[idx.From:idx.To], params)
+			symbolBarsMap, err := b.apiClient.GetMultiBars(allSymbols[idx.From:idx.To], params)
 			if err != nil {
-				log.Error("Alpaca Broker ListBars API call error. Err=%v", err)
+				log.Error("Alpaca MarketData GetMultiBars API call error. params=%v, Err=%v", params, err)
 				return
 			}
-			log.Info("Alpaca ListBars API call: From=%v, To=%v, symbols=%v",
+			log.Info("Alpaca GetMultiBars API call: From=%v, To=%v, symbols=%v",
 				dateRange.From, dateRange.To, allSymbols[idx.From:idx.To],
 			)
 
@@ -79,16 +80,28 @@ func (b *Backfill) UpdateSymbols() {
 	log.Info("[Alpaca Broker Feeder] daily chart backfill is successfully done.")
 }
 
-// Alpaca ListBars API returns daily chart data based on US time.
+// Alpaca GetMultiBars API returns daily chart data based on US time.
 // e.g. When 1D bar is requested with time.Date(2021, 12,1,0,0,0,0,time.UTC),
 // the API returns a daily chart for 2021-11-30 because 2021-12-01 00:00:00 UTC is 2021-11-30 19:00:00 EST.
 // So it's safe to always provide yyyy-mm-dd 23:00:00 UTC to the API when daily chart is necessary
 // because it can be considered that the market for the day is already closed at 23:00:00 UTC
 // regardless of the US timezones (EST, EDT).
-func time230000utc(time2 time.Time) *time.Time {
+func time230000utc(time2 time.Time) time.Time {
 	y, m, d := time2.Date()
 	t := time.Date(y, m, d, 23, 0, 0, 0, time.UTC)
-	return &t
+	return t
+}
+
+// Alpaca API doesn't allow querying historical bars data from the past 15 minutes depending on the subscription.
+// https://alpaca.markets/docs/market-data/#subscription-plans
+// maxPast16min returns the specified time or the time 16 minutes ago from now,
+// to avoid "your subscription does not permit querying data from the past 15 minutes" error.
+func maxPast16min(time2 time.Time) time.Time {
+	past16min := time.Now().Add(-16 * time.Minute)
+	if time2.After(past16min) {
+		return past16min
+	}
+	return time2
 }
 
 // utilities for pagination.

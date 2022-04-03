@@ -21,6 +21,7 @@ var (
 // so target symbols should be updated periodically.
 type Manager interface {
 	GetAllSymbols() []string
+	UpdateSymbols()
 }
 
 type APIClient interface {

@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
@@ -22,46 +22,46 @@ var (
 	d3                     = time.Date(d3Year, d3Month, d3Day, 0, 0, 0, 0, time.UTC)
 )
 
-var testBars = map[string][]v1.Bar{
+var testBars = map[string][]api.Bar{
 	"AAPL": {
-		{Time: d3.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 1},
-		{Time: d2.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 2},
-		{Time: d.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 3},
+		{Timestamp: d3, Open: 0, High: 0, Low: 0, Close: 0, Volume: 1},
+		{Timestamp: d2, Open: 0, High: 0, Low: 0, Close: 0, Volume: 2},
+		{Timestamp: d, Open: 0, High: 0, Low: 0, Close: 0, Volume: 3},
 	},
 	"AMZN": {
-		{Time: d3.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 4},
-		{Time: d2.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 5},
-		{Time: d.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 6},
+		{Timestamp: d3, Open: 0, High: 0, Low: 0, Close: 0, Volume: 4},
+		{Timestamp: d2, Open: 0, High: 0, Low: 0, Close: 0, Volume: 5},
+		{Timestamp: d, Open: 0, High: 0, Low: 0, Close: 0, Volume: 6},
 	},
 	"FB": {
-		{Time: d3.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 7},
-		{Time: d2.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 8},
-		{Time: d.Unix(), Open: 0, High: 0, Low: 0, Close: 0, Volume: 9},
+		{Timestamp: d3, Open: 0, High: 0, Low: 0, Close: 0, Volume: 7},
+		{Timestamp: d2, Open: 0, High: 0, Low: 0, Close: 0, Volume: 8},
+		{Timestamp: d, Open: 0, High: 0, Low: 0, Close: 0, Volume: 9},
 	},
 }
 
 const errorSymbol = "ERROR"
 
 type MockErrorAPIClient struct {
-	testBars map[string][]v1.Bar
+	testBars map[string][]api.Bar
 	internal.MockAPIClient
 }
 
-// ListBars returns an error if symbol:"ERROR" is included, but returns data to other symbols.
-func (mac *MockErrorAPIClient) ListBars(symbols []string, opts v1.ListBarParams) (map[string][]v1.Bar, error) {
-	ret := make(map[string][]v1.Bar)
+// GetMultiBars returns an error if symbol:"ERROR" is included, but returns data to other symbols.
+func (mac *MockErrorAPIClient) GetMultiBars(symbols []string, opts api.GetBarsParams) (map[string][]api.Bar, error) {
+	ret := make(map[string][]api.Bar)
 	for _, symbl := range symbols {
 		if symbl == errorSymbol {
 			return nil, errors.New("error")
 		}
 		if bars, found := mac.testBars[symbl]; found {
-			barPage := make([]v1.Bar, 0)
+			barPage := make([]api.Bar, 0)
 
 			// filter by time
 			for _, bar := range bars {
-				barTime := time.Unix(bar.Time, 0).UTC().Truncate(24 * time.Hour) // 00:00:00 of the bar time
-				startDt := opts.StartDt.UTC().Truncate(24 * time.Hour)
-				endDt := opts.EndDt.UTC().Truncate(24 * time.Hour)
+				barTime := time.Unix(bar.Timestamp.Unix(), 0).UTC().Truncate(24 * time.Hour) // 00:00:00 of the bar time
+				startDt := opts.Start.UTC().Truncate(24 * time.Hour)
+				endDt := opts.End.UTC().Truncate(24 * time.Hour)
 
 				if barTime.Equal(startDt) || (barTime.After(startDt) && barTime.Before(startDt)) || barTime.Equal(endDt) {
 					barPage = append(barPage, bar)
@@ -79,7 +79,7 @@ type MockBarWriter struct {
 	WriteCount int
 }
 
-func (mbw *MockBarWriter) Write(symbol string, bars []v1.Bar) error {
+func (mbw *MockBarWriter) Write(symbol string, bars []api.Bar) error {
 	// in order to assert the number of written bars in the test
 	mbw.WriteCount += len(bars)
 	return nil
@@ -91,7 +91,7 @@ func TestBackfill_UpdateSymbols(t *testing.T) {
 	tests := []struct {
 		name                string
 		smbls               []string
-		testBars            map[string][]v1.Bar
+		testBars            map[string][]api.Bar
 		barWriter           writer.BarWriter
 		maxSymbolsPerReq    int
 		maxBarsPerReq       int

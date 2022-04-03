@@ -220,10 +220,10 @@ func (gd *GdaxFetcher) Run() {
 					lastTime = rate.Time
 				}
 				epoch = append(epoch, rate.Time.Unix())
-				open = append(open, float64(rate.Open))
-				high = append(high, float64(rate.High))
-				low = append(low, float64(rate.Low))
-				clos = append(clos, float64(rate.Close))
+				open = append(open, rate.Open)
+				high = append(high, rate.High)
+				low = append(low, rate.Low)
+				clos = append(clos, rate.Close)
 				volume = append(volume, rate.Volume)
 			}
 			cs := io.NewColumnSeries()

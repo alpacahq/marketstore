@@ -23,13 +23,30 @@ bgworkers:
         - NASDAQ
         # - NYSEARCA
         # - OTC
-      # time when the list of target symbols (tradable stocks) are updated every day.
+      # (optional) time when the list of target symbols (tradable stocks) are updated every day.
       # This config can be manually overridden by "ALPACA_BROKER_FEEDER_SYMBOLS_UPDATE_TIME" environmental variable.
-      symbols_update_time: "13:00:00" # (UTC). = every day at 08:00:00 (EST)
+      #symbols_update_time: "13:00:00" # (UTC). = every day at 08:00:00 (EST)
       # time when the historical data back-fill is run.
       # This config can be manually overridden by "ALPACA_BROKER_FEEDER_UPDATE_TIME" environmental variable.
       update_time: "13:30:00" # (UTC). = every day at 08:30:00 (EST)
-      # Alpava Broker API Feeder writes data to "{symbol}/{timeframe}/TICK" TimeBucketKey
+      # (optional) When stocks_json_url is specified, Alpaca Broker feeder retrieves data for only the stocks
+      # written in the json file.
+      # The example json file structure:
+      # {
+      #  "data": {
+      #    "AAPL": {...},
+      #    "ACN": {...},
+      #    "ADBE": {...}
+      #   }
+      # }
+      # In this case, Alpaca broker feeder gets "AAPL", "ACN", and "ADBE"'s data only.
+      # Any object under each symbol name is ignored.
+      stocks_json_url: "https://example.com/tradable_stocks.json"
+      # (optional) If the stocks_json file is authorized by basic auth,
+      # please specify "{user}:{pass}" (e.g. "john:mypassword").
+      # This config can be manually overridden by "ALPACA_BROKER_FEEDER_STOCKS_JSON_BASIC_AUTH"
+      stocks_json_basic_auth: "user:pass"
+      # Alpaca Broker API Feeder writes data to "{symbol}/{timeframe}/TICK" TimeBucketKey
       timeframe: "1Sec"
       # API Key ID and Secret for Alpaca Broker API
       # This config can be manually overridden by "ALPACA_BROKER_FEEDER_API_KEY_ID" and "ALPACA_BROKER_FEEDER_API_SECRET_KEY"

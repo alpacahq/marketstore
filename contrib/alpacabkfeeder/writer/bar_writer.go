@@ -6,14 +6,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // BarWriter is an interface to write chart data to the marketstore.
 type BarWriter interface {
-	Write(symbol string, bars []v1.Bar) error
+	Write(symbol string, bars []api.Bar) error
 }
 
 // BarWriterImpl is an implementation of the BarWriter interface.
@@ -24,8 +24,8 @@ type BarWriterImpl struct {
 	Timezone *time.Location
 }
 
-// Write converts the Response of the ListBars API to a ColumnSeriesMap and write it to the local marketstore server.
-func (b BarWriterImpl) Write(symbol string, bars []v1.Bar) error {
+// Write converts the Response of the GetMultiBars API to a ColumnSeriesMap and write it to the local marketstore server.
+func (b BarWriterImpl) Write(symbol string, bars []api.Bar) error {
 	// convert Bar Data to CSM (ColumnSeriesMap)
 	csm := b.convertToCSM(symbol, bars)
 
@@ -39,13 +39,13 @@ func (b BarWriterImpl) Write(symbol string, bars []v1.Bar) error {
 	return nil
 }
 
-func (b *BarWriterImpl) convertToCSM(symbol string, bars []v1.Bar) io.ColumnSeriesMap {
+func (b *BarWriterImpl) convertToCSM(symbol string, bars []api.Bar) io.ColumnSeriesMap {
 	epochs := make([]int64, len(bars))
 	opens := make([]float32, len(bars))
 	closes := make([]float32, len(bars))
 	highs := make([]float32, len(bars))
 	lows := make([]float32, len(bars))
-	volumes := make([]int32, len(bars))
+	volumes := make([]uint64, len(bars))
 	csm := io.NewColumnSeriesMap()
 
 	for i := range bars {
@@ -67,11 +67,11 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []v1.Bar) io.ColumnSeri
 
 		// Start time of each bar is used for "epoch"
 		// to align with the 1-day chart backfill. ("00:00:00"(starting time of a day) is used for epoch)
-		epochs[i] = bars[i].Time
-		opens[i] = bars[i].Open
-		closes[i] = bars[i].Close
-		highs[i] = bars[i].High
-		lows[i] = bars[i].Low
+		epochs[i] = bars[i].Timestamp.Unix()
+		opens[i] = float32(bars[i].Open)
+		closes[i] = float32(bars[i].Close)
+		highs[i] = float32(bars[i].High)
+		lows[i] = float32(bars[i].Low)
 		volumes[i] = bars[i].Volume
 	}
 
@@ -87,7 +87,7 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []v1.Bar) io.ColumnSeri
 	return csm
 }
 
-func (b BarWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows []float32, volumes []int32,
+func (b BarWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows []float32, volumes []uint64,
 ) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epochs)

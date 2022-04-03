@@ -74,7 +74,7 @@ func (cs *ColumnSeries) CoerceColumnType(columnName string, elementType EnumElem
 	case reflect.Uint64:
 		newCol := make([]uint64, columnValues.Len())
 		for i := 0; i < columnValues.Len(); i++ {
-			newCol[i] = uint64(toUint(columnValues.Index(i)))
+			newCol[i] = toUint(columnValues.Index(i))
 		}
 		cs.columns[columnName] = newCol
 	case reflect.Float32:
