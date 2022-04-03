@@ -62,7 +62,7 @@ func flatten(lists ...[]string) []string {
 func prefixStrings(list []string, prefix string) []string {
 	res := make([]string, len(list))
 	for i, s := range list {
-		res[i] = string(prefix) + s
+		res[i] = prefix + s
 	}
 	return res
 }

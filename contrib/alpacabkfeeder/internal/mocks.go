@@ -18,6 +18,9 @@ func (msm MockSymbolsManager) GetAllSymbols() []string {
 	return msm.Symbols
 }
 
+// UpdateSymbols does nothing.
+func (msm MockSymbolsManager) UpdateSymbols() {}
+
 // MockAPIClient is a no-op API client.
 type MockAPIClient struct{}
 
@@ -31,9 +34,9 @@ func (mac *MockAPIClient) ListAssets(status *string) ([]v1.Asset, error) {
 	return []v1.Asset{}, nil
 }
 
-// ListBars returns an empty api response.
-func (mac *MockAPIClient) ListBars(symbols []string, opts v1.ListBarParams) (map[string][]v1.Bar, error) {
-	return map[string][]v1.Bar{}, nil
+// GetMultiBars returns an empty api response.
+func (mac *MockAPIClient) GetMultiBars(symbols []string, opts api.GetBarsParams) (map[string][]api.Bar, error) {
+	return map[string][]api.Bar{}, nil
 }
 
 // MockTimeChecker always returns Open.

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -26,22 +26,22 @@ func TestBarWriterImpl_Write(t *testing.T) {
 
 	// 2 bar data
 	symbol := "1234"
-	bars := []v1.Bar{
+	bars := []api.Bar{
 		{
-			Time:   barTimestamp1.Unix(),
-			Open:   12.3,
-			Close:  45.6,
-			High:   78.9,
-			Low:    0.12,
-			Volume: 100,
+			Timestamp: barTimestamp1,
+			Open:      12.3,
+			Close:     45.6,
+			High:      78.9,
+			Low:       0.12,
+			Volume:    100,
 		},
 		{
-			Time:   barTimestamp2.Unix(),
-			Open:   1.2,
-			Close:  3.4,
-			High:   5.6,
-			Low:    7.8,
-			Volume: 100,
+			Timestamp: barTimestamp2,
+			Open:      1.2,
+			Close:     3.4,
+			High:      5.6,
+			Low:       7.8,
+			Volume:    100,
 		},
 	}
 

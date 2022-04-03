@@ -160,7 +160,7 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 			candlesCurrency = append(candlesCurrency, ohlc{ind, o, h, l, c})
 		}
 		//		fmt.Printf(":%d:",ind)
-		index ++
+		index++
 	}
 
 	var (

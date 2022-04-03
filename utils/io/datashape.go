@@ -89,7 +89,7 @@ func (ds *DataShape) toBytes() ([]byte, error) {
 func dsFromBytes(buf []byte) (ds DataShape, cursor int) {
 	cursor = 0
 	dsNameLen := int(ToUint8(buf[cursor : cursor+1]))
-	cursor ++
+	cursor++
 	dsName := ToString(buf[cursor : cursor+dsNameLen])
 	cursor += dsNameLen
 	dsType := EnumElementType(buf[cursor])
@@ -110,7 +110,7 @@ func DSVFromBytes(buf []byte) (dataShape []DataShape, byteLength int) {
 	ret := make([]DataShape, dsLen)
 
 	// deserializes each data shape
-	cursor ++
+	cursor++
 	for i := 0; i < dsLen; i++ {
 		ds, l := dsFromBytes(buf[cursor:])
 		ret[i] = ds

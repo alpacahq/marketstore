@@ -327,7 +327,7 @@ func (d *Directory) GetDataShapes(key *io.TimeBucketKey) (dsv []io.DataShape, er
 	return fi.GetDataShapes(), nil
 }
 
-func (d *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err error) { //d should be a subdirectory
+func (d *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err error) { // d should be a subdirectory
 	// Must be thread-safe for WRITE access
 	/*
 	 Adds a new primary storage file for the provided year to this directory
