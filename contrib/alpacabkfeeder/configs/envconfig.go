@@ -42,7 +42,12 @@ func envOverride(config *DefaultConfig) (*DefaultConfig, error) {
 		config.APISecretKey = apiSecretKey
 	}
 
+	// override the basic Auth of Stocks Json URL and basic auth
 	// override the basic Auth of Stocks Json URL
+	stocksJSONURL := os.Getenv("ALPACA_BROKER_FEEDER_STOCKS_JSON_URL")
+	if stocksJSONURL != "" {
+		config.StocksJSONURL = stocksJSONURL
+	}
 	stocksJSONBasicAuth := os.Getenv("ALPACA_BROKER_FEEDER_STOCKS_JSON_BASIC_AUTH")
 	if stocksJSONBasicAuth != "" {
 		config.StocksJSONBasicAuth = stocksJSONBasicAuth

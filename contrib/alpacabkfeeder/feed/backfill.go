@@ -3,7 +3,6 @@ package feed
 import (
 	"time"
 
-
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/symbols"
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
