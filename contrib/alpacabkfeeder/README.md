@@ -41,6 +41,7 @@ bgworkers:
       # }
       # In this case, Alpaca broker feeder gets "AAPL", "ACN", and "ADBE"'s data only.
       # Any object under each symbol name is ignored.
+      # This config can be manually overridden by "ALPACA_BROKER_FEEDER_STOCKS_JSON_URL"
       stocks_json_url: "https://example.com/tradable_stocks.json"
       # (optional) If the stocks_json file is authorized by basic auth,
       # please specify "{user}:{pass}" (e.g. "john:mypassword").
