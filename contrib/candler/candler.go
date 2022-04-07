@@ -124,13 +124,13 @@ func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) erro
 		}
 		tfstring = val[0]
 	}
-	cd := utils.CandleDurationFromString(tfstring)
+	cd, err := utils.CandleDurationFromString(tfstring)
 
 	if ca == nil {
 		return fmt.Errorf("init called without calling New()")
 	}
-	if cd == nil {
-		return fmt.Errorf("no suitable timeframe provided")
+	if err != nil {
+		return fmt.Errorf("no suitable timeframe provided: %w", err)
 	}
 	if unmapped := argMap.Validate(); unmapped != nil {
 		return fmt.Errorf("unmapped columns: %s", unmapped)

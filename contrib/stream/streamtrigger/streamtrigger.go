@@ -114,7 +114,11 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 	if tf.Duration > time.Minute {
 		// push aggregates to shelf and let them get handled
 		// asynchronously when they are completed or expire
-		timeWindow := utils.CandleDurationFromString(tf.String)
+		timeWindow, err2 := utils.CandleDurationFromString(tf.String)
+		if err2 != nil {
+			log.Error("[streamtrigger] timeframe extraction failure (tf=%s) (err=%v)", tf.String, err2)
+			return
+		}
 
 		var deadline *time.Time
 

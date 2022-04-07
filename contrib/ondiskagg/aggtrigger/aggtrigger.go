@@ -129,7 +129,11 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 		int16(year))
 
 	// query the upper bound since it will contain the most candles
-	window := utils.CandleDurationFromString(s.destinations.UpperBound().String)
+	window, err := utils.CandleDurationFromString(s.destinations.UpperBound().String)
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to find timeframe: %v", err.Error()))
+		return
+	}
 
 	// check if we have a valid cache, if not, re-query
 	if v, ok := s.aggCache.Load(tbk.String()); ok {
@@ -212,7 +216,10 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	symbol string) error {
 	csm := io.NewColumnSeriesMap()
 
-	window := utils.CandleDurationFromString(dest.String)
+	window, err := utils.CandleDurationFromString(dest.String)
+	if err != nil {
+		return fmt.Errorf("timeframe not found from %s: %w", dest.String, err)
+	}
 	start := window.Truncate(head).Unix()
 	end := window.Ceil(tail).Add(-time.Second).Unix()
 
@@ -278,7 +285,10 @@ func (s *OnDiskAggTrigger) writeAggregates(
 }
 
 func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) (*io.ColumnSeries, error) {
-	timeWindow := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
+	timeWindow, err := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
+	if err != nil {
+		return nil, fmt.Errorf("timeframe not found from aggTbk=%v: %w", aggTbk, err)
+	}
 	var params []accumParam
 
 	suffix := fmt.Sprintf("/%s/%s", models.TradeTimeframe, models.TradeSuffix)

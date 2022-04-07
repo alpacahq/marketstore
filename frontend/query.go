@@ -303,7 +303,10 @@ func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time
 	*/
 
 	tf := tbk.GetItemInCategory("Timeframe")
-	cd := utils.CandleDurationFromString(tf)
+	cd, err := utils.CandleDurationFromString(tf)
+	if err != nil {
+		return nil, fmt.Errorf("timeframe not found from tf=%s: %w", tf, err)
+	}
 	queryableTimeframe := cd.QueryableTimeframe()
 	tbk.SetItemInCategory("Timeframe", queryableTimeframe)
 	query.AddTargetKey(tbk)
