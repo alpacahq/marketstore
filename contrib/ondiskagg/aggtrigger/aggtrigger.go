@@ -218,7 +218,7 @@ func (s *OnDiskAggTrigger) writeAggregates(
 
 	window, err := utils.CandleDurationFromString(dest.String)
 	if err != nil {
-		return fmt.Errorf("timeframe not found from %s: %w", dest.String, err)
+		return fmt.Errorf("timeframe not found in %s: %w", dest.String, err)
 	}
 	start := window.Truncate(head).Unix()
 	end := window.Ceil(tail).Add(-time.Second).Unix()
