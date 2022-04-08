@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -77,7 +78,7 @@ func (c *Chart) GetTimestamp() (ts time.Time, err error) {
 		tStr := fmt.Sprintf("%v %v", c.Date, c.Minute)
 		ts, err = time.ParseInLocation("2006-01-02 15:04", tStr, NY)
 	}
-	return
+	return ts, err
 }
 
 func SupportedRange(r string) bool {
@@ -98,7 +99,8 @@ func SupportedRange(r string) bool {
 	return true
 }
 
-func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBarsResponse, error) {
+func GetBars(ctx context.Context, symbols []string, barRange string, limit *int, retries int,
+) (*GetBarsResponse, error) {
 	u, err := url.Parse(fmt.Sprintf("%s/stock/market/batch", base))
 	if err != nil {
 		return nil, err
@@ -141,7 +143,11 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	u.RawQuery = q.Encode()
 
 	// fmt.Println(u.String())
-	res, err := http.Get(u.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("create GET request for %s: %w", u.String(), err)
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +161,7 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 	if res.StatusCode == http.StatusTooManyRequests {
 		if retries > 0 {
 			<-time.After(time.Second)
-			return GetBars(symbols, barRange, limit, retries-1)
+			return GetBars(ctx, symbols, barRange, limit, retries-1)
 		}
 
 		return nil, fmt.Errorf("retry count exceeded")
@@ -176,51 +182,51 @@ func GetBars(symbols []string, barRange string, limit *int, retries int) (*GetBa
 			return nil, fmt.Errorf("OTC Error: %s: %s [Symbol: %s]", res.Status, string(body), symbols[0])
 		}
 
-		var resp0 *GetBarsResponse
-		var resp1 *GetBarsResponse
 		split := len(symbols) / 2
 
 		// fmt.Printf("Symbol groups: %v - %v\n", symbols[:split], symbols[split:])
 
-		resp = GetBarsResponse{}
-		resp0, err1 := GetBars(symbols[:split], barRange, limit, retries)
-		resp1, err2 := GetBars(symbols[split:], barRange, limit, retries)
-		if err1 != nil {
-			log.Error(err1.Error())
-		} else {
-			for k, v := range *resp0 {
-				resp[k] = v
-			}
-		}
-		if err2 != nil {
-			log.Error(err2.Error())
-		} else {
-			for k, v := range *resp1 {
-				resp[k] = v
-			}
-		}
-	} else {
-		if err = json.Unmarshal(body, &resp); err != nil {
-			return nil, errors.New(res.Status + ": " + string(body))
-		}
+		resp = *addBarsToResp(ctx, resp, symbols[:split], barRange, limit, retries)
+		resp = *addBarsToResp(ctx, resp, symbols[split:], barRange, limit, retries)
 
-		if q.Get("types") == "intraday-prices" {
-			for key, val := range resp {
-				resp[key].Chart = val.IntradayPrices
-			}
-		}
+		return &resp, nil
+	}
 
-		if resp[symbols[0]] != nil && resp[symbols[0]].Chart == nil {
-			if retries > 0 {
-				// log.Info("retrying due to null response")
-				<-time.After(time.Second)
-				return GetBars(symbols, barRange, limit, retries-1)
-			}
-			return nil, fmt.Errorf("retry count exceeded")
+	// res.StatusCode != http.StatusUnavailableForLegalReasons
+	if err = json.Unmarshal(body, &resp); err != nil {
+		return nil, errors.New(res.Status + ": " + string(body))
+	}
+
+	if q.Get("types") == "intraday-prices" {
+		for key, val := range resp {
+			resp[key].Chart = val.IntradayPrices
 		}
 	}
 
+	if resp[symbols[0]] != nil && resp[symbols[0]].Chart == nil {
+		if retries > 0 {
+			// log.Info("retrying due to null response")
+			<-time.After(time.Second)
+			return GetBars(ctx, symbols, barRange, limit, retries-1)
+		}
+		return nil, fmt.Errorf("retry count exceeded")
+	}
+
 	return &resp, nil
+}
+
+func addBarsToResp(ctx context.Context, resp GetBarsResponse, symbols []string, barRange string,
+	limit *int, retries int,
+) *GetBarsResponse {
+	r, err := GetBars(ctx, symbols, barRange, limit, retries)
+	if err != nil {
+		log.Error(err.Error())
+	} else {
+		for k, v := range *r {
+			resp[k] = v
+		}
+	}
+	return &resp
 }
 
 type ListSymbolsResponse []struct {
@@ -232,7 +238,11 @@ type ListSymbolsResponse []struct {
 func ListSymbols() (*ListSymbolsResponse, error) {
 	symbolsURL := fmt.Sprintf("%s/ref-data/iex/symbols?token=%s", base, token)
 
-	res, err := http.Get(symbolsURL)
+	req, err := http.NewRequest(http.MethodGet, symbolsURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create http request for %s: %w", symbolsURL, err)
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
