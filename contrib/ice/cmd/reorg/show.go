@@ -36,7 +36,7 @@ var ShowRecordsCmd = &cobra.Command{
 		dataDir := args[0]
 		// walfile is rotated every walRotateInterval * primaryDiskRefreshInterval(= default:5min)
 		const walRotateInterval = 5
-		metadata, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
+		metadata, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
 			walRotateInterval, executor.WALBypass(true))
 		if err != nil {
 			return fmt.Errorf("failed to create new instance setup for Show command: %w", err)

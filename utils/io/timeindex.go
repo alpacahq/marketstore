@@ -78,6 +78,6 @@ func GetIntervalTicks32Bit(ts time.Time, index, intervalsPerDay int64) uint32 {
 }
 
 func IndexToTimeDepr(index, intervalsPerDay int64, year int16) time.Time {
-	SecondOfYear := time.Duration(float64(index-1) * float64(24*60*60) / float64(intervalsPerDay))
-	return time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC).Add(SecondOfYear * time.Second)
+	SecondOfYear := time.Duration(float64(index-1)*float64(24*60*60)/float64(intervalsPerDay)) * time.Second
+	return time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC).Add(SecondOfYear)
 }

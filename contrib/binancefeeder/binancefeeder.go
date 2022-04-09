@@ -499,14 +499,14 @@ func main() {
 	klines, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
 		Interval(interval).Do(context.Background())
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err.Error())
 		return
 	}
 	for _, k := range klines {
-		fmt.Println(k)
+		log.Info(fmt.Sprintf("%v", k))
 	}
 	symbols := getAllSymbols([]string{"USDT"})
 	for _, s := range symbols {
-		fmt.Println(s)
+		log.Info(s)
 	}
 }

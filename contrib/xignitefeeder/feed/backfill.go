@@ -11,6 +11,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+const requestError = "RequestError"
+
 // Backfill aggregates daily chart data using Xignite API and store it to.
 type Backfill struct {
 	symbolManager symbols.Manager
@@ -48,7 +50,7 @@ func (b *Backfill) UpdateSymbols(ctx context.Context) {
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
-			if resp.Outcome == "RequestError" {
+			if resp.Outcome == requestError {
 				log.Info(fmt.Sprintf("failed to get the daily chart data for identifier=%s. Err=%v", identifier, err))
 				continue
 			}
@@ -79,7 +81,7 @@ func (b *Backfill) UpdateIndexSymbols(ctx context.Context) {
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
-			if resp.Outcome == "RequestError" {
+			if resp.Outcome == requestError {
 				log.Info(fmt.Sprintf("failed to get the daily chart data for identifier=%s. Err=%v", identifier, err))
 				continue
 			}

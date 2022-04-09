@@ -56,7 +56,7 @@ func WALBypass(f bool) Option {
 
 func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Matcher,
 	walRotateInterval int, options ...Option,
-) (metadata *InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
+) (metadata *InstanceMetadata, walWG *sync.WaitGroup, err error) {
 	// default
 	opts := &InstanceMetadataOptions{
 		initCatalog:    true,
@@ -87,7 +87,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Mat
 		err = os.Mkdir(rootDir, ownerGroupAll)
 		if err != nil && !os.IsExist(err) {
 			log.Error("Could not create root directory: %s", err.Error())
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 	instanceID := time.Now().UTC().UnixNano()
@@ -101,7 +101,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Mat
 				log.Debug("new root directory found:" + rootDir)
 			} else {
 				log.Error("Could not create a catalog directory: %s.", err.Error())
-				return nil, nil, nil, err
+				return nil, nil, err
 			}
 		}
 	}
@@ -109,7 +109,6 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Mat
 	// read Trigger plugin matchers
 	tpd := NewTriggerPluginDispatcher(tm)
 
-	shutdownPend := false
 	walWG = &sync.WaitGroup{}
 	if opts.initWALCache {
 		// initialize TransactionPipe
@@ -117,11 +116,11 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Mat
 
 		// initialize WAL File
 		ThisInstance.WALFile, err = NewWALFile(rootDir, instanceID, rs,
-			opts.walBypass, &shutdownPend, walWG, tpd, txnPipe,
+			opts.walBypass, walWG, tpd, txnPipe,
 		)
 		if err != nil {
 			log.Error("Unable to create WAL. err=" + err.Error())
-			return nil, nil, nil, fmt.Errorf("unable to create WAL: %w", err)
+			return nil, nil, fmt.Errorf("unable to create WAL: %w", err)
 		}
 
 		// Allocate a new WALFile and cache
@@ -141,7 +140,7 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Mat
 			err = c.CleanupOldWALFiles(walFileAbsPaths)
 			if err != nil {
 				log.Error("Unable to startup Cache and WAL:" + err.Error())
-				return nil, nil, nil,
+				return nil, nil,
 					fmt.Errorf("unable to startup Cache and WAL:%w", err)
 			}
 		}
@@ -157,5 +156,5 @@ func NewInstanceSetup(relRootDir string, rs ReplicationSender, tm []*trigger.Mat
 			walWG.Add(1)
 		}
 	}
-	return ThisInstance, &shutdownPend, walWG, nil
+	return ThisInstance, walWG, nil
 }

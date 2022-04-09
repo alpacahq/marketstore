@@ -18,7 +18,7 @@ import (
 func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	// Configure db settings.
 	walRotateInterval := 5
-	instanceConfig, _, _, err := executor.NewInstanceSetup(dir,
+	instanceConfig, _, err := executor.NewInstanceSetup(dir,
 		nil, nil, walRotateInterval, executor.BackgroundSync(false), executor.WALBypass(true),
 	)
 	if err != nil {

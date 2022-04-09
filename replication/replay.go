@@ -47,6 +47,7 @@ func (r *ReplayerImpl) Replay(transactionGroup []byte) error {
 	log.Debug(fmt.Sprintf("[replica] transactionGroupID=%v", tgID))
 
 	for _, wtSet := range wtsets {
+		wtSet := wtSet
 		csm, err := WTSetToCSM(&wtSet)
 		if err != nil {
 			return errors.Wrap(err, "failed to convert WTSet to CSM")

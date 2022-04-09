@@ -22,7 +22,7 @@ func setup(t *testing.T) (rootDir string, itemsWritten map[string]int, metadata 
 
 	rootDir = t.TempDir()
 	itemsWritten = test.MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
+	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
 	assert.Nil(t, err)
 
 	return rootDir, itemsWritten, metadata

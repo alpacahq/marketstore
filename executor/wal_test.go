@@ -18,13 +18,13 @@ import (
 )
 
 func TestWALWrite(t *testing.T) {
-	rootDir, _, metadata, shutdownPending := setup(t)
+	rootDir, _, metadata := setup(t)
 
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
 	txnPipe := executor.NewTransactionPipe()
 	metadata.WALFile, err = executor.NewWALFile(rootDir, mockInstanceID, nil,
-		false, shutdownPending, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
+		false, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
 		txnPipe,
 	)
 	if err != nil {
@@ -81,7 +81,7 @@ func TestWALWrite(t *testing.T) {
 }
 
 func TestBrokenWAL(t *testing.T) {
-	rootDir, _, metadata, _ := setup(t)
+	rootDir, _, metadata := setup(t)
 
 	var err error
 
@@ -151,7 +151,7 @@ func TestBrokenWAL(t *testing.T) {
 }
 
 func TestWALReplay(t *testing.T) {
-	rootDir, _, metadata, _ := setup(t)
+	rootDir, _, metadata := setup(t)
 
 	var err error
 
@@ -230,7 +230,7 @@ func TestWALReplay(t *testing.T) {
 	WALFile, err := executor.TakeOverWALFile(filepath.Join(rootDir, newWALFileName))
 	assert.Nil(t, err)
 	data, _ := os.ReadFile(newWALFilePath)
-	_ = os.WriteFile("/tmp/wal", data, 0o644)
+	_ = os.WriteFile("/tmp/wal", data, 0o600)
 	newTGC := executor.NewTransactionPipe()
 	assert.NotNil(t, newTGC)
 	// Verify that our files are in original state prior to replay

@@ -16,7 +16,7 @@ func setup(t *testing.T) {
 	t.Helper()
 
 	rootDir := t.TempDir()
-	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+	_, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
 }

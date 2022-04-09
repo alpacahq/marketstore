@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -68,7 +69,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	return &IEXFetcher{
 		backfillM:        &sync.Map{},
 		config:           config,
-		queue:            make(chan []string, int(len(config.Symbols)/api.BatchSize)+1),
+		queue:            make(chan []string, len(config.Symbols)/api.BatchSize+1),
 		lastM:            &sync.Map{},
 		refreshSymbols:   len(config.Symbols) == 0,
 		lastDailyRunDate: 0,
@@ -95,12 +96,13 @@ func (f *IEXFetcher) UpdateSymbolList() {
 }
 
 func (f *IEXFetcher) Run() {
+	ctx := context.Background()
 	// batchify the symbols & queue the batches
 	f.UpdateSymbolList()
-	f.queue = make(chan []string, int(len(f.config.Symbols)/api.BatchSize)+1)
+	f.queue = make(chan []string, len(f.config.Symbols)/api.BatchSize+1)
 
 	log.Info("Launching backfill")
-	go f.workBackfill()
+	go f.workBackfill(ctx)
 
 	go func() {
 		for { // loop forever adding batches of symbols to fetch
@@ -150,10 +152,10 @@ func (f *IEXFetcher) Run() {
 				defer iWg.Done()
 				defer func() { <-iWorkers }()
 
-				f.pollIntraday(batch)
+				f.pollIntraday(ctx, batch)
 
 				if runDaily {
-					f.pollDaily(batch)
+					f.pollDaily(ctx, batch)
 				}
 			}()
 
@@ -163,14 +165,14 @@ func (f *IEXFetcher) Run() {
 	}
 }
 
-func (f *IEXFetcher) pollIntraday(symbols []string) {
+func (f *IEXFetcher) pollIntraday(ctx context.Context, symbols []string) {
 	if !f.config.Intraday {
 		return
 	}
 	limit := 10
 
 	start := time.Now()
-	resp, err := api.GetBars(symbols, oneDay, &limit, retryNum)
+	resp, err := api.GetBars(ctx, symbols, oneDay, &limit, retryNum)
 	if err != nil {
 		log.Error("failed to query intraday bar batch (%v)", err)
 		return
@@ -185,13 +187,13 @@ func (f *IEXFetcher) pollIntraday(symbols []string) {
 	log.Debug("Done Batch (fetched: %s, wrote: %s)", done.Sub(fetched).String(), fetched.Sub(start).String())
 }
 
-func (f *IEXFetcher) pollDaily(symbols []string) {
+func (f *IEXFetcher) pollDaily(ctx context.Context, symbols []string) {
 	if !f.config.Daily {
 		return
 	}
 	limit := 1
 	log.Info("running daily bars poll from IEX")
-	resp, err := api.GetBars(symbols, monthly, &limit, retryNum)
+	resp, err := api.GetBars(ctx, symbols, monthly, &limit, retryNum)
 	if err != nil {
 		log.Error("failed to query daily bar batch (%v)", err)
 	}
@@ -309,21 +311,21 @@ func (f *IEXFetcher) updateLastWritten(csm *io.ColumnSeriesMap) {
 	}
 }
 
-func (f *IEXFetcher) backfill(symbol, timeframe string) (err error) {
+func (f *IEXFetcher) backfill(ctx context.Context, symbol, timeframe string) (err error) {
 	var (
 		resp     *api.GetBarsResponse
 		intraday = strings.EqualFold(timeframe, minute)
 	)
 
 	if intraday {
-		resp, err = api.GetBars([]string{symbol}, oneDay, nil, retryNum)
+		resp, err = api.GetBars(ctx, []string{symbol}, oneDay, nil, retryNum)
 	} else {
-		resp, err = api.GetBars([]string{symbol}, fiveYear, nil, retryNum)
+		resp, err = api.GetBars(ctx, []string{symbol}, fiveYear, nil, retryNum)
 	}
 
 	if err != nil {
 		log.Error("failed to backfill %v/%v (%v)", symbol, timeframe, err)
-		return
+		return err
 	}
 
 	// c := (*resp)[symbol].Chart
@@ -341,10 +343,10 @@ func (f *IEXFetcher) backfill(symbol, timeframe string) (err error) {
 		log.Error("failed to write bars from backfill for %v/%v (%v)", symbol, timeframe, err)
 	}
 
-	return
+	return err
 }
 
-func (f *IEXFetcher) workBackfill() {
+func (f *IEXFetcher) workBackfill(ctx context.Context) {
 	const tickInterval = 30 * time.Second
 	ticker := time.NewTicker(tickInterval)
 
@@ -370,7 +372,7 @@ func (f *IEXFetcher) workBackfill() {
 					defer wg.Done()
 
 					// backfill the symbol/timeframe pair in parallel
-					if f.backfill(symbol, timeframe) == nil {
+					if f.backfill(ctx, symbol, timeframe) == nil {
 						f.backfillM.Store(key, nil)
 					}
 				}()
@@ -400,8 +402,9 @@ func onceDaily(lastDailyRunDate *int, runHour, runMinute int) bool {
 }
 
 func main() {
+	ctx := context.Background()
 	api.SetToken(os.Getenv("IEXTOKEN"))
-	resp, err := api.GetBars([]string{"AAPL", "AMD", "X", "NVDA", "AMPY", "IBM", "GOOG"}, oneDay, nil, retryNum)
+	resp, err := api.GetBars(ctx, []string{"AAPL", "AMD", "X", "NVDA", "AMPY", "IBM", "GOOG"}, oneDay, nil, retryNum)
 	if err != nil {
 		panic(err)
 	}
@@ -415,7 +418,7 @@ func main() {
 
 	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("-------------------\n\n")
-	resp, err = api.GetBars([]string{"AMPY", "MSFT", "DVCR"}, oneDay, nil, retryNum)
+	resp, err = api.GetBars(ctx, []string{"AMPY", "MSFT", "DVCR"}, oneDay, nil, retryNum)
 
 	if err != nil {
 		panic(err)

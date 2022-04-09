@@ -163,6 +163,7 @@ func (gd *BitmexFetcher) Run() {
 	}
 	for {
 		lastTime := timeStart
+		var csm io.ColumnSeriesMap
 		for _, symbol := range symbols {
 			log.Info("Requesting %s %v with 500 time periods", symbol, timeStart)
 			rates, err := gd.client.GetBuckets(symbol, timeStart, gd.baseTimeframe.String)
@@ -176,41 +177,15 @@ func (gd *BitmexFetcher) Run() {
 				log.Info("len(rates) == 0")
 				continue
 			}
-			epoch := make([]int64, 0)
-			open := make([]float64, 0)
-			high := make([]float64, 0)
-			low := make([]float64, 0)
-			clos := make([]float64, 0)
-			volume := make([]float64, 0)
-			for _, rate := range rates {
-				parsedTime, err := time.Parse(time.RFC3339, rate.Timestamp)
-				if err != nil {
-					panic(err)
-				}
-				if parsedTime.After(lastTime) {
-					lastTime = parsedTime
-				}
-				epoch = append(epoch, parsedTime.Unix())
-				open = append(open, rate.Open)
-				high = append(high, rate.High)
-				low = append(low, rate.Low)
-				clos = append(clos, rate.Close)
-				volume = append(volume, rate.Volume)
-			}
-			cs := io.NewColumnSeries()
-			cs.AddColumn("Epoch", epoch)
-			cs.AddColumn("Open", open)
-			cs.AddColumn("High", high)
-			cs.AddColumn("Low", low)
-			cs.AddColumn("Close", clos)
-			cs.AddColumn("Volume", volume)
-			log.Debug("%s: %d rates between %s - %s", symbol, len(rates),
-				rates[0].Timestamp, rates[(len(rates))-1].Timestamp)
-			csm := io.NewColumnSeriesMap()
+
 			symbolDir := fmt.Sprintf("bitmex_%s", symbol)
 			tbk := io.NewTimeBucketKey(symbolDir + "/" + gd.baseTimeframe.String + "/OHLCV")
-			csm.AddColumnSeries(*tbk, cs)
-			executor.WriteCSM(csm, false)
+
+			csm, lastTime = convertToCSM(tbk, rates)
+			err = executor.WriteCSM(csm, false)
+			if err != nil {
+				log.Error("failed to write CSM for bitmex data. err=" + err.Error())
+			}
 		}
 		// next fetch start point
 		timeStart = lastTime.Add(gd.baseTimeframe.Duration)
@@ -228,6 +203,43 @@ func (gd *BitmexFetcher) Run() {
 			time.Sleep(time.Second)
 		}
 	}
+}
+
+func convertToCSM(tbk *io.TimeBucketKey, rates []bitmex.TradeBucketedResponse,
+) (csm io.ColumnSeriesMap, lastTime time.Time) {
+	epoch := make([]int64, 0)
+	open := make([]float64, 0)
+	high := make([]float64, 0)
+	low := make([]float64, 0)
+	clos := make([]float64, 0)
+	volume := make([]float64, 0)
+	for _, rate := range rates {
+		parsedTime, err := time.Parse(time.RFC3339, rate.Timestamp)
+		if err != nil {
+			panic(err)
+		}
+		if parsedTime.After(lastTime) {
+			lastTime = parsedTime
+		}
+		epoch = append(epoch, parsedTime.Unix())
+		open = append(open, rate.Open)
+		high = append(high, rate.High)
+		low = append(low, rate.Low)
+		clos = append(clos, rate.Close)
+		volume = append(volume, rate.Volume)
+	}
+	cs := io.NewColumnSeries()
+	cs.AddColumn("Epoch", epoch)
+	cs.AddColumn("Open", open)
+	cs.AddColumn("High", high)
+	cs.AddColumn("Low", low)
+	cs.AddColumn("Close", clos)
+	cs.AddColumn("Volume", volume)
+	log.Debug("%s: %d rates between %s - %s", tbk.String(), len(rates),
+		rates[0].Timestamp, rates[(len(rates))-1].Timestamp)
+	csm = io.NewColumnSeriesMap()
+	csm.AddColumnSeries(*tbk, cs)
+	return csm, lastTime
 }
 
 func main() {

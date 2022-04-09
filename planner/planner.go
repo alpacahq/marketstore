@@ -201,7 +201,6 @@ func (q *Query) AddTimeQual(timeQual TimeQualFunc) {
 }
 
 func (q *Query) Parse() (pr *ParseResult, err error) {
-	const notFoundErrMsg = "no files returned from query parse"
 	// Check to see that the categories in the query are present in the DB directory
 	CatList := q.DataDir.GatherCategoriesFromCache()
 	for key := range q.Restriction.GetRestrictionMap() {

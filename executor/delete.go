@@ -79,7 +79,7 @@ func deleteInner(fp *ioFilePlan, recordLen int32) (err error) {
 	}(f)
 
 	seekerFunc := func(offset int64) error {
-		if _, err = f.Seek(fp.Offset, io.SeekStart); err != nil {
+		if _, err = f.Seek(offset, io.SeekStart); err != nil {
 			log.Error("Read: seeking in %s\n%s", filePath, err)
 			return err
 		}

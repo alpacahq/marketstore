@@ -21,7 +21,7 @@ func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 
 	rootDir := t.TempDir()
 	test.MakeDummyStockDir(rootDir, true, false)
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
+	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
 	return metadata

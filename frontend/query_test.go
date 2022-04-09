@@ -23,7 +23,7 @@ func setup(t *testing.T,
 
 	rootDir = t.TempDir()
 	test.MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
+	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 	atomic.StoreUint32(&frontend.Queryable, uint32(1))
 

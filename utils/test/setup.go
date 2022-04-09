@@ -75,7 +75,9 @@ func makeFakeFileInfoStock(year, filePath, timeFrame string) *io.TimeBucketInfo 
 	return io.NewTimeBucketInfo(*tf, filePath, "Fake fileinfo", int16(yr), dsv, io.FIXED)
 }
 
-func makeYearFiles(root string, years []string, withdata, withGaps bool, tf string, itemsWritten map[string]int, isStock bool) {
+func makeYearFiles(root string, years []string, withdata, withGaps bool, tf string,
+	itemsWritten map[string]int, isStock bool,
+) {
 	const allowAllPerm = 0o777
 	base := root + "/"
 	makeCatFile(base, "Year")

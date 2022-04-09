@@ -215,15 +215,17 @@ func GetElementType(datum interface{}) EnumElementType {
 		for i := 0; i <= int(STRING16); i++ {
 			e := EnumElementType(i)
 			el := attributeMap[e]
-			if el.typ == kind {
-				// need to check the length too in case of String type (=[]rune = array type),
-				if kind == reflect.Array {
-					if el.size == int(value.Type().Elem().Size()) {
-						return e
-					}
-				} else {
+			if el.typ != kind {
+				continue
+			}
+			// el.typ == kind
+			// need to check the length too in case of String type (=[]rune = array type),
+			if kind == reflect.Array {
+				if el.size == int(value.Type().Elem().Size()) {
 					return e
 				}
+			} else {
+				return e
 			}
 		}
 	}

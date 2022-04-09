@@ -84,7 +84,7 @@ func main() {
 	const allPerm = 0o777
 	const oneDay = 24 * time.Hour
 	rootDir, triggers, walRotateInterval := initConfig()
-	instanceMeta, shutdownPending, walWG, err := initWriter(rootDir, triggers, walRotateInterval)
+	instanceMeta, walWG, err := initWriter(rootDir, triggers, walRotateInterval)
 	if err != nil {
 		log.Error("failed to set up new instance config. err=" + err.Error())
 		os.Exit(1)
@@ -266,9 +266,7 @@ func main() {
 	}
 
 	log.Info("[polygon] wait for shutdown")
-	if shutdownPending != nil {
-		*shutdownPending = true
-	}
+	instanceMeta.WALFile.TriggerShutdown()
 	walWG.Wait()
 	instanceMeta.WALFile.FinishAndWait()
 
@@ -295,7 +293,7 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 }
 
 func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int,
-) (instanceConfig *executor.InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
+) (instanceConfig *executor.InstanceMetadata, walWG *sync.WaitGroup, err error) {
 	// if configured, also load the ondiskagg triggers
 	var tm []*trigger.Matcher
 	for _, triggerSetting := range triggers {
@@ -306,13 +304,13 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 		}
 	}
 
-	instanceConfig, shutdownPending, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
+	instanceConfig, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
 		executor.WALBypass(true))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
+		return nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
 	}
 
-	return instanceConfig, shutdownPending, walWG, nil
+	return instanceConfig, walWG, nil
 }
 
 func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex,

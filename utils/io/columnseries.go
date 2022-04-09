@@ -321,7 +321,7 @@ func SliceColumnSeriesByEpoch(cs ColumnSeries, start, end *int64) (slc ColumnSer
 		}
 	}
 
-	return
+	return slc, err
 }
 
 func max(x, y int) int {

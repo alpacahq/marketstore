@@ -145,11 +145,11 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 			goto Query
 		}
 
-		cs, err := trigger.RecordsToColumnSeries(
+		cs, err2 := trigger.RecordsToColumnSeries(
 			*tbk, c.cs.GetDataShapes(),
 			tf.Duration, int16(year), records)
-		if err != nil {
-			log.Error("[ondiskagg]failed to convert record to column series", err.Error())
+		if err2 != nil {
+			log.Error("[ondiskagg]failed to convert record to column series", err2.Error())
 			return
 		}
 
@@ -253,28 +253,36 @@ func (s *OnDiskAggTrigger) writeAggregates(
 		}()
 	}
 
+	var (
+		cs2   *io.ColumnSeries
+		err2  error
+		tqSlc *io.ColumnSeries
+	)
 	// apply the filter
 	if applyingFilter {
-		tqSlc := slc.ApplyTimeQual(calendar.Nasdaq.EpochIsMarketOpen)
+		tqSlc = slc.ApplyTimeQual(calendar.Nasdaq.EpochIsMarketOpen)
 
 		// normally this will always be true, but when there are random bars
 		// on the weekend, it won't be, so checking to avoid panic
 		if len(tqSlc.GetEpoch()) > 0 {
-			cs, err := aggregate(tqSlc, aggTbk, baseTbk, symbol)
-			if err != nil {
-				return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err)
+			cs2, err2 = aggregate(tqSlc, aggTbk, baseTbk, symbol)
+			if err2 != nil {
+				return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err2)
 			}
-			csm.AddColumnSeries(*aggTbk, cs)
+			csm.AddColumnSeries(*aggTbk, cs2)
 		}
-	} else {
-		cs, err := aggregate(&slc, aggTbk, baseTbk, symbol)
-		if err != nil {
-			return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err)
-		}
-		csm.AddColumnSeries(*aggTbk, cs)
+		return executor.WriteCSM(csm, false)
 	}
 
+	// not applying the filter
+	cs2, err2 = aggregate(&slc, aggTbk, baseTbk, symbol)
+	if err2 != nil {
+		return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err2)
+	}
+	csm.AddColumnSeries(*aggTbk, cs2)
+
 	return executor.WriteCSM(csm, false)
+
 }
 
 func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) (*io.ColumnSeries, error) {

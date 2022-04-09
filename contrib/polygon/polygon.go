@@ -12,8 +12,6 @@ import (
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 )
 
-const defaultBatchSize = 50000
-
 type PolygonFetcher struct {
 	config polygonconfig.FetcherConfig
 	types  map[string]struct{} // Bars, Quotes, Trades

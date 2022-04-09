@@ -22,17 +22,17 @@ import (
 )
 
 func setup(t *testing.T) (rootDir string, itemsWritten map[string]int,
-	metadata *executor.InstanceMetadata, shutdownPending *bool,
+	metadata *executor.InstanceMetadata,
 ) {
 	t.Helper()
 
 	rootDir = t.TempDir()
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, shutdownPending, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
 		executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
-	return rootDir, itemsWritten, metadata, shutdownPending
+	return rootDir, itemsWritten, metadata
 }
 
 func TestAddDir(t *testing.T) {
@@ -75,7 +75,7 @@ func TestAddDir(t *testing.T) {
 }
 
 func TestQueryMulti(t *testing.T) {
-	rootDir, _, metadata, _ := setup(t)
+	rootDir, _, metadata := setup(t)
 
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("AAPL/1Min/OHLCV")
@@ -122,7 +122,7 @@ func TestQueryMulti(t *testing.T) {
 }
 
 func TestWriteVariable(t *testing.T) {
-	rootDir, _, metadata, _ := setup(t)
+	rootDir, _, metadata := setup(t)
 
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("TEST-WV/1Min/TICK-BIDASK")
@@ -274,7 +274,7 @@ func TestWriteVariable(t *testing.T) {
 }
 
 func TestFileRead(t *testing.T) {
-	_, itemsWritten, metadata, _ := setup(t)
+	_, itemsWritten, metadata := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -322,7 +322,7 @@ func TestFileRead(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	_, _, metadata, _ := setup(t)
+	_, _, metadata := setup(t)
 
 	NY, _ := time.LoadLocation("America/New_York")
 	// First write some data we can delete
@@ -346,11 +346,11 @@ func TestDelete(t *testing.T) {
 	buffer, _ := Serialize([]byte{}, row)
 	startTime := time.Date(2018, 12, 26, 9, 45, 0, 0, NY)
 	ts := startTime
-	var tsA []time.Time
+	tsA := make([]time.Time, 1000)
 	for i := 0; i < 1000; i++ {
 		minsToAdd := time.Duration(i)
 		ts := ts.Add(minsToAdd * time.Minute)
-		tsA = append(tsA, ts)
+		tsA[i] = ts
 		buffer, _ = Serialize(buffer, row)
 	}
 	writer.WriteRecords(tsA, buffer, dsv, tbi)
@@ -411,7 +411,7 @@ func asserter(t *testing.T, err error, shouldBeNil bool) {
 }
 
 func TestSortedFiles(t *testing.T) {
-	_, itemsWritten, metadata, _ := setup(t)
+	_, itemsWritten, metadata := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -521,7 +521,7 @@ func TestSortedFiles(t *testing.T) {
 }
 
 func TestCrossYear(t *testing.T) {
-	_, _, metadata, _ := setup(t)
+	_, _, metadata := setup(t)
 
 	// Test data range query - across year
 	q := NewQuery(metadata.CatalogDir)
@@ -547,7 +547,7 @@ func TestCrossYear(t *testing.T) {
 }
 
 func TestLastN(t *testing.T) {
-	_, _, metadata, _ := setup(t)
+	_, _, metadata := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -653,7 +653,7 @@ func TestLastN(t *testing.T) {
 }
 
 func TestAddSymbolThenWrite(t *testing.T) {
-	_, _, metadata, _ := setup(t)
+	_, _, metadata := setup(t)
 
 	dataItemKey := "TEST/1Min/OHLCV"
 	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
@@ -709,7 +709,7 @@ func TestAddSymbolThenWrite(t *testing.T) {
 }
 
 func TestWriter(t *testing.T) {
-	_, _, metadata, _ := setup(t)
+	_, _, metadata := setup(t)
 
 	dataItemKey := "TEST/1Min/OHLCV"
 	tbk := NewTimeBucketKey(dataItemKey)

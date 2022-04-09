@@ -143,26 +143,28 @@ func pullDate(t time.Time) error {
 			return fmt.Errorf("failed to scan next message: %w", err)
 		}
 
-		if msg, ok := msg.(*tops.TradeReportMessage); ok {
-			if openTime.IsZero() {
-				openTime = msg.Timestamp.Truncate(time.Minute)
-				closeTime = openTime.Add(time.Minute)
-			}
-
-			if msg.Timestamp.After(closeTime) && len(trades) > 0 {
-				bars := makeBars(trades, openTime, closeTime)
-
-				if err := writeBars(bars); err != nil {
-					return fmt.Errorf("failed to writeBars: %w", err)
-				}
-
-				trades = trades[:0]
-				openTime = msg.Timestamp.Truncate(time.Minute)
-				closeTime = openTime.Add(time.Minute)
-			}
-
-			trades = append(trades, msg)
+		tradeReportMessage, ok := msg.(*tops.TradeReportMessage)
+		if !ok {
+			continue
 		}
+		if openTime.IsZero() {
+			openTime = tradeReportMessage.Timestamp.Truncate(time.Minute)
+			closeTime = openTime.Add(time.Minute)
+		}
+
+		if tradeReportMessage.Timestamp.After(closeTime) && len(trades) > 0 {
+			bars := makeBars(trades, openTime, closeTime)
+
+			if err := writeBars(bars); err != nil {
+				return fmt.Errorf("failed to writeBars: %w", err)
+			}
+
+			trades = trades[:0]
+			openTime = tradeReportMessage.Timestamp.Truncate(time.Minute)
+			closeTime = openTime.Add(time.Minute)
+		}
+
+		trades = append(trades, tradeReportMessage)
 	}
 	return nil
 }
@@ -225,6 +227,7 @@ func writeBars(bars []*consolidator.Bar) error {
 }
 
 func nextBatch(bars []*consolidator.Bar, index int) (batchBars []*consolidator.Bar, idx int) {
+	// nolint:prealloc // hard to preallocate batch due to the if statement
 	var batch []*consolidator.Bar
 
 	for i, bar := range bars[index:] {
@@ -258,7 +261,7 @@ func initWriter() error {
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
 
-	_, _, _, err = executor.NewInstanceSetup(
+	_, _, err = executor.NewInstanceSetup(
 		relRootDir, nil, triggerMatchers,
 		walRotateInterval, executor.WALBypass(true))
 	if err != nil {

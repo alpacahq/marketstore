@@ -28,10 +28,7 @@ type BarWriterImpl struct {
 // When "isIndexSymbol" is true, bar data with "Volume=0" symbol will also be written to marketstore.
 func (b BarWriterImpl) Write(symbol string, bars []api.Bar, isIndexSymbol bool) error {
 	// convert Bar Data to CSM (ColumnSeriesMap)
-	csm, err := b.convertToCSM(symbol, bars, isIndexSymbol)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from Bar Data. %v", bars))
-	}
+	csm := b.convertToCSM(symbol, bars, isIndexSymbol)
 
 	// write CSM to marketstore
 	if err := b.MarketStoreWriter.Write(csm); err != nil {
@@ -42,7 +39,7 @@ func (b BarWriterImpl) Write(symbol string, bars []api.Bar, isIndexSymbol bool) 
 	return nil
 }
 
-func (b *BarWriterImpl) convertToCSM(symbol string, bars []api.Bar, isIndexSymbol bool) (io.ColumnSeriesMap, error) {
+func (b *BarWriterImpl) convertToCSM(symbol string, bars []api.Bar, isIndexSymbol bool) io.ColumnSeriesMap {
 	var (
 		epochs  []int64
 		opens   []float32
@@ -83,13 +80,13 @@ func (b *BarWriterImpl) convertToCSM(symbol string, bars []api.Bar, isIndexSymbo
 	// to avoid that empty array is added to csm when all data are Volume=0 and there is no data to write
 	if len(epochs) == 0 {
 		// no data to write.
-		return csm, nil
+		return csm
 	}
 
 	cs := b.newColumnSeries(epochs, opens, closes, highs, lows, volumes)
 	tbk := io.NewTimeBucketKey(symbol + "/" + b.Timeframe + "/OHLCV")
 	csm.AddColumnSeries(*tbk, cs)
-	return csm, nil
+	return csm
 }
 
 func (b BarWriterImpl) newColumnSeries(epochs []int64, opens, closes, highs, lows, volumes []float32) *io.ColumnSeries {
