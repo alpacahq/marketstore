@@ -49,7 +49,7 @@ var ImportCmd = &cobra.Command{
 		reorgDir := args[1]
 		// walfile is rotated every walRotateInterval * primaryDiskRefreshInterval(= default:5min)
 		const walRotateInterval = 5
-		_, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
+		_, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
 			walRotateInterval, executor.WALBypass(true),
 		)
 		if err != nil {

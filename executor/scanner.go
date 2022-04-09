@@ -349,7 +349,6 @@ func (r *Reader) read(iop *IOPlan) ([]byte, error) {
 			resultBuffer, finished, bytesRead, err = ex.readBackward(
 				resultBuffer,
 				fp[i],
-				iop.RecordLen,
 				bytesLeftToFill,
 				readBuffer,
 				r.fileBuffer)
@@ -516,7 +515,7 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 }
 
 func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
-	recordLen, bytesToRead int32, readBuffer, fileBuffer []byte) (
+	bytesToRead int32, readBuffer, fileBuffer []byte) (
 	result []byte, finished bool, bytesRead int32, err error) {
 	const readWriteAll = 0o666
 	// log.Info("reading backward [recordLen: %v bytesToRead: %v offset: %v]", recordLen, bytesToRead, fp.Offset)

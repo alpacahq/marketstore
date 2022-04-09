@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -327,7 +326,7 @@ func (d *Directory) GetDataShapes(key *io.TimeBucketKey) (dsv []io.DataShape, er
 	return fi.GetDataShapes(), nil
 }
 
-func (d *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err error) { // d should be a subdirectory
+func (d *Directory) AddFile(newYear int16) (fInfoPtr *io.TimeBucketInfo, err error) { // d should be a subdirectory
 	// Must be thread-safe for WRITE access
 	/*
 	 Adds a new primary storage file for the provided year to this directory
@@ -607,13 +606,6 @@ func (d *Directory) GetLatestYearFile() (latestFile *io.TimeBucketInfo, err erro
 		}
 	}
 	return latestFile, nil
-}
-
-func (d *Directory) pathToKey(fullPath string) (key string) {
-	dirPath := path.Dir(fullPath)
-	key = strings.Replace(dirPath, d.pathToItemName, "", 1)
-	key = strings.TrimLeft(key, "/")
-	return key
 }
 
 func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {

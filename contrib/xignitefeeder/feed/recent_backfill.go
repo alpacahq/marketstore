@@ -48,7 +48,7 @@ func (b *RecentBackfill) UpdateSymbols(ctx context.Context) {
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
-			if resp.Outcome == "RequestError" {
+			if resp.Outcome == requestError {
 				log.Info(fmt.Sprintf("failed to get the recent chart data for identifier=%s. Err=%v", identifier, err))
 				continue
 			}
@@ -88,7 +88,7 @@ func (b *RecentBackfill) UpdateIndexSymbols(ctx context.Context) {
 		if err != nil {
 			// The RequestError is returned when the symbol doesn't have any quotes data
 			// (i.e. the symbol has not been listed yet)
-			if resp.Outcome == "RequestError" {
+			if resp.Outcome == requestError {
 				log.Info(fmt.Sprintf("(index symbols) failed to get the recent chart data for identifier=%s."+
 					" Err=%v", identifier, err))
 				continue

@@ -131,7 +131,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	start := time.Now()
 
 	triggerMatchers := trigger.NewTriggerMatchers(config.Triggers)
-	instanceConfig, shutdownPending, walWG, err := executor.NewInstanceSetup(
+	instanceConfig, walWG, err := executor.NewInstanceSetup(
 		config.RootDirectory,
 		rs,
 		triggerMatchers,
@@ -282,7 +282,8 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", config.StopGracePeriod)
 				time.Sleep(config.StopGracePeriod)
-				shutdown(shutdownPending, walWG)
+				instanceConfig.WALFile.TriggerShutdown()
+				shutdown(walWG)
 			}
 		}
 	}()
@@ -295,10 +296,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func shutdown(shutdownPending *bool, walWaitGroup *sync.WaitGroup) {
-	if shutdownPending != nil {
-		*shutdownPending = true
-	}
+func shutdown(walWaitGroup *sync.WaitGroup) {
 	walWaitGroup.Wait()
 	log.Info("exiting...")
 	os.Exit(0)

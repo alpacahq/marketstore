@@ -80,8 +80,9 @@ func quoteHandler(q *api.Quote) {
 // aggregateToMinuteHandler handles an AggregateToMinute
 // and stores it to the cache.
 func aggregateToMinuteHandler(agg *api.AggregateToMinute) {
+	const milliToNano = 1000_000
 	writeAggregateToMinute(agg)
-	updateMetrics("minute_bar", time.Unix(0, 1000000*agg.EndTime))
+	updateMetrics("minute_bar", time.Unix(0, agg.EndTime*milliToNano))
 }
 
 func updateMetrics(msgType string, msgTimestamp time.Time) {

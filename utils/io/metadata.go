@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	epochColumnName = "Epoch"
 	// see docs/design/file_format_design.txt for the details.
 	versionHeaderBytes     = 8
 	descriptionHeaderBytes = 256
@@ -119,7 +120,7 @@ func CreateShapesForTimeBucketInfo(dsv []DataShape) (elementTypes []EnumElementT
 
 	*/
 	for _, shape := range dsv {
-		if shape.Name != "Epoch" {
+		if shape.Name != epochColumnName {
 			elementTypes = append(elementTypes, shape.Type)
 			elementNames = append(elementNames, shape.Name)
 		}
@@ -134,7 +135,7 @@ func (f *TimeBucketInfo) GetDataShapes() []DataShape {
 }
 
 func (f *TimeBucketInfo) GetDataShapesWithEpoch() (out []DataShape) {
-	ep := DataShape{Name: "Epoch", Type: INT64}
+	ep := DataShape{Name: epochColumnName, Type: INT64}
 	dsv := f.GetDataShapes()
 	out = append(out, ep)
 	out = append(out, dsv...)
@@ -360,11 +361,13 @@ type Header struct {
 	RecordType   int64
 	NElements    int64
 	RecordLength int64
-	reserved1    int64
+	// nolint:structcheck // reserved
+	reserved1 int64
 	// Above is the fixed header portion - size is 312 Bytes = (7*8 + 256)
 	ElementNames [maxNumElements][elementNameHeaderBytes]byte
 	ElementTypes [maxNumElements]byte
-	reserved2    [reservedHeader2Bytes]int64
+	// nolint:structcheck // reserved
+	reserved2 [reservedHeader2Bytes]int64
 }
 
 // WriteHeader writes the header described by a given TimeBucketInfo to the

@@ -17,6 +17,10 @@ import (
 func getConfig(t *testing.T, data string) (ret map[string]interface{}) {
 	t.Helper()
 
+	if data == "" {
+		return nil
+	}
+
 	err := json.Unmarshal([]byte(data), &ret)
 	require.Nil(t, err)
 	return ret

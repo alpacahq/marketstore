@@ -36,7 +36,7 @@ type CandleCandler struct {
 	*candler.Candler
 }
 
-func (ca CandleCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (ica uda.AggInterface, err error) {
+func (c CandleCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (ica uda.AggInterface, err error) {
 	cl := candler.Candler{}
 	ca2, err := cl.New(argMap, args...)
 	return &CandleCandler{ca2}, err

@@ -54,15 +54,16 @@ type TransactionGroup struct {
 }
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
-	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
+	walBypass bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
 	txnPipe *TransactionPipe) (wf *WALFileType, err error) {
+	shutdownPending := false
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
 		OwningInstanceID:  owningInstanceID,
 		rootDir:           rootDir,
 		ReplicationSender: rs,
 		walBypass:         walBypass,
-		shutdownPending:   shutdownPending,
+		shutdownPending:   &shutdownPending,
 		walWaitGroup:      walWaitGroup,
 		tpd:               tpd,
 		txnPipe:           txnPipe,
@@ -475,10 +476,6 @@ func (wf *WALFileType) initMessage(mid MIDEnum) []byte {
 	return buffer
 }
 
-func (wf *WALFileType) writeMessageID(mid MIDEnum) {
-	wf.write(wf.initMessage(mid))
-}
-
 func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	// compute the checksum
 	hash := md5.New()
@@ -705,6 +702,10 @@ func (wf *WALFileType) RequestFlush() {
 	f := make(chan struct{})
 	wf.txnPipe.flushChannel <- f
 	<-f
+}
+
+func (wf *WALFileType) TriggerShutdown() {
+	*wf.shutdownPending = true
 }
 
 // FinishAndWait closes the writtenIndexes channel, and waits

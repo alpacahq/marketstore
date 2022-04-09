@@ -18,7 +18,7 @@ func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 
 	rounderNum = math.Pow(10, 3)
 
-	metadata, _, _, err := executor.NewInstanceSetup(t.TempDir(), nil, nil, 5,
+	metadata, _, err := executor.NewInstanceSetup(t.TempDir(), nil, nil, 5,
 		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
 

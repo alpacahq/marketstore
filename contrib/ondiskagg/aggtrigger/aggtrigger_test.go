@@ -111,7 +111,7 @@ func TestFireBars(t *testing.T) {
 
 	rootDir := filepath.Join(t.TempDir(), "mktsdb")
 	_ = os.MkdirAll(rootDir, 0o777)
-	_, _, _, err := executor.NewInstanceSetup(
+	_, _, err := executor.NewInstanceSetup(
 		rootDir, nil, nil,
 		5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
