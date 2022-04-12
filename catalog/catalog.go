@@ -84,7 +84,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 					log.Warn(fmt.Sprintf("category_name file not found under the directory."+
 						"%s will be ignored:%v", leafPath, err.Error()))
 				} else {
-					return fmt.Errorf(io.GetCallerFileContext(0) + ", " + err.Error())
+					return errors.New(io.GetCallerFileContext(0) + ", " + err.Error())
 				}
 			}
 		} else if filepath.Ext(leafPath) == ".bin" {
@@ -100,7 +100,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 			yearString := yearFileBase[:len(yearFileBase)-4]
 			yearInt, err := strconv.Atoi(yearString)
 			if err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+				return errors.New(io.GetCallerFileContext(0) + err.Error())
 			}
 			d.datafile[leafPath].Year = int16(yearInt)
 			/*
@@ -141,11 +141,11 @@ func writeCategoryNameFile(catName, dirName string) error {
 
 	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o770)
 	if err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 	defer fp.Close()
 	if _, err = fp.WriteString(catName); err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 	return nil
 }
@@ -164,17 +164,17 @@ func (d *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInfo) (
 		subdirname := filepath.Join(dirname, dataDirName)
 		if !fileExists(subdirname) {
 			if err = os.Mkdir(subdirname, 0o770); err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+				return errors.New(io.GetCallerFileContext(0) + err.Error())
 			}
 		}
 		if err = writeCategoryNameFile(catkeySplit[i], dirname); err != nil {
-			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+			return errors.New(io.GetCallerFileContext(0) + err.Error())
 		}
 		dirname = subdirname
 	}
 	// Write the last implied catName "Year"
 	if err = writeCategoryNameFile("Year", dirname); err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 
 	// Create a new data file using the TimeBucketInfo
@@ -207,7 +207,7 @@ func (d *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInfo) (
 // Also removes empty directories at the higher levels after the delete. This is used for a root catalog directory.
 func (d *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	if d == nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + ": Directory called from is nil")
+		return errors.New(io.GetCallerFileContext(0) + ": Directory called from is nil")
 	}
 
 	datakeySplit := tbk.GetItems()
@@ -218,7 +218,7 @@ func (d *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 		itemName := datakeySplit[i]
 		// Descend from the current directory to find the first directory with the item name
 		if tree[i] = current.GetSubDirWithItemName(itemName); tree[i] == nil {
-			return fmt.Errorf("Unable to find level item: " + itemName + " in directory")
+			return errors.New("Unable to find level item: " + itemName + " in directory")
 		}
 		current = tree[i]
 	}

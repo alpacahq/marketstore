@@ -60,7 +60,7 @@ type gdaxProduct struct {
 
 func getSymbols() ([]string, error) {
 	req, err := http.NewRequestWithContext(context.Background(),
-		"GET", "https://api.pro.coinbase.com/products", nil)
+		"GET", "https://api.pro.coinbase.com/products", http.NoBody)
 	if err != nil {
 		return nil, err
 	}

@@ -141,16 +141,20 @@ func (rows *Rows) GetRow(i int) []byte {
 	return rows.data[start:end]
 }
 
-func (rows *Rows) ToColumnSeries() *ColumnSeries {
+func (rows *Rows) ToColumnSeries() (*ColumnSeries, error) {
 	cs := NewColumnSeries()
-	cs.AddColumn("Epoch", rows.GetColumn("Epoch").([]int64))
+	int64Epochs, ok := rows.GetColumn("Epoch").([]int64)
+	if !ok {
+		return nil, errors.New("failed to cast epoch column to []int64")
+	}
+	cs.AddColumn("Epoch", int64Epochs)
 	for _, ds := range rows.GetDataShapes() {
 		if ds.Name == "Epoch" {
 			continue
 		}
 		cs.AddColumn(ds.Name, rows.GetColumn(ds.Name))
 	}
-	return cs
+	return cs, nil
 }
 
 type RowSeries struct {

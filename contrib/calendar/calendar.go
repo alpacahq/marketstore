@@ -172,7 +172,7 @@ func (calendar *Calendar) MarketClose(t time.Time) *time.Time {
 			mktClose = &normalClose
 		}
 	}
-	return nil
+	return mktClose
 }
 
 func (calendar *Calendar) Tz() *time.Location {

@@ -49,7 +49,7 @@ type Stocks struct {
 }
 
 func (m *JSONFileManager) downloadSymbols(ctx context.Context) []string {
-	req, err := http.NewRequestWithContext(ctx, "GET", m.stocksJSONURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", m.stocksJSONURL, http.NoBody)
 	if err != nil {
 		log.Error(fmt.Sprintf("failed to create a http req for stocks Json(URL=%s). err=%v",
 			m.stocksJSONURL, err,

@@ -361,7 +361,7 @@ func download(client *http.Client, endpointURL string, retryCount int) (body []b
 func request(client *http.Client, endpointURL string) ([]byte, error) {
 	var resp *http.Response
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpointURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpointURL, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

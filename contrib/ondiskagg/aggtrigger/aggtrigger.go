@@ -282,7 +282,6 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	csm.AddColumnSeries(*aggTbk, cs2)
 
 	return executor.WriteCSM(csm, false)
-
 }
 
 func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) (*io.ColumnSeries, error) {

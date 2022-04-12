@@ -24,7 +24,11 @@ func Serialize(buffer []byte, datum interface{}) ([]byte, error) {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
 		return buffer, fmt.Errorf("Serialize: Type %s is not serializable", value.Kind().String())
 	case reflect.String:
-		return append(buffer, datum.(string)...), nil
+		datumStr, ok := datum.(string)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast data to str. data=%v", datum)
+		}
+		return append(buffer, datumStr...), nil
 	case reflect.Struct:
 		for i := 0; i < value.NumField(); i++ {
 			subDatum := value.Field(i).Interface()

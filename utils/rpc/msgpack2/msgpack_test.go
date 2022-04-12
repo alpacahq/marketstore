@@ -16,7 +16,7 @@ import (
 	"testing"
 
 	rpc "github.com/alpacahq/rpc/rpc2"
-	msgpack "github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack"
 
 	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 )

@@ -143,7 +143,7 @@ func GetBars(ctx context.Context, symbols []string, barRange string, limit *int,
 	u.RawQuery = q.Encode()
 
 	// fmt.Println(u.String())
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("create GET request for %s: %w", u.String(), err)
 	}
@@ -238,7 +238,7 @@ type ListSymbolsResponse []struct {
 func ListSymbols() (*ListSymbolsResponse, error) {
 	symbolsURL := fmt.Sprintf("%s/ref-data/iex/symbols?token=%s", base, token)
 
-	req, err := http.NewRequest(http.MethodGet, symbolsURL, nil)
+	req, err := http.NewRequest(http.MethodGet, symbolsURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("create http request for %s: %w", symbolsURL, err)
 	}

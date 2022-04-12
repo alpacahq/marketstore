@@ -124,7 +124,7 @@ func (wf *WALFileType) open(filePath string) error {
 	var err error
 	wf.FilePtr, err = os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 	return nil
 }
@@ -484,7 +484,7 @@ func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	cksum := hash.Sum(nil)
 
 	if !bytes.Equal(cksum, checkBuf) {
-		return fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
+		return errors.New(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
 	}
 
 	return nil

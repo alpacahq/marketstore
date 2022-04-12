@@ -3,6 +3,8 @@ package executor_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -92,7 +94,9 @@ func TestTriggerPluginDispatcher(t *testing.T) {
 			// --- then ---
 			assert.Equal(t, len(tt.trigger.calledWith), tt.wantCalledWithLen)
 			if tt.wantCalledWithLen > 0 {
-				assert.Equal(t, tt.trigger.calledWith[0][0].(string), tt.wantCalledWith)
+				calledWith2, ok := tt.trigger.calledWith[0][0].(string)
+				require.True(t, ok)
+				assert.Equal(t, calledWith2, tt.wantCalledWith)
 			}
 		})
 	}

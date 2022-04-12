@@ -120,7 +120,7 @@ func (c *DefaultClient) GetRealTimeQuotes(ctx context.Context, identifiers []str
 // exchange: XTKS, XNGO, XSAP, XFKA, XJAS, XTAM
 func (c *DefaultClient) ListSymbols(ctx context.Context, exchange string) (response ListSymbolsResponse, err error) {
 	apiURL := ListSymbolsURL + fmt.Sprintf("?_token=%s&Exchange=%s", c.token, exchange)
-	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, http.NoBody)
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}
@@ -144,7 +144,7 @@ func (c *DefaultClient) ListSymbols(ctx context.Context, exchange string) (respo
 func (c *DefaultClient) ListIndexSymbols(ctx context.Context, indexGroup string,
 ) (response ListIndexSymbolsResponse, err error) {
 	apiURL := ListIndexSymbolsURL + fmt.Sprintf("?_token=%s&GroupName=%s", c.token, indexGroup)
-	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, http.NoBody)
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request.")
 	}

@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -74,6 +75,9 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	}
 
 	ret, err = envOverride(ret)
+	if err != nil {
+		return nil, fmt.Errorf("[xignite feeder]override config by env vars: %w", err)
+	}
 
 	return ret, nil
 }
