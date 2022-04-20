@@ -182,14 +182,15 @@ func (cs *ColumnSeries) Remove(targetName string) error {
 func (cs *ColumnSeries) Project(keepList []string) error {
 	newCols := make(map[string]interface{})
 
-	newNames := make([]string, len(keepList))
-	for i, name := range keepList {
+	var newNames []string
+	for _, name := range keepList {
 		col := cs.GetByName(name)
 		if col == nil {
-			return fmt.Errorf("column named: %s not found", name)
+			log.Debug(fmt.Sprintf("%s column doesn't exist in the column series. ignored.", name))
+			continue
 		}
 		newCols[name] = col
-		newNames[i] = name
+		newNames = append(newNames, name)
 	}
 	cs.columns = newCols
 	cs.orderedNames = newNames
