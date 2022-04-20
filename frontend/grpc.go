@@ -177,7 +177,9 @@ func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*p
 				} else {
 					err := nmds.Append(cs, tbk)
 					if err != nil {
-						return nil, fmt.Errorf("add tbk=%s to NumpyMultiDataSet: %w", tbk, err)
+						return nil, fmt.Errorf("symbols in a query must have the same data type "+
+							"or be filtered by common columns. symbols=%v", csm.GetMetadataKeys(),
+						)
 					}
 				}
 			}
