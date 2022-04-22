@@ -231,9 +231,9 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 	*/
 	var nmds *io.NumpyMultiDataset
 	for tbk, cs := range csm {
-		nds, err := io.NewNumpyDataset(cs)
+		nds, err2 := io.NewNumpyDataset(cs)
 		if err != nil {
-			return nil, err
+			return nil, err2
 		}
 		if nmds == nil {
 			nmds, err = io.NewNumpyMultiDataset(nds, tbk)
@@ -241,7 +241,12 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 				return nil, err
 			}
 		} else {
-			nmds.Append(cs, tbk)
+			err3 := nmds.Append(cs, tbk)
+			if err3 != nil {
+				return nil, fmt.Errorf("symbols in a query must have the same data type "+
+					"or be filtered by common columns. symbols=%v", csm.GetMetadataKeys(),
+				)
+			}
 		}
 	}
 
