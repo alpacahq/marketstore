@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -69,13 +70,25 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 		return nil, err2
 	}
 
-	if len(ret.Exchanges) < 1 && len(ret.IndexGroups) < 1 {
-		return nil, errors.New("must have 1 or more stock exchanges or index group in the config file")
-	}
-
 	ret, err = envOverride(ret)
 
+	if err := validate(ret); err != nil {
+		return nil, fmt.Errorf("config validation error: %w", err)
+	}
+
 	return ret, nil
+}
+
+func validate(cfg *DefaultConfig) error {
+	if len(cfg.Exchanges) < 1 && len(cfg.IndexGroups) < 1 {
+		return errors.New("must have 1 or more stock exchanges or index group in the config file")
+	}
+
+	if len(cfg.APIToken) != 32 {
+		return fmt.Errorf("xignite API Token length must be 32 bytes. got=%d", len(cfg.APIToken))
+	}
+
+	return nil
 }
 
 // CustomTime is a date time object in the ctLayout format.
