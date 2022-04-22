@@ -71,6 +71,7 @@ func executeStart(_ *cobra.Command, _ []string) error {
 		totalBytes   float64
 	)
 
+	// nolint:gomnd // self explanatory
 	recordBytes = 8 + (Num4ByteCols * 4) + (Num8ByteCols * 8) // +8 for the index
 	padding = int64(math.Mod(float64(recordBytes), 8))
 	recordBytes += padding

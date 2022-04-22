@@ -117,7 +117,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	absoluteRootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
 	if aux.RootDirectory == "" || err != nil {
 		log.Error("Invalid root directory. rootDir=" + aux.RootDirectory)
-		return nil, fmt.Errorf("invalid root directory. rootDir=%s, err=%v", aux.RootDirectory, err)
+		return nil, fmt.Errorf("invalid root directory. rootDir=%s: %w", aux.RootDirectory, err)
 	}
 	m.RootDirectory = absoluteRootDir
 
@@ -280,7 +280,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	if aux.GRPCListenPort != "" {
 		m.GRPCListenURL = fmt.Sprintf("%v:%v", aux.ListenHost, aux.GRPCListenPort)
 	}
-	m.UtilitiesURL = fmt.Sprintf("%v", aux.UtilitiesURL)
+	m.UtilitiesURL = aux.UtilitiesURL
 
 	for _, trig := range aux.Triggers {
 		triggerSetting := &TriggerSetting{

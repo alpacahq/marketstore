@@ -421,7 +421,11 @@ func TestApplyTimeQual(t *testing.T) {
 
 	assert.Equal(t, tqCS.Len(), 1)
 	assert.Equal(t, tqCS.GetEpoch()[0], cs.GetEpoch()[1])
-	assert.Equal(t, tqCS.GetByName("One").([]float32)[0], cs.GetByName("One").([]float32)[1])
+	one, ok := tqCS.GetByName("One").([]float32)
+	assert.True(t, ok)
+	one2, ok := cs.GetByName("One").([]float32)
+	assert.True(t, ok)
+	assert.Equal(t, one[0], one2[1])
 
 	tq = func(epoch int64) bool {
 		return false

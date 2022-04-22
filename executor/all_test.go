@@ -208,7 +208,9 @@ func TestWriteVariable(t *testing.T) {
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 5)
 		epoch := cs.GetEpoch()[2:]
-		nanos := cs.GetByName("Nanoseconds").([]int32)[2:]
+		int32Nanos, ok := cs.GetByName("Nanoseconds").([]int32)
+		require.True(t, ok)
+		nanos := int32Nanos[2:]
 		for i, ep := range epoch {
 			checkSecs := inputTime[2+i].Unix()
 			checkNanos := inputTime[2+i].Nanosecond()

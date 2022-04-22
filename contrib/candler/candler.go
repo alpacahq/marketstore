@@ -175,7 +175,7 @@ func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) erro
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (ca *Candler) Output() *io.ColumnSeries {
+func (ca *Candler) Output() (*io.ColumnSeries, error) {
 	dataShapes := []io.DataShape{
 		{Name: "Epoch", Type: io.INT64},
 		{Name: "Open", Type: io.FLOAT32},

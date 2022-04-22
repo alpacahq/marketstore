@@ -269,7 +269,7 @@ func (wf *WALFileType) readTGData() (tgID int64, tgSerialized []byte, err error)
 	tgLen := io.ToInt64(tgLenSerialized)
 
 	if !sanityCheckValue(wf.FilePtr, tgLen) {
-		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", tgLen))
+		return 0, nil, errors.New(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", tgLen))
 	}
 
 	// Read the data

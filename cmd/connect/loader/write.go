@@ -248,10 +248,9 @@ func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][String1
 	for i, row := range csvRows {
 		if len([]rune(row[index])) > String16RuneSize {
 			log.Warn(fmt.Sprintf("too long string column (>16chars):%v", row[index]))
-			// nolint:gocritic // string to rune conversion
+
 			copy(col[i][:], []rune(row[index][0:String16RuneSize]))
 		} else {
-			// nolint:gocritic // string to rune conversion
 			copy(col[i][:], []rune(row[index][0:len(row[index])]))
 		}
 	}

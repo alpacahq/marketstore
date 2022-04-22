@@ -34,7 +34,7 @@ func makeCatFile(dir, catname string) {
 	file, err := os.OpenFile(path.Join(dir, "category_name"), os.O_CREATE|os.O_RDWR,
 		0o777)
 	checkfail(err, "makeCatFile: Unable to open category file for writing ")
-	_, _ = file.Write([]byte(catname))
+	_, _ = file.WriteString(catname)
 }
 
 func makeRootDir(root string) {

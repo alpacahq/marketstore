@@ -32,8 +32,7 @@ func SwapSliceByte(srcByteSlice, targetType interface{}) (interface{}, error) {
 	structSlice := reflect.MakeSlice(structSliceType, Len, Cap)
 
 	// Set the new slice header data to that of the byte slice
-	(*reflect.SliceHeader)((*MValue)(unsafe.Pointer(&structSlice)).Ptr).Data =
-		(*reflect.SliceHeader)(unsafe.Pointer(&buffer)).Data
+	(*reflect.SliceHeader)((*MValue)(unsafe.Pointer(&structSlice)).Ptr).Data = (*reflect.SliceHeader)(unsafe.Pointer(&buffer)).Data
 
 	return structSlice.Interface(), nil
 }
@@ -110,8 +109,7 @@ func SwapSliceData(srcSlice, targetType interface{}) interface{} {
 	targetSlice := reflect.MakeSlice(targetSliceType, targetLen, targetCap)
 
 	// Set the data pointer of the right slice equal to that of the left
-	(*reflect.SliceHeader)((*MValue)(unsafe.Pointer(&targetSlice)).Ptr).Data =
-		(*reflect.SliceHeader)((*MValue)(unsafe.Pointer(&src)).Ptr).Data
+	(*reflect.SliceHeader)((*MValue)(unsafe.Pointer(&targetSlice)).Ptr).Data = (*reflect.SliceHeader)((*MValue)(unsafe.Pointer(&src)).Ptr).Data
 
 	return targetSlice.Interface()
 }
@@ -138,7 +136,6 @@ func DataToByteSlice(srcData interface{}) []byte {
 	value := reflect.ValueOf(srcData)
 	size := int(value.Type().Size())
 	buffer := make([]byte, size)
-	(*reflect.SliceHeader)(unsafe.Pointer(&buffer)).Data =
-		uintptr((*MValue)(unsafe.Pointer(&value)).Ptr)
+	(*reflect.SliceHeader)(unsafe.Pointer(&buffer)).Data = uintptr((*MValue)(unsafe.Pointer(&value)).Ptr)
 	return buffer
 }

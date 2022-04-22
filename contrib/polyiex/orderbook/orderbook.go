@@ -1,6 +1,7 @@
 package orderbook
 
 import (
+	"github.com/alpacahq/marketstore/v4/utils/log"
 	"github.com/ryszard/goskiplist/skiplist"
 )
 
@@ -46,16 +47,25 @@ func add(entry Entry, sklist *skiplist.SkipList) {
 }
 
 func (ob *OrderBook) BBO() (bid, ask Entry) {
-	var be, ae Entry
+	var (
+		be, ae Entry
+		ok     bool
+	)
 	if ob.bids.Len() == 0 {
 		be = Entry{0.0, 0}
 	} else {
-		be = ob.bids.SeekToFirst().Value().(Entry)
+		be, ok = ob.bids.SeekToFirst().Value().(Entry)
+		if !ok {
+			log.Error("[bug]failed to cast a bid value to an Entry")
+		}
 	}
 	if ob.asks.Len() == 0 {
 		ae = Entry{0.0, 0}
 	} else {
 		ae = ob.asks.SeekToFirst().Value().(Entry)
+		if !ok {
+			log.Error("[bug]failed to cast a bid value to an Entry")
+		}
 	}
 	return be, ae
 }

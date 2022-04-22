@@ -101,5 +101,5 @@ func (c *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, c
 		}
 		candle.Count++
 	}
-	return c.Output(), nil
+	return c.Output()
 }

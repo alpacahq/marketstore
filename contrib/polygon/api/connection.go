@@ -51,6 +51,7 @@ func (p *PolygonWebSocket) ping() {
 }
 
 func (p *PolygonWebSocket) pongHandler(_ string) (err error) {
+	// nolint:gomnd // Slightly longer time than the ping period
 	_ = p.conn.SetReadDeadline(time.Now().Add(6 * p.pingPeriod / 5))
 	pong := func() {
 		time.Sleep(p.pingPeriod)

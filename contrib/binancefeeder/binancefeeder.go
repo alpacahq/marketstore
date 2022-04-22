@@ -45,7 +45,7 @@ type ExchangeInfo struct {
 // getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json.
 func getJSON(url string, target interface{}) error {
 	myClient := &http.Client{Timeout: defaultHTTPTimeout}
-	req, err := http.NewRequestWithContext(context.Background(), "GET", url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("create http req for %s: %w", url, err)
 	}

@@ -229,7 +229,11 @@ func (cs *ColumnSeries) GetEpoch() []int64 {
 	if col == nil {
 		return nil
 	}
-	return col.([]int64)
+	colInt64Slice, ok := col.([]int64)
+	if !ok {
+		log.Error("failed to cast Epoch column to []int64")
+	}
+	return colInt64Slice
 }
 
 func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries, err error) {
@@ -450,8 +454,8 @@ func GetNamesFromDSV(dataShapes []DataShape) (out []string) {
 }
 
 func GetDSVFromInterface(iDSV interface{}) (out []DataShape) {
-	if _, ok := iDSV.([]DataShape); ok {
-		return iDSV.([]DataShape)
+	if iDSVSlice, ok := iDSV.([]DataShape); ok {
+		return iDSVSlice
 	}
 	return nil
 }
@@ -460,8 +464,8 @@ func GetStringSliceFromInterface(iSS interface{}) (out []string) {
 	if iSS == nil {
 		return nil
 	}
-	if _, ok := iSS.([]string); ok {
-		return iSS.([]string)
+	if issStrSlice, ok := iSS.([]string); ok {
+		return issStrSlice
 	}
 	return nil
 }

@@ -110,7 +110,7 @@ func pullDate(t time.Time) error {
 
 	// Fetch the pcap dump for that date and iterate through its messages.
 	log.Info("pcap url: %s", histData[0].Link)
-	req, err := http.NewRequestWithContext(context.Background(), "GET", histData[0].Link, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", histData[0].Link, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("create http req for %s: %w", histData[0].Link, err)
 	}
