@@ -55,7 +55,8 @@ type TransactionGroup struct {
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 	walBypass bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
-	txnPipe *TransactionPipe) (wf *WALFileType, err error) {
+	txnPipe *TransactionPipe,
+) (wf *WALFileType, err error) {
 	shutdownPending := false
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
@@ -346,13 +347,14 @@ func serializeTG(tgID int64, commands []*wal.WriteCommand,
 	return tgSerialized, writesPerFile
 }
 
+type WriteAtCloser interface {
+	goio.WriterAt
+	goio.Closer
+}
+
 func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType,
 	varRecLen int,
 ) (err error) {
-	type WriteAtCloser interface {
-		goio.WriterAt
-		goio.Closer
-	}
 	const (
 		batchThreshold = 100
 		ownerAllPerm   = 0o700
@@ -370,15 +372,23 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 		log.Error("cannot open file %s for write transaction commit: %v", fullPath, err)
 		return err
 	}
-	defer fp.Close()
+	defer func() {
+		if err = fp.Close(); err != nil {
+			log.Error("close walfile. err=" + err.Error())
+		}
+	}()
 
 	for _, buffer := range writes {
 		switch recordType {
 		case io.FIXED:
 			err = WriteBufferToFile(fp, buffer)
 		case io.VARIABLE:
+			filep, ok := fp.(*os.File)
+			if !ok {
+				return fmt.Errorf("[bug] failed to cast walfile: %v", fp)
+			}
 			err = WriteBufferToFileIndirect(
-				fp.(*os.File),
+				filep,
 				buffer,
 				varRecLen,
 			)

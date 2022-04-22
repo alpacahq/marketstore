@@ -65,7 +65,7 @@ func (w *Worker) try(ctx context.Context) error {
 	// write Quotes data
 	err = w.QuotesWriter.Write(response)
 	if err != nil {
-		return errors.Wrap(err, "failed to write quotes data.")
+		return errors.Wrap(err, "failed to write quotes data")
 	}
 
 	return nil

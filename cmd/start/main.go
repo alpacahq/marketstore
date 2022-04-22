@@ -326,7 +326,8 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenP
 }
 
 func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string,
-	retryInterval time.Duration, retryBackoffCoeff int, w *executor.Writer) error {
+	retryInterval time.Duration, retryBackoffCoeff int, w *executor.Writer,
+) error {
 	var opts []grpc.DialOption
 	// grpc.WithBlock(),
 

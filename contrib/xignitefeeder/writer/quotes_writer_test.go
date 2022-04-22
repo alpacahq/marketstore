@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -135,7 +137,9 @@ func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
 	key := m.WrittenCSM.GetMetadataKeys()[0].GetItemKey()
 
 	// epoch time check
-	epochTime := m.WrittenCSM[*io.NewTimeBucketKey(key)].GetColumn("Epoch").([]int64)[0]
+	epochTimes, ok := m.WrittenCSM[*io.NewTimeBucketKey(key)].GetColumn("Epoch").([]int64)
+	require.True(t, ok)
+	epochTime := epochTimes[0]
 	epoch := time.Unix(epochTime, 0)
 	if !epoch.Equal(May1st.Add(-3 * time.Hour)) { // = AskDateTime - UTCOffset
 		t.Errorf("Epoch value should be considered the UTCOffset.")

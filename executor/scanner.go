@@ -413,7 +413,8 @@ type ioExec struct {
 }
 
 func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []byte,
-	maxRead int64, fp *ioFilePlan) error {
+	maxRead int64, fp *ioFilePlan,
+) error {
 	// Reads data from file f positioned after the header
 	// Will read records of size recordsize, decoding the index value to determine if this is a null or valid record
 	// The output is a buffer "packedBuffer" that contains only valid records
@@ -481,7 +482,8 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 }
 
 func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead int32, readBuffer []byte) (
-	resultBuffer []byte, finished bool, err error) {
+	resultBuffer []byte, finished bool, err error,
+) {
 	const readWriteAll = 0o666
 	// log.Info("reading forward [recordLen: %v bytesToRead: %v]", recordLen, bytesToRead)
 	filePath := fp.FullPath
@@ -516,7 +518,8 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 
 func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 	bytesToRead int32, readBuffer, fileBuffer []byte) (
-	result []byte, finished bool, bytesRead int32, err error) {
+	result []byte, finished bool, bytesRead int32, err error,
+) {
 	const readWriteAll = 0o666
 	// log.Info("reading backward [recordLen: %v bytesToRead: %v offset: %v]", recordLen, bytesToRead, fp.Offset)
 

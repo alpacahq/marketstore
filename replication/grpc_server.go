@@ -43,7 +43,7 @@ func (rs *GRPCReplicationServer) GetWALStream(_ *pb.GetWALStreamRequest, stream 
 	// prepare a channel to send messages
 	clientAddr, err := getClientAddr(stream)
 	if err != nil {
-		return errors.Wrap(err, "failed to get client IP address.")
+		return errors.Wrap(err, "failed to get client IP address")
 	}
 	log.Info(fmt.Sprintf("new replica connection from:%s", clientAddr))
 

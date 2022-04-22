@@ -484,7 +484,8 @@ func ExtractDatashapesByNames(dsv []DataShape, names []string) (out []DataShape)
 }
 
 func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (missing,
-	coercion []DataShape, err error) {
+	coercion []DataShape, err error,
+) {
 	/*
 		We need to find out which columns are missing and which are present,
 		but of the wrong type (Type Mismatch).
