@@ -212,11 +212,12 @@ func (cd *CandleDuration) Duration() time.Duration {
 	return cd.duration
 }
 
-func CandleDurationFromString(tf string) (cd *CandleDuration) {
-	re := regexp.MustCompile(`(\d+)(Sec|Min|H|D|W|M|Y)`)
-	groups := re.FindStringSubmatch(tf)
+var timeFrameRegex = regexp.MustCompile(`(\d+)(Sec|Min|H|D|W|M|Y)`)
+
+func CandleDurationFromString(tf string) (cd *CandleDuration, err error) {
+	groups := timeFrameRegex.FindStringSubmatch(tf)
 	if len(groups) == 0 {
-		return nil
+		return nil, fmt.Errorf("timeframe not found in \"%s\"", tf)
 	}
 	prefix := groups[1]
 	mult, _ := strconv.Atoi(prefix)
@@ -226,7 +227,7 @@ func CandleDurationFromString(tf string) (cd *CandleDuration) {
 		multiplier: mult,
 		suffix:     suffix,
 		duration:   time.Duration(mult) * suffixDefs[suffix],
-	}
+	}, nil
 }
 
 var suffixDefs = map[string]time.Duration{

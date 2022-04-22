@@ -123,7 +123,10 @@ func (act *Actions) Load(catalogDir *catalog.Directory) error {
 	query := planner.NewQuery(catalogDir)
 	tbk := io.NewTimeBucketKeyFromString(act.Symbol + enum.BucketkeySuffix)
 	tf := tbk.GetItemInCategory("Timeframe")
-	cd := utils.CandleDurationFromString(tf)
+	cd, err := utils.CandleDurationFromString(tf)
+	if err != nil {
+		return fmt.Errorf("timeframe is not found in %s: %w", tf, err)
+	}
 	queryableTimeframe := cd.QueryableTimeframe()
 	tbk.SetItemInCategory("Timeframe", queryableTimeframe)
 

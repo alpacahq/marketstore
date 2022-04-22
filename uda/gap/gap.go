@@ -136,8 +136,8 @@ func (g Gap) New(_ *functions.ArgumentMap, args ...interface{}) (out uda.AggInte
 			}
 			tfstring = val[0]
 		}
-		cd := utils.CandleDurationFromString(tfstring)
-		if cd != nil {
+		cd, err2 := utils.CandleDurationFromString(tfstring)
+		if err2 == nil {
 			// fmt.Printf("Duration %v, args[0] %v, time.SEcond %v\n", cd.Duration(), args[0], time.Second)
 			gx.avgGapIntervalSeconds = int64(cd.Duration() / time.Second)
 		}

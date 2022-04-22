@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,7 +44,8 @@ func TestCandleDuration(t *testing.T) {
 	var cd *CandleDuration
 	var val, start time.Time
 	var within bool
-	cd = CandleDurationFromString("5Min")
+	cd, err := CandleDurationFromString("5Min")
+	require.Nil(t, err)
 	val = time.Date(2017, 9, 10, 13, 47, 0, 0, time.UTC)
 	assert.Equal(t, cd.Truncate(val), time.Date(2017, 9, 10, 13, 45, 0, 0, time.UTC))
 	assert.Equal(t, cd.Ceil(val), time.Date(2017, 9, 10, 13, 50, 0, 0, time.UTC))
@@ -52,7 +55,8 @@ func TestCandleDuration(t *testing.T) {
 	within = cd.IsWithin(time.Date(2017, 9, 10, 13, 51, 0, 0, time.UTC), start)
 	assert.Equal(t, within, false)
 
-	cd = CandleDurationFromString("1M")
+	cd, err = CandleDurationFromString("1M")
+	require.Nil(t, err)
 	val = time.Date(2017, 9, 10, 13, 47, 0, 0, time.UTC)
 	assert.Equal(t, cd.Truncate(val), time.Date(2017, 9, 1, 0, 0, 0, 0, time.UTC))
 	assert.Equal(t, cd.Ceil(val), time.Date(2017, 10, 1, 0, 0, 0, 0, time.UTC))
@@ -73,7 +77,8 @@ func TestCandleDuration(t *testing.T) {
 	within = cd.IsWithin(time.Date(2016, 12, 10, 0, 0, 0, 0, time.UTC), start)
 	assert.Equal(t, within, false)
 
-	cd = CandleDurationFromString("1W")
+	cd, err = CandleDurationFromString("1W")
+	require.Nil(t, err)
 	val = time.Date(2017, 1, 8, 0, 0, 0, 0, time.UTC)
 	start = time.Date(2018, 1, 7, 0, 0, 0, 0, time.UTC)
 	within = cd.IsWithin(val, start)
@@ -84,7 +89,8 @@ func TestCandleDuration(t *testing.T) {
 	assert.Equal(t, within, true)
 
 	loc, _ := time.LoadLocation("America/New_York")
-	cd = CandleDurationFromString("1D")
+	cd, err = CandleDurationFromString("1D")
+	require.Nil(t, err)
 	val = time.Date(2018, 1, 8, 0, 0, 0, 0, loc)
 	start = cd.Truncate(val)
 	assert.Equal(t, start.Hour(), 0)
@@ -98,6 +104,6 @@ func TestCandleDuration(t *testing.T) {
 	assert.Equal(t, cd.IsWithin(val, time.Date(2018, 1, 8, 0, 0, 0, 0, time.UTC)), false)
 	assert.Equal(t, cd.IsWithin(val, time.Date(2018, 1, 8, 23, 59, 0, 0, time.UTC)), true)
 
-	cd = CandleDurationFromString("abc")
-	assert.Nil(t, cd)
+	cd, err = CandleDurationFromString("abc")
+	assert.NotNil(t, err)
 }
