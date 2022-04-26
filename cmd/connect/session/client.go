@@ -247,14 +247,9 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		sqlparser.PrintExplain(queryText, explain)
 		return nil
 	}
-	iEpoch := cs.GetByName("Epoch")
-	if iEpoch == nil {
+	epoch := cs.GetEpoch()
+	if epoch == nil {
 		return fmt.Errorf("epoch column not present in output")
-	}
-	var epoch []int64
-	var ok bool
-	if epoch, ok = iEpoch.([]int64); !ok {
-		return fmt.Errorf("unable to convert Epoch column")
 	}
 
 	if writer == nil {

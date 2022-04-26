@@ -1,4 +1,4 @@
-// package buffile helps batch write by writes to the tempobary in-memory
+// Package buffile helps batch write by writes to the temporary in-memory
 // buffer under the assumption that many writes come in to the part of
 // single file frequently.
 package buffile
@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 	"os"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type fileLike interface {
@@ -42,7 +44,10 @@ func New(filePath string) (*BufferedFile, error) {
 }
 
 func (f *BufferedFile) Close() error {
-	f.writeBuffer()
+	err := f.writeBuffer()
+	if err != nil {
+		log.Error("failed to write buffer. err=" + err.Error())
+	}
 	return f.fp.Close()
 }
 
