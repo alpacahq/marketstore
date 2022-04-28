@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	stdio "io"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -160,7 +159,7 @@ type IndirectRecordInfo struct {
 
 const indexOffsetLengthBytes = 24
 
-func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRecLen int,
+func WriteBufferToFileIndirect(fp stdio.ReadWriteSeeker, buffer wal.OffsetIndexBuffer, varRecLen int,
 ) (err error) {
 	/*
 		Here we write the data payload of the buffer to the end of the data file
