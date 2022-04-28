@@ -22,7 +22,7 @@ func TestPool(t *testing.T) {
 	go p.Work(cc)
 
 	for i := 0; i < 10; i++ {
-		cc <- struct{}{}
+		cc <- []byte{}
 	}
 
 	close(cc)
