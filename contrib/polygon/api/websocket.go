@@ -83,8 +83,8 @@ func (s *Subscription) Subscribe(handler func(msg []byte)) {
 	// initialize & start the async worker pool
 
 	s.ResetHandled()
-	workerPool := pool.NewPool(10, func(msg interface{}) {
-		handler(msg.([]byte))
+	workerPool := pool.NewPool(10, func(msg []byte) {
+		handler(msg)
 		s.IncrementHandled()
 	})
 

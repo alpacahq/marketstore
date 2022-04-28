@@ -13,7 +13,7 @@ func TestPool(t *testing.T) {
 	t.Parallel()
 	jobCount := 0
 
-	job := func(input interface{}) {
+	job := func(input []byte) {
 		jobCount++
 	}
 	p := pool.NewPool(10, job)

@@ -70,8 +70,8 @@ func (s *Subscription) start(handler func(msg []byte)) {
 
 	// initialize & start the async worker pool
 	s.resetHandled()
-	workerPool := pool.NewPool(s.workerCount, func(msg interface{}) {
-		handler(msg.([]byte))
+	workerPool := pool.NewPool(s.workerCount, func(msg []byte) {
+		handler(msg)
 		s.incrementHandled()
 	})
 	log.Info("[alpaca] using %d workers", s.workerCount)
