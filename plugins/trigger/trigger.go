@@ -90,7 +90,8 @@ func RecordsToColumnSeries(
 	ds []io.DataShape,
 	tf time.Duration,
 	year int16,
-	records []Record) (*io.ColumnSeries, error) {
+	records []Record,
+) (*io.ColumnSeries, error) {
 	cs := io.NewColumnSeries()
 
 	index := 0

@@ -158,7 +158,8 @@ func GetHistoricAggregates(
 	multiplier int,
 	from, to time.Time,
 	limit *int,
-	unadjusted bool) (*HistoricAggregates, error) {
+	unadjusted bool,
+) (*HistoricAggregates, error) {
 	// FIXME: This function does not handle pagination
 
 	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan,

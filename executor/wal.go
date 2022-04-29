@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
+
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -55,7 +56,8 @@ type TransactionGroup struct {
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 	walBypass bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
-	txnPipe *TransactionPipe) (wf *WALFileType, err error) {
+	txnPipe *TransactionPipe,
+) (wf *WALFileType, err error) {
 	shutdownPending := false
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
@@ -346,24 +348,21 @@ func serializeTG(tgID int64, commands []*wal.WriteCommand,
 	return tgSerialized, writesPerFile
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType,
-	varRecLen int,
-) (err error) {
+func writeFixedBuffer(writes []wal.OffsetIndexBuffer, fullPath string) error {
+	const batchThreshold = 100
+
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
 	}
-	const (
-		batchThreshold = 100
-		ownerAllPerm   = 0o700
+	var (
+		fp  WriteAtCloser
+		err error
 	)
-	var fp WriteAtCloser
-	rootDir := filepath.Dir(wf.FilePtr.Name())
-	fullPath := walKeyToFullPath(rootDir, keyPath)
-	if recordType == io.FIXED && len(writes) >= batchThreshold {
+	if len(writes) >= batchThreshold {
 		fp, err = buffile.New(fullPath)
 	} else {
-		fp, err = os.OpenFile(fullPath, os.O_RDWR, ownerAllPerm)
+		fp, err = os.OpenFile(fullPath, os.O_RDWR, 0o700)
 	}
 	if err != nil {
 		// this is critical, in fact, since tx has been committed
@@ -373,23 +372,50 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 	defer fp.Close()
 
 	for _, buffer := range writes {
-		switch recordType {
-		case io.FIXED:
-			err = WriteBufferToFile(fp, buffer)
-		case io.VARIABLE:
-			err = WriteBufferToFileIndirect(
-				fp.(*os.File),
-				buffer,
-				varRecLen,
-			)
-		case io.NOTYPE:
-			err = errors.New("unknown record type(io.NOTYPE) found")
-		}
-		if err != nil {
+		if err = WriteBufferToFile(fp, buffer); err != nil {
 			log.Error("failed to write committed data: %v", err)
 			return err
 		}
 	}
+	return nil
+}
+
+func writeVariableLengthBuffer(writes []wal.OffsetIndexBuffer, fullPath string, varRecLen int) error {
+	fp, err := os.OpenFile(fullPath, os.O_RDWR, 0o700)
+	if err != nil {
+		// this is critical, in fact, since tx has been committed
+		log.Error("cannot open file %s for write transaction commit: %v", fullPath, err)
+		return err
+	}
+	defer fp.Close()
+
+	for _, buffer := range writes {
+		if err = WriteBufferToFileIndirect(fp, buffer, varRecLen); err != nil {
+			log.Error("failed to write committed data: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType,
+	varRecLen int,
+) (err error) {
+	rootDir := filepath.Dir(wf.FilePtr.Name())
+	fullPath := walKeyToFullPath(rootDir, keyPath)
+	switch recordType {
+	case io.FIXED:
+		if err = writeFixedBuffer(writes, fullPath); err != nil {
+			return err
+		}
+	case io.VARIABLE:
+		if err = writeVariableLengthBuffer(writes, fullPath, varRecLen); err != nil {
+			return err
+		}
+	default:
+		return errors.New("unknown record type(io.NOTYPE) found")
+	}
+
 	return nil
 }
 

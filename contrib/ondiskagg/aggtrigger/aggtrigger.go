@@ -180,7 +180,8 @@ func (s *OnDiskAggTrigger) write(
 	tbk *io.TimeBucketKey,
 	cs *io.ColumnSeries,
 	tail, head time.Time,
-	elements []string) {
+	elements []string,
+) {
 	for _, dest := range s.destinations {
 		symbol := elements[0]
 		attributeGroup := elements[2]
@@ -213,7 +214,8 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	cs io.ColumnSeries,
 	dest utils.Timeframe,
 	head, tail time.Time,
-	symbol string) error {
+	symbol string,
+) error {
 	csm := io.NewColumnSeriesMap()
 
 	window, err := utils.CandleDurationFromString(dest.String)
@@ -386,7 +388,8 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 func (s *OnDiskAggTrigger) query(
 	tbk *io.TimeBucketKey,
 	window *utils.CandleDuration,
-	head, tail time.Time) (*io.ColumnSeriesMap, error) {
+	head, tail time.Time,
+) (*io.ColumnSeriesMap, error) {
 	cDir := executor.ThisInstance.CatalogDir
 
 	start := window.Truncate(head)

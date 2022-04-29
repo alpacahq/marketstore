@@ -567,7 +567,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			outputColumnSeries = io.NewColumnSeries()
 
 			// Add an Epoch column if one doesn't exist
-			ep := selectListOutput.GetByName("Epoch")
+			ep := selectListOutput.GetEpoch()
 			if ep == nil {
 				tNow := time.Now().UTC().Unix()
 				var epochCol []int64

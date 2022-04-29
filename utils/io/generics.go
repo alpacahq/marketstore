@@ -218,7 +218,8 @@ func DownSizeSlice(iSlice interface{}, newLen int, direction DirectionEnum) (iOu
 }
 
 func GenericComparison(left, right interface{},
-	op ComparisonOperatorEnum) (result bool, err error) {
+	op ComparisonOperatorEnum,
+) (result bool, err error) {
 	/*
 		Evaluate: (left op right) as a boolean
 	*/

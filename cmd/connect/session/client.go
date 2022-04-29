@@ -190,7 +190,7 @@ func printHeaderLine(cs *dbio.ColumnSeries) {
 
 func printColumnNames(cs *dbio.ColumnSeries) {
 	for _, name := range cs.GetColumnNames() {
-		col := cs.GetByName(name)
+		col := cs.GetColumn(name)
 		l := columnFormatLength(name, col)
 
 		if strings.EqualFold(name, "Epoch") {
@@ -238,7 +238,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 	/*
 		Check if this is an EXPLAIN output
 	*/
-	iExplain := cs.GetByName("explain-output")
+	iExplain := cs.GetColumn("explain-output")
 	if iExplain != nil {
 		explain, ok := iExplain.([]string)
 		if !ok {
@@ -247,14 +247,9 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		sqlparser.PrintExplain(queryText, explain)
 		return nil
 	}
-	iEpoch := cs.GetByName("Epoch")
-	if iEpoch == nil {
+	epoch := cs.GetEpoch()
+	if epoch == nil {
 		return fmt.Errorf("epoch column not present in output")
-	}
-	var epoch []int64
-	var ok bool
-	if epoch, ok = iEpoch.([]int64); !ok {
-		return fmt.Errorf("unable to convert Epoch column")
 	}
 
 	if writer == nil {
@@ -273,7 +268,7 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 			if strings.EqualFold(name, "Epoch") {
 				element = fmt.Sprintf("%29s", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 			} else {
-				col := cs.GetByName(name)
+				col := cs.GetColumn(name)
 				colType := reflect.TypeOf(col).Elem().Kind()
 				switch colType {
 				case reflect.Float32:
@@ -397,7 +392,7 @@ func formatHeader(cs *dbio.ColumnSeries, printChar string) string {
 		buffer.WriteString("  ")
 	}
 	for _, name := range cs.GetColumnNames() {
-		col := cs.GetByName(name)
+		col := cs.GetColumn(name)
 		appendChars(columnFormatLength(name, col))
 	}
 	return buffer.String()

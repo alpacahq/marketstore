@@ -44,7 +44,10 @@ func NewColumnSeries() *ColumnSeries {
 }
 
 func (cs *ColumnSeries) GetColumn(name string) interface{} {
-	return cs.GetByName(name)
+	if !cs.Exists(name) {
+		return nil
+	}
+	return cs.columns[name]
 }
 
 func (cs *ColumnSeries) GetDataShapes() (ds []DataShape) {
@@ -60,7 +63,7 @@ func (cs *ColumnSeries) Len() int {
 	if len(cs.orderedNames) == 0 {
 		return 0
 	}
-	iCol := cs.GetByName(cs.orderedNames[0])
+	iCol := cs.GetColumn(cs.orderedNames[0])
 	return reflect.ValueOf(iCol).Len()
 }
 
@@ -126,7 +129,7 @@ func (cs *ColumnSeries) Rename(newName, oldName string) error {
 	/*
 		Renames one column named "targetName" for another named "srcName"
 	*/
-	oldColumn := cs.GetByName(oldName)
+	oldColumn := cs.GetColumn(oldName)
 	if oldColumn == nil {
 		return fmt.Errorf("error: Source column named %s does not exist", oldName)
 	}
@@ -184,7 +187,7 @@ func (cs *ColumnSeries) Project(keepList []string) error {
 
 	var newNames []string
 	for _, name := range keepList {
-		col := cs.GetByName(name)
+		col := cs.GetColumn(name)
 		if col == nil {
 			log.Debug(fmt.Sprintf("%s column doesn't exist in the column series. ignored.", name))
 			continue
@@ -217,15 +220,8 @@ func (cs *ColumnSeries) Exists(targetName string) bool {
 	return true
 }
 
-func (cs *ColumnSeries) GetByName(name string) interface{} {
-	if !cs.Exists(name) {
-		return nil
-	}
-	return cs.columns[name]
-}
-
 func (cs *ColumnSeries) GetEpoch() []int64 {
-	col := cs.GetByName("Epoch")
+	col := cs.GetColumn("Epoch")
 	if col == nil {
 		return nil
 	}

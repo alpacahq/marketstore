@@ -381,13 +381,13 @@ func addTGData(t *testing.T, root *catalog.Directory, walFile *executor.WALFileT
 	// Write the data to the TG cache
 	for key, cs := range csm {
 		epoch := cs.GetEpoch()
-		open, ok := cs.GetByName("Open").([]float32)
+		open, ok := cs.GetColumn("Open").([]float32)
 		assert.True(t, ok)
-		high, ok := cs.GetByName("High").([]float32)
+		high, ok := cs.GetColumn("High").([]float32)
 		assert.True(t, ok)
-		low, ok := cs.GetByName("Low").([]float32)
+		low, ok := cs.GetColumn("Low").([]float32)
 		assert.True(t, ok)
-		clos, ok := cs.GetByName("Close").([]float32)
+		clos, ok := cs.GetColumn("Close").([]float32)
 		assert.True(t, ok)
 		// If we have the mixup flag set, change the data
 		if mixup {
