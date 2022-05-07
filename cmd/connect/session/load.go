@@ -23,18 +23,18 @@ import (
 			Epoch
 			20161230 21:37:57 140000
 */
-func (c *Client) load(line string) {
+func (c *Client) load(line string) error {
 	args := strings.Split(line, " ")
 	args = args[1:]
 	if len(args) == 0 {
 		log.Error("Not enough arguments to load - try help")
-		return
+		return nil
 	}
 
 	tbkP, dataFD, loaderFD, err := parseLoadArgs(args)
 	if err != nil {
 		log.Error("Error while parsing arguments: %v\n", err)
-		return
+		return fmt.Errorf("error while parsing arguments: %w", err)
 	}
 	if dataFD != nil {
 		defer func(dataFD *os.File) {
@@ -50,7 +50,7 @@ func (c *Client) load(line string) {
 	resp, err := c.GetBucketInfo(tbkP)
 	if err != nil {
 		log.Error("Error finding existing bucket: %v\n", err)
-		return
+		return fmt.Errorf("error finding existing bucket: %w", err)
 	}
 	log.Info("Latest Year: %v\n", resp.LatestYear)
 
@@ -60,7 +60,7 @@ func (c *Client) load(line string) {
 	csvReader, cvm, err := loader.ReadMetadata(dataFD, loaderFD, resp.DSV)
 	if err != nil {
 		log.Error("Error: ", err.Error())
-		return
+		return fmt.Errorf("error: %w", err)
 	}
 
 	/*
@@ -73,7 +73,7 @@ func (c *Client) load(line string) {
 		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, *tbkP, cvm, chunkSize, resp.RecordType == io.VARIABLE)
 		if err != nil {
 			log.Error("Error: ", err.Error())
-			return
+			return fmt.Errorf("error: %w", err)
 		}
 		if npm != nil { // npm will be empty if we've read the whole file in the last pass
 			// LAL ================= DEBUG
@@ -92,7 +92,7 @@ func (c *Client) load(line string) {
 			err = writeNumpy(c, npm, resp.RecordType == io.VARIABLE)
 			if err != nil {
 				log.Error("Error: ", err.Error())
-				return
+				return fmt.Errorf("error: %w", err)
 			}
 			// LAL ================= DEBUG
 			/*
@@ -104,6 +104,7 @@ func (c *Client) load(line string) {
 			break
 		}
 	}
+	return nil
 }
 
 func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err error) {

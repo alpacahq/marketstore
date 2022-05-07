@@ -11,11 +11,11 @@ import (
 
 // trim removes the data in the date range from the db.
 // Note that this is implemented only for LocalClient.
-func (c *Client) trim(line string) {
+func (c *Client) trim(line string) error {
 	cli, ok := c.apiClient.(*LocalAPIClient)
 	if !ok {
 		log.Error("Trim command can be used only when '--dir' is specified to connect marketstore.")
-		return
+		return nil
 	}
 
 	log.Info("Trimming...")
@@ -24,7 +24,7 @@ func (c *Client) trim(line string) {
 	const argLen = 3
 	if len(args) < argLen {
 		log.Error("Not enough arguments - need \"trim key date\"")
-		return
+		return nil
 	}
 	trimDate, err := parseTime(args[len(args)-1])
 	if err != nil {
@@ -49,4 +49,5 @@ func (c *Client) trim(line string) {
 		fp.Write(zeroes)
 		fp.Close()
 	}
+	return nil
 }

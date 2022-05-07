@@ -36,8 +36,8 @@ type Client struct {
 	apiClient APIClient
 	// output target - if empty, output to terminal, filename to output to file
 	target string
-	// timing flag determines to print query execution time.
-	timing bool
+	// printExecutionTime flag determines to print query execution time.
+	printExecutionTime bool
 }
 
 //go:generate mockgen -destination mock/client.go -package=mock github.com/alpacahq/marketstore/v4/cmd/connect/session APIClient
@@ -64,6 +64,37 @@ type RPCClient interface {
 	DoRPC(functionName string, args interface{}) (response interface{}, err error)
 }
 
+func commandMap(c *Client) map[string]func(line string) error {
+	return map[string]func(line string) error{
+		`\o`:       c.setOutputTarget,
+		`\timing`:  c.flipPrintTimeFlag,
+		`\show`:    c.show,
+		`\trim`:    c.trim,
+		`\load`:    c.load,
+		`\create`:  c.create,
+		`\destroy`: c.destroy,
+		`\getinfo`: c.getinfo,
+		`help`:     c.functionHelp,
+		`\help`:    c.functionHelp,
+		`\?`:       c.functionHelp,
+	}
+}
+
+func (c *Client) setOutputTarget(line string) error {
+	args := strings.Split(line, " ")
+	if len(args) > 1 {
+		c.target = args[1]
+	} else {
+		c.target = ""
+	}
+	return nil
+}
+
+func (c *Client) flipPrintTimeFlag(_ string) error {
+	c.printExecutionTime = !c.printExecutionTime
+	return nil
+}
+
 // Read kicks off the buffer reading process.
 func (c *Client) Read() error {
 	// Build reader.
@@ -75,7 +106,7 @@ func (c *Client) Read() error {
 
 	// Print connection information.
 	c.apiClient.PrintConnectInfo()
-	fmt.Fprintf(os.Stderr, "Type `\\help` to see command options\n")
+	_, _ = fmt.Fprintf(os.Stderr, "Type `\\help` to see command options\n")
 
 	// User input evaluation loop.
 EVAL:
@@ -95,51 +126,35 @@ EVAL:
 
 		// Print error.
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 			continue
 		}
 
 		// Remove leading/trailing spaces.
 		line = strings.Trim(line, " ")
 
-		// Evaulate.
-		switch {
-		// Flip timing flag.
-		case strings.HasPrefix(line, `\o`):
-			args := strings.Split(line, " ")
-			if len(args) > 1 {
-				c.target = args[1]
-			} else {
-				c.target = ""
-			}
-		case strings.HasPrefix(line, `\timing`):
-			c.timing = !c.timing
-		case strings.HasPrefix(line, `\show`):
-			c.show(line)
-		case strings.HasPrefix(line, `\trim`):
-			c.trim(line)
-		case strings.HasPrefix(line, `\load`):
-			c.load(line)
-		case strings.HasPrefix(line, `\create`):
-			c.create(line)
-		case strings.HasPrefix(line, `\destroy`):
-			c.destroy(line)
-		case strings.HasPrefix(line, `\getinfo`):
-			c.getinfo(line)
-		case strings.HasPrefix(line, `\help`) || strings.HasPrefix(line, `\?`):
-			c.functionHelp(line)
-		case line == "help":
-			c.functionHelp(`\help`)
+		// ----- Evaluate -----
+
 		// Quit.
-		case line == `\stop`, line == `\quit`, line == `\q`, line == `exit`:
+		if line == `\stop` || line == `\quit` || line == `\q` || line == `exit` {
 			break EVAL
-			// Nothing to do.
-		case line == "":
-			continue EVAL
-		// It was a sql stmt.
-		default:
-			c.sql(line)
 		}
+		// Nothing to do.
+		if line == "" {
+			continue EVAL
+		}
+
+		for prefix, cmdFunc := range commandMap(c) {
+			if strings.HasPrefix(line, prefix) {
+				if err2 := cmdFunc(line); err2 != nil {
+					_, _ = fmt.Fprintf(os.Stderr, "error: %s", err2.Error())
+				}
+				continue EVAL
+			}
+		}
+
+		// No prefix matched, then it's a sql stmt.
+		c.sql(line)
 	}
 
 	return nil

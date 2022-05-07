@@ -133,6 +133,8 @@ func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) e
 }
 
 func executeRaw(t *testing.T, s *rpc.Server, req, res interface{}) error {
+	t.Helper()
+
 	j, _ := msgpack.Marshal(req)
 	r, _ := http.NewRequestWithContext(context.Background(),
 		"POST", "http://localhost:8080/", bytes.NewBuffer(j))
