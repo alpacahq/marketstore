@@ -262,60 +262,52 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		bitSize32 = 32
 	)
 	for i, ts := range epoch {
-		row := []string{}
-		var element string
+		var (
+			row     []string
+			element string
+		)
 		for _, name := range cs.GetColumnNames() {
 			if strings.EqualFold(name, "Epoch") {
 				element = fmt.Sprintf("%29s", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 			} else {
-				col := cs.GetColumn(name)
-				colType := reflect.TypeOf(col).Elem().Kind()
-				switch colType {
-				case reflect.Float32:
-					val := col.([]float32)[i]
-					element = strconv.FormatFloat(float64(val), 'f', -1, bitSize32)
-				case reflect.Float64:
-					val := col.([]float64)[i]
-					element = strconv.FormatFloat(val, 'f', -1, bitSize32)
-				case reflect.Int8:
-					val := col.([]int8)[i]
-					element = strconv.FormatInt(int64(val), decimal)
-				case reflect.Int16:
-					val := col.([]int16)[i]
-					element = strconv.FormatInt(int64(val), decimal)
-				case reflect.Int32:
-					val := col.([]int32)[i]
-					element = strconv.FormatInt(int64(val), decimal)
-				case reflect.Int64:
-					val := col.([]int64)[i]
-					element = strconv.FormatInt(val, decimal)
-				case reflect.Uint8:
-					val := col.([]uint8)[i]
-					element = strconv.FormatUint(uint64(val), decimal)
-				case reflect.Uint16:
-					val := col.([]uint16)[i]
-					element = strconv.FormatUint(uint64(val), decimal)
-				case reflect.Uint32:
-					val := col.([]uint32)[i]
-					element = strconv.FormatUint(uint64(val), decimal)
-				case reflect.Uint64:
-					val := col.([]uint64)[i]
-					element = strconv.FormatUint(val, decimal)
-				case reflect.Bool:
-					val := col.([]bool)[i]
+				icol := cs.GetColumn(name)
+				// colType := reflect.TypeOf(icol).Elem().Kind()
+				switch col := icol.(type) {
+				case []float32:
+					element = strconv.FormatFloat(float64(col[i]), 'f', -1, bitSize32)
+				case []float64:
+					element = strconv.FormatFloat(col[i], 'f', -1, bitSize32)
+				case []int8:
+					element = strconv.FormatInt(int64(col[i]), decimal)
+				case []int16:
+					element = strconv.FormatInt(int64(col[i]), decimal)
+				case []int32:
+					element = strconv.FormatInt(int64(col[i]), decimal)
+				case []int64:
+					element = strconv.FormatInt(col[i], decimal)
+				case []uint8:
+					element = strconv.FormatUint(uint64(col[i]), decimal)
+				case []uint16:
+					element = strconv.FormatUint(uint64(col[i]), decimal)
+				case []uint32:
+					element = strconv.FormatUint(uint64(col[i]), decimal)
+				case []uint64:
+					element = strconv.FormatUint(col[i], decimal)
+				case []bool:
+					val := col[i]
 					if val {
 						element = "TRUE"
 					} else {
 						element = "FALSE"
 					}
-				case reflect.Array: // string type (e.g. [16]rune)
-					runes := reflect.ValueOf(col).Index(i)
+				case [][16]rune:
+					runes := reflect.ValueOf(icol).Index(i)
 					element = strings.Trim(runesToString(runes), "\x00") // trim space
 				default:
-					return fmt.Errorf("unknown column type found: %s", colType)
+					return fmt.Errorf("unknown type of column found: col=%v", icol)
 				}
 				// print column value in the format length
-				l := columnFormatLength(name, col)
+				l := columnFormatLength(name, icol)
 				var sb strings.Builder
 				for i := 0; i < l-len([]rune(element)); i++ {
 					sb.WriteString(" ")
@@ -335,7 +327,9 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("\n")
 		} else {
-			writer.Write(row)
+			if err2 := writer.Write(row); err2 != nil {
+				return fmt.Errorf("failed to print row: %w", err2)
+			}
 		}
 	}
 	if writer == nil {

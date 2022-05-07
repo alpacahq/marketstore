@@ -218,9 +218,9 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 	*/
 	if len(req.Functions) != 0 {
 		for tbkStr, cs := range csm {
-			csOut, err := s.aggRunner.Run(req.Functions, cs, tbkStr)
-			if err != nil {
-				return nil, err
+			csOut, err2 := s.aggRunner.Run(req.Functions, cs, tbkStr)
+			if err2 != nil {
+				return nil, err2
 			}
 			csm[tbkStr] = csOut
 		}

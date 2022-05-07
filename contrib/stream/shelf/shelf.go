@@ -110,7 +110,7 @@ func (p *Package) Start(tbk *io.TimeBucketKey, h Handler) {
 		// will either timeout, or be explicitly canceled, and won't be
 		// accidentally leaked
 		<-p.ctx.Done() // block until done
-		if !p.stopped.Load().(bool) {
+		if val, _ := p.stopped.Load().(bool); !val {
 			if err := (*h)(*tbk, p.Data); err != nil {
 				// nolint:forbidigo // CLI output needs fmt.Println
 				fmt.Printf("failed to expire data package (%v)\n", err)
