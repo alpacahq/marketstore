@@ -361,12 +361,12 @@ type Header struct {
 	RecordType   int64
 	NElements    int64
 	RecordLength int64
-	
+
 	reserved1 int64
 	// Above is the fixed header portion - size is 312 Bytes = (7*8 + 256)
 	ElementNames [maxNumElements][elementNameHeaderBytes]byte
 	ElementTypes [maxNumElements]byte
-	
+
 	reserved2 [reservedHeader2Bytes]int64
 }
 

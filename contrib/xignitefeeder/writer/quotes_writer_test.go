@@ -90,7 +90,7 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 	}
 
 	// epoch time check
-	epochTime := m.WrittenCSM[*io.NewTimeBucketKey(timeBucketKeyStr)].GetColumn("Epoch").([]int64)[0]
+	epochTime := m.WrittenCSM[*io.NewTimeBucketKey(timeBucketKeyStr)].GetEpoch()[0]
 	epoch := time.Unix(epochTime, 0)
 	if !epoch.Equal(May2nd) {
 		t.Errorf("The newer of Ask and Bid Datetimes should be used for the Epoch column.")
@@ -135,7 +135,7 @@ func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
 	key := m.WrittenCSM.GetMetadataKeys()[0].GetItemKey()
 
 	// epoch time check
-	epochTime := m.WrittenCSM[*io.NewTimeBucketKey(key)].GetColumn("Epoch").([]int64)[0]
+	epochTime := m.WrittenCSM[*io.NewTimeBucketKey(key)].GetEpoch()[0]
 	epoch := time.Unix(epochTime, 0)
 	if !epoch.Equal(May1st.Add(-3 * time.Hour)) { // = AskDateTime - UTCOffset
 		t.Errorf("Epoch value should be considered the UTCOffset.")

@@ -8,7 +8,6 @@ import (
 
 // MValue is a *copy* of the "Value" struct inside the reflect package.
 type MValue struct {
-	
 	typ uintptr
 	Ptr unsafe.Pointer
 }
