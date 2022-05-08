@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	io2 "io"
 	"os"
 	"strings"
@@ -44,10 +45,16 @@ func (c *Client) trim(line string) error {
 			log.Error("Failed to open file %v - Error: %v", info.Path, err)
 			continue
 		}
-		fp.Seek(offset, io2.SeekStart)
+		_, err = fp.Seek(offset, io2.SeekStart)
+		if err != nil {
+			return fmt.Errorf("failed to seek: %w", err)
+		}
 		zeroes := make([]byte, io.FileSize(info.GetTimeframe(), int(info.Year), int(info.GetRecordLength()))-offset)
-		fp.Write(zeroes)
-		fp.Close()
+		_, err = fp.Write(zeroes)
+		if err != nil {
+			return fmt.Errorf("failed to write zeroes: %w", err)
+		}
+		_ = fp.Close()
 	}
 	return nil
 }

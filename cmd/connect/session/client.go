@@ -109,55 +109,57 @@ func (c *Client) Read() error {
 	_, _ = fmt.Fprintf(os.Stderr, "Type `\\help` to see command options\n")
 
 	// User input evaluation loop.
-EVAL:
-	for {
-		// Read input.
-		line, err := r.Readline()
+	c.loopEval(r)
+	return nil
+}
 
+func (c *Client) loopEval(r *readline.Instance) {
+EVAL:
+	// Read input.
+	line, err := r.Readline()
+	if err != nil {
 		// Terminate evaluation.
 		if errors.Is(err, io.EOF) {
-			break EVAL
+			return
 		}
 
 		// Printed interrupt prompt.
 		if errors.Is(err, readline.ErrInterrupt) {
-			continue
+			goto EVAL
 		}
 
 		// Print error.
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
-			continue
-		}
-
-		// Remove leading/trailing spaces.
-		line = strings.Trim(line, " ")
-
-		// ----- Evaluate -----
-
-		// Quit.
-		if line == `\stop` || line == `\quit` || line == `\q` || line == `exit` {
-			break EVAL
-		}
-		// Nothing to do.
-		if line == "" {
-			continue EVAL
-		}
-
-		for prefix, cmdFunc := range commandMap(c) {
-			if strings.HasPrefix(line, prefix) {
-				if err2 := cmdFunc(line); err2 != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "error: %s", err2.Error())
-				}
-				continue EVAL
-			}
-		}
-
-		// No prefix matched, then it's a sql stmt.
-		c.sql(line)
+		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+		goto EVAL
 	}
 
-	return nil
+	// Remove leading/trailing spaces.
+	line = strings.Trim(line, " ")
+
+	// ----- Evaluate -----
+
+	// Quit.
+	if line == `\stop` || line == `\quit` || line == `\q` || line == `exit` {
+		return
+	}
+	// Nothing to do.
+	if line == "" {
+		goto EVAL
+	}
+
+	for prefix, cmdFunc := range commandMap(c) {
+		if strings.HasPrefix(line, prefix) {
+			if err2 := cmdFunc(line); err2 != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "error: %s", err2.Error())
+			}
+			goto EVAL
+		}
+	}
+
+	// No prefix matched, then it's a sql stmt.
+	c.sql(line)
+
+	goto EVAL
 }
 
 func newReader() (*readline.Instance, error) {
@@ -228,28 +230,37 @@ func printColumnNames(cs *dbio.ColumnSeries) {
 	fmt.Printf("\n")
 }
 
-func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string) (err error) {
-	const perm755 = 0o755
+func writer(optionalFile ...string) (*csv.Writer, func() error, error) {
+	cleanup := func() error { return nil }
 	var oFile string
 	if len(optionalFile) != 0 {
 		// Might be a real filename
 		oFile = optionalFile[0]
 	}
-	var writer *csv.Writer
-	if oFile != "" {
-		var file *os.File
-		file, err = os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, perm755)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		writer = csv.NewWriter(file)
-	}
 
+	if oFile != "" {
+		file, err2 := os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, 0o755)
+		if err2 != nil {
+			return nil, cleanup, err2
+		}
+		cleanup = file.Close
+		return csv.NewWriter(file), cleanup, nil
+	}
+	return nil, cleanup, nil
+}
+
+func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string) (err error) {
 	if cs == nil {
 		log.Info("no results returned from query")
 		return nil
 	}
+
+	w, cleanup, err := writer(optionalFile...)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = cleanup() }()
+
 	/*
 		Check if this is an EXPLAIN output
 	*/
@@ -267,15 +278,11 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 		return fmt.Errorf("epoch column not present in output")
 	}
 
-	if writer == nil {
+	if w == nil {
 		printHeaderLine(cs)
 		printColumnNames(cs)
 		printHeaderLine(cs)
 	}
-	const (
-		decimal   = 10
-		bitSize32 = 32
-	)
 	for i, ts := range epoch {
 		var (
 			row     []string
@@ -285,76 +292,81 @@ func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string
 			if strings.EqualFold(name, "Epoch") {
 				element = fmt.Sprintf("%29s", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 			} else {
-				icol := cs.GetColumn(name)
 				// colType := reflect.TypeOf(icol).Elem().Kind()
-				switch col := icol.(type) {
-				case []float32:
-					element = strconv.FormatFloat(float64(col[i]), 'f', -1, bitSize32)
-				case []float64:
-					element = strconv.FormatFloat(col[i], 'f', -1, bitSize32)
-				case []int8:
-					element = strconv.FormatInt(int64(col[i]), decimal)
-				case []int16:
-					element = strconv.FormatInt(int64(col[i]), decimal)
-				case []int32:
-					element = strconv.FormatInt(int64(col[i]), decimal)
-				case []int64:
-					element = strconv.FormatInt(col[i], decimal)
-				case []uint8:
-					element = strconv.FormatUint(uint64(col[i]), decimal)
-				case []uint16:
-					element = strconv.FormatUint(uint64(col[i]), decimal)
-				case []uint32:
-					element = strconv.FormatUint(uint64(col[i]), decimal)
-				case []uint64:
-					element = strconv.FormatUint(col[i], decimal)
-				case []bool:
-					val := col[i]
-					if val {
-						element = "TRUE"
-					} else {
-						element = "FALSE"
-					}
-				case [][16]rune:
-					runes := reflect.ValueOf(icol).Index(i)
-					element = strings.Trim(runesToString(runes), "\x00") // trim space
-				default:
-					return fmt.Errorf("unknown type of column found: col=%v", icol)
+				element, err = convertToElement(cs.GetColumn(name), i, name)
+				if err != nil {
+					return err
 				}
-				// print column value in the format length
-				l := columnFormatLength(name, icol)
-				var sb strings.Builder
-				for i := 0; i < l-len([]rune(element)); i++ {
-					sb.WriteString(" ")
-				}
-				sb.WriteString(element)
-				element = sb.String()
 			}
 
-			if writer != nil {
+			if w != nil {
 				row = append(row, strings.TrimSpace(element))
 			} else {
 				// nolint:forbidigo // CLI output needs fmt.Println
 				fmt.Printf("%s  ", element)
 			}
 		}
-		if writer == nil {
+		if w == nil {
 			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("\n")
 		} else {
-			if err2 := writer.Write(row); err2 != nil {
+			if err2 := w.Write(row); err2 != nil {
 				return fmt.Errorf("failed to print row: %w", err2)
 			}
 		}
 	}
-	if writer == nil {
+	if w == nil {
 		printHeaderLine(cs)
 		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("(%d rows * %d columns)\n", len(epoch), len(cs.GetColumnNames()))
 	} else {
-		writer.Flush()
+		w.Flush()
 	}
 	return err
+}
+
+func convertToElement(icol interface{}, i int, columnName string) (string, error) {
+	var element string
+	switch col := icol.(type) {
+	case []float32:
+		element = strconv.FormatFloat(float64(col[i]), 'f', -1, 32)
+	case []float64:
+		element = strconv.FormatFloat(col[i], 'f', -1, 32)
+	case []int8:
+		element = strconv.FormatInt(int64(col[i]), 10)
+	case []int16:
+		element = strconv.FormatInt(int64(col[i]), 10)
+	case []int32:
+		element = strconv.FormatInt(int64(col[i]), 10)
+	case []int64:
+		element = strconv.FormatInt(col[i], 10)
+	case []uint8:
+		element = strconv.FormatUint(uint64(col[i]), 10)
+	case []uint16:
+		element = strconv.FormatUint(uint64(col[i]), 10)
+	case []uint32:
+		element = strconv.FormatUint(uint64(col[i]), 10)
+	case []uint64:
+		element = strconv.FormatUint(col[i], 10)
+	case []bool:
+		element = "FALSE"
+		if col[i] {
+			element = "TRUE"
+		}
+	case [][16]rune:
+		runes := reflect.ValueOf(icol).Index(i)
+		element = strings.Trim(runesToString(runes), "\x00") // trim space
+	default:
+		return "", fmt.Errorf("unknown type of column found: col=%v", icol)
+	}
+	// print column value in the format length
+	l := columnFormatLength(columnName, icol)
+	var sb strings.Builder
+	for i := 0; i < l-len([]rune(element)); i++ {
+		sb.WriteString(" ")
+	}
+	sb.WriteString(element)
+	return sb.String(), nil
 }
 
 // runesToString converts rune array (not slice) in reflect.Value to string.

@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	rpc "github.com/alpacahq/rpc/rpc2"
 	"github.com/vmihailenco/msgpack"
 
@@ -199,7 +201,8 @@ func TestDecodeNullResult(t *testing.T) {
 	t.Parallel()
 	data := []byte(`{"jsonrpc": "2.0", "id": 12345, "result": null}`)
 	var obj interface{}
-	json.Unmarshal(data, &obj)
+	assert.Nil(t, json.Unmarshal(data, &obj))
+
 	data, _ = msgpack.Marshal(obj)
 	reader := bytes.NewReader(data)
 	var result interface{}

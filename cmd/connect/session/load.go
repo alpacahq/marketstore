@@ -24,30 +24,15 @@ import (
 			20161230 21:37:57 140000
 */
 func (c *Client) load(line string) error {
-	args := strings.Split(line, " ")
-	args = args[1:]
-	if len(args) == 0 {
-		log.Error("Not enough arguments to load - try help")
-		return nil
-	}
-
-	tbkP, dataFD, loaderFD, err := parseLoadArgs(args)
+	tbk, dataFD, loaderFD, cleanup, err := parseLine(line)
 	if err != nil {
-		log.Error("Error while parsing arguments: %v\n", err)
-		return fmt.Errorf("error while parsing arguments: %w", err)
+		return fmt.Errorf("failed to parse line: %w", err)
 	}
-	if dataFD != nil {
-		defer func(dataFD *os.File) {
-			if err2 := dataFD.Close(); err2 != nil {
-				log.Error("failed to close a file to load: %v", err2)
-			}
-		}(dataFD)
-	}
-
+	defer cleanup()
 	/*
 		Verify the presence of a bucket with the input key
 	*/
-	resp, err := c.GetBucketInfo(tbkP)
+	resp, err := c.GetBucketInfo(tbk)
 	if err != nil {
 		log.Error("Error finding existing bucket: %v\n", err)
 		return fmt.Errorf("error finding existing bucket: %w", err)
@@ -70,7 +55,7 @@ func (c *Client) load(line string) error {
 		chunkSize := 1000000
 		// chunkSize := 100
 
-		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, *tbkP, cvm, chunkSize, resp.RecordType == io.VARIABLE)
+		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, *tbk, cvm, chunkSize, resp.RecordType == io.VARIABLE)
 		if err != nil {
 			log.Error("Error: ", err.Error())
 			return fmt.Errorf("error: %w", err)
@@ -105,6 +90,30 @@ func (c *Client) load(line string) error {
 		}
 	}
 	return nil
+}
+
+func parseLine(line string) (tbk *io.TimeBucketKey, dataFD, loaderFD *os.File, cleanup func(), err error) {
+	cleanup = func() {}
+	args := strings.Split(line, " ")
+	args = args[1:]
+	if len(args) == 0 {
+		return nil, nil, nil, cleanup, errors.New("not enough arguments to load - try help")
+	}
+
+	tbk, dataFD, loaderFD, err = parseLoadArgs(args)
+	if err != nil {
+		return nil, nil, nil, cleanup,
+			fmt.Errorf("error while parsing arguments: %w", err)
+	}
+	if dataFD != nil {
+		cleanup = func() {
+			if err2 := dataFD.Close(); err2 != nil {
+				log.Error("failed to close a file to load: %v", err2)
+			}
+		}
+	}
+
+	return tbk, dataFD, loaderFD, cleanup, nil
 }
 
 func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err error) {

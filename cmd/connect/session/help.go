@@ -7,36 +7,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// functionHelp prints helpful information about specific commands.
-func (c *Client) functionHelp(line string) error {
-	args := strings.Split(line, " ")
-	args = args[1:] // chop off the first word which should be "help"
-	var helpKey string
-	if len(args) == 0 {
-		helpKey = "help"
-	} else {
-		helpKey = args[0]
-	}
-	switch helpKey {
-	case "help":
-		// nolint:forbidigo // CLI output
-		fmt.Println(`Usage: \help command_name
-
-Available commands: o, timing, show, trim, gaps, load, create, destroy, feed`)
-
-	case "o":
-		// nolint:forbidigo // CLI output
-		fmt.Println(`
-		Sends output to the provided file name`)
-
-	case "timing":
-		// nolint:forbidigo // CLI output
-		fmt.Println(`
-		Toggles timing for commands`)
-
-	case "show", "trim", "gaps":
-		// nolint:forbidigo // CLI output
-		fmt.Println(`Syntax: (same for show/trim/gaps):
+const (
+	helpShow = `Syntax: (same for show/trim/gaps):
 
 	>> \show <Symbol/Timeframe/RecordFormat> <start time> [<end time>]
 
@@ -50,37 +22,9 @@ Available commands: o, timing, show, trim, gaps, load, create, destroy, feed`)
 
 trim: removes the data in the date range from the DB
 show: displays data in the date range
-gaps: finds gaps in data in the date range`)
+gaps: finds gaps in data in the date range`
 
-	case "load":
-		// nolint:forbidigo // CLI output
-		fmt.Println(`The load command loads data into the DB from csv files.
-
-Syntax:
-
-	>> \load <Symbol/Timeframe/RecordFormat> <csv input file> [<loader control file>]
-
-- Example:
-
-	>> \load TSLA/1Min/RecordFormat test.csv test.yaml
-
-(optional) Loader control file format (YAML):
-- Example:
-	firstRowHasColumnNames: false
-	timeFormat: "20060102 150405"
-	timeZone: "US/Eastern" # If not blank, the time format must not feature a timezone
-	columnNameMap: [Epoch, Open, High, Low, Close, Volume]
-	timeZone: if specified, this will override the timezone of the epoch found in the input file
-	columnNameMap: optional mapping of column position to name
-
-Note: "Epoch" is a special name, as is "Epoch-date" and "Epoch-time"
-If the input file has the time index epoch in separate date and time columns, you will
-specify the epoch-date and epoch-time columns in the columnNameMap
-	`)
-
-	case "create", "destroy":
-		// nolint:forbidigo // CLI output
-		fmt.Println(`The create command generates new subdirectories and buckets for a database, 
+	helpCreateDestroy = `The create command generates new subdirectories and buckets for a database, 
 and requires specially formatted schema keys as arguments.
 
 Syntax:
@@ -116,9 +60,71 @@ where:
 <row-type>: The type of rows to be stored, one of "fixed" or "variable":
 - Example: We are storing tick data, where each time interval can contain a variable
 number of rows:
-	<row-type> = variable`)
+	<row-type> = variable`
+)
 
-	default:
+var helps = map[string]string{
+	"help": `Usage: \help command_name
+
+Available commands: o, timing, show, trim, gaps, load, create, destroy, feed`,
+	"o": `Sends output to the provided file name
+
+Syntax:
+	
+	>> \o <filepath>
+
+Example: 
+    >> \o 4771.csv
+    >> \show 4771/1D/OHLCV 1970-01-01
+    >> \q
+-> then, the output of the show command is stored at ./4771.csv
+`,
+	"timing": `Toggles timing for commands`,
+	"show":   helpShow,
+	"trim":   helpShow,
+	"gaps":   helpShow,
+	"load": `The load command loads data into the DB from csv files.
+
+Syntax:
+
+	>> \load <Symbol/Timeframe/RecordFormat> <csv input file> [<loader control file>]
+
+- Example:
+
+	>> \load TSLA/1Min/RecordFormat test.csv test.yaml
+
+(optional) Loader control file format (YAML):
+- Example:
+	firstRowHasColumnNames: false
+	timeFormat: "20060102 150405"
+	timeZone: "US/Eastern" # If not blank, the time format must not feature a timezone
+	columnNameMap: [Epoch, Open, High, Low, Close, Volume]
+	timeZone: if specified, this will override the timezone of the epoch found in the input file
+	columnNameMap: optional mapping of column position to name
+
+Note: "Epoch" is a special name, as is "Epoch-date" and "Epoch-time"
+If the input file has the time index epoch in separate date and time columns, you will
+specify the epoch-date and epoch-time columns in the columnNameMap
+`,
+	"create":  helpCreateDestroy,
+	"destroy": helpCreateDestroy,
+}
+
+// functionHelp prints helpful information about specific commands.
+func (c *Client) functionHelp(line string) error {
+	args := strings.Split(line, " ")
+	args = args[1:] // chop off the first word which should be "help"
+	var helpKey string
+	if len(args) == 0 {
+		helpKey = "help"
+	} else {
+		helpKey = args[0]
+	}
+
+	if help, found := helps[helpKey]; found {
+		// nolint:forbidigo // CLI output needs fmt.Println
+		fmt.Println(help)
+	} else {
 		log.Error("No help available for %s\n", helpKey)
 	}
 
