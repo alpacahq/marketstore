@@ -10,14 +10,14 @@ import (
 )
 
 var testConfig = map[string]interface{}{
-	"token":        "hello",
+	"token":        "hellohellohellohellohellohello12",
 	"update_time":  "12:34:56",
 	"exchanges":    []string{"foo"},
 	"index_groups": []string{"bar"},
 }
 
 func TestNewConfig(t *testing.T) {
-	t.Parallel()
+	// avoid t.Parallel() as env vars are used.
 
 	tests := map[string]struct {
 		config  map[string]interface{}
@@ -28,7 +28,7 @@ func TestNewConfig(t *testing.T) {
 		"ok/ API token and UpdateTime can be overridden by env vars": {
 			config: testConfig,
 			envVars: map[string]string{
-				"XIGNITE_FEEDER_API_TOKEN":   "yo",
+				"XIGNITE_FEEDER_API_TOKEN":   "ABCDEFGHIJKLMNOPQRSTUVWXYZ789012",
 				"XIGNITE_FEEDER_UPDATE_TIME": "20:00:00",
 			},
 			want: &configs.DefaultConfig{
@@ -37,11 +37,19 @@ func TestNewConfig(t *testing.T) {
 				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
 				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
 				UpdateTime:          time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC),
-				APIToken:            "yo",
+				APIToken:            "ABCDEFGHIJKLMNOPQRSTUVWXYZ789012",
 			},
 			wantErr: false,
 		},
 		"ok/ nothing is overidden when env vars are empty": {
+			config: testConfig,
+			envVars: map[string]string{
+				"XIGNITE_FEEDER_API_TOKEN": "ABCDE", // 5 bytes
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		"ng/ Token length must be 32 bytes": {
 			config:  testConfig,
 			envVars: map[string]string{},
 			want: &configs.DefaultConfig{
@@ -50,7 +58,7 @@ func TestNewConfig(t *testing.T) {
 				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
 				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
 				UpdateTime:          time.Date(0, 1, 1, 12, 34, 56, 0, time.UTC),
-				APIToken:            "hello",
+				APIToken:            "hellohellohellohellohellohello12",
 			},
 			wantErr: false,
 		},
@@ -59,8 +67,7 @@ func TestNewConfig(t *testing.T) {
 		tt := tt
 
 		t.Run(name, func(t *testing.T) {
-			// avoid env vars being used by multiple tests in parallel
-			//t.Parallel()
+			// t.Parallel()
 
 			// --- given ---
 			for key, value := range tt.envVars {

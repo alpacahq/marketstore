@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/frontend"
-
 	"github.com/alpacahq/marketstore/v4/cmd/connect/loader"
+	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 /*
@@ -23,41 +23,29 @@ import (
 			Epoch
 			20161230 21:37:57 140000
 */
-func (c *Client) load(line string) {
-	args := strings.Split(line, " ")
-	args = args[1:]
-	if len(args) == 0 {
-		fmt.Println("Not enough arguments to load - try help")
-		return
-	}
-
-	tbk_p, dataFD, loaderFD, err := parseLoadArgs(args)
+func (c *Client) load(line string) error {
+	tbk, dataFD, loaderFD, cleanup, err := parseLine(line)
 	if err != nil {
-		fmt.Printf("Error while parsing arguments: %v\n", err)
-		return
+		return fmt.Errorf("failed to parse line: %w", err)
 	}
-	if dataFD != nil {
-		defer dataFD.Close()
-	}
-	tbk := *tbk_p
-
+	defer cleanup()
 	/*
 		Verify the presence of a bucket with the input key
 	*/
 	resp, err := c.GetBucketInfo(tbk)
 	if err != nil {
-		fmt.Printf("Error finding existing bucket: %v\n", err)
-		return
+		log.Error("Error finding existing bucket: %v\n", err)
+		return fmt.Errorf("error finding existing bucket: %w", err)
 	}
-	fmt.Printf("Latest Year: %v\n", resp.LatestYear)
+	log.Info("Latest Year: %v\n", resp.LatestYear)
 
 	/*
 		Read the metadata about the CSV file
 	*/
 	csvReader, cvm, err := loader.ReadMetadata(dataFD, loaderFD, resp.DSV)
 	if err != nil {
-		fmt.Println("Error: ", err.Error())
-		return
+		log.Error("Error: ", err.Error())
+		return fmt.Errorf("error: %w", err)
 	}
 
 	/*
@@ -67,10 +55,10 @@ func (c *Client) load(line string) {
 		chunkSize := 1000000
 		// chunkSize := 100
 
-		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, tbk, cvm, chunkSize, resp.RecordType == io.VARIABLE)
+		npm, endReached, err := loader.CSVtoNumpyMulti(csvReader, *tbk, cvm, chunkSize, resp.RecordType == io.VARIABLE)
 		if err != nil {
-			fmt.Println("Error: ", err.Error())
-			return
+			log.Error("Error: ", err.Error())
+			return fmt.Errorf("error: %w", err)
 		}
 		if npm != nil { // npm will be empty if we've read the whole file in the last pass
 			// LAL ================= DEBUG
@@ -88,8 +76,8 @@ func (c *Client) load(line string) {
 
 			err = writeNumpy(c, npm, resp.RecordType == io.VARIABLE)
 			if err != nil {
-				fmt.Println("Error: ", err.Error())
-				return
+				log.Error("Error: ", err.Error())
+				return fmt.Errorf("error: %w", err)
 			}
 			// LAL ================= DEBUG
 			/*
@@ -101,8 +89,31 @@ func (c *Client) load(line string) {
 			break
 		}
 	}
+	return nil
+}
 
-	return
+func parseLine(line string) (tbk *io.TimeBucketKey, dataFD, loaderFD *os.File, cleanup func(), err error) {
+	cleanup = func() {}
+	args := strings.Split(line, " ")
+	args = args[1:]
+	if len(args) == 0 {
+		return nil, nil, nil, cleanup, errors.New("not enough arguments to load - try help")
+	}
+
+	tbk, dataFD, loaderFD, err = parseLoadArgs(args)
+	if err != nil {
+		return nil, nil, nil, cleanup,
+			fmt.Errorf("error while parsing arguments: %w", err)
+	}
+	if dataFD != nil {
+		cleanup = func() {
+			if err2 := dataFD.Close(); err2 != nil {
+				log.Error("failed to close a file to load: %v", err2)
+			}
+		}
+	}
+
+	return tbk, dataFD, loaderFD, cleanup, nil
 }
 
 func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err error) {
@@ -127,7 +138,8 @@ func writeNumpy(c *Client, npm *io.NumpyMultiDataset, isVariable bool) (err erro
 }
 
 func parseLoadArgs(args []string) (mk *io.TimeBucketKey, inputFD, controlFD *os.File, err error) {
-	if len(args) < 2 {
+	const argLen = 2
+	if len(args) < argLen {
 		return nil, nil, nil, errors.New(`not enough arguments, see "\help load"`)
 	}
 	mk = io.NewTimeBucketKey(args[0])
@@ -140,7 +152,7 @@ func parseLoadArgs(args []string) (mk *io.TimeBucketKey, inputFD, controlFD *os.
 	var first, second bool
 	var tryFD *os.File
 	for _, arg := range args[1:] {
-		fmt.Printf("Opening %s as ", arg)
+		log.Info("Opening %s as ", arg)
 		tryFD, err = os.Open(arg)
 		if err != nil {
 			return nil, nil, nil, err
@@ -153,12 +165,12 @@ func parseLoadArgs(args []string) (mk *io.TimeBucketKey, inputFD, controlFD *os.
 			if first {
 				second = true
 				controlFD = tryFD
-				fmt.Printf("loader control (yaml) file.\n")
+				log.Info("loader control (yaml) file.\n")
 				break
 			} else {
 				first = true
 				inputFD = tryFD
-				fmt.Printf("data file.\n")
+				log.Info("data file.\n")
 			}
 			continue
 		} else {

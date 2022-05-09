@@ -17,8 +17,8 @@ func TestSortBuffer(t *testing.T) {
 		0, 0, 0, 2, 0, 0, 0, 2,
 		0, 0, 0, 1, 0, 0, 0, 1,
 	}
-	var dataLen int = 32
-	var recordLength int = 8
+	dataLen := 32
+	recordLength := 8
 
 	// --- when ---
 	// sort by the last 4 byte (=

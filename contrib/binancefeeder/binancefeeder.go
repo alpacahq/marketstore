@@ -20,6 +20,11 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
+const (
+	defaultHTTPTimeout = 10 * time.Second
+	oneMinTimeframeStr = "1Min"
+)
+
 var suffixBinanceDefs = map[string]string{
 	"Min": "m",
 	"H":   "h",
@@ -27,7 +32,7 @@ var suffixBinanceDefs = map[string]string{
 	"W":   "w",
 }
 
-// ExchangeInfo exchange info
+// ExchangeInfo exchange info.
 type ExchangeInfo struct {
 	Symbols []struct {
 		Symbol     string `json:"symbol"`
@@ -37,10 +42,14 @@ type ExchangeInfo struct {
 	} `json:"symbols"`
 }
 
-// getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json
+// getJSON via http request and decodes it using NewDecoder. Sets target interface to decoded json.
 func getJSON(url string, target interface{}) error {
-	var myClient = &http.Client{Timeout: 10 * time.Second}
-	r, err := myClient.Get(url)
+	myClient := &http.Client{Timeout: defaultHTTPTimeout}
+	req, err := http.NewRequestWithContext(context.Background(), "GET", url, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("create http req for %s: %w", url, err)
+	}
+	r, err := myClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -49,10 +58,10 @@ func getJSON(url string, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
-// For ConvertStringToFloat function and Run() function to making exiting easier
+// For ConvertStringToFloat function and Run() function to making exiting easier.
 var errorsConversion []error
 
-// FetcherConfig is a structure of binancefeeder's parameters
+// FetcherConfig is a structure of binancefeeder's parameters.
 type FetcherConfig struct {
 	Symbols        []string `json:"symbols"`
 	BaseCurrencies []string `json:"base_currencies"`
@@ -60,7 +69,7 @@ type FetcherConfig struct {
 	BaseTimeframe  string   `json:"base_timeframe"`
 }
 
-// BinanceFetcher is the main worker for Binance
+// BinanceFetcher is the main worker for Binance.
 type BinanceFetcher struct {
 	config         map[string]interface{}
 	symbols        []string
@@ -69,19 +78,23 @@ type BinanceFetcher struct {
 	baseTimeframe  *utils.Timeframe
 }
 
-// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure
-func recast(config map[string]interface{}) *FetcherConfig {
+// recast changes parsed JSON-encoded data represented as an interface to FetcherConfig structure.
+func recast(config map[string]interface{}) (*FetcherConfig, error) {
 	data, _ := json.Marshal(config)
 	ret := FetcherConfig{}
-	json.Unmarshal(data, &ret)
+	err := json.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal FetcherConfig: %w", err)
+	}
 
-	return &ret
+	return &ret, nil
 }
 
-//Convert string to float64 using strconv
+// Convert string to float64 using strconv.
 func convertStringToFloat(str string) float64 {
-	convertedString, err := strconv.ParseFloat(str, 64)
-	//Store error in string array which will be checked in main fucntion later to see if there is a need to exit
+	const float64Bitsize = 64
+	convertedString, err := strconv.ParseFloat(str, float64Bitsize)
+	// Store error in string array which will be checked in main function later to see if there is a need to exit
 	if err != nil {
 		log.Error("String to float error: %v", err)
 		errorsConversion = append(errorsConversion, err)
@@ -89,7 +102,7 @@ func convertStringToFloat(str string) float64 {
 	return convertedString
 }
 
-//Checks time string and returns correct time format
+// Checks time string and returns correct time format.
 func queryTime(query string) time.Time {
 	trials := []string{
 		"2006-01-02 03:04:05",
@@ -101,15 +114,15 @@ func queryTime(query string) time.Time {
 	for _, layout := range trials {
 		qs, err := time.Parse(layout, query)
 		if err == nil {
-			//Returns time in correct time.Time object once it matches correct time format
+			// Returns time in correct time.Time object once it matches correct time format
 			return qs.In(utils.InstanceConfig.Timezone)
 		}
 	}
-	//Return null if no time matches time format
+	// Return null if no time matches time format
 	return time.Time{}
 }
 
-//Convert time from milliseconds to Unix
+// Convert time from milliseconds to Unix.
 func convertMillToTime(originalTime int64) time.Time {
 	i := time.Unix(0, originalTime*int64(time.Millisecond))
 	return i
@@ -126,7 +139,7 @@ func appendIfMissing(slice []string, s string) ([]string, bool) {
 	return append(slice, s), true
 }
 
-//Gets all symbols from binance
+// Gets all symbols from binance.
 func getAllSymbols(quoteAssets []string) []string {
 	symbol := make([]string, 0)
 	status := make([]string, 0)
@@ -142,7 +155,7 @@ func getAllSymbols(quoteAssets []string) []string {
 	} else {
 		for _, info := range m.Symbols {
 			quote = info.QuoteAsset
-			notRepeated := true
+			var notRepeated bool
 			// Check if data is the right base currency and then check if it's already recorded
 			for _, quoteAsset := range quoteAssets {
 				if quote == quoteAsset {
@@ -154,7 +167,7 @@ func getAllSymbols(quoteAssets []string) []string {
 			}
 		}
 
-		//Check status and append to symbols list if valid
+		// Check status and append to symbols list if valid
 		for index, s := range status {
 			if s == "TRADING" {
 				tradingSymbols = append(tradingSymbols, symbol[index])
@@ -184,23 +197,39 @@ func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
 	query.SetRowLimit(io.LAST, 1)
 	parsed, err := query.Parse()
 	if err != nil {
+		log.Error(fmt.Sprintf("failed to parse query for %s", tbk))
 		return time.Time{}
 	}
 	reader, err := executor.NewReader(parsed)
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to create new reader for %s", tbk))
+		return time.Time{}
+	}
 	csm, err := reader.Read()
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to read query for %s", tbk))
+		return time.Time{}
+	}
 	cs := csm[*tbk]
 	if cs == nil || cs.Len() == 0 {
 		return time.Time{}
 	}
 	ts, err := cs.GetTime()
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to get time from query(tbk=%s)", tbk))
+		return time.Time{}
+	}
 	return ts[0]
 }
 
-// NewBgWorker registers a new background worker
+// NewBgWorker registers a new background worker.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
-	config := recast(conf)
+	config, err := recast(conf)
+	if err != nil {
+		return nil, err
+	}
 	var queryStart time.Time
-	timeframeStr := "1Min"
+	timeframeStr := oneMinTimeframeStr
 	var symbols []string
 	baseCurrencies := []string{"USDT"}
 
@@ -212,7 +241,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		queryStart = queryTime(config.QueryStart)
 	}
 
-	//First see if config has symbols, if not retrieve all from binance as default
+	// First see if config has symbols, if not retrieve all from binance as default
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	} else {
@@ -243,14 +272,14 @@ func (bn *BinanceFetcher) Run() {
 
 	// Get correct Time Interval for Binance
 	originalInterval := bn.baseTimeframe.String
-	re := regexp.MustCompile("[0-9]+")
+	re := regexp.MustCompile(`\d+`)
 	re2 := regexp.MustCompile("[a-zA-Z]+")
 	timeIntervalLettersOnly := re.ReplaceAllString(originalInterval, "")
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
 	correctIntervalSymbol := suffixBinanceDefs[timeIntervalLettersOnly]
-	if len(correctIntervalSymbol) <= 0 {
-		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '1Min'")
-		correctIntervalSymbol = "1Min"
+	if correctIntervalSymbol == "" {
+		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '%s'", oneMinTimeframeStr)
+		correctIntervalSymbol = oneMinTimeframeStr
 	}
 	timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
 
@@ -292,14 +321,15 @@ func (bn *BinanceFetcher) Run() {
 
 		// Check if it's finished backfilling. If not, just do 300 * Timeframe.duration
 		// only do beyond 1st loop
+		const getRatesChunkSize = 300
 		if !slowDown {
 			if !firstLoop {
-				timeStart = timeStart.Add(bn.baseTimeframe.Duration * 300)
-				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * 300)
+				timeStart = timeStart.Add(bn.baseTimeframe.Duration * getRatesChunkSize)
+				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * getRatesChunkSize)
 			} else {
 				firstLoop = false
 				// Keep timeStart as original value
-				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * 300)
+				timeEnd = timeStart.Add(bn.baseTimeframe.Duration * getRatesChunkSize)
 			}
 			if timeEnd.After(time.Now().UTC()) {
 				slowDown = true
@@ -328,7 +358,7 @@ func (bn *BinanceFetcher) Run() {
 			// If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
 			// Main goal is to ensure it runs every 1 <time duration> at :00
 			switch originalInterval {
-			case "1Min":
+			case oneMinTimeframeStr:
 				timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
 			case "1H":
 				timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
@@ -338,22 +368,25 @@ func (bn *BinanceFetcher) Run() {
 				log.Warn("Incorrect format: %v", originalInterval)
 			}
 			waitTill = timeEnd.Add(bn.baseTimeframe.Duration)
-
-			timeStartM := timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
-			timeEndM := timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
+			timeStartM2 := timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
+			timeEndM2 := timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 
 			// Make sure you get the last candle within the timeframe.
 			// If the next candle is in the API call, that means the previous candle has been fully formed
 			// (ex: if we see :00 is formed that means the :59 candle is fully formed)
 			gotCandle := false
 			for !gotCandle {
-				rates, err := client.NewKlinesService().Symbol(symbols[0] + baseCurrencies[0]).Interval(timeInterval).StartTime(timeStartM).Do(context.Background())
+				rates, err := client.NewKlinesService().
+					Symbol(symbols[0] + baseCurrencies[0]).
+					Interval(timeInterval).
+					StartTime(timeStartM2).
+					Do(context.Background())
 				if err != nil {
 					log.Info("Response error: %v", err)
 					time.Sleep(time.Minute)
 				}
 
-				if len(rates) > 0 && rates[len(rates)-1].OpenTime-timeEndM >= 0 {
+				if len(rates) > 0 && rates[len(rates)-1].OpenTime-timeEndM2 >= 0 {
 					gotCandle = true
 				}
 			}
@@ -370,7 +403,11 @@ func (bn *BinanceFetcher) Run() {
 		for _, symbol := range symbols {
 			for _, baseCurrency := range baseCurrencies {
 				log.Info("Requesting %s %v - %v", symbol, timeStart, timeEnd)
-				rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).Interval(timeInterval).StartTime(timeStartM).EndTime(timeEndM).Do(context.Background())
+				rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
+					Interval(timeInterval).
+					StartTime(timeStartM).
+					EndTime(timeEndM).
+					Do(context.Background())
 				if err != nil {
 					log.Info("Response error: %v", err)
 					log.Info("Problematic symbol %s", symbol)
@@ -379,16 +416,12 @@ func (bn *BinanceFetcher) Run() {
 					timeStart = originalTimeStart
 					continue
 				}
-				// if len(rates) == 0 {
-				// 	fmt.Printf("len(rates) == 0\n")
-				// 	continue
-				// }
 
 				openTime := make([]int64, 0)
 				open := make([]float64, 0)
 				high := make([]float64, 0)
 				low := make([]float64, 0)
-				close := make([]float64, 0)
+				clos := make([]float64, 0)
 				volume := make([]float64, 0)
 
 				for _, rate := range rates {
@@ -401,7 +434,7 @@ func (bn *BinanceFetcher) Run() {
 						open = append(open, convertStringToFloat(rate.Open))
 						high = append(high, convertStringToFloat(rate.High))
 						low = append(low, convertStringToFloat(rate.Low))
-						close = append(close, convertStringToFloat(rate.Close))
+						clos = append(clos, convertStringToFloat(rate.Close))
 						volume = append(volume, convertStringToFloat(rate.Volume))
 						for _, e := range errorsConversion {
 							if e != nil {
@@ -414,7 +447,7 @@ func (bn *BinanceFetcher) Run() {
 				}
 
 				validWriting := true
-				if len(openTime) == 0 || len(open) == 0 || len(high) == 0 || len(low) == 0 || len(close) == 0 || len(volume) == 0 {
+				if len(openTime) == 0 || len(open) == 0 || len(high) == 0 || len(low) == 0 || len(clos) == 0 || len(volume) == 0 {
 					validWriting = false
 				}
 				// if data is nil, do not write to csm
@@ -429,14 +462,14 @@ func (bn *BinanceFetcher) Run() {
 						open = open[:len(open)-1]
 						high = high[:len(high)-1]
 						low = low[:len(low)-1]
-						close = close[:len(close)-1]
+						clos = clos[:len(clos)-1]
 						volume = volume[:len(volume)-1]
 					}
 					cs.AddColumn("Epoch", openTime)
 					cs.AddColumn("Open", open)
 					cs.AddColumn("High", high)
 					cs.AddColumn("Low", low)
-					cs.AddColumn("Close", close)
+					cs.AddColumn("Close", clos)
 					cs.AddColumn("Volume", volume)
 					csm := io.NewColumnSeriesMap()
 					symbolDir := fmt.Sprintf("binance_%s-%s", symbol, baseCurrency)
@@ -454,27 +487,26 @@ func (bn *BinanceFetcher) Run() {
 			// Binance rate limit is 20 reequests per second so this shouldn't be an issue.
 			time.Sleep(time.Second)
 		}
-
 	}
 }
 
 func main() {
-	// symbol := "BTC"
-	// interval := "1m"
-	// baseCurrency := "USDT"
+	symbol := "BTC"
+	interval := "1m"
+	baseCurrency := "USDT"
 
-	// client := binance.NewClient("", "")
-	// klines, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
-	// 	Interval(interval).Do(context.Background())
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// for _, k := range klines {
-	// 	fmt.Println(k)
-	// }
-	// symbols := getAllSymbols("USDT")
-	// for _, s := range symbols {
-	// 	fmt.Println(s)
-	// }
+	client := binance.NewClient("", "")
+	klines, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
+		Interval(interval).Do(context.Background())
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	for _, k := range klines {
+		log.Info(fmt.Sprintf("%v", k))
+	}
+	symbols := getAllSymbols([]string{"USDT"})
+	for _, s := range symbols {
+		log.Info(s)
+	}
 }

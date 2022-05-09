@@ -1,75 +1,18 @@
 package io
 
 import (
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/stretchr/testify/assert"
-
 	. "gopkg.in/check.v1"
 
 	"github.com/alpacahq/marketstore/v4/utils"
 )
-
-type ohlc struct {
-	index      int64
-	o, h, l, c float32
-}
-
-func TestConvertByteSlice(t *testing.T) {
-	t.Parallel()
-	s1 := ohlc{100000000, 200, 300, 400, 500}
-	s2 := ohlc{10, 20, 30, 40, 50}
-	baseArray := [2]ohlc{s1, s2}
-	buffer := make([]byte, 48)
-	copy(buffer, (*(*[24]byte)(unsafe.Pointer(&s1)))[:])
-	copy(buffer[24:], (*(*[24]byte)(unsafe.Pointer(&s2)))[:])
-
-	i_myarray := CopySliceByte(buffer, ohlc{})
-	myarray := i_myarray.([]ohlc)
-	for i, ohlc := range myarray {
-		assert.Equal(t, ohlc, baseArray[i])
-	}
-
-	i_myarray = SwapSliceByte(buffer, ohlc{})
-	myarray = i_myarray.([]ohlc)
-	for i, ohlc := range myarray {
-		assert.Equal(t, ohlc, baseArray[i])
-	}
-
-	i_mybyte := SwapSliceData(myarray, byte(0))
-	bytearray := i_mybyte.([]byte)
-	assert.Len(t, bytearray, 48)
-	for i, val := range bytearray {
-		assert.Equal(t, val, buffer[i])
-	}
-
-	bytearray = CastToByteSlice(myarray)
-	assert.Len(t, bytearray, 48)
-	for i, val := range bytearray {
-		assert.Equal(t, val, buffer[i])
-	}
-
-	i_myarray = SwapSliceData(buffer, ohlc{})
-	myarray = i_myarray.([]ohlc)
-	assert.Len(t, myarray, 2)
-	for i, val := range myarray {
-		assert.Equal(t, val, baseArray[i])
-	}
-
-	myInt64 := int64(65793)
-	bs := DataToByteSlice(myInt64)
-	assert.Len(t, bs, 8)
-	for i, val := range []byte{1, 1, 1, 0, 0, 0, 0, 0} {
-		assert.Equal(t, bs[i], val)
-	}
-}
 
 func TestVariableBoundaryCases(t *testing.T) {
 	t.Parallel()
@@ -84,37 +27,37 @@ func TestVariableBoundaryCases(t *testing.T) {
 
 	*/
 	t1 := time.Date(2008, time.January, 3, 16, 24, 3, 1000*255970, time.UTC)
-	//fmt.Println("Test Time:  ", t1, " Minutes: ", t1.Minute(), " Seconds: ", t1.Second())
+	// t.Log("Test Time:  ", t1, " Minutes: ", t1.Minute(), " Seconds: ", t1.Second())
 
 	// Check the 1Min interval
 	index := TimeToIndex(t1, time.Minute)
-	o_t1 := IndexToTime(index, time.Minute, 2008)
-	//fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
-	assert.Equal(t, o_t1.Minute(), 24)
-	assert.Equal(t, o_t1.Second(), 0)
+	oTime1 := IndexToTime(index, time.Minute, 2008)
+	// t.Log("Index Time: ", oTime1, " Minutes: ", oTime1.Minute(), " Seconds: ", oTime1.Second())
+	assert.Equal(t, oTime1.Minute(), 24)
+	assert.Equal(t, oTime1.Second(), 0)
 	ticks := GetIntervalTicks32Bit(t1, index, 1440)
 	seconds := t1.Second()
 	nanos := t1.Nanosecond()
 	fractionalSeconds := float64(seconds) + float64(nanos)/1000000000.
 	fractionalInterval := fractionalSeconds / 60.
 	intervalTicks := uint32(fractionalInterval * math.MaxUint32)
-	//fmt.Println("Interval Ticks: ", intervalTicks)
+	// t.Log("Interval Ticks: ", intervalTicks)
 	assert.Equal(t, intervalTicks, ticks)
 
 	t1 = time.Date(2008, time.January, 3, 16, 24, 59, 1000*839106, time.UTC)
 
 	index = TimeToIndex(t1, time.Minute)
-	o_t1 = IndexToTime(index, time.Minute, 2008)
-	//fmt.Println("Index Time: ", o_t1, " Minutes: ", o_t1.Minute(), " Seconds: ", o_t1.Second())
-	assert.Equal(t, o_t1.Minute(), 24)
-	assert.Equal(t, o_t1.Second(), 0)
+	oTime1 = IndexToTime(index, time.Minute, 2008)
+	// t.Log("Index Time: ", oTime1, " Minutes: ", oTime1.Minute(), " Seconds: ", oTime1.Second())
+	assert.Equal(t, oTime1.Minute(), 24)
+	assert.Equal(t, oTime1.Second(), 0)
 	ticks = GetIntervalTicks32Bit(t1, index, 1440)
 	seconds = t1.Second()
 	nanos = t1.Nanosecond()
 	fractionalSeconds = float64(seconds) + float64(nanos)/1000000000.
 	fractionalInterval = fractionalSeconds / 60.
 	intervalTicks = uint32(fractionalInterval * math.MaxUint32)
-	//fmt.Println("Interval Ticks: ", intervalTicks, " Ticks: ", ticks)
+	// t.Log("Interval Ticks: ", intervalTicks, " Ticks: ", ticks)
 	diff := int64(intervalTicks) - int64(ticks)
 	if diff < 0 {
 		diff = -diff
@@ -182,7 +125,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 		Unaligned case
 	*/
 	UnalignedBytesPerRow := 8 + 4 + 8 + 4 + 8 + 1
-	data, reclen := SerializeColumnsToRows(csA, dsv, false)
+	data, reclen, err := SerializeColumnsToRows(csA, dsv, false)
+	assert.Nil(t, err)
 	assert.True(t, reclen == UnalignedBytesPerRow)
 	assert.True(t, reclen*3 == len(data))
 
@@ -190,7 +134,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 		Aligned case
 	*/
 	AlignedBytesPerRow := AlignedSize(UnalignedBytesPerRow)
-	data, reclen = SerializeColumnsToRows(csA, dsv, true)
+	data, reclen, err = SerializeColumnsToRows(csA, dsv, true)
+	assert.Nil(t, err)
 	assert.True(t, reclen == AlignedBytesPerRow)
 	assert.True(t, reclen*3 == len(data))
 
@@ -198,7 +143,8 @@ func TestSerializeColumnsToRows(t *testing.T) {
 		Projection case
 	*/
 	csB := makeTestCS()
-	csB.Remove("Three")
+	err = csB.Remove("Three")
+	assert.Nil(t, err)
 	dsvProjected := csB.GetDataShapes()
 
 	// Expected record length
@@ -208,13 +154,15 @@ func TestSerializeColumnsToRows(t *testing.T) {
 	}
 	expectedLen = AlignedSize(expectedLen)
 
-	data, reclen = SerializeColumnsToRows(csA, dsvProjected, true)
+	data, reclen, err = SerializeColumnsToRows(csA, dsvProjected, true)
+	assert.Nil(t, err)
 	assert.True(t, reclen == expectedLen)
 	assert.True(t, reclen*3 == len(data))
 	/*
 		Type Coercion case
 	*/
-	csB.CoerceColumnType("Two", BYTE) // Is currently FLOAT64
+	err = csB.CoerceColumnType("Two", BYTE) // Is currently FLOAT64
+	assert.Nil(t, err)
 	dsvProjected = csB.GetDataShapes()
 
 	// Expected record length
@@ -224,15 +172,15 @@ func TestSerializeColumnsToRows(t *testing.T) {
 	}
 	expectedLen = AlignedSize(expectedLen)
 
-	data, reclen = SerializeColumnsToRows(csA, dsvProjected, true)
+	data, reclen, err = SerializeColumnsToRows(csA, dsvProjected, true)
+	assert.Nil(t, err)
 	assert.True(t, reclen == expectedLen)
 	assert.True(t, reclen*3 == len(data))
 }
 
 func TestTimeBucketInfo(t *testing.T) {
 	t.Parallel()
-	tempDir, _ := ioutil.TempDir("", "io.TestTimeBucketInfo")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	timeframe := utils.NewTimeframe("1Min")
 	filePath := filepath.Join(tempDir, "2018.bin")
@@ -248,7 +196,8 @@ func TestTimeBucketInfo(t *testing.T) {
 
 	testFilePath, err := os.Create(filePath)
 	assert.Nil(t, err)
-	WriteHeader(testFilePath, tbi)
+	err = WriteHeader(testFilePath, tbi)
+	assert.Nil(t, err)
 
 	tbi2 := TimeBucketInfo{
 		Year: year,
@@ -278,12 +227,12 @@ func TestIndexAndOffset(t *testing.T) {
 	t0 := time.Date(2018, time.January, 1, 0, 0, 0, 0, loc)
 	index := TimeToIndex(t0, time.Minute)
 	assert.Equal(t, index, int64(1))
-	o_t0 := IndexToTime(index, time.Minute, 2018)
-	assert.Equal(t, o_t0, t0)
+	oT0 := IndexToTime(index, time.Minute, 2018)
+	assert.Equal(t, oT0, t0)
 
 	offset := TimeToOffset(t0, time.Minute, recSize)
-	o_o0 := IndexToOffset(index, recSize)
-	assert.Equal(t, o_o0, offset)
+	oO0 := IndexToOffset(index, recSize)
+	assert.Equal(t, oO0, offset)
 
 	epoch := t0.Unix()
 	assert.Equal(t, EpochToOffset(epoch, time.Minute, recSize), offset)
@@ -292,12 +241,12 @@ func TestIndexAndOffset(t *testing.T) {
 	t1 := time.Date(2018, time.January, 1, 0, 5, 0, 0, loc)
 	index = TimeToIndex(t1, 5*time.Minute)
 	assert.Equal(t, index, int64(2))
-	o_t1 := IndexToTime(index, 5*time.Minute, 2018)
-	assert.Equal(t, o_t1, t1)
+	oT1 := IndexToTime(index, 5*time.Minute, 2018)
+	assert.Equal(t, oT1, t1)
 
 	offset = TimeToOffset(t1, 5*time.Minute, recSize)
-	o_o1 := IndexToOffset(index, recSize)
-	assert.Equal(t, o_o1, offset)
+	oO1 := IndexToOffset(index, recSize)
+	assert.Equal(t, oO1, offset)
 
 	epoch = t1.Unix()
 	assert.Equal(t, EpochToOffset(epoch, 5*time.Minute, recSize), offset)
@@ -306,12 +255,12 @@ func TestIndexAndOffset(t *testing.T) {
 	t2 := time.Date(2018, time.February, 5, 0, 0, 0, 0, loc)
 	index = TimeToIndex(t2, utils.Day)
 	assert.Equal(t, index, int64(35))
-	o_t2 := IndexToTime(index, utils.Day, 2018)
-	assert.Equal(t, o_t2 == t2, true)
+	oT2 := IndexToTime(index, utils.Day, 2018)
+	assert.Equal(t, oT2 == t2, true)
 
 	offset = TimeToOffset(t2, utils.Day, recSize)
-	o_o2 := IndexToOffset(index, recSize)
-	assert.Equal(t, o_o2, offset)
+	oO2 := IndexToOffset(index, recSize)
+	assert.Equal(t, oO2, offset)
 
 	epoch = t2.Unix()
 	assert.Equal(t, EpochToOffset(epoch, utils.Day, recSize), offset)
@@ -320,12 +269,12 @@ func TestIndexAndOffset(t *testing.T) {
 	t3 := time.Date(2018, time.December, 31, 0, 0, 0, 0, loc)
 	index = TimeToIndex(t3, utils.Day)
 	assert.Equal(t, index, int64(364))
-	o_t3 := IndexToTime(index, utils.Day, 2018)
-	assert.Equal(t, o_t3, t3)
+	oT3 := IndexToTime(index, utils.Day, 2018)
+	assert.Equal(t, oT3, t3)
 
 	offset = TimeToOffset(t3, utils.Day, recSize)
-	o_o3 := IndexToOffset(index, recSize)
-	assert.Equal(t, o_o3, offset)
+	oO3 := IndexToOffset(index, recSize)
+	assert.Equal(t, oO3, offset)
 
 	epoch = t3.Unix()
 	assert.Equal(t, EpochToOffset(epoch, utils.Day, recSize), offset)
@@ -334,12 +283,12 @@ func TestIndexAndOffset(t *testing.T) {
 	t4 := time.Date(2018, time.December, 31, 23, 59, 0, 0, loc)
 	index = TimeToIndex(t4, time.Minute)
 	assert.Equal(t, index, int64(525600))
-	o_t4 := IndexToTime(index, time.Minute, 2018)
-	assert.Equal(t, o_t4, t4)
+	oT4 := IndexToTime(index, time.Minute, 2018)
+	assert.Equal(t, oT4, t4)
 
 	offset = TimeToOffset(t4, time.Minute, recSize)
-	o_o4 := IndexToOffset(index, recSize)
-	assert.Equal(t, o_o4, offset)
+	oO4 := IndexToOffset(index, recSize)
+	assert.Equal(t, oO4, offset)
 
 	epoch = t4.Unix()
 	assert.Equal(t, EpochToOffset(epoch, time.Minute, recSize), offset)
@@ -354,19 +303,19 @@ func TestUnion(t *testing.T) {
 	cs := ColumnSeriesUnion(csA, csB)
 
 	for name, col := range cs.GetColumns() {
-		switch reflect.TypeOf(col).Kind() {
-		case reflect.Slice:
-			av := reflect.ValueOf(csA.columns[name])
-			bv := reflect.ValueOf(csB.columns[name])
-			cv := reflect.ValueOf(col)
+		if reflect.TypeOf(col).Kind() != reflect.Slice {
+			continue
+		}
+		av := reflect.ValueOf(csA.columns[name])
+		bv := reflect.ValueOf(csB.columns[name])
+		cv := reflect.ValueOf(col)
 
-			assert.Equal(t, av.Len(), cv.Len())
-			assert.Equal(t, bv.Len(), cv.Len())
+		assert.Equal(t, av.Len(), cv.Len())
+		assert.Equal(t, bv.Len(), cv.Len())
 
-			for i := 0; i < cv.Len(); i++ {
-				assert.Equal(t, av.Index(i).Interface(), cv.Index(i).Interface())
-				assert.Equal(t, bv.Index(i).Interface(), cv.Index(i).Interface())
-			}
+		for i := 0; i < cv.Len(); i++ {
+			assert.Equal(t, av.Index(i).Interface(), cv.Index(i).Interface())
+			assert.Equal(t, bv.Index(i).Interface(), cv.Index(i).Interface())
 		}
 	}
 
@@ -472,7 +421,11 @@ func TestApplyTimeQual(t *testing.T) {
 
 	assert.Equal(t, tqCS.Len(), 1)
 	assert.Equal(t, tqCS.GetEpoch()[0], cs.GetEpoch()[1])
-	assert.Equal(t, tqCS.GetByName("One").([]float32)[0], cs.GetByName("One").([]float32)[1])
+	one, ok := tqCS.GetColumn("One").([]float32)
+	assert.True(t, ok)
+	one2, ok := cs.GetColumn("One").([]float32)
+	assert.True(t, ok)
+	assert.Equal(t, one[0], one2[1])
 
 	tq = func(epoch int64) bool {
 		return false

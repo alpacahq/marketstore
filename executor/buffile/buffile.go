@@ -1,11 +1,14 @@
-// package buffile helps batch write by writes to the tempobary in-memory
+// Package buffile helps batch write by writes to the temporary in-memory
 // buffer under the assumption that many writes come in to the part of
 // single file frequently.
 package buffile
 
 import (
+	"errors"
 	"io"
 	"os"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type fileLike interface {
@@ -29,7 +32,7 @@ type BufferedFile struct {
 const DefaultBlockSize = 32 * 1024
 
 func New(filePath string) (*BufferedFile, error) {
-	fp, err := os.OpenFile(filePath, os.O_RDWR, 0700)
+	fp, err := os.OpenFile(filePath, os.O_RDWR, 0o700)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +44,10 @@ func New(filePath string) (*BufferedFile, error) {
 }
 
 func (f *BufferedFile) Close() error {
-	f.writeBuffer()
+	err := f.writeBuffer()
+	if err != nil {
+		log.Error("failed to write buffer. err=" + err.Error())
+	}
 	return f.fp.Close()
 }
 
@@ -52,7 +58,7 @@ func (f *BufferedFile) readBuffer(offset int64, size int) error {
 	// read size is block lower + offset residual + actual size
 	readSize := int(offset)%f.blockSize + size
 	// align to block size
-	readSize = readSize + f.blockSize
+	readSize += f.blockSize
 	readSize -= readSize % f.blockSize
 
 	// len(nil slice) is 0
@@ -60,7 +66,7 @@ func (f *BufferedFile) readBuffer(offset int64, size int) error {
 		f.buffer = make([]byte, readSize)
 	}
 	if n, err := f.fp.ReadAt(f.buffer, readOffset); err != nil {
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			// read short is fine at the end of file
 			f.buffer = f.buffer[:n]
 		} else {

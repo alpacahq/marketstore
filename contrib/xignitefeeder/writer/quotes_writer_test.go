@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-
-	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 )
 
 var (
@@ -63,14 +62,12 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 					BidDateTime:    api.XigniteDateTime(time.Date(2019, 5, 2, 0, 0, 0, 0, time.UTC)),
 					LastMarketDate: api.XigniteDay(LastMarketDate),
 				},
-			}},
+			},
+		},
 	}
 
-	// --- when ---
-	err := SUT.Write(apiResponse)
-
-	// --- then ---
-	if err != nil {
+	// --- when & then ---
+	if err := SUT.Write(apiResponse); err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
 	}
 
@@ -83,17 +80,17 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 	keys := m.WrittenCSM.GetMetadataKeys()
 	keyStrings := make([]string, len(keys))
 	for i, key := range keys {
-		keyStrings[i] = string(key.Key)
+		keyStrings[i] = key.GetItemKey()
 	}
 	sort.Strings(keyStrings)
 	timeBucketKeyStr := keyStrings[0]
-	if timeBucketKeyStr != "1234/1Sec/TICK:"+io.DefaultTimeBucketSchema {
+	if timeBucketKeyStr != "1234/1Sec/TICK" {
 		t.Errorf("TimeBucketKey for the first data is invalid. got=%v, want = %v",
-			timeBucketKeyStr, "1234/1Sec/TICK:"+io.DefaultTimeBucketSchema)
+			timeBucketKeyStr, "1234/1Sec/TICK")
 	}
 
 	// epoch time check
-	epochTime := m.WrittenCSM[io.TimeBucketKey{Key: timeBucketKeyStr}].GetColumn("Epoch").([]int64)[0]
+	epochTime := m.WrittenCSM[*io.NewTimeBucketKey(timeBucketKeyStr)].GetEpoch()[0]
 	epoch := time.Unix(epochTime, 0)
 	if !epoch.Equal(May2nd) {
 		t.Errorf("The newer of Ask and Bid Datetimes should be used for the Epoch column.")
@@ -129,19 +126,16 @@ func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
 		},
 	}
 
-	// --- when ---
-	err := SUT.Write(apiResponse)
-
-	// --- then ---
-	if err != nil {
+	// --- when & then ---
+	if err := SUT.Write(apiResponse); err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
 	}
 
 	// Time Bucket Key
-	key := m.WrittenCSM.GetMetadataKeys()[0].Key
+	key := m.WrittenCSM.GetMetadataKeys()[0].GetItemKey()
 
 	// epoch time check
-	epochTime := m.WrittenCSM[io.TimeBucketKey{Key: key}].GetColumn("Epoch").([]int64)[0]
+	epochTime := m.WrittenCSM[*io.NewTimeBucketKey(key)].GetEpoch()[0]
 	epoch := time.Unix(epochTime, 0)
 	if !epoch.Equal(May1st.Add(-3 * time.Hour)) { // = AskDateTime - UTCOffset
 		t.Errorf("Epoch value should be considered the UTCOffset.")

@@ -29,9 +29,8 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/plugins"
 	"github.com/alpacahq/marketstore/v4/utils"
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // Trigger is an interface every trigger plugin has to implement.
@@ -43,8 +42,8 @@ type Trigger interface {
 	Fire(keyPath string, records []Record)
 }
 
-// TriggerMatcher checks if the trigger should be fired or not.
-type TriggerMatcher struct {
+// Matcher checks if the trigger should be fired or not.
+type Matcher struct {
 	Trigger Trigger
 	// On is a string representing the condition of the trigger
 	// fire event.  It is the prefix of file path such as
@@ -52,21 +51,21 @@ type TriggerMatcher struct {
 	On string
 }
 
-// SymbolLoader is an interface to retrieve symbol object from plugin
+// SymbolLoader is an interface to retrieve symbol object from plugin.
 type SymbolLoader interface {
 	LoadSymbol(symbolName string) (interface{}, error)
 }
 
 // Record represents a serialized byte buffer
-// for a record written to the DB
+// for a record written to the DB.
 type Record []byte
 
-// Bytes returns the raw record buffer
+// Bytes returns the raw record buffer.
 func (r *Record) Bytes() []byte {
 	return *r
 }
 
-// Index returns the index of the record
+// Index returns the index of the record.
 func (r *Record) Index() int64 {
 	if r == nil {
 		return 0
@@ -75,7 +74,7 @@ func (r *Record) Index() int64 {
 }
 
 // Payload returns the data payload of the record,
-// excluding the index
+// excluding the index.
 func (r *Record) Payload() []byte {
 	if r == nil {
 		return nil
@@ -91,8 +90,8 @@ func RecordsToColumnSeries(
 	ds []io.DataShape,
 	tf time.Duration,
 	year int16,
-	records []Record) *io.ColumnSeries {
-
+	records []Record,
+) (*io.ColumnSeries, error) {
 	cs := io.NewColumnSeries()
 
 	index := 0
@@ -111,11 +110,15 @@ func RecordsToColumnSeries(
 			}
 		}
 
-		cs.AddColumn(s.Name, s.Type.ConvertByteSliceInto(data))
+		column, err := s.Type.ConvertByteSliceInto(data)
+		if err != nil {
+			return nil, fmt.Errorf("convert buffer to column records: %w", err)
+		}
+		cs.AddColumn(s.Name, column)
 		index += s.Len()
 	}
 
-	return cs
+	return cs, nil
 }
 
 // Load loads a function named NewTrigger with a parameter type map[string]interface{}
@@ -124,7 +127,7 @@ func Load(loader SymbolLoader, config map[string]interface{}) (Trigger, error) {
 	symbolName := "NewTrigger"
 	sym, err := loader.LoadSymbol(symbolName)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to load %s", symbolName)
+		return nil, fmt.Errorf("unable to load %s", symbolName)
 	}
 
 	newFunc, ok := sym.(func(map[string]interface{}) (Trigger, error))
@@ -134,9 +137,9 @@ func Load(loader SymbolLoader, config map[string]interface{}) (Trigger, error) {
 	return newFunc(config)
 }
 
-func NewTriggerMatchers(triggers []*utils.TriggerSetting) []*TriggerMatcher {
+func NewTriggerMatchers(triggers []*utils.TriggerSetting) []*Matcher {
 	log.Info("InitializeTriggers")
-	var triggerMatchers []*TriggerMatcher
+	var triggerMatchers []*Matcher
 
 	for _, triggerSetting := range triggers {
 		log.Info("triggerSetting = %v", triggerSetting)
@@ -150,7 +153,7 @@ func NewTriggerMatchers(triggers []*utils.TriggerSetting) []*TriggerMatcher {
 	return triggerMatchers
 }
 
-func NewTriggerMatcher(ts *utils.TriggerSetting) *TriggerMatcher {
+func NewTriggerMatcher(ts *utils.TriggerSetting) *Matcher {
 	loader, err := plugins.NewSymbolLoader(ts.Module)
 	if err != nil {
 		log.Error("Unable to open plugin for trigger in %s: %v", ts.Module, err)
@@ -164,15 +167,15 @@ func NewTriggerMatcher(ts *utils.TriggerSetting) *TriggerMatcher {
 	return NewMatcher(trig, ts.On)
 }
 
-// NewMatcher creates a new TriggerMatcher.
-func NewMatcher(trigger Trigger, on string) *TriggerMatcher {
-	return &TriggerMatcher{
+// NewMatcher creates a new Matcher.
+func NewMatcher(trigger Trigger, on string) *Matcher {
+	return &Matcher{
 		Trigger: trigger, On: on,
 	}
 }
 
 // Match returns true if keyPath matches the On condition.
-func (tm *TriggerMatcher) Match(keyPath string) bool {
+func (tm *Matcher) Match(keyPath string) bool {
 	pattern := strings.Replace(tm.On, "*", "[^/]+", -1)
 	matched, _ := regexp.MatchString(pattern, keyPath)
 	return matched

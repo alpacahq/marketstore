@@ -2,18 +2,16 @@ package api
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"strings"
-
-	"os"
-	"path/filepath"
-
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/matryer/try.v1"
@@ -37,22 +35,10 @@ var (
 	baseURL      = "https://api.polygon.io"
 	servers      = "wss://socket.polygon.io"
 	apiKey       string
-	NY, _        = time.LoadLocation("America/New_York")
 	completeDate = "2006-01-02"
-	client       *http.Client
 	CacheDir     = ""
 	FromCache    = false
 )
-
-func init() {
-	client = &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConnsPerHost: 100,
-			MaxConnsPerHost:     100,
-		},
-		Timeout: 10 * time.Second,
-	}
-}
 
 type GetAggregatesResponse struct {
 	Symbol  string `json:"symbol"`
@@ -79,8 +65,8 @@ func SetAPIKey(key string) {
 	apiKey = key
 }
 
-func SetBaseURL(url string) {
-	baseURL = url
+func SetBaseURL(bURL string) {
+	baseURL = bURL
 }
 
 func SetWSServers(serverList string) {
@@ -125,33 +111,7 @@ func includeExchange(exchange string) bool {
 	return true
 }
 
-func ListTickers() ([]Ticker, error) {
-	page := 0
-	resp := make([]Ticker, 0)
-
-	for {
-		r, err := ListTickersPerPage(page)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(r) == 0 {
-			break
-		}
-
-		for _, ticker := range r {
-			resp = append(resp, ticker)
-		}
-
-		page++
-	}
-
-	log.Info("[polygon] Returning %v symbols\n", len(resp))
-
-	return resp, nil
-}
-
-func ListTickersPerPage(page int) ([]Ticker, error) {
+func ListTickersPerPage(client *http.Client, page int) ([]Ticker, error) {
 	var resp ListTickersResponse
 	tickers := make([]Ticker, 0)
 
@@ -170,7 +130,7 @@ func ListTickersPerPage(page int) ([]Ticker, error) {
 	q.Set("page", strconv.FormatInt(int64(page), 10))
 	u.RawQuery = q.Encode()
 
-	body, err := download(u.String(), retryCount)
+	body, err := download(client, u.String(), retryCount)
 	if err != nil {
 		return nil, err
 	}
@@ -180,9 +140,9 @@ func ListTickersPerPage(page int) ([]Ticker, error) {
 		return nil, err
 	}
 
-	for _, ticker := range resp.Tickers {
-		if includeExchange(ticker.PrimaryExch) {
-			tickers = append(tickers, ticker)
+	for i := range resp.Tickers {
+		if includeExchange(resp.Tickers[i].PrimaryExch) {
+			tickers = append(tickers, resp.Tickers[i])
 		}
 	}
 
@@ -192,15 +152,20 @@ func ListTickersPerPage(page int) ([]Ticker, error) {
 // GetHistoricAggregates requests polygon's REST API for aggregates
 // for the provided resolution based on the provided parameters.
 func GetHistoricAggregates(
+	client *http.Client,
 	ticker,
 	timespan string,
 	multiplier int,
 	from, to time.Time,
 	limit *int,
-	unadjusted bool) (*HistoricAggregates, error) {
+	unadjusted bool,
+) (*HistoricAggregates, error) {
 	// FIXME: This function does not handle pagination
 
-	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan, from.Format(completeDate), to.Format(completeDate)))
+	u, err := url.Parse(fmt.Sprintf(aggURL, baseURL, ticker, multiplier, timespan,
+		from.Format(completeDate),
+		to.Format(completeDate)),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -209,25 +174,29 @@ func GetHistoricAggregates(
 	q.Set("apiKey", apiKey)
 	q.Set("unadjusted", strconv.FormatBool(unadjusted))
 
-	limit_n := 0
+	limitN := 0
 	if limit != nil {
 		q.Set("limit", strconv.FormatInt(int64(*limit), 10))
-		limit_n = *limit
+		limitN = *limit
 	}
 
 	u.RawQuery = q.Encode()
-	filename := fmt.Sprintf(aggFileName, ticker, from.Format(jsonDumpFormat), to.Format(jsonDumpFormat), multiplier, timespan, limit_n)
+	filename := fmt.Sprintf(aggFileName, ticker,
+		from.Format(jsonDumpFormat),
+		to.Format(jsonDumpFormat),
+		multiplier, timespan, limitN,
+	)
 	var body []byte
 
 	if FromCache {
 		body, err = readFromCache(filename)
 	}
 	if !FromCache || err != nil {
-		body, err = download(u.String(), retryCount)
+		body, err = download(client, u.String(), retryCount)
 		if err != nil {
 			return nil, err
 		}
-		jsonDump(body, filename)
+		_ = jsonDump(body, filename)
 	}
 
 	agg := &HistoricAggregates{}
@@ -241,7 +210,8 @@ func GetHistoricAggregates(
 
 // GetHistoricTrades requests polygon's REST API for historic trades
 // on the provided date .
-func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *HistoricTrades, err error) {
+func GetHistoricTrades(client *http.Client, symbol, date string, batchSize int,
+) (totalTrades *HistoricTrades, err error) {
 	var (
 		offset = int64(0)
 		u      *url.URL
@@ -263,7 +233,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 		}
 
 		u.RawQuery = q.Encode()
-		var filename = fmt.Sprintf(tradeFileName, symbol, date, offset, batchSize)
+		filename := fmt.Sprintf(tradeFileName, symbol, date, offset, batchSize)
 		var body []byte
 		var err error
 
@@ -271,7 +241,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 			body, err = readFromCache(filename)
 		}
 		if !FromCache || err != nil {
-			body, err = download(u.String(), retryCount)
+			body, err = download(client, u.String(), retryCount)
 			if err != nil {
 				return nil, err
 			}
@@ -294,7 +264,7 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 		}
 
 		if len(trades.Results) == batchSize {
-			offset = trades.Results[len(trades.Results)-1].SipTimestamp
+			offset = trades.Results[len(trades.Results)-1].SIPTimestamp
 			if offset == 0 {
 				return nil, fmt.Errorf("unable to paginate: Timestamp was empty for %v @ %v", symbol, date)
 			}
@@ -312,7 +282,8 @@ func GetHistoricTrades(symbol, date string, batchSize int) (totalTrades *Histori
 
 // GetHistoricQuotes requests polygon's REST API for historic quotes
 // on the provided date.
-func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *HistoricQuotes, err error) {
+func GetHistoricQuotes(client *http.Client, symbol, date string, batchSize int,
+) (totalQuotes *HistoricQuotes, err error) {
 	// FIXME: Move this to Polygon API v2
 	var (
 		offset = int64(0)
@@ -344,11 +315,11 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 			body, err = readFromCache(filename)
 		}
 		if !FromCache || err != nil {
-			body, err := download(u.String(), retryCount)
-			if err != nil {
-				return nil, err
+			body2, err2 := download(client, u.String(), retryCount)
+			if err2 != nil {
+				return nil, err2
 			}
-			jsonDump(body, filename)
+			_ = jsonDump(body2, filename)
 		}
 
 		err = json.Unmarshal(body, quotes)
@@ -372,25 +343,26 @@ func GetHistoricQuotes(symbol, date string, batchSize int) (totalQuotes *Histori
 	return totalQuotes, nil
 }
 
-func download(url string, retryCount int) (body []byte, err error) {
+func download(client *http.Client, endpointURL string, retryCount int) (body []byte, err error) {
 	// It is required to retry both the download() and unmarshal() calls
 	// as network errors (e.g. Unexpected EOF) can come also from unmarshal()
 	err = try.Do(func(attempt int) (bool, error) {
-		body, err = request(url, retryCount)
+		body, err = request(client, endpointURL)
 		if err != nil && strings.Contains(err.Error(), "GOAWAY") {
+			const sleepTime = 5 * time.Second
 			// Polygon's way to tell that we are too fast
-			log.Warn("parallel connection number may reach polygon limit, url: %s", url)
-			time.Sleep(5 * time.Second)
+			log.Warn("parallel connection number may reach polygon limit, url: %s", endpointURL)
+			time.Sleep(sleepTime)
 		}
 		return attempt < retryCount, err
 	})
 	return body, err
 }
 
-func request(url string, retryCount int) ([]byte, error) {
+func request(client *http.Client, endpointURL string) ([]byte, error) {
 	var resp *http.Response
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, endpointURL, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +392,7 @@ func request(url string, retryCount int) ([]byte, error) {
 		reader = resp.Body
 	}
 
-	body, err := ioutil.ReadAll(reader)
+	body, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +404,7 @@ func jsonDump(body []byte, filename string) error {
 		return nil
 	}
 	filename = filepath.Join(CacheDir, filename)
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0o755)
 	if err != nil {
 		log.Error("[polygon] cannot create file: %s (%v)", filename, err)
 		return err
@@ -468,7 +440,7 @@ func readFromCache(filename string) (bytes []byte, err error) {
 	}
 	defer reader.Close()
 
-	bytes, err = ioutil.ReadAll(reader)
+	bytes, err = io.ReadAll(reader)
 	if err != nil {
 		log.Warn("[polygon] failed to read file: %s (%v)", filename, err)
 		return nil, err

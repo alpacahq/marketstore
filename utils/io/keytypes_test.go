@@ -1,7 +1,6 @@
 package io_test
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -9,6 +8,7 @@ import (
 )
 
 func TestNewTimeBucketKeyFromWalKeyPath(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		walKeyPath string
@@ -19,11 +19,9 @@ func TestNewTimeBucketKeyFromWalKeyPath(t *testing.T) {
 		{
 			name:       "Success",
 			walKeyPath: "/project/marketstore/data/AMZN/1Min/TICK/2017.bin",
-			wantTbk: &io.TimeBucketKey{
-				Key: fmt.Sprintf("AMZN/1Min/TICK:%s", io.DefaultTimeBucketSchema),
-			},
-			wantYear: 2017,
-			wantErr:  false,
+			wantTbk:    io.NewTimeBucketKey("AMZN/1Min/TICK"),
+			wantYear:   2017,
+			wantErr:    false,
 		},
 		{
 			name:       "Invalid format of WalKeyPath",

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -52,7 +51,7 @@ func (is *InsertIntoStatement) Materialize(aggRunner *AggRunner, catDir *catalog
 	*/
 	targetMK := io.NewTimeBucketKey(is.TableName)
 	if targetMK == nil {
-		return nil, fmt.Errorf("Table name must be in the format `one/two/three`, have: %s",
+		return nil, fmt.Errorf("table name must be in the format `one/two/three`, have: %s",
 			is.TableName)
 	}
 
@@ -98,7 +97,7 @@ func (is *InsertIntoStatement) Materialize(aggRunner *AggRunner, catDir *catalog
 	}
 
 	// Get the time with nanoseconds included if available, prior to projection
-	//indexTime, err := inputColumnSeries.GetTime()
+	// indexTime, err := inputColumnSeries.GetTime()
 
 	// Columns are matched - Now project out all but the target column names
 	inputColumnSeries.Project(targetColumnNames)
@@ -142,6 +141,7 @@ func (is *InsertIntoStatement) GetLeft() IMSTree {
 }
 
 func (is *InsertIntoStatement) GetRight() IMSTree {
+	// nolint: gomnd // binary tree
 	if is.GetChildCount() < 2 {
 		return nil
 	} else {

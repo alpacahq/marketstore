@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils"
-
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
@@ -16,15 +14,15 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/timer"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // NewBgWorker returns the new instance of XigniteFeeder.
 // See configs.Config for the details of available configurations.
-// nolint
+// nolint:deadcode // used by plugin
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	config, err := configs.NewConfig(conf)
-
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to load config file. %v", conf))
 	}
@@ -52,16 +50,16 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		timeChecker = feed.NewScheduledMarketTimeChecker(
 			timeChecker,
 			scheduleMin,
-			)
+		)
 	}
 
 	ctx := context.Background()
-	// init Symbols Manager to...
+	// init symbols Manager to...
 	// 1. update symbols in the target exchanges
 	// 2. update index symbols in the target index groups
 	// every day
 	sm := symbols.NewManager(apiClient, config.Exchanges, config.IndexGroups)
-	sm.Update()
+	sm.Update(ctx)
 	timer.RunEveryDayAt(ctx, config.UpdateTime, sm.Update)
 	log.Info("updated symbols in the target exchanges")
 

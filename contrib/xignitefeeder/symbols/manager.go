@@ -1,6 +1,7 @@
 package symbols
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
@@ -9,7 +10,7 @@ import (
 
 // Manager manages symbols in the target stock exchanges.
 // symbol(s) can be newly registered / removed from the exchange,
-// so target symbols should be update periodically
+// so target symbols should be update periodically.
 type Manager interface {
 	GetAllIdentifiers() []string
 	GetAllIndexIdentifiers() []string
@@ -27,14 +28,16 @@ type ManagerImpl struct {
 }
 
 // NewManager initializes the SymbolManager object with the specified parameters.
-func NewManager(apiClient api.Client, targetExchanges []string, targetIndexGroups []string) *ManagerImpl {
-	return &ManagerImpl{APIClient: apiClient, TargetExchanges: targetExchanges, TargetIndexGroups: targetIndexGroups,
-		Identifiers: map[string][]string{}, IndexIdentifiers: map[string][]string{}}
+func NewManager(apiClient api.Client, targetExchanges, targetIndexGroups []string) *ManagerImpl {
+	return &ManagerImpl{
+		APIClient: apiClient, TargetExchanges: targetExchanges, TargetIndexGroups: targetIndexGroups,
+		Identifiers: map[string][]string{}, IndexIdentifiers: map[string][]string{},
+	}
 }
 
 // GetAllIdentifiers returns Identifiers for the target symbols for all the target exchanges
-// identifier = {exchange}.{symbol} (ex. "XTKS.1301")
-func (m ManagerImpl) GetAllIdentifiers() []string {
+// identifier = {exchange}.{symbol} (ex. "XTKS.1301").
+func (m *ManagerImpl) GetAllIdentifiers() []string {
 	var identifiers []string
 	for _, exchange := range m.TargetExchanges {
 		identifiers = append(identifiers, m.Identifiers[exchange]...)
@@ -43,8 +46,8 @@ func (m ManagerImpl) GetAllIdentifiers() []string {
 }
 
 // GetAllIndexIdentifiers returns Identifiers for the target index symbols for all the index groups
-// identifier = {exchange}.{symbol} (ex. "XTKS.1301")
-func (m ManagerImpl) GetAllIndexIdentifiers() []string {
+// identifier = {exchange}.{symbol} (ex. "XTKS.1301").
+func (m *ManagerImpl) GetAllIndexIdentifiers() []string {
 	var identifiers []string
 	for _, exchange := range m.TargetIndexGroups {
 		identifiers = append(identifiers, m.IndexIdentifiers[exchange]...)
@@ -52,20 +55,21 @@ func (m ManagerImpl) GetAllIndexIdentifiers() []string {
 	return identifiers
 }
 
-// Update calls UpdateSymbols and UpdateIndexSymbols sequentially
-func (m ManagerImpl) Update() {
-	m.UpdateSymbols()
-	m.UpdateIndexSymbols()
+// Update calls UpdateSymbols and UpdateIndexSymbols sequentially.
+func (m *ManagerImpl) Update(ctx context.Context) {
+	m.UpdateSymbols(ctx)
+	m.UpdateIndexSymbols(ctx)
 }
 
-// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers and store them to the Identifiers map
-func (m ManagerImpl) UpdateSymbols() {
+// UpdateSymbols calls the ListSymbols endpoint, convert the symbols to the Identifiers
+// and store them to the Identifiers map.
+func (m *ManagerImpl) UpdateSymbols(ctx context.Context) {
 	for _, exchange := range m.TargetExchanges {
-		resp, err := m.APIClient.ListSymbols(exchange)
+		resp, err := m.APIClient.ListSymbols(ctx, exchange)
 
 		// if ListSymbols API returns an error, don't update the target symbols
 		if err != nil || resp.Outcome != "Success" {
-			log.Warn("err=%v, API response=%v", err, resp)
+			log.Error(fmt.Sprintf("err=%v, List symbols API response=%v", err, resp))
 			return
 		}
 
@@ -85,14 +89,14 @@ func (m ManagerImpl) UpdateSymbols() {
 }
 
 // UpdateIndexSymbols calls the ListIndexSymbols endpoint, convert the index symbols to the Identifiers
-// and store them to the Identifiers map
-func (m ManagerImpl) UpdateIndexSymbols() {
+// and store them to the Identifiers map.
+func (m *ManagerImpl) UpdateIndexSymbols(ctx context.Context) {
 	for _, indexGroup := range m.TargetIndexGroups {
-		resp, err := m.APIClient.ListIndexSymbols(indexGroup)
+		resp, err := m.APIClient.ListIndexSymbols(ctx, indexGroup)
 
 		// if ListSymbols API returns an error, don't update the target symbols
 		if err != nil || resp.Outcome != "Success" {
-			log.Warn("err=%v, API response=%v", err, resp)
+			log.Error("UpdateIndexSymbols err=%v, API response=%v", err, resp)
 			return
 		}
 

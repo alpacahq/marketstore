@@ -14,11 +14,9 @@ const (
 	TradeTimeframe string = "1Sec"
 )
 
-// Trade defines schema and helper functions for storing trade data
+// Trade defines schema and helper functions for storing trade data.
 type Trade struct {
 	Tbk      *io.TimeBucketKey
-	csm      io.ColumnSeriesMap
-	cs       *io.ColumnSeries
 	Epoch    []int64
 	Nanos    []int32
 	Price    []enum.Price
@@ -33,12 +31,12 @@ type Trade struct {
 	WriteTime time.Duration
 }
 
-// TradeBucketKey returns a string bucket key for a given symbol and timeframe
+// TradeBucketKey returns a string bucket key for a given symbol and timeframe.
 func TradeBucketKey(symbol string) string {
 	return symbol + "/" + TradeTimeframe + "/" + TradeSuffix
 }
 
-// NewTrade creates a new Trade object and initializes it's internal column buffers to the given capacity
+// NewTrade creates a new Trade object and initializes it's internal column buffers to the given capacity.
 func NewTrade(symbol string, capacity int) *Trade {
 	model := &Trade{
 		Tbk: io.NewTimeBucketKey(TradeBucketKey(symbol)),
@@ -47,17 +45,17 @@ func NewTrade(symbol string, capacity int) *Trade {
 	return model
 }
 
-// Key returns the key of the model's time bucket
-func (model Trade) Key() string {
+// Key returns the key of the model's time bucket.
+func (model *Trade) Key() string {
 	return model.Tbk.GetItemKey()
 }
 
-// Len returns the length of the internal column buffers
+// Len returns the length of the internal column buffers.
 func (model *Trade) Len() int {
 	return len(model.Epoch)
 }
 
-// Symbol returns the Symbol part if the TimeBucketKey of this model
+// Symbol returns the Symbol part if the TimeBucketKey of this model.
 func (model *Trade) Symbol() string {
 	return model.Tbk.GetItemInCategory("Symbol")
 }
@@ -76,8 +74,10 @@ func (model *Trade) make(capacity int) {
 	model.Cond4 = make([]enum.TradeCondition, 0, capacity)
 }
 
-// Add adds a new data point to the internal buffers, and increment the internal index by one
-func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size, exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition) {
+// Add adds a new data point to the internal buffers, and increment the internal index by one.
+func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size,
+	exchange enum.Exchange, tapeid enum.Tape, conditions ...enum.TradeCondition,
+) {
 	model.Epoch = append(model.Epoch, epoch)
 	model.Nanos = append(model.Nanos, int32(nanos))
 	model.Price = append(model.Price, price)
@@ -91,15 +91,19 @@ func (model *Trade) Add(epoch int64, nanos int, price enum.Price, size enum.Size
 	cond4 := enum.NoTradeCondition
 
 	switch len(conditions) {
+	// nolint:gomnd // index of options.
 	case 4:
 		cond4 = conditions[3]
 		fallthrough
+	// nolint:gomnd // index of options.
 	case 3:
 		cond3 = conditions[2]
 		fallthrough
+
 	case 2:
 		cond2 = conditions[1]
 		fallthrough
+
 	case 1:
 		cond1 = conditions[0]
 	case 0:
@@ -131,7 +135,8 @@ func (model *Trade) GetCs() *io.ColumnSeries {
 }
 
 // BuildCsm prepares an io.ColumnSeriesMap object and populates it's columns with the contents of the internal buffers
-// it is included in the .Write() method so use only when you need to work with the ColumnSeriesMap before writing it to disk
+// it is included in the .Write() method
+// so use only when you need to work with the ColumnSeriesMap before writing it to disk.
 func (model *Trade) buildCsm() *io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*model.Tbk, model.GetCs())

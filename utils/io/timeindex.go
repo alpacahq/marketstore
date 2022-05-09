@@ -28,7 +28,7 @@ func ToSystemTimezone(t time.Time) time.Time {
 // TimeToIndex converts a given time.Time to a file index based upon the supplied
 // timeframe (time.Duration). TimeToIndex takes into account the system timzeone,
 // and converts the supplied timestamp to the system timezone specified in the
-// MarketStore configuration file (or UTC by default),
+// MarketStore configuration file (or UTC by default),.
 func TimeToIndex(t time.Time, tf time.Duration) int64 {
 	tLocal := ToSystemTimezone(t)
 	// special 1D case (maximum supported on-disk size)
@@ -78,6 +78,6 @@ func GetIntervalTicks32Bit(ts time.Time, index, intervalsPerDay int64) uint32 {
 }
 
 func IndexToTimeDepr(index, intervalsPerDay int64, year int16) time.Time {
-	SecondOfYear := time.Duration(float64(index-1) * float64(24*60*60) / float64(intervalsPerDay))
-	return time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC).Add(SecondOfYear * time.Second)
+	SecondOfYear := time.Duration(float64(index-1)*float64(24*60*60)/float64(intervalsPerDay)) * time.Second
+	return time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.UTC).Add(SecondOfYear)
 }

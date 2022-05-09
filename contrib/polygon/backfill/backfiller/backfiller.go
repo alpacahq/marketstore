@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"net/http"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -13,18 +13,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-
-	"github.com/gobwas/glob"
-
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-
 	"code.cloudfoundry.org/bytefmt"
+	"github.com/gobwas/glob"
 
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -43,15 +40,24 @@ var (
 	noIngest                            bool
 	unadjusted                          bool
 	// NY timezone
-	// NY, _          = time.LoadLocation("America/New_York")
+	// NY, _          = time.LoadLocation("America/New_York").
 	configFilePath string
 
 	format = "2006-01-02"
 )
 
+const (
+	defaultBatchSize           = 50000
+	defaultMaxConnsPerHost     = 100
+	defaultMaxIdleConnsPerHost = 100
+)
+
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	flag.StringVar(&dir, "dir", "", "mktsdb directory to backfill to. If empty, the dir is taken from mkts.yml")
-	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD) [included]")
+	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format),
+		"backfill from date (YYYY-MM-DD) [included]",
+	)
 	flag.StringVar(&to, "to", time.Now().Format(format), "backfill to date (YYYY-MM-DD) [not included]")
 	flag.StringVar(&exchanges, "exchanges", "*", "comma separated list of exchange")
 	flag.BoolVar(&bars, "bars", false, "backfill bars")
@@ -63,7 +69,7 @@ func init() {
 	flag.StringVar(&symbols, "symbols", "*",
 		"glob pattern of symbols to backfill, the default * means backfill all symbols")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "parallelism (default NumCPU)")
-	flag.IntVar(&batchSize, "batchSize", 50000, "batch/pagination size for downloading trades, quotes, & bars")
+	flag.IntVar(&batchSize, "batchSize", defaultBatchSize, "batch/pagination size for downloading trades, quotes, & bars")
 	flag.StringVar(&apiKey, "apiKey", "", "polygon API key")
 	flag.StringVar(&cacheDir, "cache-dir", "", "directory to dump polygon's json replies")
 	flag.BoolVar(&readFromCache, "read-from-cache", false, "read cached results if available")
@@ -75,10 +81,12 @@ func init() {
 }
 
 func main() {
+	const allPerm = 0o777
+	const oneDay = 24 * time.Hour
 	rootDir, triggers, walRotateInterval := initConfig()
-	instanceMeta, shutdownPending, walWG,err := initWriter(rootDir, triggers, walRotateInterval)
+	instanceMeta, walWG, err := initWriter(rootDir, triggers, walRotateInterval)
 	if err != nil {
-		log.Error("failed to set up new instance config. err="+ err.Error())
+		log.Error("failed to set up new instance config. err=" + err.Error())
 		os.Exit(1)
 	}
 
@@ -127,26 +135,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	tradePeriodDuration, err := parseAndValidateDuration(tradePeriod, 60*24*time.Hour, 24*time.Hour)
+	tradePeriodDuration, err := parseAndValidateDuration(tradePeriod, 60*oneDay, oneDay)
 	if err != nil {
 		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
 		os.Exit(1)
 	}
 
-	quotePeriodDuration, err := parseAndValidateDuration(quotePeriod, 60*24*time.Hour, 24*time.Hour)
+	quotePeriodDuration, err := parseAndValidateDuration(quotePeriod, 60*oneDay, oneDay)
 	if err != nil {
 		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
 		os.Exit(1)
 	}
 
-	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*24*time.Hour, 24*time.Hour)
+	barPeriodDuration, err := parseAndValidateDuration(barPeriod, 60*oneDay, oneDay)
 	if err != nil {
 		log.Error("[polygon] failed to parse trade-period duration (%v)", err)
 		os.Exit(1)
 	}
 
 	if cacheDir != "" {
-		err = os.MkdirAll(cacheDir, 0777)
+		err = os.MkdirAll(cacheDir, allPerm)
 		if err != nil {
 			log.Error("[polygon] cannot create json dump directory (%v)", err)
 			os.Exit(1)
@@ -165,11 +173,19 @@ func main() {
 	tickerListRunning := true
 	tickerListWP := worker.NewWorkerPool(parallelism)
 
+	client := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: defaultMaxIdleConnsPerHost,
+			MaxConnsPerHost:     defaultMaxConnsPerHost,
+		},
+		Timeout: 10 * time.Second,
+	}
+
 	for page := 0; tickerListRunning; page++ {
 		currentPage := page
 
 		tickerListWP.Do(func() {
-			getTicker(currentPage, pattern, &symbolList, symbolListMux, &tickerListRunning)
+			getTicker(client, currentPage, pattern, &symbolList, symbolListMux, &tickerListRunning)
 		})
 	}
 
@@ -203,7 +219,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getBars(start, end, barPeriodDuration, currentSymbol, exchangeIDs, unadjusted, writerWP)
+				getBars(client, start, end, barPeriodDuration, currentSymbol, exchangeIDs, unadjusted, writerWP)
 			})
 		}
 
@@ -221,7 +237,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getQuotes(start, end, quotePeriodDuration, currentSymbol, writerWP)
+				getQuotes(client, start, end, quotePeriodDuration, currentSymbol, writerWP)
 			})
 		}
 
@@ -229,7 +245,6 @@ func main() {
 		apiCallerWP.CloseAndWait()
 		log.Info("[polygon] wait for writer workers")
 		writerWP.CloseAndWait()
-
 	}
 
 	if trades {
@@ -240,7 +255,7 @@ func main() {
 		for _, sym := range symbolList {
 			currentSymbol := sym
 			apiCallerWP.Do(func() {
-				getTrades(start, end, tradePeriodDuration, currentSymbol, writerWP)
+				getTrades(client, start, end, tradePeriodDuration, currentSymbol, writerWP)
 			})
 		}
 
@@ -251,20 +266,18 @@ func main() {
 	}
 
 	log.Info("[polygon] wait for shutdown")
-	if shutdownPending != nil {
-		*shutdownPending = true
-	}
+	instanceMeta.WALFile.TriggerShutdown()
 	walWG.Wait()
 	instanceMeta.WALFile.FinishAndWait()
 
-	log.Info("[polygon] api call time %s", backfill.ApiCallTime)
+	log.Info("[polygon] api call time %s", backfill.APICallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
 	log.Info("[polygon] write time %s", backfill.WriteTime)
 	log.Info("[polygon] backfilling complete %s", time.Since(startTime))
 }
 
 func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int) {
-	data, err := ioutil.ReadFile(configFilePath)
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
 		log.Error("failed to read configuration file error: %s", err.Error())
 		os.Exit(1)
@@ -280,9 +293,9 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 }
 
 func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int,
-) (instanceConfig *executor.InstanceMetadata, shutdownPending *bool, walWG *sync.WaitGroup, err error) {
+) (instanceConfig *executor.InstanceMetadata, walWG *sync.WaitGroup, err error) {
 	// if configured, also load the ondiskagg triggers
-	var tm []*trigger.TriggerMatcher
+	var tm []*trigger.Matcher
 	for _, triggerSetting := range triggers {
 		if triggerSetting.Module == "ondiskagg.so" {
 			tmatcher := trigger.NewTriggerMatcher(triggerSetting)
@@ -291,17 +304,19 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 		}
 	}
 
-	instanceConfig, shutdownPending, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
-		true, true, true, true)
+	instanceConfig, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
+		executor.WALBypass(true))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
+		return nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
 	}
 
-	return instanceConfig, shutdownPending, walWG, nil
+	return instanceConfig, walWG, nil
 }
 
-func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex, tickerListRunning *bool) {
-	currentTickers, err := api.ListTickersPerPage(page)
+func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex,
+	tickerListRunning *bool,
+) {
+	currentTickers, err := api.ListTickersPerPage(client, page)
 	if err != nil {
 		log.Error("[polygon] failed to list symbols (%v)", err)
 	}
@@ -312,22 +327,24 @@ func getTicker(page int, pattern glob.Glob, symbolList *[]string, symbolListMux 
 	}
 
 	symbolListMux.Lock()
-	for _, s := range currentTickers {
-		if pattern.Match(s.Ticker) && s.Ticker != "" {
-			*symbolList = append(*symbolList, s.Ticker)
+	for i := range currentTickers {
+		if pattern.Match(currentTickers[i].Ticker) && currentTickers[i].Ticker != "" {
+			*symbolList = append(*symbolList, currentTickers[i].Ticker)
 		}
 	}
 	symbolListMux.Unlock()
 }
 
-func getBars(start time.Time, end time.Time, period time.Duration, symbol string, exchangeIDs []int, unadjusted bool, writerWP *worker.WorkerPool) {
-	if len(exchangeIDs) != 0 && period != 24*time.Hour {
+func getBars(client *http.Client, start, end time.Time, period time.Duration, symbol string, exchangeIDs []int,
+	unadjusted bool, writerWP *worker.Pool,
+) {
+	const oneDay = 24 * time.Hour
+	if len(exchangeIDs) != 0 && period != oneDay {
 		log.Warn("[polygon] bar period not adjustable when exchange filtered")
-		period = 24 * time.Hour
+		period = oneDay
 	}
 	log.Info("[polygon] backfilling bars for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
@@ -335,30 +352,30 @@ func getBars(start time.Time, end time.Time, period time.Duration, symbol string
 		log.Info("[polygon] backfilling bars for %v between %s and %s", symbol, start, start.Add(period))
 
 		if len(exchangeIDs) == 0 {
-			if err := backfill.Bars(symbol, start, start.Add(period), batchSize, unadjusted, writerWP); err != nil {
+			err := backfill.Bars(client, symbol, start, start.Add(period), batchSize, unadjusted, writerWP)
+			if err != nil {
 				log.Warn("[polygon] failed to backfill bars for %v (%v)", symbol, err)
 			}
-		} else {
-			if calendar.Nasdaq.IsMarketDay(start) {
-				if err := backfill.BuildBarsFromTrades(symbol, start, exchangeIDs, batchSize); err != nil {
-					log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", symbol, start, err)
-				}
+		} else if calendar.Nasdaq.IsMarketDay(start) {
+			if err := backfill.BuildBarsFromTrades(client, symbol, start, exchangeIDs, batchSize); err != nil {
+				log.Warn("[polygon] failed to backfill bars for %v @ %v (%v)", symbol, start, err)
 			}
 		}
 		start = start.Add(period)
 	}
 }
 
-func getQuotes(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+func getQuotes(client *http.Client, start, end time.Time, period time.Duration, symbol string,
+	writerWP *worker.Pool,
+) {
 	log.Info("[polygon] backfilling quotes for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
 
 		log.Info("[polygon] backfilling quotes for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Quotes(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+		if err := backfill.Quotes(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill quote for %v @ %v (%v)", symbol, start, err)
 		}
 
@@ -366,26 +383,25 @@ func getQuotes(start time.Time, end time.Time, period time.Duration, symbol stri
 	}
 }
 
-func getTrades(start time.Time, end time.Time, period time.Duration, symbol string, writerWP *worker.WorkerPool) {
+func getTrades(client *http.Client, start, end time.Time, period time.Duration, symbol string,
+	writerWP *worker.Pool,
+) {
 	log.Info("[polygon] backfilling trades for %v", symbol)
 	for end.After(start) {
-
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
 
 		log.Info("[polygon] backfilling trades for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Trades(symbol, start, start.Add(period), batchSize, writerWP); err != nil {
+		if err := backfill.Trades(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
 			log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", symbol, start, err)
 		}
 
 		start = start.Add(period)
 	}
-
 }
 
-func parseAndValidateDuration(durationString string, max time.Duration, min time.Duration) (time.Duration, error) {
-
+func parseAndValidateDuration(durationString string, max, min time.Duration) (time.Duration, error) {
 	duration, err := time.ParseDuration(durationString)
 	if err != nil {
 		return 0, err

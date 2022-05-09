@@ -2,7 +2,6 @@ package reorg
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +13,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) error {
+func Import(reorgDir string, reimport, storeWithoutSymbol bool) error {
 	reorgFiles, err := fileList(reorgDir, enum.ReorgFilePrefix, reimport)
 	if err != nil {
 		return fmt.Errorf("cannot read reorg files directory - dir=%s: %w", reorgDir, err)
@@ -27,7 +26,7 @@ func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) error {
 
 		announcements, err := readAnnouncements(pathToReorgFile)
 		if err != nil {
-			return fmt.Errorf("error occured while reading reorg file=%s: %w", reorgFile, err)
+			return fmt.Errorf("error occurred while reading reorg file=%s: %w", reorgFile, err)
 		}
 
 		sirsFiles, err := sirs.CollectSirsFiles(reorgDir, reorgFileDate)
@@ -44,7 +43,7 @@ func Import(reorgDir string, reimport bool, storeWithoutSymbol bool) error {
 		}
 		err = storeAnnouncements(*announcements, cusipSymbolMap, storeWithoutSymbol)
 		if err != nil {
-			return fmt.Errorf("error occured while processing announcements from %s: %w", reorgFile, err)
+			return fmt.Errorf("error occurred while processing announcements from %s: %w", reorgFile, err)
 		}
 		if !reimport {
 			err = os.Rename(pathToReorgFile, pathToReorgFile+enum.ProcessedFlag)
@@ -62,28 +61,28 @@ func datePartOfFilename(filename string) string {
 	return ext[1:]
 }
 
-func fileList(path string, prefix string, reimport bool) (out []string, err error) {
-	localfiles, err := ioutil.ReadDir(path)
+func fileList(path, prefix string, reimport bool) (out []string, err error) {
+	localDirEntries, err := os.ReadDir(path)
 	if err == nil {
-		for _, file := range localfiles {
-			if !strings.HasPrefix(file.Name(), prefix) {
+		for _, dirEntry := range localDirEntries {
+			if !strings.HasPrefix(dirEntry.Name(), prefix) {
 				continue
 			}
-			if reimport || !strings.HasSuffix(file.Name(), enum.ProcessedFlag) {
-				out = append(out, file.Name())
+			if reimport || !strings.HasSuffix(dirEntry.Name(), enum.ProcessedFlag) {
+				out = append(out, dirEntry.Name())
 			}
 		}
 	}
-	return
+	return out, err
 }
 
 func readAnnouncements(path string) (*[]Announcement, error) {
-	buff, err := ioutil.ReadFile(path)
+	buff, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	content := string(buff)
-	var announcements = []Announcement{}
+	var announcements []Announcement
 	err = readRecords(content, &announcements)
 	if err != nil {
 		return nil, fmt.Errorf("failed to readRecords: %w", err)
@@ -117,22 +116,24 @@ func storeAnnouncement(symbol string, note *Announcement) error {
 }
 
 func storeAnnouncements(notes []Announcement, cusipSymbolMap map[string]string, storeWithoutSymbol bool) error {
-	for _, note := range notes {
-		if note.TargetCusip == "" {
+	for i := range notes {
+		if notes[i].TargetCusip == "" {
 			continue
 		}
-		if note.Is(enum.StockSplit) || note.Is(enum.ReverseStockSplit) || note.Is(enum.StockDividend) {
-			symbol := cusipSymbolMap[note.TargetCusip]
-			if symbol == "" && storeWithoutSymbol {
-				symbol = note.TargetCusip
+		if !(notes[i].Is(enum.StockSplit) || notes[i].Is(enum.ReverseStockSplit) || notes[i].Is(enum.StockDividend)) {
+			continue
+		}
+
+		symbol := cusipSymbolMap[notes[i].TargetCusip]
+		if symbol == "" && storeWithoutSymbol {
+			symbol = notes[i].TargetCusip
+		}
+		if symbol != "" {
+			if err := storeAnnouncement(symbol, &notes[i]); err != nil {
+				return fmt.Errorf("unable to store Announcement: %w %+v", err, notes[i])
 			}
-			if symbol != "" {
-				if err := storeAnnouncement(symbol, &note); err != nil {
-					return fmt.Errorf("unable to store Announcement: %w %+v", err, note)
-				}
-			} else {
-				log.Warn("Cannot map CUSIP %s to Symbol", note.TargetCusip)
-			}
+		} else {
+			log.Warn("Cannot map CUSIP %s to Symbol", notes[i].TargetCusip)
 		}
 	}
 	return nil

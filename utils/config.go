@@ -67,51 +67,48 @@ type MktsConfig struct {
 }
 
 func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
-	var (
-		err error
-		aux struct {
-			// RootDirectory can be either a relative or absolute path
-			RootDirectory              string `yaml:"root_directory"`
-			ListenHost                 string `yaml:"listen_host"`
-			ListenPort                 string `yaml:"listen_port"`
-			GRPCListenPort             string `yaml:"grpc_listen_port"`
-			GRPCMaxSendMsgSize         int    `yaml:"grpc_max_send_msg_size"` // in MB
-			GRPCMaxRecvMsgSize         int    `yaml:"grpc_max_recv_msg_size"` // in MB
-			UtilitiesURL               string `yaml:"utilities_url"`
-			Timezone                   string `yaml:"timezone"`
-			LogLevel                   string `yaml:"log_level"`
-			Queryable                  string `yaml:"queryable"`
-			StopGracePeriod            int    `yaml:"stop_grace_period"`
-			WALRotateInterval          int    `yaml:"wal_rotate_interval"`
-			DisableVariableCompression string `yaml:"disable_variable_compression"`
-			InitCatalog                string `yaml:"init_catalog"`
-			InitWALCache               string `yaml:"init_wal_cache"`
-			BackgroundSync             string `yaml:"background_sync"`
-			WALBypass                  string `yaml:"wal_bypass"`
-			ClusterMode                string `yaml:"cluster_mode"`
-			Replication                struct {
-				Enabled    bool   `yaml:"enabled"`
-				TLSEnabled bool   `yaml:"tls_enabled"`
-				CertFile   string `yaml:"cert_file"`
-				KeyFile    string `yaml:"key_file"`
-				// ListenPort is used for the replication protocol by the master instance
-				ListenPort        int           `yaml:"listen_port"`
-				MasterHost        string        `yaml:"master_host"`
-				RetryInterval     time.Duration `yaml:"retry_interval"`
-				RetryBackoffCoeff int           `yaml:"retry_backoff_coeff"`
-			} `yaml:"replication"`
-			Triggers []struct {
-				Module string                 `yaml:"module"`
-				On     string                 `yaml:"on"`
-				Config map[string]interface{} `yaml:"config"`
-			} `yaml:"triggers"`
-			BgWorkers []struct {
-				Module string                 `yaml:"module"`
-				Name   string                 `yaml:"name"`
-				Config map[string]interface{} `yaml:"config"`
-			} `yaml:"bgworkers"`
-		}
-	)
+	var aux struct {
+		// RootDirectory can be either a relative or absolute path
+		RootDirectory              string `yaml:"root_directory"`
+		ListenHost                 string `yaml:"listen_host"`
+		ListenPort                 string `yaml:"listen_port"`
+		GRPCListenPort             string `yaml:"grpc_listen_port"`
+		GRPCMaxSendMsgSize         int    `yaml:"grpc_max_send_msg_size"` // in MB
+		GRPCMaxRecvMsgSize         int    `yaml:"grpc_max_recv_msg_size"` // in MB
+		UtilitiesURL               string `yaml:"utilities_url"`
+		Timezone                   string `yaml:"timezone"`
+		LogLevel                   string `yaml:"log_level"`
+		Queryable                  string `yaml:"queryable"`
+		StopGracePeriod            int    `yaml:"stop_grace_period"`
+		WALRotateInterval          int    `yaml:"wal_rotate_interval"`
+		DisableVariableCompression string `yaml:"disable_variable_compression"`
+		InitCatalog                string `yaml:"init_catalog"`
+		InitWALCache               string `yaml:"init_wal_cache"`
+		BackgroundSync             string `yaml:"background_sync"`
+		WALBypass                  string `yaml:"wal_bypass"`
+		ClusterMode                string `yaml:"cluster_mode"`
+		Replication                struct {
+			Enabled    bool   `yaml:"enabled"`
+			TLSEnabled bool   `yaml:"tls_enabled"`
+			CertFile   string `yaml:"cert_file"`
+			KeyFile    string `yaml:"key_file"`
+			// ListenPort is used for the replication protocol by the master instance
+			ListenPort        int           `yaml:"listen_port"`
+			MasterHost        string        `yaml:"master_host"`
+			RetryInterval     time.Duration `yaml:"retry_interval"`
+			RetryBackoffCoeff int           `yaml:"retry_backoff_coeff"`
+		} `yaml:"replication"`
+		Triggers []struct {
+			Module string                 `yaml:"module"`
+			On     string                 `yaml:"on"`
+			Config map[string]interface{} `yaml:"config"`
+		} `yaml:"triggers"`
+		BgWorkers []struct {
+			Module string                 `yaml:"module"`
+			Name   string                 `yaml:"name"`
+			Config map[string]interface{} `yaml:"config"`
+		} `yaml:"bgworkers"`
+	}
 
 	if err := yaml.Unmarshal(data, &aux); err != nil {
 		return nil, err
@@ -120,7 +117,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	absoluteRootDir, err := filepath.Abs(filepath.Clean(aux.RootDirectory))
 	if aux.RootDirectory == "" || err != nil {
 		log.Error("Invalid root directory. rootDir=" + aux.RootDirectory)
-		return nil, errors.New(fmt.Sprintf("invalid root directory. rootDir=%s, err=%v", aux.RootDirectory, err))
+		return nil, fmt.Errorf("invalid root directory. rootDir=%s: %w", aux.RootDirectory, err)
 	}
 	m.RootDirectory = absoluteRootDir
 
@@ -134,19 +131,27 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	// 	log.Error("Invalid GRPC listen port.")
 	// 	return errors.New("Invalid GRPC listen port.")
 	// }
+	const (
+		defaultGRPCMaxSendMsgSize     = 1024 // MB
+		defaultGRPCMaxRecvMsgSize     = 1024 // MB
+		recommendedMinGRPCSendMsgSize = 64
+		recommendedMinGRPCRecvMsgSize = 64
+	)
 	if aux.GRPCMaxSendMsgSize == 0 {
-		aux.GRPCMaxSendMsgSize = 1024
-	} else if aux.GRPCMaxSendMsgSize < 64 {
+		aux.GRPCMaxSendMsgSize = defaultGRPCMaxSendMsgSize
+	} else if aux.GRPCMaxSendMsgSize < recommendedMinGRPCSendMsgSize {
 		log.Warn("WARNING: Low grpc_max_send_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxSendMsgSize)
 	}
-	m.GRPCMaxSendMsgSize = aux.GRPCMaxSendMsgSize * (1 << 20)
+	// 2^20 = 1048576
+	const megabyteToByte = 1 << 20
+	m.GRPCMaxSendMsgSize = aux.GRPCMaxSendMsgSize * megabyteToByte
 
 	if aux.GRPCMaxRecvMsgSize == 0 {
-		aux.GRPCMaxRecvMsgSize = 1024
-	} else if aux.GRPCMaxRecvMsgSize < 64 {
+		aux.GRPCMaxRecvMsgSize = defaultGRPCMaxRecvMsgSize
+	} else if aux.GRPCMaxRecvMsgSize < recommendedMinGRPCRecvMsgSize {
 		log.Warn("WARNING: Low grpc_max_recv_msg_size: %dMB (recommend at least 64MB)", aux.GRPCMaxRecvMsgSize)
 	}
-	m.GRPCMaxRecvMsgSize = aux.GRPCMaxRecvMsgSize * (1 << 20)
+	m.GRPCMaxRecvMsgSize = aux.GRPCMaxRecvMsgSize * megabyteToByte
 
 	// Giving "" to LoadLocation will be UTC anyway, which is our default too.
 	m.Timezone, err = time.LoadLocation(aux.Timezone)
@@ -162,8 +167,8 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	}
 
 	if aux.Queryable != "" {
-		queryable, err := strconv.ParseBool(aux.Queryable)
-		if err != nil {
+		queryable, err2 := strconv.ParseBool(aux.Queryable)
+		if err2 != nil {
 			log.Error("Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
 		} else {
 			m.Queryable = queryable
@@ -180,9 +185,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 			log.SetLevel(log.WARNING)
 		case "debug":
 			log.SetLevel(log.DEBUG)
-		case "info":
-			fallthrough
-		default:
+		default: // case "info":
 			log.SetLevel(log.INFO)
 		}
 	}
@@ -238,37 +241,33 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 		}
 	}
 
+	const (
+		// default listen port for Replication master
+		defaultListenPort        = 5996
+		defaultRetryBackoffCoeff = 2
+		defaultRetryInterval     = 10 * time.Second
+	)
 	m.Replication = ReplicationSetting{
 		Enabled:    false,
 		TLSEnabled: false,
 		CertFile:   "",
 		KeyFile:    "",
-		ListenPort: 5996, // default listen port for Replication master
+		ListenPort: defaultListenPort,
 		MasterHost: "",
 		// default retry intervals are 10s -> 20s -> 40s -> ...
-		RetryInterval:     10 * time.Second,
-		RetryBackoffCoeff: 2,
+		RetryInterval:     defaultRetryInterval,
+		RetryBackoffCoeff: defaultRetryBackoffCoeff,
 	}
 
 	if aux.Replication.ListenPort != 0 {
 		m.Replication.ListenPort = aux.Replication.ListenPort
 	}
-	if aux.Replication.Enabled != false {
-		m.Replication.Enabled = true
-	}
-	if aux.Replication.TLSEnabled != false {
-		m.Replication.TLSEnabled = true
-	}
-	if aux.Replication.CertFile != "" {
-		m.Replication.CertFile = aux.Replication.CertFile
-	}
-	if aux.Replication.KeyFile != "" {
-		m.Replication.KeyFile = aux.Replication.KeyFile
-	}
-	if aux.Replication.MasterHost != "" {
-		m.Replication.MasterHost = aux.Replication.MasterHost
-	}
 
+	m.Replication.Enabled = aux.Replication.Enabled
+	m.Replication.TLSEnabled = aux.Replication.TLSEnabled
+	m.Replication.CertFile = aux.Replication.CertFile
+	m.Replication.KeyFile = aux.Replication.KeyFile
+	m.Replication.MasterHost = aux.Replication.MasterHost
 	if aux.Replication.RetryInterval != 0 {
 		m.Replication.RetryInterval = aux.Replication.RetryInterval
 	}
@@ -281,7 +280,7 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 	if aux.GRPCListenPort != "" {
 		m.GRPCListenURL = fmt.Sprintf("%v:%v", aux.ListenHost, aux.GRPCListenPort)
 	}
-	m.UtilitiesURL = fmt.Sprintf("%v", aux.UtilitiesURL)
+	m.UtilitiesURL = aux.UtilitiesURL
 
 	for _, trig := range aux.Triggers {
 		triggerSetting := &TriggerSetting{

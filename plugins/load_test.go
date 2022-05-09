@@ -1,8 +1,6 @@
 package plugins_test
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,19 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/plugins"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string) (tearDown func(), testPluginLib, oldGoPath, absTestPluginLib string) {
-	dirName, _ := ioutil.TempDir("", fmt.Sprintf("plugins_test-%s", testName))
+func setup(t *testing.T) (tearDown func(), testPluginLib, oldGoPath, absTestPluginLib string) {
+	t.Helper()
 
-	osType := runtime.GOOS
-	if osType != "linux" {
+	dirName := t.TempDir()
+
+	if osType := runtime.GOOS; osType != "linux" {
 		t.Skip("Only linux runs plugins")
 	}
 
 	binDirName := filepath.Join(dirName, "bin")
-	os.MkdirAll(binDirName, 0777)
+	os.MkdirAll(binDirName, 0o777)
 	testFileName := "plugin.go"
 	testFilePath := filepath.Join(dirName, testFileName)
 	testPluginLib = "plugin.so"
@@ -47,7 +45,7 @@ func main() {}
 		testFilePath)
 
 	if err := cmd.Run(); err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Skip("Unable to build test plugin ** is go version > 1.9 in your path?")
 	}
 
@@ -58,8 +56,6 @@ func main() {}
 	os.Setenv("GOPATH", newGoPath)
 
 	return func() {
-		test.CleanupDummyDataDir(dirName)
-
 		if oldGoPath != "" {
 			os.Setenv("GOPATH", oldGoPath)
 		}
@@ -67,7 +63,7 @@ func main() {}
 }
 
 func TestLoadFromGOPATH(t *testing.T) {
-	tearDown, testPluginLib, _, absTestPluginLib := setup(t, "TestLoadFromGOPATH")
+	tearDown, testPluginLib, _, absTestPluginLib := setup(t)
 	defer tearDown()
 
 	var pi *plugin.Plugin

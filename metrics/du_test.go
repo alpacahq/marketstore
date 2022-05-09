@@ -1,14 +1,13 @@
 package metrics_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/metrics"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alpacahq/marketstore/v4/metrics"
 )
 
 type mockMetricsSetter struct {
@@ -31,7 +30,7 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 			" regardless of the allocated filesize": {
 			setFilesFunc: func(tt testCase, rootDir string) error {
 				fileName := rootDir + "/example"
-				fp, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0600)
+				fp, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0o600)
 				assert.Nil(t, err)
 
 				// truncate => allocate the filesize, writeBuffer => write actual data
@@ -39,7 +38,7 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 				assert.Nil(t, writeBuffer(fp, 300))
 				return nil
 			},
-			expMetric: 4096, // actually, it depends on the block size of the disk that this test runs
+			expMetric: 4096, // it depends on the block size of the disk that this test runs
 		},
 	}
 	for name := range tests {
@@ -47,7 +46,7 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			// --- given ---
-			rootDir, _ := ioutil.TempDir("", "diskUsage-monitor-test")
+			rootDir := t.TempDir()
 			err := tt.setFilesFunc(tt, rootDir)
 			assert.Nil(t, err)
 			m := mockMetricsSetter{}
@@ -58,10 +57,6 @@ func TestStartDiskUsageMonitor(t *testing.T) {
 
 			// --- then ---
 			assert.Equal(t, tt.expMetric, m.value)
-
-			// --- tearDown ---
-			test.CleanupDummyDataDir(rootDir)
-
 		})
 	}
 }
@@ -73,8 +68,7 @@ func writeBuffer(fp *os.File, size int) error {
 		b[i] = 1
 	}
 
-	_, err := fp.WriteAt(b, 0)
-	if err != nil {
+	if _, err := fp.WriteAt(b, 0); err != nil {
 		return err
 	}
 

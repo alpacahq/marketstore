@@ -10,7 +10,7 @@ type Relation interface {
 }
 
 /*
-Utility Functions
+Utility Functions.
 */
 type SortOrderEnum uint8
 

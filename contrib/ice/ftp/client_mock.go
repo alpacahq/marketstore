@@ -2,8 +2,8 @@ package ftp
 
 import (
 	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"time"
 )
@@ -22,16 +22,27 @@ func (m MockFtpClient) Retrieve(path string, dest io.Writer) error {
 	if !ok {
 		return errors.New("Retrieve: file not found")
 	}
-	dest.Write(buff)
+	_, _ = dest.Write(buff)
 	return nil
 }
 
 func (m MockFtpClient) ReadDir(path string) ([]os.FileInfo, error) {
-	fileinfos := make([]os.FileInfo, 0, len(m.dirs[path]))
-	for _, filename := range m.dirs[path] {
-		fileinfos = append(fileinfos, MockFile{name: filename})
+	dirEntries, err := os.ReadDir("." + path)
+	if err != nil {
+		return nil, err
 	}
-	return ioutil.ReadDir("." + path)
+
+	// convert []fs.DirEntry to []os.FileInfo
+	fileInfos := make([]os.FileInfo, len(dirEntries))
+	for i, dirEntry := range dirEntries {
+		lf, err := dirEntry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("get file info for a dir entry: %w", err)
+		}
+		fileInfos[i] = lf
+	}
+
+	return fileInfos, nil
 }
 
 func (m MockFtpClient) Close() error {
@@ -55,22 +66,26 @@ type MockFile struct {
 	sys     interface{}
 }
 
-func (m MockFile) Name() string {
+func (m *MockFile) Name() string {
 	return m.name
 }
-func (m MockFile) Size() int64 {
+
+func (m *MockFile) Size() int64 {
 	return m.size
 }
-func (m MockFile) Mode() os.FileMode {
+
+func (m *MockFile) Mode() os.FileMode {
 	return m.mode
 }
-func (m MockFile) ModTime() time.Time {
+
+func (m *MockFile) ModTime() time.Time {
 	return m.modTime
 }
-func (m MockFile) IsDir() bool {
+
+func (m *MockFile) IsDir() bool {
 	return m.isDir
 }
 
-func (m MockFile) Sys() interface{} {
+func (m *MockFile) Sys() interface{} {
 	return m.sys
 }

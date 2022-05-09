@@ -11,7 +11,7 @@ import (
 )
 
 // MessageHandler handles incoming messages
-// from the websocket
+// from the websocket.
 func MessageHandler(msg []byte) {
 	if msg == nil {
 		return
@@ -25,7 +25,7 @@ func MessageHandler(msg []byte) {
 		return
 	}
 
-	switch enums.Prefix(message.Data.EventType) {
+	switch message.Data.EventType {
 	case enums.TradeEvent:
 		t := api.AlpacaTrade{}
 		err := json.Unmarshal(msg, &t)
@@ -56,7 +56,7 @@ func MessageHandler(msg []byte) {
 			return
 		}
 		aggregateToMinuteHandler(&agg.Data)
-	default:
+	default: // enums.AggToMinute, enums.Quote, enums.Trade:
 		log.Warn("[alpaca] unexpected non-event message {%s:%s,%s:%s}",
 			"event_type", message.Data.EventType,
 			"message", string(msg))
@@ -64,24 +64,25 @@ func MessageHandler(msg []byte) {
 }
 
 // tradeHandler handles a Trade
-// and stores it to the cache
+// and stores it to the cache.
 func tradeHandler(t *api.Trade) {
 	writeTrade(t)
 	updateMetrics("trade", time.Unix(0, t.Timestamp))
 }
 
 // quoteHandler handles a Quote
-// and stores it to the cache
+// and stores it to the cache.
 func quoteHandler(q *api.Quote) {
 	writeQuote(q)
 	updateMetrics("quote", time.Unix(0, q.Timestamp))
 }
 
 // aggregateToMinuteHandler handles an AggregateToMinute
-// and stores it to the cache
+// and stores it to the cache.
 func aggregateToMinuteHandler(agg *api.AggregateToMinute) {
+	const milliToNano = 1000_000
 	writeAggregateToMinute(agg)
-	updateMetrics("minute_bar", time.Unix(0, int64(1e6*agg.EndTime)))
+	updateMetrics("minute_bar", time.Unix(0, agg.EndTime*milliToNano))
 }
 
 func updateMetrics(msgType string, msgTimestamp time.Time) {

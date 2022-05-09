@@ -3,21 +3,24 @@ package reorg
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils"
 )
 
-var reimport bool
-var storeWithoutSymbols bool
-var disableVarComp bool
+var (
+	reimport            bool
+	storeWithoutSymbols bool
+	disableVarComp      bool
+)
 
 // ImportCmd provides a command line interface for importing corporate action entries from ICE's data files
 // without --reimport option it only imports unprocessed data files (those without .processed suffix)
 // with --reimport specified, it reprocess every file found in <icefilesdir>. Be aware that due to the nature of how
-// marketstore stores records, it will duplicate corporate action announcements if run on an already populated data directory.
+// marketstore stores records,
+// it will duplicate corporate action announcements if run on an already populated data directory.
 var ImportCmd = &cobra.Command{
 	Use:   "import <datadir> <icefilesdir>",
 	Short: "Import corporate actions announcements ",
@@ -31,18 +34,24 @@ var ImportCmd = &cobra.Command{
 	due to the nature of how marketstore stores records, it will duplicate corporate action announcements 
 	if run on already existing import
 
-	--fallback-to-cusip allows Marketstore to store corporate action records by their TargetCusipID if a matching symbol is 
-	not found. Default is false, so only records with matching symbols are stored 
+	--fallback-to-cusip allows Marketstore to store corporate action records by their TargetCusipID 
+    if a matching symbol is not found. Default is false, so only records with matching symbols are stored 
 	`,
 	SilenceUsage: false,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 2 {
-			cmd.Help()
+		// usage: import <datadir> <icefilesdir>
+		const argLen = 2
+		if len(args) != argLen {
+			_ = cmd.Help()
 			return nil
 		}
 		dataDir := args[0]
 		reorgDir := args[1]
-		_, _, _, err := executor.NewInstanceSetup(dataDir, nil, nil, 5, true, true, true, true)
+		// walfile is rotated every walRotateInterval * primaryDiskRefreshInterval(= default:5min)
+		const walRotateInterval = 5
+		_, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
+			walRotateInterval, executor.WALBypass(true),
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
 		}
@@ -56,6 +65,7 @@ var ImportCmd = &cobra.Command{
 	},
 }
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	ImportCmd.Flags().BoolVarP(&reimport, "reimport", "r", false, "reimport")
 	ImportCmd.Flags().BoolVarP(&storeWithoutSymbols, "fallback-to-cusip", "c", false, "fallback-to-cusip")

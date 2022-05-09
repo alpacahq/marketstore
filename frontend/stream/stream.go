@@ -34,24 +34,26 @@ import (
 
 const (
 	pongWait   = 60 * time.Second
-	pingPeriod = (pongWait * 9) / 10
+	pingPeriod = 60 * time.Second * 9 / 10
 )
 
-var catalog *Catalog
-var send *channels.InfiniteChannel
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
+var (
+	catalog  *Catalog
+	send     *channels.InfiniteChannel
+	upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+)
 
-// Catalog maintains the set of active subscribers
+// Catalog maintains the set of active subscribers.
 type Catalog struct {
 	sync.RWMutex
 	subs map[*Subscriber]struct{}
 }
 
-// Add a new subscriber to the catalog
+// Add a new subscriber to the catalog.
 func (sc *Catalog) Add(sub *Subscriber) {
 	sc.Lock()
 	defer sc.Unlock()
@@ -59,7 +61,7 @@ func (sc *Catalog) Add(sub *Subscriber) {
 	sc.subs[sub] = struct{}{}
 }
 
-// Remove a subscriber from the catalog
+// Remove a subscriber from the catalog.
 func (sc *Catalog) Remove(sub *Subscriber) {
 	sc.Lock()
 	defer sc.Unlock()
@@ -67,7 +69,7 @@ func (sc *Catalog) Remove(sub *Subscriber) {
 	delete(sc.subs, sub)
 }
 
-// NewCatalog initializes the stream catalog
+// NewCatalog initializes the stream catalog.
 func NewCatalog() *Catalog {
 	return &Catalog{
 		subs: map[*Subscriber]struct{}{},
@@ -75,7 +77,7 @@ func NewCatalog() *Catalog {
 }
 
 // Subscriber includes the connection, and streams to
-// manage a given stream client
+// manage a given stream client.
 type Subscriber struct {
 	sync.RWMutex
 	c       *websocket.Conn
@@ -99,13 +101,13 @@ func (s *Subscriber) Subscribed(itemKey string) bool {
 }
 
 // SubscribeMessage is an inbound message for the client
-// to subscribe to streams
+// to subscribe to streams.
 type SubscribeMessage struct {
 	Streams []string `msgpack:"streams"`
 }
 
 // ErrorMessage is used to report errors when a client
-// subscribes to invalid streams
+// subscribes to invalid streams.
 type ErrorMessage struct {
 	Error string `msgpack:"error"`
 }
@@ -158,7 +160,6 @@ func (s *Subscriber) consume() {
 
 	for {
 		msgType, buf, err := s.c.ReadMessage()
-
 		if err != nil {
 			if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 				log.Error("unexpected websocket closure (%v)", err)
@@ -167,9 +168,7 @@ func (s *Subscriber) consume() {
 		}
 
 		switch msgType {
-		case websocket.TextMessage:
-			fallthrough
-		case websocket.BinaryMessage:
+		case websocket.TextMessage, websocket.BinaryMessage:
 			m := SubscribeMessage{}
 
 			if err = msgpack.Unmarshal(buf, &m); err != nil {
@@ -194,7 +193,7 @@ func (s *Subscriber) produce() {
 		select {
 		case <-ticker.C:
 			s.Lock()
-			s.c.WriteMessage(websocket.PingMessage, []byte{})
+			_ = s.c.WriteMessage(websocket.PingMessage, []byte{})
 			s.Unlock()
 		case <-s.done:
 			return
@@ -207,7 +206,11 @@ func stream() {
 		if v == nil {
 			continue
 		}
-		payload := v.(Payload)
+		payload, ok := v.(Payload)
+		if !ok {
+			log.Error("failed to cast payload (%v)", v)
+			continue
+		}
 
 		buf, err := msgpack.Marshal(payload)
 		if err != nil {
@@ -229,20 +232,20 @@ func stream() {
 	}
 }
 
-// Payload is used to send data over the websocket
+// Payload is used to send data over the websocket.
 type Payload struct {
 	Key  string      `msgpack:"key"`
 	Data interface{} `msgpack:"data"`
 }
 
-// Push sends data over the stream interface
+// Push sends data over the stream interface.
 func Push(tbk io.TimeBucketKey, data interface{}) error {
 	send.In() <- Payload{Key: tbk.GetItemKey(), Data: data}
 	return nil
 }
 
 // Initialize builds the send channel as well as the cache, and
-// must be called before any data flows over the stream interface
+// must be called before any data flows over the stream interface.
 func Initialize() {
 	send = channels.NewInfiniteChannel()
 	catalog = NewCatalog()
@@ -251,7 +254,7 @@ func Initialize() {
 }
 
 // Handler hooks into the HTTP interface and handles the incoming
-// streaming requests, and upgrades the connection
+// streaming requests, and upgrades the connection.
 func Handler(w http.ResponseWriter, r *http.Request) {
 	// upgrade the socket
 	ws, err := upgrader.Upgrade(w, r, nil)

@@ -1,6 +1,7 @@
 package symbols
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -12,7 +13,7 @@ type MockListSymbolsAPIClient struct {
 	internal.MockAPIClient
 }
 
-func (mac *MockListSymbolsAPIClient) ListSymbols(exchange string) (api.ListSymbolsResponse, error) {
+func (mac *MockListSymbolsAPIClient) ListSymbols(_ context.Context, exchange string) (api.ListSymbolsResponse, error) {
 	if exchange == "XTKS" {
 		return api.ListSymbolsResponse{
 			Outcome: "Success",
@@ -46,7 +47,7 @@ func TestManagerImpl_UpdateSymbols(t *testing.T) {
 	}
 
 	// --- when ---
-	SUT.UpdateSymbols()
+	SUT.UpdateSymbols(context.Background())
 
 	// --- then ---
 	expectedIdentifiers := map[string][]string{
@@ -60,5 +61,4 @@ func TestManagerImpl_UpdateSymbols(t *testing.T) {
 	) {
 		t.Errorf("Identifier: want=%v, got=%v", expectedIdentifiers, SUT.Identifiers)
 	}
-
 }

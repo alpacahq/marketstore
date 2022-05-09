@@ -3,7 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -27,14 +27,15 @@ type AlpacaWebSocket struct {
 	outputChan     chan<- interface{}
 }
 
-func NewAlpacaWebSocket(config config.Config, oChan chan<- interface{}) *AlpacaWebSocket {
+func NewAlpacaWebSocket(cfg *config.Config, oChan chan<- interface{}) *AlpacaWebSocket {
+	const defaultMaxMessageSizeInBytes = 2048000
 	return &AlpacaWebSocket{
-		maxMessageSize: 2048000,
+		maxMessageSize: defaultMaxMessageSizeInBytes,
 		pingPeriod:     10 * time.Second,
-		server:         config.WSServer,
-		apiKey:         config.APIKey,
-		apiSecret:      config.APISecret,
-		subscriptions:  config.Subscription.AsCanonical(),
+		server:         cfg.WSServer,
+		apiKey:         cfg.APIKey,
+		apiSecret:      cfg.APISecret,
+		subscriptions:  cfg.Subscription.AsCanonical(),
 		conn:           nil,
 		outputChan:     oChan,
 	}
@@ -52,7 +53,11 @@ func (p *AlpacaWebSocket) listen() error {
 			"error", err)
 		return err
 	}
-	defer p.conn.Close()
+	defer func(conn *websocket.Conn) {
+		if err := conn.Close(); err != nil {
+			log.Error("failed to close websocket connection", err.Error())
+		}
+	}(p.conn)
 
 	p.conn.SetReadLimit(p.maxMessageSize)
 	p.conn.SetPongHandler(func(string) error {
@@ -90,6 +95,7 @@ func (p *AlpacaWebSocket) listen() error {
 }
 
 func (p *AlpacaWebSocket) setReadDeadline() error {
+	// nolint:gomnd // specifying a value slightly larger than the ping period
 	return p.conn.SetReadDeadline(time.Now().Add((p.pingPeriod * 6) / 5))
 }
 
@@ -117,9 +123,14 @@ func (p *AlpacaWebSocket) connect() (err error) {
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 2 * time.Second
 	p.conn, hresp, err = dialer.Dial(p.server, nil)
+	defer func(Body io.ReadCloser) {
+		if err2 := Body.Close(); err2 != nil {
+			log.Error("failed to close websocket response body:" + err2.Error())
+		}
+	}(hresp.Body)
 	if err != nil {
 		if hresp != nil {
-			body, _ := ioutil.ReadAll(hresp.Body)
+			body, _ := io.ReadAll(hresp.Body)
 			return fmt.Errorf(
 				"[alpaca] connection failure, err: %w, status_code: %d, body: %s",
 				err,

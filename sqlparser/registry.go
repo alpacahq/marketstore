@@ -62,7 +62,7 @@ func (ar *AggRunner) Run(callChain []string, csInput *io.ColumnSeries, tbk io.Ti
 
 		agg := ar.registry[strings.ToLower(aggName)]
 		if agg == nil {
-			return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
+			return nil, fmt.Errorf("no function in the UDA Registry named \"%s\"", aggName)
 		}
 		argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
 		if unmapped := argMap.Validate(); unmapped != nil {
@@ -84,7 +84,7 @@ func (ar *AggRunner) Run(callChain []string, csInput *io.ColumnSeries, tbk io.Ti
 
 		if len(requiredInitNames) > len(literalList) {
 			return nil, fmt.Errorf(
-				"Not enough init arguments for %s, need %d have %d",
+				"not enough init arguments for %s, need %d have %d",
 				aggName,
 				len(requiredInitNames),
 				len(literalList),
@@ -103,7 +103,7 @@ func (ar *AggRunner) Run(callChain []string, csInput *io.ColumnSeries, tbk io.Ti
 		}
 		if cs == nil {
 			return nil, fmt.Errorf(
-				"No result from aggregate %s",
+				"no result from aggregate %s",
 				aggName)
 		}
 	}
@@ -112,7 +112,7 @@ func (ar *AggRunner) Run(callChain []string, csInput *io.ColumnSeries, tbk io.Ti
 
 // ParseFunctionCall parses a string to call an aggregator function.
 // e.g. "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
-// -> funcName="FuncName" , literalList=["Lit1", "Lit2"], parameterList=["P1","P2","P3","P4","Sum::P5", "Avg::P6"]
+// -> funcName="FuncName" , literalList=["Lit1", "Lit2"], parameterList=["P1","P2","P3","P4","Sum::P5", "Avg::P6"].
 func ParseFunctionCall(call string) (funcName string, literalList, parameterList []string, err error) {
 	call = strings.Trim(call, " ")
 	left := strings.Index(call, "(")

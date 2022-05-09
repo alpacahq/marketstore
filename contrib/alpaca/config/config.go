@@ -6,7 +6,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/enums"
 )
 
-// Config describes the AlpacaStreamer configuration
+// Config describes the AlpacaStreamer configuration.
 type Config struct {
 	// How many workers should be used to process the incoming WS messages
 	WSWorkerCount int `json:"ws_worker_count"`
@@ -20,7 +20,7 @@ type Config struct {
 	Subscription
 }
 
-// Subscription is the collection of Bars, Quotes and Trades we subscribe to
+// Subscription is the collection of Bars, Quotes and Trades we subscribe to.
 type Subscription struct {
 	// Feed prefixes all symbols
 	Feed string `json:"feed,omitempty"`
@@ -33,7 +33,7 @@ type Subscription struct {
 }
 
 // AsCanonical returns the list of prefixed
-// streams that we want to subscribe to
+// streams that we want to subscribe to.
 func (s *Subscription) AsCanonical() []string {
 	feed := s.Feed
 	if feed != "" {
@@ -62,7 +62,7 @@ func flatten(lists ...[]string) []string {
 func prefixStrings(list []string, prefix string) []string {
 	res := make([]string, len(list))
 	for i, s := range list {
-		res[i] = string(prefix) + s
+		res[i] = prefix + s
 	}
 	return res
 }

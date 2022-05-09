@@ -75,7 +75,7 @@ func expectStatusEvent(conn *websocket.Conn, expected, name string) error {
 	return nil
 }
 
-// Stream from the polygon websocket server
+// Stream from the polygon websocket server.
 func Stream(handler func(m []byte), prefix string, symbols []string) (err error) {
 	c := channels.NewInfiniteChannel()
 
@@ -109,8 +109,8 @@ func Stream(handler func(m []byte), prefix string, symbols []string) (err error)
 	go func() {
 		defer conn.Close()
 		for {
-			_, message, err := conn.ReadMessage()
-			if err != nil {
+			_, message, err2 := conn.ReadMessage()
+			if err2 != nil {
 				log.Error("[polyiex] read: %v", err)
 				return
 			}

@@ -44,7 +44,7 @@ func TestRecordsToColumnSeries(t *testing.T) {
 	open := []float32{1., 2., 3., 4., 5., 1., 2., 3., 4., 5.}
 	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1, 1.1, 2.1, 3.1, 4.1, 5.1}
 	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9, 0.9, 1.9, 2.9, 3.9, 4.9}
-	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05, 1.05, 2.05, 3.05, 4.05, 5.05}
+	clos := []float32{1.05, 2.05, 3.05, 4.05, 5.05, 1.05, 2.05, 3.05, 4.05, 5.05}
 
 	tbk := io.NewTimeBucketKey("TEST/1Min/OHLC")
 	cs := io.NewColumnSeries()
@@ -52,9 +52,10 @@ func TestRecordsToColumnSeries(t *testing.T) {
 	cs.AddColumn("Open", open)
 	cs.AddColumn("High", high)
 	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
+	cs.AddColumn("Close", clos)
 
-	rs := cs.ToRowSeries(*tbk, true)
+	rs, err := cs.ToRowSeries(*tbk, true)
+	assert.Nil(t, err)
 	rowData := rs.GetData()
 	times, _ := rs.GetTime()
 	numRows := len(times)
@@ -73,13 +74,14 @@ func TestRecordsToColumnSeries(t *testing.T) {
 		records[i] = trigger.Record(buf)
 	}
 
-	testCS := trigger.RecordsToColumnSeries(
+	testCS, err := trigger.RecordsToColumnSeries(
 		*tbk, cs.GetDataShapes(),
 		time.Minute, int16(2017),
 		records)
+	assert.Nil(t, err)
 
 	for name, col := range cs.GetColumns() {
-		testCol := testCS.GetByName(name)
+		testCol := testCS.GetColumn(name)
 
 		cV := reflect.ValueOf(col)
 		tcV := reflect.ValueOf(testCol)

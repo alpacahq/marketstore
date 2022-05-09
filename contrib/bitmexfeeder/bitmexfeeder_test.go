@@ -3,20 +3,27 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	bitmex "github.com/alpacahq/marketstore/v4/contrib/bitmexfeeder/api"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
 )
 
-func getConfig(data string) (ret map[string]interface{}) {
-	json.Unmarshal([]byte(data), &ret)
-	return
+func getConfig(t *testing.T, data string) (ret map[string]interface{}) {
+	t.Helper()
+
+	if data == "" {
+		return nil
+	}
+
+	err := json.Unmarshal([]byte(data), &ret)
+	require.Nil(t, err)
+	return ret
 }
 
 func TestNew(t *testing.T) {
@@ -24,12 +31,12 @@ func TestNew(t *testing.T) {
 	hc := NewTestClient(func(req *http.Request) *http.Response {
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       ioutil.NopCloser(bytes.NewBuffer([]byte(getInstrumentsResponseMock))),
+			Body:       io.NopCloser(bytes.NewBuffer([]byte(getInstrumentsResponseMock))),
 			Header:     make(http.Header),
 		}
 	})
 
-	var config = getConfig(`{
+	config := getConfig(t, `{
         "symbols": ["XBTUSD"]
         }`)
 	config["httpClient"] = hc // inject http client
@@ -37,15 +44,17 @@ func TestNew(t *testing.T) {
 	var ret bgworker.BgWorker
 	var err error
 	ret, err = NewBgWorker(config)
-	worker = ret.(*BitmexFetcher)
+	worker, ok := ret.(*BitmexFetcher)
+	assert.True(t, ok)
 	assert.Equal(t, 1, len(worker.symbols))
 	assert.Equal(t, "XBTUSD", worker.symbols[0])
 	assert.Nil(t, err)
 
-	config = getConfig(``)
+	getConfig(t, ``)
 	config = map[string]interface{}{"httpClient": hc} // inject http client
 	ret, err = NewBgWorker(config)
-	worker = ret.(*BitmexFetcher)
+	worker, ok = ret.(*BitmexFetcher)
+	assert.True(t, ok)
 	assert.Nil(t, err)
 
 	client := bitmex.NewBitmexClient(hc)
@@ -53,16 +62,17 @@ func TestNew(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(worker.symbols), len(symbols))
 
-	config = getConfig(`{
+	config = getConfig(t, `{
 	    "query_start": "2017-01-02 00:00"
 		}`)
 	config["httpClient"] = hc // inject http client
 	ret, err = NewBgWorker(config)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
-	worker = ret.(*BitmexFetcher)
-	fmt.Printf("%v", worker)
+	worker, ok = ret.(*BitmexFetcher)
+	assert.True(t, ok)
+	t.Logf("%v", worker)
 	assert.Nil(t, err)
 	assert.Equal(t, worker.queryStart.IsZero(), false)
 }

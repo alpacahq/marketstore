@@ -91,20 +91,20 @@ func (resp *MultiQueryResponse) ToColumnSeriesMap() (*io.ColumnSeriesMap, error)
 func (s *DataService) Query(r *http.Request, reqs *MultiQueryRequest, response *MultiQueryResponse) (err error) {
 	response.Version = utils.GitHash
 	response.Timezone = utils.InstanceConfig.Timezone.String()
-	for _, req := range reqs.Requests {
+	for i := range reqs.Requests {
 		var (
 			resp *QueryResponse
 			err  error
 		)
 		// SQL
-		if req.IsSQLStatement {
-			resp, err = s.executeSQL(req.SQLStatement)
+		if reqs.Requests[i].IsSQLStatement {
+			resp, err = s.executeSQL(reqs.Requests[i].SQLStatement)
 			if err != nil {
 				return err
 			}
 		} else {
 			// Query
-			resp, err = s.executeQuery(&req)
+			resp, err = s.executeQuery(&reqs.Requests[i])
 			if err != nil {
 				return err
 			}
@@ -218,9 +218,9 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 	*/
 	if len(req.Functions) != 0 {
 		for tbkStr, cs := range csm {
-			csOut, err := s.aggRunner.Run(req.Functions, cs, tbkStr)
-			if err != nil {
-				return nil, err
+			csOut, err2 := s.aggRunner.Run(req.Functions, cs, tbkStr)
+			if err2 != nil {
+				return nil, err2
 			}
 			csm[tbkStr] = csOut
 		}
@@ -231,9 +231,9 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 	*/
 	var nmds *io.NumpyMultiDataset
 	for tbk, cs := range csm {
-		nds, err := io.NewNumpyDataset(cs)
+		nds, err2 := io.NewNumpyDataset(cs)
 		if err != nil {
-			return nil, err
+			return nil, err2
 		}
 		if nmds == nil {
 			nmds, err = io.NewNumpyMultiDataset(nds, tbk)
@@ -241,7 +241,12 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 				return nil, err
 			}
 		} else {
-			nmds.Append(cs, tbk)
+			err3 := nmds.Append(cs, tbk)
+			if err3 != nil {
+				return nil, fmt.Errorf("symbols in a query must have the same data type "+
+					"or be filtered by common columns. symbols=%v", csm.GetMetadataKeys(),
+				)
+			}
 		}
 	}
 
@@ -259,7 +264,7 @@ type ListSymbolsRequest struct {
 
 func (s *DataService) ListSymbols(r *http.Request, req *ListSymbolsRequest, response *ListSymbolsResponse) (err error) {
 	if atomic.LoadUint32(&Queryable) == 0 {
-		return queryableError
+		return errNotQueryable
 	}
 
 	// TBK format (e.g. ["AMZN/1Min/TICK", "AAPL/1Sec/OHLCV", ...])
@@ -303,7 +308,10 @@ func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time
 	*/
 
 	tf := tbk.GetItemInCategory("Timeframe")
-	cd := utils.CandleDurationFromString(tf)
+	cd, err := utils.CandleDurationFromString(tf)
+	if err != nil {
+		return nil, fmt.Errorf("timeframe not found in TimeBucketKey=%s: %w", tbk.String(), err)
+	}
 	queryableTimeframe := cd.QueryableTimeframe()
 	tbk.SetItemInCategory("Timeframe", queryableTimeframe)
 	query.AddTargetKey(tbk)
@@ -326,8 +334,8 @@ func (qs *QueryService) ExecuteQuery(tbk *io.TimeBucketKey, start, end time.Time
 	parseResult, err := query.Parse()
 	if err != nil {
 		// No results from query
-		if err.Error() == "No files returned from query parse" {
-			log.Info("No results returned from query: Target: %v, start, end: %v,%v limitRecordCount: %v",
+		if err.Error() == "no files returned from query parse" {
+			log.Info("no results returned from query: Target: %v, start, end: %v,%v limitRecordCount: %v",
 				tbk.String(), start, end, limitRecordCount)
 		} else {
 			log.Error("Parsing query: %s\n", err)

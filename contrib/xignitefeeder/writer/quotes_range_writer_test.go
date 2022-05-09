@@ -6,7 +6,6 @@ import (
 
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
-	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 func TestQuotesRangeWriterImpl_Write(t *testing.T) {
@@ -56,7 +55,6 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 
 	// --- when ---
 	err := SUT.Write(apiResponse.Security.Symbol, apiResponse.ArrayOfEndOfDayQuote, false)
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
@@ -69,10 +67,10 @@ func TestQuotesRangeWriterImpl_Write(t *testing.T) {
 	}
 
 	// Time Bucket Key Name check
-	timeBucketKeyStr := string(m.WrittenCSM.GetMetadataKeys()[0].Key)
-	if timeBucketKeyStr != "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema {
+	timeBucketKeyStr := m.WrittenCSM.GetMetadataKeys()[0].GetItemKey()
+	if timeBucketKeyStr != "1234/1D/OHLCV" {
 		t.Errorf("TimeBucketKey name is invalid. got=%v, want = %v",
-			timeBucketKeyStr, "1234/1D/OHLCV:"+io.DefaultTimeBucketSchema)
+			timeBucketKeyStr, "1234/1D/OHLCV")
 	}
 }
 
@@ -104,7 +102,6 @@ func TestQuotesRangeWriterImpl_noDataToWrite(t *testing.T) {
 
 	// --- when ---
 	err := SUT.Write(apiResponse.Security.Symbol, apiResponse.ArrayOfEndOfDayQuote, false)
-
 	// --- then ---
 	if err != nil {
 		t.Fatalf("error should be nil. got=%v", err)
@@ -114,9 +111,9 @@ func TestQuotesRangeWriterImpl_noDataToWrite(t *testing.T) {
 func TestQuotesRangeWriterImpl_getLatestTime(t *testing.T) {
 	t.Parallel()
 	// --- given ---
-	t1 := time.Date(2019, 05, 01, 12, 34, 56, 0, time.UTC)
-	t2 := time.Date(2018, 05, 01, 12, 34, 56, 0, time.UTC)
-	t3 := time.Date(2017, 05, 01, 12, 34, 56, 0, time.UTC)
+	t1 := time.Date(2019, 5, 1, 12, 34, 56, 0, time.UTC)
+	t2 := time.Date(2018, 5, 1, 12, 34, 56, 0, time.UTC)
+	t3 := time.Date(2017, 5, 1, 12, 34, 56, 0, time.UTC)
 
 	// --- when ---
 	lt := getLatestTime(t1, t2, t3)

@@ -1,15 +1,16 @@
 package frontend
 
 import (
-	"net/http"
-
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
+
+const colonSeparatedPartsLen = 2 // expecting a key string like "TSLA/1Min/OHLCV:Symbol/Timeframe/AttributeGroup"
 
 type WriteRequest struct {
 	Data             *io.NumpyMultiDataset `msgpack:"dataset"`
@@ -32,7 +33,7 @@ type MultiServerResponse struct {
 	Responses []ServerResponse `msgpack:"responses"`
 }
 
-func (s *DataService) Write(r *http.Request, reqs *MultiWriteRequest, response *MultiServerResponse) (err error) {
+func (s *DataService) Write(_ *http.Request, reqs *MultiWriteRequest, response *MultiServerResponse) (err error) {
 	for _, req := range reqs.Requests {
 		csm, err := req.Data.ToColumnSeriesMap()
 		if err != nil {
@@ -43,8 +44,8 @@ func (s *DataService) Write(r *http.Request, reqs *MultiWriteRequest, response *
 			response.appendResponse(err)
 			continue
 		}
-		//TODO: There should be an error response for every server request, need to add the below commented line
-		//appendResponse(err, response)
+		// TODO: There should be an error response for every server request, need to add the below commented line
+		// appendResponse(err, response)
 	}
 	return nil
 }
@@ -61,16 +62,18 @@ type CreateRequest struct {
 	ColumnNames      []string `msgpack:"column_names"`
 	IsVariableLength bool     `msgpack:"is_variable_length"`
 }
+
 type MultiCreateRequest struct {
 	Requests []CreateRequest `msgpack:"requests"`
 }
 
-func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response *MultiServerResponse) (err error) {
+func (s *DataService) Create(_ *http.Request, reqs *MultiCreateRequest, response *MultiServerResponse) (err error) {
 	for _, req := range reqs.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
-		if len(parts) != 2 {
-			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
+		if len(parts) != colonSeparatedPartsLen {
+			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: "+
+				"TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
 				req.Key)
 			response.appendResponse(err)
 			continue
@@ -78,7 +81,8 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 
 		tbk := io.NewTimeBucketKey(parts[0], parts[1])
 		if tbk == nil {
-			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
+			err = fmt.Errorf("key \"%s\" is not in proper format, should be like: "+
+				"TSLA/1Min/OHLCV:Symbol/TimeFrame/AttributeGroup",
 				req.Key)
 			response.appendResponse(err)
 			continue
@@ -116,7 +120,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 
 		err = s.catalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {
-			err = fmt.Errorf("creation of new catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("creation of new catalog entry failed: %w", err)
 			response.appendResponse(err)
 			continue
 		}
@@ -128,6 +132,7 @@ func (s *DataService) Create(r *http.Request, reqs *MultiCreateRequest, response
 type KeyRequest struct {
 	Key string `msgpack:"key"`
 }
+
 type MultiKeyRequest struct {
 	Requests []KeyRequest `msgpack:"requests"`
 }
@@ -144,13 +149,13 @@ type MultiGetInfoResponse struct {
 	Responses []GetInfoResponse `msgpack:"responses"`
 }
 
-func (s *DataService) GetInfo(r *http.Request, reqs *MultiKeyRequest, response *MultiGetInfoResponse) (err error) {
-	errorString := "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
+func (s *DataService) GetInfo(_ *http.Request, reqs *MultiKeyRequest, response *MultiGetInfoResponse) (err error) {
+	const errorString = "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
 
 	for _, req := range reqs.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
-		if len(parts) < 2 {
+		if len(parts) < colonSeparatedPartsLen {
 			// The schema string is optional for Delete, so we append a blank if none is provided
 			parts = append(parts, "")
 		}
@@ -164,7 +169,7 @@ func (s *DataService) GetInfo(r *http.Request, reqs *MultiKeyRequest, response *
 
 		tbi, err := s.catalogDir.GetLatestTimeBucketInfoFromKey(tbk)
 		if err != nil {
-			err = fmt.Errorf("unable to get info about key %s: %s", req.Key, err.Error())
+			err = fmt.Errorf("unable to get info about key %s: %w", req.Key, err)
 			response.appendResponse(nil, err)
 			continue
 		}
@@ -174,13 +179,13 @@ func (s *DataService) GetInfo(r *http.Request, reqs *MultiKeyRequest, response *
 	return nil
 }
 
-func (s *DataService) Destroy(r *http.Request, reqs *MultiKeyRequest, response *MultiServerResponse) (err error) {
+func (s *DataService) Destroy(_ *http.Request, reqs *MultiKeyRequest, response *MultiServerResponse) (err error) {
 	errorString := "key \"%s\" is not in proper format, should be like: TSLA/1Min/OHLCV"
 
 	for _, req := range reqs.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
-		if len(parts) < 2 {
+		if len(parts) < colonSeparatedPartsLen {
 			// The schema string is optional for Delete, so we append a blank if none is provided
 			parts = append(parts, "")
 		}
@@ -194,7 +199,7 @@ func (s *DataService) Destroy(r *http.Request, reqs *MultiKeyRequest, response *
 
 		err = s.catalogDir.RemoveTimeBucket(tbk)
 		if err != nil {
-			err = fmt.Errorf("removal of catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("removal of catalog entry failed: %w", err)
 			response.appendResponse(err)
 			continue
 		}

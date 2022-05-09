@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -27,23 +26,23 @@ type Max struct {
 	Max           float32
 }
 
-func (ma *Max) GetRequiredArgs() []io.DataShape {
+func (m *Max) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
-func (ma *Max) GetOptionalArgs() []io.DataShape {
+
+func (m *Max) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
-func (ma *Max) GetInitArgs() []io.DataShape {
+
+func (m *Max) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-/*
-	Accum() sends new data to the aggregate
-*/
-func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
+// Accum sends new data to the aggregate.
+func (m *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return ma.Output(), nil
+		return m.Output(), nil
 	}
 	inputColDSV := argMap.GetMappedColumns(requiredColumns[0].Name)
 	inputColName := inputColDSV[0].Name
@@ -52,16 +51,16 @@ func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.
 		return nil, err
 	}
 
-	if !ma.IsInitialized {
-		ma.Max = inputCol[0]
-		ma.IsInitialized = true
+	if !m.IsInitialized {
+		m.Max = inputCol[0]
+		m.IsInitialized = true
 	}
 	for _, value := range inputCol {
-		if value > ma.Max {
-			ma.Max = value
+		if value > m.Max {
+			m.Max = value
 		}
 	}
-	return ma.Output(), nil
+	return m.Output(), nil
 }
 
 /*
@@ -70,7 +69,7 @@ func (ma *Max) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.
 */
 func (m Max) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.AggInterface, err error) {
 	if unmapped := argMap.Validate(); unmapped != nil {
-		return nil, fmt.Errorf("Unmapped columns: %s", unmapped)
+		return nil, fmt.Errorf("unmapped columns: %s", unmapped)
 	}
 
 	return &Max{
@@ -82,9 +81,9 @@ func (m Max) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.Agg
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (ma *Max) Output() *io.ColumnSeries {
+func (m *Max) Output() *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{time.Now().UTC().Unix()})
-	cs.AddColumn("Max", []float32{ma.Max})
+	cs.AddColumn("Max", []float32{m.Max})
 	return cs
 }

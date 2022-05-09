@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// writeTrade writes a Trade
+// writeTrade writes a Trade.
 func writeTrade(t *api.Trade) {
 	symbol := strings.Replace(t.Symbol, "/", ".", 1)
 	model := models.NewTrade(symbol, 1)
@@ -35,7 +35,7 @@ func writeTrade(t *api.Trade) {
 	}
 }
 
-// writeQuote writes a Quote
+// writeQuote writes a Quote.
 func writeQuote(q *api.Quote) {
 	symbol := strings.Replace(q.Symbol, "/", ".", 1)
 	model := models.NewQuote(symbol, 1)
@@ -47,7 +47,9 @@ func writeQuote(q *api.Quote) {
 	condition := polygon.ConvertQuoteCondition(q.Conditions[0])
 
 	// add record
-	model.Add(timestamp.Unix(), timestamp.Nanosecond(), q.BidPrice, q.AskPrice, q.BidSize, q.AskSize, bidExchange, askExchange, condition)
+	model.Add(timestamp.Unix(), timestamp.Nanosecond(),
+		q.BidPrice, q.AskPrice, q.BidSize, q.AskSize, bidExchange, askExchange, condition,
+	)
 
 	// save
 	if err := model.Write(); err != nil {
@@ -55,12 +57,12 @@ func writeQuote(q *api.Quote) {
 	}
 }
 
-// writeAggregateToMinute writes an AggregateToMinute
+// writeAggregateToMinute writes an AggregateToMinute.
 func writeAggregateToMinute(agg *api.AggregateToMinute) {
 	model := models.NewBar(agg.Symbol, "1Min", 1)
 
 	// add record
-	model.Add(agg.EpochMillis/1e3,
+	model.Add(agg.EpochMillis/1000,
 		enum.Price(agg.Open), enum.Price(agg.High), enum.Price(agg.Low), enum.Price(agg.Close), enum.Size(agg.Volume))
 
 	// save

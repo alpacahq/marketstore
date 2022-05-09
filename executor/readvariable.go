@@ -6,8 +6,7 @@ import (
 	"github.com/klauspost/compress/snappy"
 
 	"github.com/alpacahq/marketstore/v4/utils"
-
-	. "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
@@ -24,7 +23,8 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 		indexBuffer := md.Data
 
 		// Open the file to read the data
-		fp, err := os.OpenFile(file, os.O_RDONLY, 0666)
+		const readWriteAll = 0o666
+		fp, err := os.OpenFile(file, os.O_RDONLY, readWriteAll)
 		if err != nil {
 			return nil, err
 		}
@@ -36,26 +36,26 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 		numIndexRecords := len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
 		if utils.InstanceConfig.DisableVariableCompression {
 			for i := 0; i < numIndexRecords; i++ {
-				datalen := int(ToInt64(indexBuffer[i*24+16:]))
+				datalen := int(io.ToInt64(indexBuffer[i*24+16:]))
 				numVarRecords := datalen / varRecLen // TODO: This doesn't work with compression
 				totalDatalen += numVarRecords * (varRecLen + 8)
 			}
 		} else {
 			// With compression, the size is approximate, multiply by estimated ratio to get close
 			for i := 0; i < numIndexRecords; i++ {
-				totalDatalen += int(ToInt64(indexBuffer[i*24+16:]))
+				totalDatalen += int(io.ToInt64(indexBuffer[i*24+16:]))
 			}
 			totalDatalen *= 4
 		}
 
 		numIndexRecords = len(indexBuffer) / 24 // Three fields, {epoch, offset, len}, 8 bytes each
-		//rb = make([]byte, 0)
+		// rb = make([]byte, 0)
 		rb = make([]byte, totalDatalen)
 		var rbCursor int
 		for i := 0; i < numIndexRecords; i++ {
-			intervalStartEpoch := ToInt64(indexBuffer[i*24:])
-			offset := ToInt64(indexBuffer[i*24+8:])
-			datalen := ToInt64(indexBuffer[i*24+16:])
+			intervalStartEpoch := io.ToInt64(indexBuffer[i*24:])
+			offset := io.ToInt64(indexBuffer[i*24+8:])
+			datalen := io.ToInt64(indexBuffer[i*24+16:])
 			//			fmt.Println("indxlen, off, len", len(indexBuffer), offset, datalen)
 
 			buffer := make([]byte, datalen)
@@ -76,7 +76,7 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 			rbTemp := RewriteBuffer(buffer,
 				uint32(varRecLen), uint32(numVarRecords), uint32(md.Intervals), uint64(intervalStartEpoch))
 
-			//rb = append(rb, rbTemp...)
+			// rb = append(rb, rbTemp...)
 			if (rbCursor + len(rbTemp)) > totalDatalen {
 				totalDatalen += totalDatalen
 				rb2 := make([]byte, totalDatalen)
@@ -85,7 +85,6 @@ func (r *Reader) readSecondStage(bufMeta []bufferMeta) (rb []byte, err error) {
 			}
 			copy(rb[rbCursor:], rbTemp)
 			rbCursor += len(rbTemp)
-
 		}
 		rb = rb[:rbCursor]
 		fp.Close()

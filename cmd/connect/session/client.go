@@ -23,6 +23,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/sqlparser"
 	dbio "github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func NewClient(ac APIClient) *Client {
@@ -35,8 +36,8 @@ type Client struct {
 	apiClient APIClient
 	// output target - if empty, output to terminal, filename to output to file
 	target string
-	// timing flag determines to print query execution time.
-	timing bool
+	// printExecutionTime flag determines to print query execution time.
+	printExecutionTime bool
 }
 
 //go:generate mockgen -destination mock/client.go -package=mock github.com/alpacahq/marketstore/v4/cmd/connect/session APIClient
@@ -63,6 +64,37 @@ type RPCClient interface {
 	DoRPC(functionName string, args interface{}) (response interface{}, err error)
 }
 
+func commandMap(c *Client) map[string]func(line string) error {
+	return map[string]func(line string) error{
+		`\o`:       c.setOutputTarget,
+		`\timing`:  c.flipPrintTimeFlag,
+		`\show`:    c.show,
+		`\trim`:    c.trim,
+		`\load`:    c.load,
+		`\create`:  c.create,
+		`\destroy`: c.destroy,
+		`\getinfo`: c.getinfo,
+		`help`:     c.functionHelp,
+		`\help`:    c.functionHelp,
+		`\?`:       c.functionHelp,
+	}
+}
+
+func (c *Client) setOutputTarget(line string) error {
+	args := strings.Split(line, " ")
+	if len(args) > 1 {
+		c.target = args[1]
+	} else {
+		c.target = ""
+	}
+	return nil
+}
+
+func (c *Client) flipPrintTimeFlag(_ string) error {
+	c.printExecutionTime = !c.printExecutionTime
+	return nil
+}
+
 // Read kicks off the buffer reading process.
 func (c *Client) Read() error {
 	// Build reader.
@@ -74,74 +106,60 @@ func (c *Client) Read() error {
 
 	// Print connection information.
 	c.apiClient.PrintConnectInfo()
-	fmt.Fprintf(os.Stderr, "Type `\\help` to see command options\n")
+	_, _ = fmt.Fprintf(os.Stderr, "Type `\\help` to see command options\n")
 
 	// User input evaluation loop.
-EVAL:
-	for {
-		// Read input.
-		line, err := r.Readline()
+	c.loopEval(r)
+	return nil
+}
 
+func (c *Client) loopEval(r *readline.Instance) {
+EVAL:
+	// Read input.
+	line, err := r.Readline()
+	if err != nil {
 		// Terminate evaluation.
-		if err == io.EOF {
-			break EVAL
+		if errors.Is(err, io.EOF) {
+			return
 		}
 
 		// Printed interrupt prompt.
-		if err == readline.ErrInterrupt {
-			continue
+		if errors.Is(err, readline.ErrInterrupt) {
+			goto EVAL
 		}
 
 		// Print error.
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
-			continue
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+		goto EVAL
+	}
 
-		// Remove leading/trailing spaces.
-		line = strings.Trim(line, " ")
+	// Remove leading/trailing spaces.
+	line = strings.Trim(line, " ")
 
-		// Evaulate.
-		switch {
-		// Flip timing flag.
-		case strings.HasPrefix(line, `\o`):
-			args := strings.Split(line, " ")
-			if len(args) > 1 {
-				c.target = args[1]
-			} else {
-				c.target = ""
+	// ----- Evaluate -----
+
+	// Quit.
+	if line == `\stop` || line == `\quit` || line == `\q` || line == `exit` {
+		return
+	}
+	// Nothing to do.
+	if line == "" {
+		goto EVAL
+	}
+
+	for prefix, cmdFunc := range commandMap(c) {
+		if strings.HasPrefix(line, prefix) {
+			if err2 := cmdFunc(line); err2 != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "error: %s", err2.Error())
 			}
-		case strings.HasPrefix(line, `\timing`):
-			c.timing = !c.timing
-		case strings.HasPrefix(line, `\show`):
-			c.show(line)
-		case strings.HasPrefix(line, `\trim`):
-			c.trim(line)
-		case strings.HasPrefix(line, `\load`):
-			c.load(line)
-		case strings.HasPrefix(line, `\create`):
-			c.create(line)
-		case strings.HasPrefix(line, `\destroy`):
-			c.destroy(line)
-		case strings.HasPrefix(line, `\getinfo`):
-			c.getinfo(line)
-		case strings.HasPrefix(line, `\help`) || strings.HasPrefix(line, `\?`):
-			c.functionHelp(line)
-		case line == "help":
-			c.functionHelp(`\help`)
-		// Quit.
-		case line == `\stop`, line == `\quit`, line == `\q`, line == `exit`:
-			break EVAL
-			// Nothing to do.
-		case line == "":
-			continue EVAL
-		// It was a sql stmt.
-		default:
-			c.sql(line)
+			goto EVAL
 		}
 	}
 
-	return nil
+	// No prefix matched, then it's a sql stmt.
+	c.sql(line)
+
+	goto EVAL
 }
 
 func newReader() (*readline.Instance, error) {
@@ -181,15 +199,19 @@ func newReader() (*readline.Instance, error) {
 }
 
 func printHeaderLine(cs *dbio.ColumnSeries) {
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Print(formatHeader(cs, "="))
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Print("\n")
 }
+
 func printColumnNames(cs *dbio.ColumnSeries) {
 	for _, name := range cs.GetColumnNames() {
-		col := cs.GetByName(name)
+		col := cs.GetColumn(name)
 		l := columnFormatLength(name, col)
 
 		if strings.EqualFold(name, "Epoch") {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("%29s  ", name)
 		} else {
 			// if the column name is "Ask",
@@ -200,141 +222,154 @@ func printColumnNames(cs *dbio.ColumnSeries) {
 			}
 			sb.WriteString(name)
 			sb.WriteString("  ")
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Print(sb.String())
 		}
 	}
+	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("\n")
 }
 
-//func printResult(queryText string, cs *dbio.ColumnSeries, optional_writer ...*csv.Writer) (err error) {
-func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string) (err error) {
-
+func writer(optionalFile ...string) (*csv.Writer, func() error, error) {
+	cleanup := func() error { return nil }
 	var oFile string
 	if len(optionalFile) != 0 {
 		// Might be a real filename
 		oFile = optionalFile[0]
 	}
-	var writer *csv.Writer
-	if len(oFile) != 0 {
-		var file *os.File
-		file, err = os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, 0755)
-		if err != nil {
-			return err
+
+	if oFile != "" {
+		file, err2 := os.OpenFile(oFile, os.O_CREATE|os.O_RDWR, 0o755)
+		if err2 != nil {
+			return nil, cleanup, err2
 		}
-		defer file.Close()
-		writer = csv.NewWriter(file)
+		cleanup = file.Close
+		return csv.NewWriter(file), cleanup, nil
+	}
+	return nil, cleanup, nil
+}
+
+func printResult(queryText string, cs *dbio.ColumnSeries, optionalFile ...string) (err error) {
+	if cs == nil {
+		log.Info("no results returned from query")
+		return nil
 	}
 
-	if cs == nil {
-		fmt.Println("No results returned from query")
-		return
+	w, cleanup, err := writer(optionalFile...)
+	if err != nil {
+		return err
 	}
+	defer func() { _ = cleanup() }()
+
 	/*
 		Check if this is an EXPLAIN output
 	*/
-	i_explain := cs.GetByName("explain-output")
-	if i_explain != nil {
-		explain := i_explain.([]string)
+	iExplain := cs.GetColumn("explain-output")
+	if iExplain != nil {
+		explain, ok := iExplain.([]string)
+		if !ok {
+			return fmt.Errorf("format explain-output column to string(val=%v)", iExplain)
+		}
 		sqlparser.PrintExplain(queryText, explain)
-		return
+		return nil
 	}
-	i_epoch := cs.GetByName("Epoch")
-	if i_epoch == nil {
-		return fmt.Errorf("Epoch column not present in output")
-	}
-	var epoch []int64
-	var ok bool
-	if epoch, ok = i_epoch.([]int64); !ok {
-		return fmt.Errorf("Unable to convert Epoch column")
+	epoch := cs.GetEpoch()
+	if epoch == nil {
+		return fmt.Errorf("epoch column not present in output")
 	}
 
-	if writer == nil {
+	if w == nil {
 		printHeaderLine(cs)
 		printColumnNames(cs)
 		printHeaderLine(cs)
 	}
 	for i, ts := range epoch {
-		row := []string{}
-		var element string
+		var (
+			row     []string
+			element string
+		)
 		for _, name := range cs.GetColumnNames() {
 			if strings.EqualFold(name, "Epoch") {
 				element = fmt.Sprintf("%29s", dbio.ToSystemTimezone(time.Unix(ts, 0)).String()) // Epoch
 			} else {
-				col := cs.GetByName(name)
-				colType := reflect.TypeOf(col).Elem().Kind()
-				switch colType {
-				case reflect.Float32:
-					val := col.([]float32)[i]
-					element = strconv.FormatFloat(float64(val), 'f', -1, 32)
-				case reflect.Float64:
-					val := col.([]float64)[i]
-					element = strconv.FormatFloat(val, 'f', -1, 32)
-				case reflect.Int8:
-					val := col.([]int8)[i]
-					element = strconv.FormatInt(int64(val), 10)
-				case reflect.Int16:
-					val := col.([]int16)[i]
-					element = strconv.FormatInt(int64(val), 10)
-				case reflect.Int32:
-					val := col.([]int32)[i]
-					element = strconv.FormatInt(int64(val), 10)
-				case reflect.Int64:
-					val := col.([]int64)[i]
-					element = strconv.FormatInt(val, 10)
-				case reflect.Uint8:
-					val := col.([]uint8)[i]
-					element = strconv.FormatUint(uint64(val), 10)
-				case reflect.Uint16:
-					val := col.([]uint16)[i]
-					element = strconv.FormatUint(uint64(val), 10)
-				case reflect.Uint32:
-					val := col.([]uint32)[i]
-					element = strconv.FormatUint(uint64(val), 10)
-				case reflect.Uint64:
-					val := col.([]uint64)[i]
-					element = strconv.FormatUint(val, 10)
-				case reflect.Bool:
-					val := col.([]bool)[i]
-					if val {
-						element = "TRUE"
-					} else {
-						element = "FALSE"
-					}
-				case reflect.Array: // string type (e.g. [16]rune)
-					runes := reflect.ValueOf(col).Index(i)
-					element = strings.Trim(runesToString(runes), "\x00") // trim space
+				// colType := reflect.TypeOf(icol).Elem().Kind()
+				element, err = convertToElement(cs.GetColumn(name), i, name)
+				if err != nil {
+					return err
 				}
-				// print column value in the format length
-				l := columnFormatLength(name, col)
-				var sb strings.Builder
-				for i := 0; i < l-len([]rune(element)); i++ {
-					sb.WriteString(" ")
-				}
-				sb.WriteString(element)
-				element = sb.String()
 			}
 
-			if writer != nil {
+			if w != nil {
 				row = append(row, strings.TrimSpace(element))
 			} else {
+				// nolint:forbidigo // CLI output needs fmt.Println
 				fmt.Printf("%s  ", element)
 			}
 		}
-		if writer == nil {
+		if w == nil {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf("\n")
 		} else {
-			writer.Write(row)
+			if err2 := w.Write(row); err2 != nil {
+				return fmt.Errorf("failed to print row: %w", err2)
+			}
 		}
 	}
-	if writer == nil {
+	if w == nil {
 		printHeaderLine(cs)
+		// nolint:forbidigo // CLI output needs fmt.Println
+		fmt.Printf("(%d rows * %d columns)\n", len(epoch), len(cs.GetColumnNames()))
 	} else {
-		writer.Flush()
+		w.Flush()
 	}
 	return err
 }
 
-// runesToString converts rune array (not slice) in reflect.Value to string
+func convertToElement(icol interface{}, i int, columnName string) (string, error) {
+	var element string
+	switch col := icol.(type) {
+	case []float32:
+		element = strconv.FormatFloat(float64(col[i]), 'f', -1, 32)
+	case []float64:
+		element = strconv.FormatFloat(col[i], 'f', -1, 32)
+	case []int8:
+		element = strconv.FormatInt(int64(col[i]), 10)
+	case []int16:
+		element = strconv.FormatInt(int64(col[i]), 10)
+	case []int32:
+		element = strconv.FormatInt(int64(col[i]), 10)
+	case []int64:
+		element = strconv.FormatInt(col[i], 10)
+	case []uint8:
+		element = strconv.FormatUint(uint64(col[i]), 10)
+	case []uint16:
+		element = strconv.FormatUint(uint64(col[i]), 10)
+	case []uint32:
+		element = strconv.FormatUint(uint64(col[i]), 10)
+	case []uint64:
+		element = strconv.FormatUint(col[i], 10)
+	case []bool:
+		element = "FALSE"
+		if col[i] {
+			element = "TRUE"
+		}
+	case [][16]rune:
+		runes := reflect.ValueOf(icol).Index(i)
+		element = strings.Trim(runesToString(runes), "\x00") // trim space
+	default:
+		return "", fmt.Errorf("unknown type of column found: col=%v", icol)
+	}
+	// print column value in the format length
+	l := columnFormatLength(columnName, icol)
+	var sb strings.Builder
+	for i := 0; i < l-len([]rune(element)); i++ {
+		sb.WriteString(" ")
+	}
+	sb.WriteString(element)
+	return sb.String(), nil
+}
+
+// runesToString converts rune array (not slice) in reflect.Value to string.
 func runesToString(runes reflect.Value) string {
 	length := runes.Len()
 
@@ -347,42 +382,26 @@ func runesToString(runes reflect.Value) string {
 }
 
 func columnFormatLength(colName string, col interface{}) int {
+	const (
+		defaultColumnLength = 10
+		// = len("2021-12-21 21:00:37 +0000 UTC") = 29
+		epochColumnLength = 29
+	)
 	if strings.EqualFold(colName, "Epoch") {
-		return 29
+		return epochColumnLength
 	}
 
 	colType := reflect.TypeOf(col).Elem().Kind()
 	switch colType {
-	case reflect.Float32:
-		fallthrough
-	case reflect.Float64:
-		fallthrough
-	case reflect.Int8:
-		fallthrough
-	case reflect.Int16:
-		fallthrough
-	case reflect.Int32:
-		fallthrough
-	case reflect.Int64:
-		fallthrough
-	case reflect.Uint8:
-		fallthrough
-	case reflect.Uint16:
-		fallthrough
-	case reflect.Uint32:
-		fallthrough
-	case reflect.Uint64:
-		fallthrough
-	case reflect.String:
-		fallthrough
-	case reflect.Bool:
-		return 10
+	case reflect.Float32, reflect.Float64, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint8,
+		reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.String, reflect.Bool:
+		return defaultColumnLength
 	case reflect.Array:
 		// e.g. STRING16 column has colType=[16]rune
 		return reflect.TypeOf(col).Elem().Len()
+	default:
+		return defaultColumnLength
 	}
-	// default
-	return 10
 }
 
 func formatHeader(cs *dbio.ColumnSeries, printChar string) string {
@@ -394,7 +413,7 @@ func formatHeader(cs *dbio.ColumnSeries, printChar string) string {
 		buffer.WriteString("  ")
 	}
 	for _, name := range cs.GetColumnNames() {
-		col := cs.GetByName(name)
+		col := cs.GetColumn(name)
 		appendChars(columnFormatLength(name, col))
 	}
 	return buffer.String()

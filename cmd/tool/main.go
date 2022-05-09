@@ -14,17 +14,16 @@ const (
 	example = "marketstore tool wal --file <path>"
 )
 
-var (
-	// Cmd is the tool command.
-	Cmd = &cobra.Command{
-		Use:        usage,
-		Short:      short,
-		Long:       long,
-		SuggestFor: []string{"wal", "integrity"},
-		Example:    example,
-	}
-)
+// Cmd is the tool command.
+var Cmd = &cobra.Command{
+	Use:        usage,
+	Short:      short,
+	Long:       long,
+	SuggestFor: []string{"wal", "integrity"},
+	Example:    example,
+}
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.AddCommand(integrity.Cmd)
 	Cmd.AddCommand(wal.Cmd)

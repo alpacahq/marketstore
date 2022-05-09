@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
-
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -63,9 +61,11 @@ type Candler struct {
 func (ca *Candler) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (ca *Candler) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (ca *Candler) GetInitArgs() []io.DataShape {
 	return initArgs
 }
@@ -73,13 +73,11 @@ func (ca *Candler) GetInitArgs() []io.DataShape {
 /*
 OVERRIDES - these methods should be overridden in a concrete implementation of this class
 */
-/*
-	OVERRIDE THIS METHOD
-	Accum() sends new data to the aggregate
-*/
+
+// Accum sends new data to the aggregate.
 func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.ColumnInterface, _ *catalog.Directory,
 ) (*io.ColumnSeries, error) {
-	return nil, fmt.Errorf("Accum called from base class, must override implementation")
+	return nil, fmt.Errorf("accum called from base class, must override implementation")
 }
 
 /*
@@ -87,12 +85,12 @@ func (ca *Candler) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, _ io.Colu
 	Creates a new candler using the arguments of the specific implementation
 	for inputColumns and optionalInputColumns
 */
-func (c Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (ca *Candler, err error) {
+func (ca *Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (c *Candler, err error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("Init requires a *utils.CandleDuration as the argument")
+		return nil, fmt.Errorf("init requires a *utils.CandleDuration as the argument")
 	}
 
-	ca = &Candler{
+	c = &Candler{
 		MyCD:          nil,
 		CMap:          nil,
 		SumNames:      nil,
@@ -100,12 +98,12 @@ func (c Candler) New(argMap *functions.ArgumentMap, args ...interface{}) (ca *Ca
 		AccumSumNames: nil,
 	}
 
-	err = ca.init(argMap, args...)
+	err = c.init(argMap, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return ca, nil
+	return c, nil
 }
 
 func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) error {
@@ -117,25 +115,25 @@ func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) erro
 		tfstring = *val
 	case *[]string:
 		if len(*val) != 1 {
-			return fmt.Errorf("Argument passed to Init() is not a string")
+			return fmt.Errorf("argument passed to Init() is not a string")
 		}
 		tfstring = (*val)[0]
 	case []string:
 		if len(val) != 1 {
-			return fmt.Errorf("Argument passed to Init() is not a string")
+			return fmt.Errorf("argument passed to Init() is not a string")
 		}
 		tfstring = val[0]
 	}
-	cd := utils.CandleDurationFromString(tfstring)
+	cd, err := utils.CandleDurationFromString(tfstring)
 
 	if ca == nil {
-		return fmt.Errorf("Init called without calling New()")
+		return fmt.Errorf("init called without calling New()")
 	}
-	if cd == nil {
-		return fmt.Errorf("No suitable timeframe provided")
+	if err != nil {
+		return fmt.Errorf("no suitable timeframe provided: %w", err)
 	}
 	if unmapped := argMap.Validate(); unmapped != nil {
-		return fmt.Errorf("Unmapped columns: %s", unmapped)
+		return fmt.Errorf("unmapped columns: %s", unmapped)
 	}
 
 	ca.MyCD = cd
@@ -150,7 +148,6 @@ func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) erro
 		/*
 			This currently includes Sum and Avg
 		*/
-		//		fmt.Println("Optionals: ", ds.Name, ca.argMap.GetMappedColumns(ds.Name))
 		switch ds.Name {
 		case "Sum":
 			for _, dds := range argMap.GetMappedColumns("Sum") {
@@ -178,7 +175,7 @@ func (ca *Candler) init(argMap *functions.ArgumentMap, args ...interface{}) erro
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (ca *Candler) Output() *io.ColumnSeries {
+func (ca *Candler) Output() (*io.ColumnSeries, error) {
 	dataShapes := []io.DataShape{
 		{Name: "Epoch", Type: io.INT64},
 		{Name: "Open", Type: io.FLOAT32},
@@ -243,12 +240,14 @@ func (ca *Candler) GetCandle(t time.Time, cndl ...*Candle) *Candle {
 - Always has Open, High, Low, Close prices defined within
 - Optionally has averaged and summed quantities inside
 - Has a starting time representing the candle, it begins the interval
-*********************************** Candle *******************************************
+*********************************** Candle *******************************************.
 */
+
 type EOHLCStruct struct {
 	Epoch                  int64
 	Open, High, Low, Close float32
 }
+
 type Candle struct {
 	StartTime time.Time
 	Duration  *utils.CandleDuration
@@ -301,11 +300,11 @@ func (ca *Candle) AddCandle(ts time.Time, prices ...float32) bool {
 		- A tick will have a single price
 		- A candle will have open, high, low, close prices
 	*/
-	var open, high, low, close float32
+	var open, high, low, clos float32
 	if len(prices) == 1 {
-		open, high, low, close = prices[0], prices[0], prices[0], prices[0]
+		open, high, low, clos = prices[0], prices[0], prices[0], prices[0]
 	} else {
-		open, high, low, close = prices[0], prices[1], prices[2], prices[3]
+		open, high, low, clos = prices[0], prices[1], prices[2], prices[3]
 	}
 	/*
 		The input price is used to update the candle if the time is within
@@ -315,7 +314,7 @@ func (ca *Candle) AddCandle(ts time.Time, prices ...float32) bool {
 		return false
 	}
 	if ca.OpenTime.IsZero() {
-		ca.EOHLC.Open, ca.EOHLC.High, ca.EOHLC.Low, ca.EOHLC.Close = open, high, low, close
+		ca.EOHLC.Open, ca.EOHLC.High, ca.EOHLC.Low, ca.EOHLC.Close = open, high, low, clos
 		ca.OpenTime, ca.CloseTime = ts, ts
 	}
 	if ts.Before(ca.OpenTime) {
@@ -323,7 +322,7 @@ func (ca *Candle) AddCandle(ts time.Time, prices ...float32) bool {
 		ca.OpenTime = ts
 	}
 	if ts.After(ca.CloseTime) {
-		ca.EOHLC.Close = close
+		ca.EOHLC.Close = clos
 		ca.CloseTime = ts
 	}
 	if high > ca.EOHLC.High {
@@ -346,14 +345,13 @@ func (ca *Candle) SerializeToRowData(sumNames, avgNames []string) (rowBuf []byte
 	return rowBuf
 }
 
-/*
-Map of start times to active candles
-*/
+// CandleMap is a Map of start times to active candles.
 type CandleMap map[time.Time]*Candle
 
 /*
-Utility Functions
+Utility Functions.
 */
+
 func GetAverageColumnFloat32(cols io.ColumnInterface, srcCols []io.DataShape) (avgCol []float32, err error) {
 	numberCols := len(srcCols)
 	if numberCols == 1 {
@@ -363,24 +361,25 @@ func GetAverageColumnFloat32(cols io.ColumnInterface, srcCols []io.DataShape) (a
 			return nil, err
 		}
 		return col, nil
-	} else {
-		/*
-			Average the input columns to produce the price column
-		*/
-		colLen := cols.Len()
-		avgCol = make([]float32, colLen)
-		for _, ds := range srcCols {
-			col, err := uda.ColumnToFloat32(cols, ds.Name)
-			if err != nil {
-				return nil, err
-			}
-			for i := 0; i < colLen; i++ {
-				avgCol[i] += col[i]
-			}
+	}
+
+	/*
+		Average the input columns to produce the price column
+	*/
+	colLen := cols.Len()
+	avgCol = make([]float32, colLen)
+	for _, ds := range srcCols {
+		col, err := uda.ColumnToFloat32(cols, ds.Name)
+		if err != nil {
+			return nil, err
 		}
 		for i := 0; i < colLen; i++ {
-			avgCol[i] /= float32(numberCols)
+			avgCol[i] += col[i]
 		}
 	}
+	for i := 0; i < colLen; i++ {
+		avgCol[i] /= float32(numberCols)
+	}
+
 	return avgCol, nil
 }

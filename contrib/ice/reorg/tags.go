@@ -12,8 +12,6 @@ type parsePosition struct {
 	end   int
 }
 
-type fieldParserFunc func([]string) string
-
 type parseInfo struct {
 	fieldNo      int
 	line         int
@@ -25,11 +23,13 @@ type parseInfo struct {
 
 var parseMap = map[reflect.Type][]parseInfo{}
 
-var lineMatcher = regexp.MustCompile(`line:([0-9]+)`)
-var posMatcher = regexp.MustCompile(`pos:([^\s]+)`)
-var formatMatcher = regexp.MustCompile(`format:([^\s]+)`)
-var defaultMatcher = regexp.MustCompile(`default:([^\s]+)`)
-var funcMatcher = regexp.MustCompile(`func:([^\s]+)`)
+var (
+	lineMatcher    = regexp.MustCompile(`line:(\d+)`)
+	posMatcher     = regexp.MustCompile(`pos:(\S+)`)
+	formatMatcher  = regexp.MustCompile(`format:(\S+)`)
+	defaultMatcher = regexp.MustCompile(`default:(\S+)`)
+	funcMatcher    = regexp.MustCompile(`func:(\S+)`)
+)
 
 func newParseInfo() parseInfo {
 	return parseInfo{}
@@ -92,7 +92,6 @@ func (pi *parseInfo) ParseTag(tag string) {
 	pi.parseFormat(tag)
 	pi.parseDefault(tag)
 	pi.parseFunc(tag)
-	return
 }
 
 func getParseDef(item interface{}) []parseInfo {

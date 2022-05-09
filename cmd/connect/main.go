@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/frontend/client"
-
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/cmd/connect/session"
+	"github.com/alpacahq/marketstore/v4/frontend/client"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 const (
 	// Command
-	// -------------
+	// -------------.
 	usage   = "connect"
 	short   = "Open an interactive session with an existing marketstore database"
 	long    = "This command opens an interactive session with an existing marketstore database"
@@ -52,10 +51,11 @@ var (
 	url string
 	// dir set via flag for local directory location.
 	dir string
-	// turns compression of variable data off
+	// turns compression of variable data off.
 	varCompOff bool
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.Flags().StringVarP(&url, urlFlag, "u", defaultURL, urlDesc)
 	Cmd.Flags().StringVarP(&dir, dirFlag, "d", defaultDir, dirDesc)
@@ -65,7 +65,7 @@ func init() {
 // validateArgs returns an error that prevents cmd execution if
 // the custom validation fails.
 func validateArgs(cmd *cobra.Command, args []string) error {
-	if len(dir) == 0 && len(url) == 0 {
+	if dir != "" && url != "" {
 		return errors.New("cannot connect to database, use a flag to set location")
 	}
 	return nil
@@ -73,7 +73,6 @@ func validateArgs(cmd *cobra.Command, args []string) error {
 
 // executeConnect implements the connect command.
 func executeConnect(cmd *cobra.Command, args []string) error {
-
 	var (
 		c    *session.Client
 		conn session.APIClient
@@ -81,7 +80,7 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 	)
 
 	// Attempt local mode.
-	if len(dir) != 0 {
+	if dir != "" {
 		conn, err = session.NewLocalAPIClient(dir)
 		if err != nil {
 			return err
@@ -89,19 +88,20 @@ func executeConnect(cmd *cobra.Command, args []string) error {
 	}
 
 	// Attempt remote mode.
-	if len(url) != 0 {
+	if url != "" {
 		// TODO: validate url using go core packages.
+		const colonSeparatedURLSliceLen = 2
 		splits := strings.Split(url, ":")
-		if len(splits) != 2 {
-			return fmt.Errorf("incorrect URL, need \"hostname:port\", have: %s\n", url)
+		if len(splits) != colonSeparatedURLSliceLen {
+			return fmt.Errorf("incorrect URL, need \"hostname:port\", have: %s", url)
 		}
 		// build url.
 		url = "http://" + url
 
 		// Attempt connection to remote host.
-		rpcClient, err := client.NewClient(url)
-		if err != nil {
-			return err
+		rpcClient, err2 := client.NewClient(url)
+		if err2 != nil {
+			return err2
 		}
 
 		conn = session.NewRemoteAPIClient(url, rpcClient)

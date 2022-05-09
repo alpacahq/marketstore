@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	goio "io"
 	"path/filepath"
@@ -132,7 +133,7 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 	}
 	sort.Sort(sortedTGIDs)
 
-	//for tgid, TG_Serialized := range tgData {
+	// for tgid, TG_Serialized := range tgData {
 	for _, tgid := range sortedTGIDs {
 		tgSerialized := tgData[tgid]
 		if tgSerialized == nil {
@@ -150,7 +151,6 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 			return fmt.Errorf("replay transaction group data. tgID=%d, "+
 				"write transaction size=%d:%w", tgID, len(wtSets), err)
 		}
-
 	}
 
 	log.Info("Replay of WAL file %s finished", wf.FilePtr.Name())
@@ -169,26 +169,26 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 
 	cfp := NewCachedFP() // Cached open file pointer
 	defer func() {
-		err := cfp.Close()
-		if err != nil {
-			log.Error(fmt.Sprintf("failed to close cached file pointer %s: %v", cfp, err))
+		err2 := cfp.Close()
+		if err2 != nil {
+			log.Error(fmt.Sprintf("failed to close cached file pointer %s: %v", cfp, err2))
 		}
 	}()
 
 	for _, wtSet := range wtSets {
-		fp, err := cfp.GetFP(wtSet.FilePath)
-		if err != nil {
+		fp, err2 := cfp.GetFP(wtSet.FilePath)
+		if err2 != nil {
 			return wal.ReplayError{
 				Msg: fmt.Sprintf("failed to open a filepath %s in write transaction set:%v",
-					wtSet.FilePath, err.Error(),
+					wtSet.FilePath, err2.Error(),
 				),
 				Cont: true,
 			}
 		}
 		switch wtSet.RecordType {
 		case io.FIXED:
-			if err = WriteBufferToFile(fp, wtSet.Buffer); err != nil {
-				return err
+			if err3 := WriteBufferToFile(fp, wtSet.Buffer); err3 != nil {
+				return err3
 			}
 		case io.VARIABLE:
 			// Find the record length - we need it to use the time column as a sort key later
@@ -211,24 +211,24 @@ func (wf *WALFileType) replayTGData(tgID int64, wtSets []wal.WTSet) (err error) 
 	return nil
 }
 
-// fullRead checks an error to see if we have read only partial data
+// fullRead checks an error to see if we have read only partial data.
 func fullRead(err error) bool {
 	if err == nil {
 		return true
 	}
 
-	if err == goio.EOF {
+	if errors.Is(err, goio.EOF) {
 		log.Debug("fullRead: read until the end of WAL file")
 		return false
 	}
 
-	if _, ok := err.(wal.ShortReadError); ok {
+	var targetErr wal.ShortReadError
+	if ok := errors.As(err, &targetErr); ok {
 		log.Info(fmt.Sprintf("Partial Read. err=%v", err))
 		return false
-	} else {
-		log.Error(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
 	}
 
+	log.Error(io.GetCallerFileContext(0) + ": Uncorrectable IO error in WAL Replay")
 	return true
 }
 
@@ -236,10 +236,11 @@ func fullRead(err error) bool {
 // If it's at the end of wal file, readMessageID returns 0, io.EOF error.
 // If it's not at the end of wal file but couldn't read 1 byte, readMessageID returns 0, wal.ShortReadError.
 func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
+	const unknownMessageID = 99
 	var buffer [1]byte
 	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
 	if err != nil {
-		if err == goio.EOF {
+		if errors.Is(err, goio.EOF) {
 			return 0, goio.EOF
 		}
 		return 0, wal.ShortReadError("WALFileType.ReadMessageID. err:" + err.Error())
@@ -249,33 +250,40 @@ func (wf *WALFileType) readMessageID() (mid MIDEnum, err error) {
 	case TGDATA, TXNINFO, STATUS:
 		return MID, nil
 	}
-	return 99, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d:%w", MID, err)
+	return unknownMessageID, fmt.Errorf("WALFileType.ReadMessageID Incorrect MID read, value: %d:%w", MID, err)
 }
 
-func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error) {
-	tgLenSerialized := make([]byte, 8)
+const (
+	// see /docs/durable_writes_design.txt for definition.
+	tgLenBytes    = 8
+	tgIDBytes     = 8
+	checkSumBytes = 16
+)
+
+func (wf *WALFileType) readTGData() (tgID int64, tgSerialized []byte, err error) {
+	tgLenSerialized := make([]byte, tgLenBytes)
 	tgLenSerialized, _, err = wal.Read(wf.FilePtr, tgLenSerialized)
 	if err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0))
 	}
-	TGLen := io.ToInt64(tgLenSerialized)
+	tgLen := io.ToInt64(tgLenSerialized)
 
-	if !sanityCheckValue(wf.FilePtr, TGLen) {
-		return 0, nil, fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", TGLen))
+	if !sanityCheckValue(wf.FilePtr, tgLen) {
+		return 0, nil, errors.New(io.GetCallerFileContext(0) + fmt.Sprintf(": Insane TG Length: %d", tgLen))
 	}
 
 	// Read the data
-	tgSerialized = make([]byte, TGLen)
+	tgSerialized = make([]byte, tgLen)
 	n, err := wf.FilePtr.Read(tgSerialized)
-	if int64(n) != TGLen || err != nil {
+	if int64(n) != tgLen || err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Data")
 	}
-	TGID = io.ToInt64(tgSerialized[:7])
+	tgID = io.ToInt64(tgSerialized[:tgIDBytes-1])
 
 	// Read the checksum
-	checkBuf := make([]byte, 16)
+	checkBuf := make([]byte, checkSumBytes)
 	n, err = wf.FilePtr.Read(checkBuf)
-	if n != 16 || err != nil {
+	if n != checkSumBytes || err != nil {
 		return 0, nil, wal.ShortReadError(io.GetCallerFileContext(0) + ":Reading Checksum")
 	}
 
@@ -283,5 +291,5 @@ func (wf *WALFileType) readTGData() (TGID int64, tgSerialized []byte, err error)
 		return 0, nil, err
 	}
 
-	return TGID, tgSerialized, nil
+	return tgID, tgSerialized, nil
 }

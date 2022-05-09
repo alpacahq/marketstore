@@ -8,9 +8,11 @@ import (
 	"time"
 )
 
-const Day = 24 * time.Hour
-const Week = 7 * Day
-const Year = 365 * Day
+const (
+	Day  = 24 * time.Hour
+	Week = 7 * Day
+	Year = 365 * Day
+)
 
 var timeframeDefs = []Timeframe{
 	{"S", time.Second},
@@ -35,7 +37,7 @@ var Timeframes = []*Timeframe{
 	{"4H", 4 * time.Hour},
 	{"2H", 2 * time.Hour},
 	{"1D", Day},
-	//{"24H", 24 * time.Hour},
+	// {"24H", 24 * time.Hour},
 }
 
 type Timeframe struct {
@@ -65,11 +67,10 @@ func TimeframeFromString(tf string) *Timeframe {
 			t, err := strconv.ParseInt(strings.Split(tf, def.String)[0], 10, 32)
 			if err != nil || t <= 0 {
 				return nil
-			} else {
-				return &Timeframe{
-					String:   tf,
-					Duration: def.Duration * time.Duration(t),
-				}
+			}
+			return &Timeframe{
+				String:   tf,
+				Duration: def.Duration * time.Duration(t),
 			}
 		}
 	}
@@ -109,6 +110,7 @@ type CandleDuration struct {
 }
 
 func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
+	const monthsInYear = 12
 	switch cd.suffix {
 	case "D":
 		yy0, mm0, dd0 := ts.Date()
@@ -121,23 +123,19 @@ func (cd *CandleDuration) IsWithin(ts, start time.Time) bool {
 			return true
 		}
 	case "M":
-		if ts.Year() == start.Year() {
-			if ts.Month() == start.Month() {
+		switch {
+		case ts.Year() == start.Year():
+			switch {
+			case ts.Month() == start.Month():
 				return true
-			} else if ts.Month() < start.Month() {
+			case ts.Month() < start.Month():
 				return false
-			} else {
-				if int(ts.Month())-int(start.Month()) < cd.multiplier {
-					return true
-				}
-				return false
+			default:
+				return int(ts.Month())-int(start.Month()) < cd.multiplier
 			}
-		} else if ts.Year() > start.Year() {
-			if int(ts.Month())-(12-int(start.Month())) < cd.multiplier {
-				return true
-			}
-			return false
-		} else {
+		case ts.Year() > start.Year():
+			return int(ts.Month())-(monthsInYear-int(start.Month())) < cd.multiplier
+		default:
 			return false
 		}
 	case "Y":
@@ -200,11 +198,12 @@ func (cd *CandleDuration) QueryableTimeframe() string {
 }
 
 func (cd *CandleDuration) QueryableNrecords(tf string, nrecords int) int {
+	const maxNumDaysInMonth = 31
 	if cd.String == tf {
 		return nrecords
 	}
 	if cd.suffix == "M" {
-		return 31 * nrecords
+		return maxNumDaysInMonth * nrecords
 	}
 	return nrecords * int(cd.duration/TimeframeFromString(tf).Duration)
 }
@@ -213,11 +212,12 @@ func (cd *CandleDuration) Duration() time.Duration {
 	return cd.duration
 }
 
-func CandleDurationFromString(tf string) (cd *CandleDuration) {
-	re := regexp.MustCompile("([0-9]+)(Sec|Min|H|D|W|M|Y)")
-	groups := re.FindStringSubmatch(tf)
+var timeFrameRegex = regexp.MustCompile(`(\d+)(Sec|Min|H|D|W|M|Y)`)
+
+func CandleDurationFromString(tf string) (cd *CandleDuration, err error) {
+	groups := timeFrameRegex.FindStringSubmatch(tf)
 	if len(groups) == 0 {
-		return nil
+		return nil, fmt.Errorf("timeframe not found in \"%s\"", tf)
 	}
 	prefix := groups[1]
 	mult, _ := strconv.Atoi(prefix)
@@ -227,7 +227,7 @@ func CandleDurationFromString(tf string) (cd *CandleDuration) {
 		multiplier: mult,
 		suffix:     suffix,
 		duration:   time.Duration(mult) * suffixDefs[suffix],
-	}
+	}, nil
 }
 
 var suffixDefs = map[string]time.Duration{

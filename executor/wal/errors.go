@@ -26,8 +26,9 @@ func (e ReplayError) Error() string {
 	return errReport("Error Replaying WAL. Cont="+strconv.FormatBool(e.Cont)+":%s", e.Msg)
 }
 
-func errReport(base string, msg string) string {
-	base = io.GetCallerFileContext(2) + ":" + base
+func errReport(base, msg string) string {
+	const defaultReportStackLevel = 2
+	base = io.GetCallerFileContext(defaultReportStackLevel) + ":" + base
 	log.Warn(base, msg)
 	return fmt.Sprintf(base, msg)
 }

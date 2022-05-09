@@ -2,39 +2,33 @@ package sqlparser_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/stretchr/testify/assert"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
-	"github.com/alpacahq/marketstore/v4/utils/test"
-
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), metadata *executor.InstanceMetadata) {
+func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("sqlparser_test-%s", testName))
+	rootDir := t.TempDir()
 	test.MakeDummyStockDir(rootDir, true, false)
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, metadata
+	return metadata
 }
 
 func TestSQLSelectParse(t *testing.T) {
-	tearDown, _ := setup(t, "TestSQLSelectParse")
-	defer tearDown()
+	setup(t)
 
 	fmt.Printf("Running Presto Test Statements...")
 	for _, tStmt := range testStatements {
@@ -52,15 +46,14 @@ func TestSQLSelectParse(t *testing.T) {
 }
 
 func TestSQLSelect(t *testing.T) {
-	tearDown, _ := setup(t, "TestSQLSelect")
-	defer tearDown()
+	setup(t)
 
 	stmt := "SELECT dibble JOIN;" // Should err out
 	_, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, true, stmt)
 
 	stmt = "SELECT Epoch, Open, High, Low, Close from `EURUSD/1Min/OHLC` WHERE Epoch BETWEEN '2000-01-01' AND '2002-01-01';"
-	//stmt = "SELECT Epoch, Open, High, Low, Close from `EURUSD/1Min/OHLC` WHERE Epoch BETWEEN '2016-01-01' AND '2017-01-01';"
+	// stmt = "SELECT Epoch, Open, High, Low, Close from `EURUSD/1Min/OHLC` WHERE Epoch BETWEEN '2016-01-01' AND '2017-01-01';"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
 	T_PrintExplain(queryTree, stmt)
@@ -87,13 +80,16 @@ type Visitor struct {
 func NewVisitor() *Visitor {
 	return new(Visitor)
 }
+
 func (this *Visitor) Visit(tree sqlparser.IMSTree) interface{} {
 	return tree.Accept(this)
 }
+
 func (this *Visitor) VisitStatementsParse(ctx *sqlparser.StatementsParse) interface{} {
 	fmt.Println("Visiting SP")
 	return ctx.GetChild(0)
 }
+
 func (this *Visitor) VisitStatementParse(ctx *sqlparser.StatementParse) interface{} {
 	retval := 20202020
 	fmt.Println("Visiting RP: ", retval)
@@ -101,8 +97,7 @@ func (this *Visitor) VisitStatementParse(ctx *sqlparser.StatementParse) interfac
 }
 
 func TestVisitor(t *testing.T) {
-	tearDown, _ := setup(t, "TestVisitor")
-	defer tearDown()
+	setup(t)
 
 	stmt := "INSERT INTO `AAPL/1Min/OHLC` SELECT tickcandler(a,b,c) FROM `UVXY/1Min/TICKS`;"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
@@ -114,14 +109,13 @@ func TestVisitor(t *testing.T) {
 }
 
 func TestExecutableStatement(t *testing.T) {
-	tearDown, metadata := setup(t, "TestExecutableStatement")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
-	//PrintExplain(queryTree, stmt)
+	// PrintExplain(queryTree, stmt)
 	es, err := sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
 	cs, err := es.Materialize(aggRunner, metadata.CatalogDir)
@@ -152,7 +146,7 @@ func TestExecutableStatement(t *testing.T) {
 	stmt = "SELECT Epoch, Open, High, Low, Close from `AAPL/1Min/OHLCV` WHERE Open > 10.234 AND (Epoch > '2000-01-05-12:30' AND Epoch < '2000-01-05-13:00');"
 	queryTree, err = sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
-	//PrintExplain(queryTree, stmt)
+	// PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
@@ -164,7 +158,7 @@ func TestExecutableStatement(t *testing.T) {
 	stmt = "SELECT * from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
 	queryTree, err = sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
-	//PrintExplain(queryTree, stmt)
+	// PrintExplain(queryTree, stmt)
 	es, err = sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
@@ -194,9 +188,9 @@ func TestExecutableStatement(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cs.Len(), 0)
 }
+
 func TestStatementErrors(t *testing.T) {
-	tearDown, metadata := setup(t, "TestStatementErrors")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "select * from `fooble`;"
@@ -208,15 +202,15 @@ func TestStatementErrors(t *testing.T) {
 	evalAndPrint(t, err, true, stmt)
 	_ = cs
 }
+
 func TestInsertInto(t *testing.T) {
-	tearDown, metadata := setup(t, "TestInsertInto")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewAggRunner(nil)
 
 	stmt := "INSERT INTO `AAPL/5Min/OHLCV` SELECT * from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
-	//PrintExplain(queryTree, stmt)
+	// PrintExplain(queryTree, stmt)
 	es, err := sqlparser.NewExecutableStatement(queryTree)
 	evalAndPrint(t, err, false, stmt)
 	cs, err := es.Materialize(aggRunner, metadata.CatalogDir)
@@ -225,13 +219,14 @@ func TestInsertInto(t *testing.T) {
 }
 
 func TestAggregation(t *testing.T) {
-	tearDown, metadata := setup(t, "TestAggregation")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewDefaultAggRunner(metadata.CatalogDir)
 
 	cs := makeTestCS()
-	epoch := cs.GetColumn("Epoch").([]int64)
-	one := cs.GetColumn("One").([]float32)
+	epoch, ok := cs.GetColumn("Epoch").([]int64)
+	assert.True(t, ok)
+	one, ok := cs.GetColumn("One").([]float32)
+	assert.True(t, ok)
 	fmt.Println("Epoch	One")
 	for i := range epoch {
 		t := time.Unix(epoch[i], 0).UTC()
@@ -287,12 +282,11 @@ func TestAggregation(t *testing.T) {
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
 	assert.Equal(t, cs.Len(), 6)
-	//fmt.Println(cs)
+	// fmt.Println(cs)
 }
 
 func TestCount(t *testing.T) {
-	tearDown, metadata := setup(t, "TestCount")
-	defer tearDown()
+	metadata := setup(t)
 	aggRunner := sqlparser.NewDefaultAggRunner(metadata.CatalogDir)
 
 	cs := makeTestCS()
@@ -302,11 +296,12 @@ func TestCount(t *testing.T) {
 	tickCandler, _ := agg.New(argMap)
 	assert.NotNil(t, tickCandler)
 	result, _ := tickCandler.Accum(io.TimeBucketKey{}, argMap, cs)
-	count := result.GetColumn("Count").([]int64)
+	count, ok := result.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(5))
 
-	//stmt := "SELECT count(*) from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
-	//stmt := "SELECT count(*) from (select tickcandler('1Min',Open) `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00');"
+	// stmt := "SELECT count(*) from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
+	// stmt := "SELECT count(*) from (select tickcandler('1Min',Open) `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00');"
 	stmt := "SELECT count(*) from `AAPL/1Min/OHLCV` WHERE Epoch BETWEEN '2000-01-05-12:30' AND '2000-01-05-13:00';"
 	queryTree, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, false, stmt)
@@ -315,7 +310,8 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
-	count = cs.GetColumn("Count").([]int64)
+	count, ok = cs.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(29))
 
 	/*
@@ -329,7 +325,8 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
-	count = cs.GetColumn("Count").([]int64)
+	count, ok = cs.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(1578240))
 
 	stmt = "SELECT count(*) from (SELECT count(*) from (select * from `AAPL/1Min/OHLCV`));"
@@ -340,7 +337,8 @@ func TestCount(t *testing.T) {
 	evalAndPrint(t, err, false, stmt)
 	cs, err = es.Materialize(aggRunner, metadata.CatalogDir)
 	evalAndPrint(t, err, false, stmt)
-	count = cs.GetColumn("Count").([]int64)
+	count, ok = cs.GetColumn("Count").([]int64)
+	assert.True(t, ok)
 	assert.Equal(t, count[0], int64(1))
 
 	/*
@@ -356,7 +354,7 @@ func TestCount(t *testing.T) {
 }
 
 /*
-Utility functions
+Utility functions.
 */
 type TestStmt struct {
 	n         int
@@ -534,7 +532,7 @@ var otherTestStatements = []TestStmt{
 
 func T_PrintExplain(mtree sqlparser.IMSTree, stmt string) {
 	result := sqlparser.Explain(mtree)
-	var printFiller = func(num int) {
+	printFiller := func(num int) {
 		for i := 0; i < num; i++ {
 			fmt.Printf("=")
 		}
@@ -550,6 +548,8 @@ func T_PrintExplain(mtree sqlparser.IMSTree, stmt string) {
 }
 
 func evalAndPrint(t *testing.T, err error, shouldErr bool, msg ...string) {
+	t.Helper()
+
 	if err != nil {
 		if len(msg) == 0 { // Default is to print only the error
 			fmt.Printf("\n%s\n", err.Error())
@@ -561,7 +561,10 @@ func evalAndPrint(t *testing.T, err error, shouldErr bool, msg ...string) {
 	}
 	assert.Equal(t, err != nil, shouldErr)
 }
+
 func parseAndPrintError(t *testing.T, stmt string, shouldErr bool) {
+	t.Helper()
+
 	_, err := sqlparser.BuildQueryTree(stmt)
 	evalAndPrint(t, err, shouldErr, stmt)
 }

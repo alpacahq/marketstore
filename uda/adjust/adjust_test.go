@@ -1,34 +1,28 @@
 package adjust
 
 import (
-	"fmt"
-	"io/ioutil"
 	"math"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/stretchr/testify/assert"
-
-	"github.com/alpacahq/marketstore/v4/utils/test"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata) {
+func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 	t.Helper()
 
 	rounderNum = math.Pow(10, 3)
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("adjust_test-%s", testName))
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
+	metadata, _, err := executor.NewInstanceSetup(t.TempDir(), nil, nil, 5,
+		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata
+	return metadata
 }
 
 type price struct {
@@ -56,7 +50,7 @@ func toColumnSeries(inputData []price) *io.ColumnSeries {
 	return cs
 }
 
-func evalCase(t *testing.T, testCase AdjustTestCase) {
+func evalCase(t *testing.T, testCase *AdjustTestCase) {
 	t.Helper()
 
 	symbol := "AAPL"
@@ -76,14 +70,20 @@ func evalCase(t *testing.T, testCase AdjustTestCase) {
 	aggfunc, _ := adj.New(am)
 	outputCs, _ := aggfunc.Accum(*tbk, am, inputCs)
 
-	outEpochs := outputCs.GetColumn("Epoch").([]int64)
-	outPrice := outputCs.GetColumn("Price").([]float64)
+	outEpochs, ok := outputCs.GetColumn("Epoch").([]int64)
+	assert.True(t, ok)
+	outPrice, ok := outputCs.GetColumn("Price").([]float64)
+	assert.True(t, ok)
 
 	assert.Equal(t, inputCs.Len(), outputCs.Len())
 
 	for i := range outPrice {
-		assert.Equal(t, outEpochs[i], testCase.expected[i].epoch, testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02"))
-		assert.Equal(t, outPrice[i], testCase.expected[i].price, testCase.description, time.Unix(outEpochs[i], 0).Format("2006-01-02"))
+		assert.Equal(t, outEpochs[i], testCase.expected[i].epoch, testCase.description,
+			time.Unix(outEpochs[i], 0).
+				Format("2006-01-02"))
+		assert.Equal(t, outPrice[i], testCase.expected[i].price, testCase.description,
+			time.Unix(outEpochs[i], 0).
+				Format("2006-01-02"))
 	}
 }
 
@@ -157,17 +157,18 @@ var testDifferentEvents = []AdjustTestCase{
 }
 
 func TestCase1(t *testing.T) {
-	tearDown, _, _ := setup(t, "TestCase1")
-	defer tearDown()
+	setup(t)
 
 	for _, testCase := range testDifferentEvents {
-		evalCase(t, testCase)
+		testCase := testCase
+		evalCase(t, &testCase)
 	}
 }
 
 var testDifferentDates = []AdjustTestCase{
 	{
-		description: `When an event occurs after the requested price range, every price should be adjusted. Assertion error at %s`,
+		description: `When an event occurs after the requested price range, every price should be adjusted. ` +
+			`Assertion error at %s`,
 		rateChanges: []RateChange{
 			{1, unixDate(2020, time.January, 20), enum.StockSplit, 2},
 		},
@@ -214,11 +215,11 @@ var testDifferentDates = []AdjustTestCase{
 }
 
 func TestCase2(t *testing.T) {
-	tearDown, _, _ := setup(t, "TestCase1")
-	defer tearDown()
+	setup(t)
 
 	for _, testCase := range testDifferentDates {
-		evalCase(t, testCase)
+		testCase := testCase
+		evalCase(t, &testCase)
 	}
 }
 
@@ -285,7 +286,8 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 	},
 
 	{
-		description: `Multiple events, one happens after, one before and one in the duration of the price range. Assertion error at %s`,
+		description: `Multiple events, one happens after, one before and one in the duration of the price range. ` +
+			`Assertion error at %s`,
 		rateChanges: []RateChange{
 			{1, unixDate(2019, time.December, 30), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 6), enum.StockSplit, 2},
@@ -344,10 +346,10 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 }
 
 func TestMultipleEventsOnDifferentDates(t *testing.T) {
-	tearDown, _, _ := setup(t, "TestMultipleEventsOnDifferentDates")
-	defer tearDown()
+	setup(t)
 
 	for _, testCase := range testMultipleEventsOnDifferentDates {
-		evalCase(t, testCase)
+		testCase := testCase
+		evalCase(t, &testCase)
 	}
 }

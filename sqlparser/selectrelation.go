@@ -7,12 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/catalog"
-
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -39,11 +37,13 @@ func isNanosec(epoch int64) bool {
 	return epoch > threshold
 }
 
+const nanosec = 1000000000
+
 func convertUnitToNanosec(epoch int64) int64 {
 	if isNanosec(epoch) {
 		return epoch
 	}
-	return epoch * 1000000000
+	return epoch * nanosec
 }
 
 func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Directory,
@@ -55,7 +55,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		//		fmt.Printf("Child nodes present...")
 		switch value := node.(type) {
 		case Relation: // Interface type
-			//fmt.Println("Subquery Interface found...")
+			// fmt.Println("Subquery Interface found...")
 			//			fmt.Println("Relation")
 			inputColumnSeries, err = value.Materialize()
 			if err != nil {
@@ -63,7 +63,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			}
 		case *SelectRelation:
 			//			fmt.Println("*SelectRelation")
-			//fmt.Println("Subquery found...")
+			// fmt.Println("Subquery found...")
 			inputColumnSeries, err = value.Materialize(aggRunner, catDir)
 			if err != nil {
 				return nil, err
@@ -95,11 +95,11 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		dsv = inputColumnSeries.GetDataShapes()
 	} else {
 		if len(sr.PrimaryTargetName) == 0 {
-			return nil, fmt.Errorf("Unable to retrieve table name")
+			return nil, fmt.Errorf("unable to retrieve table name")
 		}
 		key = io.NewTimeBucketKey(sr.PrimaryTargetName[0], "Symbol/Timeframe/AttributeGroup")
 		if key == nil {
-			return nil, fmt.Errorf("Table name must match \"one/two/three\" for three directory levels")
+			return nil, fmt.Errorf("table name must match \"one/two/three\" for three directory levels")
 		}
 		dsv, err = catDir.GetDataShapes(key)
 		if err != nil {
@@ -137,7 +137,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				allMissing, allTable)
 		}
 	}
-	//fmt.Println("Valid, Missing, Keeplist:", valid, missing, keepList)
+	// fmt.Println("Valid, Missing, Keeplist:", valid, missing, keepList)
 
 	/*
 		Get input results, either by query or using input results
@@ -153,24 +153,24 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		*/
 		if sp, ok := sr.StaticPredicates["Epoch"]; ok {
 			if sp.ContentsEnum.IsSet(MINBOUND) {
-				val, err := io.GetValueAsInt64(sp.min)
-				if err != nil {
-					return nil, fmt.Errorf("Non date predicate found for Epoch")
+				val, err2 := io.GetValueAsInt64(sp.min)
+				if err2 != nil {
+					return nil, fmt.Errorf("non date predicate found for Epoch")
 				}
 				if sp.ContentsEnum.IsSet(INCLUSIVEMIN) {
 					val += 1
 				}
-				q.SetStart(time.Unix(val/1000000000, val%1000000000))
+				q.SetStart(time.Unix(val/nanosec, val%nanosec))
 			}
 			if sp.ContentsEnum.IsSet(MAXBOUND) {
-				val, err := io.GetValueAsInt64(sp.max)
-				if err != nil {
-					return nil, fmt.Errorf("Non date predicate found for Epoch")
+				val, err2 := io.GetValueAsInt64(sp.max)
+				if err2 != nil {
+					return nil, fmt.Errorf("non date predicate found for Epoch")
 				}
 				if sp.ContentsEnum.IsSet(INCLUSIVEMAX) {
 					val -= 1
 				}
-				q.SetEnd(time.Unix(val/1000000000, val%1000000000))
+				q.SetEnd(time.Unix(val/nanosec, val%nanosec))
 			}
 		}
 
@@ -196,20 +196,20 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			}
 		}
 
-		parsed, err := q.Parse()
-		if err != nil {
-			return nil, err
+		parsed, err2 := q.Parse()
+		if err2 != nil {
+			return nil, err2
 		}
-		scanner, err := executor.NewReader(parsed)
-		if err != nil {
-			return nil, err
+		scanner, err2 := executor.NewReader(parsed)
+		if err2 != nil {
+			return nil, err2
 		}
-		csm, err := scanner.Read()
-		if err != nil {
-			return nil, err
+		csm, err2 := scanner.Read()
+		if err2 != nil {
+			return nil, err2
 		}
 		if len(csm) == 0 {
-			return nil, fmt.Errorf("No results returned from query")
+			return nil, fmt.Errorf("no results returned from query")
 		}
 
 		outputColumnSeries = csm[*key]
@@ -224,8 +224,8 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 		removalBitmap := make([]bool, totalLength) // true means we ditch the value, default is keep
 		for _, name := range outputColumnSeries.GetColumnNames() {
 			if sp, ok := sr.StaticPredicates[name]; ok {
-				i_col := outputColumnSeries.GetColumn(name)
-				switch col := i_col.(type) {
+				iCol := outputColumnSeries.GetColumn(name)
+				switch col := iCol.(type) {
 				case []float32:
 					if sp.ContentsEnum.IsSet(EQUALITY) {
 						eqval, _ := io.GetValueAsFloat64(sp.equal)
@@ -456,7 +456,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				}
 			}
 		}
-		outputColumnSeries.RestrictViaBitmap(removalBitmap)
+		_ = outputColumnSeries.RestrictViaBitmap(removalBitmap)
 	}
 
 	/*
@@ -475,7 +475,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				aggName := sl.FunctionCall.Name
 				agg := aggRunner.GetFunc(strings.ToLower(aggName))
 				if agg == nil {
-					return nil, fmt.Errorf("No function in the UDA Registry named \"%s\"", aggName)
+					return nil, fmt.Errorf("no function in the UDA Registry named \"%s\"", aggName)
 				}
 
 				argMap := functions.NewArgumentMap(agg.GetRequiredArgs(), agg.GetOptionalArgs()...)
@@ -509,7 +509,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				initList := sl.FunctionCall.GetLiterals()
 				if len(requiredInitNames) > len(initList) {
 					return nil, fmt.Errorf(
-						"Not enough init arguments for %s, need %d have %d",
+						"not enough init arguments for %s, need %d have %d",
 						aggName,
 						len(requiredInitNames),
 						len(initList),
@@ -518,6 +518,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				// TODO: Handle different argument types from string
 				var initArgList []string
 				for _, lit := range initList {
+					//nolint:forcetypeassert // hard to refactor for now
 					value := lit.Value.(string)
 					value = value[1 : len(value)-1] // Strip the quotes
 					initArgList = append(
@@ -525,9 +526,9 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 						value,
 					)
 				}
-				aggfunc, err := agg.New(argMap, initArgList)
-				if err != nil {
-					return nil, fmt.Errorf("init aggfunc: %w", err)
+				aggfunc, err2 := agg.New(argMap, initArgList)
+				if err2 != nil {
+					return nil, fmt.Errorf("init aggfunc: %w", err2)
 				}
 
 				/*
@@ -539,13 +540,13 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 				} else {
 					tbk = *key
 				}
-				functionResult, err := aggfunc.Accum(tbk, argMap, outputColumnSeries)
-				if err != nil {
-					return nil, err
+				functionResult, err2 := aggfunc.Accum(tbk, argMap, outputColumnSeries)
+				if err2 != nil {
+					return nil, err2
 				}
 				if functionResult == nil {
 					return nil, fmt.Errorf(
-						"No result from aggregate %s",
+						"no result from aggregate %s",
 						aggName)
 				}
 
@@ -566,7 +567,7 @@ func (sr *SelectRelation) Materialize(aggRunner *AggRunner, catDir *catalog.Dire
 			outputColumnSeries = io.NewColumnSeries()
 
 			// Add an Epoch column if one doesn't exist
-			ep := selectListOutput.GetByName("Epoch")
+			ep := selectListOutput.GetEpoch()
 			if ep == nil {
 				tNow := time.Now().UTC().Unix()
 				var epochCol []int64
@@ -630,6 +631,7 @@ func (sr *SelectRelation) GetLeft() IMSTree {
 }
 
 func (sr *SelectRelation) GetRight() IMSTree {
+	// nolint: gomnd // binary tree
 	if sr.GetChildCount() < 2 {
 		return nil
 	} else {
@@ -654,6 +656,7 @@ func (spg StaticPredicateGroup) Add(column *ColumnReference) *StaticPredicate {
 	}
 	return spg[name]
 }
+
 func (spg StaticPredicateGroup) AddComparison(column *ColumnReference,
 	op io.ComparisonOperatorEnum, value interface{}) {
 	sp := spg.Add(column) // Will add if not already present
@@ -666,7 +669,7 @@ func (spg StaticPredicateGroup) Merge(sp *StaticPredicate, IsOr bool) error {
 		TODO: Implement OR predicate logic in the Static Predicate
 	*/
 	if sp == nil {
-		return fmt.Errorf("Nil static predicate argumen")
+		return fmt.Errorf("nil static predicate argumen")
 	}
 	tgtSP := spg.Add(sp.Column) // Adds a new SP if not already there
 	if sp.ContentsEnum.IsSet(MINBOUND) {
@@ -697,9 +700,7 @@ func (spg StaticPredicateGroup) Merge(sp *StaticPredicate, IsOr bool) error {
 	}
 	if sp.ContentsEnum.IsSet(INLIST) {
 		tgtSP.ContentsEnum.AddOption(INLIST)
-		for _, item := range sp.inlist {
-			tgtSP.inlist = append(tgtSP.inlist, item)
-		}
+		tgtSP.inlist = append(tgtSP.inlist, sp.inlist...)
 	}
 	return nil
 }
@@ -736,8 +737,8 @@ func (sp *StaticPredicate) SetMin(newMin interface{}, inclusive bool) {
 	if inclusive {
 		sp.ContentsEnum.AddOption(INCLUSIVEMIN)
 	}
-
 }
+
 func (sp *StaticPredicate) SetMax(newMax interface{}, inclusive bool) {
 	sp.max = newMax
 	sp.ContentsEnum.AddOption(MAXBOUND)
@@ -745,15 +746,18 @@ func (sp *StaticPredicate) SetMax(newMax interface{}, inclusive bool) {
 		sp.ContentsEnum.AddOption(INCLUSIVEMAX)
 	}
 }
+
 func (sp *StaticPredicate) SetEqual(newEQ interface{}) {
 	sp.equal = newEQ
 	sp.ContentsEnum.AddOption(EQUALITY)
 }
+
 func (sp *StaticPredicate) SetLike(pattern, esc string) {
 	sp.likePattern = pattern
 	sp.likeEsc = esc
 	sp.ContentsEnum.AddOption(LIKEPATTERN)
 }
+
 func (sp *StaticPredicate) SetInlist(inlist []interface{}) {
 	sp.inlist = inlist
 	sp.ContentsEnum.AddOption(INLIST)
@@ -775,9 +779,11 @@ const (
 func (cat *StaticPredicateContentsEnum) AddOption(option StaticPredicateContentsEnum) {
 	*cat |= option
 }
+
 func (cat *StaticPredicateContentsEnum) DelOption(option StaticPredicateContentsEnum) {
 	*cat &= ^option
 }
+
 func (cat *StaticPredicateContentsEnum) IsSet(checkOption ...StaticPredicateContentsEnum) bool {
 	/*
 		Returns true if all supplied options are set
@@ -789,6 +795,7 @@ func (cat *StaticPredicateContentsEnum) IsSet(checkOption ...StaticPredicateCont
 	}
 	return true
 }
+
 func (cat *StaticPredicateContentsEnum) AnySet(checkOption ...StaticPredicateContentsEnum) bool {
 	/*
 		Returns true if any of the supplied options are set
@@ -857,14 +864,17 @@ func NewAliasedIdentifier(name ...string) (ai *AliasedIdentifier) {
 func (ai *AliasedIdentifier) AddRuntimeExpression(ep *ExpressionParse) {
 	ai.RuntimeExpression = ep
 }
+
 func (ai *AliasedIdentifier) AddFunctionCall(fc *FunctionCallReference) {
 	ai.FunctionCall = fc
 	ai.IsFunctionCall = true
 }
+
 func (ai *AliasedIdentifier) AddAlias(alias string) {
 	ai.IsAliased = true
 	ai.Alias = alias
 }
+
 func (ai *AliasedIdentifier) String() (out string) {
 	var buffer bytes.Buffer
 	buffer.WriteString("Identifier: ")
@@ -909,11 +919,12 @@ func SourceValidator(sourceDSV []io.DataShape, selectList []*AliasedIdentifier) 
 	sourceNames := io.GetNamesFromDSV(sourceDSV)
 	targetNamesSet, err := io.NewAnySet(keepList)
 	if err != nil {
-		return false, nil, nil, nil, fmt.Errorf("Unable to build set for target")
+		return false, nil, nil, nil, fmt.Errorf("unable to build set for target")
 	}
 	i_missingIDs := targetNamesSet.Subtract(sourceNames)
 	var missingIDs []string
 	if i_missingIDs != nil {
+		//nolint:forcetypeassert // hard to refactor for now
 		missingIDs = i_missingIDs.([]string)
 	}
 	if len(missingIDs) != 0 {
@@ -923,6 +934,7 @@ func SourceValidator(sourceDSV []io.DataShape, selectList []*AliasedIdentifier) 
 		Find the list of names in the source not needed by the target
 	*/
 	sourceNamesSet, _ := io.NewAnySet(sourceNames)
+	//nolint:forcetypeassert // hard to refactor for now
 	projectionList = sourceNamesSet.Subtract(keepList).([]string)
 
 	return true, nil, keepList, projectionList, nil

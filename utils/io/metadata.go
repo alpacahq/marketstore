@@ -2,22 +2,37 @@ package io
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
-	"sync"
-	"unsafe"
-
-	"fmt"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const Headersize = 37024
-const FileinfoVersion = int64(2.0)
+const (
+	epochColumnName = "Epoch"
+	// see docs/design/file_format_design.txt for the details.
+	versionHeaderBytes     = 8
+	descriptionHeaderBytes = 256
+	yearHeaderBytes        = 8
+	intervalsHeaderBytes   = 8
+	recordTypeHeaderBytes  = 8 // 0: fixed length records, 1: variable length records
+	nFieldsHeaderBytes     = 8 // number of fields per record
+	recLenHeaderBytes      = 8 // recordLength
+	reservedHeader1Bytes   = 8
+	elementNameHeaderBytes = 32   // 32bytes per element
+	maxNumElements         = 1024 // max number of elements in a bucket
+	reservedHeader2Bytes   = 365
+	Headersize             = 37024
+	FileinfoVersion        = int64(2.0)
+	epochLenBytes          = 8
+)
 
 func nanosecondsInYear(year int) int64 {
 	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
@@ -25,8 +40,8 @@ func nanosecondsInYear(year int) int64 {
 	return end.Sub(start).Nanoseconds()
 }
 
-// FileSize returns the necessary size for a data file
-func FileSize(tf time.Duration, year int, recordSize int) int64 {
+// FileSize returns the necessary size for a data file.
+func FileSize(tf time.Duration, year, recordSize int) int64 {
 	return Headersize + (nanosecondsInYear(year)/tf.Nanoseconds())*int64(recordSize)
 }
 
@@ -43,15 +58,23 @@ type TimeBucketInfo struct {
 	timeframe   time.Duration
 	nElements   int32
 	recordType  EnumRecordType
-	/*
-	   recordLength:
-	   - For fixed recordType, the sum of field lengths in elementTypes
-	   - For variable recordType, this is the length of the indirect data pointer {index, offset, len}
-	*/
-	recordLength         int32
-	variableRecordLength int32 // In case of variable recordType, the sum of field lengths in elementTypes
-	elementNames         []string
-	elementTypes         []EnumElementType
+	// recordLength:
+	// - For fixed recordType, the sum of field lengths in elementTypes.
+	//   - e.g. if the columns are "Epoch(INT64), Ask(FLOAT32), Bid(FLOAT32)", recordLength=8+4+4=16.
+	// - For variable recordType, this is the length of the indirect data pointer {index, offset, len}
+	//   - as of 2022-02-01, always 24(=8+8+8)[byte].
+	recordLength int32
+	// variableRecordLength:
+	// - For fixed recordType, always 0.
+	// - In case of variable recordType, the sum of field lengths in elementTypes.
+	//   - it doesn't include "Epoch" or "Nanoseconds" column, but include "IntervalTicks" bytes(=4 bytes).
+	//   - e.g. if the columns are "Epoch(INT64), Ask(FLOAT32), Bid(FLOAT32), Nanoseconds(INT32)",
+	//     variableRecordLength=12(Ask(4byte)+Bid(4byte)+IntervalTicks(4byte))
+	variableRecordLength int32
+	// e.g. []string{"Bid", "Ask"}.  elementNames doesn't include "Epoch" column or "Nanoseconds" column.
+	elementNames []string
+	// e.g. []io.EnumElementType{FLOAT32, FLOAT32}. elementTypes doesn't include "Epoch" column or "Nanoseconds" column.
+	elementTypes []EnumElementType
 
 	once sync.Once
 }
@@ -65,7 +88,9 @@ func AlignedSize(unalignedSize int) (alignedSize int) {
 	return unalignedSize + machineWordSize - remainder
 }
 
-func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16, dsv []DataShape, recordType EnumRecordType) (f *TimeBucketInfo) {
+func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16,
+	dsv []DataShape, recordType EnumRecordType,
+) (f *TimeBucketInfo) {
 	elementTypes, elementNames := CreateShapesForTimeBucketInfo(dsv)
 	f = &TimeBucketInfo{
 		version:      FileinfoVersion,
@@ -80,7 +105,7 @@ func NewTimeBucketInfo(tf utils.Timeframe, path, description string, year int16,
 		recordType:   recordType,
 	}
 	if f.recordType == FIXED {
-		f.recordLength = int32(AlignedSize(f.getFieldRecordLength())) + 8 // add an 8-byte epoch field
+		f.recordLength = int32(AlignedSize(f.getFieldRecordLength())) + epochLenBytes // add an 8-byte epoch field
 	} else if f.recordType == VARIABLE {
 		f.recordLength = 24 // Length of the indirect data pointer {index, offset, len}
 		f.variableRecordLength = 0
@@ -95,7 +120,7 @@ func CreateShapesForTimeBucketInfo(dsv []DataShape) (elementTypes []EnumElementT
 
 	*/
 	for _, shape := range dsv {
-		if shape.Name != "Epoch" {
+		if shape.Name != epochColumnName {
 			elementTypes = append(elementTypes, shape.Type)
 			elementNames = append(elementNames, shape.Name)
 		}
@@ -110,7 +135,7 @@ func (f *TimeBucketInfo) GetDataShapes() []DataShape {
 }
 
 func (f *TimeBucketInfo) GetDataShapesWithEpoch() (out []DataShape) {
-	ep := DataShape{Name: "Epoch", Type: INT64}
+	ep := DataShape{Name: epochColumnName, Type: INT64}
 	dsv := f.GetDataShapes()
 	out = append(out, ep)
 	out = append(out, dsv...)
@@ -180,7 +205,7 @@ func (f *TimeBucketInfo) GetTimeframe() time.Duration {
 // GetIntervals returns the number of records that can fit in a 24 hour day.
 func (f *TimeBucketInfo) GetIntervals() int64 {
 	f.once.Do(f.initFromFile)
-	return int64(utils.Day.Nanoseconds()) / int64(f.timeframe.Nanoseconds())
+	return utils.Day.Nanoseconds() / f.timeframe.Nanoseconds()
 }
 
 // GetNelements returns the number of elements (data fields) for a given
@@ -191,50 +216,51 @@ func (f *TimeBucketInfo) GetNelements() int32 {
 }
 
 // GetRecordLength returns the length of a single record in the file described
-// by the given TimeBucketInfo
+// by the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetRecordLength() int32 {
 	f.once.Do(f.initFromFile)
 	return f.recordLength
 }
 
 // GetVariableRecordLength returns the length of a single record for a variable
-// length TimeBucketInfo file
+// length TimeBucketInfo file.
 func (f *TimeBucketInfo) GetVariableRecordLength() int32 {
+	const intervalTicksLenBytes = 4
 	f.once.Do(f.initFromFile)
 
 	if f.recordType == VARIABLE && f.variableRecordLength == 0 {
 		// Variable records use the raw element sizes plus a 4-byte trailer for interval ticks
-		f.variableRecordLength = int32(f.getFieldRecordLength()) + 4 // Variable records have a 4-byte trailer
+		f.variableRecordLength = int32(f.getFieldRecordLength()) + intervalTicksLenBytes
 	}
 	return f.variableRecordLength
 }
 
 // GetRecordType returns the type of the file described by the TimeBucketInfo
-// as an EnumRecordType
+// as an EnumRecordType.
 func (f *TimeBucketInfo) GetRecordType() EnumRecordType {
 	f.once.Do(f.initFromFile)
 	return f.recordType
 }
 
 // GetElementNames returns the field names contained by the file described by
-// the given TimeBucketInfo
+// the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetElementNames() []string {
 	f.once.Do(f.initFromFile)
 	return f.elementNames
 }
 
 // GetElementTypes returns the field types contained by the file described by
-// the given TimeBucketInfo
+// the given TimeBucketInfo.
 func (f *TimeBucketInfo) GetElementTypes() []EnumElementType {
 	f.once.Do(f.initFromFile)
 	return f.elementTypes
 }
 
 // SetElementTypes sets the field types contained by the file described by
-// the given TimeBucketInfo
+// the given TimeBucketInfo.
 func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 	if len(newTypes) != len(f.elementTypes) {
-		return fmt.Errorf("Element count not equal")
+		return fmt.Errorf("element count not equal")
 	}
 	for i, val := range newTypes {
 		f.elementTypes[i] = val
@@ -243,33 +269,45 @@ func (f *TimeBucketInfo) SetElementTypes(newTypes []EnumElementType) error {
 }
 
 func (f *TimeBucketInfo) readHeader(path string) (err error) {
+	const headerPart1Bytes = versionHeaderBytes + descriptionHeaderBytes + yearHeaderBytes + intervalsHeaderBytes +
+		recordTypeHeaderBytes + nFieldsHeaderBytes + recLenHeaderBytes + reservedHeader1Bytes
 	file, err := os.Open(path)
 	if err != nil {
-		log.Error("Failed to open file: %v - Error: %v", path, err)
+		log.Error("Failed to open file: %v - Error: %v", path, err.Error())
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		if err2 := file.Close(); err2 != nil {
+			log.Error("failed to close file: %v - Error: %v", path, err2.Error())
+		}
+	}(file)
+
 	var buffer [Headersize]byte
 	header := (*Header)(unsafe.Pointer(&buffer))
 	// Read the top part of the header, which is not dependent on the number of elements
-	n, err := file.Read(buffer[:312])
-	if err != nil || n != 312 {
+	n, err := file.Read(buffer[:headerPart1Bytes])
+	if err != nil || n != headerPart1Bytes {
 		log.Error("Failed to read header part1 from file: %v - Error: %v", path, err)
 		return err
 	}
 
 	// Second part of read element names
-	secondReadSize := header.NElements * 32
-	n, err = file.Read(buffer[312 : 312+secondReadSize])
+	secondReadSize := header.NElements * elementNameHeaderBytes
+	n, err = file.Read(buffer[headerPart1Bytes : headerPart1Bytes+secondReadSize])
 	if err != nil || n != int(secondReadSize) {
 		log.Error("Failed to read header part2 from file: %v - Error: %v", path, err)
 		return err
 	}
+
 	// Read past empty element name space
-	file.Seek(1024*32-secondReadSize, io.SeekCurrent)
+	_, err = file.Seek(maxNumElements*elementNameHeaderBytes-secondReadSize, io.SeekCurrent)
+	if err != nil {
+		log.Error("Failed to read empty space for element names from file: %v - Error: %v", path, err)
+		return err
+	}
 
 	// Read element types
-	start := 312 + 1024*32
+	start := headerPart1Bytes + maxNumElements*elementNameHeaderBytes
 	n, err = file.Read(buffer[start : start+int(header.NElements)])
 	if err != nil || n != int(header.NElements) {
 		log.Error("Failed to read header part3 from file: %v - Error: %v", path, err)
@@ -307,27 +345,29 @@ func (f *TimeBucketInfo) load(hp *Header, path string) {
 	}
 }
 
-// NewTimeBucketInfoFromHeader creates a TimeBucketInfo from a given Header
+// NewTimeBucketInfoFromHeader creates a TimeBucketInfo from a given Header.
 func NewTimeBucketInfoFromHeader(hp *Header, path string) *TimeBucketInfo {
 	tbi := new(TimeBucketInfo)
 	tbi.load(hp, path)
 	return tbi
 }
 
-// Header is the on-disk byte representation of the file header
+// Header is the on-disk byte representation of the file header.
 type Header struct {
 	Version      int64
-	Description  [256]byte
+	Description  [descriptionHeaderBytes]byte
 	Year         int64
 	Timeframe    int64 // Duration in nanoseconds
 	RecordType   int64
 	NElements    int64
 	RecordLength int64
-	reserved1    int64
+
+	reserved1 int64
 	// Above is the fixed header portion - size is 312 Bytes = (7*8 + 256)
-	ElementNames [1024][32]byte
-	ElementTypes [1024]byte
-	reserved2    [365]int64
+	ElementNames [maxNumElements][elementNameHeaderBytes]byte
+	ElementTypes [maxNumElements]byte
+
+	reserved2 [reservedHeader2Bytes]int64
 }
 
 // WriteHeader writes the header described by a given TimeBucketInfo to the
@@ -340,7 +380,7 @@ func WriteHeader(file *os.File, f *TimeBucketInfo) error {
 	return err
 }
 
-// Load loads the header information from a given TimeBucketInfo
+// Load loads the header information from a given TimeBucketInfo.
 func (hp *Header) Load(f *TimeBucketInfo) {
 	if f.GetVersion() != FileinfoVersion {
 		log.Warn(
@@ -350,7 +390,7 @@ func (hp *Header) Load(f *TimeBucketInfo) {
 	hp.Version = f.GetVersion()
 	copy(hp.Description[:], f.GetDescription())
 	hp.Year = int64(f.Year)
-	hp.Timeframe = int64(f.GetTimeframe().Nanoseconds())
+	hp.Timeframe = f.GetTimeframe().Nanoseconds()
 	hp.NElements = int64(f.GetNelements())
 	hp.RecordLength = int64(f.GetRecordLength())
 	hp.RecordType = int64(f.GetRecordType())

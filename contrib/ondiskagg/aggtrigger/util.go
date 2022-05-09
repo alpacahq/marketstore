@@ -12,6 +12,7 @@ func (tfs *timeframes) UpperBound() (tf *utils.Timeframe) {
 	}
 
 	for _, t := range *tfs {
+		t := t
 		if tf == nil {
 			tf = &t
 			continue
@@ -22,7 +23,7 @@ func (tfs *timeframes) UpperBound() (tf *utils.Timeframe) {
 		}
 	}
 
-	return
+	return tf
 }
 
 func (tfs *timeframes) LowerBound() (tf *utils.Timeframe) {
@@ -31,6 +32,7 @@ func (tfs *timeframes) LowerBound() (tf *utils.Timeframe) {
 	}
 
 	for _, t := range *tfs {
+		t := t
 		if tf == nil {
 			tf = &t
 			continue
@@ -41,5 +43,5 @@ func (tfs *timeframes) LowerBound() (tf *utils.Timeframe) {
 		}
 	}
 
-	return
+	return tf
 }

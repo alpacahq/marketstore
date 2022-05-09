@@ -1,35 +1,12 @@
 package executor
 
 import (
-	"runtime"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var mem runtime.MemStats
-
-func AllocatedHeap() uint64 {
-	runtime.ReadMemStats(&mem)
-	return mem.HeapAlloc
-}
-
-func TimeAndHeap(n int, f func()) (t int64, h uint64) {
-	ah_before := AllocatedHeap()
-	time_before := time.Now().UnixNano()
-
-	// execute n times
-	for k := 0; k < n; k++ {
-		f()
-	}
-
-	time_after := time.Now().UnixNano()
-	ah_after := AllocatedHeap()
-	return time_after - time_before, ah_after - ah_before
-}
-
-// TestRewriteBuffer checks the compatibility of C and Go implementations of rewrite buffer
+// TestRewriteBuffer checks the compatibility of C and Go implementations of rewrite buffer.
 func TestRewriteBuffer(t *testing.T) {
 	t.Parallel()
 	// --- given ---

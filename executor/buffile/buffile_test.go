@@ -1,28 +1,25 @@
 package buffile_test
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
-	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
 func TestBufferedFile(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", fmt.Sprintf("plugins_test-%s", "TestBufferedFile"))
-	defer test.CleanupDummyDataDir(tempDir)
-
-	filePath := filepath.Join(tempDir, "test.bin")
-	fp, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0700)
-	assert.Nil(t, err)
+	filePath := filepath.Join(t.TempDir(), "test.bin")
+	fp, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o700)
+	require.Nil(t, err)
 	err = fp.Truncate(1024 * 1024)
-	assert.Nil(t, err)
-	fp.Close()
+	require.Nil(t, err)
+	err = fp.Close()
+	require.Nil(t, err)
 
 	bf, err := buffile.New(filePath)
 	assert.Nil(t, err)
@@ -34,16 +31,22 @@ func TestBufferedFile(t *testing.T) {
 	offset2 := offset * 3
 	offset3 := int64(buffile.DefaultBlockSize - 2)
 	offset4 := int64(1024*1024 - len(dataIn))
-	bf.WriteAt(dataIn, offset)
-	bf.WriteAt(dataIn, offset2)
-	bf.WriteAt(dataIn, offset3)
-	bf.WriteAt(dataIn, offset4)
-	bf.Close()
+	_, err = bf.WriteAt(dataIn, offset)
+	require.Nil(t, err)
+	_, err = bf.WriteAt(dataIn, offset2)
+	require.Nil(t, err)
+	_, err = bf.WriteAt(dataIn, offset3)
+	require.Nil(t, err)
+	_, err = bf.WriteAt(dataIn, offset4)
+	require.Nil(t, err)
+	err = bf.Close()
+	require.Nil(t, err)
 
 	fp, err = os.Open(filePath)
+	assert.Nil(t, err)
 	checkFunc := func(offset int64, size int) {
 		outData := make([]byte, size+2)
-		fp.ReadAt(outData, offset-1)
+		_, _ = fp.ReadAt(outData, offset-1)
 		assert.Equal(t, outData[0], byte(0x00))
 		for i := 0; i < size; i++ {
 			assert.Equal(t, outData[i+1], byte(0xaa))

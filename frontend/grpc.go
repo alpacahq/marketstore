@@ -56,7 +56,7 @@ func NewGRPCService(rootDir string, catDir *catalog.Directory, aggRunner *sqlpar
 	}
 }
 
-func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (*proto.MultiQueryResponse, error) {
+func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*proto.MultiQueryResponse, error) {
 	response := proto.MultiQueryResponse{}
 	response.Version = utils.GitHash
 	response.Timezone = utils.InstanceConfig.Timezone.String()
@@ -175,7 +175,12 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 						return nil, err
 					}
 				} else {
-					nmds.Append(cs, tbk)
+					err := nmds.Append(cs, tbk)
+					if err != nil {
+						return nil, fmt.Errorf("symbols in a query must have the same data type "+
+							"or be filtered by common columns. symbols=%v", csm.GetMetadataKeys(),
+						)
+					}
 				}
 			}
 
@@ -187,7 +192,6 @@ func (s GRPCService) Query(ctx context.Context, reqs *proto.MultiQueryRequest) (
 				&proto.QueryResponse{
 					Result: ToProtoNumpyMultiDataSet(nmds),
 				})
-
 		}
 	}
 	return &response, nil
@@ -205,8 +209,8 @@ func (s GRPCService) Write(ctx context.Context, reqs *proto.MultiWriteRequest) (
 			appendResponse(&response, err)
 			continue
 		}
-		//TODO: There should be an error response for every server request, need to add the below commented line
-		//appendResponse(err, response)
+		// TODO: There should be an error response for every server request, need to add the below commented line
+		// appendResponse(err, response)
 	}
 	return &response, nil
 }
@@ -253,7 +257,7 @@ func convertIntMap(m map[string]int) map[string]int32 {
 	return ret
 }
 
-// NewDataShapeVector returns a new array of io.DataShape for the given array of proto.DataShape inputs
+// NewDataShapeVector returns a new array of io.DataShape for the given array of proto.DataShape inputs.
 func NewDataShapeVector(dataShapes []*proto.DataShape) (dsv []io.DataShape, err error) {
 	for _, ds := range dataShapes {
 		elemType, ok := io.TypeStrToElemType(ds.Type)
@@ -280,10 +284,11 @@ func appendResponse(mr *proto.MultiServerResponse, err error) {
 	)
 }
 
-func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequest) (*proto.ListSymbolsResponse, error) {
+func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequest,
+) (*proto.ListSymbolsResponse, error) {
 	response := proto.ListSymbolsResponse{}
 	if atomic.LoadUint32(&Queryable) == 0 {
-		return nil, queryableError
+		return nil, errNotQueryable
 	}
 
 	switch req.Format {
@@ -291,9 +296,7 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 		for symbol := range s.catalogDir.GatherCategoriesAndItems()["Symbol"] {
 			response.Results = append(response.Results, symbol)
 		}
-	case proto.ListSymbolsRequest_TIME_BUCKET_KEY:
-		fallthrough
-	default:
+	default: // proto.ListSymbolsRequest_TIME_BUCKET_KEY:
 		response.Results = catalog.ListTimeBucketKeyNames(s.catalogDir)
 	}
 
@@ -334,7 +337,7 @@ func (s GRPCService) Create(ctx context.Context, req *proto.MultiCreateRequest) 
 
 		err = s.catalogDir.AddTimeBucket(tbk, tbinfo)
 		if err != nil {
-			err = fmt.Errorf("creation of new catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("creation of new catalog entry failed: %w", err)
 			appendResponse(&response, err)
 			continue
 		}
@@ -351,7 +354,7 @@ func (s GRPCService) Destroy(ctx context.Context, req *proto.MultiKeyRequest) (*
 	for _, req := range req.Requests {
 		// Construct a time bucket key from the input string
 		parts := strings.Split(req.Key, ":")
-		if len(parts) < 2 {
+		if len(parts) < colonSeparatedPartsLen {
 			// The schema string is optional for Delete, so we append a blank if none is provided
 			parts = append(parts, "")
 		}
@@ -365,7 +368,7 @@ func (s GRPCService) Destroy(ctx context.Context, req *proto.MultiKeyRequest) (*
 
 		err := s.catalogDir.RemoveTimeBucket(tbk)
 		if err != nil {
-			err = fmt.Errorf("removal of catalog entry failed: %s", err.Error())
+			err = fmt.Errorf("removal of catalog entry failed: %w", err)
 			appendResponse(&response, err)
 			continue
 		}
@@ -375,7 +378,8 @@ func (s GRPCService) Destroy(ctx context.Context, req *proto.MultiKeyRequest) (*
 	return &response, nil
 }
 
-func (s GRPCService) ServerVersion(ctx context.Context, req *proto.ServerVersionRequest) (*proto.ServerVersionResponse, error) {
+func (s GRPCService) ServerVersion(ctx context.Context, req *proto.ServerVersionRequest,
+) (*proto.ServerVersionResponse, error) {
 	return &proto.ServerVersionResponse{
 		Version: utils.GitHash,
 	}, nil

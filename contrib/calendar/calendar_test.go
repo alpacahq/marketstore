@@ -1,6 +1,7 @@
 package calendar
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -45,4 +46,11 @@ func TestCalendar(t *testing.T) {
 	assert.True(t, Nasdaq.IsMarketDay(bestDayLate))
 
 	assert.Equal(t, Nasdaq.Tz().String(), "America/New_York")
+}
+
+func Test_jd(t *testing.T) {
+	now := time.Now()
+	fmt.Println(julianDate(now))
+	fmt.Println(julianDate(now.Add(24 * time.Hour)))
+	fmt.Println(julianDate(now.AddDate(0, 1, 0)))
 }

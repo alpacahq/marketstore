@@ -11,17 +11,21 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/replication"
 	"github.com/alpacahq/marketstore/v4/utils"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var (
 	offset = []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	// index starts from 1
+	// index starts from 1.
 	index = []byte{1, 0, 0, 0, 0, 0, 0, 0}
 	// tbk=AMMZN:1Min:OHLC, year=2020, epoch=2020-01-01 00:00:00
-	// Open: 1, High: 2, Low: 3, Close: 4
-	buffer32           = []byte{1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0}
+	// Open: 1, High: 2, Low: 3, Close: 4.
+	buffer32 = []byte{
+		1, 0, 0, 0, 0, 0, 0, 0,
+		2, 0, 0, 0, 0, 0, 0, 0,
+		3, 0, 0, 0, 0, 0, 0, 0,
+		4, 0, 0, 0, 0, 0, 0, 0,
+	}
 	recordSize         = int32(32)
 	variableRecordDate = time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
 )
@@ -59,13 +63,13 @@ func makeMockOffsetIndexBufferVariable(t time.Time, tf *utils.Timeframe, buffer 
 	return oib
 }
 
-func makeMockOHLCColumnSeries(epoch time.Time, open, high, low, close int64) *io.ColumnSeries {
+func makeMockOHLCColumnSeries(epoch time.Time, open, high, low, clos int64) *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{epoch.Unix()})
 	cs.AddColumn("Open", []int64{open})
 	cs.AddColumn("High", []int64{high})
 	cs.AddColumn("Low", []int64{low})
-	cs.AddColumn("Close", []int64{close})
+	cs.AddColumn("Close", []int64{clos})
 
 	if epoch.Nanosecond() != 0 {
 		cs.AddColumn("Nanoseconds", []int32{int32(epoch.Nanosecond())})
@@ -74,6 +78,7 @@ func makeMockOHLCColumnSeries(epoch time.Time, open, high, low, close int64) *io
 }
 
 func TestReplayerImpl_Replay(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                 string
 		wtSets               []wal.WTSet
@@ -102,8 +107,8 @@ func TestReplayerImpl_Replay(t *testing.T) {
 			writeErr: false,
 			wantCSM: io.ColumnSeriesMap(
 				map[io.TimeBucketKey]*io.ColumnSeries{
-					{Key: "AMZN/1Min/OHLC:Symbol/Timeframe/AttributeGroup"}: makeMockOHLCColumnSeries(
-						time.Date(2020, 01, 01, 00, 00, 00, 0, time.UTC),
+					*io.NewTimeBucketKey("AMZN/1Min/OHLC"): makeMockOHLCColumnSeries(
+						time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 						1, 2, 3, 4,
 					),
 				},
@@ -134,7 +139,7 @@ func TestReplayerImpl_Replay(t *testing.T) {
 			writeErr: false,
 			wantCSM: io.ColumnSeriesMap(
 				map[io.TimeBucketKey]*io.ColumnSeries{
-					{Key: "AMZN/1Sec/OHLC:Symbol/Timeframe/AttributeGroup"}: makeMockOHLCColumnSeries(variableRecordDate, 1, 2, 3, 4),
+					*io.NewTimeBucketKey("AMZN/1Sec/OHLC"): makeMockOHLCColumnSeries(variableRecordDate, 1, 2, 3, 4),
 				},
 			),
 			wantIsVariableLength: true,

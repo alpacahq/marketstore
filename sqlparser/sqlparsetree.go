@@ -19,14 +19,16 @@ type StatementsParse struct {
 }
 
 func NewStatementsParse(node antlr.Tree, queryText string) (term *StatementsParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.StatementsContext)
 	term = new(StatementsParse)
 	term.QueryText = queryText
 	term.AddChild(NewStatementParse(ctx.Statement(), queryText))
 	return term
 }
-func (sp *StatementsParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *StatementsParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type StatementParse struct {
@@ -74,24 +76,25 @@ func NewStatementParse(node antlr.Tree, queryText string) (term *StatementParse)
 	}
 	return term
 }
-func (sp *StatementParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.query, level+1)...)
-	out = append(out, Explain(sp.columnAliases, level+1)...)
-	out = append(out, Explain(sp.from, level+1)...)
-	out = append(out, Explain(sp.to, level+1)...)
-	out = append(out, Explain(sp.tableName, level+1)...)
-	out = append(out, Explain(sp.column, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.qualifiedNames, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.tableElements, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.booleanExpressions, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.callArguments, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.privileges, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.explainOptions, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.identifiers, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.expressions, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.sortItems, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.transactionModes, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *StatementParse) String(level int) (out []string) {
+	out = append(out, Explain(v.query, level+1)...)
+	out = append(out, Explain(v.columnAliases, level+1)...)
+	out = append(out, Explain(v.from, level+1)...)
+	out = append(out, Explain(v.to, level+1)...)
+	out = append(out, Explain(v.tableName, level+1)...)
+	out = append(out, Explain(v.column, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.qualifiedNames, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.tableElements, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.booleanExpressions, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.callArguments, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.privileges, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.explainOptions, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.identifiers, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.expressions, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.sortItems, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.transactionModes, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type QueryParse struct {
@@ -100,14 +103,16 @@ type QueryParse struct {
 }
 
 func NewQueryParse(node antlr.Tree) (term *QueryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QueryContext)
 	term = new(QueryParse)
 	term.queryNoWith = NewQueryNoWithParse(ctx.QueryNoWith())
 	return term
 }
-func (sp *QueryParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.queryNoWith, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *QueryParse) String(level int) (out []string) {
+	out = append(out, Explain(v.queryNoWith, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type QueryNoWithParse struct {
@@ -118,6 +123,7 @@ type QueryNoWithParse struct {
 }
 
 func NewQueryNoWithParse(node antlr.Tree) (term *QueryNoWithParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QueryNoWithContext)
 	term = new(QueryNoWithParse)
 	term.queryTerm = NewQueryTermParse(ctx.QueryTerm())
@@ -130,10 +136,11 @@ func NewQueryNoWithParse(node antlr.Tree) (term *QueryNoWithParse) {
 	}
 	return term
 }
-func (sp *QueryNoWithParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.queryTerm, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.sortItems, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *QueryNoWithParse) String(level int) (out []string) {
+	out = append(out, Explain(v.queryTerm, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.sortItems, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type QueryTermParse struct {
@@ -160,6 +167,7 @@ func NewQueryTermParse(node antlr.Tree) (term *QueryTermParse) {
 			term.operator = EXCEPT
 		}
 		if ctx.SetQuantifier() != nil {
+			//nolint:forcetypeassert // hard to refactor for now
 			cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 			switch {
 			case cctx.DISTINCT() != nil:
@@ -172,11 +180,12 @@ func NewQueryTermParse(node antlr.Tree) (term *QueryTermParse) {
 
 	return term
 }
-func (sp *QueryTermParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.left, level+1)...)
-	out = append(out, Explain(sp.right, level+1)...)
-	out = append(out, Explain(sp.queryPrimary, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *QueryTermParse) String(level int) (out []string) {
+	out = append(out, Explain(v.left, level+1)...)
+	out = append(out, Explain(v.right, level+1)...)
+	out = append(out, Explain(v.queryPrimary, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type QueryPrimaryParse struct {
@@ -203,12 +212,13 @@ func NewQueryPrimaryParse(node antlr.Tree) (term *QueryPrimaryParse) {
 
 	return term
 }
-func (sp *QueryPrimaryParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.querySpec, level+1)...)
-	out = append(out, Explain(sp.tableName, level+1)...)
-	out = append(out, Explain(sp.subquery, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.expressions, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *QueryPrimaryParse) String(level int) (out []string) {
+	out = append(out, Explain(v.querySpec, level+1)...)
+	out = append(out, Explain(v.tableName, level+1)...)
+	out = append(out, Explain(v.subquery, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.expressions, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SortItemParse struct {
@@ -219,6 +229,7 @@ type SortItemParse struct {
 }
 
 func NewSortItemParse(node antlr.Tree) (term *SortItemParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SortItemContext)
 	term = new(SortItemParse)
 	term.expression = NewExpressionParse(ctx.Expression())
@@ -240,9 +251,10 @@ func NewSortItemParse(node antlr.Tree) (term *SortItemParse) {
 	}
 	return term
 }
-func (sp *SortItemParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.expression, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SortItemParse) String(level int) (out []string) {
+	out = append(out, Explain(v.expression, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type QuerySpecificationParse struct {
@@ -253,9 +265,11 @@ type QuerySpecificationParse struct {
 }
 
 func NewQuerySpecificationParse(node antlr.Tree) (term *QuerySpecificationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QuerySpecificationContext)
 	term = new(QuerySpecificationParse)
 	if ctx.SetQuantifier() != nil {
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 		switch {
 		case cctx.DISTINCT() != nil:
@@ -283,13 +297,14 @@ func NewQuerySpecificationParse(node antlr.Tree) (term *QuerySpecificationParse)
 	}
 	return term
 }
-func (sp *QuerySpecificationParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.having, level+1)...)
-	out = append(out, Explain(sp.groupBy, level+1)...)
-	out = append(out, Explain(sp.where, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.selectItems, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.relations, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *QuerySpecificationParse) String(level int) (out []string) {
+	out = append(out, Explain(v.having, level+1)...)
+	out = append(out, Explain(v.groupBy, level+1)...)
+	out = append(out, Explain(v.where, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.selectItems, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.relations, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type GroupByParse struct {
@@ -299,9 +314,11 @@ type GroupByParse struct {
 }
 
 func NewGroupByParse(node antlr.Tree) (term *GroupByParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.GroupByContext)
 	term = new(GroupByParse)
 	if ctx.SetQuantifier() != nil {
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 		switch {
 		case cctx.DISTINCT() != nil:
@@ -316,9 +333,10 @@ func NewGroupByParse(node antlr.Tree) (term *GroupByParse) {
 	}
 	return term
 }
-func (sp *GroupByParse) String(level int) (out []string) {
-	out = append(out, ExplainAllItemsInList(sp.groupingElements, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *GroupByParse) String(level int) (out []string) {
+	out = append(out, ExplainAllItemsInList(v.groupingElements, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type GroupingElementParse struct {
@@ -351,12 +369,13 @@ func NewGroupingElementParse(node antlr.Tree) (term *GroupingElementParse) {
 	}
 	return term
 }
-func (sp *GroupingElementParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.groupingExp, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.rollupNames, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.cubeNames, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.groupingSets, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *GroupingElementParse) String(level int) (out []string) {
+	out = append(out, Explain(v.groupingExp, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.rollupNames, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.cubeNames, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.groupingSets, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type GroupingExpressionsParse struct {
@@ -365,6 +384,7 @@ type GroupingExpressionsParse struct {
 }
 
 func NewGroupingExpressionsParse(node antlr.Tree) (term *GroupingExpressionsParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.GroupingExpressionsContext)
 	term = new(GroupingExpressionsParse)
 	for _, cctx := range ctx.AllExpression() {
@@ -373,9 +393,10 @@ func NewGroupingExpressionsParse(node antlr.Tree) (term *GroupingExpressionsPars
 	}
 	return term
 }
-func (sp *GroupingExpressionsParse) String(level int) (out []string) {
-	out = append(out, ExplainAllItemsInList(sp.expressions, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *GroupingExpressionsParse) String(level int) (out []string) {
+	out = append(out, ExplainAllItemsInList(v.expressions, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type GroupingSetParse struct {
@@ -384,6 +405,7 @@ type GroupingSetParse struct {
 }
 
 func NewGroupingSetParse(node antlr.Tree) (term *GroupingSetParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.GroupingSetContext)
 	term = new(GroupingSetParse)
 	for _, cctx := range ctx.AllQualifiedName() {
@@ -392,9 +414,10 @@ func NewGroupingSetParse(node antlr.Tree) (term *GroupingSetParse) {
 	}
 	return term
 }
-func (sp *GroupingSetParse) String(level int) (out []string) {
-	out = append(out, ExplainAllItemsInList(sp.qualifiedNames, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *GroupingSetParse) String(level int) (out []string) {
+	out = append(out, ExplainAllItemsInList(v.qualifiedNames, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SelectItemParse struct {
@@ -420,11 +443,12 @@ func NewSelectItemParse(node antlr.Tree) (term *SelectItemParse) {
 	}
 	return term
 }
-func (sp *SelectItemParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.expression, level+1)...)
-	out = append(out, Explain(sp.alias, level+1)...)
-	out = append(out, Explain(sp.qualifiedName, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SelectItemParse) String(level int) (out []string) {
+	out = append(out, Explain(v.expression, level+1)...)
+	out = append(out, Explain(v.alias, level+1)...)
+	out = append(out, Explain(v.qualifiedName, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type RelationParse struct {
@@ -443,6 +467,7 @@ func NewRelationParse(node antlr.Tree) (term *RelationParse) {
 			term.criteria = NewJoinCriteriaParse(ctx.JoinCriteria())
 		}
 		if ctx.JoinType() != nil {
+			//nolint:forcetypeassert // hard to refactor for now
 			cctx := ctx.JoinType().(*parser.JoinTypeContext)
 			switch {
 			case cctx.INNER() != nil:
@@ -460,12 +485,13 @@ func NewRelationParse(node antlr.Tree) (term *RelationParse) {
 	}
 	return term
 }
-func (sp *RelationParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.left, level+1)...)
-	out = append(out, Explain(sp.right, level+1)...)
-	out = append(out, Explain(sp.criteria, level+1)...)
-	out = append(out, Explain(sp.sampled, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *RelationParse) String(level int) (out []string) {
+	out = append(out, Explain(v.left, level+1)...)
+	out = append(out, Explain(v.right, level+1)...)
+	out = append(out, Explain(v.criteria, level+1)...)
+	out = append(out, Explain(v.sampled, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type JoinCriteriaParse struct {
@@ -475,6 +501,7 @@ type JoinCriteriaParse struct {
 }
 
 func NewJoinCriteriaParse(node antlr.Tree) (term *JoinCriteriaParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.JoinCriteriaContext)
 	term = new(JoinCriteriaParse)
 	term.onExpression = NewBooleanExpressionParse(ctx.BooleanExpression())
@@ -483,10 +510,11 @@ func NewJoinCriteriaParse(node antlr.Tree) (term *JoinCriteriaParse) {
 	}
 	return term
 }
-func (sp *JoinCriteriaParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.onExpression, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.identifiers, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *JoinCriteriaParse) String(level int) (out []string) {
+	out = append(out, Explain(v.onExpression, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.identifiers, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SampledRelationParse struct {
@@ -496,6 +524,7 @@ type SampledRelationParse struct {
 }
 
 func NewSampledRelationParse(node antlr.Tree) (term *SampledRelationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SampledRelationContext)
 	term = new(SampledRelationParse)
 	term.aliasedRelation = NewAliasedRelationParse(ctx.AliasedRelation())
@@ -512,10 +541,11 @@ func NewSampledRelationParse(node antlr.Tree) (term *SampledRelationParse) {
 	}
 	return term
 }
-func (sp *SampledRelationParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.aliasedRelation, level+1)...)
-	out = append(out, Explain(sp.percentage, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SampledRelationParse) String(level int) (out []string) {
+	out = append(out, Explain(v.aliasedRelation, level+1)...)
+	out = append(out, Explain(v.percentage, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type AliasedRelationParse struct {
@@ -525,6 +555,7 @@ type AliasedRelationParse struct {
 }
 
 func NewAliasedRelationParse(node antlr.Tree) (term *AliasedRelationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.AliasedRelationContext)
 	term = new(AliasedRelationParse)
 	term.relationPrimary = NewRelationPrimaryParse(ctx.RelationPrimary())
@@ -538,16 +569,18 @@ func NewAliasedRelationParse(node antlr.Tree) (term *AliasedRelationParse) {
 	}
 	return term
 }
-func (sp *AliasedRelationParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.relationPrimary, level+1)...)
-	out = append(out, Explain(sp.identifier, level+1)...)
-	out = append(out, Explain(sp.aliases, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *AliasedRelationParse) String(level int) (out []string) {
+	out = append(out, Explain(v.relationPrimary, level+1)...)
+	out = append(out, Explain(v.identifier, level+1)...)
+	out = append(out, Explain(v.aliases, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type ColumnAliasesParse struct{ MSTree }
 
 func NewColumnAliasesParse(node antlr.Tree) (term *ColumnAliasesParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ColumnAliasesContext)
 	term = new(ColumnAliasesParse)
 	for _, cctx := range ctx.AllIdentifier() {
@@ -555,15 +588,17 @@ func NewColumnAliasesParse(node antlr.Tree) (term *ColumnAliasesParse) {
 	}
 	return term
 }
-func (sp *ColumnAliasesParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ColumnAliasesParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 /*
 ================================================
 RelationPrimary block
-================================================
+================================================.
 */
+
 type RelationPrimaryParse struct {
 	MSTree
 	IsTableName, IsSubquery, IsUnnest, IsRelation, WithOrdinality bool
@@ -592,8 +627,9 @@ func NewRelationPrimaryParse(node antlr.Tree) (term *RelationPrimaryParse) {
 	}
 	return term
 }
-func (sp *RelationPrimaryParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *RelationPrimaryParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 /*
@@ -603,14 +639,16 @@ func (sp *RelationPrimaryParse) String(level int) (out []string) {
 /*
 ================================================
 Expression block
-================================================
+================================================.
 */
+
 type ExpressionParse struct {
 	MSTree
 	IsBoolean bool
 }
 
 func NewExpressionParse(node antlr.Tree) (term *ExpressionParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ExpressionContext)
 	term = new(ExpressionParse)
 	switch {
@@ -624,8 +662,9 @@ func NewExpressionParse(node antlr.Tree) (term *ExpressionParse) {
 	}
 	return term
 }
-func (sp *ExpressionParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ExpressionParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 /*
@@ -635,8 +674,9 @@ func (sp *ExpressionParse) String(level int) (out []string) {
 /*
 ================================================
 BooleanExpression block
-================================================
+================================================.
 */
+
 type BooleanExpressionParse struct {
 	MSTree
 	predicate               IMSTree // Predicate node type
@@ -675,6 +715,7 @@ func NewBooleanExpressionParse(node antlr.Tree) (term *BooleanExpressionParse) {
 			done = true
 		case *parser.BoolLiteralTooContext:
 			term.IsLiteral = true
+			//nolint:forcetypeassert // hard to refactor for now
 			cctx := ctx.Booleanliteral().(*parser.BooleanliteralContext)
 			if cctx.TRUE() != nil {
 				term.value = true
@@ -687,11 +728,12 @@ func NewBooleanExpressionParse(node antlr.Tree) (term *BooleanExpressionParse) {
 	}
 	return term
 }
-func (sp *BooleanExpressionParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.predicate, level+1)...)
-	out = append(out, Explain(sp.left, level+1)...)
-	out = append(out, Explain(sp.right, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *BooleanExpressionParse) String(level int) (out []string) {
+	out = append(out, Explain(v.predicate, level+1)...)
+	out = append(out, Explain(v.left, level+1)...)
+	out = append(out, Explain(v.right, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 /*
@@ -701,8 +743,9 @@ func (sp *BooleanExpressionParse) String(level int) (out []string) {
 /*
 ================================================
 Predicate block
-================================================
+================================================.
 */
+
 type PredicateParse struct{ MSTree }
 
 func NewPredicateParse(node antlr.Tree) (term *PredicateParse) {
@@ -728,8 +771,9 @@ func NewPredicateParse(node antlr.Tree) (term *PredicateParse) {
 
 	return term
 }
-func (sp *PredicateParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *PredicateParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type ComparisonParse struct {
@@ -739,6 +783,7 @@ type ComparisonParse struct {
 }
 
 func NewComparisonParse(node antlr.Tree) (term *ComparisonParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ComparisonContext)
 	term = new(ComparisonParse)
 	term.comparisonOperator = io.StringToComparisonOperatorEnum(
@@ -746,9 +791,10 @@ func NewComparisonParse(node antlr.Tree) (term *ComparisonParse) {
 	term.right = NewValueExpressionParse(ctx.ValueExpression())
 	return term
 }
-func (sp *ComparisonParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.right, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ComparisonParse) String(level int) (out []string) {
+	out = append(out, Explain(v.right, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type QuantifiedComparisonParse struct {
@@ -759,6 +805,7 @@ type QuantifiedComparisonParse struct {
 }
 
 func NewQuantifiedComparisonParse(node antlr.Tree) (term *QuantifiedComparisonParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.QuantifiedComparisonContext)
 	term = new(QuantifiedComparisonParse)
 	term.comparisonOperator = io.StringToComparisonOperatorEnum(
@@ -768,9 +815,10 @@ func NewQuantifiedComparisonParse(node antlr.Tree) (term *QuantifiedComparisonPa
 	term.query = NewQueryParse(ctx.Query())
 	return term
 }
-func (sp *QuantifiedComparisonParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.query, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *QuantifiedComparisonParse) String(level int) (out []string) {
+	out = append(out, Explain(v.query, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type BetweenParse struct {
@@ -780,6 +828,7 @@ type BetweenParse struct {
 }
 
 func NewBetweenParse(node antlr.Tree) (term *BetweenParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.BetweenContext)
 	term = new(BetweenParse)
 	term.lower = NewValueExpressionParse(ctx.GetLower())
@@ -789,10 +838,11 @@ func NewBetweenParse(node antlr.Tree) (term *BetweenParse) {
 	}
 	return term
 }
-func (sp *BetweenParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.lower, level+1)...)
-	out = append(out, Explain(sp.upper, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *BetweenParse) String(level int) (out []string) {
+	out = append(out, Explain(v.lower, level+1)...)
+	out = append(out, Explain(v.upper, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type InListParse struct {
@@ -802,6 +852,7 @@ type InListParse struct {
 }
 
 func NewInListParse(node antlr.Tree) (term *InListParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.InListContext)
 	term = new(InListParse)
 	for _, cctx := range ctx.AllValueExpression() {
@@ -812,9 +863,10 @@ func NewInListParse(node antlr.Tree) (term *InListParse) {
 	}
 	return term
 }
-func (sp *InListParse) String(level int) (out []string) {
-	out = append(out, ExplainAllItemsInList(sp.inlist, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *InListParse) String(level int) (out []string) {
+	out = append(out, ExplainAllItemsInList(v.inlist, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type InSubqueryParse struct {
@@ -824,6 +876,7 @@ type InSubqueryParse struct {
 }
 
 func NewInSubqueryParse(node antlr.Tree) (term *InSubqueryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.InSubqueryContext)
 	term = new(InSubqueryParse)
 	term.query = NewQueryParse(ctx.Query())
@@ -832,9 +885,10 @@ func NewInSubqueryParse(node antlr.Tree) (term *InSubqueryParse) {
 	}
 	return term
 }
-func (sp *InSubqueryParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.query, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *InSubqueryParse) String(level int) (out []string) {
+	out = append(out, Explain(v.query, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type LikeParse struct {
@@ -844,6 +898,7 @@ type LikeParse struct {
 }
 
 func NewLikeParse(node antlr.Tree) (term *LikeParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.LikeContext)
 	term = new(LikeParse)
 	term.pattern = NewValueExpressionParse(ctx.GetPattern())
@@ -852,10 +907,11 @@ func NewLikeParse(node antlr.Tree) (term *LikeParse) {
 	}
 	return term
 }
-func (sp *LikeParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.pattern, level+1)...)
-	out = append(out, Explain(sp.escape, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *LikeParse) String(level int) (out []string) {
+	out = append(out, Explain(v.pattern, level+1)...)
+	out = append(out, Explain(v.escape, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type NullPredicateParse struct {
@@ -864,6 +920,7 @@ type NullPredicateParse struct {
 }
 
 func NewNullPredicateParse(node antlr.Tree) (term *NullPredicateParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.NullPredicateContext)
 	term = new(NullPredicateParse)
 	if ctx.NOT() != nil {
@@ -871,8 +928,9 @@ func NewNullPredicateParse(node antlr.Tree) (term *NullPredicateParse) {
 	}
 	return term
 }
-func (sp *NullPredicateParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *NullPredicateParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type DistinctFromParse struct {
@@ -882,6 +940,7 @@ type DistinctFromParse struct {
 }
 
 func NewDistinctFromParse(node antlr.Tree) (term *DistinctFromParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.DistinctFromContext)
 	term = new(DistinctFromParse)
 	term.right = NewValueExpressionParse(ctx.GetRight())
@@ -890,9 +949,10 @@ func NewDistinctFromParse(node antlr.Tree) (term *DistinctFromParse) {
 	}
 	return term
 }
-func (sp *DistinctFromParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.right, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *DistinctFromParse) String(level int) (out []string) {
+	out = append(out, Explain(v.right, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 /*
@@ -924,9 +984,10 @@ func NewValueExpressionParse(node antlr.Tree) (term *ValueExpressionParse) {
 	}
 	return term
 }
-func (sp *ValueExpressionParse) String(level int) (out []string) {
+
+func (v *ValueExpressionParse) String(level int) (out []string) {
 	//	out = append(out, Explain(sp.primaryExpression, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type AtTimeZoneParse struct {
@@ -935,16 +996,18 @@ type AtTimeZoneParse struct {
 }
 
 func NewAtTimeZoneParse(node antlr.Tree) (term *AtTimeZoneParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.AtTimeZoneContext)
 	term = new(AtTimeZoneParse)
 	term.value = NewValueExpressionParse(ctx.ValueExpression())
 	term.timezone = NewTimeZoneSpecifierParse(ctx.TimeZoneSpecifier())
 	return term
 }
-func (sp *AtTimeZoneParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.value, level+1)...)
-	out = append(out, Explain(sp.timezone, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *AtTimeZoneParse) String(level int) (out []string) {
+	out = append(out, Explain(v.value, level+1)...)
+	out = append(out, Explain(v.timezone, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type ArithmeticUnaryParse struct {
@@ -954,6 +1017,7 @@ type ArithmeticUnaryParse struct {
 }
 
 func NewArithmeticUnaryParse(node antlr.Tree) (term *ArithmeticUnaryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ArithmeticUnaryContext)
 	term = new(ArithmeticUnaryParse)
 	if ctx.MINUS() != nil {
@@ -964,9 +1028,10 @@ func NewArithmeticUnaryParse(node antlr.Tree) (term *ArithmeticUnaryParse) {
 	term.value = NewValueExpressionParse(ctx.ValueExpression())
 	return term
 }
-func (sp *ArithmeticUnaryParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.value, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ArithmeticUnaryParse) String(level int) (out []string) {
+	out = append(out, Explain(v.value, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type ArithmeticBinaryParse struct {
@@ -976,6 +1041,7 @@ type ArithmeticBinaryParse struct {
 }
 
 func NewArithmeticBinaryParse(node antlr.Tree) (term *ArithmeticBinaryParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ArithmeticBinaryContext)
 	term = new(ArithmeticBinaryParse)
 	switch {
@@ -994,10 +1060,11 @@ func NewArithmeticBinaryParse(node antlr.Tree) (term *ArithmeticBinaryParse) {
 	term.right = NewValueExpressionParse(ctx.GetRight())
 	return term
 }
-func (sp *ArithmeticBinaryParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.left, level+1)...)
-	out = append(out, Explain(sp.right, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ArithmeticBinaryParse) String(level int) (out []string) {
+	out = append(out, Explain(v.left, level+1)...)
+	out = append(out, Explain(v.right, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type ConcatenationParse struct {
@@ -1006,26 +1073,26 @@ type ConcatenationParse struct {
 }
 
 func NewConcatParse(node antlr.Tree) (term *ConcatenationParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ConcatenationContext)
 	term = new(ConcatenationParse)
 	term.left = NewValueExpressionParse(ctx.GetLeft())
 	term.right = NewValueExpressionParse(ctx.GetRight())
 	return term
 }
-func (sp *ConcatenationParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.left, level+1)...)
-	out = append(out, Explain(sp.right, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ConcatenationParse) String(level int) (out []string) {
+	out = append(out, Explain(v.left, level+1)...)
+	out = append(out, Explain(v.right, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 /*
 ================================================
-*/
-/*
-================================================
 PrimaryExpression block
-================================================
+================================================.
 */
+
 type PrimaryExpressionParse struct {
 	MSTree
 	primaryType PrimaryExpressionEnum
@@ -1059,16 +1126,18 @@ func NewPrimaryExpressionParse(node antlr.Tree) (term *PrimaryExpressionParse) {
 		}
 		term.payload = int64(intTerm)
 	case *parser.DecimalLiteralContext:
+		const float64BitSize = 64
 		term.primaryType = DECIMAL_LITERAL
 		var err error
-		term.payload, err = strconv.ParseFloat(ctx.DECIMAL_VALUE().GetText(), 64)
+		term.payload, err = strconv.ParseFloat(ctx.DECIMAL_VALUE().GetText(), float64BitSize)
 		if err != nil {
 			return nil
 		}
 	case *parser.BoolLiteralContext:
 		term.primaryType = BOOLEAN_LITERAL
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.Booleanliteral().(*parser.BooleanliteralContext)
-		term.payload = (cctx.TRUE() != nil)
+		term.payload = cctx.TRUE() != nil
 	case *parser.TypeConstructorContext:
 		term.primaryType = TYPE_CONSTRUCTOR
 		if ctx.DOUBLE_PRECISION() != nil {
@@ -1142,8 +1211,9 @@ func NewPrimaryExpressionParse(node antlr.Tree) (term *PrimaryExpressionParse) {
 	}
 	return term
 }
-func (sp *PrimaryExpressionParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *PrimaryExpressionParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type FunctionCallParse struct {
@@ -1155,6 +1225,7 @@ type FunctionCallParse struct {
 }
 
 func NewFunctionCallParse(node antlr.Tree) (term *FunctionCallParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.FunctionCallContext)
 	term = new(FunctionCallParse)
 	term.qualifiedName = NewQualifiedNameParse(ctx.QualifiedName())
@@ -1167,6 +1238,7 @@ func NewFunctionCallParse(node antlr.Tree) (term *FunctionCallParse) {
 	}
 	if ctx.SetQuantifier() != nil {
 		term.hasSetQuantifier = true
+		//nolint:forcetypeassert // hard to refactor for now
 		cctx := ctx.SetQuantifier().(*parser.SetQuantifierContext)
 		switch {
 		case cctx.DISTINCT() != nil:
@@ -1184,12 +1256,13 @@ func NewFunctionCallParse(node antlr.Tree) (term *FunctionCallParse) {
 	}
 	return term
 }
-func (sp *FunctionCallParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.qualifiedName, level+1)...)
-	out = append(out, Explain(sp.filter, level+1)...)
-	out = append(out, Explain(sp.over, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.expressionList, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *FunctionCallParse) String(level int) (out []string) {
+	out = append(out, Explain(v.qualifiedName, level+1)...)
+	out = append(out, Explain(v.filter, level+1)...)
+	out = append(out, Explain(v.over, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.expressionList, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type LambdaParse struct {
@@ -1199,6 +1272,7 @@ type LambdaParse struct {
 }
 
 func NewLambdaParse(node antlr.Tree) (term *LambdaParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.LambdaContext)
 	term = new(LambdaParse)
 	term.expression = NewExpressionParse(ctx.Expression())
@@ -1207,10 +1281,11 @@ func NewLambdaParse(node antlr.Tree) (term *LambdaParse) {
 	}
 	return term
 }
-func (sp *LambdaParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.expression, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.identifiers, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *LambdaParse) String(level int) (out []string) {
+	out = append(out, Explain(v.expression, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.identifiers, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SimpleCaseParse struct {
@@ -1220,6 +1295,7 @@ type SimpleCaseParse struct {
 }
 
 func NewSimpleCaseParse(node antlr.Tree) (term *SimpleCaseParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SimpleCaseContext)
 	term = new(SimpleCaseParse)
 	term.valueExpression = NewValueExpressionParse(ctx.ValueExpression())
@@ -1232,11 +1308,12 @@ func NewSimpleCaseParse(node antlr.Tree) (term *SimpleCaseParse) {
 	}
 	return term
 }
-func (sp *SimpleCaseParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.valueExpression, level+1)...)
-	out = append(out, Explain(sp.elseExpression, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.whenClause, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SimpleCaseParse) String(level int) (out []string) {
+	out = append(out, Explain(v.valueExpression, level+1)...)
+	out = append(out, Explain(v.elseExpression, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.whenClause, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SearchedCaseParse struct {
@@ -1246,6 +1323,7 @@ type SearchedCaseParse struct {
 }
 
 func NewSearchedCaseParse(node antlr.Tree) (term *SearchedCaseParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SearchedCaseContext)
 	term = new(SearchedCaseParse)
 	if ctx.GetElseExpression() != nil {
@@ -1257,28 +1335,31 @@ func NewSearchedCaseParse(node antlr.Tree) (term *SearchedCaseParse) {
 	}
 	return term
 }
-func (sp *SearchedCaseParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.elseExpression, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.whenClause, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SearchedCaseParse) String(level int) (out []string) {
+	out = append(out, Explain(v.elseExpression, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.whenClause, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type CastParse struct {
 	MSTree
-	expression, type_t IMSTree
+	expression, typeT IMSTree
 }
 
 func NewCastParse(node antlr.Tree) (term *CastParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.CastContext)
 	term = new(CastParse)
 	term.expression = NewExpressionParse(ctx.Expression())
-	term.type_t = NewTypeTParse(ctx.Type_t())
+	term.typeT = NewTypeTParse(ctx.Type_t())
 	return term
 }
-func (sp *CastParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.expression, level+1)...)
-	out = append(out, Explain(sp.type_t, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *CastParse) String(level int) (out []string) {
+	out = append(out, Explain(v.expression, level+1)...)
+	out = append(out, Explain(v.typeT, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SubscriptParse struct {
@@ -1287,16 +1368,18 @@ type SubscriptParse struct {
 }
 
 func NewSubscriptParse(node antlr.Tree) (term *SubscriptParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SubscriptContext)
 	term = new(SubscriptParse)
 	term.value = NewPrimaryExpressionParse(ctx.GetValue())
 	term.index = NewValueExpressionParse(ctx.GetIndex())
 	return term
 }
-func (sp *SubscriptParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.value, level+1)...)
-	out = append(out, Explain(sp.index, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SubscriptParse) String(level int) (out []string) {
+	out = append(out, Explain(v.value, level+1)...)
+	out = append(out, Explain(v.index, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type DereferenceParse struct {
@@ -1305,16 +1388,18 @@ type DereferenceParse struct {
 }
 
 func NewDereferenceParse(node antlr.Tree) (term *DereferenceParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.DereferenceContext)
 	term = new(DereferenceParse)
 	term.base = NewPrimaryExpressionParse(ctx.GetBase())
 	term.fieldName = NewIDParse(ctx.GetFieldName())
 	return term
 }
-func (sp *DereferenceParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.base, level+1)...)
-	out = append(out, Explain(sp.fieldName, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *DereferenceParse) String(level int) (out []string) {
+	out = append(out, Explain(v.base, level+1)...)
+	out = append(out, Explain(v.fieldName, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SpecialDateTimeFunctionParse struct {
@@ -1324,6 +1409,7 @@ type SpecialDateTimeFunctionParse struct {
 }
 
 func NewSpecialDateTimeFunctionParse(node antlr.Tree) (term *SpecialDateTimeFunctionParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SpecialDateTimeFunctionContext)
 	term = new(SpecialDateTimeFunctionParse)
 	if ctx.INTEGER_VALUE() != nil {
@@ -1344,8 +1430,9 @@ func NewSpecialDateTimeFunctionParse(node antlr.Tree) (term *SpecialDateTimeFunc
 	}
 	return term
 }
-func (sp *SpecialDateTimeFunctionParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SpecialDateTimeFunctionParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type SubstringParse struct {
@@ -1354,6 +1441,7 @@ type SubstringParse struct {
 }
 
 func NewSubstringParse(node antlr.Tree) (term *SubstringParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.SubstringContext)
 	term = new(SubstringParse)
 	term.subTerm = NewValueExpressionParse(ctx.GetSubterm())
@@ -1363,11 +1451,12 @@ func NewSubstringParse(node antlr.Tree) (term *SubstringParse) {
 	}
 	return term
 }
-func (sp *SubstringParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.subTerm, level+1)...)
-	out = append(out, Explain(sp.baseTerm, level+1)...)
-	out = append(out, Explain(sp.forTerm, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *SubstringParse) String(level int) (out []string) {
+	out = append(out, Explain(v.subTerm, level+1)...)
+	out = append(out, Explain(v.baseTerm, level+1)...)
+	out = append(out, Explain(v.forTerm, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type NormalizeParse struct {
@@ -1377,6 +1466,7 @@ type NormalizeParse struct {
 }
 
 func NewNormalizeParse(node antlr.Tree) (term *NormalizeParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.NormalizeContext)
 	term = new(NormalizeParse)
 	if ctx.GetNormalform() != nil {
@@ -1394,9 +1484,10 @@ func NewNormalizeParse(node antlr.Tree) (term *NormalizeParse) {
 	term.value = NewValueExpressionParse(ctx.ValueExpression())
 	return term
 }
-func (sp *NormalizeParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.value, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *NormalizeParse) String(level int) (out []string) {
+	out = append(out, Explain(v.value, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type ExtractParse struct {
@@ -1405,21 +1496,20 @@ type ExtractParse struct {
 }
 
 func NewExtractParse(node antlr.Tree) (term *ExtractParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.ExtractContext)
 	term = new(ExtractParse)
 	term.left = NewIDParse(ctx.Identifier())
 	term.right = NewIDParse(ctx.ValueExpression())
 	return term
 }
-func (sp *ExtractParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.left, level+1)...)
-	out = append(out, Explain(sp.right, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ExtractParse) String(level int) (out []string) {
+	out = append(out, Explain(v.left, level+1)...)
+	out = append(out, Explain(v.right, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
-/*
-================================================
-*/
 type TimeZoneSpecifierParse struct {
 	MSTree
 	intervalZone IMSTree
@@ -1437,9 +1527,10 @@ func NewTimeZoneSpecifierParse(node antlr.Tree) (term *TimeZoneSpecifierParse) {
 	}
 	return term
 }
-func (sp *TimeZoneSpecifierParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.intervalZone, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *TimeZoneSpecifierParse) String(level int) (out []string) {
+	out = append(out, Explain(v.intervalZone, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type IntervalParse struct {
@@ -1450,6 +1541,7 @@ type IntervalParse struct {
 }
 
 func NewIntervalParse(node antlr.Tree) (term *IntervalParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.IntervalContext)
 	term = new(IntervalParse)
 	switch ctx.GetSign().GetText() {
@@ -1465,10 +1557,11 @@ func NewIntervalParse(node antlr.Tree) (term *IntervalParse) {
 	}
 	return term
 }
-func (sp *IntervalParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.fromField, level+1)...)
-	out = append(out, Explain(sp.toField, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *IntervalParse) String(level int) (out []string) {
+	out = append(out, Explain(v.fromField, level+1)...)
+	out = append(out, Explain(v.toField, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type IntervalFieldParse struct {
@@ -1477,6 +1570,7 @@ type IntervalFieldParse struct {
 }
 
 func NewIntervalFieldParse(node antlr.Tree) (term *IntervalFieldParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.IntervalFieldContext)
 	term = new(IntervalFieldParse)
 	switch {
@@ -1495,8 +1589,9 @@ func NewIntervalFieldParse(node antlr.Tree) (term *IntervalFieldParse) {
 	}
 	return term
 }
-func (sp *IntervalFieldParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *IntervalFieldParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type TypeTParse struct {
@@ -1506,6 +1601,7 @@ type TypeTParse struct {
 }
 
 func NewTypeTParse(node antlr.Tree) (term *TypeTParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.Type_tContext)
 	term = new(TypeTParse)
 	switch {
@@ -1531,19 +1627,21 @@ func NewTypeTParse(node antlr.Tree) (term *TypeTParse) {
 	}
 	return term
 }
-func (sp *TypeTParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.array, level+1)...)
-	out = append(out, Explain(sp.baseType, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.mapElem, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.rowIDElem, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.rowElem, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.typeElem, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *TypeTParse) String(level int) (out []string) {
+	out = append(out, Explain(v.array, level+1)...)
+	out = append(out, Explain(v.baseType, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.mapElem, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.rowIDElem, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.rowElem, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.typeElem, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type TypeParameterParse struct{ MSTree }
 
 func NewTypeParameterParse(node antlr.Tree) (term *TypeParameterParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.TypeParameterContext)
 	term = new(TypeParameterParse)
 	switch {
@@ -1555,32 +1653,35 @@ func NewTypeParameterParse(node antlr.Tree) (term *TypeParameterParse) {
 	}
 	return term
 }
-func (sp *TypeParameterParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *TypeParameterParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type BaseTypeParse struct {
 	MSTree
-	type_id BaseTypeEnum
+	typeID BaseTypeEnum
 }
 
 func NewBaseTypeParse(node antlr.Tree) (term *BaseTypeParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.BaseTypeContext)
 	term = new(BaseTypeParse)
 	switch {
 	case ctx.TIME_WITH_TIME_ZONE() != nil:
-		term.type_id = TIME_WITH_TIME_ZONE
+		term.typeID = TIME_WITH_TIME_ZONE
 	case ctx.TIMESTAMP_WITH_TIME_ZONE() != nil:
-		term.type_id = TIMESTAMP_WITH_TIME_ZONE
+		term.typeID = TIMESTAMP_WITH_TIME_ZONE
 	case ctx.DOUBLE_PRECISION() != nil:
-		term.type_id = DOUBLE_PRECISION
+		term.typeID = DOUBLE_PRECISION
 	case ctx.Identifier() != nil:
 		term.AddChild(NewIDParse(ctx.Identifier()))
 	}
 	return term
 }
-func (sp *BaseTypeParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *BaseTypeParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type WhenParse struct {
@@ -1589,16 +1690,18 @@ type WhenParse struct {
 }
 
 func NewWhenParse(node antlr.Tree) (term *WhenParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.WhenClauseContext)
 	term = new(WhenParse)
 	term.condition = NewExpressionParse(ctx.GetCondition())
 	term.result = NewExpressionParse(ctx.GetResult())
 	return term
 }
-func (sp *WhenParse) String(level int) (out []string) {
-	out = append(out, Explain(sp.condition, level+1)...)
-	out = append(out, Explain(sp.result, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *WhenParse) String(level int) (out []string) {
+	out = append(out, Explain(v.condition, level+1)...)
+	out = append(out, Explain(v.result, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type FilterParse struct {
@@ -1606,13 +1709,15 @@ type FilterParse struct {
 }
 
 func NewFilterParse(node antlr.Tree) (term *FilterParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.FilterContext)
 	term = new(FilterParse)
 	term.AddChild(NewBooleanExpressionParse(ctx.BooleanExpression()))
 	return term
 }
-func (sp *FilterParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *FilterParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type OverParse struct {
@@ -1621,6 +1726,7 @@ type OverParse struct {
 }
 
 func NewOverParse(node antlr.Tree) (term *OverParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.OverContext)
 	term = new(OverParse)
 	for _, expr := range ctx.GetPartition() {
@@ -1634,10 +1740,11 @@ func NewOverParse(node antlr.Tree) (term *OverParse) {
 	}
 	return term
 }
-func (sp *OverParse) String(level int) (out []string) {
-	out = append(out, ExplainAllItemsInList(sp.partitions, level+1)...)
-	out = append(out, ExplainAllItemsInList(sp.sortItems, level+1)...)
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *OverParse) String(level int) (out []string) {
+	out = append(out, ExplainAllItemsInList(v.partitions, level+1)...)
+	out = append(out, ExplainAllItemsInList(v.sortItems, level+1)...)
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type WindowFrameParse struct {
@@ -1646,6 +1753,7 @@ type WindowFrameParse struct {
 }
 
 func NewWindowFrameParse(node antlr.Tree) (term *WindowFrameParse) {
+	//nolint:forcetypeassert // hard to refactor for now
 	ctx := node.(*parser.WindowFrameContext)
 	term = new(WindowFrameParse)
 	if strings.EqualFold(ctx.GetFrameType().GetText(), "RANGE") {
@@ -1658,8 +1766,9 @@ func NewWindowFrameParse(node antlr.Tree) (term *WindowFrameParse) {
 	}
 	return term
 }
-func (sp *WindowFrameParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *WindowFrameParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type FrameBoundParse struct {
@@ -1692,8 +1801,9 @@ func NewFrameBoundParse(node antlr.Tree) (term *FrameBoundParse) {
 	}
 	return term
 }
-func (sp *FrameBoundParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *FrameBoundParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type ExplainOptionParse struct {
@@ -1713,8 +1823,9 @@ func NewExplainOptionParse(node antlr.Tree) (term *ExplainOptionParse) {
 	}
 	return term
 }
-func (sp *ExplainOptionParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *ExplainOptionParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type QualifiedNameParse struct{ MSTree }
@@ -1726,8 +1837,9 @@ func NewQualifiedNameParse(node antlr.Tree) (term *QualifiedNameParse) {
 	}
 	return term
 }
-func (sp *QualifiedNameParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *QualifiedNameParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 type IDParse struct {
@@ -1748,13 +1860,15 @@ func NewIDParse(node antlr.Tree) (term *IDParse) {
 	}
 	return term
 }
-func (sp *IDParse) String(level int) (out []string) {
-	return append(out, PrependLevel(GetStructString(sp), level))
+
+func (v *IDParse) String(level int) (out []string) {
+	return append(out, PrependLevel(GetStructString(v), level))
 }
 
 /*
-Utility Functions
+Utility Functions.
 */
+
 type IMSTree interface {
 	GetParent() IMSTree
 	SetParent(IMSTree)
@@ -1779,6 +1893,7 @@ var _ IMSTreeVisitor = &BaseMSTreeVisitor{}
 func (mst *BaseMSTreeVisitor) Visit(tree IMSTree) interface{} {
 	return tree.Accept(mst)
 }
+
 func (mst *BaseMSTreeVisitor) VisitChildren(tree IMSTree) interface{} {
 	for _, child := range tree.GetChildren() {
 		retval := child.Accept(mst)
@@ -1800,27 +1915,34 @@ type MSTree struct {
 func (pt *MSTree) GetParent() IMSTree {
 	return pt.parent
 }
+
 func (pt *MSTree) SetParent(arg IMSTree) {
 	pt.parent = arg
 }
+
 func (pt *MSTree) GetPayload() interface{} {
 	return pt.payload
 }
+
 func (pt *MSTree) GetChild(i int) IMSTree {
 	if len(pt.children) < i+1 {
 		return nil
 	}
 	return pt.children[i]
 }
+
 func (pt *MSTree) GetChildCount() int {
 	return len(pt.children)
 }
+
 func (pt *MSTree) GetChildren() []IMSTree {
 	return pt.children
 }
+
 func (pt *MSTree) AddChild(arg IMSTree) {
 	pt.children = append(pt.children, arg)
 }
+
 func (pt *MSTree) String(level int) (out []string) {
 	if pt != nil {
 		return []string{PrependLevel(GetStructString(pt), level)}
@@ -1829,23 +1951,21 @@ func (pt *MSTree) String(level int) (out []string) {
 	}
 }
 
-func Explain(ctx IMSTree, o_level ...int) (out []string) {
+func Explain(ctx IMSTree, oLevel ...int) (out []string) {
 	if ctx == nil {
 		return nil
 	}
 	var level int
-	if len(o_level) != 0 {
-		level = o_level[0]
+	if len(oLevel) != 0 {
+		level = oLevel[0]
 	}
-	if ctx != nil {
-		for _, child := range ctx.GetChildren() {
-			result := Explain(child, level+1)
-			out = append(out, result...)
-		}
-		out = append(out, ctx.String(level)...)
-	} else {
-		out = []string{""}
+
+	for _, child := range ctx.GetChildren() {
+		result := Explain(child, level+1)
+		out = append(out, result...)
 	}
+	out = append(out, ctx.String(level)...)
+
 	return out
 }
 
@@ -1858,7 +1978,7 @@ func PrependLevel(msg string, level int) string {
 }
 
 func GetStructString(sp interface{}) string {
-	var removeMSTree = func(input string) (output string) {
+	removeMSTree := func(input string) (output string) {
 		begin := strings.Index(input, "MSTree:{")
 		if begin == -1 {
 			return input
@@ -1900,6 +2020,7 @@ func GetStructString(sp interface{}) string {
 		return ""
 	}
 }
+
 func ExplainAllItemsInList(items []IMSTree, level int) (out []string) {
 	for _, item := range items {
 		out = append(out, Explain(item, level+1)...)
@@ -1908,7 +2029,7 @@ func ExplainAllItemsInList(items []IMSTree, level int) (out []string) {
 }
 
 func PrintExplain(stmt string, input []string) {
-	var printFiller = func(num int) {
+	printFiller := func(num int) {
 		for i := 0; i < num; i++ {
 			fmt.Printf("=")
 		}

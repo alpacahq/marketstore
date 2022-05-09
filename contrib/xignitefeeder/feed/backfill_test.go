@@ -1,15 +1,15 @@
 package feed
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
-
-	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 )
 
 var TestIdentifiers = []string{"XTKS.1301", "XTKS.1305", "XJAS.1376"}
@@ -18,9 +18,9 @@ type MockErrorAPIClient struct {
 	internal.MockAPIClient
 }
 
-// GetQuotesRange returns "Request Error" to certain identifier, but returns "Success" to other identifiers
-func (mac *MockErrorAPIClient) GetQuotesRange(i string, sd, ed time.Time) (resp api.GetQuotesRangeResponse, err error) {
-
+// GetQuotesRange returns "Request Error" to certain identifier, but returns "Success" to other identifiers.
+func (mac *MockErrorAPIClient) GetQuotesRange(_ context.Context, i string, _, _ time.Time,
+) (resp api.GetQuotesRangeResponse, err error) {
 	if i == "XTKS.1301" {
 		return api.GetQuotesRangeResponse{
 			Outcome:              "RequestError",
@@ -41,19 +41,19 @@ type MockQuotesRangeWriter struct {
 	WriteIndexCount int
 }
 
-func (mqrw *MockQuotesRangeWriter) Write(symbol string, quotes []api.EndOfDayQuote, isIndexSymbol bool) error {
+func (mqrw *MockQuotesRangeWriter) Write(_ string, _ []api.EndOfDayQuote, _ bool) error {
 	// in order to assert the number of writes in the test
 	mqrw.WriteCount++
 	return nil
 }
 
-func (mqrw *MockQuotesRangeWriter) WriteIndex(quotesRange api.GetIndexQuotesRangeResponse) error {
+func (mqrw *MockQuotesRangeWriter) WriteIndex(_ api.GetIndexQuotesRangeResponse) error {
 	// in order to assert the number of writes in the test
 	mqrw.WriteIndexCount++
 	return nil
 }
 
-// 3 writes should be successfully done with the 3 identifiers
+// 3 writes should be successfully done with the 3 identifiers.
 func TestBackfill_Update(t *testing.T) {
 	t.Parallel()
 	// --- given ---
@@ -69,7 +69,7 @@ func TestBackfill_Update(t *testing.T) {
 	}
 
 	// --- when ---
-	SUT.Update()
+	SUT.Update(context.Background())
 
 	// --- then ---
 	if mrw, ok := rw.(*MockQuotesRangeWriter); ok {
@@ -89,7 +89,7 @@ func TestBackfill_Update(t *testing.T) {
 	}
 }
 
-// Even if Xignite returns Outcome:"RequestError" to an identifier, Backfill writes data for the other identifiers
+// Even if Xignite returns Outcome:"RequestError" to an identifier, Backfill writes data for the other identifiers.
 func TestBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 	t.Parallel()
 	// --- given ---
@@ -105,7 +105,7 @@ func TestBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 	}
 
 	// --- when ---
-	SUT.Update()
+	SUT.Update(context.Background())
 
 	// --- then ---
 	// write fails for 1 out of 3 identifiers

@@ -16,7 +16,7 @@ import (
 func TestHandler(t *testing.T) {
 	startTime := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	utils.Tag = "dev"
-	var TestValues = map[string]struct {
+	TestValues := map[string]struct {
 		Recorder        *httptest.ResponseRecorder
 		Version         string
 		ExpectedVersion string
@@ -33,7 +33,6 @@ func TestHandler(t *testing.T) {
 		},
 	}
 	for key, val := range TestValues {
-
 		switch key {
 		case "Success":
 			atomic.StoreUint32(&Queryable, uint32(1))

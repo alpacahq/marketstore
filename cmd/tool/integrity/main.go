@@ -1,11 +1,13 @@
 package integrity
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/spf13/cobra"
@@ -61,7 +63,9 @@ var (
 func init() {
 	// Parse flags.
 	Cmd.Flags().StringVarP(&rootDirPath, "dir", "d", "", rootDirPathDesc)
-	Cmd.MarkFlagRequired("dir")
+	if err := Cmd.MarkFlagRequired("dir"); err != nil {
+		log.Error("failed to mark 'dir' flag required", err.Error())
+	}
 	Cmd.Flags().IntVar(&numChunksPerFile, "chunks", defaultNumChunksPerFile, numChunksPerFileDesc)
 	Cmd.Flags().IntVar(&yearStart, "yearStart", 0, yearStartDesc)
 	Cmd.Flags().IntVar(&yearEnd, "yearEnd", 0, yearEndDesc)
@@ -72,11 +76,11 @@ func init() {
 
 	rootDirPath = filepath.Clean(rootDirPath)
 	if !exists(rootDirPath) {
-		fmt.Printf("Root directory: %s does not exist\n", rootDirPath)
+		log.Error(fmt.Sprintf("Root directory: %s does not exist\n", rootDirPath))
 		os.Exit(0)
 	}
 	if !isDir(rootDirPath) {
-		fmt.Printf("Root directory: %s is not a directory\n", rootDirPath)
+		log.Error("Root directory: %s is not a directory\n", rootDirPath)
 		os.Exit(0)
 	}
 
@@ -91,11 +95,9 @@ func init() {
 	}
 	if monthEnd == 0 {
 		monthEnd = 10000
-	} else {
-		if monthEnd < 1 || monthEnd > 12 {
-			log.Error("Ending month must be in the range 1-12")
-			os.Exit(1)
-		}
+	} else if monthEnd < 1 || monthEnd > 12 {
+		log.Error("Ending month must be in the range 1-12")
+		os.Exit(1)
 	}
 	if monthStart != 0 {
 		if monthStart < 1 || monthStart > 12 {
@@ -112,40 +114,38 @@ func init() {
 		switch i {
 		case 0:
 			chunkNames[i] = "Hdr"
-		case 1:
+		case int(time.January):
 			chunkNames[i] = "Jan"
-		case 2:
+		case int(time.February):
 			chunkNames[i] = "Feb"
-		case 3:
+		case int(time.March):
 			chunkNames[i] = "Mar"
-		case 4:
+		case int(time.April):
 			chunkNames[i] = "Apr"
-		case 5:
+		case int(time.May):
 			chunkNames[i] = "May"
-		case 6:
+		case int(time.June):
 			chunkNames[i] = "Jun"
-		case 7:
+		case int(time.July):
 			chunkNames[i] = "Jul"
-		case 8:
+		case int(time.August):
 			chunkNames[i] = "Aug"
-		case 9:
+		case int(time.September):
 			chunkNames[i] = "Sep"
-		case 10:
+		case int(time.October):
 			chunkNames[i] = "Oct"
-		case 11:
+		case int(time.November):
 			chunkNames[i] = "Nov"
-		case 12:
+		case int(time.December):
 			chunkNames[i] = "Dec"
 		default:
 			chunkNames[i] = strconv.Itoa(i + 1)
 		}
 	}
-
 }
 
 // executeIntegrity implements the integrity tool.
-func executeIntegrity(cmd *cobra.Command, args []string) error {
-
+func executeIntegrity(_ *cobra.Command, _ []string) error {
 	log.SetLevel(log.INFO)
 
 	log.Info("Root directory: %v", rootDirPath)
@@ -154,24 +154,23 @@ func executeIntegrity(cmd *cobra.Command, args []string) error {
 	return filepath.Walk(rootDirPath, cksumDataFiles)
 }
 
-func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) {
+func cksumDataFiles(filePath string, fi os.FileInfo, _ error) (err error) {
 	if !isFile(filePath) {
 		return fmt.Errorf("%s is not a file", filePath)
 	}
 	checkFile, _ := filepath.Rel(rootDirPath, filePath)
-	ext := filepath.Ext(checkFile)
-	if ext == ".bin" {
+	if ext := filepath.Ext(checkFile); ext == ".bin" {
 		checkFile = checkFile[:len(checkFile)-4]
 		year, _ := strconv.Atoi(filepath.Base(checkFile))
 		if year < yearStart || year > yearEnd {
-			return fmt.Errorf("Incorrect start or end dates")
+			return fmt.Errorf("incorrect start or end dates")
 		}
 
-		//Subtract the header size to get our gross chunksize
+		// Subtract the header size to get our gross chunksize
 		size := fi.Size() - io.Headersize
 		// Size the chunk buffer to be a multiple of 8-bytes
 		chunkSize := io.AlignedSize(int(size/int64(numChunksPerFile) + size%int64(numChunksPerFile)))
-		fmt.Println("Chunksize: ", chunkSize)
+		log.Info("Chunksize: ", chunkSize)
 
 		fp, err := os.Open(filePath)
 		if err != nil {
@@ -238,17 +237,22 @@ func cksumDataFiles(filePath string, fi os.FileInfo, pathErr error) (err error) 
 			chunkNum++
 		}
 		wg.Wait()
-		fp.Close()
+		if err2 := fp.Close(); err2 != nil {
+			log.Error("failed to close checksum data file", err2.Error())
+		}
 
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("%30s", filechunks[0])
 		for i, sum := range cksums {
 			//			if sum != 0 {
 			if sum < 0 {
 				sum = -sum
 			}
+			// nolint:forbidigo // CLI output needs fmt.Println
 			fmt.Printf(",%3s %4d", chunkNames[i], sum%10000)
 			//			}
 		}
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("\n")
 	}
 	return nil
@@ -272,14 +276,17 @@ func processChunk(myChunk int, offset int64, buffer []byte, fp *os.File, filenam
 	sumRange := io.AlignedSize(nread)
 	if sumRange > nread {
 		// Zero out padding bytes
-		//fmt.Println("sumRange, nread = ", sumRange, nread)
+		// fmt.Println("sumRange, nread = ", sumRange, nread)
 		for i := nread; i < sumRange; i++ {
 			buffer[i] = 0
 		}
 	}
 	//				fmt.Println("Sumrange: ", sumRange)
 	filechunks[myChunk] = filename
-	cksums[myChunk] = bufferSum(buffer[:sumRange])
+	cksums[myChunk], err = bufferSum(buffer[:sumRange])
+	if err != nil {
+		return fmt.Errorf("calculate a checksum of the buffer: %w", err)
+	}
 	/*
 		Optionally fix errors in the metadata headers
 		This is done only if the chunknum is 0 (header) and if the fixHeader flag has been set
@@ -298,28 +305,41 @@ func fixKnownHeaderProblems(buffer []byte, filePath string) {
 		Check for OHLC with elementTypes = {1,1,1,1}
 	*/
 	if planner.ElementsEqual(tbinfo.GetElementTypes(), []io.EnumElementType{io.INT32, io.INT32, io.INT32, io.INT32}) {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println("found/fixing OHLC type error for ", filePath)
-		tbinfo.SetElementTypes([]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32})
+		err := tbinfo.SetElementTypes([]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32})
+		if err != nil {
+			log.Error("failed to set element types", err.Error())
+		}
 	}
 
 	/*
 		Write the new fileinfo to the file header
 	*/
-	fp, err := os.OpenFile(filePath, os.O_WRONLY, 0777)
+	const allowAll = 0o777
+	fp, err := os.OpenFile(filePath, os.O_WRONLY, allowAll)
 	if err != nil {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println("Unable to write new header to file, terminating...")
 		os.Exit(1)
 	}
-	io.WriteHeader(fp, tbinfo)
+	_ = io.WriteHeader(fp, tbinfo)
 }
 
-func bufferSum(buffer []byte) (sum int64) {
+func bufferSum(buffer []byte) (sum int64, err error) {
 	// Swap the byte buffer for an int64 slice for higher performance
-	data := io.SwapSliceByte(buffer, int64(0)).([]int64)
+	idata, err := io.SwapSliceByte(buffer, int64(0))
+	if err != nil {
+		return 0, err
+	}
+	data, ok := idata.([]int64)
+	if !ok {
+		return 0, errors.New("failed to cast buffer to int64 slice")
+	}
 	for i := 0; i < len(buffer)/8; i++ {
 		sum += data[i]
 	}
-	return sum
+	return sum, nil
 }
 
 func exists(path string) bool {
@@ -332,6 +352,7 @@ func exists(path string) bool {
 	}
 	return true
 }
+
 func isDir(path string) bool {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -342,6 +363,7 @@ func isDir(path string) bool {
 	}
 	return true
 }
+
 func isFile(path string) bool {
 	fi, err := os.Stat(path)
 	if err != nil {

@@ -11,18 +11,22 @@ import (
 
 var TIME = reflect.TypeOf(time.Time{}).Name()
 
-var UINT = reflect.TypeOf(uint(1)).Name()
-var UINT8 = reflect.TypeOf(uint8(1)).Name()
-var UINT16 = reflect.TypeOf(uint16(1)).Name()
-var UINT32 = reflect.TypeOf(uint32(1)).Name()
-var UINT64 = reflect.TypeOf(uint64(1)).Name()
-var INT = reflect.TypeOf(1).Name()
-var INT8 = reflect.TypeOf(int8(1)).Name()
-var INT16 = reflect.TypeOf(int16(1)).Name()
-var INT32 = reflect.TypeOf(int32(1)).Name()
-var INT64 = reflect.TypeOf(int64(1)).Name()
-var FLOAT = reflect.TypeOf(1.2).Name()
-var STRING = reflect.TypeOf("").Name()
+const exampleFloat = 1.2
+
+var (
+	UINT   = reflect.TypeOf(uint(1)).Name()
+	UINT8  = reflect.TypeOf(uint8(1)).Name()
+	UINT16 = reflect.TypeOf(uint16(1)).Name()
+	UINT32 = reflect.TypeOf(uint32(1)).Name()
+	UINT64 = reflect.TypeOf(uint64(1)).Name()
+	INT    = reflect.TypeOf(1).Name()
+	INT8   = reflect.TypeOf(int8(1)).Name()
+	INT16  = reflect.TypeOf(int16(1)).Name()
+	INT32  = reflect.TypeOf(int32(1)).Name()
+	INT64  = reflect.TypeOf(int64(1)).Name()
+	FLOAT  = reflect.TypeOf(exampleFloat).Name()
+	STRING = reflect.TypeOf("").Name()
+)
 
 type typeConverter func(str string, v reflect.Value, format string) error
 
@@ -35,7 +39,7 @@ var converters = map[string]typeConverter{
 	INT:    stringToInt,
 	INT8:   stringToInt,
 	INT16:  stringToInt,
-	INT64:  stringToInt,
+	INT32:  stringToInt,
 	INT64:  stringToInt,
 	FLOAT:  stringToFloat,
 	STRING: stringToString,
@@ -53,7 +57,6 @@ var formatDefaults = map[string]string{
 	UINT16: "%d",
 	UINT32: "%d",
 	UINT64: "%d",
-	INT64:  "%d",
 	FLOAT:  "%f",
 	TIME:   "01/02/06",
 }
@@ -118,9 +121,9 @@ func getFormatter(t reflect.Type) string {
 	return format
 }
 
-func convert(input string, format string, def string, v reflect.Value) {
+func convert(input, format, def string, v reflect.Value) {
 	cleanInput := strings.TrimSpace(input)
-	if len(cleanInput) == 0 && len(def) > 0 {
+	if cleanInput == "" && len(def) > 0 {
 		cleanInput = strings.TrimSpace(def)
 	}
 	if cleanInput == "" {
@@ -144,9 +147,11 @@ func convert(input string, format string, def string, v reflect.Value) {
 				log.Error("type conversion error: %+v, %s\n", err, input)
 			}
 		} else {
+			// nolint:forbidigo // CLI output needs fmt.Println
 			println("converter not found for", input, v.Type().Name(), "kind:", iv.Kind())
 		}
 	} else {
+		// nolint:forbidigo // CLI output needs fmt.Println
 		println("value is read only!!!! ", input, " to ", v.Type().Name())
 	}
 }

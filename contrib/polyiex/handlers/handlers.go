@@ -14,7 +14,6 @@ import (
 )
 
 func handleTrade(raw []byte) {
-
 	symbol, _ := jsonparser.GetString(raw, "S")
 
 	price, _ := jsonparser.GetFloat(raw, "p")
@@ -36,7 +35,8 @@ func handleTrade(raw []byte) {
 			nanos: int32(timestamp.Nanosecond()),
 			px:    float32(price),
 			sz:    int32(size),
-		}}
+		},
+	}
 	Write(pkt)
 }
 
@@ -95,7 +95,8 @@ func handleBook(raw []byte) {
 			askPx: a.Price,
 			bidSz: b.Size,
 			askSz: a.Size,
-		}}
+		},
+	}
 
 	Write(pkt)
 }
@@ -104,15 +105,15 @@ func handleStatus(raw []byte) {
 	status, _ := jsonparser.GetString(raw, "status")
 	message, _ := jsonparser.GetString(raw, "message")
 	log.Info("[polyiex] status = '%s', message = '%s'", status, message)
-	return
 }
 
 func handleUnknown(raw []byte) {
+	const showErrorMessageMax = 100
 	var msg string
-	if len(raw) < 100 {
+	if len(raw) < showErrorMessageMax {
 		msg = string(raw)
 	} else {
-		msg = string(raw[:100]) + "..."
+		msg = string(raw[:showErrorMessageMax]) + "..."
 	}
 	log.Error("[polyiex] unknown message: %s", msg)
 }
@@ -136,9 +137,11 @@ func Tick(raw []byte) {
 	})
 }
 
-// orderBooks is a map of OrderBook with symbol key
-var orderBooks = map[string]*orderbook.OrderBook{}
-var obMutex sync.Mutex
+// orderBooks is a map of OrderBook with symbol key.
+var (
+	orderBooks = map[string]*orderbook.OrderBook{}
+	obMutex    sync.Mutex
+)
 
 func getOrderBook(symbol string) *orderbook.OrderBook {
 	obMutex.Lock()
@@ -167,10 +170,12 @@ type quote struct {
 	askSz int32   // 4
 }
 
+const defaultWriteInterval = 100 * time.Millisecond
+
 var (
 	w = &writer{
 		dataBuckets: map[io.TimeBucketKey]interface{}{},
-		interval:    100 * time.Millisecond,
+		interval:    defaultWriteInterval,
 		c:           channels.NewInfiniteChannel(),
 	}
 	once sync.Once
@@ -212,21 +217,24 @@ func (w *writer) write() {
 		select {
 		case m := <-w.c.Out():
 			w.Lock()
-			packet := m.(*writePacket)
+			packet, ok := m.(*writePacket)
+			if !ok {
+				log.Error("failed to parse ")
+			}
 
 			if bucket, ok := w.dataBuckets[*packet.tbk]; ok {
-				switch packet.data.(type) {
+				switch d := packet.data.(type) {
 				case *quote:
-					w.dataBuckets[*packet.tbk] = append(bucket.([]*quote), packet.data.(*quote))
+					w.dataBuckets[*packet.tbk] = append(bucket.([]*quote), d)
 				case *trade:
-					w.dataBuckets[*packet.tbk] = append(bucket.([]*trade), packet.data.(*trade))
+					w.dataBuckets[*packet.tbk] = append(bucket.([]*trade), d)
 				}
 			} else {
-				switch packet.data.(type) {
+				switch d := packet.data.(type) {
 				case *quote:
-					w.dataBuckets[*packet.tbk] = []*quote{packet.data.(*quote)}
+					w.dataBuckets[*packet.tbk] = []*quote{d}
 				case *trade:
-					w.dataBuckets[*packet.tbk] = []*trade{packet.data.(*trade)}
+					w.dataBuckets[*packet.tbk] = []*trade{d}
 				}
 			}
 
@@ -237,7 +245,7 @@ func (w *writer) write() {
 			csm = io.NewColumnSeriesMap()
 
 			for tbk, bucket := range w.dataBuckets {
-				switch b:= bucket.(type) {
+				switch b := bucket.(type) {
 				case []*quote:
 					for _, q := range b {
 						epoch = append(epoch, q.epoch)

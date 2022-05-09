@@ -9,10 +9,11 @@ package calendar
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type MarketState int
@@ -34,7 +35,7 @@ type Calendar struct {
 	earlyCloseTime Time
 }
 
-type calendarJson struct {
+type calendarJSON struct {
 	NonTradingDays []string `json:"non_trading_days"`
 	EarlyCloses    []string `json:"early_closes"`
 	Timezone       string   `json:"timezone"`
@@ -44,16 +45,15 @@ type calendarJson struct {
 }
 
 // Nasdaq implements market calendar for the NASDAQ.
-var Nasdaq = New(NasdaqJson)
+var Nasdaq = New(NasdaqJSON)
 
-func jd(t time.Time) int {
+func julianDate(t time.Time) int {
 	// Note: Date() is faster than calling Hour(), Month(), and Day() separately
-	i, m, k := t.Date()
-	j := int(m)
-	return k - 32075 +
-		1461*(i+4800+(j-14)/12)/4 +
-		367*(j-2-(j-14)/12*12)/12 -
-		3*((i+4900+(j-14)/12)/100)/4
+	year, m, day := t.Date()
+	month := int(m)
+	// nolint:gomnd // well-known algorithm to calculate julian date number
+	return day - 32075 + 1461*(year+4800+(month-14)/12)/4 + 367*(month-2-(month-14)/12*12)/12 -
+		3*((year+4900+(month-14)/12)/100)/4
 }
 
 func ParseTime(tstr string) Time {
@@ -64,21 +64,21 @@ func ParseTime(tstr string) Time {
 	return Time{h, m, s}
 }
 
-func New(calendarJSON string) *Calendar {
+func New(calendarJSONStr string) *Calendar {
 	cal := Calendar{days: map[int]MarketState{}}
-	cmap := calendarJson{}
-	err := json.Unmarshal([]byte(calendarJSON), &cmap)
+	cmap := calendarJSON{}
+	err := json.Unmarshal([]byte(calendarJSONStr), &cmap)
 	if err != nil {
-		log.Error(fmt.Sprintf("failed to unmarshal calendarJson:%s", calendarJSON))
+		log.Error(fmt.Sprintf("failed to unmarshal calendarJson:%s", calendarJSONStr))
 		return nil
 	}
 	for _, dateString := range cmap.NonTradingDays {
 		t, _ := time.Parse("2006-01-02", dateString)
-		cal.days[jd(t)] = Closed
+		cal.days[julianDate(t)] = Closed
 	}
 	for _, dateString := range cmap.EarlyCloses {
 		t, _ := time.Parse("2006-01-02", dateString)
-		cal.days[jd(t)] = EarlyClose
+		cal.days[julianDate(t)] = EarlyClose
 	}
 	cal.tz, _ = time.LoadLocation(cmap.Timezone)
 	cal.openTime = ParseTime(cmap.OpenTime)
@@ -92,19 +92,19 @@ func (calendar *Calendar) IsMarketDay(t time.Time) bool {
 	if t.Weekday() == time.Saturday || t.Weekday() == time.Sunday {
 		return false
 	}
-	if state, ok := calendar.days[jd(t)]; ok {
+	if state, ok := calendar.days[julianDate(t)]; ok {
 		return state != Closed
 	}
 	return true
 }
 
-// EpochIsMarketOpen returns true if epoch in calendar's timezone is in the market hours
+// EpochIsMarketOpen returns true if epoch in calendar's timezone is in the market hours.
 func (calendar *Calendar) EpochIsMarketOpen(epoch int64) bool {
 	t := time.Unix(epoch, 0).In(calendar.tz)
 	return calendar.IsMarketOpen(t)
 }
 
-// IsMarketOpen returns true if t is in the market hours
+// IsMarketOpen returns true if t is in the market hours.
 func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 	wd := t.Weekday()
 	if wd == time.Saturday || wd == time.Sunday {
@@ -114,24 +114,22 @@ func (calendar *Calendar) IsMarketOpen(t time.Time) bool {
 	year, month, day := t.Date()
 	ot := calendar.openTime
 	open := time.Date(year, month, day, ot.hour, ot.minute, ot.second, 0, calendar.tz)
-	if state, ok := calendar.days[jd(t)]; ok {
+	if state, ok := calendar.days[julianDate(t)]; ok {
 		switch state {
 		case EarlyClose:
 			et := calendar.earlyCloseTime
-			close := time.Date(year, month, day, et.hour, et.minute, et.second, 0, calendar.tz)
-			if t.Before(open) || t.Equal(close) || t.After(close) {
+			clos := time.Date(year, month, day, et.hour, et.minute, et.second, 0, calendar.tz)
+			if t.Before(open) || t.Equal(clos) || t.After(clos) {
 				return false
 			}
 			return true
-		case Closed:
-			fallthrough
-		default:
+		default: // case Closed:
 			return false
 		}
 	} else {
 		ct := calendar.closeTime
-		close := time.Date(year, month, day, ct.hour, ct.minute, ct.second, 0, calendar.tz)
-		if t.Before(open) || t.Equal(close) || t.After(close) {
+		clos := time.Date(year, month, day, ct.hour, ct.minute, ct.second, 0, calendar.tz)
+		if t.Before(open) || t.Equal(clos) || t.After(clos) {
 			return false
 		}
 		return true
@@ -148,8 +146,9 @@ func (calendar *Calendar) EpochMarketClose(epoch int64) *time.Time {
 
 // MarketClose determines the market close time of the day that the
 // supplied timestamp occurs on. Returns nil if it is not a market day.
-func (calendar *Calendar) MarketClose(t time.Time) (mktClose *time.Time) {
-	if state, ok := calendar.days[jd(t)]; ok {
+func (calendar *Calendar) MarketClose(t time.Time) *time.Time {
+	var mktClose *time.Time
+	if state, ok := calendar.days[julianDate(t)]; ok {
 		switch state {
 		case EarlyClose:
 			earlyClose := time.Date(
@@ -161,7 +160,7 @@ func (calendar *Calendar) MarketClose(t time.Time) (mktClose *time.Time) {
 
 			mktClose = &earlyClose
 		case Closed:
-			return
+			return mktClose
 		default:
 			normalClose := time.Date(
 				t.Year(), t.Month(), t.Day(),
@@ -173,7 +172,7 @@ func (calendar *Calendar) MarketClose(t time.Time) (mktClose *time.Time) {
 			mktClose = &normalClose
 		}
 	}
-	return nil
+	return mktClose
 }
 
 func (calendar *Calendar) Tz() *time.Location {

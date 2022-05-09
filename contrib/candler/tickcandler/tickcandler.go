@@ -3,10 +3,9 @@ package tickcandler
 import (
 	"fmt"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/contrib/candler"
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -40,23 +39,25 @@ func (c TickCandler) New(argMap *functions.ArgumentMap, args ...interface{}) (ic
 	return &TickCandler{ca}, err
 }
 
-func (ca *TickCandler) GetRequiredArgs() []io.DataShape {
+func (c *TickCandler) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
-func (ca *TickCandler) GetOptionalArgs() []io.DataShape {
+
+func (c *TickCandler) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
-func (ca *TickCandler) GetInitArgs() []io.DataShape {
+
+func (c *TickCandler) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
 /*
 	Accum() sends new data to the aggregate
 */
-func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
+func (c *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
 	if cols.Len() == 0 {
-		return nil, fmt.Errorf("Empty input to Accum")
+		return nil, fmt.Errorf("empty input to Accum")
 	}
 	/*
 		Get the input column for "Price"
@@ -79,9 +80,9 @@ func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, 
 		Prepare a consolidated map of columns for use in updating sums
 	*/
 	var sumCols map[string][]float32
-	if len(ca.AccumSumNames) != 0 {
+	if len(c.AccumSumNames) != 0 {
 		sumCols = make(map[string][]float32)
-		for _, name := range ca.AccumSumNames {
+		for _, name := range c.AccumSumNames {
 			sumCols[name], err = uda.ColumnToFloat32(cols, name)
 			if err != nil {
 				return nil, err
@@ -90,15 +91,15 @@ func (ca *TickCandler) Accum(_ io.TimeBucketKey, argMap *functions.ArgumentMap, 
 	}
 	var candle *candler.Candle
 	for i, t := range ts {
-		candle = ca.GetCandle(t, candle)
+		candle = c.GetCandle(t, candle)
 		candle.AddCandle(t, price[i])
 		/*
 			Iterate over the candle's named columns that need sums
 		*/
-		for _, name := range ca.AccumSumNames {
+		for _, name := range c.AccumSumNames {
 			candle.SumMap[name] += float64(sumCols[name][i])
 		}
 		candle.Count++
 	}
-	return ca.Output(), nil
+	return c.Output()
 }

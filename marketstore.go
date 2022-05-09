@@ -20,9 +20,8 @@ import (
 
 // Builds the command hierarchy and parses statements.
 func main() {
-	err := cmd.Execute()
 	// Errors are already handled by the framework.
-	if err != nil {
+	if err := cmd.Execute(); err != nil {
 		os.Exit(0)
 	}
 }

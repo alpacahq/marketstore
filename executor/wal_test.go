@@ -2,8 +2,6 @@ package executor_test
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -20,21 +18,20 @@ import (
 )
 
 func TestWALWrite(t *testing.T) {
-	tearDown, rootDir, _, metadata, shutdownPending := setup(t, "TestWALWrite")
-	defer tearDown()
+	rootDir, _, metadata := setup(t)
 
 	var err error
 	mockInstanceID := time.Now().UTC().UnixNano()
 	txnPipe := executor.NewTransactionPipe()
 	metadata.WALFile, err = executor.NewWALFile(rootDir, mockInstanceID, nil,
-		false, shutdownPending, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
+		false, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
 		txnPipe,
 	)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
 
-	queryFiles, err := addTGData(metadata.CatalogDir, metadata.WALFile, 1000, false)
+	queryFiles, err := addTGData(t, metadata.CatalogDir, metadata.WALFile, 1000, false)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
@@ -44,27 +41,27 @@ func TestWALWrite(t *testing.T) {
 
 	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	// Verify that the file contents have not changed
 	assert.True(t, compareFileToBuf(t, originalFileContents, queryFiles))
 
 	err = metadata.WALFile.CreateCheckpoint()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	// Verify that the file contents have not changed
 	assert.True(t, compareFileToBuf(t, originalFileContents, queryFiles))
 
 	// Add some mixed up data to the cache
-	queryFiles, err = addTGData(metadata.CatalogDir, metadata.WALFile, 200, true)
+	queryFiles, err = addTGData(t, metadata.CatalogDir, metadata.WALFile, 200, true)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
 
 	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 
@@ -78,20 +75,18 @@ func TestWALWrite(t *testing.T) {
 	assert.Nil(t, err)
 	metadata.WALFile.WriteStatus(wal.OPEN, wal.REPLAYED)
 
-	metadata.WALFile.Delete(mockInstanceID)
+	_ = metadata.WALFile.Delete(mockInstanceID)
 
 	assert.False(t, metadata.WALFile.IsOpen())
-
 }
 
 func TestBrokenWAL(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestBrokenWAL")
-	defer tearDown()
+	rootDir, _, metadata := setup(t)
 
 	var err error
 
 	// Add some mixed up data to the cache
-	_, err = addTGData(metadata.CatalogDir, metadata.WALFile, 1000, true)
+	_, err = addTGData(t, metadata.CatalogDir, metadata.WALFile, 1000, true)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
@@ -102,7 +97,7 @@ func TestBrokenWAL(t *testing.T) {
 
 	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 
 	// Save the WALFile contents after WAL flush, but before flush to primary
@@ -115,7 +110,7 @@ func TestBrokenWAL(t *testing.T) {
 
 	err = metadata.WALFile.CreateCheckpoint()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 
 	// Now we have a completed WALFile, we can write some degraded files for testing
@@ -131,17 +126,17 @@ func TestBrokenWAL(t *testing.T) {
 		WALBuffer[3+i] = val
 	}
 	BrokenWAL := WALBuffer[:(3 * len(WALBuffer) / 4)]
-	//BrokenWAL := WALBuffer[:]
+	// BrokenWAL := WALBuffer[:]
 	BrokenWALFileName := "BrokenWAL"
 	BrokenWALFilePath := rootDir + "/" + BrokenWALFileName
 
-	os.Remove(BrokenWALFilePath)
-	fp, err := os.OpenFile(BrokenWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
+	_ = os.Remove(BrokenWALFilePath)
+	fp, err := os.OpenFile(BrokenWALFilePath, os.O_CREATE|os.O_RDWR, 0o600)
 	assert.Nil(t, err)
 	_, err = fp.Write(BrokenWAL)
 	assert.Nil(t, err)
 	io.Syncfs()
-	fp.Close()
+	_ = fp.Close()
 
 	// Take over the broken WALFile and replay it
 	WALFile, err := executor.TakeOverWALFile(filepath.Join(rootDir, BrokenWALFileName))
@@ -156,12 +151,11 @@ func TestBrokenWAL(t *testing.T) {
 }
 
 func TestWALReplay(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestWALReplay")
-	defer tearDown()
+	rootDir, _, metadata := setup(t)
 
 	var err error
 
-	allQueryFiles, err := addTGData(metadata.CatalogDir, metadata.WALFile, 1000, true)
+	allQueryFiles, err := addTGData(t, metadata.CatalogDir, metadata.WALFile, 1000, true)
 	if err != nil {
 		assert.Fail(t, err.Error())
 	}
@@ -185,7 +179,7 @@ func TestWALReplay(t *testing.T) {
 
 	err = metadata.WALFile.FlushToWAL()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 
 	// Save the WALFile contents after WAL flush, but before checkpoint
@@ -198,7 +192,7 @@ func TestWALReplay(t *testing.T) {
 
 	err = metadata.WALFile.CreateCheckpoint()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.FailNow()
 	}
 	// Put the modified files into a buffer and then verify the state of the files
@@ -207,12 +201,12 @@ func TestWALReplay(t *testing.T) {
 
 	// Verify that the file contents have changed for year 2002
 	for key, buf := range fileContentsOriginal2002 {
-		//fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(modifiedFileContents[key]))
+		// t.Log("Key:", key, "Len1: ", len(buf), " Len2: ", len(modifiedFileContents[key]))
 		assert.False(t, bytes.Equal(buf, modifiedFileContents[key]))
 	}
 
 	// Re-write the original files
-	//fmt.Println("Rewrite")
+	// t.Log("Rewrite")
 	rewriteFilesFromBuffer(t, fileContentsOriginal2002)
 	// At this point, we should have our original files
 	assert.True(t, compareFileToBuf(t, fileContentsOriginal2002, queryFiles2002))
@@ -220,8 +214,8 @@ func TestWALReplay(t *testing.T) {
 	// Write a WAL file with the pre-flushed state - we will replay this to get the modified files
 	newWALFileName := "ReplayWAL"
 	newWALFilePath := rootDir + "/" + newWALFileName
-	os.Remove(newWALFilePath) // Remove it if it exists
-	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0600)
+	_ = os.Remove(newWALFilePath) // Remove it if it exists
+	fp, err := os.OpenFile(newWALFilePath, os.O_CREATE|os.O_RDWR, 0o600)
 	assert.Nil(t, err)
 	// Replace PID with a bogus PID
 	for i, val := range [8]byte{1, 1, 1, 1, 1, 1, 1, 1} {
@@ -235,8 +229,8 @@ func TestWALReplay(t *testing.T) {
 	// Take over the new WALFile and replay it into a new TG cache
 	WALFile, err := executor.TakeOverWALFile(filepath.Join(rootDir, newWALFileName))
 	assert.Nil(t, err)
-	data, _ := ioutil.ReadFile(newWALFilePath)
-	ioutil.WriteFile("/tmp/wal", data, 0644)
+	data, _ := os.ReadFile(newWALFilePath)
+	_ = os.WriteFile("/tmp/wal", data, 0o600)
 	newTGC := executor.NewTransactionPipe()
 	assert.NotNil(t, newTGC)
 	// Verify that our files are in original state prior to replay
@@ -251,13 +245,13 @@ func TestWALReplay(t *testing.T) {
 	for key, buf := range modifiedFileContents {
 		if filepath.Base(key) == "2002.bin" {
 			buf2 := postReplayFileContents[key]
-			//fmt.Println("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
+			// t.Log("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
 			if !bytes.Equal(buf, postReplayFileContents[key]) {
 				for i, val := range buf {
 					if val != buf2[i] {
-						fmt.Println("Diff: pre/post:", buf[i:i+8], buf2[i:i+8])
-						fmt.Println("Diff: pre/post int64:", io.ToInt64(buf[i:i+8]), io.ToInt64(buf2[i:i+8]))
-						fmt.Println("Diff: pre/post float32:", io.ToFloat32(buf[i:i+4]), io.ToFloat32(buf2[i:i+4]))
+						t.Log("Diff: pre/post:", buf[i:i+8], buf2[i:i+8])
+						t.Log("Diff: pre/post int64:", io.ToInt64(buf[i:i+8]), io.ToInt64(buf2[i:i+8]))
+						t.Log("Diff: pre/post float32:", io.ToFloat32(buf[i:i+4]), io.ToFloat32(buf2[i:i+4]))
 						assert.Fail(t, "diff")
 					}
 				}
@@ -281,7 +275,7 @@ func createBufferFromFiles(t *testing.T, queryFiles []string) (originalFileConte
 	// Get the base files associated with this cache so that we can verify they remain correct after flush
 	originalFileContents = make(map[string][]byte)
 	for _, filePath := range queryFiles {
-		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
+		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0o600)
 		assert.Nil(t, err)
 		fstat, err := fp.Stat()
 		assert.Nil(t, err)
@@ -289,8 +283,8 @@ func createBufferFromFiles(t *testing.T, queryFiles []string) (originalFileConte
 		originalFileContents[filePath] = make([]byte, size)
 		_, err = fp.Read(originalFileContents[filePath])
 		assert.Nil(t, err)
-		//		fmt.Println("Read file ", filePath, " Size: ", n)
-		fp.Close()
+		//	t.Log("Read file ", filePath, " Size: ", n)
+		_ = fp.Close()
 	}
 	return originalFileContents
 }
@@ -300,13 +294,13 @@ func rewriteFilesFromBuffer(t *testing.T, originalFileContents map[string][]byte
 
 	// Replace the file contents with the contents of the buffer
 	for filePath := range originalFileContents {
-		fp, err := os.OpenFile(filePath, os.O_RDWR, 0600)
+		fp, err := os.OpenFile(filePath, os.O_RDWR, 0o600)
 		assert.Nil(t, err)
 		n, err := fp.WriteAt(originalFileContents[filePath], 0)
 		assert.Nil(t, err)
 		assert.Len(t, originalFileContents[filePath], n)
-		//		fmt.Println("Read file ", filePath, " Size: ", n)
-		fp.Close()
+		//	t.Log("Read file ", filePath, " Size: ", n)
+		_ = fp.Close()
 	}
 }
 
@@ -314,7 +308,7 @@ func compareFileToBuf(t *testing.T, originalFileContents map[string][]byte, quer
 	t.Helper()
 
 	for _, filePath := range queryFiles {
-		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0600)
+		fp, err := os.OpenFile(filePath, os.O_RDONLY, 0o600)
 		assert.Nil(t, err)
 		fstat, err := fp.Stat()
 		assert.Nil(t, err)
@@ -322,8 +316,8 @@ func compareFileToBuf(t *testing.T, originalFileContents map[string][]byte, quer
 		content := make([]byte, size)
 		_, err = fp.Read(content)
 		assert.Nil(t, err)
-		//		fmt.Println("Read original file ", filePath, " Size: ", n)
-		fp.Close()
+		//	t.Log("Read original file ", filePath, " Size: ", n)
+		_ = fp.Close()
 		if !bytes.Equal(content, originalFileContents[filePath]) {
 			return false
 		}
@@ -331,13 +325,15 @@ func compareFileToBuf(t *testing.T, originalFileContents map[string][]byte, quer
 	return true
 }
 
-func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
+func addTGData(t *testing.T, root *catalog.Directory, walFile *executor.WALFileType,
 	number int, mixup bool,
 ) (queryFiles []string, err error) {
+	t.Helper()
+
 	// Create some data via a query
 	symbols := []string{"NZDUSD", "USDJPY", "EURUSD"}
-	tbiByKey := make(map[io.TimeBucketKey]*io.TimeBucketInfo, 0)
-	writerByKey := make(map[io.TimeBucketKey]*executor.Writer, 0)
+	tbiByKey := make(map[io.TimeBucketKey]*io.TimeBucketInfo)
+	writerByKey := make(map[io.TimeBucketKey]*executor.Writer)
 	csm := io.NewColumnSeriesMap()
 	queryFiles = make([]string, 0)
 
@@ -350,13 +346,13 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 		parsed, _ := q.Parse()
 		scanner, err := executor.NewReader(parsed)
 		if err != nil {
-			fmt.Printf("Failed to create a new reader")
+			t.Log("Failed to create a new reader")
 			return nil, err
 		}
 
 		csmSym, err := scanner.Read()
 		if err != nil {
-			fmt.Printf("scanner.Read failed: Err: %s", err)
+			t.Logf("scanner.Read failed: Err: %s", err)
 			return nil, err
 		}
 
@@ -364,10 +360,14 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 			// Add this result data to the overall
 			csm[key] = cs
 			tbi, err := root.GetLatestTimeBucketInfoFromKey(&key)
+			if err != nil {
+				t.Log("Failed to GetLatestTimeBucketInfoFromKey")
+				return nil, err
+			}
 			tbiByKey[key] = tbi
 			writerByKey[key], err = executor.NewWriter(root, walFile)
 			if err != nil {
-				fmt.Printf("Failed to create a new writer")
+				t.Log("Failed to create a new writer")
 				return nil, err
 			}
 		}
@@ -381,10 +381,14 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 	// Write the data to the TG cache
 	for key, cs := range csm {
 		epoch := cs.GetEpoch()
-		open := cs.GetByName("Open").([]float32)
-		high := cs.GetByName("High").([]float32)
-		low := cs.GetByName("Low").([]float32)
-		close := cs.GetByName("Close").([]float32)
+		open, ok := cs.GetColumn("Open").([]float32)
+		assert.True(t, ok)
+		high, ok := cs.GetColumn("High").([]float32)
+		assert.True(t, ok)
+		low, ok := cs.GetColumn("Low").([]float32)
+		assert.True(t, ok)
+		clos, ok := cs.GetColumn("Close").([]float32)
+		assert.True(t, ok)
 		// If we have the mixup flag set, change the data
 		if mixup {
 			asize := len(epoch)
@@ -394,7 +398,7 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 				open[i] = float32(-1 * i)
 				high[i] = float32(-2 * ii)
 				low[i] = -3
-				close[i] = -4
+				clos[i] = -4
 			}
 		}
 		timestamps := make([]time.Time, len(epoch))
@@ -405,9 +409,9 @@ func addTGData(root *catalog.Directory, walFile *executor.WALFileType,
 			buffer = append(buffer, io.DataToByteSlice(open[i])...)
 			buffer = append(buffer, io.DataToByteSlice(high[i])...)
 			buffer = append(buffer, io.DataToByteSlice(low[i])...)
-			buffer = append(buffer, io.DataToByteSlice(close[i])...)
+			buffer = append(buffer, io.DataToByteSlice(clos[i])...)
 		}
-		writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapesWithEpoch(), tbiByKey[key])
+		_ = writerByKey[key].WriteRecords(timestamps, buffer, tbiByKey[key].GetDataShapesWithEpoch(), tbiByKey[key])
 	}
 
 	return queryFiles, nil

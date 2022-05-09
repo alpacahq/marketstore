@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	announcement "github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 )
 
@@ -38,10 +37,12 @@ type Announcement struct {
 	DueRedemptionDate       time.Time                     `reorg:"func:ParseDueRedemptionDate"`
 }
 
+// nolint:gocritic // TODO: refactor (change Announcement -> *Announcement and related code using lots of reflection)
 func (i Announcement) Is(code announcement.NotificationType) bool {
 	return i.NotificationType == code
 }
 
+// nolint:gocritic // TODO: refactor (change Announcement -> *Announcement and related code using lots of reflection)
 func (i Announcement) ParseUpdateTextNumber(lines []string) string {
 	if strings.TrimSpace(lines[5][54:61]) == "UPDTEXT" {
 		return strings.TrimSpace(lines[5][62:69])
@@ -49,6 +50,7 @@ func (i Announcement) ParseUpdateTextNumber(lines []string) string {
 	return ""
 }
 
+// nolint:gocritic // TODO: refactor (change Announcement -> *Announcement and related code using lots of reflection)
 func (i Announcement) ParseDeleteTextNumber(lines []string) string {
 	if strings.TrimSpace(lines[5][54:61]) == "DELTEXT" {
 		return strings.TrimSpace(lines[5][62:69])
@@ -56,20 +58,23 @@ func (i Announcement) ParseDeleteTextNumber(lines []string) string {
 	return ""
 }
 
+// nolint:gocritic // TODO: refactor (change Announcement -> *Announcement and related code using lots of reflection)
 func (i Announcement) ParseNewRate(lines []string) string {
-	if i.Is(enum.StockSplit) || i.Is(enum.ReverseStockSplit) {
+	if i.Is(announcement.StockSplit) || i.Is(announcement.ReverseStockSplit) {
 		return lines[7][56:69]
 	}
 	return lines[4][5:15]
 }
 
+// nolint:gocritic // TODO: refactor (change Announcement -> *Announcement and related code using lots of reflection)
 func (i Announcement) ParseOldRate(lines []string) string {
-	if i.Is(enum.StockSplit) || i.Is(enum.ReverseStockSplit) {
+	if i.Is(announcement.StockSplit) || i.Is(announcement.ReverseStockSplit) {
 		return lines[8][56:69]
 	}
 	return lines[4][23:32]
 }
 
+// nolint:gocritic //TODO: refactor (change Announcement -> *Announcement and related code using lots of reflection)
 func (i Announcement) ParseDueRedemptionDate(lines []string) string {
 	if len(lines) > 12 && lines[12][0:25] == "DUE BILL REDEMPTION DATE:" {
 		return lines[12][25:33]

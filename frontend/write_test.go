@@ -1,22 +1,19 @@
 package frontend_test
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 func TestWrite(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestWrite")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -53,7 +50,7 @@ func TestWrite(t *testing.T) {
 
 	csm2, _ := qresponse.Responses[0].Result.ToColumnSeriesMap()
 	for _, cs := range csm2 {
-		//		fmt.Println("LAL cs len:", cs.Len())
+		//	t.Log("LAL cs len:", cs.Len())
 		assert.Equal(t, cs.Len(), 201)
 	}
 
@@ -72,8 +69,8 @@ func TestWrite(t *testing.T) {
 	}
 
 	for _, resp := range response.Responses {
-		if len(resp.Error) != 0 {
-			fmt.Printf("Error: %s\n", resp.Error)
+		if resp.Error != "" {
+			t.Logf("Error: %s\n", resp.Error)
 			t.FailNow()
 		}
 	}
@@ -104,5 +101,4 @@ func TestWrite(t *testing.T) {
 		tref := time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
 		assert.Equal(t, ti, tref)
 	}
-
 }

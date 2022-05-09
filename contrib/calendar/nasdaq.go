@@ -1,6 +1,6 @@
 package calendar
 
-var NasdaqJson = `{
+var NasdaqJSON = `{
   "timezone": "America/New_York",
   "open_time": "09:30:00",
   "close_time": "16:00:00",

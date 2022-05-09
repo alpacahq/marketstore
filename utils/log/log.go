@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// nolint:gochecknoinits // TODO: refactor
 func init() {
 	atom := zap.NewAtomicLevelAt(zapcore.DebugLevel)
 

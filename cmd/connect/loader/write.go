@@ -9,8 +9,8 @@ import (
 )
 
 func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey, csvRows [][]string, columnIndex []int,
-	dataShapes []io.DataShape) (csm io.ColumnSeriesMap) {
-
+	dataShapes []io.DataShape,
+) (csm io.ColumnSeriesMap, err error) {
 	if csmInit == nil {
 		csm = io.NewColumnSeriesMap()
 	} else {
@@ -24,69 +24,66 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 			*/
 			switch shape.Type {
 			case io.STRING:
-				col, err := getStringColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
-				}
+				col := getStringColumnFromCSVRows(csvRows, index)
 				csm.AddColumn(key, shape.Name, col)
 			case io.FLOAT32:
 				col, err := getFloat32ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.FLOAT64:
 				col, err := getFloat64ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.BYTE:
 				col, err := getInt8ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.INT16:
 				col, err := getInt16ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.INT32:
 				col, err := getInt32ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.INT64:
 				col, err := getInt64ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.UINT8:
 				col, err := getUInt8ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.UINT16:
 				col, err := getUInt16ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.UINT32:
 				col, err := getUInt32ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.UINT64:
 				col, err := getUInt64ColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
 			case io.STRING16:
@@ -94,24 +91,18 @@ func columnSeriesMapFromCSVData(csmInit io.ColumnSeriesMap, key io.TimeBucketKey
 				csm.AddColumn(key, shape.Name, col)
 			case io.BOOL:
 				col, err := getBoolColumnFromCSVRows(csvRows, index)
-				if columnError(err, shape.Name) {
-					return nil
+				if err != nil {
+					return nil, fmt.Errorf("error obtaining column \"%s\" from csv data", shape.Name)
 				}
 				csm.AddColumn(key, shape.Name, col)
-
+			default:
+				return nil, fmt.Errorf("unknown column type.rror obtaining column \"%s\" from csv data",
+					shape.Name,
+				)
 			}
-
 		}
 	}
-	return csm
-}
-
-func columnError(err error, name string) bool {
-	if err != nil {
-		fmt.Printf("Error obtaining column \"%s\" from csv data\n", name)
-		return true
-	}
-	return false
+	return csm, nil
 }
 
 func getBoolColumnFromCSVRows(csvRows [][]string, index int) (col []bool, err error) {
@@ -121,17 +112,17 @@ func getBoolColumnFromCSVRows(csvRows [][]string, index int) (col []bool, err er
 		if err != nil {
 			return nil, err
 		}
-		col[i] = bool(val)
+		col[i] = val
 	}
 	return col, nil
 }
 
-func getStringColumnFromCSVRows(csvRows [][]string, index int) (col []string, err error) {
+func getStringColumnFromCSVRows(csvRows [][]string, index int) (col []string) {
 	col = make([]string, len(csvRows))
 	for i, row := range csvRows {
 		col[i] = row[index]
 	}
-	return col, nil
+	return col
 }
 
 func getFloat32ColumnFromCSVRows(csvRows [][]string, index int) (col []float32, err error) {
@@ -251,12 +242,15 @@ func getUInt64ColumnFromCSVRows(csvRows [][]string, index int) (col []uint64, er
 	return col, nil
 }
 
-func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][16]rune) {
-	col = make([][16]rune, len(csvRows))
+const String16RuneSize = 16
+
+func getString16ColumnFromCSVRows(csvRows [][]string, index int) (col [][String16RuneSize]rune) {
+	col = make([][String16RuneSize]rune, len(csvRows))
 	for i, row := range csvRows {
-		if len([]rune(row[index])) > 16 {
+		if len([]rune(row[index])) > String16RuneSize {
 			log.Warn(fmt.Sprintf("too long string column (>16chars):%v", row[index]))
-			copy(col[i][:], []rune(row[index][0:16]))
+
+			copy(col[i][:], []rune(row[index][0:String16RuneSize]))
 		} else {
 			copy(col[i][:], []rune(row[index][0:len(row[index])]))
 		}

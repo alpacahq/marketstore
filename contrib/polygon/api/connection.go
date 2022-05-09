@@ -23,12 +23,19 @@ type PolygonWebSocket struct {
 	outputChan     chan interface{}
 }
 
-func NewPolygonWebSocket(servers, apiKey string, pref Prefix, symbols []string, oChan chan interface{}) *PolygonWebSocket {
+func NewPolygonWebSocket(servers, apiKey string, pref Prefix, symbols []string, oChan chan interface{},
+) *PolygonWebSocket {
+	const (
+		// maximum size in bytes for a message read from the peer.
+		defaultMaxMessageRecvBytes = 2048000
+		defaultOutputChanLength    = 100
+	)
+
 	if oChan == nil {
-		oChan = make(chan interface{}, 100)
+		oChan = make(chan interface{}, defaultOutputChanLength)
 	}
 	return &PolygonWebSocket{
-		maxMessageSize: 2048000,
+		maxMessageSize: defaultMaxMessageRecvBytes,
 		pingPeriod:     10 * time.Second,
 		doneChan:       make(chan struct{}),
 		Servers:        setURLs(servers, apiKey),
@@ -43,7 +50,8 @@ func (p *PolygonWebSocket) ping() {
 	_ = p.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
 }
 
-func (p *PolygonWebSocket) pongHandler(s string) (err error) {
+func (p *PolygonWebSocket) pongHandler(_ string) (err error) {
+	// nolint:gomnd // Slightly longer time than the ping period
 	_ = p.conn.SetReadDeadline(time.Now().Add(6 * p.pingPeriod / 5))
 	pong := func() {
 		time.Sleep(p.pingPeriod)
@@ -141,36 +149,41 @@ ErrorOut:
 	out <- nil
 }
 
-func (p *PolygonWebSocket) connect() (err error) {
+func (p *PolygonWebSocket) connect() error {
+	var err error
+	// 101 means "changing protocol", meaning we're upgrading to a websocket
+	const statusCodeChangingProtocol = 101
+
 	p.disconnect()
 	var hresp *http.Response
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 2 * time.Second
 	p.conn, hresp, err = dialer.Dial(p.Servers[0].String(), nil)
 	if err != nil {
-		return
+		return err
 	}
-	if hresp.StatusCode != 101 { // 101 means "changing protocol", meaning we're upgrading to a websocket
+	if hresp.StatusCode != statusCodeChangingProtocol {
 		return fmt.Errorf("upstream connection failure, status_code: %d", hresp.StatusCode)
 	}
 	// Check to see we have a response from the connection
 	err = p.conn.SetReadDeadline(time.Now().Add(time.Second))
 	if err != nil {
-		return
+		return err
 	}
 	resp := p.readMsg()
 	if !strings.Contains(resp, "connected") {
 		return fmt.Errorf("unable to verify good connection")
 	}
-	return
+
+	return nil
 }
+
 func (p *PolygonWebSocket) disconnect() {
 	if p.conn == nil {
 		log.Warn("connection was already nil")
 		return
 	}
-	err := p.conn.Close()
-	if err != nil {
+	if err := p.conn.Close(); err != nil {
 		log.Warn("error closing connection")
 	}
 
@@ -184,6 +197,7 @@ func (p *PolygonWebSocket) readMsg() string {
 	}
 	return string(pp)
 }
+
 func (p *PolygonWebSocket) subscribe() (connected bool) {
 	var (
 		err  error
@@ -220,7 +234,7 @@ func (p *PolygonWebSocket) subscribe() (connected bool) {
 	return true
 }
 
-func setURLs(servers, apiKey string) (Servers []*url.URL) {
+func setURLs(servers, apiKey string) (svrs []*url.URL) {
 	urls := strings.Split(servers, ",")
 	if len(urls) < 1 {
 		return
@@ -237,6 +251,6 @@ func setURLs(servers, apiKey string) (Servers []*url.URL) {
 		}
 		u[i].RawQuery = parameters.Encode()
 	}
-	Servers = u
+	svrs = u
 	return
 }

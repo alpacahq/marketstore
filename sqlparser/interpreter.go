@@ -8,7 +8,7 @@ import (
 	. "github.com/alpacahq/marketstore/v4/sqlparser/parser"
 )
 
-// BuildQueryTree returns the query tree built from the parse tree
+// BuildQueryTree returns the query tree built from the parse tree.
 func BuildQueryTree(sourceString string) (tree IMSTree, err error) {
 	input := NewInputStream(sourceString)
 	lexer := NewSQLBaseLexer(input)
@@ -53,7 +53,7 @@ func print_tree(input Tree, lev int) {
 */
 
 /*
-Utility Functions
+Utility Functions.
 */
 type DescriptiveErrorListener struct {
 	DefaultErrorListener
@@ -62,5 +62,5 @@ type DescriptiveErrorListener struct {
 
 func (de *DescriptiveErrorListener) SyntaxError(recognizer Recognizer, offendingSymbol interface{},
 	line, column int, msg string, e RecognitionException) {
-	de.err = fmt.Errorf("Syntax Error[%d:%d]: %s", line, column, msg)
+	de.err = fmt.Errorf("syntax Error[%d:%d]: %s", line, column, msg)
 }

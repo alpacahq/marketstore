@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // CSVConfig is constructed from the control file
@@ -21,21 +22,26 @@ type CSVConfig struct {
 }
 
 type CSVMetadata struct {
-	Config      *CSVConfig     // Configuration of the CSV file, including the names of the columns
-	DSV         []io.DataShape // Datashapes inside this CSV file
-	ColumnIndex []int          // Maps the index of the columns in the CSV file to each time bucket in the DB
+	Config *CSVConfig // Configuration of the CSV file, including the names of the columns
+	// DSV is data shapes inside this CSV file. The first 2 columns are "Epoch-date" and "Epoch-time".
+	// If the schema of existent bucket is "Epoch,Ask,Bid", DSV is ["Epoch-date", "Epoch-time", "Epoch", "Ask", "Bid"].
+	DSV []io.DataShape
+	// ColumnIndex maps the index of the columns in the CSV file to each time bucket in the DB.
+	// ColumnIndex[i+2]=-1 when the column of DSV[i] doesn't exist in the provided CSV file.
+	// e.g. when the bucket is "Epoch,Ask,Bid" and Column[3] = -1, it means the provided CSV doesn't have "Ask" column.
+	ColumnIndex []int
 }
 
 func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetadata, chunkSize int,
-	isVariable bool) (npm *io.NumpyMultiDataset, endReached bool, err error) {
-
-	fmt.Println("Beginning parse...")
+	isVariable bool,
+) (npm *io.NumpyMultiDataset, endReached bool, err error) {
+	log.Info("Beginning parse...")
 
 	csvChunk := make([][]string, 0)
 	var linesRead int
 	for i := 0; i < chunkSize; i++ {
-		row, err := csvReader.Read()
-		if err != nil {
+		row, err2 := csvReader.Read()
+		if err2 != nil {
 			endReached = true
 			break
 		}
@@ -45,7 +51,7 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 	if len(csvChunk) == 0 {
 		return nil, true, nil
 	}
-	fmt.Printf("Read next %d lines from CSV file...\n", linesRead)
+	log.Info("Read next %d lines from CSV file...\n", linesRead)
 
 	csm, err := convertCSVtoCSM(tbk, cvm, csvChunk)
 	if err != nil {
@@ -53,7 +59,10 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 	}
 
 	if !isVariable {
-		csm[tbk].Remove("Nanoseconds")
+		err = csm[tbk].Remove("Nanoseconds")
+		if err != nil {
+			log.Info(fmt.Sprintf("delete Nanoseconds column:%v", err))
+		}
 	}
 
 	np, err := io.NewNumpyDataset(csm[tbk])
@@ -61,6 +70,9 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 		return nil, false, err
 	}
 	npm, err = io.NewNumpyMultiDataset(np, tbk)
+	if err != nil {
+		return nil, false, fmt.Errorf("create numpy multi dataset for %s:%w", tbk, err)
+	}
 
 	return npm, endReached, nil
 }
@@ -68,7 +80,7 @@ func CSVtoNumpyMulti(csvReader *csv.Reader, tbk io.TimeBucketKey, cvm *CSVMetada
 // ReadMetadata returns formatting info about the csv file containing
 // the data to be loaded into the database.
 func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvReader *csv.Reader, cvm *CSVMetadata, err error) {
-	fmt.Println("DB Data Shapes: ", dbDataShapes)
+	log.Info("DB Data Shapes: ", dbDataShapes)
 
 	cvm = &CSVMetadata{}
 
@@ -77,13 +89,15 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 		The fake columns are cut off after the mapping process, leaving only the single EPOCH column
 	*/
 	cvm.DSV = make([]io.DataShape, 0)
-	cvm.DSV = append(cvm.DSV, io.DataShape{Name: "Epoch-date", Type: io.INT64})
-	cvm.DSV = append(cvm.DSV, io.DataShape{Name: "Epoch-time", Type: io.INT64})
+	cvm.DSV = append(cvm.DSV,
+		io.DataShape{Name: "Epoch-date", Type: io.INT64},
+		io.DataShape{Name: "Epoch-time", Type: io.INT64},
+	)
 	cvm.DSV = append(cvm.DSV, dbDataShapes...)
 
 	var inputColNames []string
 	if dataFD == nil {
-		fmt.Println("Failed to open data file for loading")
+		log.Error("Failed to open data file for loading")
 		return nil, nil, err
 	}
 
@@ -123,14 +137,14 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 			4) Invalid case - no place is available to find DB column names
 	*/
 	if !cvm.Config.FirstRowHasColumnNames && cvm.Config.ColumnNameMap == nil {
-		return nil, nil, fmt.Errorf("Not enough info to map DB column names to csv file")
+		return nil, nil, fmt.Errorf("not enough info to map DB column names to csv file")
 	}
 
 	csvReader = csv.NewReader(dataFD)
 	if cvm.Config.FirstRowHasColumnNames {
 		inputColNames, err = csvReader.Read() // Read the column names
 		if err != nil {
-			fmt.Println("Error reading first row of column names from data file: " + err.Error())
+			log.Error("Error reading first row of column names from data file: " + err.Error())
 			return nil, nil, err
 		}
 	}
@@ -157,8 +171,8 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 			Implement column renaming
 		*/
 		if len(cvm.Config.ColumnNameMap) > len(inputColNames) {
-			err = fmt.Errorf("Error: ColumnNameMap from conf file has more entries than the column names from the input file")
-			fmt.Println(err.Error())
+			err = fmt.Errorf("error: ColumnNameMap from conf file has more entries than the column names from the input file")
+			log.Error(err.Error())
 			return nil, nil, err
 		}
 		for i, name := range cvm.Config.ColumnNameMap {
@@ -197,29 +211,33 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 	for i := 2; i < len(cvm.ColumnIndex); i++ {
 		if cvm.ColumnIndex[i] == -1 {
 			fail = true
-			fmt.Printf("Unable to find a matching csv column for \"%s\"\n", cvm.DSV[i-2].Name)
+			log.Error(fmt.Sprintf("Unable to find a matching csv column for \"%s\"\n", cvm.DSV[i-2].Name))
 		}
 	}
 	if fail {
-		return nil, nil, fmt.Errorf("Unable to match all csv file columns to DB columns")
+		return nil, nil, fmt.Errorf("unable to match all csv file columns to DB columns")
 	}
 
 	return csvReader, cvm, nil
 }
 
-func convertCSVtoCSM(tbk io.TimeBucketKey, cvm *CSVMetadata, csvDataChunk [][]string) (csm io.ColumnSeriesMap, err error) {
+func convertCSVtoCSM(tbk io.TimeBucketKey, cvm *CSVMetadata, csvDataChunk [][]string,
+) (csm io.ColumnSeriesMap, err error) {
 	epochCol, nanosCol := readTimeColumns(csvDataChunk, cvm.ColumnIndex, cvm.Config)
 	if epochCol == nil {
-		fmt.Println("Error building time columns from csv data")
+		log.Error("Error building time columns from csv data")
 		return
 	}
 
 	csmInit := io.NewColumnSeriesMap()
 	csmInit.AddColumn(tbk, "Epoch", epochCol)
-	csm = columnSeriesMapFromCSVData(csmInit, tbk, csvDataChunk, cvm.ColumnIndex[2:], cvm.DSV)
+	csm, err = columnSeriesMapFromCSVData(csmInit, tbk, csvDataChunk, cvm.ColumnIndex[2:], cvm.DSV)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columnSeriesMap from CSV Data:%w", err)
+	}
 	csm.AddColumn(tbk, "Nanoseconds", nanosCol)
 
-	return csm, err
+	return csm, nil
 }
 
 func readControlFile(controlFD *os.File) (cf *CSVConfig, err error) {

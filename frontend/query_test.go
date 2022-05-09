@@ -1,45 +1,41 @@
 package frontend_test
 
 import (
-	"fmt"
-	"io/ioutil"
 	"math"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, metadata *executor.InstanceMetadata, writer *executor.Writer,
+func setup(t *testing.T,
+) (rootDir string, metadata *executor.InstanceMetadata, writer *executor.Writer,
 	q frontend.QueryInterface,
 ) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("frontend_test-%s", testName))
+	rootDir = t.TempDir()
 	test.MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false)
+	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 	atomic.StoreUint32(&frontend.Queryable, uint32(1))
 
 	qs := frontend.NewQueryService(metadata.CatalogDir)
 	writer, _ = executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, metadata, writer, qs
+	return rootDir, metadata, writer, qs
 }
 
 func _TestQueryCustomTimeframes(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "_TestQueryCustomTimeframes")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
-	//TODO: Support custom timeframes
+	// TODO: Support custom timeframes
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
 
@@ -77,29 +73,28 @@ func _TestQueryCustomTimeframes(t *testing.T) {
 	assert.Len(t, response.Responses[2].Result.StartIndex, 1)
 	csm, err := response.Responses[0].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	assert.Len(t, csm, 2)
 
 	csm, err = response.Responses[1].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	assert.Len(t, csm, 2)
 
 	csm, err = response.Responses[2].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	assert.Len(t, csm, 1)
 }
 
 func TestQuery(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQuery")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -134,8 +129,7 @@ func TestQuery(t *testing.T) {
 }
 
 func TestQueryFirstN(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryFirstN")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -168,8 +162,7 @@ func TestQueryFirstN(t *testing.T) {
 }
 
 func TestQueryRange(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryRange")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -218,8 +211,7 @@ func TestQueryRange(t *testing.T) {
 }
 
 func TestQueryNpyMulti(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryNpyMulti")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -241,7 +233,7 @@ func TestQueryNpyMulti(t *testing.T) {
 	assert.Len(t, response.Responses[0].Result.StartIndex, 2)
 	csm, err := response.Responses[0].Result.ToColumnSeriesMap()
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Fail()
 	}
 	for _, cs := range csm {
@@ -251,8 +243,7 @@ func TestQueryNpyMulti(t *testing.T) {
 }
 
 func TestQueryMulti(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestQueryMulti")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -274,29 +265,28 @@ func TestQueryMulti(t *testing.T) {
 
 	tbk := io.NewTimeBucketKey("USDJPY/1Min/OHLC")
 	usdjpy := csm[*tbk]
-	usdjpy_index := usdjpy.GetEpoch()
+	usdjpyIndex := usdjpy.GetEpoch()
 	tbk = io.NewTimeBucketKey("EURUSD/1Min/OHLC")
 	eurusd := csm[*tbk]
-	eurusd_index := eurusd.GetEpoch()
+	eurusdIndex := eurusd.GetEpoch()
 
 	assert.Len(t, usdjpy.GetColumnNames(), 5) // key + OHLC
-	assert.Len(t, usdjpy_index, 200)
-	lastTime := usdjpy_index[len(usdjpy_index)-1]
+	assert.Len(t, usdjpyIndex, 200)
+	lastTime := usdjpyIndex[len(usdjpyIndex)-1]
 	ti := time.Unix(lastTime, 0).UTC()
 	tref := time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
 	assert.Equal(t, ti, tref)
 
 	assert.Len(t, eurusd.GetColumnNames(), 5) // key + OHLC + prev
-	assert.Len(t, eurusd_index, 200)
-	lastTime = eurusd_index[len(eurusd_index)-1]
+	assert.Len(t, eurusdIndex, 200)
+	lastTime = eurusdIndex[len(eurusdIndex)-1]
 	ti = time.Unix(lastTime, 0).UTC()
 	tref = time.Date(2002, time.December, 31, 23, 59, 0, 0, time.UTC)
 	assert.Equal(t, ti, tref)
 }
 
 func TestListSymbols(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestListSymbols")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
 	service.Init()
@@ -331,8 +321,7 @@ func TestListSymbols(t *testing.T) {
 }
 
 func TestFunctions(t *testing.T) {
-	tearDown, rootDir, metadata, writer, q := setup(t, "TestFunctions")
-	defer tearDown()
+	rootDir, metadata, writer, q := setup(t)
 
 	service := frontend.NewDataService(rootDir, metadata.CatalogDir,
 		sqlparser.NewDefaultAggRunner(metadata.CatalogDir), writer, q,
@@ -342,27 +331,27 @@ func TestFunctions(t *testing.T) {
 	call := "candlecandler('1Min',Open,High,Low,Close,Sum::Volume)"
 	_, _, _, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.FailNow()
 	}
-	//	printFuncParams(fname, l_list, p_list)
+	//	printFuncParams(fname, lList, pList)
 
 	call = "FuncName (P1, 'Lit1', P2,P3,P4, 'Lit2' , Sum::P5, Avg::P6)"
-	fname, l_list, p_list, err := sqlparser.ParseFunctionCall(call)
+	fname, lList, pList, err := sqlparser.ParseFunctionCall(call)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.FailNow()
 	}
-	//	printFuncParams(fname, l_list, p_list)
+	//	printFuncParams(fname, lList, pList)
 	assert.Equal(t, fname, "FuncName")
-	assert.Equal(t, l_list[0], "Lit1")
-	assert.Equal(t, l_list[1], "Lit2")
-	assert.Equal(t, p_list[0], "P1")
-	assert.Equal(t, p_list[1], "P2")
-	assert.Equal(t, p_list[2], "P3")
-	assert.Equal(t, p_list[3], "P4")
-	assert.Equal(t, p_list[4], "Sum::P5")
-	assert.Equal(t, p_list[5], "Avg::P6")
+	assert.Equal(t, lList[0], "Lit1")
+	assert.Equal(t, lList[1], "Lit2")
+	assert.Equal(t, pList[0], "P1")
+	assert.Equal(t, pList[1], "P2")
+	assert.Equal(t, pList[2], "P3")
+	assert.Equal(t, pList[3], "P4")
+	assert.Equal(t, pList[4], "Sum::P5")
+	assert.Equal(t, pList[5], "Avg::P6")
 
 	args := &frontend.MultiQueryRequest{
 		Requests: []frontend.QueryRequest{
@@ -374,7 +363,7 @@ func TestFunctions(t *testing.T) {
 	}
 
 	var response frontend.MultiQueryResponse
-	if err := service.Query(nil, args, &response); err != nil {
+	if err2 := service.Query(nil, args, &response); err2 != nil {
 		t.Fatalf("error returned: %s", err)
 	}
 

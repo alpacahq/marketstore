@@ -2,9 +2,7 @@ package executor_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
-	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -13,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -22,24 +21,24 @@ import (
 	. "github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, itemsWritten map[string]int, metadata *executor.InstanceMetadata, shutdownPending *bool) {
+func setup(t *testing.T) (rootDir string, itemsWritten map[string]int,
+	metadata *executor.InstanceMetadata,
+) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("executor_test-%s", testName))
+	rootDir = t.TempDir()
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, shutdownPending, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
-		true, true, false)
+	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+		executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
-	return func() { CleanupDummyDataDir(rootDir) }, rootDir, itemsWritten, metadata, shutdownPending
+	return rootDir, itemsWritten, metadata
 }
 
 func TestAddDir(t *testing.T) {
 	// --- given ---
 	// make temporary catalog directory
-	tempRootDir, _ := ioutil.TempDir("", "executor_test-TestAddDir")
-	defer os.RemoveAll(tempRootDir)
+	tempRootDir := t.TempDir()
 
 	// make catelog directory
 	catDir, err := NewDirectory(tempRootDir)
@@ -56,7 +55,7 @@ func TestAddDir(t *testing.T) {
 	tbk := NewTimeBucketKey("TEST/1Min/TICKS")
 	tf, err := tbk.GetTimeFrame()
 	if err != nil {
-		fmt.Println(err.Error())
+		t.Log(err.Error())
 		return
 	}
 	rt := EnumRecordTypeByName("variable")
@@ -76,8 +75,7 @@ func TestAddDir(t *testing.T) {
 }
 
 func TestQueryMulti(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestQueryMulti")
-	defer tearDown()
+	rootDir, _, metadata := setup(t)
 
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("AAPL/1Min/OHLCV")
@@ -124,8 +122,7 @@ func TestQueryMulti(t *testing.T) {
 }
 
 func TestWriteVariable(t *testing.T) {
-	tearDown, rootDir, _, metadata, _ := setup(t, "TestWriteVariable")
-	defer tearDown()
+	rootDir, _, metadata := setup(t)
 
 	// Create a new variable data bucket
 	tbk := NewTimeBucketKey("TEST-WV/1Min/TICK-BIDASK")
@@ -177,13 +174,14 @@ func TestWriteVariable(t *testing.T) {
 	assert.Len(t, csm, 1)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		nanos := cs.GetByName("Nanoseconds").([]int32)
+		nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
+		assert.True(t, ok)
 		assert.Equal(t, cs.Len(), 2)
 		for i, ep := range epoch {
 			checkSecs := inputTime[i].Unix()
 			checkNanos := inputTime[i].Nanosecond()
 			secs := nearestSecond(ep, nanos[i])
-			//fmt.Println("ep, nanos, checkSecs, checkNanos =", ep, nanos[i], checkSecs, checkNanos)
+			// t.Log("ep, nanos, checkSecs, checkNanos =", ep, nanos[i], checkSecs, checkNanos)
 			assert.Equal(t, checkSecs, secs)
 			assert.True(t, math.Abs(float64(int32(checkNanos)-nanos[i])) < 100)
 		}
@@ -210,12 +208,14 @@ func TestWriteVariable(t *testing.T) {
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 5)
 		epoch := cs.GetEpoch()[2:]
-		nanos := cs.GetByName("Nanoseconds").([]int32)[2:]
+		int32Nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
+		require.True(t, ok)
+		nanos := int32Nanos[2:]
 		for i, ep := range epoch {
 			checkSecs := inputTime[2+i].Unix()
 			checkNanos := inputTime[2+i].Nanosecond()
 			secs := nearestSecond(ep, nanos[i])
-			//			fmt.Println("check, secs, nanos[i]: ", check, secs, nanos[i])
+			//	t.Log("check, secs, nanos[i]: ", check, secs, nanos[i])
 			assert.Equal(t, checkSecs, secs)
 			assert.True(t, math.Abs(float64(int32(checkNanos)-nanos[i])) < 100)
 		}
@@ -246,11 +246,12 @@ func TestWriteVariable(t *testing.T) {
 	reader, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = reader.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
-		fmt.Println("Results: ", cs)
+		t.Log("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
-		nanos := cs.GetByName("Nanoseconds").([]int32)
+		nanos, _ := cs.GetColumn("Nanoseconds").([]int32)
 		assert.True(t, math.Abs(float64(nanos[9]-600000000)) < 50., true)
 		break
 	}
@@ -261,19 +262,21 @@ func TestWriteVariable(t *testing.T) {
 	reader, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = reader.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
-		fmt.Println("Results: ", cs)
+		t.Log("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
-		nanos := cs.GetByName("Nanoseconds").([]int32)
-		fmt.Println("Nanos: ", nanos)
+		nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
+		assert.True(t, ok)
+		t.Log("Nanos: ", nanos)
 		assert.True(t, math.Abs(float64(nanos[9]-505000000)) < 50., true)
 		break
 	}
 }
+
 func TestFileRead(t *testing.T) {
-	tearDown, _, itemsWritten, metadata, _ := setup(t, "TestFileRead")
-	defer tearDown()
+	_, itemsWritten, metadata := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -302,7 +305,7 @@ func TestFileRead(t *testing.T) {
 				minYear = year
 			}
 			if year == 2001 {
-				//fmt.Printf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
+				// t.Logf("File: %s Year: %d Number Written: %d\n", fp.FullPath, year, s.ItemsWritten[fp.FullPath])
 				nitems += itemsWritten[fp.FullPath]
 				recordlen = int(iop.RecordLen)
 			}
@@ -312,7 +315,7 @@ func TestFileRead(t *testing.T) {
 		/*
 			for _, cs := range csm {
 				epoch := cs.GetEpoch()
-				fmt.Println("ResultSet Count, nitems, recordLen:", len(epoch), nitems, recordlen)
+				t.Log("ResultSet Count, nitems, recordLen:", len(epoch), nitems, recordlen)
 				printoutCandles(cs, 0, 0)
 			}
 		*/
@@ -321,8 +324,7 @@ func TestFileRead(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestDelete")
-	defer tearDown()
+	_, _, metadata := setup(t)
 
 	NY, _ := time.LoadLocation("America/New_York")
 	// First write some data we can delete
@@ -346,11 +348,11 @@ func TestDelete(t *testing.T) {
 	buffer, _ := Serialize([]byte{}, row)
 	startTime := time.Date(2018, 12, 26, 9, 45, 0, 0, NY)
 	ts := startTime
-	var tsA []time.Time
+	tsA := make([]time.Time, 1000)
 	for i := 0; i < 1000; i++ {
 		minsToAdd := time.Duration(i)
 		ts := ts.Add(minsToAdd * time.Minute)
-		tsA = append(tsA, ts)
+		tsA[i] = ts
 		buffer, _ = Serialize(buffer, row)
 	}
 	writer.WriteRecords(tsA, buffer, dsv, tbi)
@@ -370,7 +372,9 @@ func TestDelete(t *testing.T) {
 
 	// Read the data before delete
 	r, err := executor.NewReader(parsed)
+	assert.Nil(t, err)
 	csm, err := r.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		if cs.Len() != 1000 {
 			assert.Failf(t, "error: number of rows read back from write is incorrect",
@@ -381,13 +385,14 @@ func TestDelete(t *testing.T) {
 	}
 
 	de, err := executor.NewDeleter(parsed)
+	assert.Nil(t, err)
 	err = de.Delete()
 	asserter(t, err, true)
 	err = de.Delete()
 	asserter(t, err, true)
 
 	// Read back the data, should have zero records
-	csm, err = r.Read()
+	csm, _ = r.Read()
 	for _, cs := range csm {
 		if cs.Len() != 0 {
 			assert.Failf(t, "error: number of rows read back after delete is incorrect",
@@ -402,14 +407,13 @@ func asserter(t *testing.T, err error, shouldBeNil bool) {
 	t.Helper()
 
 	if err != nil {
-		fmt.Println("error: ", err.Error())
+		t.Log("error: ", err.Error())
 	}
 	assert.Equal(t, err == nil, shouldBeNil)
 }
 
 func TestSortedFiles(t *testing.T) {
-	tearDown, _, itemsWritten, metadata, _ := setup(t, "TestSortedFiles")
-	defer tearDown()
+	_, itemsWritten, metadata := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -426,7 +430,7 @@ func TestSortedFiles(t *testing.T) {
 	}
 	scanner, err := executor.NewReader(parsed)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	// Sum up the total number of items in the query set for validation
@@ -443,10 +447,11 @@ func TestSortedFiles(t *testing.T) {
 	assert.Equal(t, sortedFiles[1].File.Year, int16(2001))
 	assert.Equal(t, sortedFiles[2].File.Year, int16(2002))
 	csm, err := scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		assert.Len(t, epoch, nitems)
-		//printoutCandles(cs, 0, 0)
+		// printoutCandles(cs, 0, 0)
 	}
 
 	// Test Limit Query - First N
@@ -463,14 +468,15 @@ func TestSortedFiles(t *testing.T) {
 	scanner, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 
-		//printoutCandles(cs, 0, 0)
-		//length := len(epoch)
-		//printoutCandles(cs, length-1, length-1)
+		// printoutCandles(cs, 0, 0)
+		// length := len(epoch)
+		// printoutCandles(cs, length-1, length-1)
 
-		//fmt.Printf("Length: %d\n", length)
+		// t.Logf("Length: %d\n", length)
 		assert.Len(t, epoch, 200)
 	}
 
@@ -488,6 +494,7 @@ func TestSortedFiles(t *testing.T) {
 	scanner, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		assert.Len(t, epoch, 200)
@@ -503,19 +510,20 @@ func TestSortedFiles(t *testing.T) {
 		time.Date(2001, time.January, 15, 12, 5, 0, 0, time.UTC),
 	)
 	parsed, err = q.Parse()
+	assert.Nil(t, err)
 	scanner, err = executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, err = scanner.Read()
+	assert.Nil(t, err)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		//printoutCandles(cs, -1, -1)
+		// printoutCandles(cs, -1, -1)
 		assert.Len(t, epoch, 2)
 	}
 }
 
 func TestCrossYear(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestCrossYear")
-	defer tearDown()
+	_, _, metadata := setup(t)
 
 	// Test data range query - across year
 	q := NewQuery(metadata.CatalogDir)
@@ -531,7 +539,7 @@ func TestCrossYear(t *testing.T) {
 	csm, _ := scanner.Read()
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		//printoutCandles(cs, -1, 1)
+		// printoutCandles(cs, -1, 1)
 		assert.Equal(t, time.Unix(epoch[0], 0).UTC(), startDate)
 		assert.Equal(t, time.Unix(epoch[len(epoch)-1], 0).UTC(), endDate)
 	}
@@ -541,8 +549,7 @@ func TestCrossYear(t *testing.T) {
 }
 
 func TestLastN(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestLastN")
-	defer tearDown()
+	_, _, metadata := setup(t)
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "NZDUSD")
@@ -642,14 +649,13 @@ func TestLastN(t *testing.T) {
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
 		t.Log(epoch)
-		//printoutCandles(cs, 0, -1)
+		// printoutCandles(cs, 0, -1)
 		assert.Len(t, epoch, 2)
 	}
 }
 
 func TestAddSymbolThenWrite(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestAddSymbolThenWrite")
-	defer tearDown()
+	_, _, metadata := setup(t)
 
 	dataItemKey := "TEST/1Min/OHLCV"
 	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
@@ -668,16 +674,17 @@ func TestAddSymbolThenWrite(t *testing.T) {
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST")
-	q.Parse()
+	_, err = q.Parse()
+	require.Nil(t, err)
 	tbi, err := metadata.CatalogDir.GetLatestTimeBucketInfoFromKey(tbk)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	w, err := executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCVtest{0, 100., 200., 300., 400., 1000}
 	buffer, _ := Serialize([]byte{}, row)
-	w.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
-	assert.Nil(t, err)
+	err = w.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
+	require.Nil(t, err)
 	err = metadata.WALFile.FlushToWAL()
 	assert.Nil(t, err)
 
@@ -690,24 +697,24 @@ func TestAddSymbolThenWrite(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, len(columnSeries) != 0)
 	for _, cs := range columnSeries {
-		open := cs.GetByName("Open").([]float32)
-		high := cs.GetByName("High").([]float32)
-		low := cs.GetByName("Low").([]float32)
-		close := cs.GetByName("Close").([]float32)
-		volume := cs.GetByName("Volume").([]int32)
+		open, _ := cs.GetColumn("Open").([]float32)
+		high, _ := cs.GetColumn("High").([]float32)
+		low, _ := cs.GetColumn("Low").([]float32)
+		clos, _ := cs.GetColumn("Close").([]float32)
+		volume, _ := cs.GetColumn("Volume").([]int32)
 		assert.Equal(t, open[0], row.Open)
 		assert.Equal(t, high[0], row.High)
 		assert.Equal(t, low[0], row.Low)
-		assert.Equal(t, close[0], row.Close)
+		assert.Equal(t, clos[0], row.Close)
 		assert.Equal(t, volume[0], row.Volume)
 	}
 }
 
 func TestWriter(t *testing.T) {
-	tearDown, _, _, metadata, _ := setup(t, "TestWriter")
-	defer tearDown()
+	_, _, metadata := setup(t)
 
 	dataItemKey := "TEST/1Min/OHLCV"
+	tbk := NewTimeBucketKey(dataItemKey)
 	dataItemPath := filepath.Join(metadata.CatalogDir.GetPath(), dataItemKey)
 	dsv := NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
@@ -719,15 +726,21 @@ func TestWriter(t *testing.T) {
 		2016,
 		dsv, FIXED)
 
+	// needs to create a directory before writing data by WriteRecords function
+	err := metadata.CatalogDir.AddTimeBucket(tbk, tbi)
+	require.Nil(t, err)
+
 	writer, err := executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
 	assert.Nil(t, err)
 	ts := time.Now().UTC()
 	row := OHLCtest{0, 100., 200., 300., 400.}
 	buffer, _ := Serialize([]byte{}, row)
-	writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes(), tbi)
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	err = writer.WriteRecords([]time.Time{ts}, buffer, tbi.GetDataShapes(), tbi)
+	require.Nil(t, err)
+	err = metadata.WALFile.FlushToWAL()
+	require.Nil(t, err)
+	err = metadata.WALFile.CreateCheckpoint()
+	require.Nil(t, err)
 }
 
 /*
@@ -741,7 +754,7 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 	endDate := time.Date(2002, time.December, 31, 1, 0, 0, 0, time.UTC)
 	startDate := endDate.AddDate(0, 0, -numRecs+1)
 
-	RefColumnSet := NewColumnSeriesMap()
+	refColumnSet := NewColumnSeriesMap()
 
 	q := NewQuery(d)
 	q.AddRestriction("AttributeGroup", "OHLC")
@@ -755,9 +768,9 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 	csm, err := scanner.Read()
 	for key, cs := range csm {
 		assert.Nil(t, err)
-		RefColumnSet[key] = cs
+		refColumnSet[key] = cs
 		epoch := cs.GetEpoch()
-		//fmt.Println("Total number of rows: ", len(epoch))
+		// fmt.Println("Total number of rows: ", len(epoch))
 		assert.Len(t, epoch, numRecs)
 	}
 
@@ -778,14 +791,14 @@ func forwardBackwardScan(t *testing.T, numRecs int, d *Directory) {
 	for key, cs := range csm {
 		assert.Nil(t, err)
 		epoch := cs.GetEpoch()
-		//fmt.Println("Total number of rows: ", len(epoch))
+		// fmt.Println("Total number of rows: ", len(epoch))
 		assert.Len(t, epoch, numRecs)
-		if !isEqual(RefColumnSet[key], cs) {
-			epoch, r_epoch := cs.GetEpoch(), RefColumnSet[key].GetEpoch()
-			for i, r_ts := range r_epoch {
-				tstamp1 := time.Unix(r_ts, 0).UTC().Format(time.UnixDate)
+		if !isEqual(refColumnSet[key], cs) {
+			epoch, refEpoch := cs.GetEpoch(), refColumnSet[key].GetEpoch()
+			for i, refTimestamp := range refEpoch {
+				tstamp1 := time.Unix(refTimestamp, 0).UTC().Format(time.UnixDate)
 				tstamp2 := time.Unix(epoch[i], 0).UTC().Format(time.UnixDate)
-				fmt.Println("Should be: ", tstamp1, " Is: ", tstamp2)
+				t.Log("Should be: ", tstamp1, " Is: ", tstamp2)
 			}
 		}
 	}
@@ -796,9 +809,9 @@ func isEqual(left, right *ColumnSeries) bool {
 		return false
 	}
 
-	for key, l_column := range left.GetColumns() {
-		r_column := right.GetColumns()[key]
-		if !reflect.DeepEqual(l_column, r_column) {
+	for key, leftColumn := range left.GetColumns() {
+		rightColumn := right.GetColumns()[key]
+		if !reflect.DeepEqual(leftColumn, rightColumn) {
 			return false
 		}
 	}

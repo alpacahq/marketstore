@@ -54,6 +54,7 @@ func NewArgumentMap(requiredDSV []io.DataShape, optionalDSV ...io.DataShape) *Ar
 
 	return am
 }
+
 func (am *ArgumentMap) GetAliasedColumnNames() (aliasNames []string) {
 	for _, name := range am.requiredNames {
 		aliasNames = append(aliasNames, am.aliases[name])
@@ -67,6 +68,7 @@ func (am *ArgumentMap) GetAliasedColumnNames() (aliasNames []string) {
 func (am *ArgumentMap) SetAlias(requiredName, aliasName string) {
 	am.aliases[requiredName] = aliasName
 }
+
 func (am *ArgumentMap) GetMappedColumns(requiredName string) (userColumns []io.DataShape) {
 	return am.nameMap[requiredName]
 }
@@ -80,14 +82,13 @@ func (am *ArgumentMap) MapRequiredColumn(requiredName string, userColumns ...io.
 	if _, found := am.nameMap[requiredName]; found {
 		// Entry Exists: Need to merge this into existing mapping
 		existingCol := am.nameMap[requiredName]
-		for _, col := range userColumns {
-			existingCol = append(existingCol, col)
-		}
+		existingCol = append(existingCol, userColumns...)
 		am.nameMap[requiredName] = existingCol
 	} else {
 		am.nameMap[requiredName] = userColumns
 	}
 }
+
 func (am *ArgumentMap) Validate() (unmapped []io.DataShape) {
 	/*
 		Must call MapRequiredColumn() for each required column.
@@ -151,9 +152,7 @@ func (am *ArgumentMap) PrepareArguments(inputs []string) (err error) {
 	/*
 		Check for insufficient number of params to meet required
 	*/
-	idLen := len(inputs)
-	rnLen := len(am.requiredNames)
-	if rnLen > idLen {
+	if len(am.requiredNames) > len(inputs) {
 		return fmt.Errorf("have %s, need %s", inputs, am.requiredNames)
 	}
 
@@ -182,16 +181,16 @@ func (am *ArgumentMap) PrepareArguments(inputs []string) (err error) {
 			unmappedReqs = append(unmappedReqs, name)
 		}
 	}
-	//fmt.Println("Unmapped Reqs:", unmappedReqs)
+	// fmt.Println("Unmapped Reqs:", unmappedReqs)
 	for _, name := range am.optionalNames {
 		if _, ok := am.nameMap[name]; !ok {
 			unmappedOpts = append(unmappedOpts, name)
 		}
 	}
-	//fmt.Println("Unmapped Opts:", unmappedOpts)
+	// fmt.Println("Unmapped Opts:", unmappedOpts)
 
 	/*
-		Check to see if there are enough remaining input params to fulfil the reqs
+		Check to see if there are enough remaining input params to fulfill the reqs
 	*/
 	if len(unmappedReqs) > len(inputsRemaining) {
 		return fmt.Errorf("insufficient args: have %s, required %s", inputs, am.requiredNames)
@@ -199,9 +198,9 @@ func (am *ArgumentMap) PrepareArguments(inputs []string) (err error) {
 	/*
 		Second stage - positional filling for required params
 	*/
-	//fmt.Println("inputs:", inputsRemaining, "requiredNames:", am.requiredNames)
-	//fmt.Println("nameMap:", am.nameMap)
-	//fmt.Println("unmapped reqs:", unmappedReqs, "optional:", unmappedOpts)
+	// fmt.Println("inputs:", inputsRemaining, "requiredNames:", am.requiredNames)
+	// fmt.Println("nameMap:", am.nameMap)
+	// fmt.Println("unmapped reqs:", unmappedReqs, "optional:", unmappedOpts)
 	var i int
 	for _, requiredName := range unmappedReqs {
 		am.MapRequiredColumn(requiredName, io.DataShape{

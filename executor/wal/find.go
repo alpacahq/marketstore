@@ -2,24 +2,23 @@ package wal
 
 import (
 	"fmt"
-	"io/fs"
+	"os"
 	"path/filepath"
 
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type Finder struct {
-	dirRead func(dir string) ([]fs.FileInfo, error)
+	dirRead func(name string) ([]os.DirEntry, error)
 }
 
-func NewFinder(dirRead func(dir string) ([]fs.FileInfo, error)) *Finder {
+func NewFinder(dirRead func(name string) ([]os.DirEntry, error)) *Finder {
 	return &Finder{dirRead: dirRead}
 }
 
 // Find returns all absolute paths to "*.walfile" files directly under the directory.
 func (f *Finder) Find(dir string) ([]string, error) {
 	var ret []string
-	//files, err := ioutil.ReadDir(rootDir)
 	files, err := f.dirRead(dir)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read the directory %s: %w", dir, err)

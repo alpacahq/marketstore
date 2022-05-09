@@ -1,8 +1,8 @@
 package backfill
 
 import (
-	"fmt"
 	"math"
+	"net/http"
 	"sync"
 	"time"
 
@@ -24,12 +24,15 @@ type ConsolidatedUpdateInfo struct {
 	UpdateVolume  bool
 }
 
-var WriteTime time.Duration
-var ApiCallTime time.Duration
-var WaitTime time.Duration
-var NoIngest bool
+var (
+	WriteTime   time.Duration
+	APICallTime time.Duration
+	WaitTime    time.Duration
+	NoIngest    bool
+)
 
 // https://polygon.io/glossary/us/stocks/conditions-indicators
+
 var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 	0: {true, true, true},   // Regular Sale
 	1: {true, true, true},   // Acquisition
@@ -74,7 +77,7 @@ var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 	// 41: {?, ?, ?}, // Trade Thru Exempt
 	// 42: {?, ?, ?}, // NonEligible
 	// 43: {?, ?, ?}, // NonEligible Extended
-	// 44: {?, ?, ?}, // Cancelled
+	// 44: {?, ?, ?}, // Canceled
 	// 45: {?, ?, ?}, // Recovery
 	// 46: {?, ?, ?}, // Correction
 	// 47: {?, ?, ?}, // As of
@@ -91,13 +94,15 @@ var ConditionToUpdateInfo = map[int]ConsolidatedUpdateInfo{
 }
 
 var (
-	// NY timezone
+	// NY timezone.
 	NY, _     = time.LoadLocation("America/New_York")
-	ErrRetry  = fmt.Errorf("retry error")
 	BackfillM *sync.Map
 )
 
-func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, writerWP *worker.WorkerPool) (err error) {
+func Bars(client *http.Client, symbol string, from, to time.Time,
+	batchSize int, unadjusted bool, writerWP *worker.Pool,
+) (err error) {
+	const millisecToSec = 1000
 	if from.IsZero() {
 		from = time.Date(2014, 1, 1, 0, 0, 0, 0, NY)
 	}
@@ -106,11 +111,13 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 		to = time.Now()
 	}
 	t := time.Now()
-	resp, err := api.GetHistoricAggregates(symbol, "minute", 1, from, to, &batchSize, unadjusted)
+	resp, err := api.GetHistoricAggregates(client, symbol, "minute", 1, from, to,
+		&batchSize, unadjusted,
+	)
 	if err != nil {
 		return err
 	}
-	ApiCallTime += time.Since(t)
+	APICallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
@@ -122,7 +129,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 
 	model := models.NewBar(symbol, "1Min", len(resp.Results))
 	for _, bar := range resp.Results {
-		timestamp := bar.EpochMilliseconds / 1000
+		timestamp := bar.EpochMilliseconds / millisecToSec
 		if time.Unix(timestamp, 0).After(to) || time.Unix(timestamp, 0).Before(from) {
 			// polygon sometime returns inconsistent data
 			continue
@@ -136,7 +143,7 @@ func Bars(symbol string, from, to time.Time, batchSize int, unadjusted bool, wri
 	}
 
 	writerWP.Do(func() {
-		model.Write()
+		_ = model.Write()
 	})
 
 	return nil
@@ -151,13 +158,14 @@ func intInSlice(s int, l []int) bool {
 	return false
 }
 
-func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
-	resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
+func BuildBarsFromTrades(client *http.Client, symbol string, date time.Time, exchangeIDs []int, batchSize int) error {
+	const minInDay = 24 * 60
+	resp, err := api.GetHistoricTrades(client, symbol, date.Format(defaultFormat), batchSize)
 	if err != nil {
 		return err
 	}
 
-	model := models.NewBar(symbol, "1Min", 1440)
+	model := models.NewBar(symbol, "1Min", minInDay)
 
 	tradesToBars(resp.Results, model, exchangeIDs)
 
@@ -165,7 +173,7 @@ func BuildBarsFromTrades(symbol string, date time.Time, exchangeIDs []int, batch
 	return err
 }
 
-func conditionToUpdateInfo(tick api.TradeTick) ConsolidatedUpdateInfo {
+func conditionToUpdateInfo(tick *api.TradeTick) ConsolidatedUpdateInfo {
 	r := ConsolidatedUpdateInfo{true, true, true}
 
 	for _, condition := range tick.Conditions {
@@ -184,9 +192,11 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 		return
 	}
 
-	var epoch int64
-	var open, high, low, close_ float64
-	var volume int
+	var (
+		epoch                 int64
+		open, high, low, clos float64
+		volume                int
+	)
 
 	lastBucketTimestamp := time.Time{}
 
@@ -200,13 +210,13 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	// In order to solve this, the daily close price should explicitly be stored and used
 	// in the daily roll-up calculation. This would require substantial refactor.
 	// The current solution therefore is just a reasonable approximation of the daily close price.
-	for _, tick := range ticks {
-		if !intInSlice(tick.Exchange, exchangeIDs) {
+	for i := range ticks {
+		if !intInSlice(ticks[i].Exchange, exchangeIDs) {
 			continue
 		}
 
-		price := tick.Price
-		timestamp := time.Unix(0, tick.SipTimestamp)
+		price := ticks[i].Price
+		timestamp := time.Unix(0, ticks[i].SIPTimestamp)
 		bucketTimestamp := timestamp.Truncate(time.Minute)
 
 		if bucketTimestamp.Before(lastBucketTimestamp) {
@@ -221,7 +231,7 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 					modelsenum.Price(open),
 					modelsenum.Price(high),
 					modelsenum.Price(low),
-					modelsenum.Price(close_),
+					modelsenum.Price(clos),
 					modelsenum.Size(volume))
 			}
 
@@ -230,11 +240,11 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			open = 0
 			high = 0
 			low = math.MaxFloat64
-			close_ = 0
+			clos = 0
 			volume = 0
 		}
 
-		updateInfo := conditionToUpdateInfo(tick)
+		updateInfo := conditionToUpdateInfo(&ticks[i])
 
 		if !updateInfo.UpdateLast && !updateInfo.UpdateHighLow && !updateInfo.UpdateVolume {
 			continue
@@ -253,11 +263,11 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			if open == 0 {
 				open = price
 			}
-			close_ = price
+			clos = price
 		}
 
 		if updateInfo.UpdateVolume {
-			volume += tick.Size
+			volume += ticks[i].Size
 		}
 	}
 
@@ -267,24 +277,25 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			modelsenum.Price(open),
 			modelsenum.Price(high),
 			modelsenum.Price(low),
-			modelsenum.Price(close_),
+			modelsenum.Price(clos),
 			modelsenum.Size(volume))
 	}
 }
 
-func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+func Trades(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.Pool) error {
+	const hoursInDay = 24
 	trades := make([]api.TradeTick, 0)
 	t := time.Now()
-	for date := from; to.After(date); date = date.Add(24 * time.Hour) {
+	for date := from; to.After(date); date = date.Add(hoursInDay * time.Hour) {
 		if calendar.Nasdaq.IsMarketDay(date) {
-			resp, err := api.GetHistoricTrades(symbol, date.Format(defaultFormat), batchSize)
+			resp, err := api.GetHistoricTrades(client, symbol, date.Format(defaultFormat), batchSize)
 			if err != nil {
 				return err
 			}
 			trades = append(trades, resp.Results...)
 		}
 	}
-	ApiCallTime += time.Since(t)
+	APICallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
@@ -292,30 +303,31 @@ func Trades(symbol string, from time.Time, to time.Time, batchSize int, writerWP
 
 	if len(trades) > 0 {
 		model := models.NewTrade(symbol, len(trades))
-		for _, tick := range trades {
+		for i := range trades {
 			// type conversions
-			timestamp := time.Unix(0, tick.SipTimestamp)
-			conditions := make([]modelsenum.TradeCondition, len(tick.Conditions))
-			for i, cond := range tick.Conditions {
+			timestamp := time.Unix(0, trades[i].SIPTimestamp)
+			conditions := make([]modelsenum.TradeCondition, len(trades[i].Conditions))
+			for i, cond := range trades[i].Conditions {
 				conditions[i] = api.ConvertTradeCondition(cond)
 			}
-			exchange := api.ConvertExchangeCode(tick.Exchange)
-			tape := api.ConvertTapeCode(tick.Tape)
+			exchange := api.ConvertExchangeCode(trades[i].Exchange)
+			tape := api.ConvertTapeCode(trades[i].Tape)
 			model.Add(
 				timestamp.Unix(), timestamp.Nanosecond(),
-				modelsenum.Price(tick.Price),
-				modelsenum.Size(tick.Size),
+				modelsenum.Price(trades[i].Price),
+				modelsenum.Size(trades[i].Size),
 				exchange, tape, conditions...)
 		}
 		// finally write to database
 		writerWP.Do(func() {
-			model.Write()
+			_ = model.Write()
 		})
 	}
 	return nil
 }
 
-func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.WorkerPool) error {
+func Quotes(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.Pool) error {
+	const hoursInDay = 24
 	// FIXME: This function is broken with the following problems:
 	//  - Callee (backfiller.go) wrongly checks the market day (checks for the day after)
 	//  - Callee always specifies one day worth of data, pointless to do a for loop
@@ -324,16 +336,16 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 	quotes := make([]api.QuoteTick, 0)
 
 	t := time.Now()
-	for date := from; to.After(date); date = date.Add(24 * time.Hour) {
+	for date := from; to.After(date); date = date.Add(hoursInDay * time.Hour) {
 		if calendar.Nasdaq.IsMarketDay(date) {
-			resp, err := api.GetHistoricQuotes(symbol, date.Format(defaultFormat), batchSize)
+			resp, err := api.GetHistoricQuotes(client, symbol, date.Format(defaultFormat), batchSize)
 			if err != nil {
 				return err
 			}
 			quotes = append(quotes, resp.Ticks...)
 		}
 	}
-	ApiCallTime += time.Since(t)
+	APICallTime += time.Since(t)
 
 	if NoIngest {
 		return nil
@@ -348,11 +360,14 @@ func Quotes(symbol string, from, to time.Time, batchSize int, writerWP *worker.W
 			bidExchange := api.ConvertExchangeCode(tick.BidExchange)
 			askExchange := api.ConvertExchangeCode(tick.AskExchange)
 			condition := api.ConvertQuoteCondition(tick.Condition)
-			model.Add(timestamp.Unix(), timestamp.Nanosecond(), tick.BidPrice, tick.AskPrice, tick.BidSize, tick.AskSize, bidExchange, askExchange, condition)
+			model.Add(timestamp.Unix(), timestamp.Nanosecond(),
+				tick.BidPrice, tick.AskPrice, tick.BidSize, tick.AskSize,
+				bidExchange, askExchange, condition,
+			)
 		}
 
 		writerWP.Do(func() {
-			model.Write()
+			_ = model.Write()
 		})
 	}
 

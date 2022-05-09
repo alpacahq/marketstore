@@ -1,6 +1,7 @@
 package wal
 
 import (
+	"errors"
 	"fmt"
 	io2 "io"
 	"os"
@@ -26,7 +27,8 @@ const (
 	REPLAYINPROCESS
 )
 
-func ReadStatus(filePtr *os.File) (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, OwningInstanceID int64, err error) {
+func ReadStatus(filePtr *os.File,
+) (fileStatus FileStatusEnum, replayStatus ReplayStateEnum, owningInstanceID int64, err error) {
 	var buffer [10]byte
 	buf, _, err := Read(filePtr, buffer[:])
 	return FileStatusEnum(buf[0]), ReplayStateEnum(buf[1]), io.ToInt64(buf[2:]), err
@@ -41,12 +43,11 @@ func Read(fp *os.File, buffer []byte) (result []byte, newOffset int64, err error
 		return nil, 0, fmt.Errorf("unable to seek in WALFile from curpos:%w", err)
 	}
 
-	numToRead := len(buffer)
 	n, err := fp.Read(buffer)
-	if err == io2.EOF {
+	if errors.Is(err, io2.EOF) {
 		return result, newOffset, io2.EOF
 	}
-	if n != numToRead {
+	if numToRead := len(buffer); n != numToRead {
 		msg := fmt.Sprintf("Read: Expected: %d Got: %d", numToRead, n)
 		err = ShortReadError(msg)
 	} else if err != nil {

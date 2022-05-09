@@ -18,7 +18,8 @@ type Subscription struct {
 	sync.Mutex
 }
 
-// servers := utils.Settings["WS_SERVERS"]
+// servers := utils.Settings["WS_SERVERS"].
+
 func NewSubscription(t Prefix, symbols []string) (s *Subscription) {
 	incoming := make(chan interface{}, 10000)
 	return &Subscription{
@@ -54,19 +55,22 @@ func (s *Subscription) IsActive() bool {
 	defer s.Unlock()
 	return s.pConn.conn != nil
 }
+
 func (s *Subscription) ResetHandled() {
 	atomic.StoreInt64(&s.handled, 0)
 }
+
 func (s *Subscription) IncrementHandled() {
 	atomic.AddInt64(&s.handled, 1)
 }
+
 func (s *Subscription) GetHandled() int {
 	return int(atomic.LoadInt64(&s.handled))
 }
 
 // Subscribe to a websocket connection for a given data type
 // by providing a channel that the messages will be
-// written to
+// written to.
 func (s *Subscription) Subscribe(handler func(msg []byte)) {
 	if s.getRunning() {
 		return
@@ -79,8 +83,8 @@ func (s *Subscription) Subscribe(handler func(msg []byte)) {
 	// initialize & start the async worker pool
 
 	s.ResetHandled()
-	workerPool := pool.NewPool(10, func(msg interface{}) {
-		handler(msg.([]byte))
+	workerPool := pool.NewPool(10, func(msg []byte) {
+		handler(msg)
 		s.IncrementHandled()
 	})
 

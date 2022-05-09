@@ -73,13 +73,12 @@ func (rc *RemoteAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time) (c
 		return io.ColumnSeriesMap{}, nil
 	}
 
-	if val, ok := respI.(*io.ColumnSeriesMap); ok {
-		return *val, nil
-	} else {
+	val, ok := respI.(*io.ColumnSeriesMap)
+	if !ok {
 		return nil, fmt.Errorf("[bug] unexpected data type returned from DoRPC:Query func. resp=%v",
-			respI,
-		)
+			respI)
 	}
+	return *val, nil
 }
 
 func (rc *RemoteAPIClient) Create(reqs *frontend.MultiCreateRequest, responses *frontend.MultiServerResponse) error {

@@ -32,6 +32,7 @@ var (
 	walfilePath string
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	// Parse flags.
 	Cmd.Flags().StringVarP(&walfilePath, "file", "f", "", walFilePathDesc)
@@ -39,12 +40,13 @@ func init() {
 }
 
 func executeWAL(cmd *cobra.Command, args []string) error {
+	const ownerReadWrite = 0o600
 	log.SetLevel(log.INFO)
 
 	wfPath := filepath.Clean(walfilePath)
 	// Read in WALFile.
 	wf := &executor.WALFileType{}
-	filePtr, err := os.OpenFile(wfPath, os.O_RDONLY, 0600)
+	filePtr, err := os.OpenFile(wfPath, os.O_RDONLY, ownerReadWrite)
 	if err != nil {
 		return err
 	}

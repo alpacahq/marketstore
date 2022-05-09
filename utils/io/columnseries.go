@@ -44,14 +44,17 @@ func NewColumnSeries() *ColumnSeries {
 }
 
 func (cs *ColumnSeries) GetColumn(name string) interface{} {
-	return cs.GetByName(name)
+	if !cs.Exists(name) {
+		return nil
+	}
+	return cs.columns[name]
 }
 
 func (cs *ColumnSeries) GetDataShapes() (ds []DataShape) {
-	var et []EnumElementType
-	for _, name := range cs.orderedNames {
+	et := make([]EnumElementType, len(cs.orderedNames))
+	for i := range cs.orderedNames {
 		// fmt.Printf("name %v, type %v\n", name, GetElementType(cs.columns[name]))
-		et = append(et, GetElementType(cs.columns[name]))
+		et[i] = GetElementType(cs.columns[cs.orderedNames[i]])
 	}
 	return NewDataShapeVector(cs.orderedNames, et)
 }
@@ -60,14 +63,14 @@ func (cs *ColumnSeries) Len() int {
 	if len(cs.orderedNames) == 0 {
 		return 0
 	}
-	i_col := cs.GetByName(cs.orderedNames[0])
-	return reflect.ValueOf(i_col).Len()
+	iCol := cs.GetColumn(cs.orderedNames[0])
+	return reflect.ValueOf(iCol).Len()
 }
 
 func (cs *ColumnSeries) GetTime() ([]time.Time, error) {
 	ep, ok := cs.GetColumn("Epoch").([]int64)
 	if !ok {
-		return nil, errors.New("unexpected data type for Epoch column.")
+		return nil, errors.New("unexpected data type for Epoch column")
 	}
 
 	ts := make([]time.Time, len(ep))
@@ -79,7 +82,7 @@ func (cs *ColumnSeries) GetTime() ([]time.Time, error) {
 	} else {
 		ns, ok := nsi.([]int32)
 		if !ok {
-			return nil, errors.New("unexpected data type for Nanoseconds column.")
+			return nil, errors.New("unexpected data type for Nanoseconds column")
 		}
 		for i, secs := range ep {
 			ts[i] = ToSystemTimezone(time.Unix(secs, int64(ns[i])))
@@ -104,28 +107,31 @@ func (cs *ColumnSeries) AddColumn(name string, columnData interface{}) (outname 
 		} else {
 			cs.nameIncrement[name]++
 		}
-		name = name + strconv.Itoa(cs.nameIncrement[name])
+		name += strconv.Itoa(cs.nameIncrement[name])
 	}
 	cs.orderedNames = append(cs.orderedNames, name)
 	cs.columns[name] = columnData
 	return name
 }
+
 func (cs *ColumnSeries) IsEmpty() bool {
 	return len(cs.orderedNames) == 0
 }
+
 func (cs *ColumnSeries) GetNumColumns() (length int) {
 	if cs.IsEmpty() {
 		return 0
 	}
 	return len(cs.orderedNames)
 }
+
 func (cs *ColumnSeries) Rename(newName, oldName string) error {
 	/*
 		Renames one column named "targetName" for another named "srcName"
 	*/
-	oldColumn := cs.GetByName(oldName)
+	oldColumn := cs.GetColumn(oldName)
 	if oldColumn == nil {
-		return fmt.Errorf("Error: Source column named %s does not exist\n", oldName)
+		return fmt.Errorf("error: Source column named %s does not exist", oldName)
 	}
 
 	/*
@@ -160,9 +166,10 @@ func (cs *ColumnSeries) Replace(targetName string, col interface{}) error {
 	cs.AddColumn(targetName, col)
 	return nil
 }
+
 func (cs *ColumnSeries) Remove(targetName string) error {
 	if !cs.Exists(targetName) {
-		return fmt.Errorf("Error: Source column named %s does not exist\n", targetName)
+		return fmt.Errorf("error: Source column named %s does not exist", targetName)
 	}
 	var newNames []string
 	for _, name := range cs.orderedNames {
@@ -174,13 +181,16 @@ func (cs *ColumnSeries) Remove(targetName string) error {
 	delete(cs.columns, targetName)
 	return nil
 }
+
 func (cs *ColumnSeries) Project(keepList []string) error {
 	newCols := make(map[string]interface{})
+
 	var newNames []string
 	for _, name := range keepList {
-		col := cs.GetByName(name)
+		col := cs.GetColumn(name)
 		if col == nil {
-			return fmt.Errorf("Column named: %s not found", name)
+			log.Debug(fmt.Sprintf("%s column doesn't exist in the column series. ignored.", name))
+			continue
 		}
 		newCols[name] = col
 		newNames = append(newNames, name)
@@ -191,7 +201,7 @@ func (cs *ColumnSeries) Project(keepList []string) error {
 }
 
 /*
-RestrictLength applies a FIRST/LAST length restriction to this series
+RestrictLength applies a FIRST/LAST length restriction to this series.
 */
 func (cs *ColumnSeries) RestrictLength(newLen int, direction DirectionEnum) (err error) {
 	for key, col := range cs.columns {
@@ -210,28 +220,27 @@ func (cs *ColumnSeries) Exists(targetName string) bool {
 	return true
 }
 
-func (cs *ColumnSeries) GetByName(name string) interface{} {
-	if !cs.Exists(name) {
-		return nil
-	} else {
-		return cs.columns[name]
-	}
-}
-
 func (cs *ColumnSeries) GetEpoch() []int64 {
-	col := cs.GetByName("Epoch")
+	col := cs.GetColumn("Epoch")
 	if col == nil {
 		return nil
-	} else {
-		return col.([]int64)
 	}
+	colInt64Slice, ok := col.([]int64)
+	if !ok {
+		log.Error("failed to cast Epoch column to []int64")
+	}
+	return colInt64Slice
 }
 
-func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries) {
+func (cs *ColumnSeries) ToRowSeries(itemKey TimeBucketKey, alignData bool) (rs *RowSeries, err error) {
 	dsv := cs.GetDataShapes()
-	data, recordLen := SerializeColumnsToRows(cs, dsv, alignData)
+	data, recordLen, err := SerializeColumnsToRows(cs, dsv, alignData)
+	if err != nil {
+		return nil,
+			fmt.Errorf("serialize columns to rows(itemKey=%v, alignData=%v): %w", itemKey, alignData, err)
+	}
 	rs = NewRowSeries(itemKey, data, dsv, recordLen, NOTYPE)
-	return rs
+	return rs, nil
 }
 
 func (cs *ColumnSeries) AddNullColumn(ds DataShape) {
@@ -313,7 +322,7 @@ func SliceColumnSeriesByEpoch(cs ColumnSeries, start, end *int64) (slc ColumnSer
 		}
 	}
 
-	return
+	return slc, err
 }
 
 func max(x, y int) int {
@@ -391,6 +400,7 @@ func NewColumnSeriesMap() ColumnSeriesMap {
 func (csm ColumnSeriesMap) IsEmpty() bool {
 	return len(csm) == 0
 }
+
 func (csm ColumnSeriesMap) GetMetadataKeys() (keys []TimeBucketKey) {
 	keys = make([]TimeBucketKey, 0)
 	for key := range csm {
@@ -404,19 +414,12 @@ func (csm ColumnSeriesMap) AddColumnSeries(key TimeBucketKey, cs *ColumnSeries) 
 		csm.AddColumn(key, name, cs.columns[name])
 	}
 }
+
 func (csm ColumnSeriesMap) AddColumn(key TimeBucketKey, name string, columnData interface{}) {
 	if _, ok := csm[key]; !ok {
 		csm[key] = NewColumnSeries()
 	}
 	csm[key].AddColumn(name, columnData)
-}
-
-func (csm ColumnSeriesMap) ToRowSeriesMap(dataShapesMap map[TimeBucketKey][]DataShape, alignData bool) (rsMap map[TimeBucketKey]*RowSeries) {
-	rsMap = make(map[TimeBucketKey]*RowSeries)
-	for key, columns := range csm {
-		rsMap[key] = columns.ToRowSeries(key, alignData)
-	}
-	return rsMap
 }
 
 // FilterColumns removes columns other than the specified columns from all ColumnSeries in a ColumnSeriesMap.
@@ -445,17 +448,20 @@ func GetNamesFromDSV(dataShapes []DataShape) (out []string) {
 	}
 	return out
 }
-func GetDSVFromInterface(i_dsv interface{}) (out []DataShape) {
-	if _, ok := i_dsv.([]DataShape); ok {
-		return i_dsv.([]DataShape)
+
+func GetDSVFromInterface(iDSV interface{}) (out []DataShape) {
+	if iDSVSlice, ok := iDSV.([]DataShape); ok {
+		return iDSVSlice
 	}
 	return nil
 }
-func GetStringSliceFromInterface(i_ss interface{}) (out []string) {
-	if i_ss != nil {
-		if _, ok := i_ss.([]string); ok {
-			return i_ss.([]string)
-		}
+
+func GetStringSliceFromInterface(iSS interface{}) (out []string) {
+	if iSS == nil {
+		return nil
+	}
+	if issStrSlice, ok := iSS.([]string); ok {
+		return issStrSlice
 	}
 	return nil
 }
@@ -474,7 +480,8 @@ func ExtractDatashapesByNames(dsv []DataShape, names []string) (out []DataShape)
 }
 
 func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (missing,
-	coercion []DataShape) {
+	coercion []DataShape, err error,
+) {
 	/*
 		We need to find out which columns are missing and which are present,
 		but of the wrong type (Type Mismatch).
@@ -482,21 +489,34 @@ func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (mi
 		- For missing cols, we will add columns with null data of the correct
 		  type
 	*/
-	availableDSVSet, _ := NewAnySet(availableDSV)
+	availableDSVSet, err := NewAnySet(availableDSV)
+	if err != nil {
+		return nil, nil,
+			fmt.Errorf("make set from the available datashape values %v: %w", availableDSVSet, err)
+	}
 	if availableDSVSet.Contains(requiredDSV) {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// The required datashapes are not found in the cols
-	requiredDSVSet, _ := NewAnySet(requiredDSV)
+	requiredDSVSet, err := NewAnySet(requiredDSV)
+	if err != nil {
+		return nil, nil,
+			fmt.Errorf("make set from the required datashape values %v: %w", requiredDSV, err)
+	}
 	// missingDSV reflects both missing columns and ones with incorrect type
-	i_missingDSV := requiredDSVSet.Subtract(availableDSV)
-	missingDSV := GetDSVFromInterface(i_missingDSV)
+	iMissingDSV := requiredDSVSet.Subtract(availableDSV)
+	missingDSV := GetDSVFromInterface(iMissingDSV)
 
 	// Find the missing column names
-	requiredNamesSet, _ := NewAnySet(GetNamesFromDSV(requiredDSV))
-	i_allMissingNames := requiredNamesSet.Subtract(GetNamesFromDSV(availableDSV))
-	allMissingNames := GetStringSliceFromInterface(i_allMissingNames)
+	dsNames := GetNamesFromDSV(requiredDSV)
+	requiredNamesSet, err := NewAnySet(dsNames)
+	if err != nil {
+		return nil, nil,
+			fmt.Errorf("make set from the available datashape names %v: %w", dsNames, err)
+	}
+	iAllMissingNames := requiredNamesSet.Subtract(GetNamesFromDSV(availableDSV))
+	allMissingNames := GetStringSliceFromInterface(iAllMissingNames)
 	/*
 		If the number of missing (name+types) is not the same as the missing names
 		then we know that there are more (name+types) than names missing, so
@@ -504,30 +524,35 @@ func GetMissingAndTypeCoercionColumns(requiredDSV, availableDSV []DataShape) (mi
 	*/
 	switch {
 	case len(missingDSV) == len(allMissingNames):
-		return ExtractDatashapesByNames(requiredDSV, allMissingNames), nil
+		return ExtractDatashapesByNames(requiredDSV, allMissingNames), nil, nil
 	case len(missingDSV) != len(allMissingNames):
-		//We have to coerce types
+		// We have to coerce types
 		missingDSVNamesSet, _ := NewAnySet(GetNamesFromDSV(missingDSV))
-		i_needCoercionCols := missingDSVNamesSet.Subtract(allMissingNames)
-		needCoercionCols := GetStringSliceFromInterface(i_needCoercionCols)
+		iNeedCoercionCols := missingDSVNamesSet.Subtract(allMissingNames)
+		needCoercionCols := GetStringSliceFromInterface(iNeedCoercionCols)
 		return ExtractDatashapesByNames(requiredDSV, allMissingNames),
-			ExtractDatashapesByNames(requiredDSV, needCoercionCols)
+			ExtractDatashapesByNames(requiredDSV, needCoercionCols), nil
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
-func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bool) (data []byte, recordLen int) {
+func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bool,
+) (data []byte, recordLen int, err error) {
 	/*
 		The columns data shapes may or may not contain the Epoch column
 	*/
 	var shapesContainsEpoch bool
 
 	// Find out how much of the required datashapes are contained in the Column Series
-	missing, needcoercion := GetMissingAndTypeCoercionColumns(
+	missing, needcoercion, err := GetMissingAndTypeCoercionColumns(
 		dataShapes,
 		cs.GetDataShapes(),
 	)
+	if err != nil {
+		return nil, 0,
+			fmt.Errorf("find missing and type coercion columns from datashape=%v: %w", dataShapes, err)
+	}
 
 	// Add in the null columns needed to complete the set
 	for _, shape := range missing {
@@ -535,7 +560,10 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	}
 	// Coerce column types as needed
 	for _, shape := range needcoercion {
-		cs.CoerceColumnType(shape.Name, shape.Type)
+		err = cs.CoerceColumnType(shape.Name, shape.Type)
+		if err != nil {
+			log.Error(fmt.Sprintf("failed to coerce column (name=%s, type=%s)", shape.Name, shape.Type))
+		}
 	}
 
 	/*
@@ -548,11 +576,14 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 			shapesContainsEpoch = true
 		}
 		columnData := cs.columns[colName]
-		colInBytes := SwapSliceData(columnData, byte(0)).([]byte)
+		colInBytes, ok := SwapSliceData(columnData, byte(0)).([]byte)
+		if !ok {
+			return nil, 0, fmt.Errorf("")
+		}
 		colInBytesList = append(colInBytesList, colInBytes)
 	}
 	if !shapesContainsEpoch {
-		return nil, 0
+		return nil, 0, fmt.Errorf("datashape doesn't contain Epoch column: %v", dataShapes)
 	}
 
 	/*
@@ -569,7 +600,12 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 		padbuf = make([]byte, padding)
 	}
 
-	epochCol := cs.columns["Epoch"].([]int64)
+	epochCol, ok := cs.columns["Epoch"].([]int64)
+	if !ok {
+		return nil, 0, fmt.Errorf("failed to cast Epoch column to int64 array. Epoch column:%v",
+			cs.columns["Epoch"],
+		)
+	}
 	data = make([]byte, 0, recordLen*len(epochCol))
 	for i, epoch := range epochCol {
 		data, _ = Serialize(data, epoch)
@@ -595,5 +631,5 @@ func SerializeColumnsToRows(cs *ColumnSeries, dataShapes []DataShape, align64 bo
 	//  ], ("Epoch", "Ask")),
 	// => data = \x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x13\x14
 	// (Epoch1-Ask1-Epoch2-Ask2)
-	return data, recordLen
+	return data, recordLen, nil
 }

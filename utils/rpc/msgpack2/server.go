@@ -8,13 +8,13 @@
 package msgpack2
 
 import (
+	"errors"
 	"net/http"
 
 	rpc "github.com/alpacahq/rpc/rpc2"
 	msgpack "github.com/vmihailenco/msgpack"
 )
 
-// var null = json.RawMessage([]byte("null"))
 var Version = "2.0"
 
 // ----------------------------------------------------------------------------
@@ -36,8 +36,8 @@ type serverRequest struct {
 	// The request id. MUST be a string, number or null.
 	// Our implementation will not do type checking for id.
 	// It will be copied as it is.
-	// Id *json.RawMessage `json:"id"`
-	Id interface{} `msgpack:"id"`
+	// ID *json.RawMessage `json:"id"`
+	ID interface{} `msgpack:"id"`
 }
 
 // serverResponse represents a JSON-RPC response returned by the server.
@@ -56,7 +56,7 @@ type serverResponse struct {
 	Error *Error `msgpack:"error,omitempty"`
 
 	// This must be the same id as the request it is responding to.
-	Id interface{} `msgpack:"id"`
+	ID interface{} `msgpack:"id"`
 }
 
 // ----------------------------------------------------------------------------
@@ -94,14 +94,14 @@ func newCodecRequest(r *http.Request, encoder rpc.Encoder) rpc.CodecRequest {
 	err := msgpack.NewDecoder(r.Body).Decode(req)
 	if err != nil {
 		err = &Error{
-			Code:    E_PARSE,
+			Code:    ErrParse,
 			Message: err.Error(),
 			Data:    req,
 		}
 	}
 	if req.Version != Version {
 		err = &Error{
-			Code:    E_INVALID_REQ,
+			Code:    ErrInvalidReq,
 			Message: "jsonrpc must be " + Version,
 			Data:    req,
 		}
@@ -155,13 +155,12 @@ func (c *CodecRequest) ReadRequest(args interface{}) error {
 			params := [1]interface{}{args}
 			if err = msgpack.Unmarshal(encoded, &params); err != nil {
 				c.err = &Error{
-					Code:    E_INVALID_REQ,
+					Code:    ErrInvalidReq,
 					Message: err.Error(),
 					Data:    c.request.Params,
 				}
 			}
 		}
-
 	}
 	return c.err
 }
@@ -171,40 +170,39 @@ func (c *CodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 	res := &serverResponse{
 		Version: Version,
 		Result:  reply,
-		Id:      c.request.Id,
+		ID:      c.request.ID,
 	}
 	c.writeServerResponse(w, res)
 }
 
 func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) {
-	jsonErr, ok := err.(*Error)
-	if !ok {
+	var jsonErr *Error
+	if ok := errors.As(err, &jsonErr); !ok {
 		jsonErr = &Error{
-			Code:    E_SERVER,
+			Code:    ErrServer,
 			Message: err.Error(),
 		}
 	}
 	res := &serverResponse{
 		Version: Version,
 		Error:   jsonErr,
-		Id:      c.request.Id,
+		ID:      c.request.ID,
 	}
 	c.writeServerResponse(w, res)
 }
 
 func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverResponse) {
-	// Id is null for notifications and they don't have a response.
-	if c.request.Id != nil {
+	// ID is null for notifications and they don't have a response.
+	if c.request.ID != nil {
 		w.Header().Set("Content-Type", "application/x-msgpack")
 		encoder := msgpack.NewEncoder(c.encoder.Encode(w))
 		err := encoder.Encode(res)
-
 		// Not sure in which case will this happen. But seems harmless.
 		if err != nil {
-			rpc.WriteError(w, 400, err.Error())
+			const badRequestStatusCode = 400
+			rpc.WriteError(w, badRequestStatusCode, err.Error())
 		}
 	}
 }
 
-type EmptyResponse struct {
-}
+type EmptyResponse struct{}

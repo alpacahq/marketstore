@@ -1,9 +1,9 @@
-// Package create - because packages cannot be named 'init' in go.
-//go:generate go-bindata -pkg create default.yml
 package create
 
+// Package create - because packages cannot be named 'init' in go.
+
 import (
-	"io/ioutil"
+	_ "embed"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -16,17 +16,18 @@ const (
 	example = "marketstore init"
 )
 
-var (
-	// Cmd is the init command.
-	Cmd = &cobra.Command{
-		Use:        usage,
-		Short:      short,
-		Long:       long,
-		SuggestFor: []string{"create", "new"},
-		Example:    example,
-		RunE:       executeInit,
-	}
-)
+// Cmd is the init command.
+var Cmd = &cobra.Command{
+	Use:        usage,
+	Short:      short,
+	Long:       long,
+	SuggestFor: []string{"create", "new"},
+	Example:    example,
+	RunE:       executeInit,
+}
+
+//go:embed default.yml
+var defaultYmlBinary []byte
 
 // executeInit implements the init command.
 func executeInit(*cobra.Command, []string) error {
@@ -36,13 +37,8 @@ func executeInit(*cobra.Command, []string) error {
 		return nil
 	}
 
-	// serialize default file.
-	data, err := Asset("default.yml")
-	if err != nil {
-		return err
-	}
 	// write mkts.yml to current directory.
-	err = ioutil.WriteFile("mkts.yml", data, 0644)
+	err = os.WriteFile("mkts.yml", defaultYmlBinary, 0o600)
 	if err != nil {
 		return err
 	}

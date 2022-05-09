@@ -12,12 +12,12 @@ import (
 type ErrorCode int
 
 const (
-	E_PARSE       ErrorCode = -32700
-	E_INVALID_REQ ErrorCode = -32600
-	E_NO_METHOD   ErrorCode = -32601
-	E_BAD_PARAMS  ErrorCode = -32602
-	E_INTERNAL    ErrorCode = -32603
-	E_SERVER      ErrorCode = -32000
+	ErrParse      ErrorCode = -32700
+	ErrInvalidReq ErrorCode = -32600
+	ErrNoMethod   ErrorCode = -32601
+	ErrBadParams  ErrorCode = -32602
+	ErrInternal   ErrorCode = -32603
+	ErrServer     ErrorCode = -32000
 )
 
 var ErrNullResult = errors.New("result is null")

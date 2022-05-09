@@ -1,22 +1,21 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	stdio "io"
-	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/klauspost/compress/snappy"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/metrics"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-
-	"github.com/klauspost/compress/snappy"
 )
 
 // Writer is produced that complies with the parsed query results, including a possible date
@@ -54,10 +53,10 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 		[VariableLength record] append IntervalTicks since bucket time instead of Epoch
 	*/
 	var outBuf []byte
-	outBuf = append(buf, row...)
+	buf = append(buf, row...)
+	outBuf = buf
 	outBuf = appendIntervalTicks(outBuf, t, index, intervalsPerDay)
 	return outBuf
-
 }
 
 // WriteRecords creates a WriteCommand from the supplied timestamp and data buffer,
@@ -65,7 +64,7 @@ func formatRecord(buf, row []byte, t time.Time, index, intervalsPerDay int64, is
 // The caller should assume that by calling WriteRecords directly, the data will be written
 // to the file regardless if it satisfies the on-disk data shape, possible corrupting
 // the data files. It is recommended to call WriteCSM() for any writes as it is safer.
-func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataShape, tbi *io.TimeBucketInfo) error {
+func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []io.DataShape, tbi *io.TimeBucketInfo) error {
 	/*
 		[]data contains a number of records, each including the epoch in the first 8 bytes
 	*/
@@ -97,14 +96,14 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 				return fmt.Errorf("add new year file. tbi=%v, err: %w", tbi, err)
 			}
 		}
-		index := TimeToIndex(t, tbi.GetTimeframe())
-		offset := IndexToOffset(index, tbi.GetRecordLength())
+		index := io.TimeToIndex(t, tbi.GetTimeframe())
+		offset := io.IndexToOffset(index, tbi.GetRecordLength())
 
 		// first row
 		if i == 0 {
 			prevIndex = index
 			prevYear = year
-			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == io.VARIABLE)
 			cc = w.walFile.WriteCommand(rt, tbi.Path, int(vrl), offset, index, outBuf, dsWithEpoch)
 			continue
 		}
@@ -115,7 +114,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			/*
 				This is the interior of a multi-row write buffer
 			*/
-			outBuf = formatRecord(outBuf, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord(outBuf, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == io.VARIABLE)
 			cc.Data = outBuf
 			continue
 		}
@@ -126,7 +125,7 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 			w.walFile.QueueWriteCommand(cc)
 			// Setup next command
 			prevIndex = index
-			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == VARIABLE)
+			outBuf = formatRecord([]byte{}, record, t, index, tbi.GetIntervals(), tbi.GetRecordType() == io.VARIABLE)
 			cc = w.walFile.WriteCommand(
 				tbi.GetRecordType(), tbi.Path, int(tbi.GetVariableRecordLength()), offset, index,
 				outBuf, dsWithEpoch)
@@ -140,9 +139,10 @@ func (w *Writer) WriteRecords(ts []time.Time, data []byte, dsWithEpoch []DataSha
 }
 
 func appendIntervalTicks(buf []byte, t time.Time, index, intervalsPerDay int64) (outBuf []byte) {
-	iticks := GetIntervalTicks32Bit(t, index, intervalsPerDay)
-	postdata, _ := Serialize([]byte{}, iticks)
-	outBuf = append(buf, postdata...)
+	iticks := io.GetIntervalTicks32Bit(t, index, intervalsPerDay)
+	postdata, _ := io.Serialize([]byte{}, iticks)
+	buf = append(buf, postdata...)
+	outBuf = buf
 	return outBuf
 }
 
@@ -157,7 +157,9 @@ type IndirectRecordInfo struct {
 	Index, Offset, Len int64
 }
 
-func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRecLen int,
+const indexOffsetLengthBytes = 24
+
+func WriteBufferToFileIndirect(fp stdio.ReadWriteSeeker, buffer wal.OffsetIndexBuffer, varRecLen int,
 ) (err error) {
 	/*
 		Here we write the data payload of the buffer to the end of the data file
@@ -172,22 +174,31 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 		Now we write or update the index record
 		First we read the file at the index location to see if this is an incremental write
 	*/
-	fp.Seek(primaryOffset, stdio.SeekStart)
-	idBuf := make([]byte, 24) // {Index, Offset, Len}
+	if _, err = fp.Seek(primaryOffset, stdio.SeekStart); err != nil {
+		return fmt.Errorf("failed to seek primaryOffset:%w", err)
+	}
+	idBuf := make([]byte, indexOffsetLengthBytes) // {Index, Offset, Len}
 	if _, err = fp.Read(idBuf); err != nil {
 		return err
 	}
-	currentRecInfo := SwapSliceByte(idBuf, IndirectRecordInfo{}).([]IndirectRecordInfo)[0]
+	currentRecInfoI, err := io.SwapSliceByte(idBuf, IndirectRecordInfo{})
+	if err != nil {
+		return err
+	}
+	currentRecInfo, ok := currentRecInfoI.([]IndirectRecordInfo)
+	if !ok {
+		return errors.New("failed to cast record to IndirectRecordInfo slice")
+	}
 	/*
 		Read the data from the previously written location, if it exists
 	*/
-	if currentRecInfo.Index != 0 {
-		if _, err = fp.Seek(currentRecInfo.Offset, stdio.SeekStart); err != nil {
+	if currentRecInfo[0].Index != 0 {
+		if _, err = fp.Seek(currentRecInfo[0].Offset, stdio.SeekStart); err != nil {
 			return err
 		}
-		oldData := make([]byte, currentRecInfo.Len)
-		if _, err := fp.Read(oldData); err != nil {
-			return err
+		oldData := make([]byte, currentRecInfo[0].Len)
+		if _, err2 := fp.Read(oldData); err2 != nil {
+			return err2
 		}
 		if !utils.InstanceConfig.DisableVariableCompression {
 			oldData, err = snappy.Decode(nil, oldData)
@@ -200,11 +211,13 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 	}
 
 	// Determine if this is a continuation write
-	endOfCurrentBucketData := currentRecInfo.Offset + currentRecInfo.Len
+	endOfCurrentBucketData := currentRecInfo[0].Offset + currentRecInfo[0].Len
 	endOfFileOffset, _ := fp.Seek(0, stdio.SeekEnd)
 	if endOfCurrentBucketData == endOfFileOffset {
-		endOfFileOffset = currentRecInfo.Offset
-		fp.Seek(endOfFileOffset, stdio.SeekStart)
+		endOfFileOffset = currentRecInfo[0].Offset
+		if _, err = fp.Seek(endOfFileOffset, stdio.SeekStart); err != nil {
+			return fmt.Errorf("failed to seek endOfFileOffset:%w", err)
+		}
 	}
 
 	/*
@@ -221,22 +234,25 @@ func WriteBufferToFileIndirect(fp *os.File, buffer wal.OffsetIndexBuffer, varRec
 			return err
 		}
 		dataLen = int64(len(comp))
-	} else {
-		if _, err = fp.Write(dataToBeWritten); err != nil {
-			return err
-		}
+	} else if _, err = fp.Write(dataToBeWritten); err != nil {
+		return err
 	}
 
-	//log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
+	// log.Info("LAL end_off:%d, len:%d, data:%v", endOfFileOffset, dataLen, dataToBeWritten)
 
 	/*
 		Write the indirect record info at the primaryOffset
 	*/
 	targetRecInfo := IndirectRecordInfo{Index: index, Offset: endOfFileOffset, Len: dataLen}
 	odata := []int64{targetRecInfo.Index, targetRecInfo.Offset, targetRecInfo.Len}
-	obuf := SwapSliceData(odata, byte(0)).([]byte)
+	obuf, ok := io.SwapSliceData(odata, byte(0)).([]byte)
+	if !ok {
+		return fmt.Errorf("failed to cast OffsetIndexBuffer of the target record to bytes:%v", targetRecInfo)
+	}
 
-	fp.Seek(primaryOffset, stdio.SeekStart)
+	if _, err = fp.Seek(primaryOffset, stdio.SeekStart); err != nil {
+		log.Error("failed to seek offset to write primary record", err.Error())
+	}
 	_, err = fp.Write(obuf)
 	return err
 }
@@ -260,7 +276,9 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			return err
 		}
 		if isVariableLength {
-			cs.Remove("Nanoseconds")
+			if err = cs.Remove("Nanoseconds"); err != nil {
+				log.Warn(fmt.Sprintf("failed to remove 'Nanoseconds' column. err=%v", err))
+			}
 			alignData = false
 		}
 
@@ -276,9 +294,9 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 				recordType = io.FIXED
 			}
 
-			t, err := cs.GetTime()
-			if err != nil {
-				return err
+			t, err2 := cs.GetTime()
+			if err2 != nil {
+				return err2
 			}
 			if len(t) == 0 {
 				continue
@@ -294,9 +312,9 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 			/*
 				Verify there is an available TimeBucket for the destination
 			*/
-			if err := w.rootCatDir.AddTimeBucket(&tbk, tbi); err != nil {
+			if err2 := w.rootCatDir.AddTimeBucket(&tbk, tbi); err2 != nil {
 				// If File Exists error, ignore it, otherwise return the error
-				if !strings.Contains(err.Error(), "Can not overwrite file") && !strings.Contains(err.Error(), "file exists") {
+				if !strings.Contains(err2.Error(), "Can not overwrite file") && !strings.Contains(err2.Error(), "file exists") {
 					return err
 				}
 			}
@@ -308,23 +326,31 @@ func (w *Writer) WriteCSM(csm io.ColumnSeriesMap, isVariableLength bool) error {
 		if len(dbDSV) != len(csDSV) {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
-		missing, coercion := GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
+		missing, coercion, err := io.GetMissingAndTypeCoercionColumns(dbDSV, csDSV)
+		if err != nil {
+			return fmt.Errorf("find missing and type coercion columns: %w", err)
+		}
 		if missing != nil {
 			return fmt.Errorf(columnMismatchError, csDSV, dbDSV)
 		}
 
-		if coercion != nil {
-			for _, dbDS := range coercion {
-				if err := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err != nil {
-					csType := GetElementType(cs.GetColumn(dbDS.Name))
-					log.Error("[%s] error coercing %s from %s to %s", tbk.GetItemKey(), dbDS.Name, csType.String(), dbDS.Type.String())
-					return err
-				}
+		for _, dbDS := range coercion {
+			if err2 := cs.CoerceColumnType(dbDS.Name, dbDS.Type); err2 != nil {
+				csType := io.GetElementType(cs.GetColumn(dbDS.Name))
+				log.Error("[%s] error coercing %s from %s to %s", tbk.GetItemKey(), dbDS.Name, csType.String(), dbDS.Type.String())
+				return err2
 			}
 		}
 
-		rowData := cs.ToRowSeries(tbk, alignData).GetData()
-		w.WriteRecords(times, rowData, dbDSV, tbi)
+		rs, err := cs.ToRowSeries(tbk, alignData)
+		if err != nil {
+			return fmt.Errorf("convert column series to row series. tbk=%s: %w", tbk, err)
+		}
+		rowData := rs.GetData()
+		err = w.WriteRecords(times, rowData, dbDSV, tbi)
+		if err != nil {
+			return fmt.Errorf("write records to %v: %w", tbi, err)
+		}
 	}
 
 	w.walFile.RequestFlush()

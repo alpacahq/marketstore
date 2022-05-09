@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
@@ -34,12 +33,12 @@ type AggInterface interface {
 		Accum() sends new data to the aggregate
 		and returns the currently valid output of this aggregate
 	*/
-	//Accum(ts []time.Time, rows io.Rows)
+	// Accum(ts []time.Time, rows io.Rows)
 	// The io.ColumnInterface parameter is one of; ColumnSeries or Rows
 	Accum(io.TimeBucketKey, *functions.ArgumentMap, io.ColumnInterface) (*io.ColumnSeries, error)
 }
 
-//TODO: This is where we break out a UDF API
+// TODO: This is where we break out a UDF API.
 type FunctionInterface interface {
 	GetRequiredArgs() []io.DataShape
 	GetOptionalArgs() []io.DataShape
@@ -51,7 +50,7 @@ Utility Datatypes
 */
 
 /*
-Sortable time slice
+Sortable time slice.
 */
 type OrderedTime []time.Time
 

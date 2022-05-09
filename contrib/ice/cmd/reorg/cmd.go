@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Cmd is the parent for other Reorg related commands
+// Cmd is the parent for other Reorg related commands.
 var Cmd = &cobra.Command{
 	Use:          "reorg",
 	Short:        "Functions for handling ICE's reorg files",
@@ -14,6 +14,7 @@ var Cmd = &cobra.Command{
 	},
 }
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.AddCommand(ShowRecordsCmd)
 	Cmd.AddCommand(ImportCmd)

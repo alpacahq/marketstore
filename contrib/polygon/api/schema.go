@@ -34,13 +34,15 @@ Streaming Schema from Polygon
     "e": 1536036818784,     // Tick End Timestamp ( Unix MS )
 }
 */
+
 /*
-Streaming data
+Streaming data.
 */
+
 type PolyTrade struct {
-	eventType  string  `json:"-"` //ev
+	eventType  string  `json:"-"` // ev
 	Symbol     string  `json:"sym"`
-	exchange   int     `json:"-"` //x
+	exchange   int     `json:"-"` // x
 	Price      float64 `json:"p"`
 	Size       int     `json:"s"`
 	Timestamp  int64   `json:"t"`
@@ -48,31 +50,31 @@ type PolyTrade struct {
 }
 
 type PolyQuote struct {
-	//eventType   string  `json:"-"` //ev
-	Symbol      string  `json:"sym"`
-	//bidExchange int     `json:"-"`
-	BidPrice    float64 `json:"bp"`
-	BidSize     int     `json:"bs"`
-	//askExchange int     `json:"-"`
-	AskPrice    float64 `json:"ap"`
-	AskSize     int     `json:"as"`
-	//condition   int     `json:"-"`
-	Timestamp   int64   `json:"t"`
+	// eventType   string  `json:"-"` //ev
+	Symbol string `json:"sym"`
+	// bidExchange int     `json:"-"`
+	BidPrice float64 `json:"bp"`
+	BidSize  int     `json:"bs"`
+	// askExchange int     `json:"-"`
+	AskPrice float64 `json:"ap"`
+	AskSize  int     `json:"as"`
+	// condition   int     `json:"-"`
+	Timestamp int64 `json:"t"`
 }
 
 type PolyAggregate struct {
-	//eventType    string  `json:"-"` //ev
-	Symbol       string  `json:"sym"`
-	Volume       int     `json:"v"`
-	//accumVolume  int     `json:"-"`
-	//officialOpen float64 `json:"-"`
-	//vWAP         float64 `json:"-"`
-	Open         float64 `json:"o"`
-	Close        float64 `json:"c"`
-	High         float64 `json:"h"`
-	Low          float64 `json:"l"`
-	EpochMillis  int64   `json:"s"`
-	//endTime      int64   `json:"-"`
+	// eventType    string  `json:"-"` //ev
+	Symbol string `json:"sym"`
+	Volume int    `json:"v"`
+	// accumVolume  int     `json:"-"`
+	// officialOpen float64 `json:"-"`
+	// vWAP         float64 `json:"-"`
+	Open        float64 `json:"o"`
+	Close       float64 `json:"c"`
+	High        float64 `json:"h"`
+	Low         float64 `json:"l"`
+	EpochMillis int64   `json:"s"`
+	// endTime      int64   `json:"-"`
 }
 
 /*
@@ -90,7 +92,7 @@ type HistoricAggregates struct {
 	Results     []AggResult `json:"results"`
 }
 
-// AggResult is the structure that defines the actual Aggregate result
+// AggResult is the structure that defines the actual Aggregate result.
 type AggResult struct {
 	// Volume should be int but json.Decode fails with: "cannot unmarshal number 1.70888e+06 into Go struct"
 	Volume            float64 `json:"v"`
@@ -109,26 +111,26 @@ type HistoricTrades struct {
 	Success      bool        `json:"success"`
 	ResultsCount int         `json:"results_count"`
 	Results      []TradeTick `json:"results"`
-	DbLatency    int         `json:"db_latency"`
+	DBLatency    int         `json:"db_latency"`
 	// `map` is excluded as it only contains variable shortening info for ticks
 }
 
 // TradeTick is the structure that contains the actual
-// tick data included in a HistoricTrades response
+// tick data included in a HistoricTrades response.
 type TradeTick struct {
 	ParticipantTimestamp int64   `json:"y"` // Participant/Exchange timestamp
 	TrfTimestamp         int64   `json:"f"`
-	SipTimestamp         int64   `json:"t"` // Optional
+	SIPTimestamp         int64   `json:"t"` // Optional
 	Price                float64 `json:"p"`
 	Size                 int     `json:"s"`
 	Exchange             int     `json:"x"`
 	Conditions           []int   `json:"c"`
-	Id                   string  `json:"i"`
+	ID                   string  `json:"i"`
 	Correction           int     `json:"e"`
 	SequenceNumber       int     `json:"q"`
-	TrfId                int     `json:"r"`
+	TrfID                int     `json:"r"`
 	Tape                 int     `json:"z"`
-	OrigId               string  `string:"I"`
+	OrigID               string  `string:"I"`
 }
 
 // HistoricQuotes is the structure that defines quote
@@ -153,7 +155,7 @@ type HistoricQuotes struct {
 }
 
 // QuoteTick is the structure that contains the actual
-// tick data included in a HistoricQuotes response
+// tick data included in a HistoricQuotes response.
 type QuoteTick struct {
 	Timestamp   int64   `json:"t"`
 	BidExchange int     `json:"bE"`

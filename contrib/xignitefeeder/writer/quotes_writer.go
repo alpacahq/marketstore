@@ -11,12 +11,12 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// QuotesWriter is an interface to write the realtime stock data to the marketstore
+// QuotesWriter is an interface to write the realtime stock data to the marketstore.
 type QuotesWriter interface {
 	Write(resp api.GetQuotesResponse) error
 }
 
-// QuotesWriterImpl is an implementation of the QuotesWriter interface
+// QuotesWriterImpl is an implementation of the QuotesWriter interface.
 type QuotesWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
 	Timeframe         string
@@ -27,10 +27,7 @@ type QuotesWriterImpl struct {
 // Write converts the Response of the GetQuotes API to a ColumnSeriesMap and write it to the local marketstore server.
 func (q QuotesWriterImpl) Write(quotes api.GetQuotesResponse) error {
 	// convert Quotes Data to CSM (ColumnSeriesMap)
-	csm, err := q.convertToCSM(quotes)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to create CSM from Quotes Data. %v", quotes))
-	}
+	csm := q.convertToCSM(quotes)
 
 	// write CSM to marketstore
 	if err := q.MarketStoreWriter.Write(csm); err != nil {
@@ -41,7 +38,7 @@ func (q QuotesWriterImpl) Write(quotes api.GetQuotesResponse) error {
 	return nil
 }
 
-func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.ColumnSeriesMap, error) {
+func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) io.ColumnSeriesMap {
 	csm := io.NewColumnSeriesMap()
 
 	for _, eq := range response.ArrayOfEquityQuote {
@@ -52,7 +49,7 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 		}
 
 		// choose a latest time among askDateTime, BidDatetime and DateTime
-		var latestDateTime = getLatestTime(
+		latestDateTime := getLatestTime(
 			time.Time(eq.Quote.DateTime),
 			time.Time(eq.Quote.AskDateTime),
 			time.Time(eq.Quote.BidDateTime),
@@ -62,16 +59,12 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) (io.Colu
 		UTCOffset := time.Duration(-1*eq.Quote.UTCOffSet) * time.Hour
 		latestDateTime = latestDateTime.Add(UTCOffset).In(q.Timezone)
 
-		//if !q.needToWrite(eq.Security.Symbol, dateTime) {
-		//	continue
-		//}
-
 		cs := q.newColumnSeries(latestDateTime.Unix(), eq)
 		tbk := io.NewTimeBucketKey(eq.Security.Symbol + "/" + q.Timeframe + "/TICK")
 		csm.AddColumnSeries(*tbk, cs)
 	}
 
-	return csm, nil
+	return csm
 }
 
 func (q QuotesWriterImpl) newColumnSeries(epoch int64, eq api.EquityQuote) *io.ColumnSeries {
@@ -97,18 +90,18 @@ func (q QuotesWriterImpl) newColumnSeries(epoch int64, eq api.EquityQuote) *io.C
 	return cs
 }
 
-// getLatestTime return the latest time among 3 datetimes
+// getLatestTime return the latest time among 3 datetimes.
 func getLatestTime(dt1, dt2, dt3 time.Time) time.Time {
 	u1, u2, u3 := dt1.Unix(), dt2.Unix(), dt3.Unix()
-	if u1 > u2 {
+	switch {
+	case u1 > u2:
 		if u1 > u3 {
 			return dt1
-		} else {
-			return dt3
 		}
-	} else if u2 > u3 {
+		return dt3
+	case u2 > u3:
 		return dt2
-	} else {
+	default:
 		return dt3
 	}
 }

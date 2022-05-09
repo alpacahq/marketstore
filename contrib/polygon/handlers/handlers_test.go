@@ -2,29 +2,23 @@ package handlers_test
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
-	"github.com/alpacahq/marketstore/v4/utils/test"
-
-	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
+	"github.com/alpacahq/marketstore/v4/executor"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func()) {
+func setup(t *testing.T) {
 	t.Helper()
 
-	rootDir, _ := ioutil.TempDir("", fmt.Sprintf("handlers_test-%s", testName))
-	_, _, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, true, true, false, true)
+	rootDir := t.TempDir()
+	_, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
+		executor.BackgroundSync(false), executor.WALBypass(true))
 	assert.Nil(t, err)
-
-	return func() { test.CleanupDummyDataDir(rootDir) }
 }
 
 func getTestTradeArray() []api.PolyTrade {
@@ -38,6 +32,7 @@ func getTestTradeArray() []api.PolyTrade {
 		},
 	}
 }
+
 func getTestQuoteArray() []api.PolyQuote {
 	return []api.PolyQuote{
 		{
@@ -50,9 +45,9 @@ func getTestQuoteArray() []api.PolyQuote {
 		},
 	}
 }
+
 func TestHandlers(t *testing.T) {
-	tearDown := setup(t, "TestHandlers")
-	defer tearDown()
+	setup(t)
 
 	// trade
 	{

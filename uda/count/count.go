@@ -3,14 +3,13 @@ package count
 import (
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"github.com/alpacahq/marketstore/v4/uda"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 /*
-This is filled in for example purposes, should be overridden in implementation
+This is filled in for example purposes, should be overridden in implementation.
 */
 var requiredColumns = []io.DataShape{
 	{Name: "*", Type: io.INT64},
@@ -19,7 +18,7 @@ var requiredColumns = []io.DataShape{
 /*
 For the optional inputs, we'll postpend the input names mapped to each optional
 for output, for example: if we map user input "Volume" to "Sum", the output
-will be "Sum_Volume"
+will be "Sum_Volume".
 */
 var optionalColumns = []io.DataShape{}
 
@@ -31,23 +30,23 @@ type Count struct {
 	Sum int64
 }
 
-func (ca *Count) GetRequiredArgs() []io.DataShape {
+func (c *Count) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
-func (ca *Count) GetOptionalArgs() []io.DataShape {
+
+func (c *Count) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
-func (ca *Count) GetInitArgs() []io.DataShape {
+
+func (c *Count) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-/*
-	Accum() sends new data to the aggregate
-*/
-func (ca *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface,
+// Accum sends new data to the aggregate.
+func (c *Count) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface,
 ) (*io.ColumnSeries, error) {
-	ca.Sum += int64(cols.Len())
-	return ca.Output(), nil
+	c.Sum += int64(cols.Len())
+	return c.Output(), nil
 }
 
 /*
@@ -63,9 +62,9 @@ func (c Count) New(argMap *functions.ArgumentMap, itf ...interface{}) (out uda.A
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (ca *Count) Output() *io.ColumnSeries {
+func (c *Count) Output() *io.ColumnSeries {
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", []int64{time.Now().UTC().Unix()})
-	cs.AddColumn("Count", []int64{ca.Sum})
+	cs.AddColumn("Count", []int64{c.Sum})
 	return cs
 }

@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -8,13 +9,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// json iter supports marshal/unmarshal of map[interface{}]interface{] type.
-// when the config file contains (a) nested structure(s) like follows:
+// Use json iter because it supports marshal/unmarshal of map[interface{}]interface{} type.
+// When the config file contains (a) nested structure(s) like follows:
 //
 // backfill:
 //   enabled: true
 //
-// the standard "encoding/json" library cannot marshal the structure
+// ,the standard "encoding/json" library cannot marshal the structure
 // because the config is parsed from a yaml file (mkts.yaml) to map[string]interface{} and passed to this file,
 // and config["backfill"] object has map[interface{}]interface{} type.
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -52,7 +53,7 @@ type DefaultConfig struct {
 	} `json:"recentBackfill"`
 }
 
-// NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal
+// NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal.
 func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	data, err := json.Marshal(config)
 	if err != nil {
@@ -60,29 +61,45 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	}
 
 	ret := &DefaultConfig{}
-	if err := json.Unmarshal(data, &ret); err != nil {
-		return nil, err
-	}
-
-	if len(ret.Exchanges) < 1 && len(ret.IndexGroups) < 1 {
-		return nil, errors.New("must have 1 or more stock exchanges or index group in the config file")
+	if err2 := json.Unmarshal(data, &ret); err2 != nil {
+		return nil, err2
 	}
 
 	ret, err = envOverride(ret)
+	if err != nil {
+		return nil, fmt.Errorf("[xignite feeder]override config by env vars: %w", err)
+	}
+
+	if err := validate(ret); err != nil {
+		return nil, fmt.Errorf("config validation error: %w", err)
+	}
 
 	return ret, nil
 }
 
-// CustomTime is a date time object in the ctLayout format
+func validate(cfg *DefaultConfig) error {
+	if len(cfg.Exchanges) < 1 && len(cfg.IndexGroups) < 1 {
+		return errors.New("must have 1 or more stock exchanges or index group in the config file")
+	}
+
+	if len(cfg.APIToken) != 32 {
+		return fmt.Errorf("xignite API Token length must be 32 bytes. got=%d", len(cfg.APIToken))
+	}
+
+	return nil
+}
+
+// CustomTime is a date time object in the ctLayout format.
 type CustomTime time.Time
 
-// Custom Time. hh:mm:ss only
+// Custom Time. hh:mm:ss only.
 const ctLayout = "15:04:05"
 
 // UnmarshalJSON parses the config data to the DefaultConfig object.
 // Because some parameters (OpenTime, ClosedDaysOfTheWeek, etc) have their original types and unmarshal methods
 // but it's troublesome for other business logic to use those not-general types,
-// so this method parses the data to an auxiliary struct and cast the types first, then parse to the DefaultConfig object.
+// so this method parses the data to an auxiliary struct and cast the types first,
+// then parse to the DefaultConfig object.
 func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	type Alias DefaultConfig
 
@@ -107,7 +124,7 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// convertSliceType converts a slice of weekday to a slice of time.weekday
+// convertSliceType converts a slice of weekday to a slice of time.weekday.
 func convertTime(w []weekday) []time.Weekday {
 	d := make([]time.Weekday, 1)
 	for _, v := range w {
@@ -124,7 +141,7 @@ func convertDate(cd []CustomDay) []time.Time {
 	return d
 }
 
-// UnmarshalJSON parses a string in the ctLayout
+// UnmarshalJSON parses a string in the ctLayout.
 func (ct *CustomTime) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "null" {
@@ -139,13 +156,13 @@ func (ct *CustomTime) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// CustomDay is a date time object in the cdLayout format
+// CustomDay is a date time object in the cdLayout format.
 type CustomDay time.Time
 
-// Custom Date. yyyy-mm-dd only
+// Custom Date. yyyy-mm-dd only.
 const cdLayout = "2006-01-02"
 
-// UnmarshalJSON parses a string in the cdLayout
+// UnmarshalJSON parses a string in the cdLayout.
 func (cd *CustomDay) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 	if s == "null" {
@@ -162,7 +179,7 @@ func (cd *CustomDay) UnmarshalJSON(input []byte) error {
 
 type weekday time.Weekday
 
-// UnmarshalJSON parses a string for a day of the week
+// UnmarshalJSON parses a string for a day of the week.
 func (wd *weekday) UnmarshalJSON(input []byte) error {
 	s := strings.Trim(string(input), "\"")
 

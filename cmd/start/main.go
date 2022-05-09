@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -15,25 +14,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/sqlparser"
-
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
 	"github.com/alpacahq/marketstore/v4/metrics"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	pb "github.com/alpacahq/marketstore/v4/proto"
 	"github.com/alpacahq/marketstore/v4/replication"
+	"github.com/alpacahq/marketstore/v4/sqlparser"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/log"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 const (
@@ -43,6 +39,8 @@ const (
 	example               = "marketstore start --config <path>"
 	defaultConfigFilePath = "./mkts.yml"
 	configDesc            = "set the path for the marketstore YAML configuration file"
+
+	diskUsageMonitorInterval = 10 * time.Minute
 )
 
 var (
@@ -60,6 +58,7 @@ var (
 	configFilePath string
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	utils.InstanceConfig.StartTime = time.Now()
 	Cmd.Flags().StringVarP(&configFilePath, "config", "c", defaultConfigFilePath, configDesc)
@@ -69,12 +68,12 @@ func init() {
 func executeStart(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
 	globalCtx, globalCancel := context.WithCancel(ctx)
+	defer globalCancel()
 
 	// Attempt to read config file.
-	data, err := ioutil.ReadFile(configFilePath)
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
-		globalCancel()
-		return fmt.Errorf("failed to read configuration file error: %s", err.Error())
+		return fmt.Errorf("failed to read configuration file error: %w", err)
 	}
 
 	// Don't output command usage if args(=only the filepath to mkts.yml at the moment) are correct
@@ -86,8 +85,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	// Attempt to set configuration.
 	config, err := utils.InstanceConfig.Parse(data)
 	if err != nil {
-		globalCancel()
-		return fmt.Errorf("failed to parse configuration file error: %v", err.Error())
+		return fmt.Errorf("failed to parse configuration file error: %w", err)
 	}
 
 	// New gRPC stream server for replication.
@@ -106,17 +104,16 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	if config.Replication.Enabled {
 		// Enable TLS for all incoming connections if configured
 		if config.Replication.TLSEnabled {
-			cert, err := tls.LoadX509KeyPair(
+			cert, err2 := tls.LoadX509KeyPair(
 				config.Replication.CertFile,
 				config.Replication.KeyFile,
 			)
-			if err != nil {
-				globalCancel()
+			if err2 != nil {
 				return fmt.Errorf("failed to load server certificates for replication:"+
 					" certFile:%v, keyFile:%v, err:%v",
 					config.Replication.CertFile,
 					config.Replication.KeyFile,
-					err.Error(),
+					err2.Error(),
 				)
 			}
 			opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
@@ -134,21 +131,21 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	start := time.Now()
 
 	triggerMatchers := trigger.NewTriggerMatchers(config.Triggers)
-	instanceConfig, shutdownPending, walWG, err := executor.NewInstanceSetup(
+	instanceConfig, walWG, err := executor.NewInstanceSetup(
 		config.RootDirectory,
 		rs,
 		triggerMatchers,
 		config.WALRotateInterval,
-		config.InitCatalog,
-		config.InitWALCache,
-		config.BackgroundSync,
-		config.WALBypass,
+		executor.InitCatalog(config.InitCatalog),
+		executor.InitWALCache(config.InitWALCache),
+		executor.BackgroundSync(config.BackgroundSync),
+		executor.WALBypass(config.WALBypass),
 	)
 	if err != nil {
 		return fmt.Errorf("craete new instance setup: %w", err)
 	}
 
-	go metrics.StartDiskUsageMonitor(metrics.TotalDiskUsageBytes, config.RootDirectory, 10*time.Minute)
+	go metrics.StartDiskUsageMonitor(metrics.TotalDiskUsageBytes, config.RootDirectory, diskUsageMonitorInterval)
 
 	startupTime := time.Since(start)
 	metrics.StartupTime.Set(startupTime.Seconds())
@@ -167,10 +164,10 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	)
 
 	// init writer
-	var server *frontend.RpcServer
+	var server *frontend.RPCServer
 	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
 	if err != nil {
-		panic("init writer: " + err.Error())
+		return fmt.Errorf("init writer: %w", err)
 	}
 
 	if config.Replication.MasterHost != "" {
@@ -232,7 +229,12 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 		// Start utility endpoints.
 		log.Info("launching utility service...")
 		uah := frontend.NewUtilityAPIHandlers(config.StartTime)
-		go uah.Handle(config.UtilitiesURL)
+		go func() {
+			err = uah.Handle(config.UtilitiesURL)
+			if err != nil {
+				log.Error("utility API handle error: %v", err.Error())
+			}
+		}()
 	}
 
 	log.Info("enabling query access...")
@@ -241,30 +243,33 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	// Serve.
 	log.Info("launching tcp listener for all services...")
 	if config.GRPCListenURL != "" {
-		grpcLn, err := net.Listen("tcp", config.GRPCListenURL)
-		if err != nil {
-			globalCancel()
-			return fmt.Errorf("failed to start GRPC server - error: %s", err.Error())
+		grpcLn, err2 := net.Listen("tcp", config.GRPCListenURL)
+		if err2 != nil {
+			return fmt.Errorf("failed to start GRPC server - error: %w", err2)
 		}
 		go func() {
-			err := grpcServer.Serve(grpcLn)
-			if err != nil {
+			err3 := grpcServer.Serve(grpcLn)
+			if err3 != nil {
+				log.Error("gRPC server error: %v", err.Error())
 				grpcServer.GracefulStop()
 			}
 		}()
 	}
 
 	// Spawn a goroutine and listen for a signal.
-	signalChan := make(chan os.Signal)
+	const defaultSignalChanLen = 10
+	signalChan := make(chan os.Signal, defaultSignalChanLen)
 	go func() {
 		for s := range signalChan {
 			switch s {
 			case syscall.SIGUSR1:
 				log.Info("dumping stack traces due to SIGUSR1 request")
-				pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
-			case syscall.SIGINT:
-				fallthrough
-			case syscall.SIGTERM:
+				err2 := pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+				if err2 != nil {
+					log.Error("failed to write goroutine pprof: %w", err)
+					return
+				}
+			case syscall.SIGINT, syscall.SIGTERM:
 				log.Info("initiating graceful shutdown due to '%v' request", s)
 				grpcServer.GracefulStop()
 				log.Info("shutdown grpc API server...")
@@ -277,23 +282,21 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 				atomic.StoreUint32(&frontend.Queryable, uint32(0))
 				log.Info("waiting a grace period of %v to shutdown...", config.StopGracePeriod)
 				time.Sleep(config.StopGracePeriod)
-				shutdown(shutdownPending, walWG)
+				instanceConfig.WALFile.TriggerShutdown()
+				shutdown(walWG)
 			}
 		}
 	}()
 	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGINT, syscall.SIGTERM)
 
 	if err := http.ListenAndServe(config.ListenURL, nil); err != nil {
-		return fmt.Errorf("failed to start server - error: %s", err.Error())
+		return fmt.Errorf("failed to start server - error: %w", err)
 	}
 
 	return nil
 }
 
-func shutdown(shutdownPending *bool, walWaitGroup *sync.WaitGroup) {
-	if shutdownPending != nil {
-		*shutdownPending = true
-	}
+func shutdown(walWaitGroup *sync.WaitGroup) {
 	walWaitGroup.Wait()
 	log.Info("exiting...")
 	os.Exit(0)
@@ -323,10 +326,10 @@ func initReplicationMaster(ctx context.Context, grpcServer *grpc.Server, listenP
 }
 
 func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsEnabled bool, certFile string,
-	retryInterval time.Duration, retryBackoffCoeff int, w *executor.Writer) error {
-	opts := []grpc.DialOption{
-		// grpc.WithBlock(),
-	}
+	retryInterval time.Duration, retryBackoffCoeff int, w *executor.Writer,
+) error {
+	var opts []grpc.DialOption
+	// grpc.WithBlock(),
 
 	if tlsEnabled {
 		creds, err := credentials.NewClientTLSFromFile(certFile, "")
@@ -354,7 +357,7 @@ func initReplicationClient(ctx context.Context, masterHost, rootDir string, tlsE
 	go func() {
 		err = replication.NewRetryer(replicationReceiver.Run, retryInterval, retryBackoffCoeff).Run(ctx)
 		if err != nil {
-			fmt.Printf("failed to connect Master instance from Replica. err=%v\n", err)
+			log.Error("failed to connect Master instance from Replica. err=%v\n", err)
 		}
 	}()
 

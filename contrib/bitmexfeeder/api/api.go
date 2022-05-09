@@ -1,15 +1,16 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
 )
 
-//TradeBucketedResponse json from bitMEX bucketed trade API
+// TradeBucketedResponse json from bitMEX bucketed trade API.
 type TradeBucketedResponse struct {
 	Timestamp       string  `json:"timestamp"`
 	Symbol          string  `json:"symbol"`
@@ -26,7 +27,7 @@ type TradeBucketedResponse struct {
 	ForeignNotional float64 `json:"foreignNotional"`
 }
 
-// BitmexClient with direct API methods
+// BitmexClient with direct API methods.
 type BitmexClient struct {
 	Client        *http.Client
 	baseURL       string
@@ -34,7 +35,7 @@ type BitmexClient struct {
 	bitmexBinSize map[string]string
 }
 
-// NewBitmexClient is the constructor of the BitmexClient
+// NewBitmexClient is the constructor of the BitmexClient.
 func NewBitmexClient(hc *http.Client) *BitmexClient {
 	return &BitmexClient{
 		Client:  hc,
@@ -49,12 +50,16 @@ func NewBitmexClient(hc *http.Client) *BitmexClient {
 	}
 }
 
-// GetInstruments from bitmex API
+// GetInstruments from bitmex API.
 func (c *BitmexClient) GetInstruments() ([]string, error) {
 	reqURL := c.baseURL + c.apiURL + "/instrument/active"
-	res, err := c.Client.Get(reqURL)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", reqURL, http.NoBody)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get active instruments: %v", err)
+		return nil, fmt.Errorf("create http req for %s: %w", reqURL, err)
+	}
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get active instruments: %w", err)
 	}
 	defer res.Body.Close()
 	instruments := []struct {
@@ -71,7 +76,7 @@ func (c *BitmexClient) GetInstruments() ([]string, error) {
 	return symbols, nil
 }
 
-// GetBuckets from bitmex Trade API
+// GetBuckets from bitmex Trade API.
 func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string) ([]TradeBucketedResponse, error) {
 	resp := []TradeBucketedResponse{}
 
@@ -89,7 +94,7 @@ func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string)
 	}
 	uri.RawQuery = values.Encode()
 	reqURL := uri.String()
-	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +106,9 @@ func (c *BitmexClient) GetBuckets(symbol string, from time.Time, binSize string)
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= http.StatusMultipleChoices {
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return nil, err
+		body, err2 := io.ReadAll(res.Body)
+		if err2 != nil {
+			return nil, err2
 		}
 
 		return nil, fmt.Errorf("status code %v, response=%v", res.StatusCode, string(body))

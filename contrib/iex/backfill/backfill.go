@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -20,7 +22,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
-	. "github.com/alpacahq/marketstore/v4/utils/io"
+	utilsio "github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
@@ -29,11 +31,12 @@ var (
 	from string
 	to   string
 
-	// NY timezone
+	// NY timezone.
 	NY, _  = time.LoadLocation("America/New_York")
 	format = "2006-01-02"
 )
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	flag.StringVar(&dir, "dir", "/project/data", "mktsdb directory to backfill to")
 	flag.StringVar(&from, "from", time.Now().Add(-365*24*time.Hour).Format(format), "backfill from date (YYYY-MM-DD)")
@@ -43,7 +46,10 @@ func init() {
 }
 
 func main() {
-	initWriter()
+	if err := initWriter(); err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
 
 	start, err := time.Parse(format, from)
 	if err != nil {
@@ -74,7 +80,7 @@ func main() {
 					log.Error(fmt.Sprintf("failed to pullDate(%v). err=%v", t, err))
 					return
 				}
-				log.Info("Done %v (in %s)", t.Format("2006-01-02"), time.Now().Sub(s).String())
+				log.Info("Done %v (in %s)", t.Format("2006-01-02"), time.Since(s).String())
 			}(end)
 		}
 
@@ -99,12 +105,16 @@ func pullDate(t time.Time) error {
 		}
 		return fmt.Errorf("failed to getHIST: %w", err)
 	} else if len(histData) == 0 {
-		panic(fmt.Errorf("Found %v available data feeds", len(histData)))
+		panic(fmt.Errorf("found %v available data feeds", len(histData)))
 	}
 
 	// Fetch the pcap dump for that date and iterate through its messages.
 	log.Info("pcap url: %s", histData[0].Link)
-	resp, err := http.Get(histData[0].Link)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", histData[0].Link, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("create http req for %s: %w", histData[0].Link, err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
@@ -126,33 +136,35 @@ func pullDate(t time.Time) error {
 	for {
 		msg, err := scanner.NextMessage()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 
 			return fmt.Errorf("failed to scan next message: %w", err)
 		}
 
-		if msg, ok := msg.(*tops.TradeReportMessage); ok {
-			if openTime.IsZero() {
-				openTime = msg.Timestamp.Truncate(time.Minute)
-				closeTime = openTime.Add(time.Minute)
-			}
-
-			if msg.Timestamp.After(closeTime) && len(trades) > 0 {
-				bars := makeBars(trades, openTime, closeTime)
-
-				if err := writeBars(bars); err != nil {
-					return fmt.Errorf("failed to writeBars: %w", err)
-				}
-
-				trades = trades[:0]
-				openTime = msg.Timestamp.Truncate(time.Minute)
-				closeTime = openTime.Add(time.Minute)
-			}
-
-			trades = append(trades, msg)
+		tradeReportMessage, ok := msg.(*tops.TradeReportMessage)
+		if !ok {
+			continue
 		}
+		if openTime.IsZero() {
+			openTime = tradeReportMessage.Timestamp.Truncate(time.Minute)
+			closeTime = openTime.Add(time.Minute)
+		}
+
+		if tradeReportMessage.Timestamp.After(closeTime) && len(trades) > 0 {
+			bars := makeBars(trades, openTime, closeTime)
+
+			if err := writeBars(bars); err != nil {
+				return fmt.Errorf("failed to writeBars: %w", err)
+			}
+
+			trades = trades[:0]
+			openTime = tradeReportMessage.Timestamp.Truncate(time.Minute)
+			closeTime = openTime.Add(time.Minute)
+		}
+
+		trades = append(trades, tradeReportMessage)
 	}
 	return nil
 }
@@ -172,19 +184,19 @@ func makeBars(trades []*tops.TradeReportMessage, openTime, closeTime time.Time) 
 }
 
 func writeBars(bars []*consolidator.Bar) error {
-	csm := NewColumnSeriesMap()
+	csm := utilsio.NewColumnSeriesMap()
 
 	for i := range bars {
 		batch, index := nextBatch(bars, i)
 
 		if len(batch) > 0 {
-			tbk := NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", batch[0].Symbol))
+			tbk := utilsio.NewTimeBucketKeyFromString(fmt.Sprintf("%s/1Min/OHLCV", batch[0].Symbol))
 
 			epoch := make([]int64, len(batch))
 			open := make([]float32, len(batch))
 			high := make([]float32, len(batch))
 			low := make([]float32, len(batch))
-			close := make([]float32, len(batch))
+			clos := make([]float32, len(batch))
 			volume := make([]int32, len(batch))
 
 			for j, bar := range batch {
@@ -192,16 +204,16 @@ func writeBars(bars []*consolidator.Bar) error {
 				open[j] = float32(bar.Open)
 				high[j] = float32(bar.High)
 				low[j] = float32(bar.Low)
-				close[j] = float32(bar.Close)
+				clos[j] = float32(bar.Close)
 				volume[j] = int32(bar.Volume)
 			}
 
-			cs := NewColumnSeries()
+			cs := utilsio.NewColumnSeries()
 			cs.AddColumn("Epoch", epoch)
 			cs.AddColumn("Open", open)
 			cs.AddColumn("High", high)
 			cs.AddColumn("Low", low)
-			cs.AddColumn("Close", close)
+			cs.AddColumn("Close", clos)
 			cs.AddColumn("Volume", volume)
 			csm.AddColumnSeries(*tbk, cs)
 		}
@@ -214,8 +226,9 @@ func writeBars(bars []*consolidator.Bar) error {
 	return executor.WriteCSM(csm, false)
 }
 
-func nextBatch(bars []*consolidator.Bar, index int) ([]*consolidator.Bar, int) {
-	batch := []*consolidator.Bar{}
+func nextBatch(bars []*consolidator.Bar, index int) (batchBars []*consolidator.Bar, idx int) {
+	// nolint:prealloc // hard to preallocate batch due to the if statement
+	var batch []*consolidator.Bar
 
 	for i, bar := range bars[index:] {
 		if i > 0 && !strings.EqualFold(bar.Symbol, bars[i-1].Symbol) {
@@ -244,13 +257,13 @@ func initWriter() error {
 		return fmt.Errorf("failed to create a new aggtrigger: %w", err)
 	}
 
-	triggerMatchers := []*trigger.TriggerMatcher{
+	triggerMatchers := []*trigger.Matcher{
 		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
 	}
 
-	_, _, _, err = executor.NewInstanceSetup(
+	_, _, err = executor.NewInstanceSetup(
 		relRootDir, nil, triggerMatchers,
-		walRotateInterval, true, true, true, true)
+		walRotateInterval, executor.WALBypass(true))
 	if err != nil {
 		return fmt.Errorf("failed to create new instance setup for iex/backfill: %w", err)
 	}

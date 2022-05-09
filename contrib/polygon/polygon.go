@@ -4,30 +4,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/backfill"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygon_config"
-	"github.com/alpacahq/marketstore/v4/contrib/polygon/worker"
-	"github.com/alpacahq/marketstore/v4/executor"
-	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/contrib/polygon/polygonconfig"
 	"github.com/alpacahq/marketstore/v4/plugins/bgworker"
-	"github.com/alpacahq/marketstore/v4/utils/io"
-	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type PolygonFetcher struct {
-	config polygon_config.FetcherConfig
+	config polygonconfig.FetcherConfig
 	types  map[string]struct{} // Bars, Quotes, Trades
 }
 
 // NewBgWorker returns a new instances of PolygonFetcher. See FetcherConfig
 // for more details about configuring PolygonFetcher.
+// nolint:deadcode // plugin interface
 func NewBgWorker(conf map[string]interface{}) (w bgworker.BgWorker, err error) {
 	data, _ := json.Marshal(conf)
-	config := polygon_config.FetcherConfig{}
+	config := polygonconfig.FetcherConfig{}
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		return
@@ -85,70 +80,6 @@ func (pf *PolygonFetcher) Run() {
 	}
 
 	select {}
-}
-
-func (pf *PolygonFetcher) backfillBars(symbol string, end time.Time, writerWP *worker.WorkerPool) {
-	var (
-		from time.Time
-		err  error
-		tbk  = io.NewTimeBucketKey(fmt.Sprintf("%s/1Min/OHLCV", symbol))
-	)
-
-	// query the latest entry prior to the streamed record
-	if pf.config.QueryStart == "" {
-		instance := executor.ThisInstance
-		cDir := instance.CatalogDir
-		q := planner.NewQuery(cDir)
-		q.AddTargetKey(tbk)
-		q.SetRowLimit(io.LAST, 1)
-		q.SetEnd(end.Add(-1 * time.Minute))
-
-		parsed, err := q.Parse()
-		if err != nil {
-			log.Error("[polygon] query parse failure (%v)", err)
-			return
-		}
-
-		scanner, err := executor.NewReader(parsed)
-		if err != nil {
-			log.Error("[polygon] new scanner failure (%v)", err)
-			return
-		}
-
-		csm, err := scanner.Read()
-		if err != nil {
-			log.Error("[polygon] scanner read failure (%v)", err)
-			return
-		}
-
-		epoch := csm[*tbk].GetEpoch()
-
-		// no gap to fill
-		if len(epoch) == 0 {
-			return
-		}
-
-		from = time.Unix(epoch[len(epoch)-1], 0)
-
-	} else {
-		for _, layout := range []string{
-			"2006-01-02 03:04:05",
-			"2006-01-02T03:04:05",
-			"2006-01-02 03:04",
-			"2006-01-02T03:04",
-			"2006-01-02",
-		} {
-			from, err = time.Parse(layout, pf.config.QueryStart)
-			if err == nil {
-				break
-			}
-		}
-	}
-
-	// request & write the missing bars
-	if err = backfill.Bars(symbol, from, time.Time{}, 50000, false, writerWP); err != nil {
-		log.Error("[polygon] bars backfill failure for key: [%v] (%v)", tbk.String(), err)
-	}
 }
 
 func main() {}

@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
-
 	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 // const charactersPerLine = 80
@@ -21,10 +22,9 @@ type loader struct {
 }
 
 func ParseFile(r io.Reader) ([]*SecurityMaster, error) {
-
 	l := &loader{}
 
-	//read file
+	// read file
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		l.lineReader(scanner.Text())
@@ -39,7 +39,7 @@ func ParseFile(r io.Reader) ([]*SecurityMaster, error) {
 
 func (l *loader) lineReader(currentLine string) error {
 	var err error
-	line := string(currentLine)
+	line := currentLine
 	recType := line[13:15]
 
 	// file header
@@ -58,7 +58,9 @@ func (l *loader) lineReader(currentLine string) error {
 	if l.stg.Cusip != cusip {
 		// save current record
 		if l.stg.Cusip != "" {
-			l.saveRecord()
+			if err = l.saveRecord(); err != nil {
+				log.Error("failed to save record. currentLine=%s", currentLine)
+			}
 		}
 
 		// create new record
@@ -67,41 +69,42 @@ func (l *loader) lineReader(currentLine string) error {
 		}
 	}
 
-	if err = l.parseEntry(recType, line); err != nil {
-		return err
+	if err2 := l.parseEntry(recType, line); err2 != nil {
+		return err2
 	}
 
 	return nil
 }
 
 func (l *loader) saveRecord() error {
-	//set listing exchange values
-	if l.stg.ExchangeCode1 != "" && l.stg.ExchangeCode1 == l.stg.ExchangeCode {
+	// set listing exchange values
+	switch {
+	case l.stg.ExchangeCode1 != "" && l.stg.ExchangeCode1 == l.stg.ExchangeCode:
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode1
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate1
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode1
 		l.stg.ListingExchangeTicker = l.stg.Ticker1
-	} else if l.stg.ExchangeCode2 != "" && (l.stg.ExchangeCode2 == l.stg.ExchangeCode || l.stg.ExchangeCode2 == "29") {
+	case l.stg.ExchangeCode2 != "" && (l.stg.ExchangeCode2 == l.stg.ExchangeCode || l.stg.ExchangeCode2 == "29"):
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode2
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate2
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode2
 		l.stg.ListingExchangeTicker = l.stg.Ticker2
-	} else if l.stg.ExchangeCode1 != "" {
+	case l.stg.ExchangeCode1 != "":
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode1
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate1
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode1
 		l.stg.ListingExchangeTicker = l.stg.Ticker1
-	} else {
+	default:
 		l.stg.ListingExchangeCode = l.stg.ExchangeCode2
 		l.stg.ListingExchangeDate = l.stg.EffectiveDate2
 		l.stg.ListingExchangeStatusCode = l.stg.StatusCode2
 		l.stg.ListingExchangeTicker = strings.Replace(l.stg.Ticker2, "-", ".PR", 1)
 	}
 
-	//set symbol
+	// set symbol
 	l.stg.Symbol = l.stg.ListingExchangeTicker
 	if l.stg.TickerSymbolExt == "W" {
-		l.stg.Symbol = l.stg.Symbol + ".W"
+		l.stg.Symbol += ".W"
 	}
 
 	// Replace space with "."

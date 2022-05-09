@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// FTPSyncCmd downloads reorg and sirs files from ICE's ftp directory to a local path
+// FTPSyncCmd downloads reorg and sirs files from ICE's ftp directory to a local path.
 var FTPSyncCmd = &cobra.Command{
 	Use:          "sync <localdir> <ftpurl>",
 	Short:        "sync ICE's FTP directory to a local path",
@@ -29,8 +29,8 @@ var FTPSyncCmd = &cobra.Command{
 			return err
 		}
 
-		if err := os.MkdirAll(dataDir, 0777); err != nil {
-			log.Error("Cannot create local storage directory: %+v", err)
+		if err2 := os.MkdirAll(dataDir, 0o777); err2 != nil {
+			log.Error("Cannot create local storage directory: %+v", err2)
 			return err
 		}
 
@@ -46,7 +46,7 @@ var FTPSyncCmd = &cobra.Command{
 		}
 		defer func() { client.Close() }()
 
-		log.Info("Succesfully connected to ICE: %+v", ftpURL)
+		log.Info("Successfully connected to ICE: %+v", ftpURL)
 
 		reorgLoader := ftp.NewDownloader(client, ftpURL.Path, dataDir, enum.ReorgFilePrefix)
 		newFiles, err := reorgLoader.Sync()

@@ -16,7 +16,7 @@ import (
 type ReplayerImpl struct {
 	// parseTGFunc is a function to parse Transaction Group byte array to writeTransactionSet.
 	// wal.ParseTGData is always used, but abstracted for testability
-	parseTGFunc func(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet)
+	parseTGFunc func(tgSerialized []byte, rootPath string) (tgID int64, wtSets []wal.WTSet)
 	// WriteFunc is a function to write CSM to marketstore.
 	writeFunc func(csm io.ColumnSeriesMap, isVariableLength bool) (err error)
 	// rootDir is the path to the directory in which Marketstore database resides(e.g. "data")
@@ -24,7 +24,7 @@ type ReplayerImpl struct {
 }
 
 func NewReplayer(
-	parseTGFunc func(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet),
+	parseTGFunc func(tgSerialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet),
 	writeFunc func(csm io.ColumnSeriesMap, isVariableLength bool) (err error),
 	rootDir string,
 ) *ReplayerImpl {
@@ -47,6 +47,7 @@ func (r *ReplayerImpl) Replay(transactionGroup []byte) error {
 	log.Debug(fmt.Sprintf("[replica] transactionGroupID=%v", tgID))
 
 	for _, wtSet := range wtsets {
+		wtSet := wtSet
 		csm, err := WTSetToCSM(&wtSet)
 		if err != nil {
 			return errors.Wrap(err, "failed to convert WTSet to CSM")
@@ -61,7 +62,7 @@ func (r *ReplayerImpl) Replay(transactionGroup []byte) error {
 	return nil
 }
 
-// WTSetToCSM converts wal.WTSet to ColumnSeriesMap
+// WTSetToCSM converts wal.WTSet to ColumnSeriesMap.
 func WTSetToCSM(wtSet *wal.WTSet) (io.ColumnSeriesMap, error) {
 	csm := io.NewColumnSeriesMap()
 	cs, tbk, err := wtSetToCS(wtSet)
@@ -87,7 +88,6 @@ func wtSetToCS(wtSet *wal.WTSet) (*io.ColumnSeries, *io.TimeBucketKey, error) {
 
 	// calculate Epoch
 	epoch := io.IndexToTime(wtSet.Buffer.Index(), tf.Duration, int16(year))
-	dsv := wtSet.DataShapes
 
 	var buf []byte
 	switch wtSet.RecordType {
@@ -114,9 +114,8 @@ func wtSetToCS(wtSet *wal.WTSet) (*io.ColumnSeries, *io.TimeBucketKey, error) {
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to serialize Payload to buffer:"+epoch.String())
 		}
-
-		// add Nanoseconds column to the data shape vector
-		dsv = append(dsv, io.DataShape{Name: "Nanoseconds", Type: io.INT32})
+	case io.NOTYPE:
+		return nil, nil, fmt.Errorf("unknown record type for tbk=%s", tbk)
 	}
 
 	// when rowLen = 0 is specified, the rowLength is calculated automatically from DataShapes
@@ -126,12 +125,13 @@ func wtSetToCS(wtSet *wal.WTSet) (*io.ColumnSeries, *io.TimeBucketKey, error) {
 	return cs, tbk, nil
 }
 
-// serializeVariableRecord serializes variableLength record(s) data in a WTSet to []byte
+// serializeVariableRecord serializes variableLength record(s) data in a WTSet to []byte.
 func serializeVariableRecords(epoch time.Time, intervalsPerDay uint32, wtSet *wal.WTSet) ([]byte, error) {
 	const (
 		EpochBytes         = 8
 		IntervalTicksBytes = 4
 	)
+
 	payload := wtSet.Buffer.Payload()
 	varRecLen := wtSet.VarRecLen
 
@@ -141,12 +141,12 @@ func serializeVariableRecords(epoch time.Time, intervalsPerDay uint32, wtSet *wa
 	// allocate bytes for rows in wtSet.
 	// Epoch*numRows + Payload(= (columns + 4byte (for Nanoseconds that replaces intervalTicks(4byte))*numRows )
 	buf := make([]byte, numRows*EpochBytes+len(payload))
-
+	var err error
 	// 1 record size = 8byte(Epoch) + columns + intervalTicks(4byte) = 8byte(Epoch) + VariableLengthRecord
 	cursor := 0
 	for i := 0; i < numRows; i++ {
 		// serialize Epoch (variable length records in a WTSet have the same Epoch value)
-		buf, err := io.Serialize(buf[:cursor], epoch.Unix())
+		buf, err = io.Serialize(buf[:cursor], epoch.Unix())
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to serialize Epoch to buffer:"+epoch.String())
 		}

@@ -48,8 +48,9 @@ func (msg NotFoundError) Error() string {
 	return errReport("%s: Path not found", string(msg))
 }
 
-func errReport(base string, msg string) string {
-	base = io.GetCallerFileContext(2) + ":" + base
+func errReport(base, msg string) string {
+	const defaultReportStackLevel = 2
+	base = io.GetCallerFileContext(defaultReportStackLevel) + ":" + base
 	return fmt.Sprintf(base, msg)
 }
 

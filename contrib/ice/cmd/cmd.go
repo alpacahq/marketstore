@@ -8,7 +8,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/ice/cmd/sirs"
 )
 
-//Cmd implements the main ice command
+// Cmd implements the main ice command.
 var Cmd = &cobra.Command{
 	Use:          "ice",
 	SilenceUsage: true,
@@ -17,6 +17,7 @@ var Cmd = &cobra.Command{
 	},
 }
 
+// nolint:gochecknoinits // cobra's standard way to initialize flags
 func init() {
 	Cmd.AddCommand(sirs.ShowSecurityMasterCmd)
 	Cmd.AddCommand(reorg.Cmd)

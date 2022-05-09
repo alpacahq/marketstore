@@ -3,17 +3,14 @@ package catalog
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
 	"github.com/alpacahq/marketstore/v4/utils/io"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type Directory struct {
@@ -23,7 +20,10 @@ type Directory struct {
 	itemName string
 	// pathToItemName is the directory path to this item. e.g. pathToItemName: "/project/data", itemName: "AAPL"
 	pathToItemName string
-	category       string
+	// category is a string that represents what is listed up under this directory.
+	// stored in "category_name" file under each directory.
+	// e.g. "Symbol", "Timeframe", "AttributeGroup", "Year".
+	category string
 
 	// directMap[Key]: Key is the directory path, including the rootPath and excluding filename
 	directMap *sync.Map
@@ -56,7 +56,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 	d.pathToItemName = filepath.Clean(subPath)
 	// Read the category name for the child directory items
 	catFilePath := subPath + "/" + "category_name"
-	catname, err := ioutil.ReadFile(catFilePath)
+	catname, err := os.ReadFile(catFilePath)
 	if err != nil {
 		return ErrCategoryFileNotFound{filePath: catFilePath, msg: io.GetCallerFileContext(0) + err.Error()}
 	}
@@ -64,7 +64,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 
 	// Load up the child directories
 	d.subDirs = make(map[string]*Directory)
-	dirlist, err := ioutil.ReadDir(subPath)
+	dirlist, err := os.ReadDir(subPath)
 	if err != nil {
 		return fmt.Errorf("read dir %s: %w", subPath, err)
 	}
@@ -84,7 +84,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 					log.Warn(fmt.Sprintf("category_name file not found under the directory."+
 						"%s will be ignored:%v", leafPath, err.Error()))
 				} else {
-					return fmt.Errorf(io.GetCallerFileContext(0) + ", " + err.Error())
+					return errors.New(io.GetCallerFileContext(0) + ", " + err.Error())
 				}
 			}
 		} else if filepath.Ext(leafPath) == ".bin" {
@@ -100,7 +100,7 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 			yearString := yearFileBase[:len(yearFileBase)-4]
 			yearInt, err := strconv.Atoi(yearString)
 			if err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+				return errors.New(io.GetCallerFileContext(0) + err.Error())
 			}
 			d.datafile[leafPath].Year = int16(yearInt)
 			/*
@@ -113,8 +113,8 @@ func load(rootDmap *sync.Map, d *Directory, subPath, rootPath string) error {
 	return nil
 }
 
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
+func fileExists(path2 string) bool {
+	_, err := os.Stat(path2)
 	if err == nil {
 		return true
 	}
@@ -128,101 +128,97 @@ func writeCategoryNameFile(catName, dirName string) error {
 	catNameFile := filepath.Join(dirName, "category_name")
 
 	if fileExists(catNameFile) {
-		buffer, err := ioutil.ReadFile(catNameFile)
+		buffer, err := os.ReadFile(catNameFile)
 		if err != nil {
 			return err
 		}
 		catNameFromFile := string(buffer)
 		if catNameFromFile != catName {
-			return fmt.Errorf("Category name does not match on-disk name")
+			return fmt.Errorf("category name does not match on-disk name")
 		}
 		return nil
 	}
 
-	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0770)
+	fp, err := os.OpenFile(catNameFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o770)
 	if err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 	defer fp.Close()
 	if _, err = fp.WriteString(catName); err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 	return nil
 }
 
-func (dRoot *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInfo) (err error) {
-	/*
-		Adds a (possibly) new data item to a rootpath. Takes an existing catalog directory and
-		adds the new data item to that data directory.
-	*/
-	dRoot.Lock()
-	defer dRoot.Unlock()
+// AddTimeBucket adds a (possibly) new data item to a rootpath. Takes an existing catalog directory and
+// adds the new data item to that data directory. This is used only for a root category directory.
+func (d *Directory) AddTimeBucket(tbk *io.TimeBucketKey, f *io.TimeBucketInfo) (err error) {
+	d.Lock()
+	defer d.Unlock()
 
 	catkeySplit := tbk.GetCategories()
 	datakeySplit := tbk.GetItems()
 
-	dirname := dRoot.GetPath()
+	dirname := d.GetPath()
 	for i, dataDirName := range datakeySplit {
 		subdirname := filepath.Join(dirname, dataDirName)
 		if !fileExists(subdirname) {
-			if err = os.Mkdir(subdirname, 0770); err != nil {
-				return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+			if err = os.Mkdir(subdirname, 0o770); err != nil {
+				return errors.New(io.GetCallerFileContext(0) + err.Error())
 			}
 		}
 		if err = writeCategoryNameFile(catkeySplit[i], dirname); err != nil {
-			return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+			return errors.New(io.GetCallerFileContext(0) + err.Error())
 		}
 		dirname = subdirname
 	}
 	// Write the last implied catName "Year"
 	if err = writeCategoryNameFile("Year", dirname); err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 
 	// Create a new data file using the TimeBucketInfo
-	if err = newTimeBucketInfoFromTemplate(f); err != nil {
-		return err
+	if err2 := newTimeBucketInfoFromTemplate(f); err2 != nil {
+		return err2
 	}
 
 	/*
 		Check to see if this is an empty top level directory, if so - we need to set
 		the top level category in the catalog entry
 	*/
-	if len(dRoot.category) == 0 {
-		dRoot.category = catkeySplit[0]
+	if d.category == "" {
+		d.category = catkeySplit[0]
 	}
 
 	/*
 		Add this child directory tree to the parent top node's tree
 	*/
 	childNodeName := datakeySplit[0]
-	childNodePath := filepath.Join(dRoot.GetPath(), childNodeName)
+	childNodePath := filepath.Join(d.GetPath(), childNodeName)
 	childDirectory, err := NewDirectory(childNodePath)
 	if err != nil {
 		return err
 	}
-	dRoot.addSubdir(childDirectory, childNodeName)
+	d.addSubdir(childDirectory, childNodeName)
 	return nil
 }
 
-func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
-	/*
-		Deletes the item at the last level specified in the dataItemKey
-		Also removes empty directories at the higher levels after the delete
-	*/
-	if dRoot == nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + ": Directory called from is nil")
+// RemoveTimeBucket deletes the item at the last level specified in the dataItemKey
+// Also removes empty directories at the higher levels after the delete. This is used for a root catalog directory.
+func (d *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
+	if d == nil {
+		return errors.New(io.GetCallerFileContext(0) + ": Directory called from is nil")
 	}
 
 	datakeySplit := tbk.GetItems()
 
 	tree := make([]*Directory, len(datakeySplit))
-	current := dRoot
+	current := d
 	for i := 0; i < len(datakeySplit); i++ {
 		itemName := datakeySplit[i]
 		// Descend from the current directory to find the first directory with the item name
 		if tree[i] = current.GetSubDirWithItemName(itemName); tree[i] == nil {
-			return fmt.Errorf("Unable to find level item: " + itemName + " in directory")
+			return errors.New("Unable to find level item: " + itemName + " in directory")
 		}
 		current = tree[i]
 	}
@@ -232,10 +228,8 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 		if i == end {
 			removeDirFiles(tree[i])
 			deleteMap[i] = true // This dir was deleted, we'll remove it from the parent's subdir list later
-		} else {
-			if deleteMap[i+1] {
-				tree[i].removeSubDir(tree[i+1].itemName, dRoot.directMap)
-			}
+		} else if deleteMap[i+1] {
+			tree[i].removeSubDir(tree[i+1].itemName, d.directMap)
 		}
 		if !tree[i].DirHasSubDirs() {
 			removeDirFiles(tree[i])
@@ -244,9 +238,7 @@ func (dRoot *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	}
 	if deleteMap[0] {
 		removeDirFiles(tree[0])
-		if dRoot != nil {
-			dRoot.removeSubDir(tree[0].itemName, dRoot.directMap)
-		}
+		d.removeSubDir(tree[0].itemName, d.directMap)
 	}
 	return nil
 }
@@ -259,8 +251,8 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 		return nil
 	}
 	tbinfolist = make([]*io.TimeBucketInfo, 0)
-	for _, finfo_p := range d.datafile {
-		tbinfolist = append(tbinfolist, finfo_p)
+	for _, finfoPtr := range d.datafile {
+		tbinfolist = append(tbinfolist, finfoPtr)
 	}
 	return tbinfolist
 }
@@ -268,11 +260,11 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
 	// Locates a path in the directory and returns the TimeBucketInfo for that path or error if it isn't there
 	// Must be thread-safe for READ access
-	fileInfoFunc := func(d *Directory, i_list interface{}) {
-		p_list := i_list.(*([]*io.TimeBucketInfo))
+	fileInfoFunc := func(d *Directory, iList interface{}) {
+		pList := iList.(*[]*io.TimeBucketInfo)
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
-				*p_list = append(*p_list, dfile)
+				*pList = append(*pList, dfile)
 			}
 		}
 	}
@@ -282,8 +274,8 @@ func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
 }
 
 func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *io.TimeBucketInfo, err error) {
-	path := key.GetPathToYearFiles(d.pathToItemName)
-	fullFilePath := path + "/1970.bin" // Put a dummy file at the end of the path
+	path2 := key.GetPathToYearFiles(d.pathToItemName)
+	fullFilePath := path2 + "/1970.bin" // Put a dummy file at the end of the path
 	subDir, err := d.GetOwningSubDirectory(fullFilePath)
 	if err != nil {
 		return nil, err
@@ -299,7 +291,7 @@ func (d *Directory) GetLatestTimeBucketInfoFromFullFilePath(fullFilePath string)
 	return subDir.GetLatestYearFile()
 }
 
-func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error) {
+func (d *Directory) PathToTimeBucketInfo(path2 string) (*io.TimeBucketInfo, error) {
 	/*
 		Finds the TimeBucketInfo file in this directory based on a full file path argument
 	*/
@@ -312,7 +304,7 @@ func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error
 		}
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
-				if dfile.Path == path {
+				if dfile.Path == path2 {
 					tbinfo = dfile.GetDeepCopy()
 					return
 				}
@@ -322,9 +314,8 @@ func (d *Directory) PathToTimeBucketInfo(path string) (*io.TimeBucketInfo, error
 	d.recurse(tbinfo, findTimeBucketInfo)
 	if tbinfo == nil {
 		return nil, NotFoundError("")
-	} else {
-		return tbinfo, nil
 	}
+	return tbinfo, nil
 }
 
 func (d *Directory) GetDataShapes(key *io.TimeBucketKey) (dsv []io.DataShape, err error) {
@@ -335,7 +326,7 @@ func (d *Directory) GetDataShapes(key *io.TimeBucketKey) (dsv []io.DataShape, er
 	return fi.GetDataShapes(), nil
 }
 
-func (subDir *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err error) {
+func (d *Directory) AddFile(newYear int16) (fInfoPtr *io.TimeBucketInfo, err error) { // d should be a subdirectory
 	// Must be thread-safe for WRITE access
 	/*
 	 Adds a new primary storage file for the provided year to this directory
@@ -347,35 +338,36 @@ func (subDir *Directory) AddFile(newYear int16) (finfo_p *io.TimeBucketInfo, err
 
 	 !!! NOTE !!! This should be called from the subdirectory that "owns" the file
 	*/
-	subDir.RLock()
-	if subDir.datafile == nil {
-		subDir.RUnlock()
-		return nil, SubdirectoryDoesNotContainFiles(subDir.pathToItemName)
+	d.RLock()
+	if d.datafile == nil {
+		d.RUnlock()
+		return nil, SubdirectoryDoesNotContainFiles(d.pathToItemName)
 	}
 
 	var finfoTemplate *io.TimeBucketInfo
-	for _, fi := range subDir.datafile {
+	for _, fi := range d.datafile {
 		finfoTemplate = fi
 		break
 	}
-	subDir.RUnlock()
+	d.RUnlock()
 
 	newFileInfo := finfoTemplate.GetDeepCopy()
 	newFileInfo.Year = newYear
 	// Create a new filename for the new file
-	subDir.RLock()
-	newFileInfo.Path = path.Join(subDir.pathToItemName, strconv.Itoa(int(newYear))+".bin")
-	subDir.RUnlock()
+	d.RLock()
+	newFileInfo.Path = path.Join(d.pathToItemName, strconv.Itoa(int(newYear))+".bin")
+	d.RUnlock()
 	if err = newTimeBucketInfoFromTemplate(newFileInfo); err != nil {
-		if _, ok := err.(FileAlreadyExists); ok {
+		var targetErr FileAlreadyExists
+		if ok := errors.As(err, &targetErr); ok {
 			return newFileInfo, nil
 		}
 		return nil, err
 	}
 	// Locate the directory in the catalog
-	subDir.Lock()
-	subDir.datafile[newFileInfo.Path] = newFileInfo
-	subDir.Unlock()
+	d.Lock()
+	d.datafile[newFileInfo.Path] = newFileInfo
+	d.Unlock()
 
 	return newFileInfo, nil
 }
@@ -482,25 +474,31 @@ func (d *Directory) GatherCategoriesFromCache() (catList map[string]int8) {
 func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
 	// Must be thread-safe for READ access
 	// Provides a map of categories and items within and below this directory
-	catListFunc := func(d *Directory, i_list interface{}) {
-		list := i_list.(map[string]map[string]int)
-		if list[d.category] == nil {
-			list[d.category] = make(map[string]int)
-		}
-		if d.subDirs != nil {
-			for _, subdir := range d.subDirs {
-				list[d.category][subdir.itemName] = 0
-			}
-		}
-		if d.datafile != nil {
-			for _, file := range d.datafile {
-				list[d.category][strconv.Itoa(int(file.Year))] = 0
-			}
+	catList := make(map[string]map[string]int)
+	d.recurse(catList, catalogListFunc)
+	return catList
+}
+
+func catalogListFunc(d *Directory, itemList interface{}) {
+	// key: category_name(e.g. "Symbol", "Timeframe", "AttribtueGroup", "Year")
+	// value: {
+	//    key: category value (e.g. "AAPL" if category is "Symbol"}
+	//    value: 0
+	// }
+	list := itemList.(map[string]map[string]int)
+	if list[d.category] == nil {
+		list[d.category] = make(map[string]int)
+	}
+	if d.subDirs != nil {
+		for _, subdir := range d.subDirs {
+			list[d.category][subdir.itemName] = 0
 		}
 	}
-	catList := make(map[string]map[string]int)
-	d.recurse(catList, catListFunc)
-	return catList
+	if d.datafile != nil {
+		for _, file := range d.datafile {
+			list[d.category][strconv.Itoa(int(file.Year))] = 0
+		}
+	}
 }
 
 // ListTimeBucketKeyNames returns the list of TimeBucket keys
@@ -554,21 +552,22 @@ func (d *Directory) String() string {
 
 func (d *Directory) GatherDirectories() []string {
 	// Must be thread-safe for READ access
-	dirListFunc := func(d *Directory, i_list interface{}) {
-		p_list := i_list.(*[]string)
-		*p_list = append(*p_list, d.itemName)
+	dirListFunc := func(d *Directory, iList interface{}) {
+		pList := iList.(*[]string)
+		*pList = append(*pList, d.itemName)
 	}
 	dirList := make([]string, 0)
 	d.recurse(&dirList, dirListFunc)
 	return dirList
 }
+
 func (d *Directory) GatherFilePaths() []string {
 	// Must be thread-safe for READ access
-	filePathListFunc := func(d *Directory, i_list interface{}) {
-		p_list := i_list.(*[]string)
+	filePathListFunc := func(d *Directory, iList interface{}) {
+		pList := iList.(*[]string)
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
-				*p_list = append(*p_list, dfile.Path)
+				*pList = append(*pList, dfile.Path)
 			}
 		}
 	}
@@ -608,12 +607,7 @@ func (d *Directory) GetLatestYearFile() (latestFile *io.TimeBucketInfo, err erro
 	}
 	return latestFile, nil
 }
-func (d *Directory) pathToKey(fullPath string) (key string) {
-	dirPath := path.Dir(fullPath)
-	key = strings.Replace(dirPath, d.pathToItemName, "", 1)
-	key = strings.TrimLeft(key, "/")
-	return key
-}
+
 func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	subDir.itemName = subDirItemName
 	d.catList = nil // Reset the category list
@@ -622,13 +616,14 @@ func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	}
 	d.subDirs[subDirItemName] = subDir
 	if subDir.directMap != nil {
-		subDir.directMap.Range(func(key interface{}, val interface{}) bool {
+		subDir.directMap.Range(func(key, val interface{}) bool {
 			d.directMap.Store(key, val)
 			return true
 		})
 	}
 	subDir.directMap = nil
 }
+
 func (d *Directory) removeSubDir(subDirItemName string, directMap *sync.Map) {
 	d.Lock()
 	defer d.Unlock()
@@ -667,15 +662,15 @@ func removeDirFiles(td *Directory) {
 
 func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err error) {
 	if newTimeBucketInfo == nil {
-		return fmt.Errorf("Null fileinfo")
+		return fmt.Errorf("null fileinfo")
 	}
 
 	// If file already exists in this directory, return an error
-	if _, err := os.Stat(newTimeBucketInfo.Path); err == nil {
+	if _, err2 := os.Stat(newTimeBucketInfo.Path); err2 == nil {
 		return FileAlreadyExists("Can not overwrite file")
 	}
 	// Create the file
-	fp, err := os.OpenFile(newTimeBucketInfo.Path, os.O_CREATE|os.O_RDWR, 0600)
+	fp, err := os.OpenFile(newTimeBucketInfo.Path, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return fmt.Errorf("open new time bucket info file %s: %w", newTimeBucketInfo.Path, err)
 	}

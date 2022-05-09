@@ -25,11 +25,11 @@ type FetcherConfig struct {
 	BaseURL string `json:"base_url"`
 }
 
-// NewBgWorker creates a new bgworker for polygon/IEX
+// NewBgWorker creates a new bgworker for polygon/IEX.
 func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	data, _ := json.Marshal(conf)
 	config := FetcherConfig{}
-	json.Unmarshal(data, &config)
+	_ = json.Unmarshal(data, &config)
 
 	if config.APIKey == "" {
 		err := errors.New("[polyiex]: api_key is required")
@@ -54,8 +54,14 @@ func (pf *PolyIEXFetcher) Run() {
 	api.SetAPIKey(pf.config.APIKey)
 	api.SetBaseURL(pf.config.BaseURL)
 
-	api.Stream(handlers.Tick, api.TradePrefix, nil)
-	api.Stream(handlers.Tick, api.BookPrefix, nil)
+	err := api.Stream(handlers.Tick, api.TradePrefix, nil)
+	if err != nil {
+		log.Error("PolyIEXFetcher error(Trade):" + err.Error())
+	}
+	err = api.Stream(handlers.Tick, api.BookPrefix, nil)
+	if err != nil {
+		log.Error("PolyIEXFetcher error(Book):" + err.Error())
+	}
 
 	select {}
 }
@@ -86,6 +92,7 @@ func main() {
 	conf["api_key"] = os.Getenv("POLYIEX_API_KEY")
 	if len(os.Args) < 2 {
 		progname := path.Base(os.Args[0])
+		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Printf("Usage: %s <base_url>\n", progname)
 		return
 	}

@@ -1,3 +1,5 @@
+package aggtrigger
+
 // OnDiskAgg implements a trigger to downsample base timeframe data
 // and write to disk.  Underlying data schema is expected at least
 // - Open:float32 or float64
@@ -21,7 +23,6 @@
 //
 // destinations are downsample target time windows.  Optionally, if filter
 // is set to "nasdaq", it filters the scan data by NASDAQ market hours.
-package aggtrigger
 
 import (
 	"encoding/json"
@@ -32,10 +33,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/frontend"
-
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/frontend"
 	"github.com/alpacahq/marketstore/v4/models"
 	modelsenum "github.com/alpacahq/marketstore/v4/models/enum"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
@@ -44,9 +44,9 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// AggTriggerConfig is the configuration for OnDiskAggTrigger you can define in
+// Config is the configuration for OnDiskAggTrigger you can define in
 // marketstore's config file under triggers extension.
-type AggTriggerConfig struct {
+type Config struct {
 	Destinations []string `json:"destinations"`
 	Filter       string   `json:"filter"`
 }
@@ -60,14 +60,12 @@ type OnDiskAggTrigger struct {
 	aggCache *sync.Map
 }
 
-var (
-	_ trigger.Trigger = &OnDiskAggTrigger{}
-)
+var _ trigger.Trigger = &OnDiskAggTrigger{}
 
-func recast(config map[string]interface{}) *AggTriggerConfig {
+func recast(config map[string]interface{}) *Config {
 	data, _ := json.Marshal(config)
-	ret := AggTriggerConfig{}
-	json.Unmarshal(data, &ret)
+	ret := Config{}
+	_ = json.Unmarshal(data, &ret)
 	return &ret
 }
 
@@ -113,7 +111,11 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 	elements := strings.Split(keyPath, "/")
 	tf := utils.NewTimeframe(elements[1])
 	fileName := elements[len(elements)-1]
-	year, _ := strconv.Atoi(strings.Replace(fileName, ".bin", "", 1))
+	year, err := strconv.ParseInt(strings.Replace(fileName, ".bin", "", 1), 10, 32)
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to extract year from filename=%s: %v", keyPath, err.Error()))
+		return
+	}
 	tbk := io.NewTimeBucketKey(strings.Join(elements[:len(elements)-1], "/"))
 
 	head := io.IndexToTime(
@@ -127,11 +129,19 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 		int16(year))
 
 	// query the upper bound since it will contain the most candles
-	window := utils.CandleDurationFromString(s.destinations.UpperBound().String)
+	window, err := utils.CandleDurationFromString(s.destinations.UpperBound().String)
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to find timeframe: %v", err.Error()))
+		return
+	}
 
 	// check if we have a valid cache, if not, re-query
 	if v, ok := s.aggCache.Load(tbk.String()); ok {
-		c := v.(*cachedAgg)
+		c, ok := v.(*cachedAgg)
+		if !ok {
+			log.Error("failed to cast cached value", tbk.String())
+			return
+		}
 
 		if !c.Valid(tail, head) {
 			s.aggCache.Delete(tbk.String())
@@ -139,9 +149,13 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 			goto Query
 		}
 
-		cs := trigger.RecordsToColumnSeries(
+		cs, err2 := trigger.RecordsToColumnSeries(
 			*tbk, c.cs.GetDataShapes(),
 			tf.Duration, int16(year), records)
+		if err2 != nil {
+			log.Error("[ondiskagg]failed to convert record to column series", err2.Error())
+			return
+		}
 
 		cs = io.ColumnSeriesUnion(cs, &c.cs)
 
@@ -157,21 +171,17 @@ Query:
 		return
 	}
 
-	cs := (*csm)[*tbk]
-
-	if cs != nil {
+	if cs := (*csm)[*tbk]; cs != nil {
 		s.write(tbk, cs, tail, head, elements)
 	}
-
-	return
 }
 
 func (s *OnDiskAggTrigger) write(
 	tbk *io.TimeBucketKey,
 	cs *io.ColumnSeries,
 	tail, head time.Time,
-	elements []string) {
-
+	elements []string,
+) {
 	for _, dest := range s.destinations {
 		symbol := elements[0]
 		attributeGroup := elements[2]
@@ -204,11 +214,14 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	cs io.ColumnSeries,
 	dest utils.Timeframe,
 	head, tail time.Time,
-	symbol string) error {
-
+	symbol string,
+) error {
 	csm := io.NewColumnSeriesMap()
 
-	window := utils.CandleDurationFromString(dest.String)
+	window, err := utils.CandleDurationFromString(dest.String)
+	if err != nil {
+		return fmt.Errorf("timeframe not found in %s: %w", dest.String, err)
+	}
 	start := window.Truncate(head).Unix()
 	end := window.Ceil(tail).Add(-time.Second).Unix()
 
@@ -249,32 +262,42 @@ func (s *OnDiskAggTrigger) writeAggregates(
 		}()
 	}
 
+	var (
+		cs2   *io.ColumnSeries
+		err2  error
+		tqSlc *io.ColumnSeries
+	)
 	// apply the filter
 	if applyingFilter {
-		tqSlc := slc.ApplyTimeQual(calendar.Nasdaq.EpochIsMarketOpen)
+		tqSlc = slc.ApplyTimeQual(calendar.Nasdaq.EpochIsMarketOpen)
 
 		// normally this will always be true, but when there are random bars
 		// on the weekend, it won't be, so checking to avoid panic
 		if len(tqSlc.GetEpoch()) > 0 {
-			cs, err := aggregate(tqSlc, aggTbk, baseTbk, symbol)
-			if err != nil {
-				return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err)
+			cs2, err2 = aggregate(tqSlc, aggTbk, baseTbk, symbol)
+			if err2 != nil {
+				return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err2)
 			}
-			csm.AddColumnSeries(*aggTbk, cs)
+			csm.AddColumnSeries(*aggTbk, cs2)
 		}
-	} else {
-		cs, err := aggregate(&slc, aggTbk, baseTbk, symbol)
-		if err != nil {
-			return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err)
-		}
-		csm.AddColumnSeries(*aggTbk, cs)
+		return executor.WriteCSM(csm, false)
 	}
+
+	// not applying the filter
+	cs2, err2 = aggregate(&slc, aggTbk, baseTbk, symbol)
+	if err2 != nil {
+		return fmt.Errorf("ondisk aggregate, applyfilter=%v: %w", applyingFilter, err2)
+	}
+	csm.AddColumnSeries(*aggTbk, cs2)
 
 	return executor.WriteCSM(csm, false)
 }
 
 func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) (*io.ColumnSeries, error) {
-	timeWindow := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
+	timeWindow, err := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
+	if err != nil {
+		return nil, fmt.Errorf("timeframe not found from aggTbk=%v: %w", aggTbk, err)
+	}
 	var params []accumParam
 
 	suffix := fmt.Sprintf("/%s/%s", models.TradeTimeframe, models.TradeSuffix)
@@ -282,15 +305,18 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 		// Ticks to bars
 		trades := models.NewTrade(symbol, cs.Len())
 		epochs := cs.GetEpoch()
-		nanos := cs.GetColumn("Nanoseconds").([]int32)
-		prices := cs.GetColumn("Price").([]float64)
-		sizes := cs.GetColumn("Size").([]uint64)
-		exchanges := cs.GetColumn("Exchange").([]byte)
-		tapeids := cs.GetColumn("TapeID").([]byte)
-		cond1 := cs.GetColumn("Cond1").([]byte)
-		cond2 := cs.GetColumn("Cond2").([]byte)
-		cond3 := cs.GetColumn("Cond3").([]byte)
-		cond4 := cs.GetColumn("Cond4").([]byte)
+		nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
+		prices, ok2 := cs.GetColumn("Price").([]float64)
+		sizes, ok3 := cs.GetColumn("Size").([]uint64)
+		exchanges, ok4 := cs.GetColumn("Exchange").([]byte)
+		tapeids, ok5 := cs.GetColumn("TapeID").([]byte)
+		cond1, ok6 := cs.GetColumn("Cond1").([]byte)
+		cond2, ok7 := cs.GetColumn("Cond2").([]byte)
+		cond3, ok8 := cs.GetColumn("Cond3").([]byte)
+		cond4, ok9 := cs.GetColumn("Cond4").([]byte)
+		if !(ok && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8 && ok9) {
+			return nil, fmt.Errorf("convert ticks to bars. tbk=%v, symbol=%s", baseTbk, symbol)
+		}
 		for i := range epochs {
 			condition := []modelsenum.TradeCondition{
 				modelsenum.TradeCondition(cond1[i]),
@@ -311,56 +337,59 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 		if err != nil {
 			return nil, fmt.Errorf("get bar for ondiskagg: %w", err)
 		}
-		cs := bar.GetCs()
+		cs2 := bar.GetCs()
 
-		return cs, nil
-	} else {
-		// bars to bars
-		params = []accumParam{
-			{"Open", "first", "Open"},
-			{"High", "max", "High"},
-			{"Low", "min", "Low"},
-			{"Close", "last", "Close"},
-		}
-		if cs.Exists("Volume") {
-			params = append(params, accumParam{"Volume", "sum", "Volume"})
-		}
-
-		accumGroup := newAccumGroup(cs, params)
-
-		ts, _ := cs.GetTime()
-		outEpoch := make([]int64, 0)
-
-		groupKey := timeWindow.Truncate(ts[0])
-		groupStart := 0
-		// accumulate inputs.  Since the input is ordered by
-		// time, it is just to slice by correct boundaries
-		for i, t := range ts {
-			if !timeWindow.IsWithin(t, groupKey) {
-				// Emit new row and re-init aggState
-				outEpoch = append(outEpoch, groupKey.Unix())
-				accumGroup.apply(groupStart, i)
-				groupKey = timeWindow.Truncate(t)
-				groupStart = i
-			}
-		}
-		// accumulate any remaining values if not yet
-		outEpoch = append(outEpoch, groupKey.Unix())
-		accumGroup.apply(groupStart, len(ts))
-
-		// finalize output
-		outCs := io.NewColumnSeries()
-		outCs.AddColumn("Epoch", outEpoch)
-		accumGroup.addColumns(outCs)
-		return outCs, nil
+		return cs2, nil
 	}
+	// bars to bars
+	params = []accumParam{
+		{"Open", "first", "Open"},
+		{"High", "max", "High"},
+		{"Low", "min", "Low"},
+		{"Close", "last", "Close"},
+	}
+	if cs.Exists("Volume") {
+		params = append(params, accumParam{"Volume", "sum", "Volume"})
+	}
+
+	accumGroup := newAccumGroup(cs, params)
+
+	ts, _ := cs.GetTime()
+	outEpoch := make([]int64, 0)
+
+	groupKey := timeWindow.Truncate(ts[0])
+	groupStart := 0
+	// accumulate inputs.  Since the input is ordered by
+	// time, it is just to slice by correct boundaries
+	for i, t := range ts {
+		if !timeWindow.IsWithin(t, groupKey) {
+			// Emit new row and re-init aggState
+			outEpoch = append(outEpoch, groupKey.Unix())
+			if err := accumGroup.apply(groupStart, i); err != nil {
+				return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, i, err)
+			}
+			groupKey = timeWindow.Truncate(t)
+			groupStart = i
+		}
+	}
+	// accumulate any remaining values if not yet
+	outEpoch = append(outEpoch, groupKey.Unix())
+	if err := accumGroup.apply(groupStart, len(ts)); err != nil {
+		return nil, fmt.Errorf("apply to group. groupStart=%d, i=%d:%w", groupStart, len(ts), err)
+	}
+
+	// finalize output
+	outCs := io.NewColumnSeries()
+	outCs.AddColumn("Epoch", outEpoch)
+	accumGroup.addColumns(outCs)
+	return outCs, nil
 }
 
 func (s *OnDiskAggTrigger) query(
 	tbk *io.TimeBucketKey,
 	window *utils.CandleDuration,
-	head, tail time.Time) (*io.ColumnSeriesMap, error) {
-
+	head, tail time.Time,
+) (*io.ColumnSeriesMap, error) {
 	cDir := executor.ThisInstance.CatalogDir
 
 	start := window.Truncate(head)

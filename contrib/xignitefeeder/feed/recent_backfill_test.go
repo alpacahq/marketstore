@@ -1,20 +1,20 @@
 package feed
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/internal"
 	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/writer"
-
-	"github.com/alpacahq/marketstore/v4/contrib/xignitefeeder/api"
 )
 
-// GetRealTimeBars returns "Request Error" to certain identifier, but returns "Success" to other identifiers
-func (mac *MockErrorAPIClient) GetRealTimeBars(i string, sd, ed time.Time) (resp api.GetBarsResponse, err error) {
-
+// GetRealTimeBars returns "Request Error" to certain identifier, but returns "Success" to other identifiers.
+func (mac *MockErrorAPIClient) GetRealTimeBars(_ context.Context, i string, _, _ time.Time,
+) (resp api.GetBarsResponse, err error) {
 	if i == "XTKS.1301" {
 		return api.GetBarsResponse{
 			Outcome:    "RequestError",
@@ -34,13 +34,13 @@ type MockBarWriter struct {
 	WriteCount int
 }
 
-func (mbw *MockBarWriter) Write(symbol string, bars []api.Bar, isIndexSymbol bool) error {
+func (mbw *MockBarWriter) Write(_ string, _ []api.Bar, _ bool) error {
 	// in order to assert the number of writes in the test
 	mbw.WriteCount++
 	return nil
 }
 
-// 3 writes should be successfully done with the 3 identifiers
+// 3 writes should be successfully done with the 3 identifiers.
 func TestRecentBackfill_Update(t *testing.T) {
 	t.Parallel()
 	// --- given ---
@@ -55,7 +55,7 @@ func TestRecentBackfill_Update(t *testing.T) {
 	}
 
 	// --- when ---
-	SUT.Update()
+	SUT.Update(context.Background())
 
 	// --- then ---
 	if mw, ok := w.(*MockBarWriter); ok {
@@ -67,7 +67,7 @@ func TestRecentBackfill_Update(t *testing.T) {
 	}
 }
 
-// Even if Xignite returns Outcome:"RequestError" to an identifier, Backfill writes data for the other identifiers
+// Even if Xignite returns Outcome:"RequestError" to an identifier, Backfill writes data for the other identifiers.
 func TestRecentBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 	t.Parallel()
 	// --- given ---
@@ -81,7 +81,7 @@ func TestRecentBackfill_Update_RequestErrorIdentifier(t *testing.T) {
 	}
 
 	// --- when ---
-	SUT.Update()
+	SUT.Update(context.Background())
 
 	// --- then ---
 	// write fails for 1 out of 3 identifiers

@@ -1,3 +1,5 @@
+package gap
+
 /*
  * File: /Users/robi/Documents/git.hub/marketstore/uda/gap/gap.go
  * Created Date: Thursday, February 28th 2019, 4:42:41 pm
@@ -6,34 +8,32 @@
  * Last Modified:
  * Modified By:
  * -----
- * Copyright (c) 2019 QK Captial
+ * Copyright (c) 2019 QK Capital
  *
  * Description:
  *
  */
-package gap
 
 import (
 	"fmt"
 	"math"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/utils/functions"
-
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 
 	"github.com/alpacahq/marketstore/v4/uda"
 	"github.com/alpacahq/marketstore/v4/utils"
+	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
 var (
-	requiredColumns = []io.DataShape{}
+	requiredColumns []io.DataShape
 
-	optionalColumns = []io.DataShape{}
+	optionalColumns []io.DataShape
 
-	initArgs = []io.DataShape{}
+	initArgs []io.DataShape
 )
 
 type Gap struct {
@@ -47,27 +47,29 @@ type Gap struct {
 func (g *Gap) GetRequiredArgs() []io.DataShape {
 	return requiredColumns
 }
+
 func (g *Gap) GetOptionalArgs() []io.DataShape {
 	return optionalColumns
 }
+
 func (g *Gap) GetInitArgs() []io.DataShape {
 	return initArgs
 }
 
-// Accum() sends new data to the aggregate
+// Accum sends new data to the aggregate
 // Use Zscore to find out the big hole in data.
 func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.ColumnInterface) (*io.ColumnSeries, error) {
 	g.BigGapIdxs = []int{}
 	g.Input = &cols
 
 	if cols.Len() == 0 {
-		return g.Output(), nil
+		return g.Output()
 	}
 
 	epochs, err := uda.ColumnToFloat64(cols, "Epoch")
 
 	if err != nil || epochs == nil || len(epochs) < 2 {
-		return g.Output(), nil
+		return g.Output()
 	}
 
 	size := len(epochs)
@@ -86,7 +88,8 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.Column
 		}
 
 		for i, x := range gaps {
-			if math.Abs(stat.StdScore(x, m, s)) > 3 {
+			const gapThresholdScore = 3
+			if math.Abs(stat.StdScore(x, m, s)) > gapThresholdScore {
 				g.BigGapIdxs = append(g.BigGapIdxs, i)
 			}
 		}
@@ -99,10 +102,9 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.Column
 				g.BigGapIdxs = append(g.BigGapIdxs, i)
 			}
 		}
-
 	}
 
-	return g.Output(), nil
+	return g.Output()
 }
 
 /*
@@ -125,17 +127,17 @@ func (g Gap) New(_ *functions.ArgumentMap, args ...interface{}) (out uda.AggInte
 			tfstring = *val
 		case *[]string:
 			if len(*val) != 1 {
-				return nil, fmt.Errorf("Argument passed to Init() is not a string")
+				return nil, fmt.Errorf("argument passed to Init() is not a string")
 			}
 			tfstring = (*val)[0]
 		case []string:
 			if len(val) != 1 {
-				return nil, fmt.Errorf("Argument passed to Init() is not a string")
+				return nil, fmt.Errorf("argument passed to Init() is not a string")
 			}
 			tfstring = val[0]
 		}
-		cd := utils.CandleDurationFromString(tfstring)
-		if cd != nil {
+		cd, err2 := utils.CandleDurationFromString(tfstring)
+		if err2 == nil {
 			// fmt.Printf("Duration %v, args[0] %v, time.SEcond %v\n", cd.Duration(), args[0], time.Second)
 			gx.avgGapIntervalSeconds = int64(cd.Duration() / time.Second)
 		}
@@ -147,7 +149,7 @@ func (g Gap) New(_ *functions.ArgumentMap, args ...interface{}) (out uda.AggInte
 /*
 	Output() returns the currently valid output of this aggregate
 */
-func (g *Gap) Output() *io.ColumnSeries {
+func (g *Gap) Output() (*io.ColumnSeries, error) {
 	cs := io.NewColumnSeries()
 
 	resultRows := len(g.BigGapIdxs)
@@ -157,7 +159,10 @@ func (g *Gap) Output() *io.ColumnSeries {
 
 	if len(g.BigGapIdxs) > 0 && g.Input != nil {
 		cols := *g.Input
-		epochs := cols.GetColumn("Epoch").([]int64)
+		epochs, ok := cols.GetColumn("Epoch").([]int64)
+		if !ok {
+			return nil, fmt.Errorf("cast Epoch column to []int64. epoch:%v", cols.GetColumn("Epoch"))
+		}
 
 		for i, idx := range g.BigGapIdxs {
 			gapStartEpoch[i] = epochs[idx]
@@ -170,5 +175,5 @@ func (g *Gap) Output() *io.ColumnSeries {
 	cs.AddColumn("End", gapEndEpoch)
 	cs.AddColumn("Length", gapLength)
 
-	return cs
+	return cs, nil
 }

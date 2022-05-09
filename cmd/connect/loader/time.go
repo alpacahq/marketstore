@@ -8,52 +8,51 @@ import (
 )
 
 func parseTime(format, dateTime string, tzLoc *time.Location, formatFixupState int) (parsedTime time.Time, err error) {
-
+	tz := time.UTC
+	if tzLoc != nil {
+		tz = tzLoc
+	}
 	dateString := dateTime[:len(dateTime)-formatFixupState]
 	if format == "timestamp" {
 		parts := strings.Split(dateTime, ".")
-		sec, err := strconv.ParseInt(parts[0], 10, 64)
-		if err != nil {
-			return time.Time{}, err
+		sec, err2 := strconv.ParseInt(parts[0], 10, 64)
+		if err2 != nil {
+			return time.Time{}, err2
 		}
 
-		nsec := (int64)(0)
+		nsec := int64(0)
 		if len(parts) > 1 {
 			nsec, err = strconv.ParseInt(parts[1], 10, 64)
 			if err == nil {
-				nsec = (int64)(math.Pow10(9-len(parts[1]))) * nsec
+				const nano = 9 // 1 sec = 10**9 nanosecs
+				nsec = int64(math.Pow10(nano-len(parts[1]))) * nsec
 			} else {
 				return time.Time{}, err
 			}
 		}
 
-		parsedTime = time.Unix(sec, nsec)
-		if tzLoc != nil {
-			parsedTime = parsedTime.In(tzLoc)
-		}
+		parsedTime = time.Unix(sec, nsec).In(tzLoc)
 		formatFixupState = 0
-	} else if tzLoc != nil {
-		parsedTime, err = time.ParseInLocation(format, dateString, tzLoc)
-		if err != nil {
-			return time.Time{}, err
-		}
 	} else {
-		parsedTime, err = time.Parse(format, dateString)
+		parsedTime, err = time.ParseInLocation(format, dateString, tz)
 		if err != nil {
 			return time.Time{}, err
 		}
 	}
-	/*
-		Attempt to use the remainder of the time field if it fits a known pattern
-	*/
+
+	// Attempt to use the remainder of the time field if it fits a known pattern
+	// if the dateTime string has a suffix like "20161230 21:37:57 14", extract " 14" and consider it a millisec.
+	// if the suffix is like " 140000", consider it a microsec.
+	const millisecSuffixLen = 3
+	const microsecSuffixLen = 7
 	switch formatFixupState {
-	case 3:
+	case millisecSuffixLen:
 		remainder := dateTime[len(dateString):]
 		millis, err := strconv.ParseInt(remainder, 10, 64)
 		if err == nil {
 			parsedTime = parsedTime.Add(time.Duration(millis) * time.Millisecond)
 		}
-	case 7:
+	case microsecSuffixLen:
 		remainder := dateTime[len(dateString)+1:]
 		micros, err := strconv.ParseInt(remainder, 10, 64)
 		if err == nil {

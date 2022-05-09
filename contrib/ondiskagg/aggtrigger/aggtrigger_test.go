@@ -2,41 +2,44 @@ package aggtrigger
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/alpacahq/marketstore/v4/plugins/trigger"
+	"github.com/stretchr/testify/require"
 
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/planner"
+	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-func getConfig(data string) (ret map[string]interface{}) {
-	json.Unmarshal([]byte(data), &ret)
-	return
+func getConfig(t *testing.T, data string) (ret map[string]interface{}) {
+	t.Helper()
+
+	err := json.Unmarshal([]byte(data), &ret)
+	require.Nil(t, err)
+	return ret
 }
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	var config = getConfig(`{
+	config := getConfig(t, `{
         "destinations": ["5Min", "1D"],
         "filter": "something"
         }`)
-	var ret, err = NewTrigger(config)
-	var trig = ret.(*OnDiskAggTrigger)
+	ret, err := NewTrigger(config)
+	trig, ok := ret.(*OnDiskAggTrigger)
+	assert.True(t, ok)
 	assert.Len(t, trig.destinations, 2)
 	assert.Equal(t, trig.filter, "")
 	assert.Nil(t, err)
 
 	// missing destinations
-	config = getConfig(`{}`)
+	config = getConfig(t, `{}`)
 	ret, err = NewTrigger(config)
 	assert.Nil(t, ret)
 	assert.NotNil(t, err)
@@ -54,7 +57,7 @@ func TestAgg(t *testing.T) {
 	open := []float32{1., 2., 3., 4., 5.}
 	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1}
 	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9}
-	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05}
+	clos := []float32{1.05, 2.05, 3.05, 4.05, 5.05}
 
 	baseTbk := io.NewTimeBucketKey("TEST/1Min/OHLCV")
 	aggTbk := io.NewTimeBucketKey("TEST/5Min/OHLC")
@@ -63,15 +66,23 @@ func TestAgg(t *testing.T) {
 	cs.AddColumn("Open", open)
 	cs.AddColumn("High", high)
 	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
+	cs.AddColumn("Close", clos)
 
 	outCs, err := aggregate(cs, aggTbk, baseTbk, "TEST")
 	assert.Nil(t, err)
 	assert.Equal(t, outCs.Len(), 3)
-	assert.Equal(t, outCs.GetColumn("Open").([]float32)[0], float32(1.))
-	assert.Equal(t, outCs.GetColumn("High").([]float32)[1], float32(4.1))
-	assert.Equal(t, outCs.GetColumn("Low").([]float32)[0], float32(0.9))
-	assert.Equal(t, outCs.GetColumn("Close").([]float32)[1], float32(4.05))
+	val1, ok := outCs.GetColumn("Open").([]float32)
+	assert.True(t, ok)
+	assert.Equal(t, val1[0], float32(1.))
+	val2, ok := outCs.GetColumn("High").([]float32)
+	assert.True(t, ok)
+	assert.Equal(t, val2[1], float32(4.1))
+	val3, ok := outCs.GetColumn("Low").([]float32)
+	assert.True(t, ok)
+	assert.Equal(t, val3[0], float32(0.9))
+	val4, ok := outCs.GetColumn("Close").([]float32)
+	assert.True(t, ok)
+	assert.Equal(t, val4[1], float32(4.05))
 
 	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")
 
@@ -89,7 +100,7 @@ func TestAgg(t *testing.T) {
 	cs.AddColumn("Open", open)
 	cs.AddColumn("High", high)
 	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
+	cs.AddColumn("Close", clos)
 
 	outCs, err = aggregate(cs, aggTbk, baseTbk, "TEST")
 	assert.Nil(t, err)
@@ -106,19 +117,16 @@ func TestFireBars(t *testing.T) {
 	// background writer
 	utils.InstanceConfig.Timezone, _ = time.LoadLocation("America/New_York")
 
-	tempDir, _ := ioutil.TempDir("", "aggtrigger.TestFireBars")
-	defer os.RemoveAll(tempDir)
-
-	rootDir := filepath.Join(tempDir, "mktsdb")
-	os.MkdirAll(rootDir, 0777)
-	_, _, _, err := executor.NewInstanceSetup(
+	rootDir := filepath.Join(t.TempDir(), "mktsdb")
+	_ = os.MkdirAll(rootDir, 0o777)
+	_, _, err := executor.NewInstanceSetup(
 		rootDir, nil, nil,
-		5, true, true, false, false)
+		5, executor.BackgroundSync(false))
 	assert.Nil(t, err)
 
 	ts := utils.TriggerSetting{
-		Module: "ondiskagg.so",
-		On:     "*/1Min/OHLC",
+		// Module: "ondiskagg.so",
+		// On:     "*/1Min/OHLC",
 		Config: map[string]interface{}{
 			"filter":       "nasdaq",
 			"destinations": []string{"5Min", "1D"},
@@ -146,23 +154,25 @@ func TestFireBars(t *testing.T) {
 	open := []float32{1., 2., 3., 4., 5., 1., 2., 3., 4., 5.}
 	high := []float32{1.1, 2.1, 3.1, 4.1, 5.1, 1.1, 2.1, 3.1, 4.1, 5.1}
 	low := []float32{0.9, 1.9, 2.9, 3.9, 4.9, 0.9, 1.9, 2.9, 3.9, 4.9}
-	close := []float32{1.05, 2.05, 3.05, 4.05, 5.05, 1.05, 2.05, 3.05, 4.05, 5.05}
+	clos := []float32{1.05, 2.05, 3.05, 4.05, 5.05, 1.05, 2.05, 3.05, 4.05, 5.05}
 
 	cs := io.NewColumnSeries()
 	cs.AddColumn("Epoch", epoch)
 	cs.AddColumn("Open", open)
 	cs.AddColumn("High", high)
 	cs.AddColumn("Low", low)
-	cs.AddColumn("Close", close)
+	cs.AddColumn("Close", clos)
 	tbk := io.NewTimeBucketKey("TEST/1Min/OHLC")
 	csm := io.NewColumnSeriesMap()
 	csm.AddColumnSeries(*tbk, cs)
 	err = executor.WriteCSM(csm, false)
 	assert.Nil(t, err)
 
-	rs := cs.ToRowSeries(*tbk, true)
+	rs, err := cs.ToRowSeries(*tbk, true)
+	assert.Nil(t, err)
 	rowData := rs.GetData()
 	times, err := rs.GetTime()
+	assert.Nil(t, err)
 	numRows := len(times)
 	rowLen := len(rowData) / numRows
 

@@ -8,21 +8,19 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-var (
-	typeMap = map[EnumElementType]string{
-		BYTE:     "i1",
-		INT16:    "i2",
-		INT32:    "i4",
-		INT64:    "i8",
-		UINT8:    "u1",
-		UINT16:   "u2",
-		UINT32:   "u4",
-		UINT64:   "u8",
-		FLOAT32:  "f4",
-		FLOAT64:  "f8",
-		STRING16: "U16",
-	}
-)
+var typeMap = map[EnumElementType]string{
+	BYTE:     "i1",
+	INT16:    "i2",
+	INT32:    "i4",
+	INT64:    "i8",
+	UINT8:    "u1",
+	UINT16:   "u2",
+	UINT32:   "u4",
+	UINT64:   "u8",
+	FLOAT32:  "f4",
+	FLOAT64:  "f8",
+	STRING16: "U16",
+}
 
 var typeStrMap = func() map[string]EnumElementType {
 	m := map[string]EnumElementType{}
@@ -33,7 +31,7 @@ var typeStrMap = func() map[string]EnumElementType {
 }()
 
 // TypeStrToElemType converts a numpy type string (e.g. "i8", "f4") to an element type
-// ok=false is returned when unknown string is specified
+// ok=false is returned when unknown string is specified.
 func TypeStrToElemType(typeStr string) (elemType EnumElementType, ok bool) {
 	elemType, ok = typeStrMap[typeStr]
 	return elemType, ok
@@ -49,8 +47,9 @@ type NumpyDataset struct {
 	ColumnTypes []string `msgpack:"types"`
 	// a list of column names
 	ColumnNames []string `msgpack:"names"`
-	// two dimentional byte arrays holding the column data.
-	// if there are multiple rows in a DataSet, ColumnData[columnIndex] is concatenation of the byte representation of each row.
+	// two dimensional byte arrays holding the column data.
+	// if there are multiple rows in a DataSet,
+	// ColumnData[columnIndex] is concatenation of the byte representation of each row.
 	// (e.g. row1 of columnA = "\x01\x02\x03\x04", row2 of columnA = "\x05\x06\x07\x08"
 	// => ColumnData[index of columnA] = "\x01\x02\x03\x04\x05\x06\x07\x08"
 	ColumnData [][]byte `msgpack:"data"`
@@ -67,12 +66,13 @@ func NewNumpyDataset(cs *ColumnSeries) (nds *NumpyDataset, err error) {
 		nds.ColumnNames = append(nds.ColumnNames, name)
 		colBytes := CastToByteSlice(cs.GetColumn(name))
 		nds.ColumnData = append(nds.ColumnData, colBytes)
-		if typeStr, ok := typeMap[nds.dataShapes[i].Type]; !ok {
+
+		typeStr, ok := typeMap[nds.dataShapes[i].Type]
+		if !ok {
 			log.Error("unsupported type %v", nds.dataShapes[i].String())
 			return nil, fmt.Errorf("unsupported type")
-		} else {
-			nds.ColumnTypes = append(nds.ColumnTypes, typeStr)
 		}
+		nds.ColumnTypes = append(nds.ColumnTypes, typeStr)
 	}
 	return nds, nil
 }
@@ -84,11 +84,11 @@ func (nds *NumpyDataset) Len() int {
 func (nds *NumpyDataset) buildDataShapes() ([]DataShape, error) {
 	etypes := []EnumElementType{}
 	for _, typeStr := range nds.ColumnTypes {
-		if typ, ok := typeStrMap[typeStr]; !ok {
+		typ, ok := typeStrMap[typeStr]
+		if !ok {
 			return nil, fmt.Errorf("unsupported type string %s", typeStr)
-		} else {
-			etypes = append(etypes, typ)
 		}
+		etypes = append(etypes, typ)
 	}
 	return NewDataShapeVector(nds.ColumnNames, etypes), nil
 }
@@ -121,7 +121,10 @@ func (nds *NumpyDataset) ToColumnSeries(options ...int) (cs *ColumnSeries, err e
 		size := shape.Type.Size()
 		start := startIndex * size
 		end := start + length*size
-		newColData := shape.Type.ConvertByteSliceInto(nds.ColumnData[i][start:end])
+		newColData, err2 := shape.Type.ConvertByteSliceInto(nds.ColumnData[i][start:end])
+		if err2 != nil {
+			return nil, fmt.Errorf("failed to convert column data slice: %w", err)
+		}
 		cs.AddColumn(shape.Name, newColData)
 	}
 	return cs, nil
@@ -172,13 +175,13 @@ func (nmds *NumpyMultiDataset) ToColumnSeriesMap() (csm ColumnSeriesMap, err err
 
 func (nmds *NumpyMultiDataset) Append(cs *ColumnSeries, tbk TimeBucketKey) (err error) {
 	if len(nmds.ColumnData) != cs.GetNumColumns() {
-		err = errors.New("Length of columns mismatch with NumpyMultiDataset")
+		err = errors.New("length of columns mismatch with NumpyMultiDataset")
 		return
 	}
 	colSeriesNames := cs.GetColumnNames()
 	for idx, name := range nmds.ColumnNames {
 		if name != colSeriesNames[idx] {
-			err = errors.New("Data shape mismatch of ColumnSeries and NumpyMultiDataset")
+			err = errors.New("data shape mismatch of ColumnSeries and NumpyMultiDataset")
 			return
 		}
 	}

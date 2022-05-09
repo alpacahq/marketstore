@@ -33,12 +33,13 @@ func getClientAddr(stream grpc.ServerStream) (string, error) {
 
 	pr, ok := peer.FromContext(ctx)
 	if !ok {
-		return "", errors.New("failed to get client IP address.")
+		return "", errors.New("failed to get client IP address")
 	}
 	return pr.Addr.String(), nil
 }
 
-func (rs *GRPCReplicationServer) GetWALStream(_ *pb.GetWALStreamRequest, stream pb.Replication_GetWALStreamServer) error {
+func (rs *GRPCReplicationServer) GetWALStream(_ *pb.GetWALStreamRequest, stream pb.Replication_GetWALStreamServer,
+) error {
 	// prepare a channel to send messages
 	clientAddr, err := getClientAddr(stream)
 	if err != nil {

@@ -2,8 +2,6 @@ package catalog_test
 
 import (
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,30 +15,28 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
-func setup(t *testing.T, testName string,
-) (tearDown func(), rootDir string, catalogDir *catalog.Directory) {
+func setup(t *testing.T) (rootDir string, catalogDir *catalog.Directory) {
 	t.Helper()
 
-	rootDir, _ = ioutil.TempDir("", fmt.Sprintf("catalog_test-%s", testName))
+	rootDir = t.TempDir()
 	test.MakeDummyCurrencyDir(rootDir, false, false)
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	if err != nil {
 		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 	}
 
-	return func() { test.CleanupDummyDataDir(rootDir) }, rootDir, catalogDir
+	return rootDir, catalogDir
 }
 
 func TestGetCatList(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGetCatList")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	CatList := catalogDir.GatherCategoriesFromCache()
 	assert.Len(t, CatList, 4)
 }
+
 func TestGetCatItemMap(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGetCatItemMap")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	catList := catalogDir.GatherCategoriesAndItems()
 	/*
@@ -59,16 +55,16 @@ func TestGetCatItemMap(t *testing.T) {
 	*/
 	assert.Len(t, catList, 4)
 }
+
 func TestGetDirList(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGetDirList")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	dirList := catalogDir.GatherDirectories()
 	assert.Len(t, dirList, 40)
 }
+
 func TestGatherFilePaths(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGatherFilePaths")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	filePathList := catalogDir.GatherFilePaths()
 	//	for _, filePath := range filePathList {
@@ -76,36 +72,37 @@ func TestGatherFilePaths(t *testing.T) {
 	//	}
 	assert.Len(t, filePathList, 54)
 }
+
 func TestGatherFileInfo(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestGatherFileInfo")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	fileInfoList := catalogDir.GatherTimeBucketInfo()
-	//for _, fileInfo := range fileInfoList {
+	// for _, fileInfo := range fileInfoList {
 	//	fmt.Printf("File Path: %s Year: %d\n",fileInfo.Path,fileInfo.Year)
-	//}
+	// }
 	assert.Len(t, fileInfoList, 54)
 }
+
 func TestPathToFileInfo(t *testing.T) {
-	tearDown, rootDir, catalogDir := setup(t, "TestPathToFileInfo")
-	defer tearDown()
+	rootDir, catalogDir := setup(t)
 
 	fileInfo, err := catalogDir.PathToTimeBucketInfo("nil")
-	if _, ok := err.(catalog.NotFoundError); ok {
+	var targetErr catalog.NotFoundError
+	if ok := errors.As(err, &targetErr); ok {
 		assert.Equal(t, fileInfo, (*io.TimeBucketInfo)(nil))
 	}
 
 	mypath := rootDir + "/EURUSD/1Min/OHLC/2001.bin"
 	fileInfo, err = catalogDir.PathToTimeBucketInfo(mypath)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, fileInfo.Path, mypath)
 }
+
 func TestAddFile(t *testing.T) {
-	tearDown, _, catalogDir := setup(t, "TestAddFile")
-	defer tearDown()
+	_, catalogDir := setup(t)
 
 	// Get the owning subdirectory for a test file path
 	filePathList := catalogDir.GatherFilePaths()
@@ -113,7 +110,7 @@ func TestAddFile(t *testing.T) {
 	// fmt.Println(filePath)
 	subDir, err := catalogDir.GetOwningSubDirectory(filePath)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	// fmt.Println(subDir.GetPath())
@@ -123,7 +120,7 @@ func TestAddFile(t *testing.T) {
 	// latestFile, err := subDir.GetLatestYearFile()
 	// fmt.Println(latestFile.Path)
 	if _, err = subDir.AddFile(int16(2016)); err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	_, err = subDir.GetLatestYearFile()
@@ -132,8 +129,7 @@ func TestAddFile(t *testing.T) {
 }
 
 func TestAddAndRemoveDataItem(t *testing.T) {
-	tearDown, rootDir, catalogDir := setup(t, "TestPathToFileInfo")
-	defer tearDown()
+	rootDir, catalogDir := setup(t)
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -164,7 +160,7 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	catList = catalogDir.GatherCategoriesAndItems()
@@ -183,15 +179,13 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 }
 
 func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
-	rootDir, _ := ioutil.TempDir("", "catalog_test-TestAddAndRemoveDataItemFromEmptyDirectory")
+	rootDir := t.TempDir()
 	catalogDir, err := catalog.NewDirectory(rootDir)
 	var e catalog.ErrCategoryFileNotFound
 	if err != nil && !errors.As(err, &e) {
 		t.Fatal("failed to create a catalog dir.err=" + err.Error())
 		return
 	}
-
-	defer test.CleanupDummyDataDir(rootDir)
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -247,7 +241,7 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	// Now let's remove the symbol and then re-add it - should work
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	err = catalogDir.AddTimeBucket(tbk, tbinfo)
@@ -256,7 +250,7 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	// Sometimes people may call AddTimeBucket with an empty directory, let's test that
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	err = catalogDir.AddTimeBucket(tbk, tbinfo)
@@ -265,19 +259,18 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	// Let's try two subsequent RemoveTimeBucket calls, the first should work, the second should err
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.Nil(t, err)
 	err = catalogDir.RemoveTimeBucket(tbk)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 	}
 	assert.NotNil(t, err)
 }
 
 func TestCreateNewDirectory(t *testing.T) {
-	tearDown, rootDir, catalogDir := setup(t, "TestPathToFileInfo")
-	defer tearDown()
+	rootDir, catalogDir := setup(t)
 
 	catKey := "Symbol/Timeframe/AttributeGroup"
 	dataItemKey := "TEST/1Min/OHLCV"
@@ -302,8 +295,8 @@ func TestCreateNewDirectory(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func exists(path string) bool {
-	_, err := os.Stat(path)
+func exists(fp string) bool {
+	_, err := os.Stat(fp)
 	if err == nil {
 		return true
 	}

@@ -17,10 +17,9 @@ import (
 // NewLocalAPIClient builds a new client struct in local mode.
 func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	// Configure db settings.
-	initCatalog, initWALCache, backgroundSync, WALBypass := true, true, false, true
 	walRotateInterval := 5
-	instanceConfig, _, _, err := executor.NewInstanceSetup(dir,
-		nil, nil, walRotateInterval, initCatalog, initWALCache, backgroundSync, WALBypass,
+	instanceConfig, _, err := executor.NewInstanceSetup(dir,
+		nil, nil, walRotateInterval, executor.BackgroundSync(false), executor.WALBypass(true),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create a new instance setup for local API client: %w", err)
@@ -61,16 +60,15 @@ func (lc *LocalAPIClient) Write(reqs *frontend.MultiWriteRequest, responses *fro
 	// and it can't be updated by the CSV import using the local mode,
 	// the imported data is not returned to query responses until restart marketstore,
 	// the data is correctly written to the data file though.
-	fmt.Println("Note: The imported data won't be returned to query responses until restart marketstore" +
+	log.Info("Note: The imported data won't be returned to query responses until restart marketstore" +
 		" due to the cache of the marketstore process.")
 	return nil
 }
 
 func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 ) (csm io.ColumnSeriesMap, err error) {
-
 	if start == nil && end == nil {
-		fmt.Println("No suitable date range supplied...")
+		log.Error("No suitable date range supplied...")
 		return
 	}
 	if start == nil {
@@ -79,7 +77,7 @@ func (lc *LocalAPIClient) Show(tbk *io.TimeBucketKey, start, end *time.Time,
 	if end == nil {
 		end = &planner.MaxTime
 	}
-	fmt.Printf("Query range: %v to %v\n", start, end)
+	log.Info("Query range: %v to %v\n", start, end)
 
 	qs := frontend.NewQueryService(lc.catalogDir)
 	csm, err = qs.ExecuteQuery(tbk, *start, *end, 0, false, nil)
@@ -101,7 +99,8 @@ func (lc *LocalAPIClient) Destroy(reqs *frontend.MultiKeyRequest, responses *fro
 	return ds.Destroy(nil, reqs, responses)
 }
 
-func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse) error {
+func (lc *LocalAPIClient) GetBucketInfo(reqs *frontend.MultiKeyRequest, responses *frontend.MultiGetInfoResponse,
+) error {
 	ds := frontend.NewDataService(lc.dir, lc.catalogDir, lc.aggRunner, lc.writer, lc.query)
 	return ds.GetInfo(nil, reqs, responses)
 }

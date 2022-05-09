@@ -129,7 +129,6 @@ func TestAnySet(t *testing.T) {
 	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2Empty)
 	sgAAA.Add(DataShape{Name: "2020202020", Type: FLOAT32})
 	assert.Equal(t, sgAAA.Subtract(AAAnoa), I2twentyFloat32)
-
 }
 
 func TestGetMissingColumns(t *testing.T) {
@@ -154,10 +153,11 @@ func TestGetMissingColumns(t *testing.T) {
 	/*
 		All columns are present
 	*/
-	missing, coercion := GetMissingAndTypeCoercionColumns(
+	missing, coercion, err := GetMissingAndTypeCoercionColumns(
 		requiredDSV,
 		csA.GetDataShapes(),
 	)
+	assert.Nil(t, err)
 	assert.Len(t, missing, 0)
 	assert.Len(t, coercion, 0)
 
@@ -165,8 +165,9 @@ func TestGetMissingColumns(t *testing.T) {
 	/*
 		We have a missing column
 	*/
-	missing, coercion = GetMissingAndTypeCoercionColumns(requiredDSV,
+	missing, coercion, err = GetMissingAndTypeCoercionColumns(requiredDSV,
 		csA.GetDataShapes())
+	assert.Nil(t, err)
 	assert.Len(t, missing, 1)
 	assert.Len(t, coercion, 0)
 
@@ -174,8 +175,9 @@ func TestGetMissingColumns(t *testing.T) {
 	/*
 		Now we have a mismatch of a column's type with the same name
 	*/
-	missing, coercion = GetMissingAndTypeCoercionColumns(requiredDSV,
+	missing, coercion, err = GetMissingAndTypeCoercionColumns(requiredDSV,
 		csA.GetDataShapes())
+	assert.Nil(t, err)
 	assert.Len(t, missing, 0)
 	assert.Len(t, coercion, 1)
 
@@ -185,8 +187,9 @@ func TestGetMissingColumns(t *testing.T) {
 		We added an extra column to the required, so we should report a new
 		missing
 	*/
-	missing, coercion = GetMissingAndTypeCoercionColumns(requiredDSV,
+	missing, coercion, err = GetMissingAndTypeCoercionColumns(requiredDSV,
 		csA.GetDataShapes())
+	assert.Nil(t, err)
 	assert.Len(t, missing, 1)
 	assert.Len(t, coercion, 1)
 	assert.Equal(t, missing[0], ds6)

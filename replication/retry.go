@@ -11,32 +11,30 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// RetryableError is a custom error to retry the logic when returned
-type RetryableError string
+// ErrRetryable is a custom error to retry the logic when returned.
+var ErrRetryable = errors.New("retryable replication error")
 
-func (re RetryableError) Error() string {
-	return string(re)
-}
-func (re RetryableError) Is(err error) bool {
-	return err == RetryableError("")
-}
+// func (re ErrRetryable) Is(err error) bool {
+// 	return errors.Is(err, ErrRetryable("")
+// }
 
-type retryer struct {
+type Retryer struct {
 	retryFunc    func(ctx context.Context) error
 	interval     time.Duration
 	backoffCoeff int
 }
 
-func NewRetryer(retryFunc func(ctx context.Context) error, interval time.Duration, backoffCoeff int) *retryer {
-	return &retryer{
+func NewRetryer(retryFunc func(ctx context.Context) error, interval time.Duration, backoffCoeff int) *Retryer {
+	return &Retryer{
 		retryFunc:    retryFunc,
 		interval:     interval,
 		backoffCoeff: backoffCoeff,
 	}
 }
 
-// Run tries the retryer until it succeeds, it returns unretriable error, or the context is canceled.
-func (r *retryer) Run(ctx context.Context) error {
+// Run tries the Retryer until it succeeds, it returns unretriable error, or the context is canceled.
+func (r *Retryer) Run(ctx context.Context) error {
+	const decimal = 10
 	cnt := -1
 	for {
 		cnt++
@@ -50,11 +48,11 @@ func (r *retryer) Run(ctx context.Context) error {
 				return nil
 			}
 
-			if errors.Is(err, RetryableError("")) {
+			if errors.Is(err, ErrRetryable) {
 				// retryable error. continue
 				interval := retryInterval(r.interval, r.backoffCoeff, cnt)
 				log.Warn("caught a retryable error. It will be retried after an interval:" +
-					strconv.FormatInt(interval.Milliseconds(), 10) + "[ms], err=" + err.Error())
+					strconv.FormatInt(interval.Milliseconds(), decimal) + "[ms], err=" + err.Error())
 				time.Sleep(interval)
 				continue
 			} else {

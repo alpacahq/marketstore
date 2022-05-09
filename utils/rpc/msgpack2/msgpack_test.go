@@ -5,17 +5,22 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package msgpack2
+package msgpack2_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	rpc "github.com/alpacahq/rpc/rpc2"
-	msgpack "github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack"
+
+	"github.com/alpacahq/marketstore/v4/utils/rpc/msgpack2"
 )
 
 // ResponseRecorder is an implementation of http.ResponseWriter that
@@ -93,8 +98,7 @@ type Service1Response struct {
 	Result int
 }
 
-type Service1 struct {
-}
+type Service1 struct{}
 
 const Service1DefaultResponse = 9999
 
@@ -113,36 +117,41 @@ func (t *Service1) ResponseError(r *http.Request, req *Service1Request, res *Ser
 }
 
 func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) error {
+	t.Helper()
+
 	if !s.HasMethod(method) {
 		t.Fatal("Expected to be registered:", method)
 	}
 
-	buf, _ := EncodeClientRequest(method, req)
+	buf, _ := msgpack2.EncodeClientRequest(method, req)
 	body := bytes.NewBuffer(buf)
-	r, _ := http.NewRequest("POST", "http://localhost:8080/", body)
+	r, _ := http.NewRequestWithContext(context.Background(), "POST", "http://localhost:8080/", body)
 	r.Header.Set("Content-Type", "application/x-msgpack")
 
 	w := NewRecorder()
 	s.ServeHTTP(w, r)
 
-	return DecodeClientResponse(w.Body, res)
+	return msgpack2.DecodeClientResponse(w.Body, res)
 }
 
-func executeRaw(t *testing.T, s *rpc.Server, req interface{}, res interface{}) error {
+func executeRaw(t *testing.T, s *rpc.Server, req, res interface{}) error {
+	t.Helper()
+
 	j, _ := msgpack.Marshal(req)
-	r, _ := http.NewRequest("POST", "http://localhost:8080/", bytes.NewBuffer(j))
+	r, _ := http.NewRequestWithContext(context.Background(),
+		"POST", "http://localhost:8080/", bytes.NewBuffer(j))
 	r.Header.Set("Content-Type", "application/x-msgpack")
 
 	w := NewRecorder()
 	s.ServeHTTP(w, r)
 
-	return DecodeClientResponse(w.Body, res)
+	return msgpack2.DecodeClientResponse(w.Body, res)
 }
 
 func TestService(t *testing.T) {
 	t.Parallel()
 	s := rpc.NewServer()
-	s.RegisterCodec(NewCodec(), "application/x-msgpack")
+	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
 	s.RegisterService(new(Service1), "")
 
 	var res Service1Response
@@ -192,14 +201,15 @@ func TestDecodeNullResult(t *testing.T) {
 	t.Parallel()
 	data := []byte(`{"jsonrpc": "2.0", "id": 12345, "result": null}`)
 	var obj interface{}
-	json.Unmarshal(data, &obj)
+	assert.Nil(t, json.Unmarshal(data, &obj))
+
 	data, _ = msgpack.Marshal(obj)
 	reader := bytes.NewReader(data)
 	var result interface{}
 
-	err := DecodeClientResponse(reader, &result)
+	err := msgpack2.DecodeClientResponse(reader, &result)
 
-	if err != ErrNullResult {
+	if !errors.Is(err, msgpack2.ErrNullResult) {
 		t.Error("Expected err no be ErrNullResult, but got:", err)
 	}
 

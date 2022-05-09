@@ -5,6 +5,8 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
+
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 func isIterable(i interface{}) bool {
@@ -12,13 +14,14 @@ func isIterable(i interface{}) bool {
 	return kind == reflect.Array || kind == reflect.Slice
 }
 
-// CoerceColumnType replaces the data type of values in a column that has the specified name to the specified elementType
+// CoerceColumnType replaces the data type of values
+// in a column that has the specified name to the specified elementType.
 func (cs *ColumnSeries) CoerceColumnType(columnName string, elementType EnumElementType) (err error) {
 	if elementType == BOOL || elementType == STRING || elementType == STRING16 {
-		return fmt.Errorf("Can not cast to boolean or string")
+		return fmt.Errorf("can not cast to boolean or string")
 	}
 
-	iCol := cs.GetByName(columnName)
+	iCol := cs.GetColumn(columnName)
 	if !isIterable(iCol) {
 		return errors.New("bug! column values should be a slice or array")
 	}
@@ -71,7 +74,7 @@ func (cs *ColumnSeries) CoerceColumnType(columnName string, elementType EnumElem
 	case reflect.Uint64:
 		newCol := make([]uint64, columnValues.Len())
 		for i := 0; i < columnValues.Len(); i++ {
-			newCol[i] = uint64(toUint(columnValues.Index(i)))
+			newCol[i] = toUint(columnValues.Index(i))
 		}
 		cs.columns[columnName] = newCol
 	case reflect.Float32:
@@ -86,6 +89,8 @@ func (cs *ColumnSeries) CoerceColumnType(columnName string, elementType EnumElem
 			newCol[i] = toFloat(columnValues.Index(i))
 		}
 		cs.columns[columnName] = newCol
+	default:
+		log.Error("unknown column type specified for column coerce:", elementType.Kind())
 	}
 	return nil
 }

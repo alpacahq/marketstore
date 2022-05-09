@@ -3,6 +3,8 @@ package executor_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -24,7 +26,7 @@ func NewFakeTrigger(toPanic bool) *FakeTrigger {
 	}
 }
 
-// Fire sends a message to fireC channel when a record is triggered
+// Fire sends a message to fireC channel when a record is triggered.
 func (t *FakeTrigger) Fire(keyPath string, records []trigger.Record) {
 	defer func() { t.fireC <- struct{}{} }()
 
@@ -32,7 +34,6 @@ func (t *FakeTrigger) Fire(keyPath string, records []trigger.Record) {
 		panic("panic")
 	}
 	t.calledWith = append(t.calledWith, []interface{}{keyPath, records})
-
 }
 
 func TestTriggerPluginDispatcher(t *testing.T) {
@@ -77,9 +78,10 @@ func TestTriggerPluginDispatcher(t *testing.T) {
 			t.Parallel()
 
 			// --- given ---
-			matchers := []*trigger.TriggerMatcher{trigger.NewMatcher(tt.trigger, tt.on)}
+			matchers := []*trigger.Matcher{trigger.NewMatcher(tt.trigger, tt.on)}
 			tpd := executor.NewTriggerPluginDispatcher(matchers)
-			fakeBuffer := io.SwapSliceData([]int64{0, 5}, byte(0)).([]byte)
+			fakeBuffer, ok := io.SwapSliceData([]int64{0, 5}, byte(0)).([]byte)
+			assert.True(t, ok)
 
 			// --- when
 			for _, r := range tt.records {
@@ -92,7 +94,9 @@ func TestTriggerPluginDispatcher(t *testing.T) {
 			// --- then ---
 			assert.Equal(t, len(tt.trigger.calledWith), tt.wantCalledWithLen)
 			if tt.wantCalledWithLen > 0 {
-				assert.Equal(t, tt.trigger.calledWith[0][0].(string), tt.wantCalledWith)
+				calledWith2, ok := tt.trigger.calledWith[0][0].(string)
+				require.True(t, ok)
+				assert.Equal(t, calledWith2, tt.wantCalledWith)
 			}
 		})
 	}

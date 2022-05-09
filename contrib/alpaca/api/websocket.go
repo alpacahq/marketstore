@@ -31,22 +31,24 @@ type Subscription struct {
 
 // NewSubscription creates and initializes a Subscription
 // that is ready to use.
-func NewSubscription(config config.Config) (s *Subscription) {
+func NewSubscription(cfg *config.Config) (s *Subscription) {
 	c := channels.NewInfiniteChannel()
 	return &Subscription{
 		channel:     c,
 		incoming:    c.Out(),
-		ws:          NewAlpacaWebSocket(config, c.In()),
-		workerCount: config.WSWorkerCount,
+		ws:          NewAlpacaWebSocket(cfg, c.In()),
+		workerCount: cfg.WSWorkerCount,
 	}
 }
 
 func (s *Subscription) resetHandled() {
 	atomic.StoreInt64(&s.handled, 0)
 }
+
 func (s *Subscription) incrementHandled() {
 	atomic.AddInt64(&s.handled, 1)
 }
+
 func (s *Subscription) getHandled() int {
 	return int(atomic.LoadInt64(&s.handled))
 }
@@ -68,8 +70,8 @@ func (s *Subscription) start(handler func(msg []byte)) {
 
 	// initialize & start the async worker pool
 	s.resetHandled()
-	workerPool := pool.NewPool(s.workerCount, func(msg interface{}) {
-		handler(msg.([]byte))
+	workerPool := pool.NewPool(s.workerCount, func(msg []byte) {
+		handler(msg)
 		s.incrementHandled()
 	})
 	log.Info("[alpaca] using %d workers", s.workerCount)
@@ -108,7 +110,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 					backoff = sleepLimit
 				}
 			}
-			jitter := time.Duration(random.Intn(1e3)) * time.Millisecond
+			jitter := time.Duration(random.Intn(1000)) * time.Millisecond
 			log.Info("[alpaca] backing off for %s", backoff)
 			time.Sleep(backoff + jitter)
 		}

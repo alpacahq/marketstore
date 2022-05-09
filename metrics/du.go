@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-// Setter is an interface for prometheus metrics to improve unit-testability
+// Setter is an interface for prometheus metrics to improve unit-testability.
 type Setter interface {
 	Set(m float64)
 }
@@ -26,6 +26,7 @@ func StartDiskUsageMonitor(s Setter, rootDir string, interval time.Duration) {
 }
 
 func diskUsage(path string) int64 {
+	const bitsToBytesShift = 3
 	var totalSize int64
 	err := filepath.Walk(path, func(filepath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -40,7 +41,7 @@ func diskUsage(path string) int64 {
 				if !ok {
 					log.Error("failed to get Stat_t for the file", filepath)
 				}
-				du := int64(stat.Blksize>>3) * stat.Blocks // >>3 = convert bits to bytes
+				du := int64(stat.Blksize>>bitsToBytesShift) * stat.Blocks // >>3 = convert bits to bytes
 				totalSize += du
 			}
 		}

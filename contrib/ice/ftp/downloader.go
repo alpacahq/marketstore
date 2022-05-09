@@ -1,18 +1,17 @@
 package ftp
 
 import (
-	"io/ioutil"
-
-	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
-	"github.com/alpacahq/marketstore/v4/utils/log"
-
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
+	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 type Downloader struct {
-	client        FtpClient
+	client        Client
 	ftpPath       string
 	storagePath   string
 	filePrefix    string
@@ -21,7 +20,7 @@ type Downloader struct {
 
 type FileInfoMap map[string]os.FileInfo
 
-func NewDownloader(client FtpClient, ftpPath string, storagePath string, filePrefix string) *Downloader {
+func NewDownloader(client Client, ftpPath, storagePath, filePrefix string) *Downloader {
 	return &Downloader{
 		client:        client,
 		ftpPath:       ftpPath,
@@ -29,10 +28,6 @@ func NewDownloader(client FtpClient, ftpPath string, storagePath string, filePre
 		filePrefix:    filePrefix,
 		processedFlag: enum.ProcessedFlag,
 	}
-}
-
-func (f *Downloader) filenameFor(dateStr string) string {
-	return f.filePrefix + "." + dateStr
 }
 
 func (f *Downloader) withFtpPath(filename string) string {
@@ -52,11 +47,22 @@ func (f *Downloader) getRemoteFiles() (FileInfoMap, error) {
 }
 
 func (f *Downloader) getLocalFiles() (FileInfoMap, error) {
-	localfiles, err := ioutil.ReadDir(f.storagePath)
+	localDirEntries, err := os.ReadDir(f.storagePath)
 	if err != nil {
 		return nil, err
 	}
-	return f.filter(localfiles), nil
+
+	// convert []fs.DirEntry to []os.FileInfo
+	localFiles := make([]os.FileInfo, len(localDirEntries))
+	for i, localDirEntry := range localDirEntries {
+		lf, err := localDirEntry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("get file info for a dir entry: %w", err)
+		}
+		localFiles[i] = lf
+	}
+
+	return f.filter(localFiles), nil
 }
 
 func (f *Downloader) filter(files []os.FileInfo) FileInfoMap {

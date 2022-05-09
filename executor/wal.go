@@ -1,18 +1,18 @@
 package executor
 
 import (
+	"bytes"
 	"crypto/md5"
 	"errors"
 	"fmt"
 	goio "io"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
-	"bytes"
-	"path/filepath"
-
 	"github.com/alpacahq/marketstore/v4/executor/buffile"
+
 	"github.com/alpacahq/marketstore/v4/executor/wal"
 	"github.com/alpacahq/marketstore/v4/plugins/trigger"
 	"github.com/alpacahq/marketstore/v4/utils/io"
@@ -48,22 +48,24 @@ type ReplicationSender interface {
 type TransactionGroup struct {
 	// A "locally unique" transaction group identifier, can be a clock value
 	ID int64
-	//The contents of the WTSets
+	// The contents of the WTSets
 	WTGroup []wal.WTSet
-	//MD5 checksum of the TG contents prior to the checksum
+	// MD5 checksum of the TG contents prior to the checksum
 	Checksum [16]byte
 }
 
 func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
-	walBypass bool, shutdownPending *bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
-	txnPipe *TransactionPipe) (wf *WALFileType, err error) {
+	walBypass bool, walWaitGroup *sync.WaitGroup, tpd *TriggerPluginDispatcher,
+	txnPipe *TransactionPipe,
+) (wf *WALFileType, err error) {
+	shutdownPending := false
 	wf = &WALFileType{
 		lastCommittedTGID: 0,
 		OwningInstanceID:  owningInstanceID,
 		rootDir:           rootDir,
 		ReplicationSender: rs,
 		walBypass:         walBypass,
-		shutdownPending:   shutdownPending,
+		shutdownPending:   &shutdownPending,
 		walWaitGroup:      walWaitGroup,
 		tpd:               tpd,
 		txnPipe:           txnPipe,
@@ -82,7 +84,7 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 func TakeOverWALFile(filePath string) (wf *WALFileType, err error) {
 	wf = new(WALFileType)
 	wf.lastCommittedTGID = 0
-	//filePath := filepath.Join(rootDir, fileName)
+	// filePath := filepath.Join(rootDir, fileName)
 
 	err = wf.open(filePath)
 	if err != nil {
@@ -113,8 +115,8 @@ func (wf *WALFileType) createFile(rootDir string) error {
 	filePath := filepath.Join(rootDir, "WALFile")
 	filePath = fmt.Sprintf("%s.%d.walfile", filePath, nowNano)
 	// Try to open the file for writing, creating it in the process if it doesn't exist
-	err := wf.open(filePath)
-	if err != nil {
+
+	if err := wf.open(filePath); err != nil {
 		return WALCreateError("CreateFile" + err.Error())
 	}
 	return nil
@@ -122,16 +124,18 @@ func (wf *WALFileType) createFile(rootDir string) error {
 
 func (wf *WALFileType) open(filePath string) error {
 	var err error
-	wf.FilePtr, err = os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0600)
+	wf.FilePtr, err = os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
-		return fmt.Errorf(io.GetCallerFileContext(0) + err.Error())
+		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
 	return nil
 }
-func (wf *WALFileType) close(ReplayStatus wal.ReplayStateEnum) {
-	wf.WriteStatus(wal.CLOSED, ReplayStatus)
+
+func (wf *WALFileType) close(replayStatus wal.ReplayStateEnum) {
+	wf.WriteStatus(wal.CLOSED, replayStatus)
 	wf.FilePtr.Close()
 }
+
 func (wf *WALFileType) Delete(callersInstanceID int64) (err error) {
 	err = wf.syncStatusRead()
 	if err != nil {
@@ -198,9 +202,9 @@ func (wf *WALFileType) QueueWriteCommand(wc *wal.WriteCommand) {
 	wf.txnPipe.writeChannel <- wc
 }
 
-// A.k.a. Commit transaction
+// FlushToWAL A.k.a. Commit transaction.
 func (wf *WALFileType) FlushToWAL() (err error) {
-	//walBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
+	// walBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
 	/*
 		Here we flush the contents of the write cache to:
@@ -255,21 +259,21 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 		}
 	}
 
-	TG_Serialized, writesPerFile := serializeTG(wf.txnPipe.tgID, writeCommands)
+	tgSerialized, writesPerFile := serializeTG(wf.txnPipe.tgID, writeCommands)
 
 	if !wf.walBypass {
 		// Serialize the size of the buffer into another buffer
-		TGLen_Serialized, _ := io.Serialize(nil, int64(len(TG_Serialized)))
+		tgLenSerialized, _ := io.Serialize(nil, int64(len(tgSerialized)))
 
 		// Calculate the MD5 checksum, including the value of TGLen
 		hash := md5.New()
-		hash.Write(TGLen_Serialized)
-		hash.Write(TG_Serialized)
+		hash.Write(tgLenSerialized)
+		hash.Write(tgSerialized)
 
 		wf.FilePtr.Write(wf.initMessage(TGDATA)) // Write the Message ID to identify TG Data
 		// Write the TG Data and the checksum and Sync()
-		wf.FilePtr.Write(TGLen_Serialized)
-		wf.FilePtr.Write(TG_Serialized)
+		wf.FilePtr.Write(tgLenSerialized)
+		wf.FilePtr.Write(tgSerialized)
 		cksum := hash.Sum(nil)
 		wf.FilePtr.Write(cksum) // Checksum
 
@@ -283,7 +287,7 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 
 		// send transaction to replicas
 		if wf.ReplicationSender != nil {
-			wf.ReplicationSender.Send(TG_Serialized)
+			wf.ReplicationSender.Send(tgSerialized)
 		}
 	}
 
@@ -307,57 +311,58 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 }
 
 func serializeTG(tgID int64, commands []*wal.WriteCommand,
-) (tgSerialized []byte, writesPerFile map[string][]wal.OffsetIndexBuffer) {
+) (tgSerialized2 []byte, writesPerFile map[string][]wal.OffsetIndexBuffer) {
 	WTCount := len(commands)
 
 	// Serialize all data to be written except for the size of this buffer
-	var TG_Serialized []byte
-	TG_Serialized, _ = io.Serialize(TG_Serialized, tgID)
-	TG_Serialized, _ = io.Serialize(TG_Serialized, int64(WTCount))
+	var tgSerialized []byte
+	tgSerialized, _ = io.Serialize(tgSerialized, tgID)
+	tgSerialized, _ = io.Serialize(tgSerialized, int64(WTCount))
 	writesPerFile = map[string][]wal.OffsetIndexBuffer{}
 	/*
 		This loop serializes write transactions from the channel for writing to disk
 	*/
 	for i := 0; i < WTCount; i++ {
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int8(commands[i].RecordType))
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int16(len(commands[i].WALKeyPath)))
-		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].WALKeyPath)
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int32(len(commands[i].Data)))
-		TG_Serialized, _ = io.Serialize(TG_Serialized, int32(commands[i].VarRecLen))
-		oStart := len(TG_Serialized)
+		tgSerialized, _ = io.Serialize(tgSerialized, int8(commands[i].RecordType))
+		tgSerialized, _ = io.Serialize(tgSerialized, int16(len(commands[i].WALKeyPath)))
+		tgSerialized, _ = io.Serialize(tgSerialized, commands[i].WALKeyPath)
+		tgSerialized, _ = io.Serialize(tgSerialized, int32(len(commands[i].Data)))
+		tgSerialized, _ = io.Serialize(tgSerialized, int32(commands[i].VarRecLen))
+		oStart := len(tgSerialized)
 		bufferSize := 8 + 8 + len(commands[i].Data)
-		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].Offset)
-		TG_Serialized, _ = io.Serialize(TG_Serialized, commands[i].Index)
-		TG_Serialized = append(TG_Serialized, commands[i].Data...)
+		tgSerialized, _ = io.Serialize(tgSerialized, commands[i].Offset)
+		tgSerialized, _ = io.Serialize(tgSerialized, commands[i].Index)
+		tgSerialized = append(tgSerialized, commands[i].Data...)
 		// include DataShape information in TG because it's necessary for creating a new bucket from WAL
 		dsvBytes, err := io.DSVToBytes(commands[i].DataShapes)
 		if err == nil {
-			TG_Serialized = append(TG_Serialized, dsvBytes...)
+			tgSerialized = append(tgSerialized, dsvBytes...)
 		}
 
 		keyPath := commands[i].WALKeyPath
 		// Store the data in a buffer for primary storage writes after WAL writes are done
 		writesPerFile[keyPath] = append(writesPerFile[keyPath],
-			TG_Serialized[oStart:oStart+bufferSize])
-
+			tgSerialized[oStart:oStart+bufferSize])
 	}
 
-	return TG_Serialized, writesPerFile
+	return tgSerialized, writesPerFile
 }
 
-func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType, varRecLen int) (err error) {
+func writeFixedBuffer(writes []wal.OffsetIndexBuffer, fullPath string) error {
+	const batchThreshold = 100
+
 	type WriteAtCloser interface {
 		goio.WriterAt
 		goio.Closer
 	}
-	const batchThreshold = 100
-	var fp WriteAtCloser
-	rootDir := filepath.Dir(wf.FilePtr.Name())
-	fullPath := walKeyToFullPath(rootDir, keyPath)
-	if recordType == io.FIXED && len(writes) >= batchThreshold {
+	var (
+		fp  WriteAtCloser
+		err error
+	)
+	if len(writes) >= batchThreshold {
 		fp, err = buffile.New(fullPath)
 	} else {
-		fp, err = os.OpenFile(fullPath, os.O_RDWR, 0700)
+		fp, err = os.OpenFile(fullPath, os.O_RDWR, 0o700)
 	}
 	if err != nil {
 		// this is critical, in fact, since tx has been committed
@@ -367,21 +372,50 @@ func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuff
 	defer fp.Close()
 
 	for _, buffer := range writes {
-		switch recordType {
-		case io.FIXED:
-			err = WriteBufferToFile(fp, buffer)
-		case io.VARIABLE:
-			err = WriteBufferToFileIndirect(
-				fp.(*os.File),
-				buffer,
-				varRecLen,
-			)
-		}
-		if err != nil {
+		if err = WriteBufferToFile(fp, buffer); err != nil {
 			log.Error("failed to write committed data: %v", err)
 			return err
 		}
 	}
+	return nil
+}
+
+func writeVariableLengthBuffer(writes []wal.OffsetIndexBuffer, fullPath string, varRecLen int) error {
+	fp, err := os.OpenFile(fullPath, os.O_RDWR, 0o700)
+	if err != nil {
+		// this is critical, in fact, since tx has been committed
+		log.Error("cannot open file %s for write transaction commit: %v", fullPath, err)
+		return err
+	}
+	defer fp.Close()
+
+	for _, buffer := range writes {
+		if err = WriteBufferToFileIndirect(fp, buffer, varRecLen); err != nil {
+			log.Error("failed to write committed data: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (wf *WALFileType) writePrimary(keyPath string, writes []wal.OffsetIndexBuffer, recordType io.EnumRecordType,
+	varRecLen int,
+) (err error) {
+	rootDir := filepath.Dir(wf.FilePtr.Name())
+	fullPath := walKeyToFullPath(rootDir, keyPath)
+	switch recordType {
+	case io.FIXED:
+		if err = writeFixedBuffer(writes, fullPath); err != nil {
+			return err
+		}
+	case io.VARIABLE:
+		if err = writeVariableLengthBuffer(writes, fullPath, varRecLen); err != nil {
+			return err
+		}
+	default:
+		return errors.New("unknown record type(io.NOTYPE) found")
+	}
+
 	return nil
 }
 
@@ -414,9 +448,9 @@ func (tgl TGIDlist) Len() int           { return len(tgl) }
 func (tgl TGIDlist) Less(i, j int) bool { return tgl[i] < tgl[j] }
 func (tgl TGIDlist) Swap(i, j int)      { tgl[i], tgl[j] = tgl[j], tgl[i] }
 
-func (wf *WALFileType) WriteStatus(FileStatus wal.FileStatusEnum, ReplayState wal.ReplayStateEnum) {
-	wf.FileStatus = FileStatus
-	wf.ReplayState = ReplayState
+func (wf *WALFileType) WriteStatus(fileStatus wal.FileStatusEnum, replayState wal.ReplayStateEnum) {
+	wf.FileStatus = fileStatus
+	wf.ReplayState = replayState
 	// This process now owns this file
 	buffer := wf.initMessage(STATUS)
 	buffer, _ = io.Serialize(buffer, int8(wf.FileStatus))
@@ -427,9 +461,11 @@ func (wf *WALFileType) WriteStatus(FileStatus wal.FileStatusEnum, ReplayState wa
 	wf.FilePtr.Sync()
 	wf.FilePtr.Seek(0, goio.SeekEnd)
 }
+
 func (wf *WALFileType) write(buffer []byte) {
 	wf.FilePtr.Write(buffer)
 }
+
 func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus TxnStatusEnum) {
 	buffer := wf.initMessage(TXNINFO)
 	buffer, _ = io.Serialize(buffer, tid)
@@ -437,6 +473,7 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 	buffer, _ = io.Serialize(buffer, txnStatus)
 	wf.write(buffer)
 }
+
 func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, txnStatus TxnStatusEnum, err error) {
 	var buffer [10]byte
 	buf, _, err := wal.Read(wf.FilePtr, buffer[:])
@@ -459,12 +496,10 @@ func (wf *WALFileType) readTransactionInfo() (tgid int64, destination DestEnum, 
 
 	return tgid, destination, txnStatus, nil
 }
+
 func (wf *WALFileType) initMessage(mid MIDEnum) []byte {
 	buffer, _ := io.Serialize([]byte{}, mid)
 	return buffer
-}
-func (wf *WALFileType) writeMessageID(mid MIDEnum) {
-	wf.write(wf.initMessage(mid))
 }
 
 func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
@@ -475,34 +510,46 @@ func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	cksum := hash.Sum(nil)
 
 	if !bytes.Equal(cksum, checkBuf) {
-		return fmt.Errorf(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
+		return errors.New(io.GetCallerFileContext(0) + fmt.Sprintf(":Checksum was: %v should be: %v", cksum, checkBuf))
 	}
 
 	return nil
 }
 
-func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wal.WTSet) {
-	TGID = io.ToInt64(TG_Serialized[0:8])
-	WTCount := io.ToInt64(TG_Serialized[8:16])
+func ParseTGData(tgSerialized []byte, rootPath string) (tgID int64, wtSets []wal.WTSet) {
+	// see /docs/design/durable_writes_design.txt for the details of the transaction group format
+	const (
+		tgIDLenBytes      = 8
+		wtCountLenBytes   = 8
+		recordLenLenBytes = 1
+		fpLenLenBytes     = 2
+		dataLenLenBytes   = 4
+		varRecLenLenBytes = 4
+		// (offset (8bytes), index(8bytes), buffer(dataLen-bytes))
+		offsetLenBytes = 8
+		indexLenBytes  = 8
+	)
+	tgID = io.ToInt64(tgSerialized[0:tgIDLenBytes])
+	WTCount := io.ToInt64(tgSerialized[tgIDLenBytes : tgIDLenBytes+wtCountLenBytes])
 
-	cursor := 16
+	cursor := tgIDLenBytes + wtCountLenBytes
 	wtSets = make([]wal.WTSet, WTCount)
 
 	for i := 0; i < int(WTCount); i++ {
-		RecordType := io.ToInt8(TG_Serialized[cursor : cursor+1])
-		cursor += 1
-		FPLen := int(io.ToInt16(TG_Serialized[cursor : cursor+2]))
-		cursor += 2
-		WALKeyPath := bytes.NewBuffer(TG_Serialized[cursor : cursor+FPLen]).String()
+		RecordType := io.ToInt8(tgSerialized[cursor : cursor+recordLenLenBytes])
+		cursor += recordLenLenBytes
+		FPLen := int(io.ToInt16(tgSerialized[cursor : cursor+fpLenLenBytes]))
+		cursor += fpLenLenBytes
+		WALKeyPath := bytes.NewBuffer(tgSerialized[cursor : cursor+FPLen]).String()
 		cursor += FPLen
-		dataLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
-		cursor += 4
-		varRecLen := int(io.ToInt32(TG_Serialized[cursor : cursor+4]))
-		cursor += 4
+		dataLen := int(io.ToInt32(tgSerialized[cursor : cursor+dataLenLenBytes]))
+		cursor += dataLenLenBytes
+		varRecLen := int(io.ToInt32(tgSerialized[cursor : cursor+varRecLenLenBytes]))
+		cursor += varRecLenLenBytes
 		fullPath := walKeyToFullPath(rootPath, WALKeyPath)
-		data := TG_Serialized[cursor : cursor+8+8+dataLen]
-		cursor += 8 + 8 + dataLen
-		dataShapes, l := io.DSVFromBytes(TG_Serialized[cursor:])
+		data := tgSerialized[cursor : cursor+offsetLenBytes+indexLenBytes+dataLen]
+		cursor += offsetLenBytes + indexLenBytes + dataLen
+		dataShapes, l := io.DSVFromBytes(tgSerialized[cursor:])
 		cursor += l
 
 		wtSets[i] = wal.NewWTSet(
@@ -515,12 +562,11 @@ func ParseTGData(TG_Serialized []byte, rootPath string) (TGID int64, wtSets []wa
 		)
 	}
 
-	return TGID, wtSets
+	return tgID, wtSets
 }
 
 func (wf *WALFileType) IsOpen() bool {
-	_, err := wf.FilePtr.Stat()
-	if err != nil {
+	if _, err := wf.FilePtr.Stat(); err != nil {
 		log.Info(io.GetCallerFileContext(0) + ": File stat failed, file probably deleted: " + err.Error())
 		return false
 	}
@@ -530,6 +576,7 @@ func (wf *WALFileType) IsOpen() bool {
 	}
 	return true
 }
+
 func (wf *WALFileType) syncStatusRead() error {
 	_, err := wf.FilePtr.Stat()
 	if err != nil {
@@ -563,14 +610,15 @@ func (wf *WALFileType) callerOwnsFile(callersInstanceID int64) bool {
 	// syncStatus() should be called prior to this
 	return callersInstanceID == wf.OwningInstanceID
 }
+
 func (wf *WALFileType) isActive(callersInstanceID int64) bool {
 	// syncStatus() should be called prior to this
 	rState := wf.ReplayState
 	return wf.IsOpen() && wf.callerOwnsFile(callersInstanceID) && rState == wal.NOTREPLAYED
 }
+
 func (wf *WALFileType) NeedsReplay() (bool, error) {
-	err := wf.syncStatusRead()
-	if err != nil {
+	if err := wf.syncStatusRead(); err != nil {
 		return false, fmt.Errorf("wal syncStatuRead: %w", err)
 	}
 
@@ -579,9 +627,9 @@ func (wf *WALFileType) NeedsReplay() (bool, error) {
 	}
 	return false, nil
 }
+
 func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) (bool, error) {
-	err := wf.syncStatusRead()
-	if err != nil {
+	if err := wf.syncStatusRead(); err != nil {
 		return false, fmt.Errorf("read syncStatus:%w", err)
 	}
 	if !wf.isActive(callersInstanceID) {
@@ -592,22 +640,27 @@ func (wf *WALFileType) CanWrite(msg string, callersInstanceID int64) (bool, erro
 }
 
 func sanityCheckValue(fp *os.File, value int64) (isSane bool) {
+	const safetyFactor = 1000
 	// As a sanity check, get the file size to ensure that TGLen is reasonable prior to buffer allocations
 	fstat, _ := fp.Stat()
-	sanityLen := 1000 * fstat.Size()
+	sanityLen := safetyFactor * fstat.Size()
 	return value < sanityLen
 }
 
 var haveWALWriter = false
 
-func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRotateInterval int) {
+func (wf *WALFileType) SyncWAL(walRefresh, primaryRefresh time.Duration, walRotateInterval int) {
 	/*
 	   Example: syncWAL(500 * time.Millisecond, 15 * time.Minute)
 	*/
+	const (
+		numTickerCheckPerWALRefresh = 100
+		writeChannelCapThreshold    = 0.8
+	)
 	haveWALWriter = true
-	tickerWAL := time.NewTicker(WALRefresh)
-	tickerPrimary := time.NewTicker(PrimaryRefresh)
-	tickerCheck := time.NewTicker(WALRefresh / 100)
+	tickerWAL := time.NewTicker(walRefresh)
+	tickerPrimary := time.NewTicker(primaryRefresh)
+	tickerCheck := time.NewTicker(walRefresh / numTickerCheckPerWALRefresh)
 	primaryFlushCounter := 0
 
 	chanCap := cap(wf.txnPipe.writeChannel)
@@ -625,7 +678,7 @@ func (wf *WALFileType) SyncWAL(WALRefresh, PrimaryRefresh time.Duration, walRota
 				f <- struct{}{}
 			case <-tickerCheck.C:
 				queued := len(wf.txnPipe.writeChannel)
-				if float64(queued)/float64(chanCap) >= 0.8 {
+				if float64(queued)/float64(chanCap) >= writeChannelCapThreshold {
 					if err := wf.FlushToWAL(); err != nil {
 						log.Error("[tickerCheck] failed to FlushToWAL: " + err.Error())
 					}
@@ -677,9 +730,14 @@ func (wf *WALFileType) RequestFlush() {
 	<-f
 }
 
+func (wf *WALFileType) TriggerShutdown() {
+	*wf.shutdownPending = true
+}
+
 // FinishAndWait closes the writtenIndexes channel, and waits
-// for the remaining triggers to fire, returning
+// for the remaining triggers to fire, returning.
 func (wf *WALFileType) FinishAndWait() {
+	const tryCloseInterval = 500 * time.Millisecond
 	wf.tpd.triggerWg.Wait()
 	for {
 		if len(wf.txnPipe.writeChannel) == 0 && len(wf.tpd.c) == 0 {
@@ -687,6 +745,6 @@ func (wf *WALFileType) FinishAndWait() {
 			<-wf.tpd.done
 			return
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(tryCloseInterval)
 	}
 }
