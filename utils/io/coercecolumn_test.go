@@ -134,25 +134,25 @@ func assertType(t *testing.T, cs *io.ColumnSeries, typ io.EnumElementType) {
 	var ok bool
 	switch typ {
 	case io.BYTE:
-		_, ok = cs.GetByName(columnName).([]byte)
+		_, ok = cs.GetColumn(columnName).([]byte)
 	case io.INT16:
-		_, ok = cs.GetByName(columnName).([]int16)
+		_, ok = cs.GetColumn(columnName).([]int16)
 	case io.INT32:
-		_, ok = cs.GetByName(columnName).([]int32)
+		_, ok = cs.GetColumn(columnName).([]int32)
 	case io.INT64:
-		_, ok = cs.GetByName(columnName).([]int64)
+		_, ok = cs.GetColumn(columnName).([]int64)
 	case io.FLOAT32:
-		_, ok = cs.GetByName(columnName).([]float32)
+		_, ok = cs.GetColumn(columnName).([]float32)
 	case io.FLOAT64:
-		_, ok = cs.GetByName(columnName).([]float64)
+		_, ok = cs.GetColumn(columnName).([]float64)
 	case io.UINT8:
-		_, ok = cs.GetByName(columnName).([]uint8)
+		_, ok = cs.GetColumn(columnName).([]uint8)
 	case io.UINT16:
-		_, ok = cs.GetByName(columnName).([]uint16)
+		_, ok = cs.GetColumn(columnName).([]uint16)
 	case io.UINT32:
-		_, ok = cs.GetByName(columnName).([]uint32)
+		_, ok = cs.GetColumn(columnName).([]uint32)
 	case io.UINT64:
-		_, ok = cs.GetByName(columnName).([]uint64)
+		_, ok = cs.GetColumn(columnName).([]uint64)
 	case io.BOOL, io.EPOCH, io.NONE, io.STRING, io.STRING16:
 		t.Fatal("not tested yet")
 	}

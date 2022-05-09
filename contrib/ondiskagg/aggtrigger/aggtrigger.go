@@ -111,7 +111,7 @@ func (s *OnDiskAggTrigger) Fire(keyPath string, records []trigger.Record) {
 	elements := strings.Split(keyPath, "/")
 	tf := utils.NewTimeframe(elements[1])
 	fileName := elements[len(elements)-1]
-	year, err := strconv.Atoi(strings.Replace(fileName, ".bin", "", 1))
+	year, err := strconv.ParseInt(strings.Replace(fileName, ".bin", "", 1), 10, 32)
 	if err != nil {
 		log.Error(fmt.Sprintf("failed to extract year from filename=%s: %v", keyPath, err.Error()))
 		return

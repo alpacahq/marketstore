@@ -21,7 +21,7 @@ func (cs *ColumnSeries) CoerceColumnType(columnName string, elementType EnumElem
 		return fmt.Errorf("can not cast to boolean or string")
 	}
 
-	iCol := cs.GetByName(columnName)
+	iCol := cs.GetColumn(columnName)
 	if !isIterable(iCol) {
 		return errors.New("bug! column values should be a slice or array")
 	}

@@ -24,7 +24,7 @@ func (c *Client) sql(line string) {
 		log.Error(err.Error())
 	}
 
-	if c.timing {
+	if c.printExecutionTime {
 		log.Info(fmt.Sprintf("Elapsed query time: %5.3f ms\n", 1000*runTime.Seconds()))
 	}
 }

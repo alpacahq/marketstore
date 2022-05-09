@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/marketstore/v4/contrib/calendar"
+
 	"github.com/alpacahq/marketstore/v4/contrib/stream/shelf"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend/stream"
@@ -78,7 +79,11 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 	tf := utils.NewTimeframe(elements[1])
 	fileName := elements[len(elements)-1]
 
-	year, _ := strconv.Atoi(strings.Replace(fileName, ".bin", "", 1))
+	year, err := strconv.ParseInt(strings.Replace(fileName, ".bin", "", 1), 10, 32)
+	if err != nil {
+		log.Error("[streamtrigger] get year from filename (%v)", err)
+		return
+	}
 	tbk := io.NewTimeBucketKey(tbkString)
 	end := io.IndexToTime(tail, tf.Duration, int16(year))
 
@@ -112,31 +117,42 @@ func (s *StreamTrigger) Fire(keyPath string, records []trigger.Record) {
 	}
 
 	if tf.Duration > time.Minute {
-		// push aggregates to shelf and let them get handled
-		// asynchronously when they are completed or expire
-		timeWindow, err2 := utils.CandleDurationFromString(tf.String)
-		if err2 != nil {
-			log.Error("[streamtrigger] timeframe extraction failure (tf=%s) (err=%v)", tf.String, err2)
-			return
-		}
+		s.storeColumnSeriesToShelf(tbk, tf, cs, end)
+		return
+	}
 
-		var deadline *time.Time
-
-		// handle the 1D bar case to aggregate based on calendar
-		if tf.Duration >= 24*time.Hour && strings.EqualFold(s.filter, "nasdaq") {
-			deadline = calendar.Nasdaq.MarketClose(end)
-		} else {
-			ceiling := timeWindow.Ceil(end)
-			deadline = &ceiling
-		}
-
-		if deadline != nil && deadline.After(time.Now()) {
-			s.shelf.Store(tbk, ColumnSeriesForPayload(cs), deadline)
-		}
-	} else if err2 := stream.Push(*tbk, ColumnSeriesForPayload(cs)); err2 != nil {
-		// push minute bars immediately
+	// if tf.Duration <= time.Minute, push minute bars immediately
+	if err2 := stream.Push(*tbk, ColumnSeriesForPayload(cs)); err2 != nil {
 		log.Error("[streamtrigger] failed to stream %s (%v)", tbk.String(), err2)
 	}
+}
+
+// push aggregates to shelf and let them get handled
+// asynchronously when they are completed or expire.
+func (s *StreamTrigger) storeColumnSeriesToShelf(tbk *io.TimeBucketKey, tf *utils.Timeframe,
+	cs *io.ColumnSeries, end time.Time,
+) {
+	timeWindow, err2 := utils.CandleDurationFromString(tf.String)
+	if err2 != nil {
+		log.Error("[streamtrigger] timeframe extraction failure (tf=%s) (err=%v)", tf.String, err2)
+		return
+	}
+
+	var deadline *time.Time
+
+	// handle the 1D bar case to aggregate based on calendar
+	if tf.Duration >= 24*time.Hour && strings.EqualFold(s.filter, "nasdaq") {
+		deadline = calendar.Nasdaq.MarketClose(end)
+	} else {
+		ceiling := timeWindow.Ceil(end)
+		deadline = &ceiling
+	}
+
+	if deadline != nil && deadline.After(time.Now()) {
+		s.shelf.Store(tbk, ColumnSeriesForPayload(cs), deadline)
+	}
+
+	return
 }
 
 // ColumnSeriesForPayload extracts the single row from the column

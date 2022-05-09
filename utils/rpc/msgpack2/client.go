@@ -8,8 +8,9 @@
 package msgpack2
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"io"
-	"math/rand"
 
 	msgpack "github.com/vmihailenco/msgpack"
 )
@@ -47,9 +48,16 @@ func EncodeClientRequest(method string, args interface{}) ([]byte, error) {
 		Version: "2.0",
 		Method:  method,
 		Params:  args,
-		ID:      uint64(rand.Int63()),
+		ID:      randomUint64(),
 	}
 	return msgpack.Marshal(c)
+}
+
+// randomUint64 method generates a random number in the range [0, 1<<64).
+func randomUint64() uint64 {
+	b := [8]byte{}
+	ct, _ := rand.Read(b[:])
+	return binary.BigEndian.Uint64(b[:ct])
 }
 
 // DecodeClientResponse decodes the response body of a client request into

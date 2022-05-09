@@ -81,7 +81,7 @@ func TestRecordsToColumnSeries(t *testing.T) {
 	assert.Nil(t, err)
 
 	for name, col := range cs.GetColumns() {
-		testCol := testCS.GetByName(name)
+		testCol := testCS.GetColumn(name)
 
 		cV := reflect.ValueOf(col)
 		tcV := reflect.ValueOf(testCol)

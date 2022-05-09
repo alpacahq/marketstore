@@ -174,7 +174,7 @@ func TestWriteVariable(t *testing.T) {
 	assert.Len(t, csm, 1)
 	for _, cs := range csm {
 		epoch := cs.GetEpoch()
-		nanos, ok := cs.GetByName("Nanoseconds").([]int32)
+		nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
 		assert.True(t, ok)
 		assert.Equal(t, cs.Len(), 2)
 		for i, ep := range epoch {
@@ -208,7 +208,7 @@ func TestWriteVariable(t *testing.T) {
 	for _, cs := range csm {
 		assert.Equal(t, cs.Len(), 5)
 		epoch := cs.GetEpoch()[2:]
-		int32Nanos, ok := cs.GetByName("Nanoseconds").([]int32)
+		int32Nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
 		require.True(t, ok)
 		nanos := int32Nanos[2:]
 		for i, ep := range epoch {
@@ -251,7 +251,7 @@ func TestWriteVariable(t *testing.T) {
 		t.Log("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
-		nanos, _ := cs.GetByName("Nanoseconds").([]int32)
+		nanos, _ := cs.GetColumn("Nanoseconds").([]int32)
 		assert.True(t, math.Abs(float64(nanos[9]-600000000)) < 50., true)
 		break
 	}
@@ -267,7 +267,7 @@ func TestWriteVariable(t *testing.T) {
 		t.Log("Results: ", cs)
 		assert.Equal(t, cs.Len(), 10)
 		assert.Equal(t, cs.GetEpoch()[9], row.Epoch)
-		nanos, ok := cs.GetByName("Nanoseconds").([]int32)
+		nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
 		assert.True(t, ok)
 		t.Log("Nanos: ", nanos)
 		assert.True(t, math.Abs(float64(nanos[9]-505000000)) < 50., true)
@@ -697,11 +697,11 @@ func TestAddSymbolThenWrite(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, len(columnSeries) != 0)
 	for _, cs := range columnSeries {
-		open, _ := cs.GetByName("Open").([]float32)
-		high, _ := cs.GetByName("High").([]float32)
-		low, _ := cs.GetByName("Low").([]float32)
-		clos, _ := cs.GetByName("Close").([]float32)
-		volume, _ := cs.GetByName("Volume").([]int32)
+		open, _ := cs.GetColumn("Open").([]float32)
+		high, _ := cs.GetColumn("High").([]float32)
+		low, _ := cs.GetColumn("Low").([]float32)
+		clos, _ := cs.GetColumn("Close").([]float32)
+		volume, _ := cs.GetColumn("Volume").([]int32)
 		assert.Equal(t, open[0], row.Open)
 		assert.Equal(t, high[0], row.High)
 		assert.Equal(t, low[0], row.Low)

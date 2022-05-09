@@ -1,4 +1,4 @@
-// package buffile helps batch write by writes to the tempobary in-memory
+// Package buffile helps batch write by writes to the temporary in-memory
 // buffer under the assumption that many writes come in to the part of
 // single file frequently.
 package buffile

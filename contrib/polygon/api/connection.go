@@ -149,7 +149,8 @@ ErrorOut:
 	out <- nil
 }
 
-func (p *PolygonWebSocket) connect() (err error) {
+func (p *PolygonWebSocket) connect() error {
+	var err error
 	// 101 means "changing protocol", meaning we're upgrading to a websocket
 	const statusCodeChangingProtocol = 101
 
@@ -159,7 +160,7 @@ func (p *PolygonWebSocket) connect() (err error) {
 	dialer.HandshakeTimeout = 2 * time.Second
 	p.conn, hresp, err = dialer.Dial(p.Servers[0].String(), nil)
 	if err != nil {
-		return
+		return err
 	}
 	if hresp.StatusCode != statusCodeChangingProtocol {
 		return fmt.Errorf("upstream connection failure, status_code: %d", hresp.StatusCode)
@@ -167,13 +168,14 @@ func (p *PolygonWebSocket) connect() (err error) {
 	// Check to see we have a response from the connection
 	err = p.conn.SetReadDeadline(time.Now().Add(time.Second))
 	if err != nil {
-		return
+		return err
 	}
 	resp := p.readMsg()
 	if !strings.Contains(resp, "connected") {
 		return fmt.Errorf("unable to verify good connection")
 	}
-	return
+
+	return nil
 }
 
 func (p *PolygonWebSocket) disconnect() {
