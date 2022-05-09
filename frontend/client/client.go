@@ -58,14 +58,14 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	req.Header.Set("Content-Type", "application/x-msgpack")
 	client := new(http.Client)
 	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	defer func(resp *http.Response) {
 		if err2 := resp.Body.Close(); err2 != nil {
 			log.Error(fmt.Sprintf("failed to close http client for marketstore api. err=%v", err2))
 		}
 	}(resp)
-	if err != nil {
-		return nil, err
-	}
 
 	// Handle any error in the RPC call
 	const statusOK = 200

@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	io2 "io"
 	"os"
 	"strings"
@@ -11,11 +12,11 @@ import (
 
 // trim removes the data in the date range from the db.
 // Note that this is implemented only for LocalClient.
-func (c *Client) trim(line string) {
+func (c *Client) trim(line string) error {
 	cli, ok := c.apiClient.(*LocalAPIClient)
 	if !ok {
 		log.Error("Trim command can be used only when '--dir' is specified to connect marketstore.")
-		return
+		return nil
 	}
 
 	log.Info("Trimming...")
@@ -24,7 +25,7 @@ func (c *Client) trim(line string) {
 	const argLen = 3
 	if len(args) < argLen {
 		log.Error("Not enough arguments - need \"trim key date\"")
-		return
+		return nil
 	}
 	trimDate, err := parseTime(args[len(args)-1])
 	if err != nil {
@@ -44,9 +45,16 @@ func (c *Client) trim(line string) {
 			log.Error("Failed to open file %v - Error: %v", info.Path, err)
 			continue
 		}
-		fp.Seek(offset, io2.SeekStart)
+		_, err = fp.Seek(offset, io2.SeekStart)
+		if err != nil {
+			return fmt.Errorf("failed to seek: %w", err)
+		}
 		zeroes := make([]byte, io.FileSize(info.GetTimeframe(), int(info.Year), int(info.GetRecordLength()))-offset)
-		fp.Write(zeroes)
-		fp.Close()
+		_, err = fp.Write(zeroes)
+		if err != nil {
+			return fmt.Errorf("failed to write zeroes: %w", err)
+		}
+		_ = fp.Close()
 	}
+	return nil
 }

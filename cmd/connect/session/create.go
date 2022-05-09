@@ -10,7 +10,7 @@ import (
 )
 
 // getinfo gets information about a bucket in the database.
-func (c *Client) getinfo(line string) {
+func (c *Client) getinfo(line string) error {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "getinfo"
 
@@ -41,7 +41,7 @@ func (c *Client) getinfo(line string) {
 	resp, err := c.GetBucketInfo(tbkP)
 	if err != nil {
 		log.Error("Failed with error: %s\n", err.Error())
-		return
+		return fmt.Errorf("failed with error: %w", err)
 	}
 	/*
 		Process the single response
@@ -64,11 +64,12 @@ func (c *Client) getinfo(line string) {
 	}
 	// nolint:forbidigo // CLI output needs fmt.Println
 	fmt.Printf("}\n")
+	return nil
 }
 
 // create generates new subdirectories and buckets for a database.
 // It returns true if the bucket is successfully created.
-func (c *Client) create(line string) (ok bool) {
+func (c *Client) create(line string) error {
 	args := strings.Split(line, " ")
 	args = args[1:] // chop off the first word which should be "create"
 	// args[0]:tbk, args[1]:dataTypeStr, args[2]:"fixed" or "variable"
@@ -79,13 +80,13 @@ func (c *Client) create(line string) (ok bool) {
 		// nolint:forbidigo // CLI output needs fmt.Println
 		fmt.Println(`example usage: "\create TEST/1Min/OHLCV:Symbol/Timeframe/AttributeGroup ` +
 			`Open,High,Low,Close/float32:Volume/int64 variable"`)
-		return
+		return fmt.Errorf(`not enough arguments - need "\create [tbk] [dataTypeStr] [recordType('fixed' or 'variable')]"`)
 	}
 
 	columnNames, columnTypes, err := toColumns(args[1])
 	if err != nil {
 		log.Error("Failed with error: %s", err.Error())
-		return false
+		return fmt.Errorf("create command failed with error: %w", err)
 	}
 
 	var isVariableLength bool
@@ -96,7 +97,7 @@ func (c *Client) create(line string) (ok bool) {
 		isVariableLength = true
 	default:
 		log.Error("record type \"%s\" is not one of fixed or variable\n", args[2])
-		return false
+		return fmt.Errorf("record type \"%s\" is not one of fixed or variable", args[2])
 	}
 
 	req := frontend.CreateRequest{
@@ -113,17 +114,17 @@ func (c *Client) create(line string) (ok bool) {
 	err = c.apiClient.Create(reqs, responses)
 	if err != nil {
 		log.Error("Failed with error: %s", err.Error())
-		return false
+		return fmt.Errorf("create command failed with error: %w", err)
 	}
 
 	for _, resp := range responses.Responses {
 		if resp.Error != "" {
 			log.Error("Failed with error: %v", resp.Error)
-			return false
+			return fmt.Errorf("create command failed with error: %w", err)
 		}
 	}
 	log.Info("Successfully created a new catalog entry for bucket %s\n", args[0])
-	return true
+	return nil
 }
 
 func toColumns(dataShapeStr string) (columnNames, columnTypeStrs []string, err error) {
@@ -150,17 +151,17 @@ func toColumns(dataShapeStr string) (columnNames, columnTypeStrs []string, err e
 }
 
 // destroy removes the subdirectories and buckets for a provided key.
-func (c *Client) destroy(line string) {
+func (c *Client) destroy(line string) error {
 	args := strings.Split(line, " ")
 	args = args[1:]  // chop off the first word which should be "destroy"
 	const argLen = 1 // arg[0] should be a bucket name
 	if len(args) == 0 {
 		log.Error("Please specify a bucket to destroy. (e.g. \\destroy TEST/1D/TICK)\n")
-		return
+		return nil
 	}
 	if len(args) > argLen {
 		log.Error("Only one bucket can be deleted at a time.\n")
-		return
+		return nil
 	}
 
 	req := frontend.KeyRequest{Key: args[0]}
@@ -172,16 +173,17 @@ func (c *Client) destroy(line string) {
 	err := c.apiClient.Destroy(reqs, responses)
 	if err != nil {
 		log.Error("Failed with error: %s\n", err.Error())
-		return
+		return fmt.Errorf("failed with error: %w", err)
 	}
 
 	for _, resp := range responses.Responses {
 		if resp.Error != "" {
 			log.Error("Failed with error: %s\n", resp.Error)
-			return
+			return fmt.Errorf("failed with error: %w", err)
 		}
 	}
 	log.Info("Successfully removed catalog entry for key: %s\n", args[0])
+	return nil
 }
 
 func (c *Client) GetBucketInfo(key *io.TimeBucketKey) (resp *frontend.GetInfoResponse, err error) {

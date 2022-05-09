@@ -11,19 +11,19 @@ import (
 )
 
 // show displays data in the date range.
-func (c *Client) show(line string) {
+func (c *Client) show(line string) error {
 	args := strings.Split(line, " ")
 	args = args[1:]
 	// need bucket name and date
 	const argLen = 1
 	if !(len(args) > argLen) {
-		log.Error("Not enough arguments, see \"\\help show\" ")
-		return
+		log.Error(`Not enough arguments, see '\help show'`)
+		return nil
 	}
 	tbk, start, end := c.parseQueryArgs(args)
 	if tbk == nil {
 		log.Error(`Could not parse arguments, see "\help show" `)
-		return
+		return nil
 	}
 
 	timeStart := time.Now()
@@ -31,7 +31,7 @@ func (c *Client) show(line string) {
 	csm, err := c.apiClient.Show(tbk, start, end)
 	if err != nil {
 		log.Error(err.Error())
-		return
+		return fmt.Errorf("show command failed: %w", err)
 	}
 	elapsedTime := time.Since(timeStart)
 	/*
@@ -39,16 +39,16 @@ func (c *Client) show(line string) {
 	*/
 	if len(csm.GetMetadataKeys()) == 0 {
 		log.Info("No results")
-		return
+		return nil
 	}
 	key := csm.GetMetadataKeys()[0]
 	if csm[key].Len() == 0 {
 		log.Info("No results")
-		return
+		return nil
 	}
 
 	// print at the beginning if outputting to a file
-	if c.timing && c.target != "" {
+	if c.printExecutionTime && c.target != "" {
 		log.Info("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
 
@@ -57,9 +57,10 @@ func (c *Client) show(line string) {
 	}
 
 	// print at the end if outputting to terminal
-	if c.timing && c.target == "" {
+	if c.printExecutionTime && c.target == "" {
 		log.Info("Elapsed query time: %5.3f ms\n", 1000*elapsedTime.Seconds())
 	}
+	return nil
 }
 
 func (c *Client) parseQueryArgs(args []string) (tbk *io.TimeBucketKey, start, end *time.Time) {

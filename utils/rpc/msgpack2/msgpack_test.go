@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	rpc "github.com/alpacahq/rpc/rpc2"
 	"github.com/vmihailenco/msgpack"
 
@@ -133,6 +135,8 @@ func execute(t *testing.T, s *rpc.Server, method string, req, res interface{}) e
 }
 
 func executeRaw(t *testing.T, s *rpc.Server, req, res interface{}) error {
+	t.Helper()
+
 	j, _ := msgpack.Marshal(req)
 	r, _ := http.NewRequestWithContext(context.Background(),
 		"POST", "http://localhost:8080/", bytes.NewBuffer(j))
@@ -197,7 +201,8 @@ func TestDecodeNullResult(t *testing.T) {
 	t.Parallel()
 	data := []byte(`{"jsonrpc": "2.0", "id": 12345, "result": null}`)
 	var obj interface{}
-	json.Unmarshal(data, &obj)
+	assert.Nil(t, json.Unmarshal(data, &obj))
+
 	data, _ = msgpack.Marshal(obj)
 	reader := bytes.NewReader(data)
 	var result interface{}
