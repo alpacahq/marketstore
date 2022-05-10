@@ -72,6 +72,7 @@ type FetcherConfig struct {
 // BinanceFetcher is the main worker for Binance.
 type BinanceFetcher struct {
 	config         map[string]interface{}
+	client         *binance.Client
 	symbols        []string
 	baseCurrencies []string
 	queryStart     time.Time
@@ -141,11 +142,8 @@ func appendIfMissing(slice []string, s string) ([]string, bool) {
 
 // Gets all symbols from binance.
 func getAllSymbols(quoteAssets []string) []string {
-	symbol := make([]string, 0)
-	status := make([]string, 0)
 	validSymbols := make([]string, 0)
-	tradingSymbols := make([]string, 0)
-	quote := ""
+	var tradingSymbols []string
 
 	m := ExchangeInfo{}
 	err := getJSON("https://api.binance.com/api/v1/exchangeInfo", &m)
@@ -153,26 +151,7 @@ func getAllSymbols(quoteAssets []string) []string {
 		log.Error("Binance /exchangeInfo API error: %v", err)
 		tradingSymbols = []string{"BTC", "ETH", "LTC", "BNB"}
 	} else {
-		for _, info := range m.Symbols {
-			quote = info.QuoteAsset
-			var notRepeated bool
-			// Check if data is the right base currency and then check if it's already recorded
-			for _, quoteAsset := range quoteAssets {
-				if quote == quoteAsset {
-					symbol, notRepeated = appendIfMissing(symbol, info.BaseAsset)
-					if notRepeated {
-						status = append(status, info.Status)
-					}
-				}
-			}
-		}
-
-		// Check status and append to symbols list if valid
-		for index, s := range status {
-			if s == "TRADING" {
-				tradingSymbols = append(tradingSymbols, symbol[index])
-			}
-		}
+		tradingSymbols = getTradingSymbols(quoteAssets, m)
 	}
 
 	client := binance.NewClient("", "")
@@ -185,6 +164,38 @@ func getAllSymbols(quoteAssets []string) []string {
 	}
 
 	return validSymbols
+}
+
+func getTradingSymbols(quoteAssets []string, m ExchangeInfo) []string {
+	symbol := make([]string, 0)
+	status := make([]string, 0)
+	quote := ""
+	var tradingSymbols []string
+
+	for _, info := range m.Symbols {
+		quote = info.QuoteAsset
+		var notRepeated bool
+		// Check if data is the right base currency and then check if it's already recorded
+		for _, quoteAsset := range quoteAssets {
+			if quote != quoteAsset {
+				continue
+			}
+
+			symbol, notRepeated = appendIfMissing(symbol, info.BaseAsset)
+			if notRepeated {
+				status = append(status, info.Status)
+			}
+		}
+	}
+
+	// Check status and append to symbols list if valid
+	for index, s := range status {
+		if s == "TRADING" {
+			tradingSymbols = append(tradingSymbols, symbol[index])
+		}
+	}
+
+	return tradingSymbols
 }
 
 func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
@@ -252,8 +263,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		baseCurrencies = config.BaseCurrencies
 	}
 
+	client := binance.NewClient("", "")
+
 	return &BinanceFetcher{
 		config:         conf,
+		client:         client,
 		baseCurrencies: baseCurrencies,
 		symbols:        symbols,
 		queryStart:     queryStart,
@@ -264,8 +278,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 // Run grabs data in intervals from starting time to ending time.
 // If query_end is not set, it will run forever.
 func (bn *BinanceFetcher) Run() {
-	symbols := bn.symbols
-	client := binance.NewClient("", "")
 	timeStart := time.Time{}
 	baseCurrencies := bn.baseCurrencies
 	slowDown := false
@@ -284,7 +296,7 @@ func (bn *BinanceFetcher) Run() {
 	timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
 
 	// Get last timestamp collected
-	for _, symbol := range symbols {
+	for _, symbol := range bn.symbols {
 		for _, baseCurrency := range baseCurrencies {
 			symbolDir := fmt.Sprintf("binance_%s-%s", symbol, baseCurrency)
 			tbk := io.NewTimeBucketKey(symbolDir + "/" + bn.baseTimeframe.String + "/OHLCV")
@@ -376,8 +388,8 @@ func (bn *BinanceFetcher) Run() {
 			// (ex: if we see :00 is formed that means the :59 candle is fully formed)
 			gotCandle := false
 			for !gotCandle {
-				rates, err := client.NewKlinesService().
-					Symbol(symbols[0] + baseCurrencies[0]).
+				rates, err := bn.client.NewKlinesService().
+					Symbol(bn.symbols[0] + baseCurrencies[0]).
 					Interval(timeInterval).
 					StartTime(timeStartM2).
 					Do(context.Background())
@@ -400,10 +412,10 @@ func (bn *BinanceFetcher) Run() {
 		timeStartM = timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 		timeEndM = timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 
-		for _, symbol := range symbols {
+		for _, symbol := range bn.symbols {
 			for _, baseCurrency := range baseCurrencies {
 				log.Info("Requesting %s %v - %v", symbol, timeStart, timeEnd)
-				rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
+				rates, err := bn.client.NewKlinesService().Symbol(symbol + baseCurrency).
 					Interval(timeInterval).
 					StartTime(timeStartM).
 					EndTime(timeEndM).
