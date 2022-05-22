@@ -29,11 +29,14 @@ func (c *Client) trim(line string) error {
 	}
 	trimDate, err := parseTime(args[len(args)-1])
 	if err != nil {
-		log.Error("Failed to parse trim date - Error: %v", trimDate)
+		log.Error("Failed to parse trim date(%v) - Error: %v", trimDate, err)
 	}
 
 	const ownerReadWritePerm = 0o600
-	fInfos := cli.catalogDir.GatherTimeBucketInfo()
+	fInfos, err := cli.catalogDir.GatherTimeBucketInfo()
+	if err != nil {
+		log.Error("Failed to gather time bucket info - Error: %v", err)
+	}
 	for _, info := range fInfos {
 		if info.Year != int16(trimDate.Year()) {
 			continue

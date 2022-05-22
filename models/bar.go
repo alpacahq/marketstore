@@ -192,20 +192,18 @@ func conditionToUpdateInfo(conditions []enum.TradeCondition) ConsolidatedUpdateI
 	return r
 }
 
+var bucketDurations = map[string]time.Duration{
+	"1Sec": time.Second,
+	"1Min": time.Minute,
+	"1H":   time.Hour,
+	"1D":   oneDay,
+}
+
 func FromTrades(trades *Trade, symbol, timeframe string) (*Bar, error) {
 	bar := NewBar(symbol, timeframe, len(trades.Epoch))
 
-	var bucketDuration time.Duration
-	switch timeframe {
-	case "1Sec":
-		bucketDuration = time.Second
-	case "1Min":
-		bucketDuration = time.Minute
-	case "1H":
-		bucketDuration = time.Hour
-	case "1D":
-		bucketDuration = oneDay
-	default:
+	bucketDuration, found := bucketDurations[timeframe]
+	if !found {
 		return nil, fmt.Errorf("unsupported timeframe: %v", timeframe)
 	}
 

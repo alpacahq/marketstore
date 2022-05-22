@@ -350,9 +350,8 @@ func TestDelete(t *testing.T) {
 	ts := startTime
 	tsA := make([]time.Time, 1000)
 	for i := 0; i < 1000; i++ {
-		minsToAdd := time.Duration(i)
-		ts := ts.Add(minsToAdd * time.Minute)
-		tsA[i] = ts
+		ts2 := ts.Add(time.Duration(i) * time.Minute)
+		tsA[i] = ts2
 		buffer, _ = Serialize(buffer, row)
 	}
 	writer.WriteRecords(tsA, buffer, dsv, tbi)
