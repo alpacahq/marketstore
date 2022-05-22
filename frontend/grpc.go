@@ -112,7 +112,11 @@ func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*p
 					dest.String())
 			} else if len(Symbols) == 1 && Symbols[0] == "*" {
 				// replace the * "symbol" with a list all known actual symbols
-				allSymbols := s.catalogDir.GatherCategoriesAndItems()["Symbol"]
+				ret, err := s.catalogDir.GatherCategoriesAndItems()
+				if err != nil {
+					return nil, fmt.Errorf("gather categories and items from catDir: %w", err)
+				}
+				allSymbols := ret["Symbol"]
 				symbols := make([]string, 0, len(allSymbols))
 				for symbol := range allSymbols {
 					symbols = append(symbols, symbol)
@@ -293,7 +297,11 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 
 	switch req.Format {
 	case proto.ListSymbolsRequest_SYMBOL:
-		for symbol := range s.catalogDir.GatherCategoriesAndItems()["Symbol"] {
+		ret, err := s.catalogDir.GatherCategoriesAndItems()
+		if err != nil {
+			return nil, fmt.Errorf("gather categories and items from catDir: %w", err)
+		}
+		for symbol := range ret["Symbol"] {
 			response.Results = append(response.Results, symbol)
 		}
 	default: // proto.ListSymbolsRequest_TIME_BUCKET_KEY:

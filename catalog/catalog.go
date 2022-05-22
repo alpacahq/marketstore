@@ -30,7 +30,7 @@ type Directory struct {
 	// subDirs[Key]: Key is the name of the directory, aka "ItemName" which is an instance of the category
 	subDirs map[string]*Directory
 
-	catList map[string]int8
+	categorySet map[string]struct{}
 	// datafile[Key]: Key is the fully specified path to the datafile, including rootPath and filename
 	datafile map[string]*io.TimeBucketInfo
 }
@@ -257,20 +257,25 @@ func (d *Directory) GetTimeBucketInfoSlice() (tbinfolist []*io.TimeBucketInfo) {
 	return tbinfolist
 }
 
-func (d *Directory) GatherTimeBucketInfo() []*io.TimeBucketInfo {
+func (d *Directory) GatherTimeBucketInfo() ([]*io.TimeBucketInfo, error) {
 	// Locates a path in the directory and returns the TimeBucketInfo for that path or error if it isn't there
 	// Must be thread-safe for READ access
-	fileInfoFunc := func(d *Directory, iList interface{}) {
-		pList := iList.(*[]*io.TimeBucketInfo)
-		if d.datafile != nil {
-			for _, dfile := range d.datafile {
-				*pList = append(*pList, dfile)
-			}
+	fileInfoFunc := func(d *Directory, iList interface{}) error {
+		if d == nil {
+			return errors.New("nil directory is passed")
 		}
+		pList := iList.(*[]*io.TimeBucketInfo)
+		for _, dfile := range d.datafile {
+			*pList = append(*pList, dfile)
+		}
+		return nil
 	}
 	fileInfoList := make([]*io.TimeBucketInfo, 0)
-	d.recurse(&fileInfoList, fileInfoFunc)
-	return fileInfoList
+	err := d.recurse(&fileInfoList, fileInfoFunc)
+	if err != nil {
+		return nil, fmt.Errorf("recurse dir to gather time bucket info: %w", err)
+	}
+	return fileInfoList, nil
 }
 
 func (d *Directory) GetLatestTimeBucketInfoFromKey(key *io.TimeBucketKey) (fi *io.TimeBucketInfo, err error) {
@@ -297,21 +302,25 @@ func (d *Directory) PathToTimeBucketInfo(path2 string) (*io.TimeBucketInfo, erro
 	*/
 	// Must be thread-safe for READ access
 	var tbinfo *io.TimeBucketInfo
-	findTimeBucketInfo := func(d *Directory, _ interface{}) {
+	findTimeBucketInfo := func(d *Directory, _ interface{}) error {
 		if tbinfo != nil {
 			// We have already found our fileinfo match
-			return
+			return nil
 		}
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
 				if dfile.Path == path2 {
 					tbinfo = dfile.GetDeepCopy()
-					return
+					return nil
 				}
 			}
 		}
+		return nil
 	}
-	d.recurse(tbinfo, findTimeBucketInfo)
+	err := d.recurse(tbinfo, findTimeBucketInfo)
+	if err != nil {
+		return nil, fmt.Errorf("find time bucket info from dir: %w", err)
+	}
 	if tbinfo == nil {
 		return nil, NotFoundError("")
 	}
@@ -459,33 +468,40 @@ func (d *Directory) GetCategory() string {
 	return d.category
 }
 
-func (d *Directory) GatherCategoriesFromCache() (catList map[string]int8) {
+func (d *Directory) GatherCategoriesFromCache() (catSet map[string]struct{}, err error) {
 	// Must be thread-safe for WRITE access
 	// Provides a map of categories contained within and below this directory. Will create the list cache if nil.
 	d.RLock()
-	catList = d.catList
+	catSet = d.categorySet
 	d.RUnlock()
-	if catList == nil {
+	if catSet == nil {
 		return d.gatherCategoriesUpdateCache()
 	}
-	return catList
+	return catSet, nil
 }
 
-func (d *Directory) GatherCategoriesAndItems() map[string]map[string]int {
+func (d *Directory) GatherCategoriesAndItems() (map[string]map[string]int, error) {
 	// Must be thread-safe for READ access
 	// Provides a map of categories and items within and below this directory
 	catList := make(map[string]map[string]int)
-	d.recurse(catList, catalogListFunc)
-	return catList
+	err := d.recurse(catList, catalogListFunc)
+	if err != nil {
+		return nil, fmt.Errorf("recurse to gather category and items: %w", err)
+	}
+	return catList, nil
 }
 
-func catalogListFunc(d *Directory, itemList interface{}) {
+func catalogListFunc(d *Directory, itemList interface{}) error {
 	// key: category_name(e.g. "Symbol", "Timeframe", "AttribtueGroup", "Year")
 	// value: {
 	//    key: category value (e.g. "AAPL" if category is "Symbol"}
 	//    value: 0
 	// }
-	list := itemList.(map[string]map[string]int)
+	list, ok := itemList.(map[string]map[string]int)
+	if !ok {
+		return fmt.Errorf("unexpected itemList type: %v", itemList)
+	}
+
 	if list[d.category] == nil {
 		list[d.category] = make(map[string]int)
 	}
@@ -499,6 +515,7 @@ func catalogListFunc(d *Directory, itemList interface{}) {
 			list[d.category][strconv.Itoa(int(file.Year))] = 0
 		}
 	}
+	return nil
 }
 
 // ListTimeBucketKeyNames returns the list of TimeBucket keys
@@ -550,45 +567,67 @@ func (d *Directory) String() string {
 	return printstring[:len(printstring)-1]
 }
 
-func (d *Directory) GatherDirectories() []string {
+func (d *Directory) GatherDirectories() ([]string, error) {
 	// Must be thread-safe for READ access
-	dirListFunc := func(d *Directory, iList interface{}) {
-		pList := iList.(*[]string)
+	dirListFunc := func(d *Directory, iList interface{}) error {
+		pList, ok := iList.(*[]string)
+		if !ok {
+			return fmt.Errorf("unexpected iList type: %v", iList)
+		}
 		*pList = append(*pList, d.itemName)
+		return nil
 	}
 	dirList := make([]string, 0)
-	d.recurse(&dirList, dirListFunc)
-	return dirList
+	err := d.recurse(&dirList, dirListFunc)
+	if err != nil {
+		return nil, fmt.Errorf("recurse to list directories: %w", err)
+	}
+	return dirList, nil
 }
 
-func (d *Directory) GatherFilePaths() []string {
+func (d *Directory) GatherFilePaths() ([]string, error) {
 	// Must be thread-safe for READ access
-	filePathListFunc := func(d *Directory, iList interface{}) {
-		pList := iList.(*[]string)
+	filePathListFunc := func(d *Directory, iList interface{}) error {
+		pList, ok := iList.(*[]string)
+		if !ok {
+			return fmt.Errorf("unexpected iList type: %v", iList)
+		}
 		if d.datafile != nil {
 			for _, dfile := range d.datafile {
 				*pList = append(*pList, dfile.Path)
 			}
 		}
+		return nil
 	}
 	filePathList := make([]string, 0)
-	d.recurse(&filePathList, filePathListFunc)
-	return filePathList
+	err := d.recurse(&filePathList, filePathListFunc)
+	if err != nil {
+		return nil, fmt.Errorf("list file paths: %w", err)
+	}
+	return filePathList, nil
 }
 
-func (d *Directory) gatherCategoriesUpdateCache() map[string]int8 {
+func (d *Directory) gatherCategoriesUpdateCache() (map[string]struct{}, error) {
 	// Must be thread-safe for WRITE access
 	// Note that this should be called whenever catalog structure is modified to update the cache
-	catListFunc := func(d *Directory, i_list interface{}) {
-		list := i_list.(map[string]int8)
-		list[d.category] = 0
+	categorySetFunc := func(d *Directory, iList interface{}) error {
+		list, ok := iList.(map[string]struct{})
+		if !ok {
+			return fmt.Errorf("unexpected iList type: %v", iList)
+		}
+		list[d.category] = struct{}{}
+		return nil
 	}
-	newCatList := make(map[string]int8)
-	d.recurse(newCatList, catListFunc)
+	newCategorySet := make(map[string]struct{})
+	err := d.recurse(newCategorySet, categorySetFunc)
+	if err != nil {
+		return nil, fmt.Errorf("gather categories from dir: %w", err)
+	}
 	d.Lock()
-	d.catList = newCatList
+	d.categorySet = newCategorySet
 	d.Unlock()
-	return newCatList
+
+	return newCategorySet, nil
 }
 
 func (d *Directory) GetLatestYearFile() (latestFile *io.TimeBucketInfo, err error) {
@@ -610,7 +649,7 @@ func (d *Directory) GetLatestYearFile() (latestFile *io.TimeBucketInfo, err erro
 
 func (d *Directory) addSubdir(subDir *Directory, subDirItemName string) {
 	subDir.itemName = subDirItemName
-	d.catList = nil // Reset the category list
+	d.categorySet = nil // Reset the category list
 	if d.subDirs == nil {
 		d.subDirs = make(map[string]*Directory)
 	}
@@ -638,19 +677,25 @@ func (d *Directory) removeSubDir(subDirItemName string, directMap *sync.Map) {
 	}
 }
 
-type levelFunc func(*Directory, interface{}) // Function for use in recursing into directories
+type levelFunc func(*Directory, interface{}) error // Function for use in recursing into directories
 
-func (d *Directory) recurse(elem interface{}, levelFunc levelFunc) {
+func (d *Directory) recurse(elem interface{}, levelFunc levelFunc) error {
 	// Must be thread-safe for READ access
 	// Recurse will recurse through a directory, calling levelfunc. Elem is used to pass along a variable.
 	d.RLock()
 	defer d.RUnlock()
-	levelFunc(d, elem)
+
+	if err := levelFunc(d, elem); err != nil {
+		return fmt.Errorf("execute levelFunc in directory: %w", err)
+	}
 	if d.subDirs != nil {
 		for _, pd := range d.subDirs {
-			pd.recurse(elem, levelFunc)
+			if err := pd.recurse(elem, levelFunc); err != nil {
+				return fmt.Errorf("recurse directory: %w", err)
+			}
 		}
 	}
+	return nil
 }
 
 func removeDirFiles(td *Directory) {

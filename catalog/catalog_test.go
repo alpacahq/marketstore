@@ -31,16 +31,18 @@ func setup(t *testing.T) (rootDir string, catalogDir *catalog.Directory) {
 func TestGetCatList(t *testing.T) {
 	_, catalogDir := setup(t)
 
-	CatList := catalogDir.GatherCategoriesFromCache()
+	CatList, err := catalogDir.GatherCategoriesFromCache()
+	assert.Nil(t, err)
 	assert.Len(t, CatList, 4)
 }
 
 func TestGetCatItemMap(t *testing.T) {
 	_, catalogDir := setup(t)
 
-	catList := catalogDir.GatherCategoriesAndItems()
+	catList, err := catalogDir.GatherCategoriesAndItems()
+	assert.Nil(t, err)
 	/*
-		for key, list := range catList {
+		for key, list := range categorySet {
 			fmt.Printf("Category: %s: {", key)
 			var i int
 			for name, _ := range list {
@@ -59,14 +61,16 @@ func TestGetCatItemMap(t *testing.T) {
 func TestGetDirList(t *testing.T) {
 	_, catalogDir := setup(t)
 
-	dirList := catalogDir.GatherDirectories()
+	dirList, err := catalogDir.GatherDirectories()
+	assert.Nil(t, err)
 	assert.Len(t, dirList, 40)
 }
 
 func TestGatherFilePaths(t *testing.T) {
 	_, catalogDir := setup(t)
 
-	filePathList := catalogDir.GatherFilePaths()
+	filePathList, err := catalogDir.GatherFilePaths()
+	assert.Nil(t, err)
 	//	for _, filePath := range filePathList {
 	//		fmt.Printf("File Path: %s\n",filePath)
 	//	}
@@ -76,7 +80,8 @@ func TestGatherFilePaths(t *testing.T) {
 func TestGatherFileInfo(t *testing.T) {
 	_, catalogDir := setup(t)
 
-	fileInfoList := catalogDir.GatherTimeBucketInfo()
+	fileInfoList, err := catalogDir.GatherTimeBucketInfo()
+	assert.Nil(t, err)
 	// for _, fileInfo := range fileInfoList {
 	//	fmt.Printf("File Path: %s Year: %d\n",fileInfo.Path,fileInfo.Year)
 	// }
@@ -105,7 +110,9 @@ func TestAddFile(t *testing.T) {
 	_, catalogDir := setup(t)
 
 	// Get the owning subdirectory for a test file path
-	filePathList := catalogDir.GatherFilePaths()
+	filePathList, err := catalogDir.GatherFilePaths()
+	assert.Nil(t, err)
+
 	filePath := filePathList[0]
 	// fmt.Println(filePath)
 	subDir, err := catalogDir.GetOwningSubDirectory(filePath)
@@ -145,7 +152,8 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 	err := catalogDir.AddTimeBucket(tbk, tbinfo)
 	assert.Nil(t, err)
 
-	catList := catalogDir.GatherCategoriesAndItems()
+	catList, err := catalogDir.GatherCategoriesAndItems()
+	assert.Nil(t, err)
 	_, ok := catList["Symbol"]["TEST"]
 	assert.True(t, ok)
 	// Construct the known new path to this subdirectory so that we can verify it is in the catalog
@@ -163,7 +171,8 @@ func TestAddAndRemoveDataItem(t *testing.T) {
 		t.Log(err)
 	}
 	assert.Nil(t, err)
-	catList = catalogDir.GatherCategoriesAndItems()
+	catList, err = catalogDir.GatherCategoriesAndItems()
+	assert.Nil(t, err)
 	_, ok = catList["Symbol"]["TEST"]
 	assert.False(t, ok)
 	npath := newFilePath
@@ -202,7 +211,8 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	err = catalogDir.AddTimeBucket(tbk, tbinfo)
 	assert.Nil(t, err)
 
-	catList := catalogDir.GatherCategoriesAndItems()
+	catList, err := catalogDir.GatherCategoriesAndItems()
+	assert.Nil(t, err)
 	_, ok := catList["Symbol"]["TEST"]
 	assert.True(t, ok)
 	newFilePath := path.Join(rootDir, "TEST", "1Min", "OHLCV", "2016.bin")
@@ -214,7 +224,7 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	assert.True(t, exists(npath))
 	npath = path.Join(rootDir, "TEST")
 	assert.True(t, exists(npath))
-	// fmt.Println(catList)
+	// fmt.Println(categorySet)
 
 	/*
 		Test ADD + ADD of the same symbol - should throw an error
@@ -230,7 +240,8 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 	tbk = io.NewTimeBucketKey(dataItemKey, catKey)
 	err = catalogDir.AddTimeBucket(tbk, tbinfo)
 	assert.Nil(t, err)
-	catList = catalogDir.GatherCategoriesAndItems()
+	catList, err = catalogDir.GatherCategoriesAndItems()
+	assert.Nil(t, err)
 	_, ok = catList["Symbol"]["TEST2"]
 	assert.True(t, ok)
 
@@ -285,7 +296,8 @@ func TestCreateNewDirectory(t *testing.T) {
 	tbk := io.NewTimeBucketKey(dataItemKey, catKey)
 	err := catalogDir.AddTimeBucket(tbk, tbinfo)
 	assert.Nil(t, err)
-	catList := catalogDir.GatherCategoriesAndItems()
+	catList, err := catalogDir.GatherCategoriesAndItems()
+	assert.Nil(t, err)
 	_, ok := catList["Symbol"]["TEST"]
 	assert.True(t, ok)
 

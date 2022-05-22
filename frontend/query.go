@@ -163,7 +163,11 @@ func (s *DataService) executeQuery(req *QueryRequest) (*QueryResponse, error) {
 			dest.String())
 	} else if len(Symbols) == 1 && Symbols[0] == "*" {
 		// replace the * "symbol" with a list all known actual symbols
-		allSymbols := s.catalogDir.GatherCategoriesAndItems()["Symbol"]
+		ret, err := s.catalogDir.GatherCategoriesAndItems()
+		if err != nil {
+			return nil, fmt.Errorf("gather categories and items from catDir: %w", err)
+		}
+		allSymbols := ret["Symbol"]
 		symbols := make([]string, 0, len(allSymbols))
 		for symbol := range allSymbols {
 			symbols = append(symbols, symbol)
@@ -274,7 +278,11 @@ func (s *DataService) ListSymbols(r *http.Request, req *ListSymbolsRequest, resp
 	}
 
 	// Symbol format (e.g. ["AMZN", "AAPL", ...])
-	symbols := s.catalogDir.GatherCategoriesAndItems()["Symbol"]
+	ret, err := s.catalogDir.GatherCategoriesAndItems()
+	if err != nil {
+		return fmt.Errorf("gather categories and items from catalog dir to list symbols: %w", err)
+	}
+	symbols := ret["Symbol"]
 	response.Results = make([]string, len(symbols))
 	cnt := 0
 	for symbol := range symbols {
