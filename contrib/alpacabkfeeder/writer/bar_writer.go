@@ -24,7 +24,8 @@ type BarWriterImpl struct {
 	Timezone *time.Location
 }
 
-// Write converts the Response of the GetMultiBars API to a ColumnSeriesMap and write it to the local marketstore server.
+// Write converts the Response of the GetMultiBars API to a ColumnSeriesMap
+// and write it to the local marketstore server.
 func (b BarWriterImpl) Write(symbol string, bars []api.Bar) error {
 	// convert Bar Data to CSM (ColumnSeriesMap)
 	csm := b.convertToCSM(symbol, bars)

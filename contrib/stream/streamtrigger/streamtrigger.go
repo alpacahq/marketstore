@@ -2,6 +2,7 @@ package streamtrigger
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -25,16 +26,25 @@ type Config struct {
 
 var _ trigger.Trigger = &StreamTrigger{}
 
-func recast(config map[string]interface{}) *Config {
-	data, _ := json.Marshal(config)
+func recast(config map[string]interface{}) (*Config, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("[streamtrigger] marshal config for recasting: %w", err)
+	}
 	ret := Config{}
-	json.Unmarshal(data, &ret)
-	return &ret
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, fmt.Errorf("[streamtrigger] unmarshal config for recasting: %w", err)
+	}
+	return &ret, nil
 }
 
 // NewTrigger returns a new on-disk aggregate trigger based on the configuration.
 func NewTrigger(conf map[string]interface{}) (trigger.Trigger, error) {
-	config := recast(conf)
+	config, err := recast(conf)
+	if err != nil {
+		return nil, fmt.Errorf("[streamtrigger] recast config: %w", err)
+	}
 
 	filter := config.Filter
 	if filter != "" && filter != "nasdaq" {

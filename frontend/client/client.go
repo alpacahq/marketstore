@@ -38,6 +38,57 @@ func NewClient(baseurl string) (cl *Client, err error) {
 	return cl, nil
 }
 
+func decodeMultiGetInfoResponse(resp *http.Response) (response interface{}, err error) {
+	result := &frontend.MultiGetInfoResponse{}
+	if err = msgpack2.DecodeClientResponse(resp.Body, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func decodeMultiServerResponse(resp *http.Response) (response interface{}, err error) {
+	result := &frontend.MultiServerResponse{}
+	if err = msgpack2.DecodeClientResponse(resp.Body, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func decodeMultiQueryResponse(resp *http.Response) (response interface{}, err error) {
+	result := &frontend.MultiQueryResponse{}
+	err = msgpack2.DecodeClientResponse(resp.Body, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.ToColumnSeriesMap()
+}
+
+func decodeListSymbols(resp *http.Response) (response interface{}, err error) {
+	result := &frontend.ListSymbolsResponse{}
+	err = msgpack2.DecodeClientResponse(resp.Body, result)
+	if err != nil {
+		return nil, fmt.Errorf("decode ListSymbols API client response:%w", err)
+	}
+	return result.Results, nil
+}
+
+var decodeFuncMap = map[string]func(resp *http.Response) (response interface{}, err error){
+	"GetInfo":      decodeMultiGetInfoResponse,
+	"Create":       decodeMultiServerResponse,
+	"Destroy":      decodeMultiServerResponse,
+	"Query":        decodeMultiQueryResponse,
+	"SQLStatement": decodeMultiQueryResponse,
+	"ListSymbols":  decodeListSymbols,
+	"Write": func(resp *http.Response) (response interface{}, err error) {
+		_, err = decodeMultiServerResponse(resp)
+		if err != nil {
+			return nil, fmt.Errorf("decode Write API client response:%w", err)
+		}
+		return nil, nil
+	},
+}
+
 // DoRPC makes an RPC request to MarketStore's API.
 func (cl *Client) DoRPC(functionName string, args interface{}) (response interface{}, err error) {
 	/*
@@ -81,50 +132,11 @@ func (cl *Client) DoRPC(functionName string, args interface{}) (response interfa
 	}
 
 	// Unpack and format the response from the RPC call
-	switch functionName {
-	case "GetInfo":
-		result := &frontend.MultiGetInfoResponse{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-
-	case "Create", "Destroy":
-		result := &frontend.MultiServerResponse{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-
-	case "Query", "SQLStatement":
-		result := &frontend.MultiQueryResponse{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		if err != nil {
-			return nil, err
-		}
-
-		return result.ToColumnSeriesMap()
-	case "ListSymbols":
-		result := &frontend.ListSymbolsResponse{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		if err != nil {
-			return nil, fmt.Errorf("decode ListSymbols API client response:%w", err)
-		}
-		return result.Results, nil
-	case "Write":
-		result := &frontend.MultiServerResponse{}
-		err = msgpack2.DecodeClientResponse(resp.Body, result)
-		if err != nil {
-			return nil, fmt.Errorf("decode Write API client response:%w", err)
-		}
-
-	default:
+	decodeFunc, found := decodeFuncMap[functionName]
+	if !found {
 		return nil, fmt.Errorf("unsupported RPC response")
 	}
-
-	return nil, nil
+	return decodeFunc(resp)
 }
 
 // Subscribe to the marketstore websocket interface with a

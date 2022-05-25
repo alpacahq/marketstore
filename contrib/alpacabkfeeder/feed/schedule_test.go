@@ -8,6 +8,18 @@ import (
 	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
 )
 
+type mockMarketTimeChecker struct {
+	isOpen bool
+}
+
+func (m *mockMarketTimeChecker) IsOpen(_ time.Time) bool {
+	return m.isOpen
+}
+
+func (m *mockMarketTimeChecker) Sub(_ time.Time, _ int) (time.Time, error) {
+	panic("not implemented")
+}
+
 func TestParseSchedule(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

@@ -293,44 +293,65 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	return executor.WriteCSM(csm, false)
 }
 
+func getParams(volumeColExists bool) []accumParam {
+	var params []accumParam
+	params = []accumParam{
+		{"Open", "first", "Open"},
+		{"High", "max", "High"},
+		{"Low", "min", "Low"},
+		{"Close", "last", "Close"},
+	}
+	if volumeColExists {
+		params = append(params, accumParam{"Volume", "sum", "Volume"})
+	}
+	return params
+}
+
+func convertCSToTrades(cs *io.ColumnSeries, symbol string) (*models.Trade, error) {
+	trades := models.NewTrade(symbol, cs.Len())
+	epochs := cs.GetEpoch()
+	nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
+	prices, ok2 := cs.GetColumn("Price").([]float64)
+	sizes, ok3 := cs.GetColumn("Size").([]uint64)
+	exchanges, ok4 := cs.GetColumn("Exchange").([]byte)
+	tapeids, ok5 := cs.GetColumn("TapeID").([]byte)
+	cond1, ok6 := cs.GetColumn("Cond1").([]byte)
+	cond2, ok7 := cs.GetColumn("Cond2").([]byte)
+	cond3, ok8 := cs.GetColumn("Cond3").([]byte)
+	cond4, ok9 := cs.GetColumn("Cond4").([]byte)
+	if !(ok && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8 && ok9) {
+		return nil, fmt.Errorf("convert ticks to bars. symbol=%s", symbol)
+	}
+	for i := range epochs {
+		condition := []modelsenum.TradeCondition{
+			modelsenum.TradeCondition(cond1[i]),
+			modelsenum.TradeCondition(cond2[i]),
+			modelsenum.TradeCondition(cond3[i]),
+			modelsenum.TradeCondition(cond4[i]),
+		}
+		trades.Add(
+			epochs[i], int(nanos[i]),
+			modelsenum.Price(prices[i]),
+			modelsenum.Size(sizes[i]),
+			modelsenum.Exchange(exchanges[i]),
+			modelsenum.Tape(tapeids[i]),
+			condition...)
+	}
+	return trades, nil
+}
+
 func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol string) (*io.ColumnSeries, error) {
 	timeWindow, err := utils.CandleDurationFromString(aggTbk.GetItemInCategory("Timeframe"))
 	if err != nil {
 		return nil, fmt.Errorf("timeframe not found from aggTbk=%v: %w", aggTbk, err)
 	}
-	var params []accumParam
 
 	suffix := fmt.Sprintf("/%s/%s", models.TradeTimeframe, models.TradeSuffix)
 	if strings.HasSuffix(baseTbk.GetItemKey(), suffix) {
 		// Ticks to bars
-		trades := models.NewTrade(symbol, cs.Len())
-		epochs := cs.GetEpoch()
-		nanos, ok := cs.GetColumn("Nanoseconds").([]int32)
-		prices, ok2 := cs.GetColumn("Price").([]float64)
-		sizes, ok3 := cs.GetColumn("Size").([]uint64)
-		exchanges, ok4 := cs.GetColumn("Exchange").([]byte)
-		tapeids, ok5 := cs.GetColumn("TapeID").([]byte)
-		cond1, ok6 := cs.GetColumn("Cond1").([]byte)
-		cond2, ok7 := cs.GetColumn("Cond2").([]byte)
-		cond3, ok8 := cs.GetColumn("Cond3").([]byte)
-		cond4, ok9 := cs.GetColumn("Cond4").([]byte)
-		if !(ok && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8 && ok9) {
-			return nil, fmt.Errorf("convert ticks to bars. tbk=%v, symbol=%s", baseTbk, symbol)
-		}
-		for i := range epochs {
-			condition := []modelsenum.TradeCondition{
-				modelsenum.TradeCondition(cond1[i]),
-				modelsenum.TradeCondition(cond2[i]),
-				modelsenum.TradeCondition(cond3[i]),
-				modelsenum.TradeCondition(cond4[i]),
-			}
-			trades.Add(
-				epochs[i], int(nanos[i]),
-				modelsenum.Price(prices[i]),
-				modelsenum.Size(sizes[i]),
-				modelsenum.Exchange(exchanges[i]),
-				modelsenum.Tape(tapeids[i]),
-				condition...)
+		trades, err := convertCSToTrades(cs, symbol)
+		if err != nil {
+			return nil, err
 		}
 
 		bar, err := models.FromTrades(trades, symbol, timeWindow.String)
@@ -342,15 +363,7 @@ func aggregate(cs *io.ColumnSeries, aggTbk, baseTbk *io.TimeBucketKey, symbol st
 		return cs2, nil
 	}
 	// bars to bars
-	params = []accumParam{
-		{"Open", "first", "Open"},
-		{"High", "max", "High"},
-		{"Low", "min", "Low"},
-		{"Close", "last", "Close"},
-	}
-	if cs.Exists("Volume") {
-		params = append(params, accumParam{"Volume", "sum", "Volume"})
-	}
+	params := getParams(cs.Exists("Volume"))
 
 	accumGroup := newAccumGroup(cs, params)
 

@@ -5,6 +5,7 @@ import (
 )
 
 // mapping between Polygon's integer exchange codes and Marketstore's internal representation.
+// nolint:dupl // config map.
 var exchangeCodeMapping = map[int]enum.Exchange{
 	1:  enum.NYSEAmerican,
 	2:  enum.NasdaqOMXBX,
@@ -96,6 +97,8 @@ func ConvertTradeCondition(condition int) enum.TradeCondition {
 	return val
 }
 
+// QuoteConditionMapping provides a mapping from Polygon integer format to Marketstore's internal representation.
+// nolint:dupl // config map.
 var QuoteConditionMapping = map[int]enum.QuoteCondition{
 	// 0:  enum.Regular,
 	1: enum.RegularTwoSidedOpen,

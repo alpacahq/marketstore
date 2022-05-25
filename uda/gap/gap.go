@@ -80,31 +80,43 @@ func (g *Gap) Accum(_ io.TimeBucketKey, _ *functions.ArgumentMap, cols io.Column
 	// Big gap which exceed the avg time gap interval,
 	// val of BigGapIdxs is the index of Epochs from data ColumnSeries
 	if g.avgGapIntervalSeconds < 0 {
-		// Z-Score
-		m := stat.Mean(gaps, nil)
-		s := stat.StdDev(gaps, nil)
-		if s == 0 {
-			s = 1
-		}
-
-		for i, x := range gaps {
-			const gapThresholdScore = 3
-			if math.Abs(stat.StdScore(x, m, s)) > gapThresholdScore {
-				g.BigGapIdxs = append(g.BigGapIdxs, i)
-			}
-		}
+		g.BigGapIdxs = append(g.BigGapIdxs, bigGapIdxsByZScoreThreshold(gaps)...)
 	} else {
-		// Use specific threshold
 		thresholdZ := float64(g.avgGapIntervalSeconds)
-
-		for i, x := range gaps {
-			if x > thresholdZ {
-				g.BigGapIdxs = append(g.BigGapIdxs, i)
-			}
-		}
+		g.BigGapIdxs = append(g.BigGapIdxs, bigGapIdxsByThreshold(gaps, thresholdZ)...)
 	}
 
 	return g.Output()
+}
+
+// Use specific threshold.
+func bigGapIdxsByZScoreThreshold(gaps []float64) []int {
+	bigGapIdxs := make([]int, 0)
+	// Z-Score
+	m := stat.Mean(gaps, nil)
+	s := stat.StdDev(gaps, nil)
+	if s == 0 {
+		s = 1
+	}
+
+	for i, x := range gaps {
+		const gapThresholdScore = 3
+		if math.Abs(stat.StdScore(x, m, s)) > gapThresholdScore {
+			bigGapIdxs = append(bigGapIdxs, i)
+		}
+	}
+	return bigGapIdxs
+}
+
+func bigGapIdxsByThreshold(gaps []float64, threshold float64) []int {
+	bigGapIdxs := make([]int, 0)
+
+	for i, x := range gaps {
+		if x > threshold {
+			bigGapIdxs = append(bigGapIdxs, i)
+		}
+	}
+	return bigGapIdxs
 }
 
 /*

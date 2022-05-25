@@ -252,5 +252,5 @@ func setURLs(servers, apiKey string) (svrs []*url.URL) {
 		u[i].RawQuery = parameters.Encode()
 	}
 	svrs = u
-	return
+	return svrs
 }

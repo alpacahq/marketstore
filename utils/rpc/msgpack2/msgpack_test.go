@@ -152,7 +152,7 @@ func TestService(t *testing.T) {
 	t.Parallel()
 	s := rpc.NewServer()
 	s.RegisterCodec(msgpack2.NewCodec(), "application/x-msgpack")
-	s.RegisterService(new(Service1), "")
+	assert.Nil(t, s.RegisterService(new(Service1), ""))
 
 	var res Service1Response
 	if err := execute(t, s, "Service1.Multiply", &Service1Request{4, 2}, &res); err != nil {

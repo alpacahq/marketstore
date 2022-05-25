@@ -1,6 +1,7 @@
 package wal
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -36,7 +37,10 @@ var (
 func init() {
 	// Parse flags.
 	Cmd.Flags().StringVarP(&walfilePath, "file", "f", "", walFilePathDesc)
-	Cmd.MarkFlagRequired("file")
+	err := Cmd.MarkFlagRequired("file")
+	if err != nil {
+		log.Error(fmt.Sprintf("failed to mark 'file' flag required. err=%v", err.Error()))
+	}
 }
 
 func executeWAL(cmd *cobra.Command, args []string) error {
