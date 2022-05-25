@@ -103,11 +103,10 @@ func TestQueryMulti(t *testing.T) {
 	for ii := 0; ii < 10; ii++ {
 		ts = ts.Add(time.Minute)
 		row.Epoch = ts.Unix()
-		writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
+		assert.Nil(t, writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi))
 	}
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	assert.Nil(t, metadata.WALFile.FlushToWAL())
+	assert.Nil(t, metadata.WALFile.CreateCheckpoint())
 
 	q := NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Timeframe", "1Min")
@@ -158,11 +157,10 @@ func TestWriteVariable(t *testing.T) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
+		assert.Nil(t, writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi))
 	}
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	assert.Nil(t, metadata.WALFile.FlushToWAL())
+	assert.Nil(t, metadata.WALFile.CreateCheckpoint())
 
 	/*
 		Read the data back
@@ -196,11 +194,10 @@ func TestWriteVariable(t *testing.T) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
+		assert.Nil(t, writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi))
 	}
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	assert.Nil(t, metadata.WALFile.FlushToWAL())
+	assert.Nil(t, metadata.WALFile.CreateCheckpoint())
 
 	csm, err = reader.Read()
 	assert.Nil(t, err)
@@ -229,11 +226,10 @@ func TestWriteVariable(t *testing.T) {
 		row.Epoch = ts.Unix()
 		inputTime = append(inputTime, ts)
 		buffer, _ := Serialize([]byte{}, row)
-		writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi)
+		assert.Nil(t, writer.WriteRecords([]time.Time{ts}, buffer, dsv, tbi))
 	}
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	assert.Nil(t, metadata.WALFile.FlushToWAL())
+	assert.Nil(t, metadata.WALFile.CreateCheckpoint())
 
 	q = NewQuery(metadata.CatalogDir)
 	q.AddRestriction("Symbol", "TEST-WV")
@@ -354,10 +350,9 @@ func TestDelete(t *testing.T) {
 		tsA[i] = ts2
 		buffer, _ = Serialize(buffer, row)
 	}
-	writer.WriteRecords(tsA, buffer, dsv, tbi)
-	assert.Nil(t, err)
-	metadata.WALFile.FlushToWAL()
-	metadata.WALFile.CreateCheckpoint()
+	assert.Nil(t, writer.WriteRecords(tsA, buffer, dsv, tbi))
+	assert.Nil(t, metadata.WALFile.FlushToWAL())
+	assert.Nil(t, metadata.WALFile.CreateCheckpoint())
 
 	endTime := tsA[len(tsA)-1]
 

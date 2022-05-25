@@ -34,8 +34,8 @@ func TestNewConfig(t *testing.T) {
 			want: &configs.DefaultConfig{
 				Exchanges:           []string{"foo"},
 				IndexGroups:         []string{"bar"},
-				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
-				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
+				ClosedDaysOfTheWeek: []time.Weekday{},
+				ClosedDays:          []time.Time{},
 				UpdateTime:          time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC),
 				APIToken:            "ABCDEFGHIJKLMNOPQRSTUVWXYZ789012",
 			},
@@ -55,8 +55,8 @@ func TestNewConfig(t *testing.T) {
 			want: &configs.DefaultConfig{
 				Exchanges:           []string{"foo"},
 				IndexGroups:         []string{"bar"},
-				ClosedDaysOfTheWeek: []time.Weekday{time.Sunday},
-				ClosedDays:          []time.Time{time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)},
+				ClosedDaysOfTheWeek: []time.Weekday{},
+				ClosedDays:          []time.Time{},
 				UpdateTime:          time.Date(0, 1, 1, 12, 34, 56, 0, time.UTC),
 				APIToken:            "hellohellohellohellohellohello12",
 			},

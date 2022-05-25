@@ -96,6 +96,7 @@ func (s *Subscription) start(handler func(msg []byte)) {
 	// Automatically reconnecting w/ exp. backoff + jitter
 	go func() {
 		backoff := sleepStart
+		// nolint:gosec // no need to use a secure random number
 		random := rand.New(rand.NewSource(time.Now().UnixNano()))
 		for {
 			start := time.Now()

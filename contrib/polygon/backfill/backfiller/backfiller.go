@@ -80,6 +80,7 @@ func init() {
 	flag.Parse()
 }
 
+// nolint:funlen,gocognit,gocyclo // TODO: refactor the main func
 func main() {
 	const allPerm = 0o777
 	const oneDay = 24 * time.Hour
@@ -365,40 +366,35 @@ func getBars(client *http.Client, start, end time.Time, period time.Duration, sy
 	}
 }
 
-func getQuotes(client *http.Client, start, end time.Time, period time.Duration, symbol string,
-	writerWP *worker.Pool,
+// resourceName = {"quotes", "trades"}, and it's just for logging.
+func getQuotesOrTrades(resourceName string, client *http.Client, start, end time.Time, period time.Duration,
+	symbol string, writerWP *worker.Pool,
 ) {
-	log.Info("[polygon] backfilling quotes for %v", symbol)
+	log.Info(fmt.Sprintf("[polygon] backfilling %s for %v", resourceName, symbol))
 	for end.After(start) {
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
 
-		log.Info("[polygon] backfilling quotes for %v between %s and %s", symbol, start, start.Add(period))
+		log.Info(fmt.Sprintf("[polygon] backfilling %s for %v between %s and %s",
+			resourceName, symbol, start, start.Add(period)),
+		)
 		if err := backfill.Quotes(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
-			log.Warn("[polygon] failed to backfill quote for %v @ %v (%v)", symbol, start, err)
+			log.Warn(fmt.Sprintf("[polygon] failed to backfill %s for %v @ %v (%v)",
+				resourceName, symbol, start, err),
+			)
 		}
 
 		start = start.Add(period)
 	}
 }
 
-func getTrades(client *http.Client, start, end time.Time, period time.Duration, symbol string,
-	writerWP *worker.Pool,
-) {
-	log.Info("[polygon] backfilling trades for %v", symbol)
-	for end.After(start) {
-		if start.Add(period).After(end) {
-			period = end.Sub(start)
-		}
+func getQuotes(client *http.Client, start, end time.Time, period time.Duration, symbol string, writerWP *worker.Pool) {
+	getQuotesOrTrades("quotes", client, start, end, period, symbol, writerWP)
+}
 
-		log.Info("[polygon] backfilling trades for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Trades(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
-			log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", symbol, start, err)
-		}
-
-		start = start.Add(period)
-	}
+func getTrades(client *http.Client, start, end time.Time, period time.Duration, symbol string, writerWP *worker.Pool) {
+	getQuotesOrTrades("trades", client, start, end, period, symbols, writerWP)
 }
 
 func parseAndValidateDuration(durationString string, max, min time.Duration) (time.Duration, error) {

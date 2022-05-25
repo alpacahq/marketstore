@@ -187,6 +187,16 @@ func conditionToUpdateInfo(tick *api.TradeTick) ConsolidatedUpdateInfo {
 	return r
 }
 
+// FIXME: The daily close bars are not handled correctly:
+// We are aggregating from ticks to minutes then from minutes to daily prices.
+// The current routine correctly aggregates ticks to minutes.
+// The daily close price however should be the tick set with conditions
+// 'Closing Prints' & 'Trade Thru Exempt' (8 & 15), generally sent 2-5 minutes
+// after the official market close time. Given the daily roll-up is using minute data,
+// the close tick will be aggregated  and impossible to extract from the minutely bar.
+// In order to solve this, the daily close price should explicitly be stored and used
+// in the daily roll-up calculation. This would require substantial refactor.
+// The current solution therefore is just a reasonable approximation of the daily close price.
 func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	if len(ticks) == 0 {
 		return
@@ -200,22 +210,11 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 
 	lastBucketTimestamp := time.Time{}
 
-	// FIXME: The daily close bars are not handled correctly:
-	// We are aggregating from ticks to minutes then from minutes to daily prices.
-	// The current routine correctly aggregates ticks to minutes.
-	// The daily close price however should be the tick set with conditions
-	// 'Closing Prints' & 'Trade Thru Exempt' (8 & 15), generally sent 2-5 minutes
-	// after the official market close time. Given the daily roll-up is using minute data,
-	// the close tick will be aggregated  and impossible to extract from the minutely bar.
-	// In order to solve this, the daily close price should explicitly be stored and used
-	// in the daily roll-up calculation. This would require substantial refactor.
-	// The current solution therefore is just a reasonable approximation of the daily close price.
 	for i := range ticks {
 		if !intInSlice(ticks[i].Exchange, exchangeIDs) {
 			continue
 		}
 
-		price := ticks[i].Price
 		timestamp := time.Unix(0, ticks[i].SIPTimestamp)
 		bucketTimestamp := timestamp.Truncate(time.Minute)
 
@@ -226,13 +225,9 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 
 		if !lastBucketTimestamp.Equal(bucketTimestamp) {
 			if open != 0 && volume != 0 {
-				model.Add(
-					epoch,
-					modelsenum.Price(open),
-					modelsenum.Price(high),
-					modelsenum.Price(low),
-					modelsenum.Price(clos),
-					modelsenum.Size(volume))
+				model.Add(epoch, modelsenum.Price(open),
+					modelsenum.Price(high), modelsenum.Price(low), modelsenum.Price(clos), modelsenum.Size(volume),
+				)
 			}
 
 			lastBucketTimestamp = bucketTimestamp
@@ -250,21 +245,9 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 			continue
 		}
 
-		if updateInfo.UpdateHighLow {
-			if high < price {
-				high = price
-			}
-			if low > price {
-				low = price
-			}
-		}
-
-		if updateInfo.UpdateLast {
-			if open == 0 {
-				open = price
-			}
-			clos = price
-		}
+		price := ticks[i].Price
+		high, low = updateHighLow(updateInfo.UpdateHighLow, price, high, low)
+		open, clos = updateLast(updateInfo.UpdateLast, price, open, low)
 
 		if updateInfo.UpdateVolume {
 			volume += ticks[i].Size
@@ -272,14 +255,32 @@ func tradesToBars(ticks []api.TradeTick, model *models.Bar, exchangeIDs []int) {
 	}
 
 	if open != 0 && volume != 0 {
-		model.Add(
-			epoch,
-			modelsenum.Price(open),
-			modelsenum.Price(high),
-			modelsenum.Price(low),
-			modelsenum.Price(clos),
-			modelsenum.Size(volume))
+		model.Add(epoch, modelsenum.Price(open),
+			modelsenum.Price(high), modelsenum.Price(low), modelsenum.Price(clos), modelsenum.Size(volume),
+		)
 	}
+}
+
+func updateHighLow(updateHighLow bool, price, high, low float64) (h, l float64) {
+	if updateHighLow {
+		if high < price {
+			high = price
+		}
+		if low > price {
+			low = price
+		}
+	}
+	return high, low
+}
+
+func updateLast(updateLast bool, price, open, clos float64) (o, c float64) {
+	if updateLast {
+		if open == 0 {
+			open = price
+		}
+		clos = price
+	}
+	return open, clos
 }
 
 func Trades(client *http.Client, symbol string, from, to time.Time, batchSize int, writerWP *worker.Pool) error {

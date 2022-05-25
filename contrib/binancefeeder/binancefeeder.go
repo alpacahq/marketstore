@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+
 	binance "github.com/adshao/go-binance"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -277,8 +279,10 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}, nil
 }
 
-var re = regexp.MustCompile(`\d+`)
-var re2 = regexp.MustCompile("[a-zA-Z]+")
+var (
+	re  = regexp.MustCompile(`\d+`)
+	re2 = regexp.MustCompile("[a-zA-Z]+")
+)
 
 func getTimeInterval(originalInterval string) string {
 	timeIntervalLettersOnly := re.ReplaceAllString(originalInterval, "")
@@ -292,7 +296,7 @@ func getTimeInterval(originalInterval string) string {
 	return timeIntervalNumsOnly + correctIntervalSymbol
 }
 
-// get last timestamp collected
+// get last timestamp collected.
 func (bn *BinanceFetcher) getTimeStart() time.Time {
 	timeStart := time.Time{}
 
@@ -351,8 +355,8 @@ func convertRateToRecords(rates []*binance.Kline) (openTime []int64, open, high,
 	return openTime, open, high, low, clos, volume
 }
 
-func makeCSM(tbk *io.TimeBucketKey, slowDown bool, openTime []int64, open, high, low, clos, volume []float64) io.ColumnSeriesMap {
-
+func makeCSM(tbk *io.TimeBucketKey, slowDown bool, openTime []int64, open, high, low, clos, volume []float64,
+) io.ColumnSeriesMap {
 	cs := io.NewColumnSeries()
 	// Remove last incomplete candle if it exists since that is incomplete
 	// Since all are the same length we can just check one
@@ -522,7 +526,10 @@ func (bn *BinanceFetcher) Run() {
 				symbolDir := fmt.Sprintf("binance_%s-%s", symbol, baseCurrency)
 				tbk := io.NewTimeBucketKey(symbolDir + "/" + bn.baseTimeframe.String + "/OHLCV")
 				csm := makeCSM(tbk, slowDown, openTime, open, high, low, clos, volume)
-				executor.WriteCSM(csm, false)
+				err = executor.WriteCSM(csm, false)
+				if err != nil {
+					log.Error(fmt.Sprintf("[binancefeeder]failed to write CSM"), zap.Error(err))
+				}
 			}
 		}
 

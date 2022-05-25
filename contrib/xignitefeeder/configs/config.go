@@ -126,17 +126,17 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 
 // convertSliceType converts a slice of weekday to a slice of time.weekday.
 func convertTime(w []weekday) []time.Weekday {
-	d := make([]time.Weekday, 1)
-	for _, v := range w {
-		d = append(d, time.Weekday(v))
+	d := make([]time.Weekday, len(w))
+	for i, v := range w {
+		d[i] = time.Weekday(v)
 	}
 	return d
 }
 
 func convertDate(cd []CustomDay) []time.Time {
-	d := make([]time.Time, 1)
-	for _, v := range cd {
-		d = append(d, time.Time(v))
+	d := make([]time.Time, len(cd))
+	for i, v := range cd {
+		d[i] = time.Time(v)
 	}
 	return d
 }
@@ -188,7 +188,7 @@ func (wd *weekday) UnmarshalJSON(input []byte) error {
 		return nil
 	}
 
-	return errors.Errorf("invalid weekday '%s'.", s)
+	return errors.Errorf("invalid weekday '%s'", s)
 }
 
 var daysOfWeek = map[string]time.Weekday{

@@ -38,11 +38,18 @@ type BitmexFetcher struct {
 	baseTimeframe *utils.Timeframe
 }
 
-func recast(config map[string]interface{}) *FetcherConfig {
-	data, _ := json.Marshal(config)
+func recast(config map[string]interface{}) (*FetcherConfig, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("json-marshal FetcherConfig: %w", err)
+	}
 	ret := FetcherConfig{}
-	json.Unmarshal(data, &ret)
-	return &ret
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, fmt.Errorf("json-unmarshal FetcherConfig: %w", err)
+	}
+
+	return &ret, nil
 }
 
 // NewBgWorker returns the new instance of GdaxFetcher.  See FetcherConfig
@@ -69,7 +76,10 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		return nil, err
 	}
 
-	config := recast(conf)
+	config, err := recast(conf)
+	if err != nil {
+		return nil, fmt.Errorf("recast config: %w", err)
+	}
 	if len(config.Symbols) > 0 {
 		symbols = config.Symbols
 	}
