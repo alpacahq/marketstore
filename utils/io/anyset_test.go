@@ -23,7 +23,7 @@ func TestAnySet(t *testing.T) {
 	assert.False(t, sgA.Contains(B))
 	assert.True(t, sgA.Contains(AintB))
 	Anoa := []string{"1", "3", "4", "5", "6", "7", "8", "9", "10"}
-	Empty := []string{}
+	var Empty []string
 	sgA.Del("a")
 	assert.Equal(t, sgA.Subtract(Anoa), Empty)
 	sgA.Add("2020202020")
@@ -46,7 +46,7 @@ func TestAnySet(t *testing.T) {
 	assert.False(t, sgAA.Contains(BB))
 	assert.True(t, sgAA.Contains(AAintBB))
 	AAnoa := []int{1, 3, 4, 5, 6, 7, 8, 9, 10}
-	IEmpty := []int{}
+	var IEmpty []int
 	Itwenty := []int{2020202020}
 	sgAA.Del(2)
 	assert.Equal(t, sgAA.Subtract(AAnoa), IEmpty)
@@ -114,7 +114,7 @@ func TestAnySet(t *testing.T) {
 		{Name: "9", Type: FLOAT32},
 		{Name: "10", Type: FLOAT32},
 	}
-	I2Empty := []DataShape{}
+	var I2Empty []DataShape
 	I2twenty := []DataShape{
 		{Name: "2020202020", Type: FLOAT64},
 	}
@@ -161,7 +161,7 @@ func TestGetMissingColumns(t *testing.T) {
 	assert.Len(t, missing, 0)
 	assert.Len(t, coercion, 0)
 
-	csA.Remove("Three")
+	assert.Nil(t, csA.Remove("Three"))
 	/*
 		We have a missing column
 	*/

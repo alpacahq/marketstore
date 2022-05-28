@@ -9,6 +9,8 @@ import (
 	"sort"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/alpacahq/marketstore/v4/planner"
 	"github.com/alpacahq/marketstore/v4/utils"
 	utilsio "github.com/alpacahq/marketstore/v4/utils/io"
@@ -462,7 +464,7 @@ func (ex *ioExec) packingReader(packedBuffer *[]byte, f io.ReadSeeker, buffer []
 					continue
 				}
 				idxpos := len(*packedBuffer)
-				*packedBuffer = append(*packedBuffer, buf[:int64(recordSize)]...)
+				*packedBuffer = append(*packedBuffer, buf[:recordSize]...)
 				b := *packedBuffer
 				binary.LittleEndian.PutUint64(b[idxpos:], uint64(index))
 
@@ -497,7 +499,11 @@ func (ex *ioExec) readForward(finalBuffer []byte, fp *ioFilePlan, bytesToRead in
 		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, err
 	}
-	defer f.Close()
+	defer func() {
+		if err2 := f.Close(); err2 != nil {
+			log.Error("failed to close data file: %w", err2)
+		}
+	}()
 
 	if _, err = f.Seek(fp.Offset, io.SeekStart); err != nil {
 		log.Error("Read: seeking in %s\n%s", filePath, err)
@@ -536,10 +542,20 @@ func (ex *ioExec) readBackward(finalBuffer []byte, fp *ioFilePlan,
 		log.Error("Read: opening %s\n%s", filePath, err)
 		return nil, false, 0, err
 	}
-	defer f.Close()
+	defer func() {
+		if err2 := f.Close(); err2 != nil {
+			log.Error("failed to close datafile",
+				zap.String("filepath", filePath), zap.Error(err2),
+			)
+		}
+	}()
 
 	// Seek to the right end of the search set
-	f.Seek(beginPos+fp.Length, io.SeekStart)
+	if _, err2 := f.Seek(beginPos+fp.Length, io.SeekStart); err2 != nil {
+		return nil, false, 0, fmt.Errorf("seek offset=%d from start: %w",
+			beginPos+fp.Length, err2,
+		)
+	}
 	// Seek backward one buffer size (max)
 	maxToRead, curpos, err := seekBackward(f, maxToBuffer, beginPos)
 	if err != nil {

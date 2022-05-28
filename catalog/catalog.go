@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"sync"
 
+	"go.uber.org/zap"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
@@ -143,7 +145,13 @@ func writeCategoryNameFile(catName, dirName string) error {
 	if err != nil {
 		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
-	defer fp.Close()
+	defer func() {
+		if err2 := fp.Close(); err2 != nil {
+			log.Error("failed to close category name file", zap.Error(err2),
+				zap.String("filepath", catNameFile),
+			)
+		}
+	}()
 	if _, err = fp.WriteString(catName); err != nil {
 		return errors.New(io.GetCallerFileContext(0) + err.Error())
 	}
@@ -226,18 +234,24 @@ func (d *Directory) RemoveTimeBucket(tbk *io.TimeBucketKey) (err error) {
 	end := len(datakeySplit) - 1
 	for i := end; i >= 0; i-- {
 		if i == end {
-			removeDirFiles(tree[i])
+			if err2 := removeDirFiles(tree[i]); err2 != nil {
+				return err2
+			}
 			deleteMap[i] = true // This dir was deleted, we'll remove it from the parent's subdir list later
 		} else if deleteMap[i+1] {
 			tree[i].removeSubDir(tree[i+1].itemName, d.directMap)
 		}
 		if !tree[i].DirHasSubDirs() {
-			removeDirFiles(tree[i])
+			if err2 := removeDirFiles(tree[i]); err2 != nil {
+				return err2
+			}
 			deleteMap[i] = true // This dir was deleted, we'll remove it from the parent's subdir list later
 		}
 	}
 	if deleteMap[0] {
-		removeDirFiles(tree[0])
+		if err2 := removeDirFiles(tree[0]); err2 != nil {
+			return err2
+		}
 		d.removeSubDir(tree[0].itemName, d.directMap)
 	}
 	return nil
@@ -264,7 +278,10 @@ func (d *Directory) GatherTimeBucketInfo() ([]*io.TimeBucketInfo, error) {
 		if d == nil {
 			return errors.New("nil directory is passed")
 		}
-		pList := iList.(*[]*io.TimeBucketInfo)
+		pList, ok := iList.(*[]*io.TimeBucketInfo)
+		if !ok {
+			return fmt.Errorf("failed to cast to timeBucketInfo: %v", iList)
+		}
 		for _, dfile := range d.datafile {
 			*pList = append(*pList, dfile)
 		}
@@ -406,7 +423,7 @@ func (d *Directory) GetSubDirectoryAndAddFile(fullFilePath string, year int16) (
 			return dir.(*Directory).AddFile(year)
 		}
 	}
-	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
+	return nil, fmt.Errorf("directory path %s not found in catalog", fullFilePath)
 }
 
 func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Directory, err error) {
@@ -416,10 +433,14 @@ func (d *Directory) GetOwningSubDirectory(fullFilePath string) (subDir *Director
 	defer d.RUnlock()
 	if d.directMap != nil {
 		if dir, ok := d.directMap.Load(dirPath); ok {
-			return dir.(*Directory), nil
+			directory, ok := dir.(*Directory)
+			if !ok {
+				return nil, fmt.Errorf("cast directory type: %v", dir)
+			}
+			return directory, nil
 		}
 	}
-	return nil, fmt.Errorf("Directory path %s not found in catalog", fullFilePath)
+	return nil, fmt.Errorf("directory path %s not found in catalog", fullFilePath)
 }
 
 func (d *Directory) GetListOfSubDirs() (subDirList []*Directory) {
@@ -698,11 +719,14 @@ func (d *Directory) recurse(elem interface{}, levelFunc levelFunc) error {
 	return nil
 }
 
-func removeDirFiles(td *Directory) {
+func removeDirFiles(td *Directory) error {
 	td.Lock()
 	defer td.Unlock()
 
-	os.RemoveAll(td.pathToItemName)
+	if err := os.RemoveAll(td.pathToItemName); err != nil {
+		return fmt.Errorf("failed to remove directory files under %s: %w", td.pathToItemName, err)
+	}
+	return nil
 }
 
 func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err error) {
@@ -719,7 +743,11 @@ func newTimeBucketInfoFromTemplate(newTimeBucketInfo *io.TimeBucketInfo) (err er
 	if err != nil {
 		return fmt.Errorf("open new time bucket info file %s: %w", newTimeBucketInfo.Path, err)
 	}
-	defer fp.Close()
+	defer func() {
+		if err2 := fp.Close(); err2 != nil {
+			log.Error("failed to close time bucket info file: %w", err2)
+		}
+	}()
 	if err != nil {
 		return UnableToCreateFile(err.Error())
 	}

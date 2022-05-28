@@ -39,7 +39,9 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 
 	// Take control of this file and set the status
 	if !dryRun {
-		wf.WriteStatus(wal.OPEN, wal.REPLAYINPROCESS)
+		if err2 := wf.WriteStatus(wal.OPEN, wal.REPLAYINPROCESS); err2 != nil {
+			return fmt.Errorf("failed to write REPLAY_IN_PROCESS status to wal: %w", err2)
+		}
 	}
 
 	// First pass of WAL Replay: determine transaction states and record locations of TG data
@@ -155,7 +157,9 @@ func (wf *WALFileType) Replay(dryRun bool) error {
 
 	log.Info("Replay of WAL file %s finished", wf.FilePtr.Name())
 	if !dryRun {
-		wf.WriteStatus(wal.OPEN, wal.REPLAYED)
+		if err := wf.WriteStatus(wal.OPEN, wal.REPLAYED); err != nil {
+			return fmt.Errorf("failed to write REPLAYED status to wal: %w", err)
+		}
 	}
 
 	log.Info("Finished replay of TGData")

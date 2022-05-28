@@ -161,8 +161,7 @@ func (cs *ColumnSeries) Rename(newName, oldName string) error {
 	}
 
 	cs.AddColumn(newName, oldColumn)
-	err := cs.Remove(oldName)
-	if err != nil {
+	if err := cs.Remove(oldName); err != nil {
 		return fmt.Errorf("remove a column of old name(%s) for column renaming: %w", oldName, err)
 	}
 	cs.orderedNames = newNames
