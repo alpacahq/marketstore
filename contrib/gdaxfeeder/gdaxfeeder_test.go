@@ -26,6 +26,7 @@ func TestNew(t *testing.T) {
 	var worker *GdaxFetcher
 	var ret bgworker.BgWorker
 	ret, err = NewBgWorker(config)
+	assert.Nil(t, err)
 	worker, ok := ret.(*GdaxFetcher)
 	assert.True(t, ok)
 	assert.Len(t, worker.symbols, 1)

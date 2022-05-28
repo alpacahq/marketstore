@@ -23,7 +23,7 @@ func TestAnySet(t *testing.T) {
 	assert.False(t, sgA.Contains(B))
 	assert.True(t, sgA.Contains(AintB))
 	Anoa := []string{"1", "3", "4", "5", "6", "7", "8", "9", "10"}
-	var Empty []string
+	Empty := []string{}
 	sgA.Del("a")
 	assert.Equal(t, sgA.Subtract(Anoa), Empty)
 	sgA.Add("2020202020")
@@ -46,7 +46,7 @@ func TestAnySet(t *testing.T) {
 	assert.False(t, sgAA.Contains(BB))
 	assert.True(t, sgAA.Contains(AAintBB))
 	AAnoa := []int{1, 3, 4, 5, 6, 7, 8, 9, 10}
-	var IEmpty []int
+	IEmpty := []int{}
 	Itwenty := []int{2020202020}
 	sgAA.Del(2)
 	assert.Equal(t, sgAA.Subtract(AAnoa), IEmpty)
@@ -114,7 +114,7 @@ func TestAnySet(t *testing.T) {
 		{Name: "9", Type: FLOAT32},
 		{Name: "10", Type: FLOAT32},
 	}
-	var I2Empty []DataShape
+	I2Empty := []DataShape{}
 	I2twenty := []DataShape{
 		{Name: "2020202020", Type: FLOAT64},
 	}

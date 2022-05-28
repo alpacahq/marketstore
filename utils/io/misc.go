@@ -4,15 +4,11 @@ import (
 	"fmt"
 	"runtime"
 	"syscall"
-
-	"github.com/alpacahq/marketstore/v4/utils/log"
-	"go.uber.org/zap"
 )
 
 func Syncfs() {
-	if err := syscall.Sync(); err != nil {
-		log.Error("failed to call Sync", zap.Error(err))
-	}
+	//nolint(errcheck) // Sync() doesn't return an error depending on arch
+	syscall.Sync()
 }
 
 func GetCallerFileContext(level int) (fileContext string) {
