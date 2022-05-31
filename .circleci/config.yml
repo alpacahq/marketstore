@@ -4,7 +4,7 @@ executors:
   golang:
     working_directory: ~/github.com/alpacahq/marketstore
     docker:
-      - image: cimg/go:1.17.10
+      - image: cimg/go:1.18.2
 
 variables:
   - filters: &all
