@@ -19,6 +19,7 @@ import (
 // GRPCService is the implementation of GRPC API for Marketstore.
 // All grpc/protobuf-related logics and models are defined in this file.
 type GRPCService struct {
+	proto.UnimplementedMarketstoreServer
 	rootDir    string
 	catalogDir *catalog.Directory
 	aggRunner  *sqlparser.AggRunner

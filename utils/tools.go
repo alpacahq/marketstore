@@ -1,4 +1,4 @@
-// +build tools
+//go:build tools
 
 package utils
 
@@ -6,4 +6,5 @@ package utils
 import (
 	_ "github.com/golang/mock/mockgen"
 	_ "golang.org/x/tools/cmd/stringer"
+	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
 )
