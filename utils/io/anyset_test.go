@@ -161,7 +161,7 @@ func TestGetMissingColumns(t *testing.T) {
 	assert.Len(t, missing, 0)
 	assert.Len(t, coercion, 0)
 
-	csA.Remove("Three")
+	assert.Nil(t, csA.Remove("Three"))
 	/*
 		We have a missing column
 	*/

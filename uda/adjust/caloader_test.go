@@ -58,10 +58,12 @@ func unixDate(year int, month time.Month, day int) int64 {
 	return date(year, month, day).Unix()
 }
 
-func defineCorporateActions(announcements ...reorg.Announcement) *Actions {
+func defineCorporateActions(t *testing.T, announcements ...reorg.Announcement) *Actions {
+	t.Helper()
+
 	cs := announcementsToColumnSeries(announcements)
 	ca := NewCorporateActions("AAPL")
-	ca.fromColumnSeries(cs)
+	assert.Nil(t, ca.fromColumnSeries(cs))
 	return ca
 }
 
@@ -241,7 +243,7 @@ func TestRateChangeEventsFiltering(t *testing.T) {
 	setup(t)
 
 	for _, tt := range filteringFixtures {
-		ca := defineCorporateActions(tt.in...)
+		ca := defineCorporateActions(t, tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
 		assert.Equal(t, events, tt.out, "FAILED: %s, %+v\n", tt.description, tt.params)
 	}
@@ -373,7 +375,7 @@ func TestRateChangeEventsAnnouncementStatusHandling(t *testing.T) {
 	setup(t)
 
 	for _, tt := range statusHandlingFixtures {
-		ca := defineCorporateActions(tt.in...)
+		ca := defineCorporateActions(t, tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
 		assert.Equal(t, events, tt.out, "FAILED: %s, %+v\n", tt.description, tt.params)
 	}
@@ -429,7 +431,7 @@ func TestRateChangeEventsProperSorting(t *testing.T) {
 	setup(t)
 
 	for _, tt := range sortingFixtures {
-		ca := defineCorporateActions(tt.in...)
+		ca := defineCorporateActions(t, tt.in...)
 		events := ca.RateChangeEvents(tt.params.splits, tt.params.dividends)
 		assert.Equal(t, events, tt.out, "FAILED: %s, %+v\n", tt.description, tt.params)
 	}
