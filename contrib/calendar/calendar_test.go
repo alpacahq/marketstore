@@ -1,7 +1,6 @@
 package calendar
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -50,7 +49,7 @@ func TestCalendar(t *testing.T) {
 
 func Test_jd(t *testing.T) {
 	now := time.Now()
-	fmt.Println(julianDate(now))
-	fmt.Println(julianDate(now.Add(24 * time.Hour)))
-	fmt.Println(julianDate(now.AddDate(0, 1, 0)))
+	t.Log(julianDate(now))
+	t.Log(julianDate(now.Add(24 * time.Hour)))
+	t.Log(julianDate(now.AddDate(0, 1, 0)))
 }

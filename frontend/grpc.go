@@ -95,14 +95,9 @@ func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*p
 					dest.String())
 			} else if len(Symbols) == 1 && Symbols[0] == "*" {
 				// replace the * "symbol" with a list all known actual symbols
-				ret, err := s.catalogDir.GatherCategoriesAndItems()
+				symbols, err := gatherAllSymbols(s.catalogDir)
 				if err != nil {
-					return nil, fmt.Errorf("gather categories and items from catDir: %w", err)
-				}
-				allSymbols := ret["Symbol"]
-				symbols := make([]string, 0, len(allSymbols))
-				for symbol := range allSymbols {
-					symbols = append(symbols, symbol)
+					return nil, err
 				}
 				keyParts := []string{strings.Join(symbols, ","), Timeframe, RecordFormat}
 				itemKey := strings.Join(keyParts, "/")
@@ -182,6 +177,20 @@ func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*p
 		}
 	}
 	return &response, nil
+}
+
+func gatherAllSymbols(catDir *catalog.Directory) ([]string, error) {
+	// replace the * "symbol" with a list all known actual symbols
+	ret, err := catDir.GatherCategoriesAndItems()
+	if err != nil {
+		return nil, fmt.Errorf("gather categories and items from catDir: %w", err)
+	}
+	allSymbols := ret["Symbol"]
+	symbols := make([]string, 0, len(allSymbols))
+	for symbol := range allSymbols {
+		symbols = append(symbols, symbol)
+	}
+	return symbols, nil
 }
 
 func (s GRPCService) Write(ctx context.Context, reqs *proto.MultiWriteRequest) (*proto.MultiServerResponse, error) {

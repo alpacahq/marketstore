@@ -1,3 +1,5 @@
+// Package functions
+// nolint: dupl // interface/generics can make the code slower
 package functions
 
 func MaxFloat32(values []float32) float32 {

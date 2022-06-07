@@ -420,7 +420,10 @@ func (d *Directory) GetSubDirectoryAndAddFile(fullFilePath string, year int16) (
 	dirPath := path.Dir(fullFilePath)
 	if d.directMap != nil {
 		if dir, ok := d.directMap.Load(dirPath); ok {
-			return dir.(*Directory).AddFile(year)
+			if dir2, ok2 := dir.(*Directory); ok2 {
+				return dir2.AddFile(year)
+			}
+			return nil, fmt.Errorf("cast directory type: %v", dir)
 		}
 	}
 	return nil, fmt.Errorf("directory path %s not found in catalog", fullFilePath)
