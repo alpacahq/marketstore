@@ -30,7 +30,7 @@ func (mac *MockErrorAPIClient) GetQuotesRange(_ context.Context, i string, _, _ 
 	}
 
 	return api.GetQuotesRangeResponse{
-		Outcome:              "Success",
+		Outcome:              api.SuccessOutcome,
 		Security:             &api.Security{Symbol: "1301"},
 		ArrayOfEndOfDayQuote: []api.EndOfDayQuote{},
 	}, nil

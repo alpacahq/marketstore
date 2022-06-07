@@ -42,6 +42,7 @@ func (b *Backfill) Update(ctx context.Context) {
 
 // UpdateSymbols aggregates daily chart data since the specified date
 // and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
+// nolint: dupl // The impl of updateSymbols/updateIndexSymbols can change in the future, keep as it is for now
 func (b *Backfill) UpdateSymbols(ctx context.Context) {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIdentifiers() {
@@ -73,6 +74,7 @@ func (b *Backfill) UpdateSymbols(ctx context.Context) {
 
 // UpdateIndexSymbols aggregates daily chart data of index symbols
 // since the specified date and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
+// nolint: dupl // The impl of updateSymbols/updateIndexSymbols can change in the future, keep as it is for now
 func (b *Backfill) UpdateIndexSymbols(ctx context.Context) {
 	endDate := time.Now().UTC()
 	for _, identifier := range b.symbolManager.GetAllIndexIdentifiers() {

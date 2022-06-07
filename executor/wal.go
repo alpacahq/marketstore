@@ -2,7 +2,7 @@ package executor
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/md5" // nolint: gosec // keep the algorithm for compatibility
 	"errors"
 	"fmt"
 	goio "io"
@@ -274,6 +274,7 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 		tgLenSerialized, _ := io.Serialize(nil, int64(len(tgSerialized)))
 
 		// Calculate the MD5 checksum, including the value of TGLen
+		// nolint: gosec // keep the algorithm for compatibility
 		hash := md5.New()
 		hash.Write(tgLenSerialized)
 		hash.Write(tgSerialized)
@@ -547,6 +548,7 @@ func (wf *WALFileType) initMessage(mid MIDEnum) []byte {
 
 func validateCheckSum(tgLenSerialized, tgSerialized, checkBuf []byte) error {
 	// compute the checksum
+	// nolint: gosec // keep the algorithm for compatibility
 	hash := md5.New()
 	hash.Write(tgLenSerialized)
 	hash.Write(tgSerialized)

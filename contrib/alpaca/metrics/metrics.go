@@ -41,6 +41,7 @@ var (
 	// AlpacaStreamMessagesHandled stores the number of
 	// stream messages handled partitioned by type (minute_bar, quote, trade).
 	AlpacaStreamMessagesHandled = promauto.NewCounterVec(
+		// nolint: promlinter // TODO: counter metrics should have "_total" suffix
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,

@@ -68,7 +68,7 @@ func (m *ManagerImpl) UpdateSymbols(ctx context.Context) {
 		resp, err := m.APIClient.ListSymbols(ctx, exchange)
 
 		// if ListSymbols API returns an error, don't update the target symbols
-		if err != nil || resp.Outcome != "Success" {
+		if err != nil || resp.Outcome != api.SuccessOutcome {
 			log.Error(fmt.Sprintf("err=%v, List symbols API response=%v", err, resp))
 			return
 		}
@@ -95,7 +95,7 @@ func (m *ManagerImpl) UpdateIndexSymbols(ctx context.Context) {
 		resp, err := m.APIClient.ListIndexSymbols(ctx, indexGroup)
 
 		// if ListSymbols API returns an error, don't update the target symbols
-		if err != nil || resp.Outcome != "Success" {
+		if err != nil || resp.Outcome != api.SuccessOutcome {
 			log.Error("UpdateIndexSymbols err=%v, API response=%v", err, resp)
 			return
 		}

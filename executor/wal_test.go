@@ -152,6 +152,7 @@ func TestBrokenWAL(t *testing.T) {
 
 func TestWALReplay(t *testing.T) {
 	rootDir, _, metadata := setup(t)
+	const testYearFile = "2002.bin"
 
 	var err error
 
@@ -162,7 +163,7 @@ func TestWALReplay(t *testing.T) {
 	// Filter out only year 2003 in the resulting file list
 	queryFiles2002 := make([]string, 0)
 	for _, filePath := range allQueryFiles {
-		if filepath.Base(filePath) == "2002.bin" {
+		if filepath.Base(filePath) == testYearFile {
 			queryFiles2002 = append(queryFiles2002, filePath)
 		}
 	}
@@ -172,7 +173,7 @@ func TestWALReplay(t *testing.T) {
 	allFileContents := createBufferFromFiles(t, queryFiles2002)
 	fileContentsOriginal2002 := make(map[string][]byte)
 	for filePath, buffer := range allFileContents {
-		if filepath.Base(filePath) == "2002.bin" {
+		if filepath.Base(filePath) == testYearFile {
 			fileContentsOriginal2002[filePath] = buffer
 		}
 	}
@@ -243,7 +244,7 @@ func TestWALReplay(t *testing.T) {
 	// Verify that the files are in the correct state after replay
 	postReplayFileContents := createBufferFromFiles(t, queryFiles2002)
 	for key, buf := range modifiedFileContents {
-		if filepath.Base(key) == "2002.bin" {
+		if filepath.Base(key) == testYearFile {
 			buf2 := postReplayFileContents[key]
 			// t.Log("Key:", key, "Len1: ", len(buf), " Len2: ", len(buf2))
 			if !bytes.Equal(buf, postReplayFileContents[key]) {
