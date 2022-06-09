@@ -51,7 +51,6 @@ type MktsConfig struct {
 	GRPCMaxRecvMsgSize         int // in bytes
 	UtilitiesURL               string
 	Timezone                   *time.Location
-	Queryable                  bool
 	StopGracePeriod            time.Duration
 	WALRotateInterval          int
 	DisableVariableCompression bool
@@ -77,7 +76,6 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 		UtilitiesURL               string `yaml:"utilities_url"`
 		Timezone                   string `yaml:"timezone"`
 		LogLevel                   string `yaml:"log_level"`
-		Queryable                  string `yaml:"queryable"`
 		StopGracePeriod            int    `yaml:"stop_grace_period"`
 		WALRotateInterval          int    `yaml:"wal_rotate_interval"`
 		DisableVariableCompression string `yaml:"disable_variable_compression"`
@@ -162,15 +160,6 @@ func (m *MktsConfig) Parse(data []byte) (*MktsConfig, error) {
 		m.WALRotateInterval = 5 // Default of rotate interval of five periods
 	} else {
 		m.WALRotateInterval = aux.WALRotateInterval
-	}
-
-	if aux.Queryable != "" {
-		queryable, err2 := strconv.ParseBool(aux.Queryable)
-		if err2 != nil {
-			log.Error("Invalid value: %v for Queryable. Running as queryable...", aux.Queryable)
-		} else {
-			m.Queryable = queryable
-		}
 	}
 
 	if aux.LogLevel != "" {
