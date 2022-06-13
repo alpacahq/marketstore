@@ -284,11 +284,12 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 		os.Exit(1)
 	}
 
-	config, err := utils.InstanceConfig.Parse(data)
+	config, err := utils.ParseConfig(data)
 	if err != nil {
 		log.Error("failed to parse configuration file error: %v", err.Error())
 		os.Exit(1)
 	}
+	utils.InstanceConfig = *config // TODO: remove the singleton instance
 
 	return config.RootDirectory, config.Triggers, config.WALRotateInterval
 }

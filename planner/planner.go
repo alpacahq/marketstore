@@ -263,7 +263,7 @@ func (q *Query) Parse() (pr *ParseResult, err error) {
 		}
 	}
 
-	// Parse the query in the first pass by finding qualified files
+	// ParseConfig the query in the first pass by finding qualified files
 	pr = NewParseResult()
 	pr.RootDir = q.DataDir.GetPath()
 	/*
