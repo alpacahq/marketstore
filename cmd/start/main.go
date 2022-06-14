@@ -83,10 +83,11 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	log.Info("using %v for configuration", configFilePath)
 
 	// Attempt to set configuration.
-	config, err := utils.InstanceConfig.Parse(data)
+	config, err := utils.ParseConfig(data)
 	if err != nil {
 		return fmt.Errorf("failed to parse configuration file error: %w", err)
 	}
+	utils.InstanceConfig = *config // TODO: remove the singleton instance
 
 	// New gRPC stream server for replication.
 	opts := []grpc.ServerOption{
