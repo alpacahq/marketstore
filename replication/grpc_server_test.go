@@ -15,7 +15,7 @@ import (
 func TestGRPCReplicationServer_GetWALStream_success(t *testing.T) {
 	// --- given ---
 	t.Parallel()
-	replServer := replication.NewGRPCReplicationService()
+	replServer := replication.NewGRPCReplicationServer()
 	testTGMessage := []byte{1, 2, 3}
 
 	stream := &mock.WALStreamServer{
@@ -45,7 +45,7 @@ func TestGRPCReplicationServer_GetWALStream_success(t *testing.T) {
 func TestGRPCReplicationServer_GetWALStream_error(t *testing.T) {
 	// --- given ---
 	t.Parallel()
-	replServer := replication.NewGRPCReplicationService()
+	replServer := replication.NewGRPCReplicationServer()
 	testTGMessage := []byte{1, 2, 3}
 
 	stream := &mock.ErrorWALStreamServer{}
@@ -72,7 +72,7 @@ func TestGRPCReplicationServer_GetWALStream_error(t *testing.T) {
 func TestGRPCReplicationServer_GetWALStream_getClientAddr_error(t *testing.T) {
 	// --- given ---
 	t.Parallel()
-	replServer := replication.NewGRPCReplicationService()
+	replServer := replication.NewGRPCReplicationServer()
 	stream := &mock.GetClientAddrErrorWALStreamServer{}
 
 	// --- when ---

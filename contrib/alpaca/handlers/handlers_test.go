@@ -3,19 +3,21 @@ package handlers_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
 
 	"github.com/alpacahq/marketstore/v4/contrib/alpaca/handlers"
-	"github.com/alpacahq/marketstore/v4/executor"
 )
 
 func setup(t *testing.T) {
 	t.Helper()
 
-	rootDir := t.TempDir()
-	_, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
-		executor.BackgroundSync(false), executor.WALBypass(true)) // WAL Bypass
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(t.TempDir())
+	cfg.WALBypass = true
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
+	executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 }
 
 func getTestTrade() []byte {

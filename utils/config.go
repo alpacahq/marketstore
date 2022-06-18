@@ -67,9 +67,9 @@ type MktsConfig struct {
 // 2^20 = 1048576
 const megabyteToByte = 1 << 20
 
-func NewDefaultConfig() *MktsConfig {
+func NewDefaultConfig(rootDir string) *MktsConfig {
 	return &MktsConfig{
-		RootDirectory:              "",
+		RootDirectory:              rootDir,
 		ListenURL:                  "",
 		GRPCListenURL:              "",
 		GRPCMaxSendMsgSize:         1024 * megabyteToByte, // 1024MB
@@ -142,8 +142,6 @@ type aux struct {
 }
 
 func ParseConfig(data []byte) (*MktsConfig, error) {
-	m := NewDefaultConfig()
-
 	var aux aux
 	if err := yaml.Unmarshal(data, &aux); err != nil {
 		return nil, err
@@ -153,7 +151,7 @@ func ParseConfig(data []byte) (*MktsConfig, error) {
 	if aux.RootDirectory == "" || err != nil {
 		return nil, fmt.Errorf("invalid root directory. rootDir=%s: %w", aux.RootDirectory, err)
 	}
-	m.RootDirectory = absoluteRootDir
+	m := NewDefaultConfig(absoluteRootDir)
 
 	if aux.ListenPort == "" {
 		return nil, errors.New("invalid listen port. Listen port can't be empty")

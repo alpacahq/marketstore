@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/internal/di"
 	"net/http"
 	"os"
 	"runtime"
@@ -85,7 +86,7 @@ func main() {
 	const allPerm = 0o777
 	const oneDay = 24 * time.Hour
 	rootDir, triggers, walRotateInterval := initConfig()
-	instanceMeta, walWG, err := initWriter(rootDir, triggers, walRotateInterval)
+	instanceMeta, err := initWriter(rootDir, triggers, walRotateInterval)
 	if err != nil {
 		log.Error("failed to set up new instance config. err=" + err.Error())
 		os.Exit(1)
@@ -267,9 +268,7 @@ func main() {
 	}
 
 	log.Info("[polygon] wait for shutdown")
-	instanceMeta.WALFile.TriggerShutdown()
-	walWG.Wait()
-	instanceMeta.WALFile.FinishAndWait()
+	instanceMeta.WALFile.Shutdown()
 
 	log.Info("[polygon] api call time %s", backfill.APICallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
@@ -295,7 +294,11 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 }
 
 func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int,
-) (instanceConfig *executor.InstanceMetadata, walWG *sync.WaitGroup, err error) {
+) (instanceConfig *executor.InstanceMetadata, err error) {
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.WALRotateInterval = walRotateInterval
+	cfg.WALBypass = true
+	c := di.NewContainer(cfg)
 	// if configured, also load the ondiskagg triggers
 	var tm []*trigger.Matcher
 	for _, triggerSetting := range triggers {
@@ -305,14 +308,11 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 			break
 		}
 	}
+	c.InjectTriggerMatchers(tm)
 
-	instanceConfig, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
-		executor.WALBypass(true))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
-	}
+	instanceConfig = executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 
-	return instanceConfig, walWG, nil
+	return instanceConfig, nil
 }
 
 func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex,

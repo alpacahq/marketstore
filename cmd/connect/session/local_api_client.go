@@ -5,6 +5,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/alpacahq/marketstore/v4/frontend"
@@ -17,21 +20,22 @@ import (
 // NewLocalAPIClient builds a new client struct in local mode.
 func NewLocalAPIClient(dir string) (lc *LocalAPIClient, err error) {
 	// Configure db settings.
-	walRotateInterval := 5
-	instanceConfig, _, err := executor.NewInstanceSetup(dir,
-		nil, nil, walRotateInterval, executor.BackgroundSync(false), executor.WALBypass(true),
-	)
+	cfg := utils.NewDefaultConfig(dir)
+	cfg.WALBypass = true
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
+
 	if err != nil {
 		return nil, fmt.Errorf("create a new instance setup for local API client: %w", err)
 	}
 
-	ar := sqlparser.NewDefaultAggRunner(instanceConfig.CatalogDir)
-	qs := frontend.NewQueryService(instanceConfig.CatalogDir)
-	writer, err := executor.NewWriter(instanceConfig.CatalogDir, instanceConfig.WALFile)
+	ar := sqlparser.NewDefaultAggRunner(c.GetCatalogDir())
+	qs := frontend.NewQueryService(c.GetCatalogDir())
+	writer, err := executor.NewWriter(c.GetCatalogDir(), c.GetInitWALFile())
 	if err != nil {
 		return nil, fmt.Errorf("init writer: %w", err)
 	}
-	return &LocalAPIClient{dir: dir, catalogDir: instanceConfig.CatalogDir, aggRunner: ar, writer: writer, query: qs},
+	return &LocalAPIClient{dir: dir, catalogDir: c.GetCatalogDir(), aggRunner: ar, writer: writer, query: qs},
 		nil
 }
 

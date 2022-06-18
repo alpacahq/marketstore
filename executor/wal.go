@@ -2,6 +2,7 @@ package executor
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5" // nolint: gosec // keep the algorithm for compatibility
 	"errors"
 	"fmt"
@@ -35,7 +36,8 @@ type WALFileType struct {
 	FilePtr           *os.File          // Active file pointer to FileName
 	lastCommittedTGID int64             // TGID to be checkpointed
 	ReplicationSender ReplicationSender // send messages to replica servers
-	walBypass         bool
+	WALBypass         bool              // TODO: refactor: unexport this param
+	BackgroundSync    bool              // TODO: refactor: unexport this param
 	shutdownPending   *bool
 	walWaitGroup      *sync.WaitGroup
 	tpd               *TriggerPluginDispatcher
@@ -43,6 +45,7 @@ type WALFileType struct {
 }
 
 type ReplicationSender interface {
+	Run(ctx context.Context)
 	Send(transactionGroup []byte)
 }
 
@@ -65,7 +68,7 @@ func NewWALFile(rootDir string, owningInstanceID int64, rs ReplicationSender,
 		OwningInstanceID:  owningInstanceID,
 		rootDir:           rootDir,
 		ReplicationSender: rs,
-		walBypass:         walBypass,
+		WALBypass:         walBypass,
 		shutdownPending:   &shutdownPending,
 		walWaitGroup:      walWaitGroup,
 		tpd:               tpd,
@@ -216,7 +219,7 @@ func (wf *WALFileType) QueueWriteCommand(wc *wal.WriteCommand) {
 //	- Primary storage via the OS write cache - data is visible to readers
 //	- WAL file with synchronization to physical storage - in case we need to recover from a crash
 func (wf *WALFileType) FlushToWAL() (err error) {
-	// walBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
+	// WALBypass = true // Bypass all writing to the WAL File, leaving the writes to the primary
 
 	// Count of WT Sets in this TG as of now
 	if wf.txnPipe == nil {
@@ -230,7 +233,7 @@ func (wf *WALFileType) FlushToWAL() (err error) {
 		return nil
 	}
 
-	if !wf.walBypass {
+	if !wf.WALBypass {
 		canWrite, err := wf.CanWrite(wf.OwningInstanceID)
 		// TODO: error handling to move walFile to a temporary file and create a new one when walFile is corrupted.
 		if err != nil || !canWrite {
@@ -269,7 +272,7 @@ func (wf *WALFileType) FlushCommandsToWAL(writeCommands []*wal.WriteCommand) (er
 
 	tgSerialized, writesPerFile := serializeTG(wf.txnPipe.tgID, writeCommands)
 
-	if !wf.walBypass {
+	if !wf.WALBypass {
 		// Serialize the size of the buffer into another buffer
 		tgLenSerialized, _ := io.Serialize(nil, int64(len(tgSerialized)))
 
@@ -456,7 +459,7 @@ func (wf *WALFileType) CreateCheckpoint() error {
 	if wf.lastCommittedTGID == 0 {
 		return nil
 	}
-	if wf.walBypass {
+	if wf.WALBypass {
 		io.Syncfs()
 		wf.lastCommittedTGID = 0
 		return nil
@@ -791,13 +794,15 @@ func (wf *WALFileType) RequestFlush() {
 	<-f
 }
 
-func (wf *WALFileType) TriggerShutdown() {
+func (wf *WALFileType) Shutdown() {
 	*wf.shutdownPending = true
+	wf.walWaitGroup.Wait()
+	wf.finishAndWait()
 }
 
 // FinishAndWait closes the writtenIndexes channel, and waits
 // for the remaining triggers to fire, returning.
-func (wf *WALFileType) FinishAndWait() {
+func (wf *WALFileType) finishAndWait() {
 	const tryCloseInterval = 500 * time.Millisecond
 	wf.tpd.triggerWg.Wait()
 	for {
@@ -808,4 +813,8 @@ func (wf *WALFileType) FinishAndWait() {
 		}
 		time.Sleep(tryCloseInterval)
 	}
+}
+
+func (wf *WALFileType) IncrementWaitGroup() {
+	wf.walWaitGroup.Add(1)
 }

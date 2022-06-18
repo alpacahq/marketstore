@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
@@ -17,12 +20,13 @@ func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 	t.Helper()
 
 	rounderNum = math.Pow(10, 3)
+	rootDir := t.TempDir()
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.BackgroundSync = false
+	cfg.WALBypass = true
+	c := di.NewContainer(cfg)
 
-	metadata, _, err := executor.NewInstanceSetup(t.TempDir(), nil, nil, 5,
-		executor.BackgroundSync(false), executor.WALBypass(true))
-	assert.Nil(t, err)
-
-	return metadata
+	return executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 }
 
 type price struct {

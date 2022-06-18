@@ -1,6 +1,7 @@
 package tickcandler_test
 
 import (
+	"github.com/alpacahq/marketstore/v4/internal/di"
 	"testing"
 	"time"
 
@@ -22,8 +23,8 @@ func setup(t *testing.T) (rootDir string, itemsWritten map[string]int, metadata 
 
 	rootDir = t.TempDir()
 	itemsWritten = test.MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
-	assert.Nil(t, err)
+	c := di.NewContainer(utils.NewDefaultConfig(rootDir))
+	metadata = executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 
 	return rootDir, itemsWritten, metadata
 }

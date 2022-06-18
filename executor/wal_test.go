@@ -24,7 +24,7 @@ func TestWALWrite(t *testing.T) {
 	mockInstanceID := time.Now().UTC().UnixNano()
 	txnPipe := executor.NewTransactionPipe()
 	metadata.WALFile, err = executor.NewWALFile(rootDir, mockInstanceID, nil,
-		false, &sync.WaitGroup{}, executor.NewTriggerPluginDispatcher(nil),
+		false, &sync.WaitGroup{}, executor.StartNewTriggerPluginDispatcher(nil),
 		txnPipe,
 	)
 	if err != nil {
