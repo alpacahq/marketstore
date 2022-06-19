@@ -2,6 +2,7 @@ package uda
 
 import (
 	"fmt"
+
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
