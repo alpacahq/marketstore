@@ -1,9 +1,10 @@
 package tickcandler_test
 
 import (
-	"github.com/alpacahq/marketstore/v4/internal/di"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/internal/di"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

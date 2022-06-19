@@ -2,6 +2,7 @@ package di
 
 import (
 	"errors"
+
 	"github.com/alpacahq/marketstore/v4/catalog"
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )

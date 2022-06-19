@@ -73,7 +73,7 @@ func (c *Container) GetReplicationSender() executor.ReplicationSender {
 	}
 
 	if !c.mktsConfig.Replication.Enabled {
-		return nil
+		return &executor.NopReplicationSender{}
 	}
 
 	pb.RegisterReplicationServer(c.GetGRPCReplicationServer(), c.GetReplicationServer())

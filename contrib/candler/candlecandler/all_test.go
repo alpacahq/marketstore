@@ -1,11 +1,12 @@
 package candlecandler_test
 
 import (
-	"github.com/alpacahq/marketstore/v4/internal/di"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
 
 	"github.com/stretchr/testify/assert"
 

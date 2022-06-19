@@ -49,6 +49,11 @@ type ReplicationSender interface {
 	Send(transactionGroup []byte)
 }
 
+type NopReplicationSender struct{}
+
+func (nrs *NopReplicationSender) Run(_ context.Context) {}
+func (nrs *NopReplicationSender) Send(_ []byte)         {}
+
 type TransactionGroup struct {
 	// A "locally unique" transaction group identifier, can be a clock value
 	ID int64

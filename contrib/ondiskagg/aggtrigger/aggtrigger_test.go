@@ -2,11 +2,12 @@ package aggtrigger
 
 import (
 	"encoding/json"
-	"github.com/alpacahq/marketstore/v4/internal/di"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/internal/di"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

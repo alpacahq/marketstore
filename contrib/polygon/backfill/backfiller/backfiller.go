@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/alpacahq/marketstore/v4/internal/di"
 	"net/http"
 	"os"
 	"runtime"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/internal/di"
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/gobwas/glob"

@@ -2,10 +2,11 @@ package handlers_test
 
 import (
 	"encoding/json"
-	"github.com/alpacahq/marketstore/v4/internal/di"
-	"github.com/alpacahq/marketstore/v4/utils"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
