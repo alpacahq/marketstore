@@ -64,7 +64,7 @@ type MktsConfig struct {
 	BgWorkers                  []*BgWorkerSetting
 }
 
-// 2^20 = 1048576
+// 2^20 = 1048576.
 const megabyteToByte = 1 << 20
 
 func NewDefaultConfig(rootDir string) *MktsConfig {

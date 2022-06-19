@@ -1,8 +1,10 @@
-package adjust
+package adjust_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/uda/adjust"
 
 	"github.com/stretchr/testify/assert"
 
@@ -13,7 +15,7 @@ import (
 
 func announcementsToColumnSeries(announcements []reorg.Announcement) *io.ColumnSeries {
 	length := len(announcements)
-	rows := NewCARows(length)
+	rows := adjust.NewCARows(length)
 	for i := range announcements {
 		rows.EntryDates[i] = announcements[i].EntryDate.Unix()
 		rows.TextNumbers[i] = int64(announcements[i].TextNumber)
@@ -58,12 +60,14 @@ func unixDate(year int, month time.Month, day int) int64 {
 	return date(year, month, day).Unix()
 }
 
-func defineCorporateActions(t *testing.T, announcements ...reorg.Announcement) *Actions {
+func defineCorporateActions(t *testing.T, announcements ...reorg.Announcement) *adjust.Actions {
 	t.Helper()
 
+	var err error
 	cs := announcementsToColumnSeries(announcements)
-	ca := NewCorporateActions("AAPL")
-	assert.Nil(t, ca.fromColumnSeries(cs))
+	ca := adjust.NewCorporateActions("AAPL")
+	ca.Rows, err = adjust.CARowsFromColumnSeries(cs)
+	assert.Nil(t, err)
 	return ca
 }
 
@@ -76,7 +80,7 @@ var filteringFixtures = []struct {
 	description string
 	in          []reorg.Announcement
 	params      Params
-	out         []RateChange
+	out         []adjust.RateChange
 }{
 	{
 		description: `returns empty RateChange list when there's no announcements to process`,
@@ -85,7 +89,7 @@ var filteringFixtures = []struct {
 			dividends: true,
 			splits:    true,
 		},
-		out: []RateChange{},
+		out: []adjust.RateChange{},
 	},
 
 	{
@@ -120,7 +124,7 @@ var filteringFixtures = []struct {
 			dividends: false,
 			splits:    false,
 		},
-		out: []RateChange{},
+		out: []adjust.RateChange{},
 	},
 
 	{
@@ -155,7 +159,7 @@ var filteringFixtures = []struct {
 			dividends: true,
 			splits:    false,
 		},
-		out: []RateChange{
+		out: []adjust.RateChange{
 			{1111, unixDate(2019, time.July, 8), enum.StockDividend, 0.095},
 		},
 	},
@@ -192,7 +196,7 @@ var filteringFixtures = []struct {
 			dividends: false,
 			splits:    true,
 		},
-		out: []RateChange{
+		out: []adjust.RateChange{
 			{2222, unixDate(2020, time.March, 19), enum.StockSplit, 3},
 			{3333, unixDate(2020, time.June, 30), enum.ReverseStockSplit, 0.4},
 		},
@@ -231,7 +235,7 @@ var filteringFixtures = []struct {
 			dividends: true,
 			splits:    true,
 		},
-		out: []RateChange{
+		out: []adjust.RateChange{
 			{1111, unixDate(2019, time.July, 8), enum.StockDividend, 0.095},
 			{2222, unixDate(2020, time.March, 19), enum.StockSplit, 3},
 			{3333, unixDate(2020, time.June, 30), enum.ReverseStockSplit, 0.4},
@@ -253,7 +257,7 @@ var statusHandlingFixtures = []struct {
 	description string
 	in          []reorg.Announcement
 	params      Params
-	out         []RateChange
+	out         []adjust.RateChange
 }{
 	{
 		description: `if an Update is present, it should return the Update instead of the New one`,
@@ -280,7 +284,7 @@ var statusHandlingFixtures = []struct {
 			dividends: true,
 			splits:    true,
 		},
-		out: []RateChange{
+		out: []adjust.RateChange{
 			{2222, unixDate(2019, time.July, 10), enum.StockDividend, 0.098},
 		},
 	},
@@ -319,7 +323,7 @@ var statusHandlingFixtures = []struct {
 			dividends: true,
 			splits:    true,
 		},
-		out: []RateChange{
+		out: []adjust.RateChange{
 			{3333, unixDate(2019, time.July, 15), enum.StockDividend, 0.099},
 		},
 	},
@@ -367,7 +371,7 @@ var statusHandlingFixtures = []struct {
 			dividends: true,
 			splits:    true,
 		},
-		out: []RateChange{},
+		out: []adjust.RateChange{},
 	},
 }
 
@@ -385,7 +389,7 @@ var sortingFixtures = []struct {
 	description string
 	in          []reorg.Announcement
 	params      Params
-	out         []RateChange
+	out         []adjust.RateChange
 }{
 	{
 		description: `returns a list of RateChanges ordered by ExpirationDate`,
@@ -419,7 +423,7 @@ var sortingFixtures = []struct {
 			dividends: true,
 			splits:    true,
 		},
-		out: []RateChange{
+		out: []adjust.RateChange{
 			{2222, unixDate(2019, time.July, 7), enum.StockDividend, 0.098},
 			{1111, unixDate(2019, time.July, 9), enum.StockDividend, 0.095},
 			{3333, unixDate(2019, time.July, 12), enum.StockDividend, 0.098},
@@ -441,21 +445,21 @@ func TestCache(t *testing.T) {
 	metadata := setup(t)
 
 	// GetRateChange should create a separate cache entry for each parameter combination
-	rateChangeCache = map[CacheKey]RateChangeCache{}
+	adjust.RateChangeCacheMap = map[adjust.CacheKey]adjust.RateChangeCache{}
 
-	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
-	GetRateChanges("AAPL", false, true, metadata.CatalogDir)
-	GetRateChanges("AAPL", true, false, metadata.CatalogDir)
-	GetRateChanges("AAPL", false, false, metadata.CatalogDir)
+	adjust.GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	adjust.GetRateChanges("AAPL", false, true, metadata.CatalogDir)
+	adjust.GetRateChanges("AAPL", true, false, metadata.CatalogDir)
+	adjust.GetRateChanges("AAPL", false, false, metadata.CatalogDir)
 
-	assert.Len(t, rateChangeCache, 4)
+	assert.Len(t, adjust.RateChangeCacheMap, 4)
 
 	// repeated calls with the same signature should not increase the number of cache entries
-	rateChangeCache = map[CacheKey]RateChangeCache{}
+	adjust.RateChangeCacheMap = map[adjust.CacheKey]adjust.RateChangeCache{}
 
-	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
-	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
-	GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	adjust.GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	adjust.GetRateChanges("AAPL", true, true, metadata.CatalogDir)
+	adjust.GetRateChanges("AAPL", true, true, metadata.CatalogDir)
 
-	assert.Len(t, rateChangeCache, 1)
+	assert.Len(t, adjust.RateChangeCacheMap, 1)
 }

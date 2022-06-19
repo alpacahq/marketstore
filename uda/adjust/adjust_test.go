@@ -1,17 +1,17 @@
-package adjust
+package adjust_test
 
 import (
 	"math"
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/internal/di"
-	"github.com/alpacahq/marketstore/v4/utils"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/uda/adjust"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -19,14 +19,15 @@ import (
 func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	rounderNum = math.Pow(10, 3)
 	rootDir := t.TempDir()
 	cfg := utils.NewDefaultConfig(rootDir)
 	cfg.BackgroundSync = false
 	cfg.WALBypass = true
 	c := di.NewContainer(cfg)
+	metadata = executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
+	adjust.RounderNum = math.Pow(10, 3)
 
-	return executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
+	return metadata
 }
 
 type price struct {
@@ -36,7 +37,7 @@ type price struct {
 
 type AdjustTestCase struct {
 	description string
-	rateChanges []RateChange
+	rateChanges []adjust.RateChange
 	input       []price
 	expected    []price
 }
@@ -60,10 +61,11 @@ func evalCase(t *testing.T, testCase *AdjustTestCase) {
 	symbol := "AAPL"
 	tbkStr := symbol + "/1Min/OHLCV"
 	tbk := io.NewTimeBucketKeyFromString(tbkStr)
-	adj := Adjust{}
+	adj := adjust.Adjust{}
+	adjust.RounderNum = math.Pow(10, 3)
 	am := functions.NewArgumentMap(adj.GetRequiredArgs(), adj.GetOptionalArgs()...)
 
-	rateChangeCache[CacheKey{symbol, true, true}] = RateChangeCache{
+	adjust.RateChangeCacheMap[adjust.CacheKey{symbol, true, true}] = adjust.RateChangeCache{
 		Changes:   testCase.rateChanges,
 		Access:    0,
 		CreatedAt: time.Now(),
@@ -94,7 +96,7 @@ func evalCase(t *testing.T, testCase *AdjustTestCase) {
 var testDifferentEvents = []AdjustTestCase{
 	{
 		description: `Price should be adjusted prior to the StockSplit event. Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2020, time.January, 4), enum.StockSplit, 2},
 		},
 		input: []price{
@@ -116,7 +118,7 @@ var testDifferentEvents = []AdjustTestCase{
 	},
 	{
 		description: `Price should be adjusted prior to a ReverseStockSplit event. Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2020, time.January, 4), enum.ReverseStockSplit, 0.5},
 		},
 		input: []price{
@@ -138,7 +140,7 @@ var testDifferentEvents = []AdjustTestCase{
 	},
 	{
 		description: `Price should be adjusted prior to a ReverseStockSplit event. Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2020, time.January, 4), enum.StockDividend, 1.1},
 		},
 		input: []price{
@@ -173,7 +175,7 @@ var testDifferentDates = []AdjustTestCase{
 	{
 		description: `When an event occurs after the requested price range, every price should be adjusted. ` +
 			`Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2020, time.January, 20), enum.StockSplit, 2},
 		},
 		input: []price{
@@ -196,7 +198,7 @@ var testDifferentDates = []AdjustTestCase{
 
 	{
 		description: `When an event occurs before the price range, no price should be adjusted. Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2019, time.December, 20), enum.StockSplit, 2},
 		},
 		input: []price{
@@ -230,7 +232,7 @@ func TestCase2(t *testing.T) {
 var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 	{
 		description: `Multiple events, one happened after the price range. Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2020, time.January, 3), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 6), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 20), enum.StockSplit, 2},
@@ -260,7 +262,7 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 
 	{
 		description: `Multiple events, two happen after the price range. Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2020, time.January, 3), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 6), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 20), enum.StockSplit, 2},
@@ -292,7 +294,7 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 	{
 		description: `Multiple events, one happens after, one before and one in the duration of the price range. ` +
 			`Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2019, time.December, 30), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 6), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 20), enum.StockSplit, 2},
@@ -322,7 +324,7 @@ var testMultipleEventsOnDifferentDates = []AdjustTestCase{
 
 	{
 		description: `Multiple events, split and reverse split testing. Assertion error at %s`,
-		rateChanges: []RateChange{
+		rateChanges: []adjust.RateChange{
 			{1, unixDate(2020, time.January, 3), enum.StockSplit, 2},
 			{1, unixDate(2020, time.January, 6), enum.ReverseStockSplit, 0.2},
 		},
