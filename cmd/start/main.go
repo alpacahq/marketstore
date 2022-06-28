@@ -106,14 +106,16 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 	metrics.StartupTime.Set(startupTime.Seconds())
 	log.Info("startup time: %s", startupTime)
 
-	if replicationCli := c.GetReplicationClientWithRetry(); replicationCli != nil {
-		err = replicationCli.Run(globalCtx)
+	// init replication client
+	go func() {
+		log.Info("initializing replication client")
+		err = c.GetReplicationClientWithRetry().Run(globalCtx)
 		if err != nil {
 			log.Error("Unable to startup Replication", err)
-			return err
+			return
 		}
-		log.Info("initialized replication client")
-	}
+	}()
+
 	// register grpc server
 	pb.RegisterMarketstoreServer(c.GetGRPCServer(), c.GetGRPCService())
 

@@ -1,6 +1,7 @@
 package di
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -99,12 +100,20 @@ func (c *Container) GetReplicationSender() executor.ReplicationSender {
 	return replicationSender
 }
 
-func (c *Container) GetReplicationClientWithRetry() *replication.Retryer {
+type NopReplicationClient struct{}
+
+func (nrc *NopReplicationClient) Run(_ context.Context) error { return nil }
+
+type ReplicationClient interface {
+	Run(ctx context.Context) error
+}
+
+func (c *Container) GetReplicationClientWithRetry() ReplicationClient {
 	if c.mktsConfig.Replication.MasterHost == "" {
-		return nil
+		return &NopReplicationClient{}
 	}
 	if c.replicationClient != nil {
-		return nil
+		return &NopReplicationClient{}
 	}
 
 	var opts []grpc.DialOption
@@ -130,7 +139,7 @@ func (c *Container) GetReplicationClientWithRetry() *replication.Retryer {
 
 	cli := replication.NewGRPCReplicationClient(pb.NewReplicationClient(conn))
 
-	replayer := replication.NewReplayer(executor.ParseTGData, c.GetWriter().WriteCSM, c.GetAbsRootDir())
+	replayer := replication.NewReplayer(executor.ParseTGData, c.GetDefaultWriter().WriteCSM, c.GetAbsRootDir())
 	replicationReceiver := replication.NewReceiver(cli, replayer)
 
 	c.replicationClient = replication.NewRetryer(replicationReceiver.Run, c.mktsConfig.Replication.RetryInterval,
