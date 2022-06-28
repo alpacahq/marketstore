@@ -23,7 +23,7 @@ type GRPCReplicationServer struct {
 	StreamChannels map[string]chan []byte
 }
 
-func NewGRPCReplicationService() *GRPCReplicationServer {
+func NewGRPCReplicationServer() *GRPCReplicationServer {
 	return &GRPCReplicationServer{
 		StreamChannels: map[string]chan []byte{},
 	}

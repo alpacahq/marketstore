@@ -5,7 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
 
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/api"
 	"github.com/alpacahq/marketstore/v4/contrib/polygon/handlers"
@@ -16,9 +17,11 @@ func setup(t *testing.T) {
 	t.Helper()
 
 	rootDir := t.TempDir()
-	_, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
-		executor.BackgroundSync(false), executor.WALBypass(true))
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.WALBypass = true
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
+	executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 }
 
 func getTestTradeArray() []api.PolyTrade {

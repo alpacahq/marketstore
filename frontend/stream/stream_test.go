@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
+
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmihailenco/msgpack"
@@ -22,8 +25,10 @@ func setup(t *testing.T) {
 	t.Helper()
 
 	rootDir := t.TempDir()
-	_, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
+	executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 	stream.Initialize()
 }
 

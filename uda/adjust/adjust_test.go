@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/marketstore/v4/uda/adjust"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/enum"
 	"github.com/alpacahq/marketstore/v4/executor"
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/uda/adjust"
+	"github.com/alpacahq/marketstore/v4/utils"
 	"github.com/alpacahq/marketstore/v4/utils/functions"
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
@@ -18,9 +19,13 @@ import (
 func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 	t.Helper()
 
-	metadata, _, err := executor.NewInstanceSetup(t.TempDir(), nil, nil, 5,
-		executor.BackgroundSync(false), executor.WALBypass(true))
-	assert.Nil(t, err)
+	rootDir := t.TempDir()
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.BackgroundSync = false
+	cfg.WALBypass = true
+	c := di.NewContainer(cfg)
+	metadata = executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
+	adjust.RounderNum = math.Pow(10, 3)
 
 	return metadata
 }

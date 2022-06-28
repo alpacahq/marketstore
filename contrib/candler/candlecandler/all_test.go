@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/contrib/candler/candlecandler"
@@ -20,8 +23,9 @@ func setup(t *testing.T) (rootDir string, itemsWritten map[string]int, metadata 
 
 	rootDir = t.TempDir()
 	itemsWritten = test.MakeDummyStockDir(rootDir, true, false)
-	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5)
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(rootDir)
+	c := di.NewContainer(cfg)
+	metadata = executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 
 	return rootDir, itemsWritten, metadata
 }
@@ -58,7 +62,8 @@ func TestCandleCandler(t *testing.T) {
 	startDate := time.Date(2001, time.October, 15, 12, 0, 0, 0, time.UTC)
 	endDate := time.Date(2001, time.October, 15, 12, 15, 0, 0, time.UTC)
 	q.SetRange(startDate, endDate)
-	parsed, _ := q.Parse()
+	parsed, err := q.Parse()
+	assert.Nil(t, err)
 	scanner, err := executor.NewReader(parsed)
 	assert.Nil(t, err)
 	csm, _ := scanner.Read()

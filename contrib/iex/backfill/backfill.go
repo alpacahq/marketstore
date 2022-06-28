@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/alpacahq/marketstore/v4/internal/di"
 	"io"
 	"net/http"
 	"os"
@@ -243,9 +244,11 @@ func nextBatch(bars []*consolidator.Bar, index int) (batchBars []*consolidator.B
 
 func initWriter() error {
 	utils.InstanceConfig.Timezone = NY
-	walRotateInterval := 5
-	instanceID := time.Now().UTC().UnixNano()
 	relRootDir := fmt.Sprintf("%v/mktsdb", dir)
+	cfg := utils.NewDefaultConfig(relRootDir)
+	cfg.WALBypass = true
+	cfg.Timezone = NY
+	c := di.NewContainer(cfg)
 
 	config := map[string]interface{}{
 		"filter":       "nasdaq",
@@ -256,21 +259,13 @@ func initWriter() error {
 	if err != nil {
 		return fmt.Errorf("failed to create a new aggtrigger: %w", err)
 	}
+	c.InjectTriggerMatchers([]*trigger.Matcher{trigger.NewMatcher(trig, "*/1Min/OHLCV")})
 
-	triggerMatchers := []*trigger.Matcher{
-		trigger.NewMatcher(trig, "*/1Min/OHLCV"),
-	}
-
-	_, _, err = executor.NewInstanceSetup(
-		relRootDir, nil, triggerMatchers,
-		walRotateInterval, executor.WALBypass(true))
-	if err != nil {
-		return fmt.Errorf("failed to create new instance setup for iex/backfill: %w", err)
-	}
+	executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 
 	log.Info(
 		"Initialized writer with InstanceID: %v - relRootDir: %v\n",
-		instanceID,
+		c.GetInitInstanceID(),
 		relRootDir,
 	)
 	return nil

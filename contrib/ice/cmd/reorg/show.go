@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/catalog"
@@ -35,13 +38,11 @@ var ShowRecordsCmd = &cobra.Command{
 		cusip := args[1]
 		dataDir := args[0]
 		// walfile is rotated every walRotateInterval * primaryDiskRefreshInterval(= default:5min)
-		const walRotateInterval = 5
-		metadata, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
-			walRotateInterval, executor.WALBypass(true))
-		if err != nil {
-			return fmt.Errorf("failed to create new instance setup for Show command: %w", err)
-		}
-		showRecords(cusip, metadata.CatalogDir)
+		cfg := utils.NewDefaultConfig(dataDir)
+		cfg.WALBypass = true
+		c := di.NewContainer(cfg)
+		executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
+		showRecords(cusip, c.GetCatalogDir())
 		return nil
 	},
 }

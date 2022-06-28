@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,11 +30,11 @@ func setup(t *testing.T) (rootDir string, itemsWritten map[string]int,
 
 	rootDir = t.TempDir()
 	itemsWritten = MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5,
-		executor.BackgroundSync(false))
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
 
-	return rootDir, itemsWritten, metadata
+	return rootDir, itemsWritten, executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 }
 
 func TestAddDir(t *testing.T) {
