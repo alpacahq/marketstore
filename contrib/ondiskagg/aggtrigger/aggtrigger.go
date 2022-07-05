@@ -263,9 +263,8 @@ func (s *OnDiskAggTrigger) writeAggregates(
 	}
 
 	var (
-		cs2   *io.ColumnSeries
-		err2  error
-		tqSlc *io.ColumnSeries
+		cs2, tqSlc *io.ColumnSeries
+		err2       error
 	)
 	// apply the filter
 	if applyingFilter {

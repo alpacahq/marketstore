@@ -57,7 +57,8 @@ func makeCatDir(root, catname string, items []string) {
 
 func makeFakeFileInfoCurrency(year, filePath, timeFrame string) *io.TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
-	yr, _ := strconv.Atoi(year)
+	yr, err := strconv.ParseInt(year, 10, 32)
+	checkfail(err, fmt.Sprintf("failed to parse year to int: year=%s", year))
 	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32},
@@ -67,7 +68,8 @@ func makeFakeFileInfoCurrency(year, filePath, timeFrame string) *io.TimeBucketIn
 
 func makeFakeFileInfoStock(year, filePath, timeFrame string) *io.TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
-	yr, _ := strconv.Atoi(year)
+	yr, err := strconv.ParseInt(year, 10, 32)
+	checkfail(err, fmt.Sprintf("failed to parse year to int: year=%s", year))
 	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},

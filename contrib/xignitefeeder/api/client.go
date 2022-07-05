@@ -88,7 +88,7 @@ func (c *DefaultClient) GetRealTimeQuotes(ctx context.Context, identifiers []str
 	req, err := http.NewRequestWithContext(ctx,
 		"POST", GetQuotesURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return response, errors.Wrap(err, "failed to create an http request.")
+		return response, errors.Wrap(err, "failed to create an http request")
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
@@ -124,7 +124,7 @@ func (c *DefaultClient) ListSymbols(ctx context.Context, exchange string) (respo
 	apiURL := ListSymbolsURL + fmt.Sprintf("?_token=%s&Exchange=%s", c.token, exchange)
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, http.NoBody)
 	if err != nil {
-		return response, errors.Wrap(err, "failed to create an http request.")
+		return response, errors.Wrap(err, "failed to create an http request")
 	}
 
 	err = c.execute(req, &response)
@@ -148,7 +148,7 @@ func (c *DefaultClient) ListIndexSymbols(ctx context.Context, indexGroup string,
 	apiURL := ListIndexSymbolsURL + fmt.Sprintf("?_token=%s&GroupName=%s", c.token, indexGroup)
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, http.NoBody)
 	if err != nil {
-		return response, errors.Wrap(err, "failed to create an http request.")
+		return response, errors.Wrap(err, "failed to create an http request")
 	}
 
 	err = c.execute(req, &response)
@@ -220,7 +220,7 @@ func getBarsRequest(ctx context.Context, url, body string) (*http.Request, error
 	req, err := http.NewRequestWithContext(ctx,
 		"POST", url, strings.NewReader(body))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create an http request.")
+		return nil, errors.Wrap(err, "failed to create an http request")
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
@@ -289,7 +289,7 @@ func quotesRangeFormValues(token, identifier string, startDate, endDate time.Tim
 func quotesRangeReq(ctx context.Context, url, body string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(body))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create an http request.")
+		return nil, errors.Wrap(err, "failed to create an http request")
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	return req, nil

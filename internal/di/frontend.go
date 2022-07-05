@@ -5,7 +5,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (c *Container) GetHttpService() *frontend.QueryService {
+func (c *Container) GetHTTPService() *frontend.QueryService {
 	if c.httpService != nil {
 		return c.httpService
 	}
@@ -13,11 +13,13 @@ func (c *Container) GetHttpService() *frontend.QueryService {
 	return c.httpService
 }
 
-func (c *Container) GetHttpServer() *frontend.RPCServer {
+func (c *Container) GetHTTPServer() *frontend.RPCServer {
 	if c.httpServer != nil {
 		return c.httpServer
 	}
-	server, _ := frontend.NewServer(c.GetAbsRootDir(), c.GetCatalogDir(), c.GetAggRunner(), c.GetWriter(), c.GetHttpService())
+	server, _ := frontend.NewServer(c.GetAbsRootDir(), c.GetCatalogDir(), c.GetAggRunner(),
+		c.GetWriter(), c.GetHTTPService(),
+	)
 	c.httpServer = server
 	return server
 }
@@ -27,7 +29,7 @@ func (c *Container) GetGRPCService() *frontend.GRPCService {
 		return c.grpcService
 	}
 	c.grpcService = frontend.NewGRPCService(c.GetAbsRootDir(),
-		c.GetCatalogDir(), c.GetAggRunner(), c.GetWriter(), c.GetHttpService())
+		c.GetCatalogDir(), c.GetAggRunner(), c.GetWriter(), c.GetHTTPService())
 	return c.grpcService
 }
 
