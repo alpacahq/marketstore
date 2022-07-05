@@ -121,7 +121,7 @@ func executeStart(cmd *cobra.Command, _ []string) error {
 
 	// Set rpc handler.
 	log.Info("launching rpc data server...")
-	http.Handle("/rpc", c.GetHttpServer())
+	http.Handle("/rpc", c.GetHTTPServer())
 
 	// Set websocket handler.
 	log.Info("initializing websocket...")

@@ -15,6 +15,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/test"
 )
 
+const test1MinBucket = "TEST/1Min/OHLCV"
+
 func setup(t *testing.T) (rootDir string, catalogDir *catalog.Directory) {
 	t.Helper()
 
@@ -138,8 +140,8 @@ func TestAddFile(t *testing.T) {
 func TestAddAndRemoveDataItem(t *testing.T) {
 	rootDir, catalogDir := setup(t)
 
-	catKey := "Symbol/Timeframe/AttributeGroup"
-	dataItemKey := "TEST/1Min/OHLCV"
+	catKey := io.DefaultTimeBucketSchema
+	dataItemKey := test1MinBucket
 	dataItemPath := filepath.Join(rootDir, dataItemKey)
 	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
@@ -196,8 +198,8 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 		return
 	}
 
-	catKey := "Symbol/Timeframe/AttributeGroup"
-	dataItemKey := "TEST/1Min/OHLCV"
+	catKey := io.DefaultTimeBucketSchema
+	dataItemKey := test1MinBucket
 	tbk := io.NewTimeBucketKey(dataItemKey, catKey)
 
 	dataItemPath := filepath.Join(rootDir, dataItemKey)
@@ -283,8 +285,8 @@ func TestAddAndRemoveDataItemFromEmptyDirectory(t *testing.T) {
 func TestCreateNewDirectory(t *testing.T) {
 	rootDir, catalogDir := setup(t)
 
-	catKey := "Symbol/Timeframe/AttributeGroup"
-	dataItemKey := "TEST/1Min/OHLCV"
+	catKey := io.DefaultTimeBucketSchema
+	dataItemKey := test1MinBucket
 	dataItemPath := filepath.Join(rootDir, dataItemKey)
 	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
