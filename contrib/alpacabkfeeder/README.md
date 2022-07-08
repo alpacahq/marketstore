@@ -63,15 +63,10 @@ bgworkers:
       # 
       # Interval [sec] to call Alpaca Broker API
       interval: 10
-      # If a non-zero value is set for off_hours_interval,
-      # the data-feeding is executed every off_hours_interval[minute] even when the market is closed.
-      off_hours_interval: 5
       # The data-feeding is executed when 'minute' of the current time matches off_hours_schedule
       # even when the market is cloded. Example: "10" -> execute at 00:10, 01:10, 02:10,...,23:10
       # Numbers separated by commas are allowed.  Example: "0,15,30,45" -> execute every 15 minutes.
       # Whitespaces are ignored.
-      # If both off_hours_interval and off_hours_schedule are specified at the same time,
-      # off_hours_interval will be ignored.
       off_hours_schedule: "0,15,30,45"
       # Alpaca Broker API Feeder runs from openTime ~ closeTime (UTC)
       openTime: "14:30:00" # 14:30(UTC) = 09:30 (EST)

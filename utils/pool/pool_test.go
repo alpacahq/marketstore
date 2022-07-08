@@ -28,5 +28,5 @@ func TestPool(t *testing.T) {
 	close(cc)
 	<-time.After(time.Second)
 
-	assert.Equal(t, jobCount, 10)
+	assert.Equal(t, 10, jobCount)
 }

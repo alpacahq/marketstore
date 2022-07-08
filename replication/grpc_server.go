@@ -16,13 +16,14 @@ const (
 )
 
 type GRPCReplicationServer struct {
+	pb.UnimplementedReplicationServer
 	CertFile    string
 	CertKeyFile string
 	// Key: IPAddr (e.g. "192.125.18.1:25"), Value: channel for messages sent to each gRPC stream
 	StreamChannels map[string]chan []byte
 }
 
-func NewGRPCReplicationService() *GRPCReplicationServer {
+func NewGRPCReplicationServer() *GRPCReplicationServer {
 	return &GRPCReplicationServer{
 		StreamChannels: map[string]chan []byte{},
 	}

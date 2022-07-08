@@ -16,7 +16,7 @@ type MockListSymbolsAPIClient struct {
 func (mac *MockListSymbolsAPIClient) ListSymbols(_ context.Context, exchange string) (api.ListSymbolsResponse, error) {
 	if exchange == "XTKS" {
 		return api.ListSymbolsResponse{
-			Outcome: "Success",
+			Outcome: api.SuccessOutcome,
 			Message: "Mock response",
 			ArrayOfSecurityDescription: []api.SecurityDescription{
 				{Symbol: "1234"},
@@ -27,7 +27,7 @@ func (mac *MockListSymbolsAPIClient) ListSymbols(_ context.Context, exchange str
 
 	if exchange == "XJAS" {
 		return api.ListSymbolsResponse{
-			Outcome: "Success",
+			Outcome: api.SuccessOutcome,
 			Message: "Mock response",
 			ArrayOfSecurityDescription: []api.SecurityDescription{
 				{Symbol: "9012"},

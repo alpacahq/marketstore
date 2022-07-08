@@ -153,7 +153,6 @@ listen_port | int | Port that MarketStore will serve through for JSON-RPC API
 grpc_listen_port | int | Port that MarketStore will serve through for GRPC API
 timezone | string | System timezone by name of TZ database (e.g. America/New_York)
 log_level | string  | Allows the user to specify the log level (info | warning | error)
-queryable | bool | Allows the user to run MarketStore in polling-only mode, where it will not respond to query
 stop_grace_period | int | Sets the amount of time MarketStore will wait to shutdown after a SIGINT signal is received
 wal_rotate_interval | int | Frequency (in minutes) at which the WAL file will be trimmed after being flushed to disk  
 stale_threshold | int | Threshold (in days) by which MarketStore will declare a symbol stale
@@ -167,7 +166,6 @@ root_directory: data
 listen_port: 5993
 grpc_listen_port: 5995
 log_level: info
-queryable: true
 stop_grace_period: 0
 wal_rotate_interval: 5
 stale_threshold: 5

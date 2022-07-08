@@ -3,6 +3,8 @@ package reorg
 import (
 	"fmt"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+
 	"github.com/spf13/cobra"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/reorg"
@@ -48,16 +50,13 @@ var ImportCmd = &cobra.Command{
 		dataDir := args[0]
 		reorgDir := args[1]
 		// walfile is rotated every walRotateInterval * primaryDiskRefreshInterval(= default:5min)
-		const walRotateInterval = 5
-		_, _, err := executor.NewInstanceSetup(dataDir, nil, nil,
-			walRotateInterval, executor.WALBypass(true),
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create new instance setup for Import: %w", err)
-		}
+		cfg := utils.NewDefaultConfig(dataDir)
+		cfg.WALBypass = true
+		c := di.NewContainer(cfg)
+		executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 
 		utils.InstanceConfig.DisableVariableCompression = disableVarComp
-		err = reorg.Import(reorgDir, reimport, storeWithoutSymbols)
+		err := reorg.Import(reorgDir, reimport, storeWithoutSymbols)
 		if err != nil {
 			return fmt.Errorf("failed to import: %w", err)
 		}

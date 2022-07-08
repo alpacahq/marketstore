@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+
 	binance "github.com/adshao/go-binance"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -21,8 +23,10 @@ import (
 )
 
 const (
-	defaultHTTPTimeout = 10 * time.Second
-	oneMinTimeframeStr = "1Min"
+	defaultHTTPTimeout  = 10 * time.Second
+	oneMinTimeframeStr  = "1Min"
+	oneHourTimeframeStr = "1H"
+	oneDayTimeframeStr  = "1D"
 )
 
 var suffixBinanceDefs = map[string]string{
@@ -72,6 +76,7 @@ type FetcherConfig struct {
 // BinanceFetcher is the main worker for Binance.
 type BinanceFetcher struct {
 	config         map[string]interface{}
+	client         *binance.Client
 	symbols        []string
 	baseCurrencies []string
 	queryStart     time.Time
@@ -141,11 +146,8 @@ func appendIfMissing(slice []string, s string) ([]string, bool) {
 
 // Gets all symbols from binance.
 func getAllSymbols(quoteAssets []string) []string {
-	symbol := make([]string, 0)
-	status := make([]string, 0)
 	validSymbols := make([]string, 0)
-	tradingSymbols := make([]string, 0)
-	quote := ""
+	var tradingSymbols []string
 
 	m := ExchangeInfo{}
 	err := getJSON("https://api.binance.com/api/v1/exchangeInfo", &m)
@@ -153,26 +155,7 @@ func getAllSymbols(quoteAssets []string) []string {
 		log.Error("Binance /exchangeInfo API error: %v", err)
 		tradingSymbols = []string{"BTC", "ETH", "LTC", "BNB"}
 	} else {
-		for _, info := range m.Symbols {
-			quote = info.QuoteAsset
-			var notRepeated bool
-			// Check if data is the right base currency and then check if it's already recorded
-			for _, quoteAsset := range quoteAssets {
-				if quote == quoteAsset {
-					symbol, notRepeated = appendIfMissing(symbol, info.BaseAsset)
-					if notRepeated {
-						status = append(status, info.Status)
-					}
-				}
-			}
-		}
-
-		// Check status and append to symbols list if valid
-		for index, s := range status {
-			if s == "TRADING" {
-				tradingSymbols = append(tradingSymbols, symbol[index])
-			}
-		}
+		tradingSymbols = getTradingSymbols(quoteAssets, m)
 	}
 
 	client := binance.NewClient("", "")
@@ -185,6 +168,38 @@ func getAllSymbols(quoteAssets []string) []string {
 	}
 
 	return validSymbols
+}
+
+func getTradingSymbols(quoteAssets []string, m ExchangeInfo) []string {
+	symbol := make([]string, 0)
+	status := make([]string, 0)
+	quote := ""
+	var tradingSymbols []string
+
+	for _, info := range m.Symbols {
+		quote = info.QuoteAsset
+		var notRepeated bool
+		// Check if data is the right base currency and then check if it's already recorded
+		for _, quoteAsset := range quoteAssets {
+			if quote != quoteAsset {
+				continue
+			}
+
+			symbol, notRepeated = appendIfMissing(symbol, info.BaseAsset)
+			if notRepeated {
+				status = append(status, info.Status)
+			}
+		}
+	}
+
+	// Check status and append to symbols list if valid
+	for index, s := range status {
+		if s == "TRADING" {
+			tradingSymbols = append(tradingSymbols, symbol[index])
+		}
+	}
+
+	return tradingSymbols
 }
 
 func findLastTimestamp(tbk *io.TimeBucketKey) time.Time {
@@ -252,8 +267,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		baseCurrencies = config.BaseCurrencies
 	}
 
+	client := binance.NewClient("", "")
+
 	return &BinanceFetcher{
 		config:         conf,
+		client:         client,
 		baseCurrencies: baseCurrencies,
 		symbols:        symbols,
 		queryStart:     queryStart,
@@ -261,19 +279,12 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}, nil
 }
 
-// Run grabs data in intervals from starting time to ending time.
-// If query_end is not set, it will run forever.
-func (bn *BinanceFetcher) Run() {
-	symbols := bn.symbols
-	client := binance.NewClient("", "")
-	timeStart := time.Time{}
-	baseCurrencies := bn.baseCurrencies
-	slowDown := false
+var (
+	re  = regexp.MustCompile(`\d+`)
+	re2 = regexp.MustCompile("[a-zA-Z]+")
+)
 
-	// Get correct Time Interval for Binance
-	originalInterval := bn.baseTimeframe.String
-	re := regexp.MustCompile(`\d+`)
-	re2 := regexp.MustCompile("[a-zA-Z]+")
+func getTimeInterval(originalInterval string) string {
 	timeIntervalLettersOnly := re.ReplaceAllString(originalInterval, "")
 	timeIntervalNumsOnly := re2.ReplaceAllString(originalInterval, "")
 	correctIntervalSymbol := suffixBinanceDefs[timeIntervalLettersOnly]
@@ -281,11 +292,16 @@ func (bn *BinanceFetcher) Run() {
 		log.Warn("Interval Symbol Format Incorrect. Setting to time interval to default '%s'", oneMinTimeframeStr)
 		correctIntervalSymbol = oneMinTimeframeStr
 	}
-	timeInterval := timeIntervalNumsOnly + correctIntervalSymbol
 
-	// Get last timestamp collected
-	for _, symbol := range symbols {
-		for _, baseCurrency := range baseCurrencies {
+	return timeIntervalNumsOnly + correctIntervalSymbol
+}
+
+// get last timestamp collected.
+func (bn *BinanceFetcher) getTimeStart() time.Time {
+	timeStart := time.Time{}
+
+	for _, symbol := range bn.symbols {
+		for _, baseCurrency := range bn.baseCurrencies {
 			symbolDir := fmt.Sprintf("binance_%s-%s", symbol, baseCurrency)
 			tbk := io.NewTimeBucketKey(symbolDir + "/" + bn.baseTimeframe.String + "/OHLCV")
 			lastTimestamp := findLastTimestamp(tbk)
@@ -303,25 +319,118 @@ func (bn *BinanceFetcher) Run() {
 		timeStart = time.Now().UTC().Add(-bn.baseTimeframe.Duration)
 	}
 
+	return timeStart
+}
+
+func convertRateToRecords(rates []*binance.Kline) (openTime []int64, open, high, low, clos, volume []float64) {
+	openTime = make([]int64, 0)
+	open = make([]float64, 0)
+	high = make([]float64, 0)
+	low = make([]float64, 0)
+	clos = make([]float64, 0)
+	volume = make([]float64, 0)
+
+	for _, rate := range rates {
+		errorsConversion = errorsConversion[:0]
+		// if nil, do not append to list
+		if rate.OpenTime != 0 && rate.Open != "" &&
+			rate.High != "" && rate.Low != "" &&
+			rate.Close != "" && rate.Volume != "" {
+			openTime = append(openTime, convertMillToTime(rate.OpenTime).Unix())
+			open = append(open, convertStringToFloat(rate.Open))
+			high = append(high, convertStringToFloat(rate.High))
+			low = append(low, convertStringToFloat(rate.Low))
+			clos = append(clos, convertStringToFloat(rate.Close))
+			volume = append(volume, convertStringToFloat(rate.Volume))
+			for _, e := range errorsConversion {
+				if e != nil {
+					return
+				}
+			}
+		} else {
+			log.Info("No value in rate %v", rate)
+		}
+	}
+
+	return openTime, open, high, low, clos, volume
+}
+
+func makeCSM(tbk *io.TimeBucketKey, slowDown bool, openTime []int64, open, high, low, clos, volume []float64,
+) io.ColumnSeriesMap {
+	cs := io.NewColumnSeries()
+	// Remove last incomplete candle if it exists since that is incomplete
+	// Since all are the same length we can just check one
+	// We know that the last one on the list is the incomplete candle because in
+	// the gotCandle loop we only move on when the incomplete candle appears which is the last entry from the API
+	if slowDown && len(openTime) > 1 {
+		openTime = openTime[:len(openTime)-1]
+		open = open[:len(open)-1]
+		high = high[:len(high)-1]
+		low = low[:len(low)-1]
+		clos = clos[:len(clos)-1]
+		volume = volume[:len(volume)-1]
+	}
+	cs.AddColumn("Epoch", openTime)
+	cs.AddColumn("Open", open)
+	cs.AddColumn("High", high)
+	cs.AddColumn("Low", low)
+	cs.AddColumn("Close", clos)
+	cs.AddColumn("Volume", volume)
+	csm := io.NewColumnSeriesMap()
+	csm.AddColumnSeries(*tbk, cs)
+
+	return csm
+}
+
+func getStartOfCurrentTimeframe(originalInterval string) time.Time {
+	t := time.Now().UTC()
+
+	year := t.Year()
+	month := t.Month()
+	day := t.Day()
+	hour := t.Hour()
+	minute := t.Minute()
+
+	switch originalInterval {
+	case oneMinTimeframeStr:
+		t = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+	case oneHourTimeframeStr:
+		t = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
+	case oneDayTimeframeStr:
+		t = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+	default:
+		log.Warn("Incorrect format: %v", originalInterval)
+	}
+
+	return t
+}
+
+const getRatesChunkSize = 300
+
+// Run grabs data in intervals from starting time to ending time.
+// If query_end is not set, it will run forever.
+func (bn *BinanceFetcher) Run() {
+	slowDown := false
+
+	// Get correct Time Interval for Binance
+	originalInterval := bn.baseTimeframe.String
+	timeInterval := getTimeInterval(originalInterval)
+
+	// Get last timestamp collected
+	timeStart := bn.getTimeStart()
+
 	// For loop for collecting candlestick data forever
 	// Note that the max amount is 1000 candlesticks which is no problem
-	var timeStartM int64
-	var timeEndM int64
-	var timeEnd time.Time
-	var originalTimeStart time.Time
-	var originalTimeEnd time.Time
-	var originalTimeEndZero time.Time
-	var waitTill time.Time
+	var timeStartM, timeEndM int64
+	var timeEnd, originalTimeStart, originalTimeEnd, originalTimeEndZero, waitTill time.Time
 	firstLoop := true
 
 	for {
 		// finalTime = time.Now().UTC()
 		originalTimeStart = timeStart
-		originalTimeEnd = timeEnd
 
 		// Check if it's finished backfilling. If not, just do 300 * Timeframe.duration
 		// only do beyond 1st loop
-		const getRatesChunkSize = 300
 		if !slowDown {
 			if !firstLoop {
 				timeStart = timeStart.Add(bn.baseTimeframe.Duration * getRatesChunkSize)
@@ -334,9 +443,6 @@ func (bn *BinanceFetcher) Run() {
 			if timeEnd.After(time.Now().UTC()) {
 				slowDown = true
 			}
-		} else {
-			// Set to the :00 of previous TimeEnd to ensure that the complete candle that was not formed before is written
-			originalTimeEnd = originalTimeEndZero
 		}
 
 		// Sleep for the timeframe
@@ -344,30 +450,18 @@ func (bn *BinanceFetcher) Run() {
 		// Slow Down for 1 Duration period
 		// Make sure last candle is formed
 		if slowDown {
-			timeEnd = time.Now().UTC()
-			timeStart = originalTimeEnd
+			// Set to the :00 of previous TimeEnd to ensure that the complete candle that was not formed before is written
+			originalTimeEnd = originalTimeEndZero
 
-			year := timeEnd.Year()
-			month := timeEnd.Month()
-			day := timeEnd.Day()
-			hour := timeEnd.Hour()
-			minute := timeEnd.Minute()
-
+			timeEnd = getStartOfCurrentTimeframe(originalInterval)
 			// To prevent gaps (ex: querying between 1:31 PM and 2:32 PM (hourly)would not be ideal)
 			// But we still want to wait 1 candle afterwards (ex: 1:01 PM (hourly))
 			// If it is like 1:59 PM, the first wait sleep time will be 1:59, but afterwards would be 1 hour.
 			// Main goal is to ensure it runs every 1 <time duration> at :00
-			switch originalInterval {
-			case oneMinTimeframeStr:
-				timeEnd = time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-			case "1H":
-				timeEnd = time.Date(year, month, day, hour, 0, 0, 0, time.UTC)
-			case "1D":
-				timeEnd = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-			default:
-				log.Warn("Incorrect format: %v", originalInterval)
-			}
 			waitTill = timeEnd.Add(bn.baseTimeframe.Duration)
+
+			timeStart = originalTimeEnd
+
 			timeStartM2 := timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 			timeEndM2 := timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 
@@ -376,8 +470,8 @@ func (bn *BinanceFetcher) Run() {
 			// (ex: if we see :00 is formed that means the :59 candle is fully formed)
 			gotCandle := false
 			for !gotCandle {
-				rates, err := client.NewKlinesService().
-					Symbol(symbols[0] + baseCurrencies[0]).
+				rates, err := bn.client.NewKlinesService().
+					Symbol(bn.symbols[0] + bn.baseCurrencies[0]).
 					Interval(timeInterval).
 					StartTime(timeStartM2).
 					Do(context.Background())
@@ -400,85 +494,7 @@ func (bn *BinanceFetcher) Run() {
 		timeStartM = timeStart.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 		timeEndM = timeEnd.UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
 
-		for _, symbol := range symbols {
-			for _, baseCurrency := range baseCurrencies {
-				log.Info("Requesting %s %v - %v", symbol, timeStart, timeEnd)
-				rates, err := client.NewKlinesService().Symbol(symbol + baseCurrency).
-					Interval(timeInterval).
-					StartTime(timeStartM).
-					EndTime(timeEndM).
-					Do(context.Background())
-				if err != nil {
-					log.Info("Response error: %v", err)
-					log.Info("Problematic symbol %s", symbol)
-					time.Sleep(time.Minute)
-					// Go back to last time
-					timeStart = originalTimeStart
-					continue
-				}
-
-				openTime := make([]int64, 0)
-				open := make([]float64, 0)
-				high := make([]float64, 0)
-				low := make([]float64, 0)
-				clos := make([]float64, 0)
-				volume := make([]float64, 0)
-
-				for _, rate := range rates {
-					errorsConversion = errorsConversion[:0]
-					// if nil, do not append to list
-					if rate.OpenTime != 0 && rate.Open != "" &&
-						rate.High != "" && rate.Low != "" &&
-						rate.Close != "" && rate.Volume != "" {
-						openTime = append(openTime, convertMillToTime(rate.OpenTime).Unix())
-						open = append(open, convertStringToFloat(rate.Open))
-						high = append(high, convertStringToFloat(rate.High))
-						low = append(low, convertStringToFloat(rate.Low))
-						clos = append(clos, convertStringToFloat(rate.Close))
-						volume = append(volume, convertStringToFloat(rate.Volume))
-						for _, e := range errorsConversion {
-							if e != nil {
-								return
-							}
-						}
-					} else {
-						log.Info("No value in rate %v", rate)
-					}
-				}
-
-				validWriting := true
-				if len(openTime) == 0 || len(open) == 0 || len(high) == 0 || len(low) == 0 || len(clos) == 0 || len(volume) == 0 {
-					validWriting = false
-				}
-				// if data is nil, do not write to csm
-				if validWriting {
-					cs := io.NewColumnSeries()
-					// Remove last incomplete candle if it exists since that is incomplete
-					// Since all are the same length we can just check one
-					// We know that the last one on the list is the incomplete candle because in
-					// the gotCandle loop we only move on when the incomplete candle appears which is the last entry from the API
-					if slowDown && len(openTime) > 1 {
-						openTime = openTime[:len(openTime)-1]
-						open = open[:len(open)-1]
-						high = high[:len(high)-1]
-						low = low[:len(low)-1]
-						clos = clos[:len(clos)-1]
-						volume = volume[:len(volume)-1]
-					}
-					cs.AddColumn("Epoch", openTime)
-					cs.AddColumn("Open", open)
-					cs.AddColumn("High", high)
-					cs.AddColumn("Low", low)
-					cs.AddColumn("Close", clos)
-					cs.AddColumn("Volume", volume)
-					csm := io.NewColumnSeriesMap()
-					symbolDir := fmt.Sprintf("binance_%s-%s", symbol, baseCurrency)
-					tbk := io.NewTimeBucketKey(symbolDir + "/" + bn.baseTimeframe.String + "/OHLCV")
-					csm.AddColumnSeries(*tbk, cs)
-					executor.WriteCSM(csm, false)
-				}
-			}
-		}
+		bn.writeSymbols(timeStart, timeEnd, originalTimeStart, timeInterval, timeStartM, timeEndM, slowDown)
 
 		if slowDown {
 			// Sleep till next :00 time
@@ -486,6 +502,43 @@ func (bn *BinanceFetcher) Run() {
 		} else {
 			// Binance rate limit is 20 reequests per second so this shouldn't be an issue.
 			time.Sleep(time.Second)
+		}
+	}
+}
+
+func (bn *BinanceFetcher) writeSymbols(timeStart, timeEnd, originalTimeStart time.Time,
+	timeInterval string, timeStartM, timeEndM int64, slowDown bool,
+) {
+	for _, symbol := range bn.symbols {
+		for _, baseCurrency := range bn.baseCurrencies {
+			log.Info("Requesting %s %v - %v", symbol, timeStart, timeEnd)
+			rates, err := bn.client.NewKlinesService().Symbol(symbol + baseCurrency).
+				Interval(timeInterval).
+				StartTime(timeStartM).
+				EndTime(timeEndM).
+				Do(context.Background())
+			if err != nil {
+				log.Info("Response error: %v", err)
+				log.Info("Problematic symbol %s", symbol)
+				time.Sleep(time.Minute)
+				// Go back to last time
+				timeStart = originalTimeStart
+				continue
+			}
+
+			openTime, open, high, low, clos, volume := convertRateToRecords(rates)
+			if len(openTime) == 0 || len(open) == 0 || len(high) == 0 || len(low) == 0 || len(clos) == 0 || len(volume) == 0 {
+				// if data is nil, do not write to csm
+				continue
+			}
+
+			symbolDir := fmt.Sprintf("binance_%s-%s", symbol, baseCurrency)
+			tbk := io.NewTimeBucketKey(symbolDir + "/" + bn.baseTimeframe.String + "/OHLCV")
+			csm := makeCSM(tbk, slowDown, openTime, open, high, low, clos, volume)
+			err = executor.WriteCSM(csm, false)
+			if err != nil {
+				log.Error(fmt.Sprintf("[binancefeeder]failed to write CSM"), zap.Error(err))
+			}
 		}
 	}
 }

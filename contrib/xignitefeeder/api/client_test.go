@@ -60,10 +60,12 @@ func TestDefaultClient_GetRealTimeQuotes(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			name:         "Success",
-			httpClient:   NewMockClient(t, GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}}}),
+			name: "Success",
+			httpClient: NewMockClient(t, GetQuotesResponse{
+				ArrayOfEquityQuote: []EquityQuote{{Outcome: SuccessOutcome}},
+			}),
 			identifiers:  []string{"foo"},
-			wantResponse: GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: "Success"}}},
+			wantResponse: GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{{Outcome: SuccessOutcome}}},
 			wantErr:      false,
 		},
 		{
@@ -86,13 +88,13 @@ func TestDefaultClient_GetRealTimeQuotes(t *testing.T) {
 			name: "3 identifiers are requested but only 2 equity quotes are returned",
 			httpClient: NewMockClient(t, GetQuotesResponse{
 				ArrayOfEquityQuote: []EquityQuote{
-					{Outcome: "Success", Message: "Success1"},
+					{Outcome: SuccessOutcome, Message: "Success1"},
 					{Outcome: "SystemError", Message: "An unexpected error occurred."},
 				},
 			}),
 			identifiers: []string{"foo", "bar", "fizz"},
 			wantResponse: GetQuotesResponse{ArrayOfEquityQuote: []EquityQuote{
-				{Outcome: "Success", Message: "Success1"},
+				{Outcome: SuccessOutcome, Message: "Success1"},
 				{Outcome: "SystemError", Message: "An unexpected error occurred."},
 			}},
 			wantErr: false,
@@ -124,7 +126,7 @@ func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
-		httpClient: NewMockClient(t, ListSymbolsResponse{Outcome: "Success"}),
+		httpClient: NewMockClient(t, ListSymbolsResponse{Outcome: SuccessOutcome}),
 		token:      DummyXigniteToken,
 	}
 
@@ -134,8 +136,8 @@ func TestDefaultAPIClient_ListSymbols_Success(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error should be nil. Err = %v", err)
 	}
-	if got.Outcome != "Success" {
-		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	if got.Outcome != SuccessOutcome {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, SuccessOutcome)
 	}
 }
 
@@ -144,7 +146,7 @@ func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
-		httpClient: NewMockClient(t, GetQuotesRangeResponse{Outcome: "Success"}),
+		httpClient: NewMockClient(t, GetQuotesRangeResponse{Outcome: SuccessOutcome}),
 		token:      DummyXigniteToken,
 	}
 
@@ -154,8 +156,8 @@ func TestDefaultAPIClient_GetQuotesRange_Success(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error should be nil. Err = %v", err)
 	}
-	if got.Outcome != "Success" {
-		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	if got.Outcome != SuccessOutcome {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, SuccessOutcome)
 	}
 }
 
@@ -202,7 +204,7 @@ func TestDefaultAPIClient_GetRealTimeBars_Success(t *testing.T) {
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
-		httpClient: NewMockClient(t, GetBarsResponse{Outcome: "Success", ArrayOfBar: []Bar{}}),
+		httpClient: NewMockClient(t, GetBarsResponse{Outcome: SuccessOutcome, ArrayOfBar: []Bar{}}),
 		token:      DummyXigniteToken,
 	}
 
@@ -212,8 +214,8 @@ func TestDefaultAPIClient_GetRealTimeBars_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error should be nil. Err = %v", err)
 	}
-	if got.Outcome != "Success" {
-		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	if got.Outcome != SuccessOutcome {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, SuccessOutcome)
 	}
 }
 
@@ -222,7 +224,7 @@ func TestDefaultAPIClient_GetIndexBars_Success(t *testing.T) {
 	// --- given ---
 	SUT := &DefaultClient{
 		// return "Outcome: Success" response body
-		httpClient: NewMockClient(t, GetIndexBarsResponse{Outcome: "Success", ArrayOfBar: []Bar{}}),
+		httpClient: NewMockClient(t, GetIndexBarsResponse{Outcome: SuccessOutcome, ArrayOfBar: []Bar{}}),
 		token:      DummyXigniteToken,
 	}
 
@@ -232,8 +234,8 @@ func TestDefaultAPIClient_GetIndexBars_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error should be nil. Err = %v", err)
 	}
-	if got.Outcome != "Success" {
-		t.Errorf("Outcome = %v, want %v", got.Outcome, "Success")
+	if got.Outcome != SuccessOutcome {
+		t.Errorf("Outcome = %v, want %v", got.Outcome, SuccessOutcome)
 	}
 }
 

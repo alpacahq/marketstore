@@ -24,7 +24,7 @@ func (mac *MockErrorAPIClient) GetRealTimeBars(_ context.Context, i string, _, _
 	}
 
 	return api.GetBarsResponse{
-		Outcome:    "Success",
+		Outcome:    api.SuccessOutcome,
 		Security:   &api.Security{Symbol: "1301"},
 		ArrayOfBar: []api.Bar{},
 	}, nil

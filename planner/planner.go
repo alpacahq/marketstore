@@ -202,16 +202,19 @@ func (q *Query) AddTimeQual(timeQual TimeQualFunc) {
 
 func (q *Query) Parse() (pr *ParseResult, err error) {
 	// Check to see that the categories in the query are present in the DB directory
-	CatList := q.DataDir.GatherCategoriesFromCache()
+	categorySet, err := q.DataDir.GatherCategoriesFromCache()
+	if err != nil {
+		return nil, fmt.Errorf("gather categories from cache: %w", err)
+	}
 	for key := range q.Restriction.GetRestrictionMap() {
-		if _, ok := CatList[key]; !ok {
+		if _, ok := categorySet[key]; !ok {
 			return nil, fmt.Errorf("category: %s not in catalog", key)
 		}
 	}
 
 	// RootDir
 	// rootDir := q.DataDir
-	// fmt.Printf("Catlist %v, Root %v\n", CatList, rootDir)
+	// fmt.Printf("Catlist %v, Root %v\n", categorySet, rootDir)
 	// fmt.Printf("Range %v\n", q.Range)
 
 	// This method conditionally recurses the directory looking for restricted matches
@@ -260,7 +263,7 @@ func (q *Query) Parse() (pr *ParseResult, err error) {
 		}
 	}
 
-	// Parse the query in the first pass by finding qualified files
+	// ParseConfig the query in the first pass by finding qualified files
 	pr = NewParseResult()
 	pr.RootDir = q.DataDir.GetPath()
 	/*

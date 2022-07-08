@@ -8,12 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 /*
+ColumnInterface is an interface for ColumnSeries.
 ColumnSeries stores query results using the following keys:
 - Key1: Metadata key for filesystem
 - Key2: Data column name
@@ -138,7 +141,11 @@ func (cs *ColumnSeries) Rename(newName, oldName string) error {
 		If the new name already exists in the source, remove it first
 	*/
 	if cs.Exists(newName) {
-		cs.Remove(newName)
+		if err := cs.Remove(newName); err != nil && !errors.Is(err, ErrColumnNotFound) {
+			log.Error("failed to remove column for rename",
+				zap.String("new_column_name", newName), zap.Error(err),
+			)
+		}
 	}
 
 	/*
@@ -154,7 +161,9 @@ func (cs *ColumnSeries) Rename(newName, oldName string) error {
 	}
 
 	cs.AddColumn(newName, oldColumn)
-	cs.Remove(oldName)
+	if err := cs.Remove(oldName); err != nil {
+		return fmt.Errorf("remove a column of old name(%s) for column renaming: %w", oldName, err)
+	}
 	cs.orderedNames = newNames
 	return nil
 }
@@ -167,9 +176,11 @@ func (cs *ColumnSeries) Replace(targetName string, col interface{}) error {
 	return nil
 }
 
+var ErrColumnNotFound = errors.New("column does not exist")
+
 func (cs *ColumnSeries) Remove(targetName string) error {
 	if !cs.Exists(targetName) {
-		return fmt.Errorf("error: Source column named %s does not exist", targetName)
+		return fmt.Errorf("error: Source column %s: %w", targetName, ErrColumnNotFound)
 	}
 	var newNames []string
 	for _, name := range cs.orderedNames {
@@ -251,7 +262,7 @@ func (cs *ColumnSeries) AddNullColumn(ds DataShape) {
 // not a given epoch time is valid, and applies that function
 // to the ColumnSeries, removing invalid entries.
 func (cs *ColumnSeries) ApplyTimeQual(tq func(epoch int64) bool) *ColumnSeries {
-	indexes := []int{}
+	var indexes []int
 
 	out := &ColumnSeries{
 		orderedNames:  cs.orderedNames,
@@ -323,13 +334,6 @@ func SliceColumnSeriesByEpoch(cs ColumnSeries, start, end *int64) (slc ColumnSer
 	}
 
 	return slc, err
-}
-
-func max(x, y int) int {
-	if x > y {
-		return x
-	}
-	return y
 }
 
 // ColumnSeriesUnion takes to column series and creates a union

@@ -31,7 +31,7 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 	apiResponse := api.GetQuotesResponse{
 		ArrayOfEquityQuote: []api.EquityQuote{
 			{
-				Outcome:  "Success",
+				Outcome:  api.SuccessOutcome,
 				Security: &api.Security{Symbol: "1234"},
 				Quote: &api.Quote{
 					Ask:            123.4,
@@ -42,7 +42,7 @@ func TestQuotesWriterImpl_Write(t *testing.T) {
 				},
 			},
 			{
-				Outcome:  "Success",
+				Outcome:  api.SuccessOutcome,
 				Security: &api.Security{Symbol: "5678"},
 				Quote: &api.Quote{
 					Ask:            90.1,
@@ -112,7 +112,7 @@ func TestQuotesWriterImpl_TimeLocation(t *testing.T) {
 	apiResponse := api.GetQuotesResponse{
 		ArrayOfEquityQuote: []api.EquityQuote{
 			{
-				Outcome:  "Success",
+				Outcome:  api.SuccessOutcome,
 				Security: &api.Security{Symbol: "1234"},
 				Quote: &api.Quote{
 					Ask:            123.4,

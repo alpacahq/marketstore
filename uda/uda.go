@@ -6,6 +6,8 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
+// ColumnToFloat32 converts the specified column to a slice of float32.
+// nolint: dupl // generics can make the code slower
 func ColumnToFloat32(cols io.ColumnInterface, name string) (outCol []float32, err error) {
 	// nolint:ifshort // false positive
 	ccol := cols.GetColumn(name)
@@ -39,6 +41,8 @@ func ColumnToFloat32(cols io.ColumnInterface, name string) (outCol []float32, er
 	return outCol, nil
 }
 
+// ColumnToFloat64 converts the specified column to a slice of float64.
+// nolint: dupl // generics can make the code slower
 func ColumnToFloat64(cols io.ColumnInterface, name string) (outCol []float64, err error) {
 	// nolint:ifshort // false positive
 	ccol := cols.GetColumn(name)

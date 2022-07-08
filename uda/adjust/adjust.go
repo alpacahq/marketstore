@@ -25,7 +25,7 @@ var (
 
 	initArgs []io.DataShape
 
-	rounderNum = math.Pow(decimal, roundToDecimals)
+	RounderNum = math.Pow(decimal, roundToDecimals)
 )
 
 type Adjust struct {
@@ -143,7 +143,7 @@ func (adj *Adjust) Accum(tbk io.TimeBucketKey, _ *functions.ArgumentMap, cols io
 		for _, col := range adj.output {
 			switch c := col.(type) {
 			case []float64:
-				c[i] = math.Round((c[i]/rate)*rounderNum) / rounderNum
+				c[i] = math.Round((c[i]/rate)*RounderNum) / RounderNum
 			case []int64:
 				c[i] = int64(float64(c[i]) * rate)
 			}

@@ -44,7 +44,7 @@ func (q *QuotesWriterImpl) convertToCSM(response api.GetQuotesResponse) io.Colum
 	for _, eq := range response.ArrayOfEquityQuote {
 		// skip the symbol which LastMarketDate is empty
 		// which means the symbols are not listed yet
-		if eq.Outcome != "Success" || time.Time(eq.Quote.LastMarketDate) == (time.Time{}) {
+		if eq.Outcome != api.SuccessOutcome || time.Time(eq.Quote.LastMarketDate) == (time.Time{}) {
 			continue
 		}
 

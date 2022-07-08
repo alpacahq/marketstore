@@ -6,7 +6,6 @@ root_directory: data                # root directory of the database
 listen_port: 5993                   # port exposed by the database server for JSON-RPC API
 grpc_listen_port: 5995              # port exposed by the database server for GRPC API
 log_level: info                     # log level (info|warn|error)
-queryable: true                     # allow database to be queried through a client connection
 stop_grace_period: 0
 wal_rotate_interval: 5
 # timezone: "America/New_York"      # timezone to use for timestamps (default UTC)

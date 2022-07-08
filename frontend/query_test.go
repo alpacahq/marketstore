@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -23,74 +26,78 @@ func setup(t *testing.T,
 
 	rootDir = t.TempDir()
 	test.MakeDummyCurrencyDir(rootDir, true, false)
-	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
+	metadata = executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 	atomic.StoreUint32(&frontend.Queryable, uint32(1))
 
-	qs := frontend.NewQueryService(metadata.CatalogDir)
-	writer, _ = executor.NewWriter(metadata.CatalogDir, metadata.WALFile)
+	qs := frontend.NewQueryService(c.GetCatalogDir())
+	writer, _ = executor.NewWriter(c.GetCatalogDir(), c.GetInitWALFile())
 	return rootDir, metadata, writer, qs
 }
 
-func _TestQueryCustomTimeframes(t *testing.T) {
-	rootDir, metadata, writer, q := setup(t)
-
+func TestQueryCustomTimeframes(t *testing.T) {
 	// TODO: Support custom timeframes
-	service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
-	service.Init()
+	return
 
-	args := &frontend.MultiQueryRequest{
-		Requests: []frontend.QueryRequest{
-			frontend.NewQueryRequestBuilder("USDJPY,EURUSD/30Min/OHLC").
-				EpochStart(0).
-				EpochEnd(math.MaxInt32).
-				LimitRecordCount(10).
-				LimitFromStart(false).
-				End(),
-			frontend.NewQueryRequestBuilder("USDJPY,EURUSD/1W/OHLC").
-				EpochStart(0).
-				EpochEnd(math.MaxInt32).
-				LimitRecordCount(10).
-				LimitFromStart(false).
-				End(),
-			frontend.NewQueryRequestBuilder("USDJPY/1M/OHLC").
-				EpochStart(0).
-				EpochEnd(math.MaxInt32).
-				LimitRecordCount(5).
-				LimitFromStart(false).
-				End(),
-		},
-	}
+	// rootDir, metadata, writer, q := setup(t)
 
-	var response frontend.MultiQueryResponse
-	if err := service.Query(nil, args, &response); err != nil {
-		t.Fatalf("error returned: %s", err.Error())
-	}
-
-	assert.Len(t, response.Responses, 3)
-	assert.Len(t, response.Responses[0].Result.StartIndex, 2)
-	assert.Len(t, response.Responses[1].Result.StartIndex, 2)
-	assert.Len(t, response.Responses[2].Result.StartIndex, 1)
-	csm, err := response.Responses[0].Result.ToColumnSeriesMap()
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-	assert.Len(t, csm, 2)
-
-	csm, err = response.Responses[1].Result.ToColumnSeriesMap()
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-	assert.Len(t, csm, 2)
-
-	csm, err = response.Responses[2].Result.ToColumnSeriesMap()
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-	assert.Len(t, csm, 1)
+	//service := frontend.NewDataService(rootDir, metadata.CatalogDir, sqlparser.NewAggRunner(nil), writer, q)
+	//service.Init()
+	//
+	//args := &frontend.MultiQueryRequest{
+	//	Requests: []frontend.QueryRequest{
+	//		frontend.NewQueryRequestBuilder("USDJPY,EURUSD/30Min/OHLC").
+	//			EpochStart(0).
+	//			EpochEnd(math.MaxInt32).
+	//			LimitRecordCount(10).
+	//			LimitFromStart(false).
+	//			End(),
+	//		frontend.NewQueryRequestBuilder("USDJPY,EURUSD/1W/OHLC").
+	//			EpochStart(0).
+	//			EpochEnd(math.MaxInt32).
+	//			LimitRecordCount(10).
+	//			LimitFromStart(false).
+	//			End(),
+	//		frontend.NewQueryRequestBuilder("USDJPY/1M/OHLC").
+	//			EpochStart(0).
+	//			EpochEnd(math.MaxInt32).
+	//			LimitRecordCount(5).
+	//			LimitFromStart(false).
+	//			End(),
+	//	},
+	//}
+	//
+	//var response frontend.MultiQueryResponse
+	//if err := service.Query(nil, args, &response); err != nil {
+	//	t.Fatalf("error returned: %s", err.Error())
+	//}
+	//
+	//assert.Len(t, response.Responses, 3)
+	//assert.Len(t, response.Responses[0].Result.StartIndex, 2)
+	//assert.Len(t, response.Responses[1].Result.StartIndex, 2)
+	//assert.Len(t, response.Responses[2].Result.StartIndex, 1)
+	//csm, err := response.Responses[0].Result.ToColumnSeriesMap()
+	//if err != nil {
+	//	t.Log(err)
+	//	t.Fail()
+	//}
+	//assert.Len(t, csm, 2)
+	//
+	//csm, err = response.Responses[1].Result.ToColumnSeriesMap()
+	//if err != nil {
+	//	t.Log(err)
+	//	t.Fail()
+	//}
+	//assert.Len(t, csm, 2)
+	//
+	//csm, err = response.Responses[2].Result.ToColumnSeriesMap()
+	//if err != nil {
+	//	t.Log(err)
+	//	t.Fail()
+	//}
+	//assert.Len(t, csm, 1)
 }
 
 func TestQuery(t *testing.T) {

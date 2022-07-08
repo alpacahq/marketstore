@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/pkg/errors"
 
 	"github.com/alpacahq/marketstore/v4/contrib/ice/lib/date"
@@ -27,7 +29,9 @@ func ParseFile(r io.Reader) ([]*SecurityMaster, error) {
 	// read file
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		l.lineReader(scanner.Text())
+		if err := l.lineReader(scanner.Text()); err != nil {
+			log.Error("[ice]failed to read line of securityInfo file", zap.Error(err))
+		}
 	}
 
 	if err := scanner.Err(); err != nil {

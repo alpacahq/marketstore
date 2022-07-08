@@ -34,15 +34,10 @@ type DefaultConfig struct {
 	ClosedDaysOfTheWeek []time.Weekday
 	ClosedDays          []time.Time
 	Interval            int `json:"interval"`
-	// If a non-zero value is set for OffHoursInterval,
-	// the data-feeding is executed every offHoursInterval[minute] even when the market is closed.
-	OffHoursInterval int `json:"off_hours_interval"`
 	// The data-feeding is executed when 'minute' of the current time matches off_hours_schedule
 	// even when the market is cloded. Example: "10" -> execute at 00:10, 01:10, 02:10,...,23:10
 	// Numbers separated by commas are allowed.  Example: "0,15,30,45" -> execute every 15 minutes.
 	// Whitespaces are ignored.
-	// If both off_hours_interval and off_hours_schedule are specified at the same time,
-	// off_hours_interval will be ignored.
 	OffHoursSchedule string `json:"off_hours_schedule"`
 	Backfill         struct {
 		Enabled   bool      `json:"enabled"`
@@ -131,17 +126,17 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 
 // convertSliceType converts a slice of weekday to a slice of time.weekday.
 func convertTime(w []weekday) []time.Weekday {
-	d := make([]time.Weekday, 1)
-	for _, v := range w {
-		d = append(d, time.Weekday(v))
+	d := make([]time.Weekday, len(w))
+	for i, v := range w {
+		d[i] = time.Weekday(v)
 	}
 	return d
 }
 
 func convertDate(cd []CustomDay) []time.Time {
-	d := make([]time.Time, 1)
-	for _, v := range cd {
-		d = append(d, time.Time(v))
+	d := make([]time.Time, len(cd))
+	for i, v := range cd {
+		d[i] = time.Time(v)
 	}
 	return d
 }
@@ -193,7 +188,7 @@ func (wd *weekday) UnmarshalJSON(input []byte) error {
 		return nil
 	}
 
-	return errors.Errorf("invalid weekday '%s'.", s)
+	return errors.Errorf("invalid weekday '%s'", s)
 }
 
 var daysOfWeek = map[string]time.Weekday{

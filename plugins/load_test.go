@@ -23,7 +23,7 @@ func setup(t *testing.T) (tearDown func(), testPluginLib, oldGoPath, absTestPlug
 	}
 
 	binDirName := filepath.Join(dirName, "bin")
-	os.MkdirAll(binDirName, 0o777)
+	assert.Nil(t, os.MkdirAll(binDirName, 0o777))
 	testFileName := "plugin.go"
 	testFilePath := filepath.Join(dirName, testFileName)
 	testPluginLib = "plugin.so"
@@ -35,8 +35,9 @@ func setup(t *testing.T) (tearDown func(), testPluginLib, oldGoPath, absTestPlug
 	code := `package main
 func main() {}
 `
-	file.WriteString(code)
-	file.Close()
+	_, err = file.WriteString(code)
+	assert.Nil(t, err)
+	assert.Nil(t, file.Close())
 	cmd := exec.Command("go",
 		"build",
 		"-buildmode=plugin",

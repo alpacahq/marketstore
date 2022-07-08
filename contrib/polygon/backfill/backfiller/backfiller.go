@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/gobwas/glob"
 
@@ -80,11 +82,12 @@ func init() {
 	flag.Parse()
 }
 
+// nolint:funlen,gocognit,gocyclo // TODO: refactor the main func
 func main() {
 	const allPerm = 0o777
 	const oneDay = 24 * time.Hour
 	rootDir, triggers, walRotateInterval := initConfig()
-	instanceMeta, walWG, err := initWriter(rootDir, triggers, walRotateInterval)
+	instanceMeta, err := initWriter(rootDir, triggers, walRotateInterval)
 	if err != nil {
 		log.Error("failed to set up new instance config. err=" + err.Error())
 		os.Exit(1)
@@ -266,9 +269,7 @@ func main() {
 	}
 
 	log.Info("[polygon] wait for shutdown")
-	instanceMeta.WALFile.TriggerShutdown()
-	walWG.Wait()
-	instanceMeta.WALFile.FinishAndWait()
+	instanceMeta.WALFile.Shutdown()
 
 	log.Info("[polygon] api call time %s", backfill.APICallTime)
 	log.Info("[polygon] wait time %s", backfill.WaitTime)
@@ -283,17 +284,22 @@ func initConfig() (rootDir string, triggers []*utils.TriggerSetting, walRotateIn
 		os.Exit(1)
 	}
 
-	config, err := utils.InstanceConfig.Parse(data)
+	config, err := utils.ParseConfig(data)
 	if err != nil {
 		log.Error("failed to parse configuration file error: %v", err.Error())
 		os.Exit(1)
 	}
+	utils.InstanceConfig = *config // TODO: remove the singleton instance
 
 	return config.RootDirectory, config.Triggers, config.WALRotateInterval
 }
 
 func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInterval int,
-) (instanceConfig *executor.InstanceMetadata, walWG *sync.WaitGroup, err error) {
+) (instanceConfig *executor.InstanceMetadata, err error) {
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.WALRotateInterval = walRotateInterval
+	cfg.WALBypass = true
+	c := di.NewContainer(cfg)
 	// if configured, also load the ondiskagg triggers
 	var tm []*trigger.Matcher
 	for _, triggerSetting := range triggers {
@@ -303,14 +309,11 @@ func initWriter(rootDir string, triggers []*utils.TriggerSetting, walRotateInter
 			break
 		}
 	}
+	c.InjectTriggerMatchers(tm)
 
-	instanceConfig, walWG, err = executor.NewInstanceSetup(rootDir, nil, tm, walRotateInterval,
-		executor.WALBypass(true))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create instance setup for polygon/backfill: %w", err)
-	}
+	instanceConfig = executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 
-	return instanceConfig, walWG, nil
+	return instanceConfig, nil
 }
 
 func getTicker(client *http.Client, page int, pattern glob.Glob, symbolList *[]string, symbolListMux *sync.Mutex,
@@ -365,40 +368,35 @@ func getBars(client *http.Client, start, end time.Time, period time.Duration, sy
 	}
 }
 
-func getQuotes(client *http.Client, start, end time.Time, period time.Duration, symbol string,
-	writerWP *worker.Pool,
+// resourceName = {"quotes", "trades"}, and it's just for logging.
+func getQuotesOrTrades(resourceName string, client *http.Client, start, end time.Time, period time.Duration,
+	symbol string, writerWP *worker.Pool,
 ) {
-	log.Info("[polygon] backfilling quotes for %v", symbol)
+	log.Info(fmt.Sprintf("[polygon] backfilling %s for %v", resourceName, symbol))
 	for end.After(start) {
 		if start.Add(period).After(end) {
 			period = end.Sub(start)
 		}
 
-		log.Info("[polygon] backfilling quotes for %v between %s and %s", symbol, start, start.Add(period))
+		log.Info(fmt.Sprintf("[polygon] backfilling %s for %v between %s and %s",
+			resourceName, symbol, start, start.Add(period)),
+		)
 		if err := backfill.Quotes(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
-			log.Warn("[polygon] failed to backfill quote for %v @ %v (%v)", symbol, start, err)
+			log.Warn(fmt.Sprintf("[polygon] failed to backfill %s for %v @ %v (%v)",
+				resourceName, symbol, start, err),
+			)
 		}
 
 		start = start.Add(period)
 	}
 }
 
-func getTrades(client *http.Client, start, end time.Time, period time.Duration, symbol string,
-	writerWP *worker.Pool,
-) {
-	log.Info("[polygon] backfilling trades for %v", symbol)
-	for end.After(start) {
-		if start.Add(period).After(end) {
-			period = end.Sub(start)
-		}
+func getQuotes(client *http.Client, start, end time.Time, period time.Duration, symbol string, writerWP *worker.Pool) {
+	getQuotesOrTrades("quotes", client, start, end, period, symbol, writerWP)
+}
 
-		log.Info("[polygon] backfilling trades for %v between %s and %s", symbol, start, start.Add(period))
-		if err := backfill.Trades(client, symbol, start, start.Add(period), batchSize, writerWP); err != nil {
-			log.Warn("[polygon] failed to backfill trades for %v @ %v (%v)", symbol, start, err)
-		}
-
-		start = start.Add(period)
-	}
+func getTrades(client *http.Client, start, end time.Time, period time.Duration, symbol string, writerWP *worker.Pool) {
+	getQuotesOrTrades("trades", client, start, end, period, symbols, writerWP)
 }
 
 func parseAndValidateDuration(durationString string, max, min time.Duration) (time.Duration, error) {

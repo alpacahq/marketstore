@@ -102,7 +102,6 @@ listen_port | int | MarketStoreがJSON-RPC APIに使用するポート番号
 grpc_listen_port | int | MarketStoreがGRPC APIに使用するポート番号
 timezone | string |  タイムゾーン. `TZ` に定義されている値 (例 America/New_York)
 log_level | string  | 出力する最低ログレベル `(info | warning | error)`
-queryable | bool | polling-onlyモードで起動する場合はfalseにします。その場合はqueryに応答しなくなります。
 stop_grace_period | int | SIGINT シグナルを受信してから終了するまでに待つ時間
 wal_rotate_interval | int | ディスクにフラッシュしてWALファイルがトリムされる頻度[分]
 stale_threshold | int | MarketStoreがシンボルを古いものと認識するしきい値[日]
@@ -115,7 +114,6 @@ root_directory: data
 listen_port: 5993
 grpc_listen_port: 5995
 log_level: info
-queryable: true
 stop_grace_period: 0
 wal_rotate_interval: 5
 stale_threshold: 5

@@ -82,13 +82,13 @@ type RateChangeGetter func(string, bool, bool) []RateChange
 
 const CacheLifetime = 24 * time.Hour
 
-var rateChangeCache = map[CacheKey]RateChangeCache{}
+var RateChangeCacheMap = map[CacheKey]RateChangeCache{}
 
 func GetRateChanges(symbol string, includeSplits, includeDividends bool,
 	catalogDir *catalog.Directory,
 ) []RateChange {
 	key := CacheKey{Symbol: symbol, Splits: includeSplits, Dividends: includeDividends}
-	rateCache, present := rateChangeCache[key]
+	rateCache, present := RateChangeCacheMap[key]
 	if present && time.Since(rateCache.CreatedAt) > CacheLifetime {
 		present = false
 	}
@@ -103,7 +103,7 @@ func GetRateChanges(symbol string, includeSplits, includeDividends bool,
 			Access:    0,
 			CreatedAt: time.Now(),
 		}
-		rateChangeCache[key] = rateCache
+		RateChangeCacheMap[key] = rateCache
 	}
 	return rateCache.Changes
 }
@@ -157,34 +157,37 @@ func (act *Actions) Load(catalogDir *catalog.Directory) error {
 		return err
 	}
 
-	if err2 := act.fromColumnSeries(csm[*tbk]); err2 != nil {
+	caRows, err2 := CARowsFromColumnSeries(csm[*tbk])
+	if err2 != nil {
 		return err2
 	}
+	act.Rows = caRows
 
 	return nil
 }
 
-func (act *Actions) fromColumnSeries(cs *io.ColumnSeries) error {
+func CARowsFromColumnSeries(cs *io.ColumnSeries) (*CARows, error) {
+	caRows := &CARows{}
 	var ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11, ok12, ok13, ok14, ok15 bool
-	act.Rows.EntryDates, ok1 = cs.GetColumn("Epoch").([]int64)
-	act.Rows.TextNumbers, ok2 = cs.GetColumn("TextNumber").([]int64)
-	act.Rows.UpdateTextNumbers, ok3 = cs.GetColumn("UpdateTextNumber").([]int64)
-	act.Rows.DeleteTextNumbers, ok4 = cs.GetColumn("DeleteTextNumber").([]int64)
-	act.Rows.NotificationTypes, ok5 = cs.GetColumn("NotificationType").([]byte)
-	act.Rows.Statuses, ok6 = cs.GetColumn("Status").([]byte)
-	act.Rows.UpdatedNotificationTypes, ok7 = cs.GetColumn("UpdatedNotificationType").([]byte)
-	act.Rows.SecurityTypes, ok8 = cs.GetColumn("SecurityType").([]byte)
-	act.Rows.VoluntaryMandatoryCodes, ok9 = cs.GetColumn("VoluntaryMandatoryCode").([]byte)
-	act.Rows.RecordDates, ok10 = cs.GetColumn("RecordDate").([]int64)
-	act.Rows.EffectiveDates, ok11 = cs.GetColumn("EffectiveDate").([]int64)
-	act.Rows.ExpirationDates, ok12 = cs.GetColumn("ExpirationDate").([]int64)
-	act.Rows.NewRates, ok13 = cs.GetColumn("NewRate").([]float64)
-	act.Rows.OldRates, ok14 = cs.GetColumn("OldRate").([]float64)
-	act.Rows.Rates, ok15 = cs.GetColumn("Rate").([]float64)
+	caRows.EntryDates, ok1 = cs.GetColumn("Epoch").([]int64)
+	caRows.TextNumbers, ok2 = cs.GetColumn("TextNumber").([]int64)
+	caRows.UpdateTextNumbers, ok3 = cs.GetColumn("UpdateTextNumber").([]int64)
+	caRows.DeleteTextNumbers, ok4 = cs.GetColumn("DeleteTextNumber").([]int64)
+	caRows.NotificationTypes, ok5 = cs.GetColumn("NotificationType").([]byte)
+	caRows.Statuses, ok6 = cs.GetColumn("Status").([]byte)
+	caRows.UpdatedNotificationTypes, ok7 = cs.GetColumn("UpdatedNotificationType").([]byte)
+	caRows.SecurityTypes, ok8 = cs.GetColumn("SecurityType").([]byte)
+	caRows.VoluntaryMandatoryCodes, ok9 = cs.GetColumn("VoluntaryMandatoryCode").([]byte)
+	caRows.RecordDates, ok10 = cs.GetColumn("RecordDate").([]int64)
+	caRows.EffectiveDates, ok11 = cs.GetColumn("EffectiveDate").([]int64)
+	caRows.ExpirationDates, ok12 = cs.GetColumn("ExpirationDate").([]int64)
+	caRows.NewRates, ok13 = cs.GetColumn("NewRate").([]float64)
+	caRows.OldRates, ok14 = cs.GetColumn("OldRate").([]float64)
+	caRows.Rates, ok15 = cs.GetColumn("Rate").([]float64)
 	if !(ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 && ok8 && ok9 && ok10 && ok11 && ok12 && ok13 && ok14 && ok15) {
-		return fmt.Errorf("cast a column series to a corporate action object: %v", cs)
+		return nil, fmt.Errorf("cast a column series to a corporate action object: %v", cs)
 	}
-	return nil
+	return caRows, nil
 }
 
 func (act *Actions) Len() int {

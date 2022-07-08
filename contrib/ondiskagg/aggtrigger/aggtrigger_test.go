@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -119,10 +121,10 @@ func TestFireBars(t *testing.T) {
 
 	rootDir := filepath.Join(t.TempDir(), "mktsdb")
 	_ = os.MkdirAll(rootDir, 0o777)
-	_, _, err := executor.NewInstanceSetup(
-		rootDir, nil, nil,
-		5, executor.BackgroundSync(false))
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
+	executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 
 	ts := utils.TriggerSetting{
 		// Module: "ondiskagg.so",

@@ -16,27 +16,10 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/io"
 )
 
-var dataTypeMap = map[proto.DataType]io.EnumElementType{
-	proto.DataType_FLOAT32:  io.FLOAT32,
-	proto.DataType_INT32:    io.INT32,
-	proto.DataType_FLOAT64:  io.FLOAT64,
-	proto.DataType_INT64:    io.INT64,
-	proto.DataType_EPOCH:    io.EPOCH,
-	proto.DataType_BYTE:     io.BYTE,
-	proto.DataType_BOOL:     io.BOOL,
-	proto.DataType_NONE:     io.NONE,
-	proto.DataType_STRING:   io.STRING,
-	proto.DataType_INT16:    io.INT16,
-	proto.DataType_UINT8:    io.UINT8,
-	proto.DataType_UINT16:   io.UINT16,
-	proto.DataType_UINT32:   io.UINT32,
-	proto.DataType_UINT64:   io.UINT64,
-	proto.DataType_STRING16: io.STRING16,
-}
-
 // GRPCService is the implementation of GRPC API for Marketstore.
 // All grpc/protobuf-related logics and models are defined in this file.
 type GRPCService struct {
+	proto.UnimplementedMarketstoreServer
 	rootDir    string
 	catalogDir *catalog.Directory
 	aggRunner  *sqlparser.AggRunner
@@ -112,10 +95,9 @@ func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*p
 					dest.String())
 			} else if len(Symbols) == 1 && Symbols[0] == "*" {
 				// replace the * "symbol" with a list all known actual symbols
-				allSymbols := s.catalogDir.GatherCategoriesAndItems()["Symbol"]
-				symbols := make([]string, 0, len(allSymbols))
-				for symbol := range allSymbols {
-					symbols = append(symbols, symbol)
+				symbols, err := gatherAllSymbols(s.catalogDir)
+				if err != nil {
+					return nil, err
 				}
 				keyParts := []string{strings.Join(symbols, ","), Timeframe, RecordFormat}
 				itemKey := strings.Join(keyParts, "/")
@@ -195,6 +177,20 @@ func (s GRPCService) Query(_ context.Context, reqs *proto.MultiQueryRequest) (*p
 		}
 	}
 	return &response, nil
+}
+
+func gatherAllSymbols(catDir *catalog.Directory) ([]string, error) {
+	// replace the * "symbol" with a list all known actual symbols
+	ret, err := catDir.GatherCategoriesAndItems()
+	if err != nil {
+		return nil, fmt.Errorf("gather categories and items from catDir: %w", err)
+	}
+	allSymbols := ret["Symbol"]
+	symbols := make([]string, 0, len(allSymbols))
+	for symbol := range allSymbols {
+		symbols = append(symbols, symbol)
+	}
+	return symbols, nil
 }
 
 func (s GRPCService) Write(ctx context.Context, reqs *proto.MultiWriteRequest) (*proto.MultiServerResponse, error) {
@@ -293,7 +289,11 @@ func (s GRPCService) ListSymbols(ctx context.Context, req *proto.ListSymbolsRequ
 
 	switch req.Format {
 	case proto.ListSymbolsRequest_SYMBOL:
-		for symbol := range s.catalogDir.GatherCategoriesAndItems()["Symbol"] {
+		ret, err := s.catalogDir.GatherCategoriesAndItems()
+		if err != nil {
+			return nil, fmt.Errorf("gather categories and items from catDir: %w", err)
+		}
+		for symbol := range ret["Symbol"] {
 			response.Results = append(response.Results, symbol)
 		}
 	default: // proto.ListSymbolsRequest_TIME_BUCKET_KEY:

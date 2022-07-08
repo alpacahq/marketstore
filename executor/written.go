@@ -21,7 +21,7 @@ type writtenRecords struct {
 	records []trigger.Record
 }
 
-func NewTriggerPluginDispatcher(triggerMatchers []*trigger.Matcher) *TriggerPluginDispatcher {
+func StartNewTriggerPluginDispatcher(triggerMatchers []*trigger.Matcher) *TriggerPluginDispatcher {
 	tpd := TriggerPluginDispatcher{
 		c:               make(chan writtenRecords, WriteChannelCommandDepth),
 		done:            make(chan struct{}),

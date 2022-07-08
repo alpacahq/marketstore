@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/internal/di"
+	"github.com/alpacahq/marketstore/v4/utils"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/alpacahq/marketstore/v4/executor"
@@ -21,10 +24,11 @@ func setup(t *testing.T) (metadata *executor.InstanceMetadata) {
 
 	rootDir := t.TempDir()
 	test.MakeDummyStockDir(rootDir, true, false)
-	metadata, _, err := executor.NewInstanceSetup(rootDir, nil, nil, 5, executor.BackgroundSync(false))
-	assert.Nil(t, err)
+	cfg := utils.NewDefaultConfig(rootDir)
+	cfg.BackgroundSync = false
+	c := di.NewContainer(cfg)
 
-	return metadata
+	return executor.NewInstanceSetup(c.GetCatalogDir(), c.GetInitWALFile())
 }
 
 func TestSQLSelectParse(t *testing.T) {

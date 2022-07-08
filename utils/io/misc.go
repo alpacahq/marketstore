@@ -7,6 +7,7 @@ import (
 )
 
 func Syncfs() {
+	//nolint:errcheck // Sync() doesn't return an error depending on arch
 	syscall.Sync()
 }
 

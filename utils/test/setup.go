@@ -57,7 +57,8 @@ func makeCatDir(root, catname string, items []string) {
 
 func makeFakeFileInfoCurrency(year, filePath, timeFrame string) *io.TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
-	yr, _ := strconv.Atoi(year)
+	yr, err := strconv.ParseInt(year, 10, 32)
+	checkfail(err, fmt.Sprintf("failed to parse year to int: year=%s", year))
 	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32},
@@ -67,7 +68,8 @@ func makeFakeFileInfoCurrency(year, filePath, timeFrame string) *io.TimeBucketIn
 
 func makeFakeFileInfoStock(year, filePath, timeFrame string) *io.TimeBucketInfo {
 	tf := utils.TimeframeFromString(timeFrame)
-	yr, _ := strconv.Atoi(year)
+	yr, err := strconv.ParseInt(year, 10, 32)
+	checkfail(err, fmt.Sprintf("failed to parse year to int: year=%s", year))
 	dsv := io.NewDataShapeVector(
 		[]string{"Open", "High", "Low", "Close", "Volume"},
 		[]io.EnumElementType{io.FLOAT32, io.FLOAT32, io.FLOAT32, io.FLOAT32, io.INT32},
@@ -193,37 +195,21 @@ func WriteDummyData(f *os.File, year, tf string, makeGap, isStock bool) (int, er
 // years: [2000, 2001, 2002]
 // returns: map[string]int key: absolute path to a data file for the bucket, value: how many dummy records are written
 func MakeDummyCurrencyDir(root string, withdata, withGaps bool) map[string]int {
-	itemsWritten := make(map[string]int)
-	makeRootDir(root)
 	symbols := []string{"EURUSD", "USDJPY", "NZDUSD"}
-	timeframes := []string{"1Min", "5Min", "15Min", "1H", "4H", "1D"}
 	attgroups := []string{"OHLC"}
-	years := []string{"2000", "2001", "2002"}
-	makeCatDir(root, "Symbol", symbols)
-	var symbase string
-	var tfbase string
-	var attbase string
-	for _, sym := range symbols {
-		symbase = root + "/" + sym
-		makeCatDir(symbase, "Timeframe", timeframes)
-		for _, tf := range timeframes {
-			tfbase = symbase + "/" + tf
-			makeCatDir(tfbase, "AttributeGroup", attgroups)
-			for _, attname := range attgroups {
-				attbase = tfbase + "/" + attname
-				makeYearFiles(attbase, years, withdata, withGaps, tf, itemsWritten, false)
-			}
-		}
-	}
-	return itemsWritten
+	return makeDummyDir(root, symbols, attgroups, withdata, withGaps, false)
 }
 
 func MakeDummyStockDir(root string, withdata, withGaps bool) map[string]int {
+	symbols := []string{"AAPL", "BBPL", "CCPL"}
+	attgroups := []string{"OHLCV"}
+	return makeDummyDir(root, symbols, attgroups, withdata, withGaps, true)
+}
+
+func makeDummyDir(root string, symbols, attgroups []string, withdata, withGaps, isStock bool) map[string]int {
 	itemsWritten := make(map[string]int)
 	makeRootDir(root)
-	symbols := []string{"AAPL", "BBPL", "CCPL"}
 	timeframes := []string{"1Min", "5Min", "15Min", "1H", "4H", "1D"}
-	attgroups := []string{"OHLCV"}
 	years := []string{"2000", "2001", "2002"}
 	makeCatDir(root, "Symbol", symbols)
 	var symbase string
@@ -237,7 +223,7 @@ func MakeDummyStockDir(root string, withdata, withGaps bool) map[string]int {
 			makeCatDir(tfbase, "AttributeGroup", attgroups)
 			for _, attname := range attgroups {
 				attbase = tfbase + "/" + attname
-				makeYearFiles(attbase, years, withdata, withGaps, tf, itemsWritten, true)
+				makeYearFiles(attbase, years, withdata, withGaps, tf, itemsWritten, isStock)
 			}
 		}
 	}
