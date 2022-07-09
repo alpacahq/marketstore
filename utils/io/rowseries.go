@@ -45,7 +45,7 @@ func (rows *Rows) GetColumn(colname string) (col interface{}) {
 				return getInt16Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case INT32:
 				return getInt32Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
-			case EPOCH, INT64:
+			case INT64:
 				return getInt64Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())
 			case UINT8:
 				return getUInt8Column(offset, rows.GetRowLen(), rows.GetNumRows(), rows.GetData())

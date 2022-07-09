@@ -43,7 +43,6 @@ const (
 	INT32
 	FLOAT64
 	INT64
-	EPOCH
 	BYTE
 	BOOL
 	NONE
@@ -66,7 +65,6 @@ var attributeMap = map[EnumElementType]struct {
 	INT32:    {reflect.Int32, "int32", 4, reflect.TypeOf(int32(0))},
 	FLOAT64:  {reflect.Float64, "float64", 8, reflect.TypeOf(float64(0))},
 	INT64:    {reflect.Int64, "int64", 8, reflect.TypeOf(int64(0))},
-	EPOCH:    {reflect.Int64, "epoch", 8, reflect.TypeOf(int64(0))},
 	BYTE:     {reflect.Int8, "byte", 1, reflect.TypeOf(byte(0))},
 	BOOL:     {reflect.Bool, "bool", 1, reflect.TypeOf(false)},
 	NONE:     {reflect.Invalid, "none", 0, reflect.TypeOf(byte(0))},
@@ -135,7 +133,7 @@ func (e EnumElementType) ConvertByteSliceInto(data []byte) (interface{}, error) 
 				return slc, nil
 			}
 		}
-	case INT64, EPOCH:
+	case INT64:
 		if val, err := SwapSliceByte(data, int64(0)); err == nil {
 			if slc, ok := val.([]int64); ok {
 				return slc, nil
