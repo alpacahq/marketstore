@@ -153,7 +153,7 @@ func assertType(t *testing.T, cs *io.ColumnSeries, typ io.EnumElementType) {
 		_, ok = cs.GetColumn(columnName).([]uint32)
 	case io.UINT64:
 		_, ok = cs.GetColumn(columnName).([]uint64)
-	case io.BOOL, io.EPOCH, io.NONE, io.STRING, io.STRING16:
+	case io.BOOL, io.NONE, io.STRING, io.STRING16:
 		t.Fatal("not tested yet")
 	}
 	if !ok {

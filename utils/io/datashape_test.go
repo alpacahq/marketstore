@@ -27,7 +27,7 @@ func TestDSVSerialize(t *testing.T) {
 		{
 			name:        "success/single column",
 			columnNames: []string{"column"},
-			elemTypes:   []io.EnumElementType{io.EPOCH},
+			elemTypes:   []io.EnumElementType{io.INT64},
 		},
 	}
 	for _, tt := range tests {
