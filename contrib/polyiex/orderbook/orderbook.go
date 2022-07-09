@@ -62,7 +62,7 @@ func (ob *OrderBook) BBO() (bid, ask Entry) {
 	if ob.asks.Len() == 0 {
 		ae = Entry{0.0, 0}
 	} else {
-		ae = ob.asks.SeekToFirst().Value().(Entry)
+		ae, ok = ob.asks.SeekToFirst().Value().(Entry)
 		if !ok {
 			log.Error("[bug]failed to cast a bid value to an Entry")
 		}

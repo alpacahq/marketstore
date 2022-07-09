@@ -104,6 +104,6 @@ func TestCandleDuration(t *testing.T) {
 	assert.Equal(t, cd.IsWithin(val, time.Date(2018, 1, 8, 0, 0, 0, 0, time.UTC)), false)
 	assert.Equal(t, cd.IsWithin(val, time.Date(2018, 1, 8, 23, 59, 0, 0, time.UTC)), true)
 
-	cd, err = CandleDurationFromString("abc")
+	_, err = CandleDurationFromString("abc")
 	assert.NotNil(t, err)
 }

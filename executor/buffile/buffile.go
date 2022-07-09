@@ -45,7 +45,7 @@ func New(filePath string) (*BufferedFile, error) {
 
 func (f *BufferedFile) Close() error {
 	if err := f.writeBuffer(); err != nil {
-		log.Error("failed to write buffer. err=" + err.Error())
+		log.Error("failed to write buffer before closing. err=" + err.Error())
 	}
 	return f.fp.Close()
 }

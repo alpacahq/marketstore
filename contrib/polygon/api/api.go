@@ -130,7 +130,7 @@ func ListTickersPerPage(client *http.Client, page int) ([]Ticker, error) {
 	q.Set("page", strconv.FormatInt(int64(page), 10))
 	u.RawQuery = q.Encode()
 
-	body, err := download(client, u.String(), retryCount)
+	body, err := download(client, u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func GetHistoricAggregates(
 		body, err = readFromCache(filename)
 	}
 	if !FromCache || err != nil {
-		body, err = download(client, u.String(), retryCount)
+		body, err = download(client, u.String())
 		if err != nil {
 			return nil, err
 		}
@@ -241,7 +241,7 @@ func GetHistoricTrades(client *http.Client, symbol, date string, batchSize int,
 			body, err = readFromCache(filename)
 		}
 		if !FromCache || err != nil {
-			body, err = download(client, u.String(), retryCount)
+			body, err = download(client, u.String())
 			if err != nil {
 				return nil, err
 			}
@@ -315,7 +315,7 @@ func GetHistoricQuotes(client *http.Client, symbol, date string, batchSize int,
 			body, err = readFromCache(filename)
 		}
 		if !FromCache || err != nil {
-			body2, err2 := download(client, u.String(), retryCount)
+			body2, err2 := download(client, u.String())
 			if err2 != nil {
 				return nil, err2
 			}
@@ -343,7 +343,7 @@ func GetHistoricQuotes(client *http.Client, symbol, date string, batchSize int,
 	return totalQuotes, nil
 }
 
-func download(client *http.Client, endpointURL string, retryCount int) (body []byte, err error) {
+func download(client *http.Client, endpointURL string) (body []byte, err error) {
 	// It is required to retry both the download() and unmarshal() calls
 	// as network errors (e.g. Unexpected EOF) can come also from unmarshal()
 	err = try.Do(func(attempt int) (bool, error) {

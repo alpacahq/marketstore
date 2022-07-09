@@ -76,11 +76,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	}, nil
 }
 
-func (f *IEXFetcher) UpdateSymbolList() {
+func (f *IEXFetcher) UpdateSymbolList(ctx context.Context) {
 	// update the symbol list if there was no static list in config
 	if f.refreshSymbols {
 		log.Info("refreshing symbols list from IEX")
-		resp, err := api.ListSymbols()
+		resp, err := api.ListSymbols(ctx)
 		if err != nil {
 			return
 		}
@@ -98,7 +98,7 @@ func (f *IEXFetcher) UpdateSymbolList() {
 func (f *IEXFetcher) Run() {
 	ctx := context.Background()
 	// batchify the symbols & queue the batches
-	f.UpdateSymbolList()
+	f.UpdateSymbolList(ctx)
 	f.queue = make(chan []string, len(f.config.Symbols)/api.BatchSize+1)
 
 	log.Info("Launching backfill")
@@ -138,7 +138,7 @@ func (f *IEXFetcher) Run() {
 			runDaily = onceDaily(&f.lastDailyRunDate, runHour, runMinute)
 			if runDaily {
 				log.Info("time for daily task(s)")
-				go f.UpdateSymbolList()
+				go f.UpdateSymbolList(ctx)
 			}
 
 			delay := time.Minute - end.Sub(start)
