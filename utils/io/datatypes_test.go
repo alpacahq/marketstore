@@ -242,3 +242,52 @@ func Test_getUInt64Column_0record(t *testing.T) {
 	// --- then ---
 	assert.Equal(t, col, []uint64{})
 }
+
+func TestGetElementType(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		datum interface{}
+		want  EnumElementType
+	}{
+		"int64 column": {
+			datum: []int64{1, 2, 3},
+			want:  INT64,
+		},
+		"float32 column": {
+			datum: []float32{1, 2, 3},
+			want:  FLOAT32,
+		},
+		"float32": {
+			datum: float32(1),
+			want:  FLOAT32,
+		},
+		"string": {
+			datum: []string{"abc", "def"},
+			want:  STRING,
+		},
+		"string16": {
+			datum: [][16]rune{{'t', 'e', 's', 't'}},
+			want:  STRING16,
+		},
+		"string32 is not supported": {
+			datum: [][32]rune{{'t', 'e', 's', 't'}},
+			want:  NONE,
+		},
+		"unexpected type": {
+			datum: struct{ test int32 }{test: 1},
+			want:  NONE,
+		},
+		"unexpected slice value type": {
+			datum: [][]int32{{1}},
+			want:  NONE,
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equalf(t, tt.want, GetElementType(tt.datum), "GetElementType(%v)", tt.datum)
+		})
+	}
+}
