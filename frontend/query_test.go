@@ -39,7 +39,6 @@ func setup(t *testing.T,
 
 func TestQueryCustomTimeframes(t *testing.T) {
 	// TODO: Support custom timeframes
-	return
 
 	// rootDir, metadata, writer, q := setup(t)
 

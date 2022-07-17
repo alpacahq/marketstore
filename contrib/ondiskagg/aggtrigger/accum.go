@@ -24,7 +24,7 @@ type accumulator struct {
 }
 
 func newAccumGroup(cs *io.ColumnSeries, params []accumParam) *accumGroup {
-	accumulators := []*accumulator{}
+	var accumulators []*accumulator
 	for _, param := range params {
 		accumulator := newAccumulator(cs, param)
 		accumulators = append(accumulators, accumulator)
@@ -75,14 +75,6 @@ var int8AccumFunc = map[string]interface{}{
 	"sum":   functions.SumInt8,
 }
 
-var intAccumFunc = map[string]interface{}{
-	"first": functions.FirstInt,
-	"max":   functions.MaxInt,
-	"min":   functions.MinInt,
-	"last":  functions.LastInt,
-	"sum":   functions.SumInt,
-}
-
 var int16AccumFunc = map[string]interface{}{
 	"first": functions.FirstInt16,
 	"max":   functions.MaxInt16,
@@ -123,14 +115,6 @@ var uint16AccumFunc = map[string]interface{}{
 	"sum":   functions.SumUint16,
 }
 
-var uintAccumFunc = map[string]interface{}{
-	"first": functions.FirstUint,
-	"max":   functions.MaxUint,
-	"min":   functions.MinUint,
-	"last":  functions.LastUint,
-	"sum":   functions.SumUint,
-}
-
 var uint32AccumFunc = map[string]interface{}{
 	"first": functions.FirstUint32,
 	"max":   functions.MaxUint32,
@@ -147,52 +131,78 @@ var uint64AccumFunc = map[string]interface{}{
 	"sum":   functions.SumUint64,
 }
 
-func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
-	var ifunc, iout interface{}
-
-	inColumn := cs.GetColumn(param.inputName)
-	switch inColumn.(type) {
-	case []float32:
-		ifunc = float32AccumFunc[param.funcName]
-		iout = make([]float32, 0)
-	case []float64:
-		ifunc = float64AccumFunc[param.funcName]
-		iout = make([]float64, 0)
-	case []int8:
-		ifunc = int8AccumFunc[param.funcName]
-		iout = make([]int8, 0)
-	case []int:
-		ifunc = intAccumFunc[param.funcName]
-		iout = make([]int, 0)
-	case []int16:
-		ifunc = int16AccumFunc[param.funcName]
-		iout = make([]int16, 0)
-	case []int32:
-		ifunc = int32AccumFunc[param.funcName]
-		iout = make([]int32, 0)
-	case []int64:
-		ifunc = int64AccumFunc[param.funcName]
-		iout = make([]int64, 0)
-	case []uint8:
-		ifunc = uint8AccumFunc[param.funcName]
-		iout = make([]uint8, 0)
-	case []uint16:
-		ifunc = uint16AccumFunc[param.funcName]
-		iout = make([]uint16, 0)
-	case []uint:
-		ifunc = uintAccumFunc[param.funcName]
-		iout = make([]uint, 0)
-	case []uint32:
-		ifunc = uint32AccumFunc[param.funcName]
-		iout = make([]uint32, 0)
-	case []uint64:
-		ifunc = uint64AccumFunc[param.funcName]
-		iout = make([]uint64, 0)
-	default:
-		log.Error("no compatible function")
+var accumMap = map[io.EnumElementType]func(funcName string, column interface{}) *accumulator{
+	io.FLOAT32: func(funcName string, column interface{}) *accumulator {
+		ifunc := float32AccumFunc[funcName]
+		iout := make([]float32, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.FLOAT64: func(funcName string, column interface{}) *accumulator {
+		ifunc := float64AccumFunc[funcName]
+		iout := make([]float64, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.INT16: func(funcName string, column interface{}) *accumulator {
+		ifunc := int16AccumFunc[funcName]
+		iout := make([]int16, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.INT32: func(funcName string, column interface{}) *accumulator {
+		ifunc := int32AccumFunc[funcName]
+		iout := make([]int32, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.INT64: func(funcName string, column interface{}) *accumulator {
+		ifunc := int64AccumFunc[funcName]
+		iout := make([]int64, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.BYTE: func(funcName string, column interface{}) *accumulator {
+		ifunc := int8AccumFunc[funcName]
+		iout := make([]byte, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.UINT8: func(funcName string, column interface{}) *accumulator {
+		ifunc := uint8AccumFunc[funcName]
+		iout := make([]uint8, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.UINT16: func(funcName string, column interface{}) *accumulator {
+		ifunc := uint16AccumFunc[funcName]
+		iout := make([]uint16, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.UINT32: func(funcName string, column interface{}) *accumulator {
+		ifunc := uint32AccumFunc[funcName]
+		iout := make([]uint32, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.UINT64: func(funcName string, column interface{}) *accumulator {
+		ifunc := uint64AccumFunc[funcName]
+		iout := make([]uint64, 0)
+		return &accumulator{iout: iout, ifunc: ifunc, ivalues: column}
+	},
+	io.BOOL: func(funcName string, column interface{}) *accumulator {
+		log.Error("no compatible accum func for BOOL type column")
 		return nil
-	}
-	return &accumulator{iout: iout, ifunc: ifunc, ivalues: cs.GetColumn(param.inputName)}
+	},
+	io.NONE: func(funcName string, column interface{}) *accumulator {
+		log.Error("no compatible accum func for NONE type column")
+		return nil
+	},
+	io.STRING: func(funcName string, column interface{}) *accumulator {
+		log.Error("no compatible accum func for STRING type column")
+		return nil
+	},
+	io.STRING16: func(funcName string, column interface{}) *accumulator {
+		log.Error("no compatible accum func for STRING16 type column")
+		return nil
+	},
+}
+
+func newAccumulator(cs *io.ColumnSeries, param accumParam) *accumulator {
+	inColumn := cs.GetColumn(param.inputName)
+	return accumMap[io.GetElementType(inColumn)](param.funcName, inColumn)
 }
 
 func (ac *accumulator) float32out(fn func([]float32) float32, start, end int) error {

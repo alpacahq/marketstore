@@ -163,9 +163,7 @@ func ReadMetadata(dataFD, controlFD *os.File, dbDataShapes []io.DataShape) (csvR
 			Set the inputColNames to equal the ColumnNameMap
 		*/
 		inputColNames = make([]string, len(cvm.Config.ColumnNameMap))
-		for i, name := range cvm.Config.ColumnNameMap {
-			inputColNames[i] = name
-		}
+		copy(inputColNames, cvm.Config.ColumnNameMap)
 	case cvm.Config.FirstRowHasColumnNames && cvm.Config.ColumnNameMap != nil:
 		/*
 			Implement column renaming
