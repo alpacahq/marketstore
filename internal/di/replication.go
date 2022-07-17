@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/alpacahq/marketstore/v4/executor"
 	"github.com/pkg/errors"
 
@@ -129,7 +131,7 @@ func (c *Container) GetReplicationClientWithRetry() ReplicationClient {
 		log.Debug("transport security is enabled on gRPC client for replication")
 	} else {
 		// transport security is disabled
-		opts = append(opts, grpc.WithInsecure())
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	conn, err := grpc.Dial(c.mktsConfig.Replication.MasterHost, opts...)

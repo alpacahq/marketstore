@@ -522,6 +522,7 @@ func (wf *WALFileType) WriteTransactionInfo(tid int64, did DestEnum, txnStatus T
 	buffer, _ = io.Serialize(buffer, txnStatus)
 	_, err := wf.FilePtr.Write(buffer)
 	if err != nil {
+		return fmt.Errorf("write transaction info to wal: %w", err)
 	}
 	return nil
 }

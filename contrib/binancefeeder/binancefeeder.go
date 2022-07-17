@@ -537,7 +537,7 @@ func (bn *BinanceFetcher) writeSymbols(timeStart, timeEnd, originalTimeStart tim
 			csm := makeCSM(tbk, slowDown, openTime, open, high, low, clos, volume)
 			err = executor.WriteCSM(csm, false)
 			if err != nil {
-				log.Error(fmt.Sprintf("[binancefeeder]failed to write CSM"), zap.Error(err))
+				log.Error("[binancefeeder]failed to write CSM", zap.Error(err))
 			}
 		}
 	}

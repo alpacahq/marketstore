@@ -161,8 +161,6 @@ func (s *StreamTrigger) storeColumnSeriesToShelf(tbk *io.TimeBucketKey, tf *util
 	if deadline != nil && deadline.After(time.Now()) {
 		s.shelf.Store(tbk, ColumnSeriesForPayload(cs), deadline)
 	}
-
-	return
 }
 
 // ColumnSeriesForPayload extracts the single row from the column
