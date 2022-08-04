@@ -21,6 +21,7 @@ type ManagerImpl struct {
 	APIClient         api.Client
 	TargetExchanges   []string
 	TargetIndexGroups []string
+	NotQuoteStockList map[string]struct{}
 	// identifier = {symbol}.{exchange} (i.e. "7203.XTKS").
 	Identifiers map[string][]string
 	// IndexIdentifiers are the identifiers for index symbols (ex. "151.INDXJPX" (=TOPIX))
@@ -28,11 +29,20 @@ type ManagerImpl struct {
 }
 
 // NewManager initializes the SymbolManager object with the specified parameters.
-func NewManager(apiClient api.Client, targetExchanges, targetIndexGroups []string) *ManagerImpl {
+func NewManager(apiClient api.Client, targetExchanges, targetIndexGroups, notQuoteStockList []string) *ManagerImpl {
 	return &ManagerImpl{
 		APIClient: apiClient, TargetExchanges: targetExchanges, TargetIndexGroups: targetIndexGroups,
-		Identifiers: map[string][]string{}, IndexIdentifiers: map[string][]string{},
+		NotQuoteStockList: sliceToMap(notQuoteStockList),
+		Identifiers:       map[string][]string{}, IndexIdentifiers: map[string][]string{},
 	}
+}
+
+func sliceToMap(s []string) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for i := range s {
+		ret[s[i]] = struct{}{}
+	}
+	return ret
 }
 
 // GetAllIdentifiers returns Identifiers for the target symbols for all the target exchanges
@@ -76,7 +86,12 @@ func (m *ManagerImpl) UpdateSymbols(ctx context.Context) {
 		// convert the symbol strings (i.e. "1234") to the identifier strings (i.e. "1234.XTKS") and store them to the map
 		var identifiers []string
 		for _, securityDescription := range resp.ArrayOfSecurityDescription {
-			if securityDescription.Symbol != "" {
+			symbol := securityDescription.Symbol
+			if _, found := m.NotQuoteStockList[symbol]; found {
+				// ignore symbols in not_quote_stock_list
+				continue
+			}
+			if symbol != "" {
 				identifier := fmt.Sprintf("%s.%s", securityDescription.Symbol, exchange)
 				identifiers = append(identifiers, identifier)
 			}
@@ -103,7 +118,13 @@ func (m *ManagerImpl) UpdateIndexSymbols(ctx context.Context) {
 		// convert the symbol strings (i.e. "1234") to the identifier strings (i.e. "1234.XTKS") and store them to the map
 		var identifiers []string
 		for _, index := range resp.ArrayOfIndex {
-			if index.Symbol != "" {
+			symbol := index.Symbol
+			if _, found := m.NotQuoteStockList[symbol]; found {
+				// ignore symbols in not_quote_stock_list
+				continue
+			}
+
+			if symbol != "" {
 				identifier := fmt.Sprintf("%s.%s", index.Symbol, indexGroup)
 				identifiers = append(identifiers, identifier)
 			}

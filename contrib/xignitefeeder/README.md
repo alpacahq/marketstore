@@ -5,6 +5,7 @@
 * This plugin is also able to collect daily candlestick chart data from a specified date and backfill it to the local marketstore. this historical backfill process can be executed when marketstore is started and the configured time everyday (see `update_time` config )
 
 ## Example configuration
+
 ```yaml
 bgworkers:
   # -----------------------
@@ -27,6 +28,14 @@ bgworkers:
       index_groups:
         - INDXJPX # JAPAN EXCHANGE GROUP
         - IND_NIKKEI # NIKKEI INDICES
+      # Symbols in not_quote_stock_list won't be queried or stored in the database. 
+      # This config can be manually overridden by 
+      # XIGNITE_FEEDER_NOT_QUOTE_STOCK_LIST (=comma-separated list of stock codes) environmental variable.
+      # (e.g. XIGNITE_FEEDER_NOT_QUOTE_STOCK_LIST="1111,2222,3333")
+      not_quote_stock_list: 
+        #- "1111"
+        #- "2222"
+        #- "3333"
       # time when target symbols in the exchanges are updated everyday.
       # this time is also used for the historical data backfill (UTC)
       # This config can be manually overridden by "XIGNITE_FEEDER_UPDATE_TIME" environmental variable.
@@ -113,6 +122,7 @@ bgworkers:
 # Build
 
 ## Run
+
 ```bash
 DaitonoMacBook-puro:marketstore[xignitefeeder]$ pwd
 /Users/dakimura/go/src/github.com/dakimura/marketstore
@@ -136,6 +146,7 @@ DaitonoMacBook-puro:marketstore[xignitefeeder]$ ./marketstore start
 ```
 
 ## Check the stored data
+
 ```bash
 DaitonoMacBook-puro:marketstore[xignitefeeder]$ ./marketstore connect --url localhost:5993
 {"level":"info","timestamp":"2019-05-16T10:18:43.751+0900","msg":"Running single threaded"}

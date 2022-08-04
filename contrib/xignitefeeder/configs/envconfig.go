@@ -2,6 +2,7 @@ package configs
 
 import (
 	"os"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,12 @@ func envOverride(config *DefaultConfig) (*DefaultConfig, error) {
 	apiToken := os.Getenv("XIGNITE_FEEDER_API_TOKEN")
 	if apiToken != "" {
 		config.APIToken = apiToken
+	}
+
+	// override NotQuoteSymbolList
+	notQuoteStockList := os.Getenv("XIGNITE_FEEDER_NOT_QUOTE_STOCK_LIST")
+	if notQuoteStockList != "" {
+		config.NotQuoteStockList = strings.Split(notQuoteStockList, ",")
 	}
 
 	return config, nil

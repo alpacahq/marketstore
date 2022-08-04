@@ -10,10 +10,11 @@ import (
 )
 
 var testConfig = map[string]interface{}{
-	"token":        "hellohellohellohellohellohello12",
-	"update_time":  "12:34:56",
-	"exchanges":    []string{"foo"},
-	"index_groups": []string{"bar"},
+	"token":                "hellohellohellohellohellohello12",
+	"update_time":          "12:34:56",
+	"exchanges":            []string{"foo"},
+	"index_groups":         []string{"bar"},
+	"not_quote_stock_list": []string{"1111"},
 }
 
 func TestNewConfig(t *testing.T) {
@@ -25,15 +26,17 @@ func TestNewConfig(t *testing.T) {
 		want    *configs.DefaultConfig
 		wantErr bool
 	}{
-		"ok/ API token and UpdateTime can be overridden by env vars": {
+		"ok/ API token, UpdateTime, and NotQuoteSymbolList can be overridden by env vars": {
 			config: testConfig,
 			envVars: map[string]string{
-				"XIGNITE_FEEDER_API_TOKEN":   "ABCDEFGHIJKLMNOPQRSTUVWXYZ789012",
-				"XIGNITE_FEEDER_UPDATE_TIME": "20:00:00",
+				"XIGNITE_FEEDER_API_TOKEN":            "ABCDEFGHIJKLMNOPQRSTUVWXYZ789012",
+				"XIGNITE_FEEDER_UPDATE_TIME":          "20:00:00",
+				"XIGNITE_FEEDER_NOT_QUOTE_STOCK_LIST": "1234,5678,9012",
 			},
 			want: &configs.DefaultConfig{
 				Exchanges:           []string{"foo"},
 				IndexGroups:         []string{"bar"},
+				NotQuoteStockList:   []string{"1234", "5678", "9012"},
 				ClosedDaysOfTheWeek: []time.Weekday{},
 				ClosedDays:          []time.Time{},
 				UpdateTime:          time.Date(0, 1, 1, 20, 0, 0, 0, time.UTC),
@@ -41,7 +44,7 @@ func TestNewConfig(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		"ok/ nothing is overidden when env vars are empty": {
+		"ng/ Token length must be 32 bytes": {
 			config: testConfig,
 			envVars: map[string]string{
 				"XIGNITE_FEEDER_API_TOKEN": "ABCDE", // 5 bytes
@@ -49,12 +52,13 @@ func TestNewConfig(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
-		"ng/ Token length must be 32 bytes": {
+		"ok/ nothing is overidden when env vars are empty": {
 			config:  testConfig,
 			envVars: map[string]string{},
 			want: &configs.DefaultConfig{
 				Exchanges:           []string{"foo"},
 				IndexGroups:         []string{"bar"},
+				NotQuoteStockList:   []string{"1111"},
 				ClosedDaysOfTheWeek: []time.Weekday{},
 				ClosedDays:          []time.Time{},
 				UpdateTime:          time.Date(0, 1, 1, 12, 34, 56, 0, time.UTC),

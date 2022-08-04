@@ -25,6 +25,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 type DefaultConfig struct {
 	Exchanges           []string  `json:"exchanges"`
 	IndexGroups         []string  `json:"index_groups"`
+	NotQuoteStockList   []string  `json:"not_quote_stock_list"`
 	UpdateTime          time.Time `json:"update_time"`
 	Timeframe           string    `json:"timeframe"`
 	APIToken            string    `json:"token"`
