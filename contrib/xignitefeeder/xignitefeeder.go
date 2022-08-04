@@ -58,7 +58,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	// 1. update symbols in the target exchanges
 	// 2. update index symbols in the target index groups
 	// every day
-	sm := symbols.NewManager(apiClient, config.Exchanges, config.IndexGroups)
+	sm := symbols.NewManager(apiClient, config.Exchanges, config.IndexGroups, config.NotQuoteStockList)
 	sm.Update(ctx)
 	timer.RunEveryDayAt(ctx, config.UpdateTime, sm.Update)
 	log.Info("updated symbols in the target exchanges")
