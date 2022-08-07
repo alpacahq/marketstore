@@ -14,12 +14,34 @@ type SnapshotWriter interface {
 	Write(snapshots map[string]*api.Snapshot) error
 }
 
+type MarketTimeChecker interface {
+	IsOpen(t time.Time) bool
+}
+
+// NoopMarketTimeChecker checks nothing and always returns IsOpen=true.
+type NoopMarketTimeChecker struct{}
+
+func (nc *NoopMarketTimeChecker) IsOpen(t time.Time) bool {
+	return true
+}
+
+func NewSnapshotWriterImpl(w MarketStoreWriter, tf string, tz *time.Location, tc MarketTimeChecker,
+) *SnapshotWriterImpl {
+	return &SnapshotWriterImpl{
+		MarketStoreWriter: w,
+		Timeframe:         tf,
+		Timezone:          tz,
+		TimeChecker:       tc,
+	}
+}
+
 // SnapshotWriterImpl is an implementation of the SnapshotWriter interface.
 type SnapshotWriterImpl struct {
 	MarketStoreWriter MarketStoreWriter
 	Timeframe         string
 	// SnapshotWriterImpl writes data with the timezone
-	Timezone *time.Location
+	Timezone    *time.Location
+	TimeChecker MarketTimeChecker
 }
 
 // Write converts the map(key:symbol, value:snapshot) to a ColumnSeriesMap and write it to the local marketstore server.
@@ -49,6 +71,11 @@ func (q *SnapshotWriterImpl) convertToCSM(snapshots map[string]*api.Snapshot) io
 			snapshot.LatestQuote.Timestamp,
 			snapshot.LatestTrade.Timestamp,
 		).In(q.Timezone)
+
+		// drop all the off_hours records when extended_hours config is false
+		if !q.TimeChecker.IsOpen(latestTime) {
+			continue
+		}
 
 		// These additional fields are not always provided.
 		// fill empty data to keep the number of columns in the CSM

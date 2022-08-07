@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+var ny, _ = time.LoadLocation("America/New_York")
 
 // MarketTimeChecker is an interface to check if the market is open at the specified time or not.
 type MarketTimeChecker interface {
@@ -26,53 +26,44 @@ type MarketTimeChecker interface {
 // all those settings should be defined in this object.
 type DefaultMarketTimeChecker struct {
 	// i.e. []string{"Saturday", "Sunday"}
-	ClosedDaysOfTheWeek []time.Weekday
-	ClosedDays          []time.Time
-	OpenTime            time.Time
-	CloseTime           time.Time
+	ClosedDaysOfTheWeek        []time.Weekday
+	ClosedDays                 []time.Time
+	OpenHourNY, OpenMinuteNY   int
+	CloseHourNY, CloseMinuteNY int
 }
 
 // NewDefaultMarketTimeChecker initializes the DefaultMarketTimeChecker object with the specifier parameters.s.
 func NewDefaultMarketTimeChecker(
 	closedDaysOfTheWeek []time.Weekday,
 	closedDays []time.Time,
-	openTime time.Time,
-	closeTime time.Time,
+	openHourNY, openMinuteNY int,
+	closeHourNY, closeMinuteNY int,
 ) *DefaultMarketTimeChecker {
 	return &DefaultMarketTimeChecker{
 		ClosedDaysOfTheWeek: closedDaysOfTheWeek,
 		ClosedDays:          closedDays,
-		OpenTime:            openTime,
-		CloseTime:           closeTime,
+		OpenHourNY:          openHourNY, OpenMinuteNY: openMinuteNY,
+		CloseHourNY: closeHourNY, CloseMinuteNY: closeMinuteNY,
 	}
 }
 
 // IsOpen returns true on weekdays from 08:55 to 15:10.
 // if closedDates are defined, return false on those days.
 func (m *DefaultMarketTimeChecker) IsOpen(t time.Time) bool {
-	timeInJst := t.In(jst)
-	return m.isOpenDate(timeInJst) && m.isOpenWeekDay(timeInJst) && m.isOpenTime(t)
+	tNY := t.In(ny)
+	return m.isOpenDate(tNY) && m.isOpenWeekDay(tNY) && m.isOpenTime(tNY)
 }
 
 // isOpenTime returns true if the specified time is between the OpenTime and the CloseTime.
-func (m *DefaultMarketTimeChecker) isOpenTime(t time.Time) bool {
-	minFrom12am := t.Hour()*60 + t.Minute()
+func (m *DefaultMarketTimeChecker) isOpenTime(nyT time.Time) bool {
+	nyTYear, nyTMonth, nyTDay := nyT.Date()
+	openTimeNY := time.Date(nyTYear, nyTMonth, nyTDay, m.OpenHourNY, m.OpenMinuteNY, 0, 0, ny)
+	closeTimeNY := time.Date(nyTYear, nyTMonth, nyTDay, m.CloseHourNY, m.CloseMinuteNY, 0, 0, ny)
 
-	openMinFrom12am := m.OpenTime.Hour()*60 + m.OpenTime.Minute()
-	closeMinFrom12am := m.CloseTime.Hour()*60 + m.CloseTime.Minute()
-
-	// if the open hour is later than the close hour (i.e. open=23h, close=6h), +1day
-	if closeMinFrom12am < openMinFrom12am {
-		closeMinFrom12am += 24 * 60
-	}
-	if minFrom12am < openMinFrom12am {
-		minFrom12am += 24 * 60
-	}
-
-	if minFrom12am < openMinFrom12am || minFrom12am >= closeMinFrom12am {
+	if nyT.Before(openTimeNY) || nyT.After(closeTimeNY) {
 		log.Debug(fmt.Sprintf("[Alpaca Broker Feeder] market is not open. "+
-			"openTime=%02d:%02d, closeTime=%02d:%02d, now=%v",
-			m.OpenTime.Hour(), m.OpenTime.Minute(), m.CloseTime.Hour(), m.CloseTime.Minute(), t))
+			"openTime(NewYork)=%02d:%02d, closeTime(NewYork)=%02d:%02d, now=%v",
+			openTimeNY.Hour(), openTimeNY.Minute(), closeTimeNY.Hour(), closeTimeNY.Minute(), nyT))
 		return false
 	}
 	return true

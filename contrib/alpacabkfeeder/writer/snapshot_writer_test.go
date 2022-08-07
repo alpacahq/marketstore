@@ -1,8 +1,12 @@
-package writer
+package writer_test
 
 import (
+	"sort"
 	"testing"
 	"time"
+
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/feed"
+	"github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/writer"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
@@ -46,13 +50,31 @@ var (
 		Close:  22,
 		Volume: 23,
 	}
+
+	ny, _                  = time.LoadLocation("America/New_York")
+	exampleCloseTimeQuote1 = &api.Quote{
+		BidPrice:  1,
+		Timestamp: time.Date(2019, 7, 19, 9, 29, 0, 0, ny), // close
+	}
+	exampleOpenTimeQuote1 = &api.Quote{
+		BidPrice:  1,
+		Timestamp: time.Date(2019, 7, 19, 9, 30, 0, 0, ny), // open
+	}
+	exampleOpenTimeQuote2 = &api.Quote{
+		BidPrice:  2,
+		Timestamp: time.Date(2019, 7, 19, 9, 31, 0, 0, ny), // open
+	}
+	timeChecker = feed.NewDefaultMarketTimeChecker(nil, nil,
+		9, 30, 16, 30,
+	)
 )
 
 func TestSnapshotWriterImpl_Write(t *testing.T) {
 	t.Parallel()
 	type fields struct {
-		Timeframe string
-		Timezone  *time.Location
+		Timeframe   string
+		Timezone    *time.Location
+		TimeChecker writer.MarketTimeChecker
 	}
 	tests := []struct {
 		name              string
@@ -67,8 +89,9 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 		{
 			name: "OK/empty snapshot/snapshot with empty trade/quote is ignored",
 			fields: fields{
-				Timeframe: "1Sec",
-				Timezone:  time.UTC,
+				Timeframe:   "1Sec",
+				Timezone:    time.UTC,
+				TimeChecker: &writer.NoopMarketTimeChecker{},
 			},
 			snapshots: map[string]*api.Snapshot{
 				"AAPL": {
@@ -122,10 +145,59 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 			wantCSMLen: 1,
 		},
 		{
+			name: "OK/records in off-hour time must be dropped (extended_hours:false)",
+			fields: fields{
+				Timeframe:   "1Sec",
+				Timezone:    time.UTC,
+				TimeChecker: timeChecker,
+			},
+			snapshots: map[string]*api.Snapshot{
+				"AAPL": {LatestTrade: exampleTrade, LatestQuote: exampleCloseTimeQuote1},
+				"AMZN": {LatestTrade: exampleTrade, LatestQuote: exampleOpenTimeQuote1},
+				"FB":   {LatestTrade: exampleTrade, LatestQuote: exampleOpenTimeQuote2},
+			},
+			wantErr: false,
+			wantTBKs: []io.TimeBucketKey{
+				*io.NewTimeBucketKey("AMZN/1Sec/TICK"),
+				*io.NewTimeBucketKey("FB/1Sec/TICK"),
+			},
+			wantCSMDataShapes: []io.DataShape{
+				{Name: "Epoch", Type: io.INT64},
+				{Name: "QuoteTimestamp", Type: io.INT64},
+				{Name: "Ask", Type: io.FLOAT32},
+				{Name: "AskSize", Type: io.UINT32},
+				{Name: "Bid", Type: io.FLOAT32},
+				{Name: "BidSize", Type: io.UINT32},
+				{Name: "TradeTimestamp", Type: io.INT64},
+				{Name: "Price", Type: io.FLOAT32},
+				{Name: "Size", Type: io.UINT32},
+				{Name: "DailyTimestamp", Type: io.INT64},
+				{Name: "Open", Type: io.FLOAT32},
+				{Name: "High", Type: io.FLOAT32},
+				{Name: "Low", Type: io.FLOAT32},
+				{Name: "Close", Type: io.FLOAT32},
+				{Name: "Volume", Type: io.UINT64},
+				{Name: "MinuteTimestamp", Type: io.INT64},
+				{Name: "MinuteOpen", Type: io.FLOAT32},
+				{Name: "MinuteHigh", Type: io.FLOAT32},
+				{Name: "MinuteLow", Type: io.FLOAT32},
+				{Name: "MinuteClose", Type: io.FLOAT32},
+				{Name: "MinuteVolume", Type: io.UINT64},
+				{Name: "PreviousTimestamp", Type: io.INT64},
+				{Name: "PreviousOpen", Type: io.FLOAT32},
+				{Name: "PreviousHigh", Type: io.FLOAT32},
+				{Name: "PreviousLow", Type: io.FLOAT32},
+				{Name: "PreviousClose", Type: io.FLOAT32},
+				{Name: "PreviousVolume", Type: io.UINT64},
+			},
+			wantCSMLen: 2, // AAPL record is dropped because it's off-hours
+		},
+		{
 			name: "NG/failed to write to marketstore",
 			fields: fields{
-				Timeframe: "1Sec",
-				Timezone:  time.UTC,
+				Timeframe:   "1Sec",
+				Timezone:    time.UTC,
+				TimeChecker: &writer.NoopMarketTimeChecker{},
 			},
 			snapshots: map[string]*api.Snapshot{
 				"AAPL": {
@@ -144,16 +216,16 @@ func TestSnapshotWriterImpl_Write(t *testing.T) {
 
 			msw := &internal.MockMarketStoreWriter{Err: tt.writeErr}
 
-			q := SnapshotWriterImpl{
-				MarketStoreWriter: msw,
-				Timeframe:         tt.fields.Timeframe,
-				Timezone:          tt.fields.Timezone,
-			}
+			q := writer.NewSnapshotWriterImpl(msw, tt.fields.Timeframe, tt.fields.Timezone, tt.fields.TimeChecker)
 			err := q.Write(tt.snapshots)
 			require.Equal(t, tt.wantErr, err != nil)
 
 			tbks := msw.WrittenCSM.GetMetadataKeys()
 			if tt.wantTBKs != nil {
+				// sort tbks to ignore the order of keys
+				sort.SliceStable(tbks, func(i, j int) bool {
+					return tbks[i].String() < tbks[j].String()
+				})
 				require.Equal(t, tt.wantTBKs, tbks)
 			}
 

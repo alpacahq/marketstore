@@ -34,12 +34,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	apiCli := apiClient(config)
 
 	// init Market Time Checker
-	var timeChecker feed.MarketTimeChecker
-	timeChecker = feed.NewDefaultMarketTimeChecker(
-		config.ClosedDaysOfTheWeek,
-		config.ClosedDays,
-		config.OpenTime,
-		config.CloseTime)
+	var timeChecker feed.MarketTimeChecker = defaultTimeChecker(config)
 	if config.OffHoursSchedule != "" {
 		scheduleMin, err := feed.ParseSchedule(config.OffHoursSchedule)
 		if err != nil {
@@ -53,6 +48,11 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 			timeChecker,
 			scheduleMin,
 		)
+
+		if !config.ExtendedHours {
+			log.Warn("[Alpaca Broker Feeder] both off_hours_schedule and extend_hours=false is set! " +
+				"off-hour records won't be stored.")
+		}
 	}
 
 	ctx := context.Background()
@@ -72,12 +72,6 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	timer.RunEveryDayAt(ctx, config.SymbolsUpdateTime, sm.UpdateSymbols)
 	log.Info("updated symbols using a remote json file.")
 
-	// init SnapshotWriter
-	var ssw writer.SnapshotWriter = writer.SnapshotWriterImpl{
-		MarketStoreWriter: &writer.MarketStoreWriterImpl{},
-		Timeframe:         config.Timeframe,
-		Timezone:          utils.InstanceConfig.Timezone,
-	}
 	// init BarWriter
 	var bw writer.BarWriter = writer.BarWriterImpl{
 		MarketStoreWriter: &writer.MarketStoreWriterImpl{},
@@ -99,7 +93,7 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		MarketTimeChecker: timeChecker,
 		APIClient:         apiCli,
 		SymbolManager:     sm,
-		SnapshotWriter:    ssw,
+		SnapshotWriter:    snapshotWriter(config),
 		BarWriter:         bw,
 		Interval:          config.Interval,
 	}, nil
@@ -118,6 +112,28 @@ func apiClient(config *configs.DefaultConfig) *api.Client {
 		cred = api.Credentials()
 	}
 	return api.NewClient(cred)
+}
+
+func defaultTimeChecker(config *configs.DefaultConfig) *feed.DefaultMarketTimeChecker {
+	return feed.NewDefaultMarketTimeChecker(
+		config.ClosedDaysOfTheWeek,
+		config.ClosedDays,
+		config.OpenHourNY, config.OpenMinuteNY,
+		config.CloseHourNY, config.CloseMinuteNY)
+}
+
+func snapshotWriter(config *configs.DefaultConfig) writer.SnapshotWriter {
+	var tc writer.MarketTimeChecker = &writer.NoopMarketTimeChecker{}
+	if !config.ExtendedHours {
+		tc = defaultTimeChecker(config)
+	}
+
+	return writer.NewSnapshotWriterImpl(
+		&writer.MarketStoreWriterImpl{},
+		config.Timeframe,
+		utils.InstanceConfig.Timezone,
+		tc,
+	)
 }
 
 func main() {}
