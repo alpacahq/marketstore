@@ -76,7 +76,8 @@ bgworkers:
       open_time_NY: "9:25:00"
       close_time_NY: "16:10:00"
       # When extended_hours is false, TICK data during the off-hours 
-      # (= time < openTime and time > closeTime) are dropped and not stored in DB.
+      # (= time < openTime and time > closeTime) are dropped and not stored in DB, 
+      # even when off_hours_schedule is set.
       extended_hours: false
       # Alpaca Broker API Feeder doesn't run on the following days of the week
       closedDaysOfTheWeek:
