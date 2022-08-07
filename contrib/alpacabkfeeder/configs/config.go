@@ -4,6 +4,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alpacahq/marketstore/v4/utils/log"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
@@ -22,19 +24,20 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // DefaultConfig is the configuration for Alpaca Broker API Feeder you can define in
 // marketstore's config file through bgworker extension.
 type DefaultConfig struct {
-	Exchanges           []Exchange `json:"exchanges"`
-	SymbolsUpdateTime   time.Time  `json:"symbols_update_time"`
-	UpdateTime          time.Time  `json:"update_time"`
-	StocksJSONURL       string     `json:"stocks_json_url"`
-	StocksJSONBasicAuth string     `json:"stocks_json_basic_auth"`
-	Timeframe           string     `json:"timeframe"`
-	APIKeyID            string     `json:"api_key_id"`
-	APISecretKey        string     `json:"api_secret_key"`
-	OpenTime            time.Time
-	CloseTime           time.Time
-	ClosedDaysOfTheWeek []time.Weekday
-	ClosedDays          []time.Time
-	Interval            int `json:"interval"`
+	Exchanges                  []Exchange `json:"exchanges"`
+	SymbolsUpdateTime          time.Time  `json:"symbols_update_time"`
+	UpdateTime                 time.Time  `json:"update_time"`
+	StocksJSONURL              string     `json:"stocks_json_url"`
+	StocksJSONBasicAuth        string     `json:"stocks_json_basic_auth"`
+	Timeframe                  string     `json:"timeframe"`
+	APIKeyID                   string     `json:"api_key_id"`
+	APISecretKey               string     `json:"api_secret_key"`
+	OpenHourNY, OpenMinuteNY   int
+	CloseHourNY, CloseMinuteNY int
+	ExtendedHours              bool
+	ClosedDaysOfTheWeek        []time.Weekday
+	ClosedDays                 []time.Time
+	Interval                   int `json:"interval"`
 	// The data-feeding is executed when 'minute' of the current time matches off_hours_schedule
 	// even when the market is cloded. Example: "10" -> execute at 00:10, 01:10, 02:10,...,23:10
 	// Numbers separated by commas are allowed.  Example: "0,15,30,45" -> execute every 15 minutes.
@@ -84,8 +87,10 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	aux := &struct {
 		SymbolsUpdateTime   CustomTime  `json:"symbols_update_time"`
 		UpdateTime          CustomTime  `json:"update_time"`
-		OpenTime            CustomTime  `json:"openTime"`
-		CloseTime           CustomTime  `json:"closeTime"`
+		OpenTime            CustomTime  `json:"openTime"`  // deprecated
+		CloseTime           CustomTime  `json:"closeTime"` // deprecated
+		OpenTimeNY          CustomTime  `json:"open_time_NY"`
+		CloseTimeNY         CustomTime  `json:"close_time_NY"`
 		ClosedDaysOfTheWeek []weekday   `json:"closedDaysOfTheWeek"`
 		ClosedDays          []CustomDay `json:"closedDays"`
 		*Alias
@@ -96,8 +101,14 @@ func (c *DefaultConfig) UnmarshalJSON(input []byte) error {
 	}
 	c.SymbolsUpdateTime = time.Time(aux.SymbolsUpdateTime)
 	c.UpdateTime = time.Time(aux.UpdateTime)
-	c.OpenTime = time.Time(aux.OpenTime)
-	c.CloseTime = time.Time(aux.CloseTime)
+	if !time.Time(aux.OpenTime).IsZero() || !time.Time(aux.CloseTime).IsZero() {
+		log.Error("!!!!!!!!open_time and close_time config are DEPRECATED!!!!!!!! " +
+			"Please use open_time_NY and close_time_NY instead.")
+		return errors.New("!!!!!!!!open_time and close_time config are DEPRECATED!!!!!!!! " +
+			"Please use open_time_NY and close_time_NY instead.")
+	}
+	c.OpenHourNY, c.OpenMinuteNY, _ = time.Time(aux.OpenTimeNY).Clock()
+	c.CloseHourNY, c.CloseMinuteNY, _ = time.Time(aux.CloseTimeNY).Clock()
 	c.ClosedDaysOfTheWeek = convertTime(aux.ClosedDaysOfTheWeek)
 	c.ClosedDays = convertDate(aux.ClosedDays)
 

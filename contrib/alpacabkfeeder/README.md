@@ -68,14 +68,22 @@ bgworkers:
       # Numbers separated by commas are allowed.  Example: "0,15,30,45" -> execute every 15 minutes.
       # Whitespaces are ignored.
       off_hours_schedule: "0,15,30,45"
-      # Alpaca Broker API Feeder runs from openTime ~ closeTime (UTC)
-      openTime: "14:30:00" # 14:30(UTC) = 09:30 (EST)
-      closeTime: "21:00:00" # 21:00(UTC) = 16:00 (EST)
+      # (Deprecated) Alpaca Broker API Feeder runs from openTime ~ closeTime (UTC)
+      # openTime: "14:30:00" # 14:30(UTC) = 09:30 (EST)
+      # closeTime: "14:29:00"
+      # Alpaca Broker API Feeder runs between open_time_NY and close_time_NY
+      # (in "America/New_York" Location)
+      open_time_NY: "9:25:00"
+      close_time_NY: "16:10:00"
+      # When extended_hours is false, TICK data during the off-hours 
+      # (= time < openTime and time > closeTime) are dropped and not stored in DB, 
+      # even when off_hours_schedule is set.
+      extended_hours: false
       # Alpaca Broker API Feeder doesn't run on the following days of the week
       closedDaysOfTheWeek:
         - "Saturday"
         - "Sunday"
-      # Alpaca Broker API Feeder doesn't run on the closed dates (in JST)
+      # Alpaca Broker API Feeder doesn't run on the closed dates (in "America/New_York" location)
       # (cf. https://www.jpx.co.jp/corporate/about-jpx/calendar/ )
       closedDays:
         - "2021-12-24"
