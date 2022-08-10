@@ -39,7 +39,15 @@ marketstore connect --url localhost:5993
 ```
 
 ### Source
-MarketStoreはGoを用いて実装されているので、ソースコードからビルドすることも簡単です。Go `1.11` 以上のバージョンを使用し、また依存管理には`go mod` を使用しています。
+MarketStoreはGoを用いて実装されているので、`go install`コマンドでインストールすることができます。
+```sh
+go install github.com/alpacahq/marketstore/v4@latest
+# export GOROOT=$HOME/go
+# export PATH=$PATH:$GOROOT/bin
+marketstore --version
+```
+
+ソースコードからビルドすることも簡単です。Go `1.11` 以上のバージョンを使用し、また依存管理には`go mod` を使用しています。
 ``` sh
 go get -u github.com/alpacahq/marketstore
 ```

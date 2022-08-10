@@ -1,12 +1,9 @@
 package feed
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
 var ny, _ = time.LoadLocation("America/New_York")
@@ -51,7 +48,7 @@ func NewDefaultMarketTimeChecker(
 // if closedDates are defined, return false on those days.
 func (m *DefaultMarketTimeChecker) IsOpen(t time.Time) bool {
 	tNY := t.In(ny)
-	return m.isOpenDate(tNY) && m.isOpenWeekDay(tNY) && m.isOpenTime(tNY)
+	return m.isOpenTime(tNY) && m.isOpenWeekDay(tNY) && m.isOpenDate(tNY)
 }
 
 // isOpenTime returns true if the specified time is between the OpenTime and the CloseTime.
@@ -61,9 +58,9 @@ func (m *DefaultMarketTimeChecker) isOpenTime(nyT time.Time) bool {
 	closeTimeNY := time.Date(nyTYear, nyTMonth, nyTDay, m.CloseHourNY, m.CloseMinuteNY, 0, 0, ny)
 
 	if nyT.Before(openTimeNY) || nyT.After(closeTimeNY) {
-		log.Debug(fmt.Sprintf("[Alpaca Broker Feeder] market is not open. "+
-			"openTime(NewYork)=%02d:%02d, closeTime(NewYork)=%02d:%02d, now=%v",
-			openTimeNY.Hour(), openTimeNY.Minute(), closeTimeNY.Hour(), closeTimeNY.Minute(), nyT))
+		//log.Debug(fmt.Sprintf("[Alpaca Broker Feeder] market is not open. "+
+		//	"openTime(NewYork)=%02d:%02d, closeTime(NewYork)=%02d:%02d, now=%v",
+		//	openTimeNY.Hour(), openTimeNY.Minute(), closeTimeNY.Hour(), closeTimeNY.Minute(), nyT))
 		return false
 	}
 	return true
