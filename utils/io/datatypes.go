@@ -43,6 +43,7 @@ const (
 	INT32
 	FLOAT64
 	INT64
+	EPOCH // deprecated but kept for compatibility
 	BYTE
 	BOOL
 	NONE
