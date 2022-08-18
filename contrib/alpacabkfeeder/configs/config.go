@@ -34,7 +34,7 @@ type DefaultConfig struct {
 	APISecretKey               string     `json:"api_secret_key"`
 	OpenHourNY, OpenMinuteNY   int
 	CloseHourNY, CloseMinuteNY int
-	ExtendedHours              bool
+	ExtendedHours              bool `json:"extended_hours"`
 	ClosedDaysOfTheWeek        []time.Weekday
 	ClosedDays                 []time.Time
 	Interval                   int `json:"interval"`
