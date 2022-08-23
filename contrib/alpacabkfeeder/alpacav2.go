@@ -64,13 +64,13 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 		sm = symbols.NewJSONFileManager(&http.Client{Timeout: getJSONFileTimeout},
 			config.StocksJSONURL, config.StocksJSONBasicAuth,
 		)
+		log.Info("updating symbols using a remote json file.")
 	}
 	sm.UpdateSymbols()
 	if config.SymbolsUpdateTime.IsZero() {
 		config.SymbolsUpdateTime = config.UpdateTime
 	}
 	timer.RunEveryDayAt(ctx, config.SymbolsUpdateTime, sm.UpdateSymbols)
-	log.Info("updated symbols using a remote json file.")
 
 	// init BarWriter
 	var bw writer.BarWriter = writer.BarWriterImpl{
