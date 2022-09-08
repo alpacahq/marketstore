@@ -35,12 +35,12 @@ func defaultDo(c *Client, req *http.Request) (*http.Response, error) {
 	if c.credentials.OAuth != "" {
 		req.Header.Set("Authorization", "Bearer "+c.credentials.OAuth)
 	} else {
-		if strings.Contains(req.URL.String(), "sandbox") {
-			// Add Basic Auth
-			req.SetBasicAuth(c.credentials.ID, c.credentials.Secret)
-		} else {
+		if c.credentials.AuthMethod == HeaderAuth {
 			req.Header.Set("APCA-API-KEY-ID", c.credentials.ID)
 			req.Header.Set("APCA-API-SECRET-KEY", c.credentials.Secret)
+		} else {
+			// default: Basic Auth
+			req.SetBasicAuth(c.credentials.ID, c.credentials.Secret)
 		}
 	}
 
@@ -116,6 +116,13 @@ func (e *APIError) Error() string {
 type Client struct {
 	credentials *APIKey
 }
+
+type AuthMethod int
+
+const (
+	BasicAuth = iota
+	HeaderAuth
+)
 
 func SetBaseUrl(baseUrl string) {
 	base = baseUrl
@@ -292,7 +299,6 @@ func (c *Client) ListAssets(status *string) ([]v1.Asset, error) {
 	}
 
 	u.RawQuery = q.Encode()
-
 	resp, err := c.get(u)
 	if err != nil {
 		return nil, err
