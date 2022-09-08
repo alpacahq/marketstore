@@ -51,7 +51,7 @@ func (w *Worker) tryPrintErr() {
 	}()
 }
 
-// try calls GetQuotes endpoint of Alpaca API,
+// try calls GetSnapshots endpoint of Alpaca API,
 // convert the API response to a ColumnSeriesMap and write it to the marketstore.
 func (w *Worker) try() error {
 	// check if it needs to work now
@@ -66,6 +66,7 @@ func (w *Worker) try() error {
 			len(symbls), err,
 		)
 	}
+	log.Info("successfully got snapshot data from Alpaca API. len(symbols)=%v", len(symbls))
 
 	// write SnapShot data
 	err = w.SnapshotWriter.Write(snapshots)

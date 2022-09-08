@@ -54,6 +54,10 @@ bgworkers:
       # environment variables.
       api_key_id: "foobar"
       api_secret_key: "fizzbuzz"
+      # auth method for the Alpaca API. "basic" (default value. basic authentication is used.)
+      # or "header" ("APCA-API-KEY-ID" and "APCA-API-SECRET-KEY" HTTP headers are used).
+      # This config can be manually overridden by "APCA_API_AUTH_METHOD" environmental variable.
+      #auth_method: "basic"
       # Timeout: Due to the restriction of the Alpaca API Client library used in this plugin,
       # Alpaca API Client timeout can be updated only by "APCA_API_CLIENT_TIMEOUT" environmental variable.
       # Please set the env var to a duration string is a possibly signed sequence of

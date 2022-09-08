@@ -106,6 +106,7 @@ func apiClient(config *configs.DefaultConfig) *api.Client {
 		PolygonKeyID: config.APIKeyID,
 		Secret:       config.APISecretKey,
 		// OAuth:        os.Getenv(EnvApiOAuth),
+		AuthMethod: api.AuthMethodFromString(config.AuthMethod),
 	}
 	if config.APIKeyID == "" || config.APISecretKey == "" {
 		// if empty, get from env vars

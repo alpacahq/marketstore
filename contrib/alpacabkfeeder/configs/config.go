@@ -32,6 +32,7 @@ type DefaultConfig struct {
 	Timeframe                  string     `json:"timeframe"`
 	APIKeyID                   string     `json:"api_key_id"`
 	APISecretKey               string     `json:"api_secret_key"`
+	AuthMethod                 string     `json:"auth_method"`
 	OpenHourNY, OpenMinuteNY   int
 	CloseHourNY, CloseMinuteNY int
 	ExtendedHours              bool `json:"extended_hours"`
