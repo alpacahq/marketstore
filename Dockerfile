@@ -3,8 +3,10 @@
 #
 # Uses a Go image to build a release binary.
 #
-ARG golang=golang:1.18.1-buster
+ARG golang=golang:1.19.2-bullseye
+ARG osver=debian:bullseye
 #ARG golang=arm64v8/golang:1.19.2-bullseye
+#ARG os=arm64v8/debian:bullseye
 FROM $golang as builder
 ARG tag=latest
 ARG INCLUDE_PLUGINS=true
@@ -20,9 +22,7 @@ RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make bui
 #
 # Create final image
 #
-ARG os=debian:10.3
-#ARG os=arm64v8/debian:bullseye
-FROM $os
+FROM $osver
 WORKDIR /
 
 RUN apt-get update && \
