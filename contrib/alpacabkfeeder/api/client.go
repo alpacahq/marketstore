@@ -9,10 +9,12 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	v1 "github.com/alpacahq/marketstore/v4/contrib/alpacabkfeeder/api/v1"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 const (
@@ -28,7 +30,9 @@ var (
 	dataURL       = "https://data.alpaca.markets"
 	apiVersion    = "v2"
 	clientTimeout = 10 * time.Second
-	do            = defaultDo
+	// maximum number of retries
+	retryMax = 1
+	do       = defaultDo
 )
 
 func defaultDo(c *Client, req *http.Request) (*http.Response, error) {
@@ -44,9 +48,11 @@ func defaultDo(c *Client, req *http.Request) (*http.Response, error) {
 		}
 	}
 
-	client := &http.Client{
-		Timeout: clientTimeout,
-	}
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = retryMax
+	client := retryClient.StandardClient() // *http.Client
+	client.Timeout = clientTimeout
+
 	var resp *http.Response
 	var err error
 	for i := 0; ; i++ {
@@ -98,6 +104,13 @@ func init() {
 			log.Fatal("invalid APCA_API_CLIENT_TIMEOUT: " + err.Error())
 		}
 		clientTimeout = d
+	}
+	if s := os.Getenv("APCA_API_RETRY_MAX"); s != "" {
+		d, err := strconv.Atoi(s)
+		if err != nil {
+			log.Fatal("invalid APCA_API_RETRY_MAX: " + err.Error())
+		}
+		retryMax = d
 	}
 }
 

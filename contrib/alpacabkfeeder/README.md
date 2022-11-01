@@ -65,6 +65,9 @@ bgworkers:
       # such as "300ms", "5.5s" if you want to change it from the default 10sec timeout.
       # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
       # 
+      # RetryMax: The number of maximum retries for Alpaca API.
+      # It can be updated only by "APCA_API_RETRY_MAX" environmental variable.
+      # 
       # Interval [sec] to call Alpaca Broker API
       interval: 10
       # The data-feeding is executed when 'minute' of the current time matches off_hours_schedule

@@ -31,9 +31,8 @@ func Test_datePageIndex(t *testing.T) {
 			end:      date(5),
 			pageDays: 2,
 			want: []dateRange{
-				{From: date(1), To: date(2)},
-				{From: date(3), To: date(4)},
-				{From: date(5), To: date(5)},
+				{From: date(1), To: date(3)},
+				{From: date(3), To: date(5)},
 			},
 		},
 		{
@@ -51,9 +50,9 @@ func Test_datePageIndex(t *testing.T) {
 			end:      date(3),
 			pageDays: 1,
 			want: []dateRange{
-				{From: date(1), To: date(1)},
-				{From: date(2), To: date(2)},
-				{From: date(3), To: date(3)},
+				{From: date(1), To: date(2)},
+				{From: date(2), To: date(3)},
+				{From: date(3), To: date(4)},
 			},
 		},
 	}

@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	dYear, dMonth, dDay    = time.Now().Add(-24 * time.Hour).Date()
+	dYear, dMonth, dDay    = time.Now().UTC().Add(-24 * time.Hour).Date()
 	d                      = time.Date(dYear, dMonth, dDay, 0, 0, 0, 0, time.UTC)
-	d2Year, d2Month, d2Day = time.Now().Add(-48 * time.Hour).Date()
+	d2Year, d2Month, d2Day = time.Now().UTC().Add(-48 * time.Hour).Date()
 	d2                     = time.Date(d2Year, d2Month, d2Day, 0, 0, 0, 0, time.UTC)
-	d3Year, d3Month, d3Day = time.Now().Add(-72 * time.Hour).Date()
+	d3Year, d3Month, d3Day = time.Now().UTC().Add(-72 * time.Hour).Date()
 	d3                     = time.Date(d3Year, d3Month, d3Day, 0, 0, 0, 0, time.UTC)
 )
 
@@ -48,7 +48,7 @@ type MockErrorAPIClient struct {
 }
 
 // GetMultiBars returns an error if symbol:"ERROR" is included, but returns data to other symbols.
-func (mac *MockErrorAPIClient) GetMultiBars(symbols []string, opts api.GetBarsParams) (map[string][]api.Bar, error) {
+func (mac *MockErrorAPIClient) GetMultiBars(symbols []string, req api.GetBarsParams) (map[string][]api.Bar, error) {
 	ret := make(map[string][]api.Bar)
 	for _, symbl := range symbols {
 		if symbl == errorSymbol {
@@ -60,10 +60,10 @@ func (mac *MockErrorAPIClient) GetMultiBars(symbols []string, opts api.GetBarsPa
 			// filter by time
 			for _, bar := range bars {
 				barTime := time.Unix(bar.Timestamp.Unix(), 0).UTC().Truncate(24 * time.Hour) // 00:00:00 of the bar time
-				startDt := opts.Start.UTC().Truncate(24 * time.Hour)
-				endDt := opts.End.UTC().Truncate(24 * time.Hour)
+				startDt := req.Start.UTC().Truncate(24 * time.Hour)
+				endDt := req.End.UTC().Truncate(24 * time.Hour)
 
-				if barTime.Equal(startDt) || (barTime.After(startDt) && barTime.Before(startDt)) || barTime.Equal(endDt) {
+				if barTime.Equal(startDt) || (barTime.After(startDt) && barTime.Before(endDt)) {
 					barPage = append(barPage, bar)
 				}
 			}
@@ -104,7 +104,7 @@ func TestBackfill_UpdateSymbols(t *testing.T) {
 			testBars:            testBars,
 			maxBarsPerReq:       2,
 			maxSymbolsPerReq:    2,
-			since:               time.Now().Add(-72 * time.Hour),
+			since:               time.Now().UTC().Add(-72 * time.Hour),
 			wantWrittenBarCount: 9,
 		},
 		{
@@ -113,7 +113,7 @@ func TestBackfill_UpdateSymbols(t *testing.T) {
 			testBars:            testBars,
 			maxBarsPerReq:       1,
 			maxSymbolsPerReq:    3,
-			since:               time.Now().Add(-72 * time.Hour),
+			since:               time.Now().UTC().Add(-72 * time.Hour),
 			wantWrittenBarCount: 9,
 		},
 		{
@@ -122,7 +122,7 @@ func TestBackfill_UpdateSymbols(t *testing.T) {
 			testBars:         testBars,
 			maxBarsPerReq:    2,
 			maxSymbolsPerReq: 2,
-			since:            time.Now().Add(-72 * time.Hour),
+			since:            time.Now().UTC().Add(-72 * time.Hour),
 			// firstPage=[AMZN, AAPL] so all data succeed.
 			// secondPage=[error FB] so all data result in error.
 			wantWrittenBarCount: 6,
