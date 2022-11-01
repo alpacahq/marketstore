@@ -41,7 +41,7 @@ func NewBackfill(symbolManager symbols.Manager, apiClient GetMultiBarsAPIClient,
 // and store it to "{symbol}/{timeframe}/OHLCV" bucket in marketstore.
 func (b *Backfill) UpdateSymbols() {
 	allSymbols := b.symbolManager.GetAllSymbols()
-	y, m, d := time.Now().Date()
+	y, m, d := time.Now().UTC().Date()
 	until := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 
 	// paginate symbols & paginate bars
@@ -133,12 +133,12 @@ type dateRange struct {
 // datePageIndex returns a channel with paginated date ranges.
 // datePageIndex assumes that start and end have only year, month, and day information
 // like time.Date(yyyy, mm, dd, 0,0,0,0, time.UTC)
-// e.g. start = 2021-12-01, end = 2021-12-05, pageDays = 2
+// e.g. start = 2021-12-01, end = 2021-12-06, pageDays = 2
 // -> chan will return
 // [
-//	{From:2021-12-01, To:2021-12-02},
-//	{From:2021-12-03, To:2021-12-04},
-//	{From:2021-12-05, To:2021-12-05}
+//	{From:2021-12-01, To:2021-12-03},
+//	{From:2021-12-03, To:2021-12-05},
+//	{From:2021-12-05, To:2021-12-06}
 // ].
 func datePageIndex(start, end time.Time, pageDays int) <-chan dateRange {
 	ch := make(chan dateRange)
@@ -149,7 +149,7 @@ func datePageIndex(start, end time.Time, pageDays int) <-chan dateRange {
 		i := start
 		for {
 			pageStart := i
-			pageEnd := i.AddDate(0, 0, pageDays-1)
+			pageEnd := i.AddDate(0, 0, pageDays)
 			if pageEnd.After(end) {
 				pageEnd = end
 			}
@@ -157,7 +157,7 @@ func datePageIndex(start, end time.Time, pageDays int) <-chan dateRange {
 			ch <- page
 
 			i = i.AddDate(0, 0, pageDays)
-			if i.After(end) {
+			if i.Equal(end) || i.After(end) {
 				break
 			}
 		}
