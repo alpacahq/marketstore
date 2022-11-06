@@ -29,7 +29,15 @@ func NewBgWorker(conf map[string]interface{}) (bgworker.BgWorker, error) {
 	log.Info("loaded Xignite Feeder config...")
 
 	// init Xignite API client
-	apiClient := api.NewDefaultAPIClient(config.APIToken, config.Timeout)
+	apiClient := api.NewDefaultAPIClient(config.APIToken, config.Timeout, config.BaseURL, api.Endpoints{
+		EquityRealTimeGetQuotes:        config.Endpoint.EquityRealTimeGetQuotes,
+		EquityRealTimeListSymbols:      config.Endpoint.EquityRealTimeListSymbols,
+		EquityRealTimeGetBars:          config.Endpoint.EquityRealTimeGetBars,
+		EquityHistoricalGetQuotesRange: config.Endpoint.EquityHistoricalGetQuotesRange,
+		IndexRealTimeGetBars:           config.Endpoint.IndexRealTimeGetBars,
+		IndexHistoricalListSymbols:     config.Endpoint.IndexHistoricalListSymbols,
+		IndexHistoricalGetQuotesRange:  config.Endpoint.IndexHistoricalGetQuotesRange,
+	})
 
 	// init Market Time Checker
 	var timeChecker feed.MarketTimeChecker
