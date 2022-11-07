@@ -17,11 +17,9 @@ bgworkers:
       # exchange list
       exchanges:
         - XTKS # Tokyo Stock Exchange
-        - XJAS # Jasdaq
         #- XNGO # Nagoya Stock Exchange
         #- XSAP # Sapporo Stock Exchange
         #- XFKA # Fukuoka Stock Exchange
-        #- XTAM # Tokyo PRO Market
       # Xignite feeder also retrieves data of Index Symbols (ex. ＴＯＰＩＸ（東証１部株価指数）) every day.
       # To get target indices, index groups that the indices belong are necessary.
       # (cf. https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols )

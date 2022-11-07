@@ -21,6 +21,7 @@ func (mac *MockListSymbolsAPIClient) ListSymbols(_ context.Context, exchange str
 			ArrayOfSecurityDescription: []api.SecurityDescription{
 				{Symbol: "1234"},
 				{Symbol: "5678"},
+				{Symbol: "90123"}, // 5-digit stock code should be ignored
 			},
 		}, nil
 	}
