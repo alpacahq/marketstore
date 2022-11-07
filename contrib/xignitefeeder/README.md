@@ -17,11 +17,9 @@ bgworkers:
       # exchange list
       exchanges:
         - XTKS # Tokyo Stock Exchange
-        - XJAS # Jasdaq
         #- XNGO # Nagoya Stock Exchange
         #- XSAP # Sapporo Stock Exchange
         #- XFKA # Fukuoka Stock Exchange
-        #- XTAM # Tokyo PRO Market
       # Xignite feeder also retrieves data of Index Symbols (ex. ＴＯＰＩＸ（東証１部株価指数）) every day.
       # To get target indices, index groups that the indices belong are necessary.
       # (cf. https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols )
@@ -42,6 +40,17 @@ bgworkers:
       update_time: "22:00:00" # (UTC). = every day at 07:00:00 (JST)
       # XigniteFeeder writes data to "{identifier}/{timeframe}/TICK" TimeBucketKey
       timeframe: "1Sec"
+      # Base URL of the API
+      base_url: "https://stg-api.mk-smapi.jp/"
+      # Endpoint of each Xigntie API
+      endpoint:
+        equity_realtime_get_quotes: "MINKABUEquityRealTime.json/GetQuotes"
+        equity_realtime_list_symbols: "MINKABUEquityRealTime.json/ListSymbols"
+        equity_realtime_get_bars: "MINKABUEquityRealTime.json/GetBars"
+        equity_historical_get_quotes_range: "MINKABUEquityHistorical.json/GetQuotesRange"
+        index_realtime_get_bars: "MINKABUIndexRealTime.json/GetBars"
+        index_historical_list_symbols: "MINKABUIndexHistorical.json/ListSymbols"
+        index_historical_get_quotes_range: "MINKABUIndexHistorical.json/GetQuotesRange"
       # Auth token for Xignite API
       # This config can be manually overridden by "XIGNITE_FEEDER_API_TOKEN" environmental variable.
       token: "D***0"

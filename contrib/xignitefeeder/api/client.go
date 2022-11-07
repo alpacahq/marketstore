@@ -15,36 +15,17 @@ import (
 	"github.com/alpacahq/marketstore/v4/utils/log"
 )
 
-const (
-	// XigniteBaseURL is a Base URL for Quick Xignite API
-	// (https://www.marketdata-cloud.quick-co.jp/Products/)
-	XigniteBaseURL = "https://api.marketdata-cloud.quick-co.jp"
-	// GetQuotesURL is the URL of Get Quotes endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetQuotes)
-	GetQuotesURL = XigniteBaseURL + "/QUICKEquityRealTime.json/GetQuotes"
-	// ListSymbolsURL is the URL of List symbols endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols)
-	ListSymbolsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/ListSymbols"
-	// ListIndexSymbolsURL is the URL of List symbols endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/ListSymbols)
-	// /QUICKEquityRealTime.json/ListSymbols : list symbols for a exchange
-	// /QUICKIndexHistorical.json/ListSymbols : list index symbols for an index group (ex. TOPIX).
-	ListIndexSymbolsURL = XigniteBaseURL + "/QUICKIndexHistorical.json/ListSymbols"
-	// GetBarsURL is the URL of Get Bars endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/GetBars)
-	GetBarsURL = XigniteBaseURL + "/QUICKEquityRealTime.json/GetBars"
-	// GetIndexBarsURL is the URL of QuickIndexRealTime/GetBars endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexRealTime/Overview/GetBars)
-	GetIndexBarsURL = XigniteBaseURL + "/QUICKIndexRealTime.json/GetBars"
-	// GetQuotesRangeURL is the URL of Get Quotes Range endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityHistorical/Overview/GetQuotesRange)
-	GetQuotesRangeURL = XigniteBaseURL + "/QUICKEquityHistorical.json/GetQuotesRange"
-	// GetIndexQuotesRangeURL is the URL of Get Index Quotes Range endpoint
-	// (https://www.marketdata-cloud.quick-co.jp/Products/QUICKIndexHistorical/Overview/GetQuotesRange)
-	GetIndexQuotesRangeURL = XigniteBaseURL + "/QUICKIndexHistorical.json/GetQuotesRange"
+const SuccessOutcome = "Success"
 
-	SuccessOutcome = "Success"
-)
+type Endpoints struct {
+	EquityRealTimeGetQuotes        string
+	EquityRealTimeListSymbols      string
+	EquityRealTimeGetBars          string
+	EquityHistoricalGetQuotesRange string
+	IndexRealTimeGetBars           string
+	IndexHistoricalListSymbols     string
+	IndexHistoricalGetQuotesRange  string
+}
 
 // Client calls an endpoint and returns the parsed response.
 type Client interface {
@@ -62,10 +43,12 @@ type Client interface {
 }
 
 // NewDefaultAPIClient initializes Xignite API client with the specified API token and HTTP timeout[sec].
-func NewDefaultAPIClient(token string, timeoutSec int) *DefaultClient {
+func NewDefaultAPIClient(token string, timeoutSec int, baseURL string, endpoints Endpoints) *DefaultClient {
 	return &DefaultClient{
 		httpClient: &http.Client{Timeout: time.Duration(timeoutSec) * time.Second},
 		token:      token,
+		baseURL:    baseURL,
+		endpoints:  endpoints,
 	}
 }
 
@@ -73,6 +56,8 @@ func NewDefaultAPIClient(token string, timeoutSec int) *DefaultClient {
 type DefaultClient struct {
 	httpClient *http.Client
 	token      string
+	baseURL    string
+	endpoints  Endpoints
 }
 
 // GetRealTimeQuotes calls GetQuotes endpoint of Xignite API with specified identifiers
@@ -86,7 +71,8 @@ func (c *DefaultClient) GetRealTimeQuotes(ctx context.Context, identifiers []str
 		"Identifiers":    {strings.Join(identifiers, ",")},
 	}
 	req, err := http.NewRequestWithContext(ctx,
-		"POST", GetQuotesURL, strings.NewReader(form.Encode()))
+		"POST", fmt.Sprintf("%s%s", c.baseURL, c.endpoints.EquityRealTimeGetQuotes),
+		strings.NewReader(form.Encode()))
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request")
 	}
@@ -121,7 +107,8 @@ func (c *DefaultClient) GetRealTimeQuotes(ctx context.Context, identifiers []str
 // https://www.marketdata-cloud.quick-co.jp/Products/QUICKEquityRealTime/Overview/ListSymbols
 // exchange: XTKS, XNGO, XSAP, XFKA, XJAS, XTAM
 func (c *DefaultClient) ListSymbols(ctx context.Context, exchange string) (response ListSymbolsResponse, err error) {
-	apiURL := ListSymbolsURL + fmt.Sprintf("?_token=%s&Exchange=%s", c.token, exchange)
+	apiURL := fmt.Sprintf("%s%s?_token=%s&Exchange=%s",
+		c.baseURL, c.endpoints.EquityRealTimeListSymbols, c.token, exchange)
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, http.NoBody)
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request")
@@ -145,7 +132,8 @@ func (c *DefaultClient) ListSymbols(ctx context.Context, exchange string) (respo
 // indexGroup: INDXJPX, IND_NIKKEI.
 func (c *DefaultClient) ListIndexSymbols(ctx context.Context, indexGroup string,
 ) (response ListIndexSymbolsResponse, err error) {
-	apiURL := ListIndexSymbolsURL + fmt.Sprintf("?_token=%s&GroupName=%s", c.token, indexGroup)
+	apiURL := fmt.Sprintf("%s%s?_token=%s&GroupName=%s",
+		c.baseURL, c.endpoints.IndexHistoricalListSymbols, c.token, indexGroup)
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, http.NoBody)
 	if err != nil {
 		return response, errors.Wrap(err, "failed to create an http request")
@@ -182,7 +170,8 @@ func getBarsURLValues(token, identifier string, start, end time.Time) url.Values
 func (c *DefaultClient) GetRealTimeBars(ctx context.Context, identifier string, start, end time.Time,
 ) (response GetBarsResponse, err error) {
 	form := getBarsURLValues(c.token, identifier, start, end)
-	req, err := getBarsRequest(ctx, GetBarsURL, form.Encode())
+	req, err := getBarsRequest(ctx, fmt.Sprintf("%s%s", c.baseURL, c.endpoints.EquityRealTimeGetBars),
+		form.Encode())
 	if err != nil {
 		return response, err
 	}
@@ -202,7 +191,8 @@ func (c *DefaultClient) GetRealTimeBars(ctx context.Context, identifier string, 
 func (c *DefaultClient) GetIndexBars(ctx context.Context, identifier string, start, end time.Time,
 ) (response GetIndexBarsResponse, err error) {
 	form := getBarsURLValues(c.token, identifier, start, end)
-	req, err := getBarsRequest(ctx, GetIndexBarsURL, form.Encode())
+	req, err := getBarsRequest(ctx, fmt.Sprintf("%s%s", c.baseURL, c.endpoints.IndexRealTimeGetBars),
+		form.Encode())
 	if err != nil {
 		return response, err
 	}
@@ -233,7 +223,8 @@ func getBarsRequest(ctx context.Context, url, body string) (*http.Request, error
 func (c *DefaultClient) GetQuotesRange(ctx context.Context, identifier string, startDate, endDate time.Time,
 ) (response GetQuotesRangeResponse, err error) {
 	formValues := quotesRangeFormValues(c.token, identifier, startDate, endDate)
-	req, err := quotesRangeReq(ctx, GetQuotesRangeURL, formValues.Encode())
+	req, err := quotesRangeReq(ctx, fmt.Sprintf("%s%s", c.baseURL, c.endpoints.EquityHistoricalGetQuotesRange),
+		formValues.Encode())
 	if err != nil {
 		return response, err
 	}
@@ -257,7 +248,8 @@ func (c *DefaultClient) GetQuotesRange(ctx context.Context, identifier string, s
 func (c *DefaultClient) GetIndexQuotesRange(ctx context.Context, identifier string, startDate, endDate time.Time,
 ) (response GetIndexQuotesRangeResponse, err error) {
 	formValues := quotesRangeFormValues(c.token, identifier, startDate, endDate)
-	req, err := quotesRangeReq(ctx, GetIndexQuotesRangeURL, formValues.Encode())
+	req, err := quotesRangeReq(ctx, fmt.Sprintf("%s%s", c.baseURL, c.endpoints.IndexHistoricalGetQuotesRange),
+		formValues.Encode())
 	if err != nil {
 		return response, err
 	}

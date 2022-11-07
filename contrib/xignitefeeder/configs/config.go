@@ -30,6 +30,8 @@ type DefaultConfig struct {
 	Timeframe           string    `json:"timeframe"`
 	APIToken            string    `json:"token"`
 	Timeout             int       `json:"timeout"`
+	BaseURL             string    `json:"base_url"`
+	Endpoint            Endpoint  `json:"endpoint"`
 	OpenTime            time.Time
 	CloseTime           time.Time
 	ClosedDaysOfTheWeek []time.Weekday
@@ -54,6 +56,16 @@ type DefaultConfig struct {
 	} `json:"recentBackfill"`
 }
 
+type Endpoint struct {
+	EquityRealTimeGetQuotes        string `json:"equity_realtime_get_quotes"`
+	EquityRealTimeListSymbols      string `json:"equity_realtime_list_symbols"`
+	EquityRealTimeGetBars          string `json:"equity_realtime_get_bars"`
+	EquityHistoricalGetQuotesRange string `json:"equity_historical_get_quotes_range"`
+	IndexRealTimeGetBars           string `json:"index_realtime_get_bars"`
+	IndexHistoricalListSymbols     string `json:"index_historical_list_symbols"`
+	IndexHistoricalGetQuotesRange  string `json:"index_historical_get_quotes_range"`
+}
+
 // NewConfig casts a map object to Config struct and returns it through json marshal->unmarshal.
 func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	data, err := json.Marshal(config)
@@ -74,8 +86,38 @@ func NewConfig(config map[string]interface{}) (*DefaultConfig, error) {
 	if err := validate(ret); err != nil {
 		return nil, fmt.Errorf("config validation error: %w", err)
 	}
+	ret.BaseURL, ret.Endpoint = endpointWithDefault(ret.BaseURL, ret.Endpoint)
 
 	return ret, nil
+}
+
+func endpointWithDefault(baseURL string, endpoint Endpoint) (string, Endpoint) {
+	if baseURL == "" {
+		baseURL = "https://api.marketdata-cloud.quick-co.jp/"
+	}
+	if endpoint.EquityRealTimeGetQuotes == "" {
+		endpoint.EquityRealTimeGetQuotes = "QUICKEquityRealTime.json/GetQuotes"
+	}
+	if endpoint.EquityRealTimeListSymbols == "" {
+		endpoint.EquityRealTimeListSymbols = "QUICKEquityRealTime.json/ListSymbols"
+	}
+	if endpoint.EquityRealTimeGetBars == "" {
+		endpoint.EquityRealTimeGetBars = "QUICKEquityRealTime.json/GetBars"
+	}
+	if endpoint.EquityHistoricalGetQuotesRange == "" {
+		endpoint.EquityHistoricalGetQuotesRange = "QUICKEquityHistorical.json/GetQuotesRange"
+	}
+	if endpoint.IndexRealTimeGetBars == "" {
+		endpoint.IndexRealTimeGetBars = "QUICKIndexRealTime.json/GetBars"
+	}
+	if endpoint.IndexHistoricalListSymbols == "" {
+		endpoint.IndexHistoricalListSymbols = "QUICKIndexHistorical.json/ListSymbols"
+	}
+	if endpoint.IndexHistoricalGetQuotesRange == "" {
+		endpoint.IndexHistoricalGetQuotesRange = "QUICKIndexHistorical.json/GetQuotesRange"
+	}
+
+	return baseURL, endpoint
 }
 
 func validate(cfg *DefaultConfig) error {

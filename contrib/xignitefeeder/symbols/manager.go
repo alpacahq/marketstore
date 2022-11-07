@@ -87,6 +87,12 @@ func (m *ManagerImpl) UpdateSymbols(ctx context.Context) {
 		var identifiers []string
 		for _, securityDescription := range resp.ArrayOfSecurityDescription {
 			symbol := securityDescription.Symbol
+			if len(symbol) >= 5 {
+				// ignore 5-digit stock code
+				log.Info(fmt.Sprintf("Ignore 5-digit stock code: %s", symbol))
+				continue
+			}
+
 			if _, found := m.NotQuoteStockList[symbol]; found {
 				// ignore symbols in not_quote_stock_list
 				continue
