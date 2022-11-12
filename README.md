@@ -286,6 +286,9 @@ marketstore connect --url <address>
 ```
 and run commands through the sql session.
 
+### SQL Support
+See [SQL support](./docs/sql-support/sql-support.md)
+
 ## Plugins
 Go plugin architecture works best with Go1.10+ on linux. For more on plugins, see the [plugins package](./plugins/) Some featured plugins are covered here -
 
