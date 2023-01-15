@@ -5,8 +5,6 @@
 #
 ARG golang=golang:1.19.2-bullseye
 ARG osver=debian:bullseye
-#ARG golang=arm64v8/golang:1.19.2-bullseye
-#ARG os=arm64v8/debian:bullseye
 FROM $golang as builder
 ARG tag=latest
 ARG INCLUDE_PLUGINS=true
