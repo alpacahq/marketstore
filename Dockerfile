@@ -3,8 +3,8 @@
 #
 # Uses a Go image to build a release binary.
 #
-ARG golang=golang:1.19.2-bullseye
-ARG osver=debian:bullseye
+ARG golang=golang:1.18.1-buster
+ARG osver=debian:10.3
 FROM $golang as builder
 ARG tag=latest
 ARG INCLUDE_PLUGINS=true
