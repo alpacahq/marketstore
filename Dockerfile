@@ -18,7 +18,7 @@ RUN if [ "$INCLUDE_PLUGINS" = "true" ] ; then make build plugins ; else make bui
 #
 # Create final image
 #
-FROM debian:10.3
+FROM debian:11.7
 WORKDIR /
 
 RUN apt-get update && \
